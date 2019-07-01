@@ -39,8 +39,8 @@ from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import (
-    merge_unreal_user, merge_apple_crash_report,
-    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
+    merge_unreal_user, unreal_attachment_type, merge_unreal_context_event,
+    merge_unreal_logs_event, write_applecrashreport_placeholder
 )
 
 from sentry.lang.native.minidump import (
@@ -884,6 +884,7 @@ class MinidumpView(StoreView):
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
     content_types = ('application/octet-stream',)
+    required_attachments = ('minidump', 'applecrashreport')
 
     def _dispatch(self, request, helper, relay_config, sentry_key, origin=None,
                   config_flags=None, *args, **kwargs):
@@ -923,8 +924,6 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        is_apple_crash_report = False
-
         attachments = []
         event = {
             'event_id': uuid.uuid4().hex,
@@ -937,11 +936,6 @@ class UnrealView(StoreView):
 
         try:
             unreal = Unreal4Crash.from_bytes(request.body)
-
-            apple_crash_report = unreal.get_apple_crash_report()
-            if apple_crash_report:
-                merge_apple_crash_report(apple_crash_report, event)
-                is_apple_crash_report = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -949,26 +943,30 @@ class UnrealView(StoreView):
                 relay_config.project_id,
                 None,
                 Outcome.INVALID,
-                "process_minidump_unreal")
+                "process_unreal")
             raise APIError(e.message.split('\n', 1)[0])
 
         try:
             unreal_context = unreal.get_context()
-            if unreal_context is not None:
-                merge_unreal_context_event(unreal_context, event, project)
         except Unreal4Error as e:
             # we'll continue without the context data
+            unreal_context = None
             minidumps_logger.exception(e)
+        else:
+            if unreal_context is not None:
+                merge_unreal_context_event(unreal_context, event, project)
 
         try:
             unreal_logs = unreal.get_logs()
-            if unreal_logs is not None:
-                merge_unreal_logs_event(unreal_logs, event)
         except Unreal4Error as e:
             # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
+        else:
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, event)
 
         is_minidump = False
+        is_applecrashreport = False
 
         for file in unreal.files():
             # Known attachment: msgpack event
@@ -979,13 +977,14 @@ class UnrealView(StoreView):
                 merge_attached_breadcrumbs(file.open_stream(), event)
                 continue
 
-            if file.type == "minidump" and not is_apple_crash_report:
+            if file.type == "minidump":
                 is_minidump = True
+            if file.type == "applecrashreport":
+                is_applecrashreport = True
 
-            # Always store the minidump in attachments so we can access it during
-            # processing, regardless of the event-attachments feature. This will
-            # allow us to stack walk again with CFI once symbols are loaded.
-            if file.type == "minidump" or attachments_enabled:
+            # Always store attachments that can be processed, regardless of the
+            # event-attachments feature.
+            if file.type in self.required_attachments or attachments_enabled:
                 attachments.append(CachedAttachment(
                     name=file.name,
                     data=file.open_stream().read(),
@@ -994,6 +993,8 @@ class UnrealView(StoreView):
 
         if is_minidump:
             write_minidump_placeholder(event)
+        elif is_applecrashreport:
+            write_applecrashreport_placeholder(event)
 
         event_id = self.process(
             request,
