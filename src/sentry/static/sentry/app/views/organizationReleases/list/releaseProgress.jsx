@@ -15,7 +15,7 @@ import ProgressBar from './progressBar';
 const STEPS = {
   tag: {
     desc: t('Tag an error'),
-    url: 'tag-errors',
+    url: 'configure-sdk',
     msg: 'knowing which errors were introduced in a release, ',
   },
   repo: {
@@ -173,7 +173,7 @@ class ReleaseProgress extends AsyncComponent {
               <span className="pull-right">
                 {t('Next step: ')}
                 <a
-                  href={`https://docs.sentry.io/learn/releases/#${nextStep.url}`}
+                  href={`https://docs.sentry.io/workflow/releases/#${nextStep.url}`}
                   onClick={() => this.recordAnalytics('next', {cta: nextStep.desc})}
                 >
                   {t(`${nextStep.desc}`)}

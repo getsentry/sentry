@@ -129,7 +129,7 @@ class ProjectReleaseTracking extends AsyncView {
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
                 {
                   link: (
-                    <a href="https://docs.sentry.io/workflow/releases/?platform=javascript#tag-errors">
+                    <a href="https://docs.sentry.io/workflow/releases/#configure-sdk">
                       our docs
                     </a>
                   ),
