@@ -4,8 +4,6 @@ import json
 import six
 import logging
 
-from copy import copy, deepcopy
-
 from sentry.coreapi import APIError
 from sentry.models.organizationoption import OrganizationOption
 from sentry.models.project import Project
@@ -29,26 +27,28 @@ _restricted_config_properties = frozenset([
 ])
 
 
-def _to_camel_case(name):
+def _to_camel_case_name(name):
     """
     Converts a string from snake_case to camelCase
 
     :param name: the string to convert
-    :return: the camelCase
+    :return: the name converted to camelCase
 
-    >>> _to_camel_case("hello_world")
+    >>> _to_camel_case_name(22)
+    22
+    >>> _to_camel_case_name("hello_world")
     'helloWorld'
-    >>> _to_camel_case("_hello_world")
+    >>> _to_camel_case_name("_hello_world")
     'helloWorld'
-    >>> _to_camel_case("__hello___world___")
+    >>> _to_camel_case_name("__hello___world___")
     'helloWorld'
-    >>> _to_camel_case("hello")
+    >>> _to_camel_case_name("hello")
     'hello'
-    >>> _to_camel_case("Hello_world")
+    >>> _to_camel_case_name("Hello_world")
     'helloWorld'
-    >>> _to_camel_case("one_two_three_four")
+    >>> _to_camel_case_name("one_two_three_four")
     'oneTwoThreeFour'
-    >>> _to_camel_case("oneTwoThreeFour")
+    >>> _to_camel_case_name("oneTwoThreeFour")
     'oneTwoThreeFour'
     """
 
@@ -58,12 +58,15 @@ def _to_camel_case(name):
     def first_upper(s):
         return s[:1].upper() + s[1:]
 
-    name = name.strip("_")
-    pieces = name.split('_')
-    return first_lower(pieces[0]) + ''.join(first_upper(x) for x in pieces[1:])
+    if not isinstance(name, six.string_types):
+        return name
+    else:
+        name = name.strip("_")
+        pieces = name.split('_')
+        return first_lower(pieces[0]) + ''.join(first_upper(x) for x in pieces[1:])
 
 
-def _to_camel_case_dict(obj, clone=False):
+def _to_camel_case_dict(obj):
     """
     Converts recursively the keys of a dictionary from snake_case to camelCase
 
@@ -75,27 +78,25 @@ def _to_camel_case_dict(obj, clone=False):
 
     :param obj: the dictionary
 
-    :return: the
+    :return: a dictionary with the string keys converted
 
-    >>> _to_camel_case_dict({'_abc': {'_one_two_three': 1}}) == {'abc': {'oneTwoThree': 1}}
-    True
+    >>> _to_camel_case_dict({'_abc': {'_one_two_three': 1}})
+    {'abc': {'oneTwoThree': 1}}
+    >>> val = {'_abc': {'_one_two_three': 1}}
+    >>> _to_camel_case_dict({'_abc': {'_one_two_three': 1}})
+    {'abc': {'oneTwoThree': 1}}
+
+    # check that we didn't affect the original
+    >>> val
+    {'_abc': {'_one_two_three': 1}}
 
     """
 
     if not isinstance(obj, dict):
         raise ValueError("Bad parameter passed expected dictionary got {}".format(repr(type(obj))))
 
-    ret_val = copy(obj) if clone else obj
-
-    original_keys = [old_key for old_key in six.iterkeys(obj)]
-    for old_key in original_keys:
-        val = obj[old_key]
-        new_key = _to_camel_case(old_key)
-        del obj[old_key]
-        if isinstance(val, dict):
-            val = _to_camel_case_dict(val)
-        ret_val[new_key] = val
-    return ret_val
+    return {_to_camel_case_name(key): _to_camel_case_dict(value) if isinstance(value, dict) else value
+            for (key, value) in six.iteritems(obj)}
 
 
 class _ConfigBase(object):
@@ -130,7 +131,7 @@ class _ConfigBase(object):
         data = self.__get_data()
         return data.get(name)
 
-    def to_dict(self, to_camel_case=True):
+    def to_dict(self):
         """
         Converts the config object into a dictionary
 
@@ -142,24 +143,10 @@ class _ConfigBase(object):
         True
         """
         data = self.__get_data()
-        cp = deepcopy(data)  # copy so that we don't override inner RelayConfig objects
+        return {key: value.to_dict() if isinstance(value, _ConfigBase) else value for (key, value) in
+                six.iteritems(data)}
 
-        original_keys = [old_key for old_key in six.iterkeys(cp)]
-        for old_key in original_keys:
-            val = cp[old_key]
-            new_key = old_key
-            if to_camel_case:
-                new_key = _to_camel_case(old_key)
-                del cp[old_key]
-            if isinstance(val, _ConfigBase):
-                val = val.to_dict(to_camel_case)
-            elif isinstance(val, dict):
-                if _to_camel_case:
-                    val = _to_camel_case_dict(val)
-            cp[new_key] = val
-        return cp
-
-    def to_json_string(self, to_camel_case=True):
+    def to_json_string(self):
         """
         >>> x = _ConfigBase( a = _ConfigBase(b = _ConfigBase( w=[1,2,3])))
         >>> x.to_json_string()
@@ -167,7 +154,8 @@ class _ConfigBase(object):
 
         :return:
         """
-        data = self.to_dict(to_camel_case)
+        data = self.to_dict()
+        data = _to_camel_case_dict(data)
         return json.dumps(data)
 
     def get_at_path(self, *args):
@@ -209,7 +197,7 @@ class _ConfigBase(object):
 
     def __str__(self):
         try:
-            return json.dumps(self.to_dict(to_camel_case=False), sort_keys=True)
+            return json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return "Content Error:{}".format(e)
 
@@ -379,10 +367,8 @@ def _filter_option_to_config_setting(flt, setting):
     :return: the option as viewed from relay_config
     """
     if setting is None:
-        # no project specified settings return the default settings for the filter
-        return {
-            'is_enabled': flt.spec.default_enabled
-        }
+        raise ValueError("Could not find filter state for filter {0}."
+                         " You need to register default filter state in projectoptions.defaults.".format(flt.spec.id))
 
     is_enabled = setting != '0'
 

@@ -4,7 +4,7 @@ from sentry.models.projectoption import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils.safe import set_path
 from sentry.message_filters import (
-    _local_host_filter, _browser_extensions_filter, _web_crawlers_filter,
+    _localhost_filter, _browser_extensions_filter, _web_crawlers_filter,
     _legacy_browsers_filter,
 )
 
@@ -34,13 +34,13 @@ class FilterTests(TestCase):
         assert resp.status_code < 400  # no http error
 
     def test_should_filter_local_ip_addresses_when_enabled(self):
-        self._set_filter_state(_local_host_filter, '1')
+        self._set_filter_state(_localhost_filter, '1')
         message = self._get_message_with_bad_ip()
         resp = self._postWithHeader(message)
         assert resp.status_code >= 400  # some http error
 
     def test_should_not_filter_bad_ip_addresses_when_disabled(self):
-        self._set_filter_state(_local_host_filter, '0')
+        self._set_filter_state(_localhost_filter, '0')
         message = self._get_message_with_bad_ip()
         resp = self._postWithHeader(message)
         assert resp.status_code < 400  # no http error

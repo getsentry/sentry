@@ -23,7 +23,7 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST,
 )
-from sentry.message_filters import is_event_filtered
+from sentry.message_filters import should_filter_event
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data, load_grouping_config,
@@ -410,7 +410,7 @@ class EventManager(object):
             if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        return is_event_filtered(self.relay_config, self._data)
+        return should_filter_event(self.relay_config, self._data)
 
     def get_data(self):
         return self._data

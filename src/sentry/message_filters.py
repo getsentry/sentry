@@ -18,7 +18,7 @@ from sentry.signals import inbound_filter_toggled
 EventFilteredRet = namedtuple('EventFilteredRet', 'should_filter reason')
 
 
-def is_event_filtered(relay_config, data):
+def should_filter_event(relay_config, data):
     """
     Checks if an event should be filtered
 
@@ -44,7 +44,7 @@ def get_all_filters():
     :return: list of registered event filters
     """
     return (
-        _local_host_filter,
+        _localhost_filter,
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
@@ -92,7 +92,6 @@ def set_filter_state(filter_id, project, state):
         return state.get('active', False)
 
 
-# TODO implement
 def get_filter_state(filter_id, project):
     """
     Returns the filter state
@@ -111,7 +110,8 @@ def get_filter_state(filter_id, project):
     filter_state = ProjectOption.objects.get_value(project=project, key=u'filters:{}'.format(flt.spec.id))
 
     if filter_state is None:
-        return flt.spec.default_enabled
+        raise ValueError("Could not find filter state for filter {0}."
+                         " You need to register default filter state in projectoptions.defaults.".format(filter_id))
 
     if flt == _legacy_browsers_filter:
         # special handling for legacy browser state
@@ -153,11 +153,10 @@ class _FilterSpec(object):
     in the database
     """
 
-    def __init__(self, id, name, description, default_enabled=False, serializer_cls=None):
+    def __init__(self, id, name, description, serializer_cls=None):
         self.id = id
         self.name = name
         self.description = description
-        self.default_enabled = default_enabled
         if serializer_cls is None:
             self.serializer_cls = _FilterSerializer
         else:
@@ -181,7 +180,7 @@ def _is_filter_enabled(relay_config, flt):
     filter_options = _get_filter_settings(relay_config, flt)
 
     if filter_options is None:
-        return flt.spec.default_enabled
+        raise ValueError("unknown filter", flt.spec.id)
 
     return filter_options['is_enabled']
 
@@ -191,7 +190,7 @@ _LOCAL_IPS = frozenset(['127.0.0.1', '::1'])
 _LOCAL_DOMAINS = frozenset(['127.0.0.1', 'localhost'])
 
 
-def _local_host_filter(relay_config, data):
+def _localhost_filter(relay_config, data):
     ip_address = get_path(data, 'user', 'ip_address') or ''
     url = get_path(data, 'request', 'url') or ''
     domain = urlparse(url).hostname
@@ -199,7 +198,7 @@ def _local_host_filter(relay_config, data):
     return ip_address in _LOCAL_IPS or domain in _LOCAL_DOMAINS
 
 
-_local_host_filter.spec = _FilterSpec(
+_localhost_filter.spec = _FilterSpec(
     id=FilterStatKeys.LOCALHOST,
     name='Filter out events coming from localhost',
     description='This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.'
@@ -554,6 +553,5 @@ _web_crawlers_filter.spec = _FilterSpec(
     id=FilterStatKeys.WEB_CRAWLER,
     name='Filter out known web crawlers',
     description='Some crawlers may execute pages in incompatible ways which then cause errors that'
-                ' are unlikely to be seen by a normal user.',
-    default_enabled=True
+                ' are unlikely to be seen by a normal user.'
 )

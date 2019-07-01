@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.message_filters import _local_host_filter
+from sentry.message_filters import _localhost_filter
 from sentry.web.relay_config import FullRelayConfig
 from sentry.testutils import TestCase
 
@@ -9,7 +9,7 @@ class LocalhostFilterTest(TestCase):
 
     def apply_filter(self, data):
         relay_config = FullRelayConfig(self.project)
-        return _local_host_filter(relay_config, data)
+        return _localhost_filter(relay_config, data)
 
     def get_mock_data(self, client_ip=None, url=None):
         return {

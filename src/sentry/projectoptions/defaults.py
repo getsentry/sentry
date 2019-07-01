@@ -67,3 +67,27 @@ register(
         2: ['ios', 'microsoft'],
     }
 )
+
+# Default legacy-browsers filter
+register(key='filters:legacy-browsers',
+         epoch_defaults={
+             1: '0'
+         })
+
+# Default legacy-browsers filter
+register(key='filters:web-crawlers',
+         epoch_defaults={
+             1: '1'
+         })
+
+# Default legacy-browsers filter
+register(key='filters:browser-extensions',
+         epoch_defaults={
+             1: '0'
+         })
+
+# Default legacy-browsers filter
+register(key='filters:localhost',
+         epoch_defaults={
+             1: '0'
+         })
