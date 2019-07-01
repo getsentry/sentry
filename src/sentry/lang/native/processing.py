@@ -136,6 +136,7 @@ def _merge_system_info(data, system_info):
 
     set_path(data, 'contexts', 'device', 'type', value='device')
     setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
+    setdefault_path(data, 'contexts', 'device', 'model', value=system_info.get('device_model'))
 
 
 def _merge_full_response(data, response):
