@@ -11,8 +11,13 @@ import DropdownButton from 'app/components/dropdownButton';
 const Item = styled('span')`
   padding: 12px;
 `;
+
 const Section = styled('div')`
   margin-bottom: 32px;
+`;
+
+const WideButton = styled(Button)`
+  width: 200px;
 `;
 
 // eslint-disable-next-line
@@ -51,7 +56,7 @@ storiesOf('UI|Buttons', module)
           </Item>
 
           <Item>
-            <Button to={''} disabled onClick={action('click disabled')}>
+            <Button to="" disabled onClick={action('click disabled')}>
               Disabled Button
             </Button>
           </Item>
@@ -73,6 +78,17 @@ storiesOf('UI|Buttons', module)
 
           <Item>
             <Button size="large">Large</Button>
+          </Item>
+        </Section>
+
+        <Section>
+          <h2>Alignment</h2>
+          <Item>
+            <WideButton align="left">Aligned left</WideButton>
+          </Item>
+
+          <Item>
+            <WideButton align="right">Aligned right</WideButton>
           </Item>
         </Section>
 
