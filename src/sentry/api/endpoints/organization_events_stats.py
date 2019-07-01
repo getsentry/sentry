@@ -16,7 +16,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
         try:
-            snuba_args = self.get_snuba_query_args(request, organization)
+            snuba_args = self.get_snuba_query_args_legacy(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
