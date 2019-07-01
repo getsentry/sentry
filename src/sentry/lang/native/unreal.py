@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import UserReport
-from sentry.utils.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.utils.safe import get_path, set_path, setdefault_path
 
 
