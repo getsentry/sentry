@@ -130,13 +130,26 @@ def _handle_response_status(event_data, response_json):
 
 def _merge_system_info(data, system_info):
     set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
-    setdefault_path(data, 'contexts', 'os', 'name', value=system_info.get('os_name'))
-    setdefault_path(data, 'contexts', 'os', 'version', value=system_info.get('os_version'))
-    setdefault_path(data, 'contexts', 'os', 'build', value=system_info.get('os_build'))
+
+    os_name = system_info.get('os_name')
+    os_version = system_info.get('os_version')
+    os_build = system_info.get('os_build')
+
+    if os_version:
+        setdefault_path(data, 'contexts', 'os', 'version', value=os_version)
+    if os_build:
+        setdefault_path(data, 'contexts', 'os', 'build', value=os_build)
+    if os_name and not os_version and not os_build:
+        setdefault_path(data, 'contexts', 'os', 'raw_description', value=os_name)
+    elif os_name:
+        setdefault_path(data, 'contexts', 'os', 'name', value=os_name)
 
     set_path(data, 'contexts', 'device', 'type', value='device')
     setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
-    setdefault_path(data, 'contexts', 'device', 'model', value=system_info.get('device_model'))
+
+    device_model = system_info.get('device_model')
+    if device_model:
+        setdefault_path(data, 'contexts', 'device', 'model', value=device_model)
 
 
 def _merge_full_response(data, response):
