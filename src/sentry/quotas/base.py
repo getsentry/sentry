@@ -10,10 +10,10 @@ from __future__ import absolute_import
 import six
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry import options
 from sentry.utils.services import Service
-from sentry.utils.cache import default_cache
 
 
 class RateLimit(object):
@@ -92,10 +92,10 @@ class Quota(Service):
         # This happens on /store.
         cache_key = u'project:{}:features:rate-limits'.format(key.project.id)
 
-        has_rate_limits = default_cache.get(cache_key)
+        has_rate_limits = cache.get(cache_key)
         if has_rate_limits is None:
             has_rate_limits = features.has('projects:rate-limits', key.project)
-            default_cache.set(cache_key, has_rate_limits, 600)
+            cache.set(cache_key, has_rate_limits, 600)
 
         return key.rate_limit if has_rate_limits else (0, 0)
 
