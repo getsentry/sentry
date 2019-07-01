@@ -73,7 +73,7 @@ describe('IncidentDetails -> Activity', function() {
     await tick();
     expect(createComment).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/`,
-      expect.objectContaining({data: {comment: 'new incident comment'}})
+      expect.objectContaining({data: {comment: 'new incident comment', mentions: []}})
     );
   });
 

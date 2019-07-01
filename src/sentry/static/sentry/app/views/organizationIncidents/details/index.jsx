@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {fetchOrgMembers} from 'app/actionCreators/members';
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -27,6 +28,8 @@ class OrganizationIncidentDetails extends React.Component {
   }
 
   componentDidMount() {
+    const {api, params} = this.props;
+    fetchOrgMembers(api, params.orgId);
     this.fetchData();
   }
 

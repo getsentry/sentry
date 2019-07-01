@@ -28,9 +28,6 @@ class Note extends React.Component {
 
     dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
 
-    memberList: PropTypes.array.isRequired,
-    teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
-
     // pass through to ActivityItem
     // shows absolute time instead of a relative string
     showTime: PropTypes.bool,
@@ -41,6 +38,9 @@ class Note extends React.Component {
 
     // min-height for NoteInput textarea
     minHeight: PropTypes.number,
+
+    // If used, will fetch list of teams/members that can be mentioned for projects
+    projectSlugs: PropTypes.arrayOf(PropTypes.string),
 
     onDelete: PropTypes.func,
     onCreate: PropTypes.func,
@@ -85,11 +85,10 @@ class Note extends React.Component {
       dateCreated,
       text,
       authorName,
-      teams,
-      memberList,
       hideDate,
       minHeight,
       showTime,
+      projectSlugs,
     } = this.props;
 
     const activityItemProps = {
@@ -130,8 +129,7 @@ class Note extends React.Component {
             onEditFinish={this.handleEditFinish}
             onUpdate={this.handleUpdate}
             onCreate={this.handleCreate}
-            memberList={memberList}
-            teams={teams}
+            projectSlugs={projectSlugs}
           />
         )}
       </StyledActivityItem>

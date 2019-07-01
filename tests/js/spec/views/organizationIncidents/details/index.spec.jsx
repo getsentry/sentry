@@ -24,6 +24,13 @@ describe('IncidentDetails', function() {
       url: '/organizations/org-slug/incidents/123/',
       body: mockIncident,
     });
+
+    // For @mentions
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/suspects/',
       body: [TestStubs.IncidentSuspectCommit()],
