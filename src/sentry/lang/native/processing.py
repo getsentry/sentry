@@ -8,10 +8,10 @@ from symbolic.utils import make_buffered_slice_reader
 
 from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
-from sentry.lang.native.minidump import get_attached_minidump
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import get_sdk_from_event, native_images_from_data, \
-    is_native_platform, image_name, signal_from_data
+    is_native_platform, image_name, signal_from_data, get_event_attachment
 from sentry.models import Project, EventError
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
@@ -207,8 +207,7 @@ def _merge_minidump_response(data, response):
 def process_minidump(data):
     project = Project.objects.get_from_cache(id=data['project'])
 
-    minidump = get_attached_minidump(data)
-
+    minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
         logger.error("Missing minidump for minidump event")
         return
