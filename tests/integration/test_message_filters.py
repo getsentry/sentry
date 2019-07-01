@@ -105,33 +105,28 @@ class FilterTests(TestCase):
                 ['User-Agent', ie_5_user_agent],
             ]
         })
-        print("Rwn. message legacy browser", message)
         return message
 
     def test_should_filter_legacy_browsers_all_enabled(self):
         self._set_filter_state(_legacy_browsers_filter, '1')
         message = self._get_message_from_legacy_browser()
         resp = self._postWithHeader(message)
-        print(resp)
         assert resp.status_code >= 400  # some http error
 
     def test_should_filter_legacy_browsers_specific_browsers(self):
         self._set_filter_state(_legacy_browsers_filter, {'ie_pre_9', 'safari_5'})
         message = self._get_message_from_legacy_browser()
         resp = self._postWithHeader(message)
-        print(resp)
         assert resp.status_code >= 400  # some http error
 
     def test_should_not_filter_legacy_browsers_when_disabled(self):
         self._set_filter_state(_legacy_browsers_filter, '0')
         message = self._get_message_from_legacy_browser()
         resp = self._postWithHeader(message)
-        print(resp)
         assert resp.status_code < 400  # no http error
 
     def test_should_not_filter_legacy_browsers_when_current_browser_check_disabled(self):
         self._set_filter_state(_legacy_browsers_filter, {'safari_5'})
         message = self._get_message_from_legacy_browser()
         resp = self._postWithHeader(message)
-        print(resp)
         assert resp.status_code < 400  # no http error
