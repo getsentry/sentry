@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 import io
 import msgpack
-from sentry.lang.native.minidump import merge_attached_breadcrumbs, merge_attached_event
+from sentry.lang.native.minidump import is_minidump_event, \
+    merge_attached_breadcrumbs, merge_attached_event
 
 
 class MockFile(object):
@@ -129,3 +130,65 @@ def test_merge_attached_breadcrumbs_capped():
     assert event['breadcrumbs'][0]['timestamp'] == '0001-01-01T01:00:02Z'
     assert event['breadcrumbs'][1]['timestamp'] == '0001-01-01T01:00:03Z'
     assert event['breadcrumbs'][2]['timestamp'] == '0001-01-01T01:00:04Z'
+
+
+def test_is_minidump():
+    assert is_minidump_event({
+        'exception': {
+            'values': [{
+                'mechanism': {
+                    'type': 'minidump'
+                }
+            }]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': [{
+                'mechanism': {
+                    'type': 'other'
+                }
+            }]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': [{
+                'mechanism': {
+                    'type': None
+                }
+            }]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': [{
+                'mechanism': None
+            }]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': [None]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': []
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': None
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': None
+    })

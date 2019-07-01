@@ -56,11 +56,6 @@ def is_native_event(data):
     return False
 
 
-def is_minidump_event(data):
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
-
-
 def image_name(pkg):
     if not pkg:
         return pkg
