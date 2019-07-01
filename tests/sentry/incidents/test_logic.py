@@ -22,10 +22,12 @@ from sentry.incidents.logic import (
     create_event_stat_snapshot,
     create_incident,
     create_incident_activity,
+    create_incident_snapshot,
     create_initial_event_stats_snapshot,
     bulk_build_incident_query_params,
     bulk_get_incident_aggregates,
     bulk_get_incident_event_stats,
+    bulk_get_incident_stats,
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
@@ -41,6 +43,7 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentGroup,
     IncidentProject,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentSubscription,
     IncidentSuspectCommit,
@@ -155,15 +158,37 @@ class UpdateIncidentStatus(TestCase):
         }
 
     def test_closed(self):
-        incident = self.create_incident()
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+        incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Test',
+            '',
+            timezone.now(),
+            projects=[self.project],
+        )
+        with self.assertChanges(
+            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=False,
+            after=True,
+        ):
+            self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
 
     def test_reopened(self):
-        incident = self.create_incident(
-            status=IncidentStatus.CLOSED.value,
-            date_closed=timezone.now()
+        incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Test',
+            '',
+            timezone.now(),
+            projects=[self.project],
         )
-        self.run_test(incident, IncidentStatus.OPEN, None)
+        update_incident_status(incident, IncidentStatus.CLOSED)
+        with self.assertChanges(
+            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=True,
+            after=False,
+        ):
+            self.run_test(incident, IncidentStatus.OPEN, None)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -683,3 +708,59 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
             groups=[group, group_2],
         )
         assert set(get_incident_suspect_commits(incident)) == set(commit_ids)
+
+
+@freeze_time()
+class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
+    def test(self):
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value)
+        snapshot = create_incident_snapshot(incident)
+        expected_snapshot = create_event_stat_snapshot(
+            incident,
+            incident.date_started,
+            incident.date_closed,
+        )
+
+        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
+        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
+        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
+        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
+        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
+        aggregates = get_incident_aggregates(incident)
+        assert snapshot.unique_users == aggregates['unique_users']
+        assert snapshot.total_events == aggregates['count']
+
+
+@freeze_time()
+class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
+    def test(self):
+        closed_incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Closed',
+            '',
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        update_incident_status(closed_incident, IncidentStatus.CLOSED)
+        open_incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Open',
+            '',
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        incidents = [closed_incident, open_incident]
+
+        for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
+            event_stats = get_incident_event_stats(incident)
+            assert incident_stats['event_stats'].data['data'] == event_stats.data['data']
+            assert incident_stats['event_stats'].start == event_stats.start
+            assert incident_stats['event_stats'].end == event_stats.end
+            assert incident_stats['event_stats'].rollup == event_stats.rollup
+
+            aggregates = get_incident_aggregates(incident)
+            assert incident_stats['total_events'] == aggregates['count']
+            assert incident_stats['unique_users'] == aggregates['unique_users']

@@ -151,6 +151,20 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
+class IncidentSnapshot(Model):
+    __core__ = True
+
+    incident = models.OneToOneField('sentry.Incident')
+    event_stats_snapshot = FlexibleForeignKey('sentry.TimeSeriesSnapshot')
+    unique_users = models.IntegerField()
+    total_events = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentsnapshot'
+
+
 class TimeSeriesSnapshot(Model):
     __core__ = True
 
