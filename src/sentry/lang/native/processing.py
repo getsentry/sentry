@@ -10,6 +10,7 @@ from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE
 from sentry.lang.native.utils import get_sdk_from_event, native_images_from_data, \
     is_native_platform, image_name, signal_from_data, get_event_attachment
 from sentry.models import Project, EventError
@@ -137,7 +138,7 @@ def _merge_system_info(data, system_info):
     setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
 
 
-def _merge_minidump_response(data, response):
+def _merge_full_response(data, response):
     data['platform'] = 'native'
     if response.get('crashed') is not None:
         data['level'] = 'fatal' if response['crashed'] else 'info'
@@ -220,7 +221,28 @@ def process_minidump(data):
     response = symbolicator.process_minidump(make_buffered_slice_reader(minidump.data, None))
 
     if _handle_response_status(data, response):
-        _merge_minidump_response(data, response)
+        _merge_full_response(data, response)
+
+    return data
+
+
+def process_applecrashreport(data):
+    project = Project.objects.get_from_cache(id=data['project'])
+
+    report = get_event_attachment(data, APPLECRASHREPORT_ATTACHMENT_TYPE)
+    if not report:
+        logger.error("Missing applecrashreport for event")
+        return
+
+    symbolicator = Symbolicator(
+        project=project,
+        event_id=data['event_id']
+    )
+
+    response = symbolicator.process_applecrashreport(make_buffered_slice_reader(report.data, None))
+
+    if _handle_response_status(data, response):
+        _merge_full_response(data, response)
 
     return data
 
