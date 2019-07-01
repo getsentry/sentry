@@ -25,57 +25,12 @@ logger = logging.getLogger(__name__)
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
-        if features.has('organizations:events-v2', organization, actor=request.user):
-            return self.get_v2(request, organization)
+        if not features.has('organizations:events-v2', organization, actor=request.user):
+            return self.get_legacy(request, organization)
 
-        # Check for a direct hit on event ID
-        query = request.GET.get('query', '').strip()
-
-        try:
-            direct_hit_resp = get_direct_hit_response(
-                request,
-                query,
-                self.get_filter_params(request, organization),
-                'api.organization-events'
-            )
-        except (OrganizationEventsError, NoProjects):
-            pass
-        else:
-            if direct_hit_resp:
-                return direct_hit_resp
-
-        full = request.GET.get('full', False)
-        try:
-            snuba_args = self.get_snuba_query_args(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({'detail': exc.message}, status=400)
-        except NoProjects:
-            # return empty result if org doesn't have projects
-            # or user doesn't have access to projects in org
-            data_fn = lambda *args, **kwargs: []
-        else:
-            snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
-            data_fn = partial(
-                # extract 'data' from raw_query result
-                lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-                selected_columns=snuba_cols,
-                orderby='-timestamp',
-                referrer='api.organization-events',
-                **snuba_args
-            )
-
-        serializer = EventSerializer() if full else SimpleEventSerializer()
-        return self.paginate(
-            request=request,
-            on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
-        )
-
-    def get_v2(self, request, organization):
         try:
             params = self.get_filter_params(request, organization)
-            snuba_args = self.get_snuba_query_args_v2(request, organization, params)
+            snuba_args = self.get_snuba_query_args(request, organization, params)
             fields = snuba_args.get('selected_columns')
             groupby = snuba_args.get('groupby', [])
 
@@ -128,6 +83,51 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             return Response({
                 'detail': 'Invalid query.'
             }, status=400)
+
+    def get_legacy(self, request, organization):
+        # Check for a direct hit on event ID
+        query = request.GET.get('query', '').strip()
+
+        try:
+            direct_hit_resp = get_direct_hit_response(
+                request,
+                query,
+                self.get_filter_params(request, organization),
+                'api.organization-events'
+            )
+        except (OrganizationEventsError, NoProjects):
+            pass
+        else:
+            if direct_hit_resp:
+                return direct_hit_resp
+
+        full = request.GET.get('full', False)
+        try:
+            snuba_args = self.get_snuba_query_args_legacy(request, organization)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            # return empty result if org doesn't have projects
+            # or user doesn't have access to projects in org
+            data_fn = lambda *args, **kwargs: []
+        else:
+            snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
+            data_fn = partial(
+                # extract 'data' from raw_query result
+                lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+                selected_columns=snuba_cols,
+                orderby='-timestamp',
+                referrer='api.organization-events',
+                **snuba_args
+            )
+
+        serializer = EventSerializer() if full else SimpleEventSerializer()
+        return self.paginate(
+            request=request,
+            on_results=lambda results: serialize(
+                [SnubaEvent(row) for row in results], request.user, serializer),
+            paginator=GenericOffsetPaginator(data_fn=data_fn)
+        )
 
     def handle_results(self, request, organization, project_ids, results):
         projects = {p['id']: p['slug'] for p in Project.objects.filter(
