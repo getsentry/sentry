@@ -10,11 +10,7 @@ from sentry.api.serializers import (
     serialize,
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.incidents.logic import (
-    bulk_build_incident_query_params,
-    bulk_get_incident_aggregates,
-    bulk_get_incident_event_stats,
-)
+from sentry.incidents.logic import bulk_get_incident_stats
 from sentry.incidents.models import (
     Incident,
     IncidentGroup,
@@ -33,23 +29,18 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
-
-        incident_query_params_list = bulk_build_incident_query_params(item_list)
-        bulk_event_stats = bulk_get_incident_event_stats(item_list, incident_query_params_list)
-        bulk_aggregates = bulk_get_incident_aggregates(incident_query_params_list)
-
-        for incident, event_stats, aggregates in zip(item_list, bulk_event_stats, bulk_aggregates):
+        for incident, stats in zip(item_list, bulk_get_incident_stats(item_list)):
             results[incident] = {
                 'projects': incident_projects.get(incident.id, []),
-                'event_stats': event_stats,
-                'aggregates': aggregates,
+                'event_stats': stats['event_stats'],
+                'total_events': stats['total_events'],
+                'unique_users': stats['unique_users'],
             }
 
         return results
 
     def serialize(self, obj, attrs, user):
         serializer = SnubaTSResultSerializer(obj.organization, None, user)
-        aggregates = attrs['aggregates']
         return {
             'id': six.text_type(obj.id),
             'identifier': six.text_type(obj.identifier),
@@ -64,8 +55,8 @@ class IncidentSerializer(Serializer):
             'dateAdded': obj.date_added,
             'dateClosed': obj.date_closed,
             'eventStats': serializer.serialize(attrs['event_stats']),
-            'totalEvents': aggregates['count'],
-            'uniqueUsers': aggregates['unique_users'],
+            'totalEvents': attrs['total_events'],
+            'uniqueUsers': attrs['unique_users'],
         }
 
 
