@@ -27,10 +27,6 @@ IMAGE_STATUS_FIELDS = frozenset((
 ))
 
 
-def task_id_cache_key_for_event(data):
-    return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
-
-
 def _merge_frame(new_frame, symbolicated):
     if symbolicated.get('function'):
         raw_func = trim(symbolicated['function'], 256)
@@ -217,11 +213,9 @@ def process_minidump(data):
         logger.error("Missing minidump for minidump event")
         return
 
-    task_id_cache_key = task_id_cache_key_for_event(data)
-
     symbolicator = Symbolicator(
         project=project,
-        task_id_cache_key=task_id_cache_key
+        event_id=data['event_id']
     )
 
     response = symbolicator.process_minidump(make_buffered_slice_reader(minidump.data, None))
@@ -246,11 +240,10 @@ def _handles_frame(data, frame):
 
 def process_payload(data):
     project = Project.objects.get_from_cache(id=data['project'])
-    task_id_cache_key = task_id_cache_key_for_event(data)
 
     symbolicator = Symbolicator(
         project=project,
-        task_id_cache_key=task_id_cache_key
+        event_id=data['event_id']
     )
 
     stacktrace_infos = [
