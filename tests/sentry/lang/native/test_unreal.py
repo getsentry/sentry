@@ -6,7 +6,7 @@ from symbolic import Unreal4Crash
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import merge_unreal_user, unreal_attachment_type, \
-    merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
+    merge_unreal_context_event, merge_unreal_logs_event
 from sentry.models import UserReport
 
 
@@ -57,17 +57,6 @@ class UnrealIntegrationTest(TestCase):
             unreal_crash = Unreal4Crash.from_bytes(f.read())
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
             self.insta_snapshot(event)
-
-    def test_merge_unreal_context_event_pcallstack_no_threads(self):
-        event = {}
-        unreal_context = {
-            'runtime_properties': {
-                'portable_call_stack': '0x00000000fc440000 + ffffffff PackageA 0x000000003fb70000 + e23831 PackageA 0x000000003fb70000 + 495d7b PackageA 0x000000003fb70000 + 1cbb89',
-                'threads': [],
-            }
-        }
-        merge_unreal_context_event(unreal_context, event, self.project)
-        assert event.get('threads') is None
 
     def test_merge_unreal_context_event_without_user(self):
         expected_message = 'user comments'
@@ -140,10 +129,3 @@ class UnrealIntegrationTest(TestCase):
             assert breadcrumbs[99]['timestamp'] == '2018-11-20T11:47:15Z'
             assert breadcrumbs[99]['message'] == 'Texture pool size now 1000 MB'
             assert breadcrumbs[99]['category'] == 'LogContentStreaming'
-
-    def test_merge_apple_crash_report(self):
-        with open(get_unreal_crash_apple_file(), 'rb') as f:
-            event = {'event_id': MOCK_EVENT_ID, 'environment': None}
-            unreal_crash = Unreal4Crash.from_bytes(f.read())
-            merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
-            self.insta_snapshot(event)
