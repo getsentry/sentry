@@ -346,7 +346,6 @@ let appConfig = {
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'react-dom': '@hot-loader/react-dom',
     },
 
     modules: ['node_modules'],

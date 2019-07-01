@@ -26,43 +26,33 @@ class LazyLoad extends React.Component {
     }),
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      Component: null,
-      error: null,
-    };
+  // UNSAFE_componentWillReceiveProps(nextProps) {
+  // // No need to refetch when component does not change
+  // if (nextProps.component && nextProps.component === this.props.component) {
+  // return;
+  // }
+
+  // // This is to handle the following case:
+  // // <Route path="a/">
+  // //   <Route path="b/" component={LazyLoad} componentPromise={...} />
+  // //   <Route path="c/" component={LazyLoad} componentPromise={...} />
+  // // </Route>
+  // //
+  // // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
+  // // instead will just re-render.  Refetch if route paths are different
+  // if (nextProps.route && nextProps.route === this.props.route) {
+  // return;
+  // }
+  // }
+
+  get componentFactory() {
+    return this.props.component || this.props.route.componentPromise;
   }
-
-  componentDidMount() {
-    this.fetchComponent();
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    // No need to refetch when component does not change
-    if (nextProps.component && nextProps.component === this.props.component) {
-      return;
-    }
-
-    // This is to handle the following case:
-    // <Route path="a/">
-    //   <Route path="b/" component={LazyLoad} componentPromise={...} />
-    //   <Route path="c/" component={LazyLoad} componentPromise={...} />
-    // </Route>
-    //
-    // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
-    // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route === this.props.route) {
-      return;
-    }
-  }
-
-  getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   render() {
     // eslint-disable-next-line no-unused-vars
     const {hideBusy, hideError, component, ...otherProps} = this.props;
-    const Component = React.lazy(this.getComponentGetter());
+    const Component = React.lazy(this.componentFactory);
 
     return (
       <LazyLoadErrorBoundary>

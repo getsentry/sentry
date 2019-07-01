@@ -183,6 +183,18 @@ const GroupDetails = createReactClass({
           this.fetchData();
           return;
         }
+
+        /**
+         * XXX: This is required when using React.Suspense and React.lazy (and/or app/components/lazyLoapd).
+         * Otherwise this can produce an infinite loop. Not sure why but this set state
+         * causes GroupEventDetails to unmount (and then remount) which calls `GroupEventDetails.fetchData`
+         * ---> `fetchGroupEventAndMarkSeen` which updates group store and eventually calls this
+         *  to restart the loop
+         */
+        if (isEqual(group, this.state.group)) {
+          return;
+        }
+
         this.setState({
           group,
         });

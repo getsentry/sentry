@@ -1,4 +1,5 @@
 // These imports (core-js and regenerator-runtime) are replacements for deprecated `@babel/polyfill`
+import 'react-hot-loader';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 
