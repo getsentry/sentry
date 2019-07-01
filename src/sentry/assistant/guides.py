@@ -49,7 +49,7 @@ GUIDES = {
             {
                 'title': _('Tags'),
                 'message': _(
-                    'Attach arbitrary key-value pairs with each event which you can search and filter on. '
+                    'Attach arbitrary key-value pairs to each event which you can search and filter on. '
                     'View a heatmap of all tags for an issue on the right panel. '),
                 'target': 'tags',
             },

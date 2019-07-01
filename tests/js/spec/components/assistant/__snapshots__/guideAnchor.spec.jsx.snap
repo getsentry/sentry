@@ -11,17 +11,13 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
           <StyledTitle>
             title 1
           </StyledTitle>
-          <div
-            className="close-button"
+          <CloseLink
+            data-test-id="close-button"
+            href="#"
             onClick={[Function]}
-            style={
-              Object {
-                "display": "flex",
-              }
-            }
           >
             <CloseIcon />
-          </div>
+          </CloseLink>
         </GuideInputRow>
         <StyledContent>
           <div
@@ -87,16 +83,17 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                   class="css-m6hbxj-GuideContainer e130o4350"
                 >
                   <div
-                    class="css-pe6gi5-GuideInputRow e130o4351"
+                    class="css-pe6gi5-GuideInputRow e130o4352"
                   >
                     <div
-                      class="css-1w7cm7e-StyledTitle e130o4352"
+                      class="css-1w7cm7e-StyledTitle e130o4353"
                     >
                       title 1
                     </div>
-                    <div
-                      class="close-button"
-                      style="display: flex;"
+                    <a
+                      class="css-wxg3cb-CloseLink e130o4351"
+                      data-test-id="close-button"
+                      href="#"
                     >
                       <svg
                         class="e173w1i13 css-1v6op5i-StyledSvg-CloseIcon e2idor0"
@@ -109,10 +106,10 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                           xlink:href="#test"
                         />
                       </svg>
-                    </div>
+                    </a>
                   </div>
                   <div
-                    class="css-1lbv6lb-StyledContent e130o4353"
+                    class="css-1lbv6lb-StyledContent e130o4354"
                   >
                     <div>
                       abc
@@ -223,59 +220,62 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       >
                         <GuideInputRow>
                           <div
-                            className="css-pe6gi5-GuideInputRow e130o4351"
+                            className="css-pe6gi5-GuideInputRow e130o4352"
                           >
                             <StyledTitle>
                               <div
-                                className="css-1w7cm7e-StyledTitle e130o4352"
+                                className="css-1w7cm7e-StyledTitle e130o4353"
                               >
                                 title 1
                               </div>
                             </StyledTitle>
-                            <div
-                              className="close-button"
+                            <CloseLink
+                              data-test-id="close-button"
+                              href="#"
                               onClick={[Function]}
-                              style={
-                                Object {
-                                  "display": "flex",
-                                }
-                              }
                             >
-                              <CloseIcon>
-                                <Component
-                                  className="css-1hopv4i-CloseIcon e173w1i13"
-                                >
-                                  <InlineSvg
+                              <a
+                                className="css-wxg3cb-CloseLink e130o4351"
+                                data-test-id="close-button"
+                                href="#"
+                                onClick={[Function]}
+                              >
+                                <CloseIcon>
+                                  <Component
                                     className="css-1hopv4i-CloseIcon e173w1i13"
-                                    src="icon-close-lg"
                                   >
-                                    <StyledSvg
+                                    <InlineSvg
                                       className="css-1hopv4i-CloseIcon e173w1i13"
-                                      height="1em"
-                                      viewBox={Object {}}
-                                      width="1em"
+                                      src="icon-close-lg"
                                     >
-                                      <svg
-                                        className="e173w1i13 css-1v6op5i-StyledSvg-CloseIcon e2idor0"
+                                      <StyledSvg
+                                        className="css-1hopv4i-CloseIcon e173w1i13"
                                         height="1em"
                                         viewBox={Object {}}
                                         width="1em"
                                       >
-                                        <use
-                                          href="#test"
-                                          xlinkHref="#test"
-                                        />
-                                      </svg>
-                                    </StyledSvg>
-                                  </InlineSvg>
-                                </Component>
-                              </CloseIcon>
-                            </div>
+                                        <svg
+                                          className="e173w1i13 css-1v6op5i-StyledSvg-CloseIcon e2idor0"
+                                          height="1em"
+                                          viewBox={Object {}}
+                                          width="1em"
+                                        >
+                                          <use
+                                            href="#test"
+                                            xlinkHref="#test"
+                                          />
+                                        </svg>
+                                      </StyledSvg>
+                                    </InlineSvg>
+                                  </Component>
+                                </CloseIcon>
+                              </a>
+                            </CloseLink>
                           </div>
                         </GuideInputRow>
                         <StyledContent>
                           <div
-                            className="css-1lbv6lb-StyledContent e130o4353"
+                            className="css-1lbv6lb-StyledContent e130o4354"
                           >
                             <div
                               dangerouslySetInnerHTML={
@@ -446,16 +446,16 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                   class="css-m6hbxj-GuideContainer e130o4350"
                 >
                   <div
-                    class="css-pe6gi5-GuideInputRow e130o4351"
+                    class="css-pe6gi5-GuideInputRow e130o4352"
                   >
                     <div
-                      class="css-1w7cm7e-StyledTitle e130o4352"
+                      class="css-1w7cm7e-StyledTitle e130o4353"
                     >
                       title 2
                     </div>
                   </div>
                   <div
-                    class="css-1lbv6lb-StyledContent e130o4353"
+                    class="css-1lbv6lb-StyledContent e130o4354"
                   >
                     <div>
                       xyz
@@ -566,11 +566,11 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                       >
                         <GuideInputRow>
                           <div
-                            className="css-pe6gi5-GuideInputRow e130o4351"
+                            className="css-pe6gi5-GuideInputRow e130o4352"
                           >
                             <StyledTitle>
                               <div
-                                className="css-1w7cm7e-StyledTitle e130o4352"
+                                className="css-1w7cm7e-StyledTitle e130o4353"
                               >
                                 title 2
                               </div>
@@ -579,7 +579,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                         </GuideInputRow>
                         <StyledContent>
                           <div
-                            className="css-1lbv6lb-StyledContent e130o4353"
+                            className="css-1lbv6lb-StyledContent e130o4354"
                           >
                             <div
                               dangerouslySetInnerHTML={

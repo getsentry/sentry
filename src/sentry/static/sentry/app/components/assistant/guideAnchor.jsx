@@ -113,13 +113,9 @@ const GuideAnchor = createReactClass({
         <GuideInputRow>
           <StyledTitle>{guide.steps[step].title}</StyledTitle>
           {step < guide.steps.length - 1 && (
-            <div
-              className="close-button"
-              style={{display: 'flex'}}
-              onClick={this.handleDismiss}
-            >
+            <CloseLink onClick={this.handleDismiss} href="#" data-test-id="close-button">
               <CloseIcon />
-            </div>
+            </CloseLink>
           )}
         </GuideInputRow>
         <StyledContent>
@@ -166,6 +162,14 @@ const GuideContainer = styled('div')`
   background-color: ${p => p.theme.greenDark};
   border-color: ${p => p.theme.greenLight};
   color: ${p => p.theme.offWhite};
+`;
+
+const CloseLink = styled('a')`
+  color: ${p => p.theme.offWhite};
+  &:hover {
+    color: ${p => p.theme.offWhite};
+  }
+  display: flex;
 `;
 
 const GuideInputRow = styled('div')`

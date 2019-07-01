@@ -87,7 +87,7 @@ describe('GuideAnchor', function() {
       url: '/assistant/',
     });
     wrapper1
-      .find('.close-button')
+      .find('[data-test-id="close-button"]')
       .first()
       .simulate('click');
     expect(dismissMock).toHaveBeenCalledWith(

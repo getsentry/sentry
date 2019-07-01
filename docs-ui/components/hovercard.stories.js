@@ -12,6 +12,17 @@ const positionOptions = {
   right: 'right',
 };
 
+const showOptions = {
+  true: true,
+  false: false,
+  null: null,
+};
+
+const tipColorOptions = {
+  red: 'red',
+  null: null,
+};
+
 storiesOf('UI|Hovercard', module).add(
   'Hovercard',
   withInfo(
@@ -29,6 +40,8 @@ storiesOf('UI|Hovercard', module).add(
         header={text('Header', 'Hovercard Header')}
         body={text('Body', 'Hovercard body (can also be a React node)')}
         position={select('position', positionOptions, 'top', 'Hovercard positioning')}
+        show={select('show', showOptions, null, 'Force show/unshow')}
+        tipColor={select('tipColor', tipColorOptions, null, 'Tip color')}
       >
         Hover over me
       </Hovercard>

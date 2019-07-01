@@ -278,7 +278,7 @@ const HovercardArrow = styled('span')`
   &::after {
     border: 10px solid transparent;
     /* stylelint-disable-next-line property-no-unknown */
-    border-${getTipDirection}-color: ${p => p.tipColor || getTipColor()};
+    border-${getTipDirection}-color: ${p => p.tipColor || getTipColor(p)};
   }
 `;
 
