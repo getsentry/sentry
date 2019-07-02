@@ -33,6 +33,10 @@ import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 
+function getProjectIdFromProject(project) {
+  return parseInt(project.id, 10);
+}
+
 class GlobalSelectionHeader extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -130,7 +134,14 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const {location, params, organization, selection, shouldForceProject} = this.props;
+    const {
+      location,
+      params,
+      organization,
+      selection,
+      shouldForceProject,
+      forceProject,
+    } = this.props;
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
@@ -152,13 +163,8 @@ class GlobalSelectionHeader extends React.Component {
 
       if (hasMultipleProjectFeature) {
         updateProjects(requestedProjects);
-      } else if (!shouldForceProject) {
-        const allowedProjects =
-          requestedProjects.length > 0
-            ? requestedProjects.slice(0, 1)
-            : this.getFirstProject();
-        updateProjects(allowedProjects);
-        updateParams({project: allowedProjects}, this.getRouter());
+      } else {
+        this.enforceSingleProject({requestedProjects, shouldForceProject, forceProject});
       }
     } else if (params && params.orgId === organization.slug) {
       // Otherwise, if organization has NOT changed,
@@ -167,19 +173,12 @@ class GlobalSelectionHeader extends React.Component {
       // e.g. when switching to a new view that uses this component,
       // update URL parameters to reflect current store
       const {datetime, environments, projects} = selection;
+      const otherParams = {environment: environments, ...datetime};
 
       if (hasMultipleProjectFeature || projects.length === 1) {
-        updateParamsWithoutHistory(
-          {project: projects, environment: environments, ...datetime},
-          this.getRouter()
-        );
-      } else if (!shouldForceProject) {
-        const allowedProjects = this.getFirstProject();
-        updateProjects(allowedProjects);
-        updateParams(
-          {project: allowedProjects, environment: environments, ...datetime},
-          this.getRouter()
-        );
+        updateParamsWithoutHistory({project: projects, ...otherParams}, this.getRouter());
+      } else {
+        this.enforceSingleProject({shouldForceProject, forceProject}, otherParams);
       }
     }
   }
@@ -236,7 +235,13 @@ class GlobalSelectionHeader extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const {hasCustomRouting, location, forceUrlSync, selection} = this.props;
+    const {
+      hasCustomRouting,
+      location,
+      selection,
+      forceUrlSync,
+      forceProject,
+    } = this.props;
 
     if (hasCustomRouting) {
       return;
@@ -248,16 +253,11 @@ class GlobalSelectionHeader extends React.Component {
     // If user does not have multiple project selection, we need to save the forced
     // project into the store (if project is not in URL params), otherwise
     // there will be weird behavior in this component since it just picks a project
-    if (
-      !this.hasMultipleProjectSelection() &&
-      this.props.forceProject &&
-      !prevProps.forceProject
-    ) {
+    if (!this.hasMultipleProjectSelection() && forceProject && !prevProps.forceProject) {
+      // Make sure a project isn't specified in query param already, since it should take precendence
       const {project} = getStateFromQuery(location.query);
       if (!project) {
-        const newProject = [parseInt(this.props.forceProject.id, 10)];
-        updateProjects(newProject);
-        updateParamsWithoutHistory({project: newProject}, this.getRouter());
+        this.enforceSingleProject({forceProject});
       }
     }
 
@@ -285,6 +285,38 @@ class GlobalSelectionHeader extends React.Component {
 
   hasMultipleProjectSelection = () => {
     return new Set(this.props.organization.features).has('global-views');
+  };
+
+  /**
+   * If user does not have access to `global-views` (e.g. multi project select), then
+   * we update URL params with 1) `props.forceProject`, 2) requested projects from URL params,
+   * 3) first project user is a member of from org
+   */
+  enforceSingleProject = (
+    {requestedProjects, shouldForceProject, forceProject} = {},
+    otherParams
+  ) => {
+    let newProject;
+
+    // This is the case where we *want* to force project, but we are still loading
+    // the forced project's details
+    if (shouldForceProject && !forceProject) {
+      return;
+    }
+
+    if (forceProject) {
+      // this takes precendence over the other options
+      newProject = [getProjectIdFromProject(forceProject)];
+    } else if (requestedProjects && requestedProjects.length > 0) {
+      // If there is a list of projects from URL params, select first project from that list
+      newProject = [requestedProjects[0]];
+    } else {
+      // Otherwise, get first project from org that the user is a member of
+      newProject = this.getFirstProject();
+    }
+
+    updateProjects(newProject);
+    updateParamsWithoutHistory({project: newProject, ...otherParams}, this.getRouter());
   };
 
   /**
@@ -428,7 +460,7 @@ class GlobalSelectionHeader extends React.Component {
 
   getFirstProject = () => {
     return flatten(this.getProjects())
-      .map(p => parseInt(p.id, 10))
+      .map(getProjectIdFromProject)
       .slice(0, 1);
   };
 

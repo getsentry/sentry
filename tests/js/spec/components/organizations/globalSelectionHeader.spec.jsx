@@ -46,7 +46,6 @@ describe('GlobalSelectionHeader', function() {
       location: {query: {}},
     },
   });
-  jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
 
   beforeAll(function() {
     jest.spyOn(globalActions, 'updateDateTime');
@@ -55,6 +54,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   beforeEach(function() {
+    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
     GlobalSelectionStore.reset();
     [
       globalActions.updateDateTime,
@@ -500,6 +500,160 @@ describe('GlobalSelectionHeader', function() {
       const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
+    });
+  });
+
+  describe('without global-views (multi-project feature)', function() {
+    describe('without existing URL params', function() {
+      let wrapper;
+      const initialData = initializeOrg({
+        projects: [
+          {id: 0, slug: 'random project', isMember: true},
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+        router: {
+          location: {query: {}},
+          params: {orgId: 'org-slug'},
+        },
+      });
+
+      const createWrapper = props => {
+        wrapper = mount(
+          <GlobalSelectionHeader
+            params={{orgId: initialData.organization.slug}}
+            organization={initialData.organization}
+            {...props}
+          />,
+          initialData.routerContext
+        );
+        return wrapper;
+      };
+
+      beforeEach(function() {
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.organization.projects);
+        initialData.router.push.mockClear();
+        initialData.router.replace.mockClear();
+      });
+
+      it('uses first project in org projects when mounting', async function() {
+        createWrapper();
+
+        await tick();
+        wrapper.update();
+
+        expect(initialData.router.replace).toHaveBeenLastCalledWith({
+          pathname: undefined,
+          query: {project: [0], environment: []},
+        });
+      });
+
+      it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+        // forceProject generally starts undefined
+        createWrapper({shouldForceProject: true});
+
+        wrapper.setProps({
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).toHaveBeenLastCalledWith({
+          pathname: undefined,
+          query: {project: [1]},
+        });
+      });
+
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
+        // forceProject generally starts undefined
+        createWrapper({shouldForceProject: true});
+
+        wrapper.setContext({
+          router: {
+            ...initialData.router,
+            location: {
+              ...initialData.router.location,
+              query: {
+                project: 321,
+              },
+            },
+          },
+        });
+        wrapper.setProps({
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).not.toHaveBeenCalled();
+      });
+
+      it('appends projectId to URL when mounted with `forceProject`', async function() {
+        // forceProject generally starts undefined
+        createWrapper({
+          shouldForceProject: true,
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).toHaveBeenLastCalledWith({
+          pathname: undefined,
+          query: {project: [1], environment: []},
+        });
+      });
+    });
+
+    describe('with existing URL params', function() {
+      let wrapper;
+      const initialData = initializeOrg({
+        projects: [
+          {id: 0, slug: 'random project', isMember: true},
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+        router: {
+          location: {query: {statsPeriod: '90d'}},
+          params: {orgId: 'org-slug'},
+        },
+      });
+      jest
+        .spyOn(ProjectsStore, 'getAll')
+        .mockImplementation(() => initialData.organization.projects);
+
+      const createWrapper = props => {
+        wrapper = mount(
+          <GlobalSelectionHeader
+            params={{orgId: initialData.organization.slug}}
+            organization={initialData.organization}
+            {...props}
+          />,
+          initialData.routerContext
+        );
+        return wrapper;
+      };
+
+      beforeEach(function() {
+        initialData.router.push.mockClear();
+        initialData.router.replace.mockClear();
+      });
+
+      it('appends projectId to URL when mounted with `forceProject`', async function() {
+        // forceProject generally starts undefined
+        createWrapper({
+          shouldForceProject: true,
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).toHaveBeenLastCalledWith({
+          pathname: undefined,
+          query: {project: [1], statsPeriod: '90d'},
+        });
+      });
     });
   });
 
