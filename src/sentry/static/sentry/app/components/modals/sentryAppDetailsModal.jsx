@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import HookStore from 'app/stores/hookStore';
-import {singleLineRenderer} from 'app/utils/marked';
+import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 
