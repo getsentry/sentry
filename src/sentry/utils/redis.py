@@ -153,8 +153,8 @@ class ClusterManager(object):
 # redis_clusters to clusters.
 # clusters = ClusterManager(options.default_manager)
 clusters = ClusterManager(options.default_manager, _RedisCluster)
-redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
-
+# redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
+redis_clusters = clusters
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):
     cluster_option_name = 'cluster'
