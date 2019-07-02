@@ -496,7 +496,22 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         project_id = params.get('project', defaults.get('project'))
 
         client = self.get_client()
-        jira_projects = client.get_projects_list()
+        try:
+            jira_projects = client.get_projects_list()
+        except ApiError as exc:
+            logger.info(
+                'jira.get-create-issue-config.no-projects',
+                extra={
+                    'integration_id': self.model.id,
+                    'organization_id': self.organization_id,
+                    'error': exc.message,
+                }
+            )
+            raise IntegrationError(
+                'Could not fetch project list from Jira'
+                'Ensure that jira is available and your account is still active.'
+            )
+
         meta = self.get_issue_create_meta(client, project_id, jira_projects)
         if not meta:
             raise IntegrationError(
