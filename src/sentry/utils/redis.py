@@ -151,8 +151,8 @@ class ClusterManager(object):
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
-clusters = ClusterManager(options.default_manager)
-redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
+# clusters = ClusterManager(options.default_manager)
+clusters = ClusterManager(options.default_manager, _RedisCluster)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):
