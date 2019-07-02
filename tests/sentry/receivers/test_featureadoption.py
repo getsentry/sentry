@@ -16,7 +16,6 @@ from sentry.signals import (
     issue_assigned,
     issue_resolved,
     advanced_search,
-    save_search_created,
     inbound_filter_toggled,
     sso_enabled,
     data_scrubber_enabled,
@@ -682,13 +681,6 @@ class FeatureAdoptionTest(TestCase):
         advanced_search.send(project=self.project, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="advanced_search"
-        )
-        assert feature_complete
-
-    def test_save_search(self):
-        save_search_created.send(project=self.project, user=self.user, sender=type(self.project))
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="saved_search"
         )
         assert feature_complete
 

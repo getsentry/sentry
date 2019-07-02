@@ -30,7 +30,6 @@ from sentry.signals import (
     project_created,
     release_created,
     repo_linked,
-    save_search_created,
     sso_enabled,
     team_created,
     user_feedback_received,
@@ -199,27 +198,6 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
-    )
-
-
-@save_search_created.connect(weak=False)
-def record_save_search_created(project, user, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="saved_search", complete=True
-    )
-
-    if user and user.is_authenticated():
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        'search.saved',
-        user_id=user_id,
-        default_user_id=default_user_id,
-        project_id=project.id,
-        organization_id=project.organization_id,
     )
 
 
