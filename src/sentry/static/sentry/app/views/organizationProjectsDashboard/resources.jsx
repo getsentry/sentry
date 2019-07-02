@@ -9,6 +9,10 @@ import ErrorRobot from 'app/components/errorRobot';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 
+import releasesImg from '../../../images/releases.svg';
+import breadcrumbsImg from '../../../images/breadcrumbs-generic.svg';
+import docsImg from '../../../images/code-arguments-tags-mirrored.svg';
+
 export default class Resources extends React.Component {
   static propTypes = {
     org: SentryTypes.Organization,
@@ -31,21 +35,21 @@ export default class Resources extends React.Component {
             <Flex width={3 / 10}>
               <ResourceCard
                 link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
-                imgUrl="images/releases.svg"
+                imgUrl={releasesImg}
                 title="The Sentry Workflow"
               />
             </Flex>
             <Flex width={3 / 10}>
               <ResourceCard
                 link="https://sentry.io/vs/logging/"
-                imgUrl="images/breadcrumbs-generic.svg"
+                imgUrl={breadcrumbsImg}
                 title="Sentry vs Logging"
               />
             </Flex>
             <Flex width={3 / 10}>
               <ResourceCard
                 link="https://docs.sentry.io/"
-                imgUrl="images/code-arguments-tags-mirrored.svg"
+                imgUrl={docsImg}
                 title="Docs"
               />
             </Flex>

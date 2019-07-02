@@ -1,34 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
 
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 
-const GroupTagDistributionMeter = createReactClass({
-  displayName: 'TagDistributionMeter',
-
-  propTypes: {
+class GroupTagDistributionMeter extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     organization: SentryTypes.Organization.isRequired,
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
-  },
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
@@ -39,7 +34,7 @@ const GroupTagDistributionMeter = createReactClass({
       this.props.totalValues !== nextProps.totalValues ||
       this.props.topValues !== nextProps.topValues
     );
-  },
+  }
 
   fetchData() {
     this.setState({
@@ -61,7 +56,7 @@ const GroupTagDistributionMeter = createReactClass({
           loading: false,
         });
       });
-  },
+  }
 
   render() {
     const {organization, group, tag, totalValues, topValues} = this.props;
@@ -93,7 +88,7 @@ const GroupTagDistributionMeter = createReactClass({
         segments={segments}
       />
     );
-  },
-});
+  }
+}
 
 export default GroupTagDistributionMeter;

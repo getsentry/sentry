@@ -3,7 +3,7 @@ module.exports = {
   verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx}',
-    'src/sentry/static/sentry/app/**/*.{js,jsx}',
+    'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'lcov', 'cobertura'],
   coverageDirectory: '.artifacts/coverage/',
@@ -27,4 +27,15 @@ module.exports = {
     '<rootDir>/node_modules/react',
     '<rootDir>/node_modules/reflux',
   ],
+  transform: {
+    '^.+\\.jsx?$': 'babel-jest',
+    '^.+\\.tsx?$': 'ts-jest',
+  },
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  globals: {
+    'ts-jest': {
+      tsConfig: './tsconfig.json',
+      diagnostics: false,
+    },
+  },
 };

@@ -98,5 +98,4 @@ urlpatterns = patterns(
     url(r'^debug/sudo/$', TemplateView.as_view(template_name='sentry/account/sudo.html')),
     url(r'^debug/oauth/authorize/$', DebugOAuthAuthorizeView.as_view()),
     url(r'^debug/oauth/authorize/error/$', DebugOAuthAuthorizeErrorView.as_view()),
-    url(r'^debug/icons/$', TemplateView.as_view(template_name='sentry/debug/icons.html')),
 )

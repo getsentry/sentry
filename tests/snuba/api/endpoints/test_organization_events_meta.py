@@ -31,8 +31,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        # this is not exact because of turbo=True
-        assert response.data['count'] == 10
+        assert response.data['count'] == 2
 
     def test_search(self):
         self.login_as(user=self.user)
@@ -60,8 +59,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(url, {'query': 'delet'}, format='json')
 
         assert response.status_code == 200, response.content
-        # this is not exact because of turbo=True
-        assert response.data['count'] == 10
+        assert response.data['count'] == 1
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)

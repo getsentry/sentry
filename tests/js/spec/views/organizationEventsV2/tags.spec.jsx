@@ -8,21 +8,20 @@ describe('Tags', function() {
   const org = TestStubs.Organization();
   beforeEach(function() {
     Client.addMockResponse({
-      url: `/organizations/${org.slug}/events-heatmap/`,
-      body: [
-        {
-          key: 'release',
-          name: 'Release',
-          totalValues: 2,
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
-        },
-        {
-          key: 'environment',
-          name: 'Environment',
-          totalValues: 1,
-          topValues: [{count: 1, value: 'production', name: 'production'}],
-        },
-      ],
+      url: `/organizations/${org.slug}/events-distribution/`,
+      body: {
+        key: 'release',
+        name: 'Release',
+        totalValues: 2,
+        topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+      },
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/events-meta/`,
+      body: {
+        count: 2,
+      },
     });
   });
 
@@ -48,9 +47,9 @@ describe('Tags', function() {
       />
     );
 
-    expect(wrapper.find('Placeholder')).toHaveLength(2);
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
     await tick();
     wrapper.update();
-    expect(wrapper.find('Placeholder')).toHaveLength(0);
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 });

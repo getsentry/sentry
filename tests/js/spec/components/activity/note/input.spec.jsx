@@ -99,7 +99,7 @@ describe('NoteInput', function() {
 
       wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
 
-      expect(onUpdate).toHaveBeenCalledWith({text: 'new item'});
+      expect(onUpdate).toHaveBeenCalledWith({text: 'new item', mentions: []});
     });
 
     it('canels editing and moves to preview mode', async function() {

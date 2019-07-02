@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from importlib import import_module
+
 import six
 
 from sentry.relay.queries.base import InvalidQuery
@@ -7,8 +9,6 @@ from sentry.relay.utils import type_to_class_name
 
 
 def execute_queries(relay, queries):
-    from django.utils.importlib import import_module
-
     query_results = {}
     for query_id, query in six.iteritems(queries):
         try:

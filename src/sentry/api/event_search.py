@@ -19,6 +19,7 @@ from sentry.search.utils import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
+from sentry.models import Project
 
 WILDCARD_CHARS = re.compile(r'[\*]')
 
@@ -146,6 +147,8 @@ SEARCH_MAP = dict({
     'user_count': 'user_count',
 }, **SENTRY_SNUBA_MAP)
 no_conversion = set(['project_id', 'start', 'end'])
+
+PROJECT_KEY = 'project.name'
 
 
 class InvalidSearchQuery(Exception):
@@ -624,11 +627,27 @@ def get_snuba_query_args(query=None, params=None):
         'filter_keys': defaultdict(list),
     }
 
+    projects = {}
+    has_project_term = any(
+        isinstance(term, SearchFilter) and term.key.name == PROJECT_KEY
+        for term
+        in parsed_terms
+    )
+    if has_project_term:
+        projects = {
+            p['slug']: p['id'] for p in Project.objects.filter(
+                id__in=params['project_id'],
+            ).values('id', 'slug')
+        }
+
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             snuba_name = term.key.snuba_name
+            if term.key.name == PROJECT_KEY:
+                condition = ['project_id', '=', projects.get(term.value.value)]
+                kwargs['conditions'].append(condition)
 
-            if snuba_name in ('start', 'end'):
+            elif snuba_name in ('start', 'end'):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ('project_id', 'issue'):
                 value = term.value.value

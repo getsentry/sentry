@@ -6,9 +6,8 @@ import {injectGlobal} from 'emotion';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
+import {get, isEqual} from 'lodash';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -27,6 +26,7 @@ import OrganizationsStore from 'app/stores/organizationsStore';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import withConfig from 'app/utils/withConfig';
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -37,35 +37,33 @@ function getAlertTypeForProblem(problem) {
   }
 }
 
-const App = createReactClass({
-  displayName: 'App',
-
-  propTypes: {
+class App extends React.Component {
+  static propTypes = {
     api: PropTypes.object.isRequired,
     routes: PropTypes.array,
-  },
+    config: PropTypes.object.isRequired,
+  };
 
-  childContextTypes: {
+  static childContextTypes = {
     location: PropTypes.object,
-  },
+  };
 
-  mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreChange')],
-
-  getInitialState() {
+  constructor(props) {
+    super(props);
     const user = ConfigStore.get('user');
-    return {
+    this.state = {
       loading: false,
       error: false,
       needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
       newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
     };
-  },
+  }
 
   getChildContext() {
     return {
       location: this.props.location,
     };
-  },
+  }
 
   componentWillMount() {
     this.props.api.request('/organizations/', {
@@ -119,8 +117,8 @@ const App = createReactClass({
         return;
       }
 
-      const code = jqXHR?.responseJSON?.detail?.code;
-      const extra = jqXHR?.responseJSON?.detail?.extra;
+      const code = get(jqXHR, 'responseJSON.detail.code');
+      const extra = get(jqXHR, 'responseJSON.detail.extra');
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases
@@ -144,26 +142,31 @@ const App = createReactClass({
     if (user) {
       HookStore.get('analytics:init-user').map(cb => cb(user));
     }
-  },
+  }
 
   componentDidMount() {
     this.updateTracing();
-  },
+  }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
+    const {config} = this.props;
+    if (!isEqual(config, prevProps.config)) {
+      this.handleConfigStoreChange(config);
+    }
+
     this.updateTracing();
-  },
+  }
 
   componentWillUnmount() {
     OrganizationsStore.load([]);
-  },
+  }
 
   updateTracing() {
     const route = getRouteStringFromRoutes(this.props.routes);
     Tracing.startTrace(getCurrentHub(), route);
-  },
+  }
 
-  onConfigStoreChange(config) {
+  handleConfigStoreChange(config) {
     const newState = {};
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
@@ -174,27 +177,27 @@ const App = createReactClass({
     if (Object.keys(newState).length > 0) {
       this.setState(newState);
     }
-  },
+  }
 
   @keydown('meta+shift+p', 'meta+k')
   openCommandPalette(e) {
     openCommandPalette();
     e.preventDefault();
     e.stopPropagation();
-  },
+  }
 
   onConfigured() {
     this.setState({needsUpgrade: false});
-  },
+  }
 
-  onNewsletterConsent() {
+  handleNewsletterConsent = () => {
     // this is somewhat hackish
     this.setState({
       newsletterConsentPrompt: false,
     });
-  },
+  };
 
-  handleGlobalModalClose() {
+  handleGlobalModalClose = () => {
     if (!this.mainContainerRef) {
       return;
     }
@@ -204,7 +207,7 @@ const App = createReactClass({
 
     // Focus the main container to get hotkeys to keep working after modal closes
     this.mainContainerRef.focus();
-  },
+  };
 
   renderBody() {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
@@ -213,11 +216,11 @@ const App = createReactClass({
     }
 
     if (newsletterConsentPrompt) {
-      return <NewsletterConsent onSubmitSuccess={this.onNewsletterConsent} />;
+      return <NewsletterConsent onSubmitSuccess={this.handleNewsletterConsent} />;
     }
 
     return this.props.children;
-  },
+  }
 
   render() {
     if (this.state.loading) {
@@ -243,10 +246,10 @@ const App = createReactClass({
         </div>
       </ThemeProvider>
     );
-  },
-});
+  }
+}
 
-export default withApi(App);
+export default withApi(withConfig(App));
 
 injectGlobal`
 body {

@@ -14,7 +14,6 @@ from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
-from sentry.utils.assets import get_asset_url
 from sentry.utils.support import get_support_mail
 from sentry.templatetags.sentry_dsn import get_public_dsn
 
@@ -102,7 +101,6 @@ def get_react_config(context):
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
-        'mediaUrl': get_asset_url('sentry', ''),
         'needsUpgrade': needs_upgrade,
         'dsn': get_public_dsn(),
         'statuspage': _get_statuspage(),

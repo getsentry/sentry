@@ -49,7 +49,6 @@ export const Config = PropTypes.shape({
   invitesEnabled: PropTypes.bool,
   isAuthenticated: PropTypes.bool,
   isOnPremise: PropTypes.bool,
-  mediaUrl: PropTypes.string,
   messages: PropTypes.array,
   needsUpgrade: PropTypes.bool,
   privacyUrl: PropTypes.string,
@@ -469,6 +468,8 @@ export const IncidentActivity = PropTypes.shape({
     .isRequired,
   user: User,
   comment: PropTypes.string,
+  value: PropTypes.string,
+  previousValue: PropTypes.string,
 });
 
 export const GlobalSelection = PropTypes.shape({

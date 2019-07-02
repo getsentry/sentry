@@ -95,7 +95,7 @@ class OnboardingWizard extends React.Component {
   }
 
   get projectPlatform() {
-    return this.state.platform || this.firstProject?.platform;
+    return this.state.platform || (this.firstProject && this.firstProject.platform);
   }
 
   handleUpdate = data => {
@@ -228,6 +228,7 @@ const Header = styled('header')`
   z-index: 100;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 
+  /* stylelint-disable-next-line no-duplicate-selectors */
   ${Container} {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

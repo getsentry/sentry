@@ -471,11 +471,18 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 className="css-1dp2adt"
                                 is={null}
                               >
-                                <div
-                                  className="form-control disabled auto-select"
+                                <AutoSelectText
+                                  className="form-control disabled"
                                 >
-                                  aa624bcc12024702a202cd90be5feda0
-                                </div>
+                                  <div
+                                    className="auto-select-text form-control disabled"
+                                    onClick={[Function]}
+                                  >
+                                    <span>
+                                      aa624bcc12024702a202cd90be5feda0
+                                    </span>
+                                  </div>
+                                </AutoSelectText>
                               </div>
                             </Base>
                           </Box>

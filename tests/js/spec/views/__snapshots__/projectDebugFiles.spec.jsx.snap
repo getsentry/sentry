@@ -2,6 +2,11 @@
 
 exports[`ProjectDebugFiles renders 1`] = `
 <ProjectDebugSymbols
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "org",

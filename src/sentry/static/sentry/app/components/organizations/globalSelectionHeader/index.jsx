@@ -17,6 +17,7 @@ import {
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import BackToIssues from 'app/components/organizations/backToIssues';
+import ConfigStore from 'app/stores/configStore';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -26,10 +27,9 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import ConfigStore from 'app/stores/configStore';
-import withProjects from 'app/utils/withProjects';
 import space from 'app/styles/space';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 
@@ -75,6 +75,15 @@ class GlobalSelectionHeader extends React.Component {
      */
     showRelative: PropTypes.bool,
 
+    // GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
+    //
+    // This component intentionally attempts to sync store --> URL Parameter
+    // only when mounted, except when this prop changes.
+    //
+    // XXX: This comes from GlobalSelectionStore and currently does not reset,
+    // so it happens at most once. Can add a reset as needed.
+    forceUrlSync: PropTypes.bool,
+
     // Callbacks //
     onChangeProjects: PropTypes.func,
     onUpdateProjects: PropTypes.func,
@@ -106,8 +115,7 @@ class GlobalSelectionHeader extends React.Component {
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
     const stateFromRouter = getStateFromQuery(location.query);
-    // We should update store if there are any relevant URL parameters when component
-    // is mounted
+    // We should update store if there are any relevant URL parameters when component is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
       if (!stateFromRouter.start && !stateFromRouter.end && !stateFromRouter.period) {
         stateFromRouter.period = DEFAULT_STATS_PERIOD;
@@ -163,7 +171,7 @@ class GlobalSelectionHeader extends React.Component {
     }
 
     // Update if URL parameters change
-    if (this.didQueryChange(this.props, nextProps)) {
+    if (this.changedQueryKeys(this.props, nextProps).length > 0) {
       return true;
     }
 
@@ -187,7 +195,7 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
-    //update if any projects are starred or reordered
+    // update if any projects are starred or reordered
     if (
       this.props.projects &&
       nextProps.projects &&
@@ -199,12 +207,37 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    // Update if `forceUrlSync` changes
+    if (!this.props.forceUrlSync && nextProps.forceUrlSync) {
+      return true;
+    }
+
     return false;
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.hasCustomRouting) {
+    const {hasCustomRouting, location, forceUrlSync, selection} = this.props;
+
+    if (hasCustomRouting) {
       return;
+    }
+
+    // Kind of gross
+    if (forceUrlSync && !prevProps.forceUrlSync) {
+      const {project, environment} = getStateFromQuery(location.query);
+
+      if (
+        !isEqual(project, selection.projects) ||
+        !isEqual(environment, selection.environments)
+      ) {
+        updateParamsWithoutHistory(
+          {
+            project: selection.projects,
+            environment: selection.environments,
+          },
+          this.getRouter()
+        );
+      }
     }
 
     // If component has updated (e.g. due to re-render from a router action),
@@ -216,17 +249,26 @@ class GlobalSelectionHeader extends React.Component {
     return new Set(this.props.organization.features).has('global-views');
   };
 
-  didQueryChange = (prevProps, nextProps) => {
+  /**
+   * Identifies the query params (that are relevant to this component) that have changed
+   *
+   * @return {String[]} Returns an array of param keys that have changed
+   */
+  changedQueryKeys = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
     const prevQuery = pick(prevProps.location.query, urlParamKeys);
     const nextQuery = pick(nextProps.location.query, urlParamKeys);
 
     // If no next query is specified keep the previous global selection values
     if (Object.keys(prevQuery).length === 0 && Object.keys(nextQuery).length === 0) {
-      return false;
+      return [];
     }
 
-    return !isEqual(prevQuery, nextQuery);
+    const changedKeys = Object.values(urlParamKeys).filter(
+      key => !isEqual(prevQuery[key], nextQuery[key])
+    );
+
+    return changedKeys;
   };
 
   updateStoreIfChange = (prevProps, nextProps) => {
@@ -234,7 +276,9 @@ class GlobalSelectionHeader extends React.Component {
     //
     // e.g. if selection store changed, don't trigger more actions
     // to update global selection store (otherwise we'll get recursive updates)
-    if (!this.didQueryChange(prevProps, nextProps)) {
+    const changedKeys = this.changedQueryKeys(prevProps, nextProps);
+
+    if (!changedKeys.length) {
       return;
     }
 
@@ -242,9 +286,19 @@ class GlobalSelectionHeader extends React.Component {
       nextProps.location.query
     );
 
-    updateDateTime({start, end, period, utc});
-    updateEnvironments(environment || []);
-    updateProjects(project || []);
+    if (changedKeys.includes(URL_PARAM.PROJECT)) {
+      updateProjects(project || []);
+    }
+    if (changedKeys.includes(URL_PARAM.ENVIRONMENT)) {
+      updateEnvironments(environment || []);
+    }
+    if (
+      [URL_PARAM.START, URL_PARAM.END, URL_PARAM.UTC, URL_PARAM.PERIOD].find(key =>
+        changedKeys.includes(key)
+      )
+    ) {
+      updateDateTime({start, end, period, utc});
+    }
   };
 
   // Returns `router` from props if `hasCustomRouting` property is false
@@ -297,8 +351,23 @@ class GlobalSelectionHeader extends React.Component {
 
   handleUpdateProjects = () => {
     const {projects} = this.state;
-    updateProjects(projects, this.getRouter(), this.getUpdateOptions());
-    this.setState({projects: null});
+
+    // Clear environments when switching projects
+    //
+    // Update both params at once, otherwise:
+    // - if you update projects first, we could get a flicker
+    //   because you'll have projects & environments before we update
+    // - if you update environments first, there could be race conditions
+    //   with value of router.location.query
+    updateParams(
+      {
+        environment: null,
+        project: projects,
+      },
+      this.getRouter(),
+      this.getUpdateOptions()
+    );
+    this.setState({projects: null, environments: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
 

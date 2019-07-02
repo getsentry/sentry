@@ -54,6 +54,10 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
+from .endpoints.internal_warnings import InternalWarningsEndpoint
+from .endpoints.internal_packages import InternalPackagesEndpoint
+from .endpoints.internal_environment import InternalEnvironmentEndpoint
+from .endpoints.internal_mail import InternalMailEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -74,7 +78,7 @@ from .endpoints.organization_discover_saved_query_detail import OrganizationDisc
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
-from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
+from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint, OrganizationEventDetailsLatestEndpoint, OrganizationEventDetailsOldestEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
@@ -630,9 +634,9 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-events-stats'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/events-heatmap/$',
-        OrganizationEventsHeatmapEndpoint.as_view(),
-        name='sentry-api-0-organization-events-heatmap'
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-distribution/$',
+        OrganizationEventsDistributionEndpoint.as_view(),
+        name='sentry-api-0-organization-events-distribution'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',
@@ -1416,8 +1420,11 @@ urlpatterns = patterns(
     ),
     url(r'^internal/quotas/$', InternalQuotasEndpoint.as_view()),
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
-    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
-        name='sentry-api-0-internal-stats'),
+    url(r'^internal/stats/$', InternalStatsEndpoint.as_view()),
+    url(r'^internal/warnings/$', InternalWarningsEndpoint.as_view()),
+    url(r'^internal/packages/$', InternalPackagesEndpoint.as_view()),
+    url(r'^internal/environment/$', InternalEnvironmentEndpoint.as_view()),
+    url(r'^internal/mail/$', InternalMailEndpoint.as_view()),
 
     # Project Wizard
     url(

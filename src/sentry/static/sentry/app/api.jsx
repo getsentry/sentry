@@ -1,4 +1,4 @@
-import {isUndefined, isNil} from 'lodash';
+import {isUndefined, isNil, get} from 'lodash';
 import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
 
@@ -72,7 +72,7 @@ export class Client {
    * If so, redirect user to new project slug
    */
   hasProjectBeenRenamed(response) {
-    const code = response?.responseJSON?.detail?.code;
+    const code = get(response, 'responseJSON.detail.code');
 
     // XXX(billy): This actually will never happen because we can't intercept the 302
     // jQuery ajax will follow the redirect by default...
@@ -80,7 +80,7 @@ export class Client {
       return false;
     }
 
-    const slug = response?.responseJSON?.detail?.extra?.slug;
+    const slug = get(response, 'responseJSON.detail.extra.slug');
 
     redirectToProject(slug);
     return true;
@@ -120,7 +120,7 @@ export class Client {
   }
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
-    const code = response?.responseJSON?.detail?.code;
+    const code = get(response, 'responseJSON.detail.code');
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
     if (isSudoRequired) {

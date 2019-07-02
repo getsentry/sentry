@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const webpack = require('webpack');
 const babelConfig = require('./babel.config');
+const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
+const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -11,10 +13,10 @@ const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
-
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // HMR proxying
@@ -90,34 +92,35 @@ const localeChunkGroups = {};
 
 // No need to split the english locale out as it will be completely empty and
 // is not included in the django layout.html.
-supportedLocales.filter(l => l !== 'en').forEach(locale => {
-  const language = localeToLanguage(locale);
-  const group = `locale/${language}`;
+supportedLocales
+  .filter(l => l !== 'en')
+  .forEach(locale => {
+    const language = localeToLanguage(locale);
+    const group = `locale/${language}`;
 
-  // List of module path tests to group into locale chunks
-  const localeGroupTests = [
-    new RegExp(`locale\\/${locale}\\/.*\\.po$`),
-    new RegExp(`moment\\/locale\\/${language}\\.js$`),
-  ];
+    // List of module path tests to group into locale chunks
+    const localeGroupTests = [
+      new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+      new RegExp(`moment\\/locale\\/${language}\\.js$`),
+    ];
 
-  // module test taken from [0] and modified to support testing against
-  // multiple expressions.
-  //
-  // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-  const groupTest = module =>
-    localeGroupTests.some(
-      pattern =>
+    // module test taken from [0] and modified to support testing against
+    // multiple expressions.
+    //
+    // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+    const groupTest = module =>
+      localeGroupTests.some(pattern =>
         module.nameForCondition && pattern.test(module.nameForCondition())
           ? true
           : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
-    );
+      );
 
-  localeChunkGroups[group] = {
-    name: group,
-    test: groupTest,
-    enforce: true,
-  };
-});
+    localeChunkGroups[group] = {
+      name: group,
+      test: groupTest,
+      enforce: true,
+    };
+  });
 
 /**
  * Restirct translation files that are pulled in through app/translations.jsx
@@ -136,34 +139,6 @@ const localeRestrictionPlugins = [
     new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
   ),
 ];
-
-/**
- * When our locales are codesplit into cache groups, webpack expects that all
- * chunks *must* be loaded before the main entrypoint can be executed. However,
- * since we will only be using one locale at a time we do not want to load all
- * locale chunks, just the one the user has enabled.
- *
- * This plugin removes the locale chunks from the app entrypoint's immediate
- * chunk dependants list, ensuring the the compiled entrypoint will execute
- * *without* all locale chunks loaded.
- */
-const pluginName = 'OptionalLocaleChunkPlugin';
-
-const clearLocaleChunks = chunks =>
-  chunks.filter(chunk => chunk.name !== 'app').forEach(chunk => {
-    const mainGroup = Array.from(chunk.groupsIterable)[0];
-    mainGroup.chunks = mainGroup.chunks.filter(
-      c => c.name && !c.name.startsWith('locale')
-    );
-  });
-
-class OptionalLocaleChunkPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap(pluginName, compilation =>
-      compilation.hooks.afterOptimizeChunks.tap(pluginName, clearLocaleChunks)
-    );
-  }
-}
 
 /**
  * Explicit codesplitting cache groups
@@ -196,6 +171,12 @@ const appConfig = {
           loader: 'babel-loader',
           options: {...babelConfig, cacheDirectory: true},
         },
+      },
+      {
+        test: /\.tsx?$/,
+        include: [staticPrefix],
+        exclude: /(vendor|node_modules|dist)/,
+        loader: 'ts-loader',
       },
       {
         test: /\.po$/,
@@ -244,6 +225,7 @@ const appConfig = {
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
+      paths: true,
     }),
     /**
      * jQuery must be provided in the global scope specifically and only for
@@ -277,13 +259,9 @@ const appConfig = {
       app: path.join(staticPrefix, 'app'),
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms':
-        IS_TEST || IS_STORYBOOK
-          ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
-          : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx'],
   },
   output: {
     path: distPath,
@@ -300,6 +278,17 @@ const appConfig = {
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
+
+if (IS_TEST || IS_STORYBOOK) {
+  appConfig.resolve.alias['integration-docs-platforms'] = path.join(
+    __dirname,
+    'tests/fixtures/integration-docs/_platforms.json'
+  );
+} else {
+  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
+  appConfig.plugins.push(plugin);
+  appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
+}
 
 /**
  * Legacy CSS Webpack appConfig for Django-powered views.
