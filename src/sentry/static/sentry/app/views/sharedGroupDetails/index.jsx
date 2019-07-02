@@ -87,9 +87,13 @@ const SharedGroupDetails = createReactClass({
 
     if (this.state.loading) {
       return <LoadingIndicator />;
-    } else if (!group) {
+    }
+
+    if (!group) {
       return <NotFound />;
-    } else if (this.state.error) {
+    }
+
+    if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 

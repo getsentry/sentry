@@ -232,7 +232,9 @@ const OrganizationContext = createReactClass({
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );
-    } else if (this.state.error) {
+    }
+
+    if (this.state.error) {
       return (
         <React.Fragment>
           {this.renderSidebar()}
