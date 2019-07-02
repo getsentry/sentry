@@ -42,6 +42,15 @@ class GlobalSelectionHeader extends React.Component {
      * List of projects to display in project selector
      */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
+
+    /**
+     * A project will be forced from parent component (selection is disabled, and if user
+     * does not have multi-project support enabled, it will not try to auto select a project).
+     *
+     * Project will be specified in the prop `forceProject` (since its data is async)
+     */
+    shouldForceProject: PropTypes.bool,
+
     /**
      * If a forced project is passed, selection is disabled
      */
@@ -52,20 +61,40 @@ class GlobalSelectionHeader extends React.Component {
      */
     selection: SentryTypes.GlobalSelection,
 
-    // Display Environment selector?
+    /**
+     * Display Environment selector?
+     */
     showEnvironmentSelector: PropTypes.bool,
 
-    // Display Environment selector?
+    /**
+     * Display Environment selector?
+     */
     showDateSelector: PropTypes.bool,
 
-    // Disable automatic routing
+    /**
+     * Disable automatic routing
+     */
     hasCustomRouting: PropTypes.bool,
 
-    // Reset these URL params when we fire actions
-    // (custom routing only)
+    /**
+     * Reset these URL params when we fire actions
+     * (custom routing only)
+     */
     resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
 
-    // Props passed to child components //
+    /**
+     * GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
+     *
+     * This component intentionally attempts to sync store --> URL Parameter
+     * only when mounted, except when this prop changes.
+     *
+     * XXX: This comes from GlobalSelectionStore and currently does not reset,
+     * so it happens at most once. Can add a reset as needed.
+     */
+    forceUrlSync: PropTypes.bool,
+
+    /// Props passed to child components ///
+
     /**
      * Show absolute date selectors
      */
@@ -74,15 +103,6 @@ class GlobalSelectionHeader extends React.Component {
      * Show relative date selectors
      */
     showRelative: PropTypes.bool,
-
-    // GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
-    //
-    // This component intentionally attempts to sync store --> URL Parameter
-    // only when mounted, except when this prop changes.
-    //
-    // XXX: This comes from GlobalSelectionStore and currently does not reset,
-    // so it happens at most once. Can add a reset as needed.
-    forceUrlSync: PropTypes.bool,
 
     // Callbacks //
     onChangeProjects: PropTypes.func,
@@ -110,7 +130,7 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const {location, params, organization, selection} = this.props;
+    const {location, params, organization, selection, shouldForceProject} = this.props;
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
@@ -132,7 +152,7 @@ class GlobalSelectionHeader extends React.Component {
 
       if (hasMultipleProjectFeature) {
         updateProjects(requestedProjects);
-      } else {
+      } else if (!shouldForceProject) {
         const allowedProjects =
           requestedProjects.length > 0
             ? requestedProjects.slice(0, 1)
@@ -153,7 +173,7 @@ class GlobalSelectionHeader extends React.Component {
           {project: projects, environment: environments, ...datetime},
           this.getRouter()
         );
-      } else {
+      } else if (!shouldForceProject) {
         const allowedProjects = this.getFirstProject();
         updateProjects(allowedProjects);
         updateParams(
@@ -222,7 +242,25 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    // Kind of gross
+    // This means that previously forceProject was falsey (e.g. loading) and now
+    // we have the project to force.
+    //
+    // If user does not have multiple project selection, we need to save the forced
+    // project into the store (if project is not in URL params), otherwise
+    // there will be weird behavior in this component since it just picks a project
+    if (
+      !this.hasMultipleProjectSelection() &&
+      this.props.forceProject &&
+      !prevProps.forceProject
+    ) {
+      const {project} = getStateFromQuery(location.query);
+      if (!project) {
+        const newProject = [parseInt(this.props.forceProject.id, 10)];
+        updateProjects(newProject);
+        updateParamsWithoutHistory({project: newProject}, this.getRouter());
+      }
+    }
+
     if (forceUrlSync && !prevProps.forceUrlSync) {
       const {project, environment} = getStateFromQuery(location.query);
 
@@ -412,6 +450,7 @@ class GlobalSelectionHeader extends React.Component {
   render() {
     const {
       className,
+      shouldForceProject,
       forceProject,
       organization,
       showAbsolute,
@@ -430,9 +469,10 @@ class GlobalSelectionHeader extends React.Component {
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          {forceProject && this.getBackButton()}
+          {shouldForceProject && this.getBackButton()}
           <MultipleProjectSelector
             organization={organization}
+            shouldForceProject={shouldForceProject}
             forceProject={forceProject}
             projects={projects}
             nonMemberProjects={nonMemberProjects}

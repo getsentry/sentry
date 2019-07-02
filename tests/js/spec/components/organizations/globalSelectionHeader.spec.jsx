@@ -482,6 +482,7 @@ describe('GlobalSelectionHeader', function() {
     const wrapper = mount(
       <GlobalSelectionHeader
         organization={initialData.organization}
+        shouldForceProject
         forceProject={initialData.organization.projects[0]}
       />,
       initialData.routerContext
