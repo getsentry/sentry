@@ -424,7 +424,7 @@ class Csp(SecurityReport):
         if project is not None:
             disallowed += tuple(project.get_option('sentry:csp_ignored_sources', []))
 
-        if disallowed and any(is_valid_origin(uri and uri, allowed=disallowed) for uri in uris):
+        if disallowed and any(is_valid_origin(uri, allowed=disallowed) for uri in uris):
             return True
 
         return False

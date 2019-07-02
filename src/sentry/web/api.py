@@ -581,6 +581,7 @@ class StoreView(APIView):
             user_agent=helper.context.agent,
             version=auth.version,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
+            relay_config=relay_config,
         )
         del data
 
