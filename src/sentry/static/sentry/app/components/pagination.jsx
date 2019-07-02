@@ -29,10 +29,9 @@ export default class Pagination extends React.Component {
 
   static defaultProps = {
     onCursor: (cursor, path, query) => {
-      query.cursor = cursor;
       browserHistory.push({
         pathname: path,
-        query,
+        query: {...query, cursor},
       });
     },
     className: streamCss,
