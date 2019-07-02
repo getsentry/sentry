@@ -103,9 +103,8 @@ class InstallationForm(forms.Form):
     consumer_key = forms.CharField(
         label=_('Jira Consumer Key'),
         widget=forms.TextInput(
-            attrs={'placeholder': _(
-                'sentry-consumer-key')}
-        )
+            attrs={'placeholder': _('sentry-consumer-key')}
+        ),
     )
     private_key = forms.CharField(
         label=_('Jira Consumer Private Key'),
@@ -127,6 +126,12 @@ class InstallationForm(forms.Form):
         except Exception:
             raise forms.ValidationError(
                 'Private key must be a valid SSH private key encoded in a PEM format.')
+        return data
+
+    def clean_consumer_key(self):
+        data = self.cleaned_data['consumer_key']
+        if len(data) > 200:
+            raise forms.ValidationError('Consumer key is limited to 200 characters.')
         return data
 
 
