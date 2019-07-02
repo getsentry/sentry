@@ -31,6 +31,7 @@ lxml>=3.4.1
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
 mock==2.0.0
+more-itertools==5.0.0
 msgpack>=0.6.1,<0.7.0
 oauth2>=1.5.167
 parsimonious==0.8.0
