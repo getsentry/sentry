@@ -25,6 +25,7 @@ from sentry.utils.data_filters import (
     is_valid_error_message,
     FilterTypes,
 )
+from sentry.web.relay_config import get_full_relay_config
 
 
 class AbsoluteUriTest(unittest.TestCase):
@@ -254,7 +255,8 @@ class IsValidOriginTestCase(unittest.TestCase):
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):
         self.project.update_option('sentry:blacklisted_ips', inputs)
-        return is_valid_ip(self.project, ip)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_ip(relay_config, ip)
 
     def test_not_in_blacklist(self):
         assert self.is_valid_ip('127.0.0.1', [])
@@ -275,7 +277,8 @@ class IsValidIPTestCase(TestCase):
 class IsValidReleaseTestCase(TestCase):
     def is_valid_release(self, value, inputs):
         self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), inputs)
-        return is_valid_release(self.project, value)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_release(relay_config, value)
 
     def test_release_not_in_list(self):
         assert self.is_valid_release('1.2.3', None)
@@ -294,7 +297,8 @@ class IsValidReleaseTestCase(TestCase):
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
         self.project.update_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
-        return is_valid_error_message(self.project, value)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_error_message(relay_config, value)
 
     def test_error_class_not_in_list(self):
         assert self.is_valid_error_message(
