@@ -4,18 +4,17 @@ import json
 import six
 import logging
 
-from copy import copy
-
 from sentry.coreapi import APIError
 from sentry.models.organizationoption import OrganizationOption
 from sentry.models.project import Project
 from sentry.models.organization import Organization
 from sentry import options
-from sentry.utils.data_filters import FilterTypes
+from sentry.utils.data_filters import FilterTypes, FilterStatKeys
 from sentry.utils.http import get_origins
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry import filters
+from sentry.models.projectoption import ProjectOption
+from sentry.message_filters import get_all_filters
 
 logger = logging.getLogger('sentry')
 
@@ -26,6 +25,78 @@ _restricted_config_properties = frozenset([
     'kafka_max_event_size',
     'kafka_raw_event_sample_rate'
 ])
+
+
+def _to_camel_case_name(name):
+    """
+    Converts a string from snake_case to camelCase
+
+    :param name: the string to convert
+    :return: the name converted to camelCase
+
+    >>> _to_camel_case_name(22)
+    22
+    >>> _to_camel_case_name("hello_world")
+    'helloWorld'
+    >>> _to_camel_case_name("_hello_world")
+    'helloWorld'
+    >>> _to_camel_case_name("__hello___world___")
+    'helloWorld'
+    >>> _to_camel_case_name("hello")
+    'hello'
+    >>> _to_camel_case_name("Hello_world")
+    'helloWorld'
+    >>> _to_camel_case_name("one_two_three_four")
+    'oneTwoThreeFour'
+    >>> _to_camel_case_name("oneTwoThreeFour")
+    'oneTwoThreeFour'
+    """
+
+    def first_lower(s):
+        return s[:1].lower() + s[1:]
+
+    def first_upper(s):
+        return s[:1].upper() + s[1:]
+
+    if not isinstance(name, six.string_types):
+        return name
+    else:
+        name = name.strip("_")
+        pieces = name.split('_')
+        return first_lower(pieces[0]) + ''.join(first_upper(x) for x in pieces[1:])
+
+
+def _to_camel_case_dict(obj):
+    """
+    Converts recursively the keys of a dictionary from snake_case to camelCase
+
+    This is intended for converting dictionaries that use the python convention to
+    dictionaries that use the javascript/JSON convention
+
+    NOTE: this function will, by default,  mutate the dictionary in place.
+    If you do not want to change the input use clone=True
+
+    :param obj: the dictionary
+
+    :return: a dictionary with the string keys converted
+
+    >>> _to_camel_case_dict({'_abc': {'_one_two_three': 1}})
+    {'abc': {'oneTwoThree': 1}}
+    >>> val = {'_abc': {'_one_two_three': 1}}
+    >>> _to_camel_case_dict({'_abc': {'_one_two_three': 1}})
+    {'abc': {'oneTwoThree': 1}}
+
+    # check that we didn't affect the original
+    >>> val
+    {'_abc': {'_one_two_three': 1}}
+
+    """
+
+    if not isinstance(obj, dict):
+        raise ValueError("Bad parameter passed expected dictionary got {}".format(repr(type(obj))))
+
+    return {_to_camel_case_name(key): _to_camel_case_dict(value) if isinstance(value, dict) else value
+            for (key, value) in six.iteritems(obj)}
 
 
 class _ConfigBase(object):
@@ -64,6 +135,7 @@ class _ConfigBase(object):
         """
         Converts the config object into a dictionary
 
+        :param to_camel_case: should the dictionary keys be converted to camelCase from snake_case
         :return: A dictionary containing the object properties, with config properties also converted in dictionaries
 
         >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
@@ -71,12 +143,8 @@ class _ConfigBase(object):
         True
         """
         data = self.__get_data()
-        cp = copy(data)  # copy so that we don't override inner RelayConfig objects
-
-        for (key, val) in six.iteritems(cp):
-            if isinstance(val, _ConfigBase):
-                cp[key] = val.to_dict()
-        return cp
+        return {key: value.to_dict() if isinstance(value, _ConfigBase) else value for (key, value) in
+                six.iteritems(data)}
 
     def to_json_string(self):
         """
@@ -87,6 +155,7 @@ class _ConfigBase(object):
         :return:
         """
         data = self.to_dict()
+        data = _to_camel_case_dict(data)
         return json.dumps(data)
 
     def get_at_path(self, *args):
@@ -105,8 +174,7 @@ class _ConfigBase(object):
         True
         >>> x.get_at_path('c','y','z')
         {'t': 1}
-        >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal
-        dictionaries
+        >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal dicts.
         True
 
         """
@@ -216,11 +284,14 @@ def get_full_relay_config(project_id):
     if invalid_releases is not None:
         project_cfg['invalid_releases'] = invalid_releases
 
-    # get the filters enabled for the current project
-    enabled_filters = [filter_class.id for filter_class in filters.all()
-                       if filter_class(project).is_enabled()]
+    # get the filter settings for this project
+    filter_settings = {}
+    project_cfg['filter_settings'] = filter_settings
 
-    project_cfg['enabled_filters'] = enabled_filters
+    for flt in get_all_filters():
+        filter_id = flt.spec.id
+        settings = _load_filter_settings(flt, project)
+        filter_settings[filter_id] = settings
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
@@ -268,3 +339,52 @@ def _get_project_from_id(project_id):
     except Project.DoesNotExist:
         track_outcome(0, 0, None, Outcome.INVALID, "project_id")
         raise APIError('Invalid project_id: %r' % project_id)
+
+
+def _load_filter_settings(flt, project):
+    """
+    Returns the filter settings for the specified project
+
+    :param flt: the filter function
+    :param project: the project for which we want to retrieve the options
+    :return: a dictionary with the filter options.
+        If the project does not explicitly specify the filter options then the
+        default options for the filter will be returned
+    """
+    filter_id = flt.spec.id
+    filter_key = u'filters:{}'.format(filter_id)
+    setting = ProjectOption.objects.get_value(project=project, key=filter_key, default=None)
+
+    return _filter_option_to_config_setting(flt, setting)
+
+
+def _filter_option_to_config_setting(flt, setting):
+    """
+    Encapsulates the logic for associating a filter database option with the filter setting from relay_config
+
+    :param flt: the filter
+    :param setting: the option deserialized from the database
+    :return: the option as viewed from relay_config
+    """
+    if setting is None:
+        raise ValueError("Could not find filter state for filter {0}."
+                         " You need to register default filter state in projectoptions.defaults.".format(flt.spec.id))
+
+    is_enabled = setting != '0'
+
+    ret_val = {
+        'is_enabled': is_enabled
+    }
+
+    # special case for legacy browser.
+    # If the number of special cases increases we'll have to factor this functionality somewhere
+    if flt.spec.id == FilterStatKeys.LEGACY_BROWSER:
+        if is_enabled:
+            if setting == '1':
+                # old style filter
+                ret_val['default_filter'] = True
+            else:
+                # new style filter, per legacy browser type handling
+                # ret_val['options'] = setting.split(' ')
+                ret_val['options'] = list(setting)
+    return ret_val
