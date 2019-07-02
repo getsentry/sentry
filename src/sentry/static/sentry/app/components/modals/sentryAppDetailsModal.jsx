@@ -23,6 +23,8 @@ export default class SentryAppDetailsModal extends React.Component {
   render() {
     const {sentryApp, closeModal, onInstall, isInstalled, organization} = this.props;
 
+    const overview = sentryApp.overview || '';
+
     return (
       <React.Fragment>
         <Flex align="center" mb={2}>
@@ -33,7 +35,7 @@ export default class SentryAppDetailsModal extends React.Component {
           </Flex>
         </Flex>
 
-        <Description dangerouslySetInnerHTML={{__html: marked(sentryApp.overview)}} />
+        <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
 
         <Metadata>
           <Author flex={1}>{t('By %s', sentryApp.author)}</Author>
