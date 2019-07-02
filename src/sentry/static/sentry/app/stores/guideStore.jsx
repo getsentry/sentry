@@ -101,7 +101,7 @@ const GuideStore = Reflux.createStore({
       guide: id,
     };
     if (this.state.org) {
-      data.organization_id = parseInt(this.state.org.id, 10);
+      data.organization_id = this.state.org.id;
     }
     trackAnalyticsEvent(data);
   },

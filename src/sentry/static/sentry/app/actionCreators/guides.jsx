@@ -48,7 +48,7 @@ export function recordFinish(guideId, org) {
     guide: guideId,
   };
   if (org) {
-    data.organization_id = parseInt(org.id, 10);
+    data.organization_id = org.id;
   }
   trackAnalyticsEvent(data);
 }
@@ -68,7 +68,7 @@ export function recordDismiss(guideId, step, org) {
     step,
   };
   if (org) {
-    data.organization_id = parseInt(org.id, 10);
+    data.organization_id = org.id;
   }
   trackAnalyticsEvent(data);
 }
