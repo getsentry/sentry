@@ -115,9 +115,15 @@ class UpdateSDKSuggestion(Suggestion):
 
 
 class ChangeSDKSuggestion(Suggestion):
-    def __init__(self, new_sdk_name, new_module_name=None):
+    """
+    :param module_names: A list of modules that, when any of them is loaded,
+        indicate that the SDK is already used. This list is used to weed out
+        invalid suggestions when using multiple SDKs in e.g. .NET.
+    """
+
+    def __init__(self, new_sdk_name, module_names=None):
         self.new_sdk_name = new_sdk_name
-        self.new_module_name = new_module_name
+        self.module_names = module_names
 
     def to_json(self):
         return {
@@ -130,7 +136,7 @@ class ChangeSDKSuggestion(Suggestion):
         if old_state.sdk_name == self.new_sdk_name:
             return old_state
 
-        if self.new_module_name and self.new_module_name in old_state.modules:
+        if any(x in old_state.modules for x in self.module_names or ()):
             return old_state
 
         new_state = old_state.copy()
@@ -215,42 +221,45 @@ SDK_SUPPORTED_MODULES = [
         'sdk_version_added': '0.0.0',
         'module_name': 'Microsoft.AspNetCore.Hosting',
         'module_version_min': '2.1.0',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.aspnetcore', 'Sentry.AspNetCore'),
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.aspnetcore', ['Sentry.AspNetCore']),
     },
     {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'EntityFramework',
         'module_version_min': '6.0.0',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.entityframework', 'Sentry.EntityFramework'),
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.entityframework', ['Sentry.EntityFramework']),
     },
     {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'log4net',
         'module_version_min': '2.0.8',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.log4net', 'Sentry.Log4Net'),
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.log4net', ['Sentry.Log4Net']),
     },
     {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'Microsoft.Extensions.Logging.Configuration',
         'module_version_min': '2.1.0',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.extensions.logging', 'Sentry.Extensions.Logging'),
+        # For some reason the SDK does not always report the
+        # `Sentry.Extensions.Logging` module (observed in ASP.NET apps that use
+        # the logging SDK implicitly).
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.extensions.logging', ['Sentry.Extensions.Logging', 'Sentry.AspNetCore']),
     },
     {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'Serilog',
         'module_version_min': '2.7.1',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.serilog', 'Sentry.Serilog'),
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.serilog', ['Sentry.Serilog']),
     },
     {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'NLog',
         'module_version_min': '4.6.0',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.nlog', 'Sentry.NLog'),
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.nlog', ['Sentry.NLog']),
     },
 ]
 
