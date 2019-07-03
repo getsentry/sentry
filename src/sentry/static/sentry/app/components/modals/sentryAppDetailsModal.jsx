@@ -65,11 +65,11 @@ export default class SentryAppDetailsModal extends AsyncComponent {
       ),
     }));
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => defaultFeatureGateComponents);
+    const defaultHook = () => defaultFeatureGateComponents;
+    const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+    const {FeatureList, IntegrationFeatures} = featureHook();
 
     const overview = sentryApp.overview || '';
-    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
     const featureProps = {organization, features};
 
     return (
