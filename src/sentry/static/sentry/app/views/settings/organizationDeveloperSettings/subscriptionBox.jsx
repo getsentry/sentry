@@ -36,9 +36,10 @@ class SubscriptionBox extends React.Component {
   render() {
     const {resource, organization} = this.props;
     const features = new Set(organization.features);
+    const {checked} = this.state;
+
     let disabled = this.props.disabled;
     let message = `Must have at least 'Read' permissions enabled for ${resource}`;
-    const {checked} = this.state;
     if (resource === 'error' && !features.has('integrations-event-hooks')) {
       disabled = true;
       message =

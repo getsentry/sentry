@@ -68,14 +68,13 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             'overview': request.json_body.get('overview'),
         }
 
-        if data.get('events'):
-            if ('error' in data['events']) and not features.has('organizations:integrations-event-hooks',
-                                                                organization,
-                                                                actor=request.user):
+        if self._has_hook_events(request) and not features.has('organizations:integrations-event-hooks',
+                                                               organization,
+                                                               actor=request.user):
 
-                return Response({"non_field_errors": [
-                    "Your organization does not have access to the 'error' resource subscription.",
-                ]}, status=403)
+            return Response({"non_field_errors": [
+                "Your organization does not have access to the 'error' resource subscription.",
+            ]}, status=403)
 
         serializer = SentryAppSerializer(data=data)
 
@@ -98,3 +97,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             ),
             None,
         )
+
+    def _has_hook_events(self, request):
+        if not request.json_body.get('events'):
+            return False
+
+        return 'error' in request.json_body['events']

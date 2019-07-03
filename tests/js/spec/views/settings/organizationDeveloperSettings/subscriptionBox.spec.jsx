@@ -53,10 +53,29 @@ describe('SubscriptionBox', () => {
     });
 
     it('checkbox disabled without integrations-event-hooks flag', () => {
+      expect(wrapper.find('Checkbox').prop('disabled')).toBe(true);
+    });
+
+    it('tooltip enabled without integrations-event-hooks flag', () => {
       expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
     });
 
     it('checkbox visible with integrations-event-hooks flag', () => {
+      org = TestStubs.Organization({features: ['integrations-event-hooks']});
+      wrapper = mount(
+        <SubscriptionBox
+          resource="error"
+          checked={false}
+          disabled={false}
+          onChange={onChange}
+          organization={org}
+        />,
+        TestStubs.routerContext()
+      );
+      expect(wrapper.find('Checkbox').prop('disabled')).toBe(false);
+    });
+
+    it('Tooltip disabled with integrations-event-hooks flag', () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
       wrapper = mount(
         <SubscriptionBox
