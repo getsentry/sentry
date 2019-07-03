@@ -64,6 +64,7 @@ after_script:
   - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
   # Trigger a build for the `git` image on docker-sentry
   - >
+      if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
       curl -s -X POST
       -H "Content-Type: application/json"
       -H "Accept: application/json"
