@@ -229,7 +229,14 @@ def options_override(overrides):
 
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=5,
+    retries=urllib3.Retry(
+        total=5,
+        # Expand our retries to POST since all of
+        # our requests are POST and they don't mutate, so they
+        # are safe to retry. Without this, we aren't
+        # actually retrying at all.
+        method_whitelist={'GET', 'POST'},
+    ),
     timeout=30,
     maxsize=10,
 )
