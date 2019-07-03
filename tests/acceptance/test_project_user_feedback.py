@@ -31,9 +31,11 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         self.create_userreport(group=self.group, project=self.project, event_id=self.event.id)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
+        self.browser.wait_until('[data-test-id="user-feedback"]')
         self.browser.snapshot('project user feedback')
 
     def test_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
+        self.browser.wait_until('[data-test-id="user-feedback"]')
         self.browser.snapshot('project user feedback - empty')
