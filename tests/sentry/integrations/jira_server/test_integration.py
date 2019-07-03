@@ -67,6 +67,22 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             resp, 'Private key must be a valid SSH private key encoded in a PEM format.')
 
     @responses.activate
+    def test_validate_consumer_key_length(self):
+        # Start pipeline and go to setup page.
+        self.client.get(self.setup_path)
+
+        # Submit credentials
+        data = {
+            'url': 'jira.example.com/',
+            'verify_ssl': False,
+            'consumer_key': 'x' * 201,
+            'private_key': EXAMPLE_PRIVATE_KEY
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 200
+        self.assertContains(resp, 'Consumer key is limited to 200')
+
+    @responses.activate
     def test_authentication_request_token_timeout(self):
         timeout = ReadTimeout('Read timed out. (read timeout=30)')
         responses.add(

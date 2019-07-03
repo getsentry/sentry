@@ -254,6 +254,7 @@ const GroupDetails = createReactClass({
             organization={organization}
             forceProject={project}
             showDateSelector={false}
+            shouldForceProject
           />
         )}
         {isLoading ? (
