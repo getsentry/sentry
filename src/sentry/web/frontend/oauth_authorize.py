@@ -20,7 +20,7 @@ logger = logging.getLogger('sentry.api')
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request, *args, **kwargs):
+    def get_next_uri(self, request):
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
@@ -54,11 +54,11 @@ class OAuthAuthorizeView(AuthLoginView):
             }
         )
 
-    def respond_login(self, request, context, application, *args, **kwargs):
+    def respond_login(self, request, context, application, **kwargs):
         context['banner'] = u'Connect Sentry to {}'.format(application.name)
         return self.respond('sentry/login.html', context)
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, **kwargs):
         response_type = request.GET.get('response_type')
         client_id = request.GET.get('client_id')
         redirect_uri = request.GET.get('redirect_uri')
@@ -148,8 +148,7 @@ class OAuthAuthorizeView(AuthLoginView):
         request.session['oa2'] = payload
 
         if not request.user.is_authenticated():
-            return super(OAuthAuthorizeView, self).get(
-                request, application=application, *args, **kwargs)
+            return super(OAuthAuthorizeView, self).get(request, application=application)
 
         if not force_prompt:
             try:
@@ -208,7 +207,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond('sentry/oauth-authorize.html', context)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **kwargs):
         try:
             payload = request.session['oa2']
         except KeyError:
@@ -233,7 +232,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if not request.user.is_authenticated():
             response = super(OAuthAuthorizeView, self).post(
-                request, application=application, *args, **kwargs)
+                request, application=application, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated():
                 request.session['oa2']['uid'] = request.user.id
