@@ -1,11 +1,11 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import {StreamActions} from 'app/views/organizationStream/actions';
+import {IssueListActions} from 'app/views/issueList/actions';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
-describe('StreamActions', function() {
+describe('IssueListActions', function() {
   let actions;
   let wrapper;
 
@@ -25,7 +25,7 @@ describe('StreamActions', function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
-          <StreamActions
+          <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
             query=""
@@ -103,7 +103,7 @@ describe('StreamActions', function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
-          <StreamActions
+          <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
             query=""
@@ -169,7 +169,7 @@ describe('StreamActions', function() {
     beforeEach(function() {
       SelectedGroupStore.deselectAll.mockReset();
       actions = shallow(
-        <StreamActions
+        <IssueListActions
           api={new MockApiClient()}
           query=""
           orgId="1337"
@@ -229,7 +229,7 @@ describe('StreamActions', function() {
   describe('missing projectId prop', function() {
     beforeEach(function() {
       wrapper = mount(
-        <StreamActions
+        <IssueListActions
           api={new MockApiClient()}
           query=""
           orgId="1337"

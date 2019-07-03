@@ -6,22 +6,20 @@ import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount, shallow} from 'enzyme';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
-import OrganizationStreamWithStores, {
-  OrganizationStream,
-} from 'app/views/organizationStream/overview';
+import IssueListWithStores, {IssueList} from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
 
-// Mock <StreamSidebar> and <StreamActions>
-jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/organizationStream/actions', () => jest.fn(() => null));
+// Mock <IssueListSidebar> and <IssueListActions>
+jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('OrganizationStream', function() {
+describe('IssueList,', function() {
   let wrapper;
   let props;
 
@@ -138,7 +136,7 @@ describe('OrganizationStream', function() {
 
     /* helpers */
     const getSavedSearchTitle = w =>
-      w.find('OrganizationSavedSearchSelector DropdownMenu ButtonTitle').text();
+      w.find('SavedSearchSelector DropdownMenu ButtonTitle').text();
 
     const getSearchBarValue = w =>
       w
@@ -160,7 +158,7 @@ describe('OrganizationStream', function() {
       };
 
       wrapper = mount(
-        <OrganizationStreamWithStores {...newRouter} {...defaultProps} {...p} />,
+        <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
         routerContext
       );
     };
@@ -439,9 +437,9 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
-      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
       wrapper
-        .find('OrganizationSavedSearchSelector MenuItem a')
+        .find('SavedSearchSelector MenuItem a')
         .first()
         .simulate('click');
 
@@ -464,9 +462,9 @@ describe('OrganizationStream', function() {
         },
       });
 
-      wrapper.find('SortOptions DropdownButton').simulate('click');
+      wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
       wrapper
-        .find('SortOptions MenuItem a')
+        .find('IssueListSortOptions MenuItem a')
         .at(3)
         .simulate('click');
 
@@ -503,10 +501,10 @@ describe('OrganizationStream', function() {
 
       // Update the search input
       wrapper
-        .find('StreamFilters SmartSearchBar StyledInput input')
+        .find('IssueListFilters SmartSearchBar StyledInput input')
         .simulate('change', {target: {value: 'dogs'}});
       // Submit the form
-      wrapper.find('StreamFilters SmartSearchBar form').simulate('submit');
+      wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
       await wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
@@ -568,7 +566,7 @@ describe('OrganizationStream', function() {
         },
       });
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'Custom Search'
       );
 
@@ -597,7 +595,7 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'My Pinned Search'
       );
 
@@ -646,9 +644,9 @@ describe('OrganizationStream', function() {
         },
       });
 
-      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
       wrapper
-        .find('OrganizationSavedSearchSelector MenuItem a')
+        .find('SavedSearchSelector MenuItem a')
         .first()
         .simulate('click');
 
@@ -669,7 +667,7 @@ describe('OrganizationStream', function() {
         },
       });
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'Unresolved Issues'
       );
 
@@ -696,14 +694,14 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'Unresolved Issues'
       );
 
       // Select other saved search
-      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
       wrapper
-        .find('OrganizationSavedSearchSelector MenuItem a')
+        .find('SavedSearchSelector MenuItem a')
         .at(1)
         .simulate('click');
 
@@ -724,7 +722,7 @@ describe('OrganizationStream', function() {
         },
       });
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'Assigned to Me'
       );
 
@@ -760,7 +758,7 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
         'Assigned to Me'
       );
     });
@@ -990,7 +988,7 @@ describe('OrganizationStream', function() {
   describe('transitionTo', function() {
     let instance;
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
       instance = wrapper.instance();
@@ -1109,7 +1107,7 @@ describe('OrganizationStream', function() {
 
   describe('getEndpointParams', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1156,7 +1154,7 @@ describe('OrganizationStream', function() {
 
   describe('componentDidMount', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />);
+      wrapper = shallow(<IssueList {...props} />);
     });
 
     it('fetches tags and sets state', async function() {
@@ -1199,7 +1197,7 @@ describe('OrganizationStream', function() {
         },
       });
       fetchDataMock.mockReset();
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1252,7 +1250,7 @@ describe('OrganizationStream', function() {
 
   describe('componentDidUpdate fetching members', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
       wrapper.instance().fetchData = jest.fn();
@@ -1275,7 +1273,7 @@ describe('OrganizationStream', function() {
 
   describe('componentDidUpdate fetching tags', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
       wrapper.instance().fetchData = jest.fn();
@@ -1299,7 +1297,7 @@ describe('OrganizationStream', function() {
 
   describe('processingIssues', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />);
+      wrapper = shallow(<IssueList {...props} />);
     });
 
     it('fetches and displays processing issues', async function() {
@@ -1320,7 +1318,7 @@ describe('OrganizationStream', function() {
 
   describe('render states', function() {
     beforeEach(function() {
-      wrapper = shallow(<OrganizationStream {...props} />, {
+      wrapper = shallow(<IssueList {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1370,7 +1368,7 @@ describe('OrganizationStream', function() {
         }),
         ...moreProps,
       };
-      const localWrapper = shallow(<OrganizationStream {...defaultProps} />, {
+      const localWrapper = shallow(<IssueList {...defaultProps} />, {
         disableLifecycleMethods: false,
       });
       localWrapper.setState({

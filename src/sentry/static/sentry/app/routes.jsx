@@ -18,8 +18,8 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
-import OrganizationStreamContainer from 'app/views/organizationStream/container';
-import OrganizationStreamOverview from 'app/views/organizationStream/overview';
+import IssueListContainer from 'app/views/issueList/container';
+import IssueListOverview from 'app/views/issueList/overview';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
@@ -965,13 +965,13 @@ function routes() {
           />
           <Route
             path="/organizations/:orgId/issues/"
-            component={errorHandler(OrganizationStreamContainer)}
+            component={errorHandler(IssueListContainer)}
           >
             <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-            <IndexRoute component={errorHandler(OrganizationStreamOverview)} />
+            <IndexRoute component={errorHandler(IssueListOverview)} />
             <Route
               path="searches/:searchId/"
-              component={errorHandler(OrganizationStreamOverview)}
+              component={errorHandler(IssueListOverview)}
             />
           </Route>
           {/* Once org issues is complete, these routes can be nested under

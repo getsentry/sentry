@@ -9,11 +9,11 @@ import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
 import SentryTypes from 'app/sentryTypes';
 
-import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
-import SearchBar from './searchBar';
-import SortOptions from './sortOptions';
+import SavedSearchSelector from './savedSearchSelector';
+import IssueListSearchBar from './searchBar';
+import IssueListSortOptions from './sortOptions';
 
-class StreamFilters extends React.Component {
+class IssueListFilters extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
 
@@ -47,7 +47,7 @@ class StreamFilters extends React.Component {
     onSidebarToggle: function() {},
   };
 
-  handleOrganizationSavedSearchSelect = savedSearch => {
+  handleSavedSearchSelect = savedSearch => {
     analytics('organization_saved_search.selected', {
       org_id: this.props.organization.id,
       query: savedSearch.query,
@@ -87,18 +87,18 @@ class StreamFilters extends React.Component {
         </PageHeading>
 
         <SearchContainer isWide>
-          <SortOptions sort={sort} onSelect={onSortChange} />
+          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
 
-          <OrganizationSavedSearchSelector
+          <SavedSearchSelector
             key={query}
             organization={organization}
             savedSearchList={savedSearchList}
-            onSavedSearchSelect={this.handleOrganizationSavedSearchSelect}
+            onSavedSearchSelect={this.handleSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}
             query={query}
           />
 
-          <SearchBar
+          <IssueListSearchBar
             orgId={organization.slug}
             query={query || ''}
             onSearch={onSearch}
@@ -120,4 +120,4 @@ const SearchContainer = styled('div')`
   width: ${p => (p.isWide ? '70%' : '58.3%')};
 `;
 
-export default StreamFilters;
+export default IssueListFilters;
