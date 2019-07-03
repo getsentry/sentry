@@ -107,7 +107,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const isInstalled = this.isInstalled;
 
     return (
-      <SentryAppItem>
+      <SentryAppItem data-test-id={app.slug} >
         <StyledFlex>
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>

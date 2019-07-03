@@ -3,42 +3,20 @@ from __future__ import absolute_import
 from sentry.testutils import AcceptanceTestCase
 
 
-class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
+class OrganizationIntegrationAcceptanceTest(AcceptanceTestCase):
+    """
+    As a developer, I can create an integration, install it, and uninstall it
+    """
+
     def setUp(self):
-        super(OrganizationIntegrationAcceptanceTestCase, self).setUp()
-        self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            name='Rowdy Tiger',
-            owner=None,
-        )
-        self.team = self.create_team(organization=self.org, name='Mariachi Band')
-        self.project = self.create_project(
-            organization=self.org,
-            teams=[self.team],
-            name='Bengal',
-        )
-        self.create_member(
-            user=self.user,
-            organization=self.org,
-            role='owner',
-            teams=[self.team],
-        )
+        super(OrganizationIntegrationAcceptanceTest, self).setUp()
         self.login_as(self.user)
+        self.org_developer_settings_path = u'/settings/{}/developer-settings/'.format(
+            self.organization.slug)
 
     def load_page(self, url):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
-
-
-class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestCase):
-    """
-    As a develop, I can create an integration, install it, and uninstall it
-    """
-
-    def setUp(self):
-        super(OrganizationIntegrationSettingsTest, self).setUp()
-        self.org_developer_settings_path = u'/settings/{}/developer-settings/'.format(
-            self.organization.slug)
 
     def test_create_new_integration(self):
         with self.feature('organizations:sentry-apps'):
