@@ -31,7 +31,7 @@ class EventStream(Service):
         'run_post_process_forwarder',
     )
 
-    def _dispatch_post_process_group_task(self, event, is_new, is_sample,
+    def _dispatch_post_process_event_task(self, event, is_new, is_sample,
                                           is_regression, is_new_group_environment,
                                           primary_hash, skip_consume=False):
         if skip_consume:
@@ -48,7 +48,7 @@ class EventStream(Service):
 
     def insert(self, group, event, is_new, is_sample, is_regression,
                is_new_group_environment, primary_hash, skip_consume=False):
-        self._dispatch_post_process_group_task(event, is_new, is_sample,
+        self._dispatch_post_process_event_task(event, is_new, is_sample,
                                                is_regression, is_new_group_environment,
                                                primary_hash, skip_consume)
 
