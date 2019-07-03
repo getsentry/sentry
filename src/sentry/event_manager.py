@@ -390,24 +390,24 @@ class EventManager(object):
                 if interface.to_python(self._data[name]).should_filter(self._project):
                     return (True, FilterStatKeys.INVALID_CSP)
 
-        if self._client_ip and not is_valid_ip(self._project, self._client_ip):
+        if self._client_ip and not is_valid_ip(self.relay_config, self._client_ip):
             return (True, FilterStatKeys.IP_ADDRESS)
 
         release = self._data.get('release')
-        if release and not is_valid_release(self._project, release):
+        if release and not is_valid_release(self.relay_config, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
         error_message = get_path(self._data, 'logentry', 'formatted') \
             or get_path(self._data, 'logentry', 'message') \
             or ''
-        if error_message and not is_valid_error_message(self._project, error_message):
+        if error_message and not is_valid_error_message(self.relay_config, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
                 filter(None, map(exc.get, ['type', 'value']))
             )
-            if message and not is_valid_error_message(self._project, message):
+            if message and not is_valid_error_message(self.relay_config, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
         return should_filter_event(self.relay_config, self._data)

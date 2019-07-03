@@ -282,7 +282,15 @@ def get_full_relay_config(project_id):
 
     invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if invalid_releases is not None:
-        project_cfg['invalid_releases'] = invalid_releases
+        project_cfg[FilterTypes.RELEASES] = invalid_releases
+
+    blacklisted_ips = project.get_option('sentry:blacklisted_ips')
+    if blacklisted_ips is not None:
+        project_cfg['blacklisted_ips'] = blacklisted_ips
+
+    error_messages = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    if error_messages is not None:
+        project_cfg[FilterTypes.ERROR_MESSAGES] = error_messages
 
     # get the filter settings for this project
     filter_settings = {}
