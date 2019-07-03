@@ -63,10 +63,14 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete.complete
 
     def test_first_event(self):
-        group = self.create_group(
+        event = self.create_event(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        first_event_received.send(project=self.project, group=group, sender=type(self.project))
+        first_event_received.send(
+            project=self.project,
+            event=event,
+            sender=type(self.project),
+        )
 
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
@@ -563,10 +567,15 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        simple_event = self.create_event()
-        first_event_received.send(project=self.project, group=group, sender=type(self.project))
+        simple_event = self.create_event(group=group, platform='javascript')
+        first_event_received.send(
+            project=self.project,
+            event=simple_event,
+            sender=type(self.project),
+        )
         event_processed.send(
-            project=self.project, group=group, event=simple_event, sender=type(self.project)
+            project=self.project, group=simple_event.group, event=simple_event, sender=type(
+                self.project)
         )
 
         first_event = FeatureAdoption.objects.get_by_slug(
@@ -580,7 +589,8 @@ class FeatureAdoptionTest(TestCase):
 
         full_event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=full_event, sender=type(self.project)
+            project=self.project, group=full_event.group, event=full_event, sender=type(
+                self.project)
         )
 
         release_tracking = FeatureAdoption.objects.get_by_slug(

@@ -89,6 +89,8 @@ class EventCommon(object):
     @property
     def group(self):
         from sentry.models import Group
+        if not self.group_id:
+            return None
         if not hasattr(self, '_group_cache'):
             self._group_cache = Group.objects.get(id=self.group_id)
         return self._group_cache
@@ -223,7 +225,9 @@ class EventCommon(object):
     @property
     def culprit(self):
         # For a while events did not save the culprit
-        return self.data.get('culprit') or self.group.culprit
+        if self.group_id:
+            return self.data.get('culprit') or self.group.culprit
+        return self.data.get('culprit')
 
     @property
     def location(self):
@@ -353,7 +357,7 @@ class EventCommon(object):
 
         # for a long time culprit was not persisted.  In those cases put
         # the culprit in from the group.
-        if data.get('culprit') is None:
+        if data.get('culprit') is None and self.group_id:
             data['culprit'] = self.group.culprit
 
         # Override title and location with dynamically generated data
@@ -370,12 +374,18 @@ class EventCommon(object):
     def level(self):
         # we might want to move to this:
         # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        return self.group.level
+        if self.group:
+            return self.group.level
+        else:
+            return None
 
     def get_level_display(self):
         # we might want to move to this:
         # return self.get_tag('level') or self.group.get_level_display()
-        return self.group.get_level_display()
+        if self.group:
+            return self.group.get_level_display()
+        else:
+            return None
 
     # deprecated accessors
 
@@ -630,7 +640,7 @@ class SnubaEvent(EventCommon):
             conditions=conditions,
             filter_keys={
                 'project_id': [self.project_id],
-                'issue': [self.group_id],
+                'issue': [self.group_id] if self.group_id else [],
             },
             orderby=['timestamp', 'event_id'],
             limit=1,
@@ -660,7 +670,7 @@ class SnubaEvent(EventCommon):
             conditions=conditions,
             filter_keys={
                 'project_id': [self.project_id],
-                'issue': [self.group_id],
+                'issue': [self.group_id] if self.group_id else [],
             },
             orderby=['-timestamp', '-event_id'],
             limit=1,
@@ -778,7 +788,7 @@ class EventSubjectTemplateData(object):
             return self.event.project.get_full_name()
         elif name == 'projectID':
             return self.event.project.slug
-        elif name == 'shortID':
+        elif name == 'shortID' and self.event.group_id:
             return self.event.group.qualified_short_id
         elif name == 'orgID':
             return self.event.organization.slug
