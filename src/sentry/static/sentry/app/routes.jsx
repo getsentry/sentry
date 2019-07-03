@@ -1320,10 +1320,6 @@ function routes() {
             to="/settings/:orgId/projects/:projectId/data-forwarding/"
           />
           <Redirect
-            from="saved-searches/"
-            to="/settings/:orgId/projects/:projectId/saved-searches/"
-          />
-          <Redirect
             from="debug-symbols/"
             to="/settings/:orgId/projects/:projectId/debug-symbols/"
           />
