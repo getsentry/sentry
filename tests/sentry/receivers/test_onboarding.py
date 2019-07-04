@@ -89,7 +89,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         now = timezone.now()
         project = self.create_project(first_event=now)
         event = self.create_full_event()
-        event_processed.send(project=project, group=self.group, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -272,7 +272,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         event = self.create_full_event(project=project)
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 
-        event_processed.send(project=project, group=event.group, event=event, sender=type(project))
+        event_processed.send(project=project, event=event, sender=type(project))
         project_created.send(project=project, user=user, sender=type(project))
         project_created.send(project=second_project, user=user, sender=type(second_project))
 

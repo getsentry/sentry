@@ -57,12 +57,12 @@ def record_first_event(project, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_event_processed(project, group, event, **kwargs):
+def record_event_processed(project, event, **kwargs):
     feature_slugs = []
 
     # Platform
-    if group.platform in manager.location_slugs('language'):
-        feature_slugs.append(group.platform)
+    if event.platform in manager.location_slugs('language'):
+        feature_slugs.append(event.platform)
 
     # Release Tracking
     if event.get_tag('sentry:release'):

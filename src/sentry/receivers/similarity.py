@@ -6,7 +6,7 @@ from sentry.similarity import features as similarity_features
 
 
 @event_processed.connect(weak=False)
-def record(project, group, event, **kwargs):
+def record(project, event, **kwargs):
     if not feature_flags.has('projects:similarity-indexing', project):
         return
 
