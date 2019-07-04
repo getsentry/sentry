@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`StreamActions Bulk Total results < bulk limit after checking "Select all" checkbox, displays bulk select message 1`] = `
+exports[`IssueListActions Bulk Total results < bulk limit after checking "Select all" checkbox, displays bulk select message 1`] = `
 <div
   className="row stream-select-all-notice"
 >
@@ -37,7 +37,7 @@ exports[`StreamActions Bulk Total results < bulk limit after checking "Select al
 </div>
 `;
 
-exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
+exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
 <ModalDialog
   bsClass="modal"
   className="in"
@@ -266,7 +266,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
 </ModalDialog>
 `;
 
-exports[`StreamActions Bulk Total results < bulk limit can bulk select 1`] = `
+exports[`IssueListActions Bulk Total results < bulk limit can bulk select 1`] = `
 <div
   className="row stream-select-all-notice"
 >
@@ -298,7 +298,7 @@ exports[`StreamActions Bulk Total results < bulk limit can bulk select 1`] = `
 </div>
 `;
 
-exports[`StreamActions Bulk Total results > bulk limit after checking "Select all" checkbox, displays bulk select message 1`] = `
+exports[`IssueListActions Bulk Total results > bulk limit after checking "Select all" checkbox, displays bulk select message 1`] = `
 <div
   className="row stream-select-all-notice"
 >
@@ -335,7 +335,7 @@ exports[`StreamActions Bulk Total results > bulk limit after checking "Select al
 </div>
 `;
 
-exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
+exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
 <ModalDialog
   bsClass="modal"
   className="in"
@@ -564,7 +564,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
 </ModalDialog>
 `;
 
-exports[`StreamActions Bulk Total results > bulk limit can bulk select 1`] = `
+exports[`IssueListActions Bulk Total results > bulk limit can bulk select 1`] = `
 <div
   className="row stream-select-all-notice"
 >
