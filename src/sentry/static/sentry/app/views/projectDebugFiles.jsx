@@ -247,7 +247,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                 features={features}
                 title={t('External Sources')}
                 disabled={!access.has('project:write')}
-                fields={[fields.builtinSymbolSources, fields.symbolSources]}
+                fields={[fields.symbolSources, fields.builtinSymbolSources]}
                 additionalFieldProps={fieldProps}
               />
             </Form>

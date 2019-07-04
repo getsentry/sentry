@@ -139,7 +139,11 @@ class FormModel {
       typeof props.defaultValue !== 'undefined' &&
       typeof this.initialData[id] === 'undefined'
     ) {
-      this.initialData[id] = props.defaultValue;
+      this.initialData[id] =
+        typeof props.defaultValue === 'function'
+          ? props.defaultValue()
+          : props.defaultValue;
+
       this.fields.set(id, this.initialData[id]);
     }
 

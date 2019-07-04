@@ -175,3 +175,13 @@ export function openSentryAppDetailsModal(options = {}) {
       });
     });
 }
+
+export function openDebugFileSourceModal(options = {}) {
+  import(/* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'debug-file-source',
+      });
+    });
+}
