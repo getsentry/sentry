@@ -178,7 +178,7 @@ export const AWS_REGIONS = [
   ['us-west-2', 'US West (Oregon)'],
   ['ap-east-1', 'Asia Pacific (Hong Kong)'],
   ['ap-south-1', 'Asia Pacific (Mumbai)'],
-  ['ap-northeast-3', 'Asia Pacific (Osaka-Local)'],
+  // ['ap-northeast-3', 'Asia Pacific (Osaka-Local)'],
   ['ap-northeast-2', 'Asia Pacific (Seoul)'],
   ['ap-southeast-1', 'Asia Pacific (Singapore)'],
   ['ap-southeast-2', 'Asia Pacific (Sydney)'],
