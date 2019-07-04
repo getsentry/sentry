@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import StreamTagFilter from 'app/views/organizationStream/tagFilter';
+import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
-describe('Stream TagFilter', function() {
+describe('IssueListTagFilter', function() {
   let tagValueLoader;
   let project;
 
@@ -32,7 +32,7 @@ describe('Stream TagFilter', function() {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
     const wrapper = mount(
-      <StreamTagFilter
+      <IssueListTagFilter
         tag={tag}
         projectId={project.slug}
         value=""
@@ -57,7 +57,7 @@ describe('Stream TagFilter', function() {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
     const wrapper = mount(
-      <StreamTagFilter
+      <IssueListTagFilter
         tag={tag}
         value=""
         onSelect={selectMock}

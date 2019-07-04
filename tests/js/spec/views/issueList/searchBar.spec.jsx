@@ -2,10 +2,10 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import SearchBar from 'app/views/organizationStream/searchBar';
+import IssueListSearchBar from 'app/views/issueList/searchBar';
 import TagStore from 'app/stores/tagStore';
 
-describe('SearchBar', function() {
+describe('IssueListSearchBar', function() {
   let options;
   let tagValuePromise;
   let supportedTags;
@@ -57,7 +57,7 @@ describe('SearchBar', function() {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, options);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -80,7 +80,7 @@ describe('SearchBar', function() {
         onSearch: jest.fn(),
       };
 
-      const searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, options);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
@@ -102,7 +102,7 @@ describe('SearchBar', function() {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, options);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(loader).not.toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe('SearchBar', function() {
         tagValueLoader: loader,
         supportedTags,
       };
-      const searchBar = mount(<SearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, options);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -163,7 +163,7 @@ describe('SearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<SearchBar {...props} />, options);
+      const wrapper = mount(<IssueListSearchBar {...props} />, options);
 
       wrapper.find('input').simulate('change', {target: {value: 'is:'}});
       await tick();
@@ -191,7 +191,7 @@ describe('SearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<SearchBar {...props} />, options);
+      const wrapper = mount(<IssueListSearchBar {...props} />, options);
 
       wrapper.find('input').simulate('change', {target: {value: 'is:'}});
       await tick();
@@ -252,7 +252,7 @@ describe('SearchBar', function() {
         supportedTags,
         organization,
       };
-      const searchBar = mount(<SearchBar {...props} />, routerContext);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
     });
 
@@ -265,7 +265,7 @@ describe('SearchBar', function() {
         supportedTags,
         organization,
       };
-      const searchBar = mount(<SearchBar {...props} />, routerContext);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       searchBar.find('button[aria-label="Pin this search"]').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
@@ -290,7 +290,7 @@ describe('SearchBar', function() {
         organization,
         pinnedSearch: {id: '1', query: 'url:"fu"'},
       };
-      const searchBar = mount(<SearchBar {...props} />, routerContext);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       searchBar.find('button[aria-label="Unpin this search"]').simulate('click');
 
       expect(unpinSearch).toHaveBeenLastCalledWith(

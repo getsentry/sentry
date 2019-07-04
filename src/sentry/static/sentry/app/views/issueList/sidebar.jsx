@@ -5,12 +5,12 @@ import _ from 'lodash';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
-import StreamTagFilter from './tagFilter';
+import IssueListTagFilter from './tagFilter';
 
 const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
-const StreamSidebar = createReactClass({
-  displayName: 'StreamSidebar',
+const IssueListSidebar = createReactClass({
+  displayName: 'IssueListSidebar',
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
@@ -139,7 +139,7 @@ const StreamSidebar = createReactClass({
 
             {_.map(tags, tag => {
               return (
-                <StreamTagFilter
+                <IssueListTagFilter
                   value={this.state.queryObj[tag.key]}
                   key={tag.key}
                   tag={tag}
@@ -156,4 +156,4 @@ const StreamSidebar = createReactClass({
   },
 });
 
-export default StreamSidebar;
+export default IssueListSidebar;

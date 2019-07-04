@@ -43,9 +43,9 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 
-import StreamActions from './actions';
-import StreamFilters from './filters';
-import StreamSidebar from './sidebar';
+import IssueListActions from './actions';
+import IssueListFilters from './filters';
+import IssueListSidebar from './sidebar';
 
 const MAX_ITEMS = 25;
 const DEFAULT_QUERY = 'is:unresolved';
@@ -55,8 +55,8 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
 
-const OrganizationStream = createReactClass({
-  displayName: 'OrganizationStream',
+const IssueList = createReactClass({
+  displayName: 'IssueList',
 
   propTypes: {
     organization: SentryTypes.Organization,
@@ -399,7 +399,7 @@ const OrganizationStream = createReactClass({
     }
   },
 
-  onStreamSidebarSearch(query) {
+  onIssueListSidebarSearch(query) {
     analytics('search.searched', {
       org_id: this.props.organization.id,
       query,
@@ -681,7 +681,7 @@ const OrganizationStream = createReactClass({
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
-          <StreamFilters
+          <IssueListFilters
             organization={organization}
             projectId={projectId}
             searchId={params.searchId}
@@ -703,7 +703,7 @@ const OrganizationStream = createReactClass({
           />
 
           <Panel>
-            <StreamActions
+            <IssueListActions
               organization={organization}
               orgId={organization.slug}
               projectId={projectId}
@@ -730,11 +730,11 @@ const OrganizationStream = createReactClass({
           </Panel>
           <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
         </div>
-        <StreamSidebar
+        <IssueListSidebar
           loading={this.state.tagsLoading}
           tags={this.state.tags}
           query={query}
-          onQueryChange={this.onStreamSidebarSearch}
+          onQueryChange={this.onIssueListSidebarSearch}
           orgId={organization.slug}
           tagValueLoader={this.tagValueLoader}
         />
@@ -743,7 +743,5 @@ const OrganizationStream = createReactClass({
   },
 });
 
-export default withSavedSearches(
-  withGlobalSelection(withOrganization(OrganizationStream))
-);
-export {OrganizationStream};
+export default withSavedSearches(withGlobalSelection(withOrganization(IssueList)));
+export {IssueList};

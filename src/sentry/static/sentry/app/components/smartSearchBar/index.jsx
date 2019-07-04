@@ -19,7 +19,7 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import CreateSavedSearchButton from 'app/views/organizationStream/createSavedSearchButton';
+import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownLink from 'app/components/dropdownLink';
 import MemberListStore from 'app/stores/memberListStore';

@@ -13,7 +13,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-export default class OrganizationSavedSearchSelector extends React.Component {
+export default class SavedSearchSelector extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,

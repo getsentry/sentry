@@ -42,7 +42,7 @@ const SEARCH_ITEMS = [
   },
 ];
 
-class SearchBar extends React.Component {
+class IssueListSearchBar extends React.Component {
   static propTypes = {
     ...SmartSearchBar.propTypes,
 
@@ -135,4 +135,4 @@ class SearchBar extends React.Component {
   }
 }
 
-export default withApi(withOrganization(SearchBar));
+export default withApi(withOrganization(IssueListSearchBar));

@@ -7,7 +7,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-class StreamTagFilter extends React.Component {
+class IssueListTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
     value: PropTypes.string,
@@ -72,7 +72,7 @@ class StreamTagFilter extends React.Component {
       .then(resp => {
         this.setState({
           isLoading: false,
-          options: Object.values(resp).map(StreamTagFilter.tagValueToSelectFormat),
+          options: Object.values(resp).map(IssueListTagFilter.tagValueToSelectFormat),
         });
       })
       .catch(err => {
@@ -182,4 +182,4 @@ class StreamTagFilter extends React.Component {
   }
 }
 
-export default StreamTagFilter;
+export default IssueListTagFilter;

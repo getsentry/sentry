@@ -5,7 +5,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-class SortOptions extends React.PureComponent {
+class IssueListSortOptions extends React.PureComponent {
   static propTypes = {
     sort: PropTypes.string,
     onSelect: PropTypes.func,
@@ -87,4 +87,4 @@ const LabelText = styled('em')`
   color: ${p => p.theme.gray2};
 `;
 
-export default SortOptions;
+export default IssueListSortOptions;

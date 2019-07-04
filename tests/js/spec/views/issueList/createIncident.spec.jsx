@@ -4,12 +4,12 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
 import GlobalModal from 'app/components/globalModal';
-import OrganizationStreamWithStores from 'app/views/organizationStream/overview';
+import IssueListWithStores from 'app/views/issueList/overview';
 import TagStore from 'app/stores/tagStore';
 
-jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
 
-describe('OrganizationStream --> Create Incident', function() {
+describe('IssueList --> Create Incident', function() {
   let wrapper;
 
   const {project, router, routerContext} = initializeOrg({
@@ -51,7 +51,7 @@ describe('OrganizationStream --> Create Incident', function() {
     wrapper = mount(
       <div>
         <GlobalModal />
-        <OrganizationStreamWithStores {...newRouter} {...defaultProps} {...p} />
+        <IssueListWithStores {...newRouter} {...defaultProps} {...p} />
       </div>,
       routerContext
     );
