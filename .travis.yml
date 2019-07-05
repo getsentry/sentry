@@ -65,25 +65,8 @@ after_script:
   # Trigger a build for the `git` image on docker-sentry
   - >
       if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
-      curl -s -X POST
-      -H "Content-Type: application/json"
-      -H "Accept: application/json"
-      -H "Travis-API-Version: 3"
-      -H "Authorization: token $TRAVIS_TOKEN"
-      -d '{
-        "request": {
-          "branch": "master",
-          "config": {
-            "env": {
-              "matrix": [
-                "VERSION=git"
-              ]
-            }
-          },
-          "message": "Build for getsentry/sentry@'"$TRAVIS_COMMIT"'"
-        }
-      }'
-      https://api.travis-ci.org/repo/getsentry%2Fdocker-sentry/requests
+        curl -s -X POST "$DOCKER_SENTRY_BUILD_TRIGGER_URL";
+      fi
 
 base_postgres: &postgres_default
   python: 2.7
