@@ -21,9 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore, options
-from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
-)
+from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, Model, sane_repr
@@ -158,24 +156,13 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry.models import EventMapping, Event
+        from sentry.models import SnubaEvent
         group_id = None
 
-        # Look up event_id in both Event and EventMapping,
-        # and bail when it matches one of them, prioritizing
-        # Event since it contains more history.
-        for model in Event, EventMapping:
-            try:
-                group_id = model.objects.filter(
-                    project_id=project.id,
-                    event_id=event_id,
-                ).values_list('group_id', flat=True)[0]
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
 
-                # It's possible that group_id is NULL
-                if group_id is not None:
-                    break
-            except IndexError:
-                pass
+        if event:
+            group_id = event.group_id
 
         if group_id is None:
             # Raise a Group.DoesNotExist here since it makes
@@ -186,18 +173,22 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.models import EventMapping, Event
+        from sentry.utils import snuba
+
         group_ids = set()
-        # see above for explanation as to why we're
-        # looking at both Event and EventMapping
-        for model in Event, EventMapping:
-            group_ids.update(
-                model.objects.filter(
-                    project_id__in=project_ids,
-                    event_id=event_id,
-                    group_id__isnull=False,
-                ).values_list('group_id', flat=True)
-            )
+
+        group_ids = set([evt['issue'] for evt in snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=['issue'],
+            conditions=[['issue', 'IS NOT NULL', None]],
+            filter_keys={
+                'event_id': [event_id],
+                'project_id': project_ids,
+            },
+            limit=1,
+            referrer="Group.filter_by_event_id",
+        )['data']])
 
         return Group.objects.filter(id__in=group_ids)
 
@@ -325,11 +316,6 @@ class Group(Model):
         if self.short_id is not None:
             return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
 
-    @property
-    def event_set(self):
-        from sentry.models import Event
-        return Event.objects.filter(group_id=self.id)
-
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
@@ -390,21 +376,7 @@ class Group(Model):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
-        from sentry.models import Event
-
-        if not hasattr(self, '_latest_event'):
-            latest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('-datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-                reverse=True,
-            )
-            try:
-                self._latest_event = latest_events[0]
-            except IndexError:
-                self._latest_event = None
-        return self._latest_event
+        return self.get_latest_event_for_environments()
 
     def get_latest_event_for_environments(self, environments=()):
         use_snuba = options.get('snuba.events-queries.enabled')
@@ -418,22 +390,6 @@ class Group(Model):
             environments=environments,
             issue_id=self.id,
             project_id=self.project_id)
-
-    def get_oldest_event(self):
-        from sentry.models import Event
-
-        if not hasattr(self, '_oldest_event'):
-            oldest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-            )
-            try:
-                self._oldest_event = oldest_events[0]
-            except IndexError:
-                self._oldest_event = None
-        return self._oldest_event
 
     def get_oldest_event_for_environments(self, environments=()):
         use_snuba = options.get('snuba.events-queries.enabled')
