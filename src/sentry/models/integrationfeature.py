@@ -33,15 +33,15 @@ class Feature(object):
             return 'integrations-event-hooks'
 
     @classmethod
-    def description(cls, feature):
+    def description(cls, feature, name):
         if feature == cls.API:
-            return "This integration can utilize the Sentry API (with the permissions granted) to pull data or update resources in Sentry!"
+            return "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)." % name
         elif feature == cls.ISSUE_LINK:
-            return "This integration can allow your organization to create or link Sentry issues to another service!"
+            return "Organizations can **create or link Sentry issues** to another service."
         elif feature == cls.STACKTRACE_LINK:
-            return "This integration allows your organization to open a line in Sentry's stack trace in another service!"
+            return "Organizations can **open a line to Sentry's stack trace** in another service."
         elif feature == cls.EVENT_HOOKS:
-            return "This integration allows your organization to forward events to another service!"
+            return "%s allows organizations to **forward events to another service**." % name
 
 
 class IntegrationFeature(Model):
@@ -68,4 +68,4 @@ class IntegrationFeature(Model):
         if self.user_description:
             return self.user_description
         else:
-            return Feature.description(self.feature)
+            return Feature.description(self.feature, self.sentry_app.name)

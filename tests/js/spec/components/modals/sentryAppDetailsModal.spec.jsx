@@ -30,6 +30,13 @@ describe('SentryAppDetailsModal', function() {
     onInstall = jest.fn();
     isInstalled = false;
     closeModal = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/features/`,
+      method: 'GET',
+      body: [],
+    });
+
     wrapper = render();
   });
 
