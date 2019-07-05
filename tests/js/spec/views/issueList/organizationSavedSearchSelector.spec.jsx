@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationSavedSearchSelector from 'app/views/organizationStream/organizationSavedSearchSelector';
+import IssueListSavedSearchSelector from 'app/views/issueList/savedSearchSelector';
 
-describe('OrganizationSavedSearchSelector', function() {
+describe('IssueListSavedSearchSelector', function() {
   let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList;
   beforeEach(function() {
     organization = TestStubs.Organization({access: ['org:write']});
@@ -27,7 +27,7 @@ describe('OrganizationSavedSearchSelector', function() {
       },
     ];
     wrapper = mount(
-      <OrganizationSavedSearchSelector
+      <IssueListSavedSearchSelector
         organization={organization}
         savedSearchList={savedSearchList}
         onSavedSearchCreate={onCreate}

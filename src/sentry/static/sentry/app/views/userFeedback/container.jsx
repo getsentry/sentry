@@ -26,7 +26,7 @@ export default class UserFeedbackContainer extends React.Component {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <div>
+      <div data-test-id="user-feedback">
         <div className="row">
           <div className="col-sm-9" style={{marginBottom: '5px'}}>
             <PageHeading withMargins>{t('User Feedback')}</PageHeading>

@@ -7,7 +7,7 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
-class OrganizationStreamContainer extends React.Component {
+class IssueListContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -32,5 +32,5 @@ class OrganizationStreamContainer extends React.Component {
     );
   }
 }
-export default withOrganization(OrganizationStreamContainer);
-export {OrganizationStreamContainer};
+export default withOrganization(IssueListContainer);
+export {IssueListContainer};

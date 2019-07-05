@@ -3,14 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry.api.bases.event import EventPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import DetailedEventSerializer, serialize
 from sentry.models import Event
 
 
 class EventDetailsEndpoint(Endpoint):
-    permission_classes = (GroupPermission, )
+    permission_classes = (EventPermission, )
 
     def get(self, request, event_id):
         """
@@ -27,7 +27,7 @@ class EventDetailsEndpoint(Endpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        self.check_object_permissions(request, event.group)
+        self.check_object_permissions(request, event)
 
         Event.objects.bind_nodes([event], 'data')
 

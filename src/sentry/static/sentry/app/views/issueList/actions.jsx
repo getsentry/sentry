@@ -138,8 +138,8 @@ ExtraDescription.propTypes = {
   queryCount: PropTypes.number,
 };
 
-const StreamActions = createReactClass({
-  displayName: 'StreamActions',
+const IssueListActions = createReactClass({
+  displayName: 'IssueListActions',
 
   propTypes: {
     api: PropTypes.object,
@@ -669,6 +669,6 @@ const CreateIncidentText = styled('span')`
   margin-left: 5px; /* consistent with other items in bar */
 `;
 
-export {StreamActions};
+export {IssueListActions};
 
-export default withApi(StreamActions);
+export default withApi(IssueListActions);

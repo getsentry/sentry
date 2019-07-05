@@ -50,7 +50,7 @@ DEFAULT_TAGS = frozenset(
 
 # First Event
 @first_event_received.connect(weak=False)
-def record_first_event(project, group, **kwargs):
+def record_first_event(project, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_event", complete=True
     )
