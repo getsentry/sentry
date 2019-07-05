@@ -72,7 +72,10 @@ class FeatureAdoptionTest(TestCase):
         assert first_event.complete
 
     def test_javascript(self):
-        event = self.create_event(data={'platform': 'javascript'})
+        group = self.create_group(
+            project=self.project, platform='javascript', message='javascript error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'javascript'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -81,7 +84,10 @@ class FeatureAdoptionTest(TestCase):
         assert js.complete
 
     def test_python(self):
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='python', message='python error message'
+        )
+        event = self.create_event(group=group)
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -90,7 +96,10 @@ class FeatureAdoptionTest(TestCase):
         assert python.complete
 
     def test_node(self):
-        event = self.create_event(data={'platform': 'node'})
+        group = self.create_group(
+            project=self.project, platform='node', message='node error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'node'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -99,7 +108,10 @@ class FeatureAdoptionTest(TestCase):
         assert node.complete
 
     def test_ruby(self):
-        event = self.create_event(data={'platform': 'ruby'})
+        group = self.create_group(
+            project=self.project, platform='ruby', message='ruby error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'ruby'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -108,7 +120,10 @@ class FeatureAdoptionTest(TestCase):
         assert ruby.complete
 
     def test_java(self):
-        event = self.create_event(data={'platform': 'java'})
+        group = self.create_group(
+            project=self.project, platform='java', message='java error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'java'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -117,7 +132,10 @@ class FeatureAdoptionTest(TestCase):
         assert java.complete
 
     def test_cocoa(self):
-        event = self.create_event(data={'platform': 'cocoa'})
+        group = self.create_group(
+            project=self.project, platform='cocoa', message='cocoa error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'cocoa'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -126,7 +144,10 @@ class FeatureAdoptionTest(TestCase):
         assert cocoa.complete
 
     def test_objc(self):
-        event = self.create_event(data={'platform': 'objc'})
+        group = self.create_group(
+            project=self.project, platform='objc', message='objc error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'objc'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -135,7 +156,10 @@ class FeatureAdoptionTest(TestCase):
         assert objc.complete
 
     def test_php(self):
-        event = self.create_event(data={'platform': 'php'})
+        group = self.create_group(
+            project=self.project, platform='php', message='php error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'php'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -144,7 +168,10 @@ class FeatureAdoptionTest(TestCase):
         assert php.complete
 
     def test_go(self):
-        event = self.create_event(data={'platform': 'go'})
+        group = self.create_group(
+            project=self.project, platform='go', message='go error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'go'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -153,7 +180,10 @@ class FeatureAdoptionTest(TestCase):
         assert go.complete
 
     def test_csharp(self):
-        event = self.create_event(data={'platform': 'csharp'})
+        group = self.create_group(
+            project=self.project, platform='csharp', message='csharp error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'csharp'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -162,7 +192,10 @@ class FeatureAdoptionTest(TestCase):
         assert csharp.complete
 
     def test_perl(self):
-        event = self.create_event(data={'platform': 'perl'})
+        group = self.create_group(
+            project=self.project, platform='perl', message='perl error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'perl'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -171,7 +204,10 @@ class FeatureAdoptionTest(TestCase):
         assert perl.complete
 
     def test_elixir(self):
-        event = self.create_event(data={'platform': 'elixir'})
+        group = self.create_group(
+            project=self.project, platform='elixir', message='elixir error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'elixir'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -180,7 +216,10 @@ class FeatureAdoptionTest(TestCase):
         assert elixir.complete
 
     def test_cfml(self):
-        event = self.create_event(data={'platform': 'cfml'})
+        group = self.create_group(
+            project=self.project, platform='cfml', message='cfml error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'cfml'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -189,7 +228,10 @@ class FeatureAdoptionTest(TestCase):
         assert cfml.complete
 
     def test_groovy(self):
-        event = self.create_event(data={'platform': 'groovy'})
+        group = self.create_group(
+            project=self.project, platform='groovy', message='groovy error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'groovy'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -198,7 +240,10 @@ class FeatureAdoptionTest(TestCase):
         assert groovy.complete
 
     def test_csp(self):
-        event = self.create_event(data={'platform': 'csp'})
+        group = self.create_group(
+            project=self.project, platform='csp', message='csp error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'csp'})
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )
@@ -229,7 +274,10 @@ class FeatureAdoptionTest(TestCase):
         assert environment_tracking
 
     def test_bulk_create(self):
-        event = self.create_full_event()
+        group = self.create_group(
+            project=self.project, platform='javascript', message='javascript error message'
+        )
+        event = self.create_full_event(group=group)
         event_processed.send(
             project=self.project, event=event, sender=type(self.project)
         )

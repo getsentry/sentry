@@ -131,10 +131,6 @@ def handle_owner_assignment(project, group, event):
         GroupAssignee.objects.assign(group, owner)
 
 
-def post_process_issue(event):
-    pass
-
-
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
@@ -164,8 +160,10 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         if event.group_id:
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
+            project_id = event.group.project_id
+        else:
+            project_id = event.project_id
 
-        project_id = event.project_id
         with configure_scope() as scope:
             scope.set_tag("project", project_id)
 
