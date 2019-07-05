@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import six
 import mock
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.exceptions import IntegrationError
@@ -11,6 +13,10 @@ from sentry.utils.http import absolute_uri
 
 
 class GroupIntegrationDetailsTest(APITestCase):
+    def setUp(self):
+        super(GroupIntegrationDetailsTest, self).setUp()
+        self.min_ago = timezone.now() - timedelta(minutes=1)
+
     def test_simple_get_link(self):
         self.login_as(user=self.user)
         org = self.organization
@@ -367,8 +373,14 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
-        self.create_event(group=group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
+        )
+        group = event.group
         integration = Integration.objects.create(
             provider='example',
             name='Example',
