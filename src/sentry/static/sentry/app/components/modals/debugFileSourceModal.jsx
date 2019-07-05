@@ -136,7 +136,7 @@ const gcsFields = {
     required: true,
     label: t('Client Email'),
     placeholder: 'user@project.iam.gserviceaccount.com',
-    help: t('E-Mail address of the GCS service account.'),
+    help: t('Email address of the GCS service account.'),
   },
   privateKey: {
     name: 'private_key',
@@ -150,7 +150,7 @@ const gcsFields = {
     help: tct('The service account key. Credentials can be managed on the [link].', {
       link: (
         <ExternalLink href="https://console.cloud.google.com/project/_/iam-admin">
-          IAM & Admin Page
+          IAM &amp; Admin Page
         </ExternalLink>
       ),
     }),
