@@ -659,53 +659,71 @@ class EventManager(object):
         event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
-        # The group gets the same metadata as the event when it's flushed but
-        # additionally the `last_received` key is set.  This key is used by
-        # _save_aggregate.
-        group_metadata = dict(materialized_metadata)
-        group_metadata['last_received'] = received_timestamp
-        kwargs = {
-            'platform': platform,
-            'message': event.message,
-            'culprit': culprit,
-            'logger': logger_name,
-            'level': LOG_LEVELS_MAP.get(level),
-            'last_seen': date,
-            'first_seen': date,
-            'active_at': date,
-            'data': group_metadata,
-        }
-
-        if release:
-            kwargs['first_release'] = release
-
-        try:
-            group, is_new, is_regression, is_sample = self._save_aggregate(
-                event=event, hashes=hashes, release=release, **kwargs
-            )
-        except HashDiscarded:
-            event_discarded.send_robust(
-                project=project,
-                sender=EventManager,
-            )
-
-            metrics.incr(
-                'events.discarded',
-                skip_internal=True,
-                tags={
-                    'organization_id': project.organization_id,
-                    'platform': platform,
-                },
-            )
-            raise
+        # Right now the event type is the signal to skip the group. This
+        # is going to change a lot.
+        if event.get_event_type() == 'transaction':
+            create_group = False
         else:
+            create_group = True
+
+        if create_group:
+            # The group gets the same metadata as the event when it's flushed but
+            # additionally the `last_received` key is set.  This key is used by
+            # _save_aggregate.
+            group_metadata = dict(materialized_metadata)
+            group_metadata['last_received'] = received_timestamp
+            kwargs = {
+                'platform': platform,
+                'message': event.message,
+                'culprit': culprit,
+                'logger': logger_name,
+                'level': LOG_LEVELS_MAP.get(level),
+                'last_seen': date,
+                'first_seen': date,
+                'active_at': date,
+                'data': group_metadata,
+            }
+
+            if release:
+                kwargs['first_release'] = release
+
+            try:
+                group, is_new, is_regression, is_sample = self._save_aggregate(
+                    event=event, hashes=hashes, release=release, **kwargs
+                )
+            except HashDiscarded:
+                event_discarded.send_robust(
+                    project=project,
+                    sender=EventManager,
+                )
+
+                metrics.incr(
+                    'events.discarded',
+                    skip_internal=True,
+                    tags={
+                        'organization_id': project.organization_id,
+                        'platform': platform,
+                    },
+                )
+                raise
+            else:
+                event_saved.send_robust(
+                    project=project,
+                    event_size=event.size,
+                    sender=EventManager,
+                )
+            event.group = group
+        else:
+            group = None
+            is_new = False
+            is_regression = False
+            is_sample = False
             event_saved.send_robust(
                 project=project,
                 event_size=event.size,
                 sender=EventManager,
             )
 
-        event.group = group
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
@@ -736,13 +754,16 @@ class EventManager(object):
             name=environment,
         )
 
-        group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
-            group_id=group.id,
-            environment_id=environment.id,
-            defaults={
-                'first_release': release if release else None,
-            },
-        )
+        if group:
+            group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
+                group_id=group.id,
+                environment_id=environment.id,
+                defaults={
+                    'first_release': release if release else None,
+                },
+            )
+        else:
+            is_new_group_environment = False
 
         if release:
             ReleaseEnvironment.get_or_create(
@@ -759,17 +780,20 @@ class EventManager(object):
                 datetime=date,
             )
 
-            grouprelease = GroupRelease.get_or_create(
-                group=group,
-                release=release,
-                environment=environment,
-                datetime=date,
-            )
+            if group:
+                grouprelease = GroupRelease.get_or_create(
+                    group=group,
+                    release=release,
+                    environment=environment,
+                    datetime=date,
+                )
 
         counters = [
-            (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
         ]
+
+        if group:
+            counters.append((tsdb.models.group, group.id))
 
         if release:
             counters.append((tsdb.models.release, release.id))
@@ -787,39 +811,44 @@ class EventManager(object):
             #         group.id: 1,
             #     },
             # })
-            (tsdb.models.frequent_environments_by_group, {
-                group.id: {
-                    environment.id: 1,
-                },
-            })
         ]
 
-        if release:
+        if group:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {
+                (tsdb.models.frequent_environments_by_group, {
                     group.id: {
-                        grouprelease.id: 1,
+                        environment.id: 1,
                     },
                 })
             )
 
-        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+            if release:
+                frequencies.append(
+                    (tsdb.models.frequent_releases_by_group, {
+                        group.id: {
+                            grouprelease.id: 1,
+                        },
+                    })
+                )
+        if frequencies:
+            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
-        UserReport.objects.filter(
-            project=project,
-            event_id=event_id,
-        ).update(
-            group=group,
-            environment=environment,
-        )
+        if group:
+            UserReport.objects.filter(
+                project=project,
+                event_id=event_id,
+            ).update(
+                group=group,
+                environment=environment,
+            )
 
-        # Update any event attachment that arrived before the event group was defined.
-        EventAttachment.objects.filter(
-            project_id=project.id,
-            event_id=event_id,
-        ).update(
-            group_id=group.id,
-        )
+            # Update any event attachment that arrived before the event group was defined.
+            EventAttachment.objects.filter(
+                project_id=project.id,
+                event_id=event_id,
+            ).update(
+                group_id=group.id,
+            )
 
         # save the event unless its been sampled
         if not is_sample:
@@ -850,14 +879,20 @@ class EventManager(object):
             )
 
         if event_user:
+            counters = [
+                (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
+            ]
+
+            if group:
+                counters.append((tsdb.models.users_affected_by_group,
+                                 group.id, (event_user.tag_value, )))
+
             tsdb.record_multi(
-                (
-                    (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value, )),
-                    (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
-                ),
+                counters,
                 timestamp=event.datetime,
                 environment_id=environment.id,
             )
+
         if release:
             if is_new:
                 buffer.incr(
@@ -875,12 +910,13 @@ class EventManager(object):
                     }
                 )
 
-        safe_execute(
-            Group.objects.add_tags,
-            group,
-            environment,
-            event.get_tags(),
-            _with_transaction=False)
+        if group:
+            safe_execute(
+                Group.objects.add_tags,
+                group,
+                environment,
+                event.get_tags(),
+                _with_transaction=False)
 
         if not raw:
             if not project.first_event:

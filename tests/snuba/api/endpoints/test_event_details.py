@@ -330,3 +330,39 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(event.id)
         assert response.data['previousEventID'] == six.text_type(before.event_id)
+
+    def test_issueless_event(self):
+        self.login_as(user=self.user)
+
+        cur_event = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': ['whatever-will-be-ignored'],
+                'transaction': 'wait',
+                'contexts': {
+                    'trace': {
+                        'parent_span_id': 'bce14471e0e9654d',
+                        'trace_id': 'a0fa8803753e40fd8124b21eeb2986b5',
+                        'span_id': 'bf5be759039ede9a'
+                    }
+                },
+                'spans': [],
+                'start_timestamp': '2019-06-14T14:01:40Z',
+                'type': 'transaction',
+            },
+            project_id=self.project.id
+        )
+
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': cur_event.id,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(cur_event.id)
+        assert response.data['groupID'] is None
+        assert not response.data['userReport']
+        assert response.data['type'] == 'transaction'
