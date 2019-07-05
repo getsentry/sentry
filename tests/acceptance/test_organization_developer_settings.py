@@ -27,7 +27,8 @@ class OrganizationIntegrationAcceptanceTest(AcceptanceTestCase):
 
             self.browser.element('input[name="name"]').send_keys('Tesla')
             self.browser.element('input[name="author"]').send_keys('Elon Musk')
-            self.browser.element('input[name="webhookUrl"]').send_keys('https://tesla.com/webhook')
+            self.browser.element('input[name="webhookUrl"]').send_keys(
+                'https://example.com/webhook')
 
             self.browser.click('[aria-label="Save Changes"]')
 
