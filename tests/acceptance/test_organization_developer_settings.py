@@ -3,13 +3,13 @@ from __future__ import absolute_import
 from sentry.testutils import AcceptanceTestCase
 
 
-class OrganizationIntegrationAcceptanceTest(AcceptanceTestCase):
+class OrganizationDeveloperSettingsAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it
     """
 
     def setUp(self):
-        super(OrganizationIntegrationAcceptanceTest, self).setUp()
+        super(OrganizationDeveloperSettingsAcceptanceTest, self).setUp()
         self.login_as(self.user)
         self.org_developer_settings_path = u'/settings/{}/developer-settings/'.format(
             self.organization.slug)

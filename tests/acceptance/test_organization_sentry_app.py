@@ -11,7 +11,7 @@ from tests.acceptance.page_objects.organization_integration_settings import (
 
 class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
     """
-    As a user(type?), I can setup, configure, and remove a sentry app.
+    As a user, I can install and uninstall a Sentry App
     """
 
     def setUp(self):
