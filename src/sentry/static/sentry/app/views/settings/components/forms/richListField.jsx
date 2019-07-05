@@ -160,7 +160,9 @@ class RichList extends React.PureComponent {
         {removeIcon}
       </Confirm>
     ) : (
-      removeIcon
+      React.cloneElement(removeIcon, {
+        onClick: () => this.onRemoveItem(item, index),
+      })
     );
 
     return (
