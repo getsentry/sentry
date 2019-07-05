@@ -21,7 +21,7 @@ class EventUserFeedback extends React.Component {
   getUrl() {
     const {report, orgId, issueId} = this.props;
 
-    return `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
+    return `/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/`;
   }
 
   render() {
@@ -41,8 +41,7 @@ class EventUserFeedback extends React.Component {
                   <CopyIcon src="icon-copy" />
                 </Email>
               </Clipboard>
-              {/* event.eventID might be undefined for legacy accounts */}
-              {report.event.eventID && (
+              {report.eventID && (
                 <ViewEventLink to={this.getUrl()}>{t('View event')}</ViewEventLink>
               )}
             </div>
