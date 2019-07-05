@@ -10,45 +10,6 @@ import InputField from 'app/views/settings/components/forms/inputField';
 import InlineSvg from 'app/components/inlineSvg';
 import Confirm from 'app/components/confirm';
 
-const ItemList = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-`;
-
-const Item = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.button.default.background};
-  border: 1px solid ${p => p.theme.button.default.border};
-  border-radius: ${p => p.theme.button.borderRadius};
-  color: ${p => p.theme.button.default.color};
-  cursor: default;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  line-height: 1;
-  padding: 0;
-  text-transform: none;
-  margin-right: 10px;
-  margin-bottom: 5px;
-`;
-
-const ItemLabel = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  white-space: nowrap;
-`;
-
-const ItemIcon = styled('span')`
-  padding-left: 10px;
-  color: ${p => p.theme.gray2};
-  cursor: pointer;
-
-  &:hover {
-    color: ${p => p.theme.button.default.color};
-  }
-`;
-
 const RichListProps = {
   /**
    * Text used for the add item button.
@@ -105,7 +66,6 @@ class RichList extends React.PureComponent {
     addButtonText: t('Add Item'),
     renderItem: item => item,
     onAddItem: (item, addItem) => addItem(item),
-    onEditItem: () => {},
     onRemoveItem: (item, removeItem) => removeItem(item),
   };
 
@@ -144,8 +104,8 @@ class RichList extends React.PureComponent {
   };
 
   renderItem = (item, index) => {
-    const removeIcon = (
-      <ItemIcon>
+    const removeIcon = (onClick = null) => (
+      <ItemIcon onClick={onClick}>
         <InlineSvg src="icon-trash" size="12px" />
       </ItemIcon>
     );
@@ -157,21 +117,21 @@ class RichList extends React.PureComponent {
         {...this.props.removeConfirm}
         onConfirm={() => this.onRemoveItem(item, index)}
       >
-        {removeIcon}
+        {removeIcon()}
       </Confirm>
     ) : (
-      React.cloneElement(removeIcon, {
-        onClick: () => this.onRemoveItem(item, index),
-      })
+      removeIcon(() => this.onRemoveItem(item, index))
     );
 
     return (
       <Item size="small" key={index}>
         <ItemLabel>
           {this.props.renderItem(item)}
-          <ItemIcon onClick={() => this.onEditItem(item, index)}>
-            <InlineSvg src="icon-settings" size="12px" />
-          </ItemIcon>
+          {this.props.onEditItem && (
+            <ItemIcon onClick={() => this.onEditItem(item, index)}>
+              <InlineSvg src="icon-settings" size="12px" />
+            </ItemIcon>
+          )}
           {removeConfirm}
         </ItemLabel>
       </Item>
@@ -229,3 +189,40 @@ export default class RichListField extends React.PureComponent {
     return <InputField {...this.props} field={this.renderRichList} />;
   }
 }
+
+const ItemList = styled('ul')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 0;
+`;
+
+const Item = styled('li')`
+  display: inline-block;
+  background-color: ${p => p.theme.button.default.background};
+  border: 1px solid ${p => p.theme.button.default.border};
+  border-radius: ${p => p.theme.button.borderRadius};
+  color: ${p => p.theme.button.default.color};
+  cursor: default;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  line-height: 1;
+  padding: 0;
+  text-transform: none;
+  margin: 0 10px 5px 0;
+`;
+
+const ItemLabel = styled('div')`
+  padding: 8px 12px;
+  white-space: nowrap;
+`;
+
+const ItemIcon = styled('span')`
+  padding-left: 10px;
+  color: ${p => p.theme.gray2};
+  cursor: pointer;
+
+  &:hover {
+    color: ${p => p.theme.button.default.color};
+  }
+`;

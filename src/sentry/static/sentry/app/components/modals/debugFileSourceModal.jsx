@@ -1,15 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {AWS_REGIONS, DEBUG_SOURCE_LAYOUTS, DEBUG_SOURCE_CASINGS} from 'app/constants';
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {objectToArray} from 'app/utils';
-
-import {getSourceName} from 'app/data/forms/projectDebugFiles';
+import {
+  AWS_REGIONS,
+  DEBUG_SOURCE_LAYOUTS,
+  DEBUG_SOURCE_CASINGS,
+  getDebugSourceName,
+} from 'app/data/debugFileSources';
+import ExternalLink from 'app/components/links/externalLink';
 import Form from 'app/views/settings/components/forms/form';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import ExternalLink from '../links/externalLink';
 
 function objectToChoices(obj) {
   return objectToArray(obj).map(([key, value]) => [key, t(value)]);
@@ -222,7 +225,7 @@ class DebugFileSourceModal extends React.Component {
     Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
   };
 
-  save = data => {
+  handleSave = data => {
     const {sourceType, onSave, closeModal} = this.props;
     onSave({...data, type: sourceType});
     closeModal();
@@ -241,7 +244,7 @@ class DebugFileSourceModal extends React.Component {
         allowUndo
         requireChanges
         initialData={sourceConfig}
-        onSubmit={this.save}
+        onSubmit={this.handleSave}
         footerClass="modal-footer"
       >
         {fields.map((field, i) => (
@@ -261,7 +264,7 @@ class DebugFileSourceModal extends React.Component {
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {tct(headerText, {name: getSourceName(sourceType)})}
+          {tct(headerText, {name: getDebugSourceName(sourceType)})}
         </Header>
 
         {this.renderForm()}

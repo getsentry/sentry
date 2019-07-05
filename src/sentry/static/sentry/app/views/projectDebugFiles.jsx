@@ -232,7 +232,7 @@ class ProjectDebugSymbols extends AsyncComponent {
         </TextBlock>
 
         {features.has('symbol-sources') && (
-          <>
+          <React.Fragment>
             <PermissionAlert />
 
             <Form
@@ -251,7 +251,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                 additionalFieldProps={fieldProps}
               />
             </Form>
-          </>
+          </React.Fragment>
         )}
 
         <TextBlock>
