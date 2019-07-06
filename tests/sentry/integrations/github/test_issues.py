@@ -155,8 +155,12 @@ class GitHubIssueBasicTest(TestCase):
     @responses.activate
     @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     def test_repo_dropdown_choices(self, mock_get_jwt):
-        group = self.create_group()
-        self.create_event(group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+            },
+            project_id=self.project.id,
+        )
 
         responses.add(
             responses.POST,
@@ -176,7 +180,7 @@ class GitHubIssueBasicTest(TestCase):
             json={'repositories': [{'full_name': 'getsentry/sentry', 'name': 'sentry'}]}
         )
 
-        resp = self.integration.get_create_issue_config(group=self.group)
+        resp = self.integration.get_create_issue_config(group=event.group)
         assert resp[0]['choices'] == [(u'getsentry/sentry', u'sentry')]
 
         responses.add(
@@ -187,12 +191,12 @@ class GitHubIssueBasicTest(TestCase):
 
         # create an issue
         data = {'params': {'repo': 'getsentry/hello'}}
-        resp = self.integration.get_create_issue_config(group=self.group, **data)
+        resp = self.integration.get_create_issue_config(group=event.group, **data)
         assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
                                       (u'getsentry/sentry', u'sentry')]
         # link an issue
         data = {'params': {'repo': 'getsentry/hello'}}
-        resp = self.integration.get_link_issue_config(group=self.group, **data)
+        resp = self.integration.get_link_issue_config(group=event.group, **data)
         assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
                                       (u'getsentry/sentry', u'sentry')]
 
@@ -240,8 +244,14 @@ class GitHubIssueBasicTest(TestCase):
                 ]
             },
         )
-        group = self.create_group()
-        self.create_event(group=group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+
         org_integration = self.integration.org_integration
         org_integration.config = {
             'project_issue_defaults': {
@@ -278,8 +288,13 @@ class GitHubIssueBasicTest(TestCase):
             'https://api.github.com/installations/github_external_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
-        group = self.create_group()
-        self.create_event(group=group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
         org_integration = self.integration.org_integration
         org_integration.config = {
             'project_issue_defaults': {
@@ -304,10 +319,13 @@ class GitHubIssueBasicTest(TestCase):
                 'repositories': []
             },
         )
-        group = self.create_group()
-        self.create_event(group=group)
-
-        fields = self.integration.get_link_issue_config(group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+            },
+            project_id=self.project.id,
+        )
+        fields = self.integration.get_link_issue_config(event.group)
         repo_field = [field for field in fields if field['name'] == 'repo'][0]
         assert repo_field['default'] is ''
         assert repo_field['choices'] == []
@@ -327,11 +345,13 @@ class GitHubIssueBasicTest(TestCase):
             'https://api.github.com/installations/github_external_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
-
-        group = self.create_group()
-        self.create_event(group=group)
-
-        fields = self.integration.get_create_issue_config(group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+            },
+            project_id=self.project.id,
+        )
+        fields = self.integration.get_create_issue_config(event.group)
         repo_field = [field for field in fields if field['name'] == 'repo'][0]
         assignee_field = [field for field in fields if field['name'] == 'assignee'][0]
 

@@ -444,6 +444,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
+                'timestamp': timezone.now().isoformat(),
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -523,6 +524,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
+                'timestamp': timezone.now().isoformat(),
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -559,6 +561,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
+                'timestamp': timezone.now().isoformat(),
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -595,6 +598,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
+                'timestamp': timezone.now().isoformat(),
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
