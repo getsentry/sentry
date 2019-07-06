@@ -37,27 +37,27 @@ const cards = [
   {
     title: t('Suspect Commits'),
     message: t(
-      'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
+      'Sentry suggests which commit caused an issue and who is likely responsible.'
     ),
     component: StyledSuggestedAssignees,
   },
   {
     title: t('Release Stats'),
     message: t(
-      'See the commits in each release, and which issues were introduced or fixed in the release'
+      'See which issues were introduced or fixed in each release.'
     ),
     component: Issues,
   },
   {
     title: t('Easy Resolution'),
     message: t(
-      'Automatically resolve issues by including the issue number in your commit message'
+      'Automatically resolve issues by including the issue number in your commit message.'
     ),
     component: BashCard,
   },
   {
     title: t('Deploy Emails'),
-    message: t('Receive email notifications when your code gets deployed'),
+    message: t('Receive email notifications when your code gets deployed.'),
     component: Emails,
   },
 ];
