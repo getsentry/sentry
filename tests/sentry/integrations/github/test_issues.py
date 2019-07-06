@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 import responses
 import six
+from datetime import timedelta
 
 from mock import patch
 from exam import fixture
 from django.test import RequestFactory
+from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Integration, ExternalIssue
@@ -28,6 +30,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
 
     @responses.activate
     @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
@@ -158,6 +161,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={
                 'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )
@@ -247,6 +251,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={
                 'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )
@@ -291,6 +296,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={
                 'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )
@@ -322,6 +328,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={
                 'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )
@@ -348,6 +355,7 @@ class GitHubIssueBasicTest(TestCase):
         event = self.store_event(
             data={
                 'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )

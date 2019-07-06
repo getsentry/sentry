@@ -6,6 +6,7 @@ import responses
 import six
 import pytest
 import copy
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -437,6 +438,10 @@ class JiraIntegrationTest(APITestCase):
             self.user)
         return integration
 
+    def setUp(self):
+        super(JiraIntegrationTest, self).setUp()
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
     def test_get_create_issue_config(self):
         org = self.organization
         self.login_as(self.user)
@@ -444,7 +449,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
-                'timestamp': timezone.now().isoformat(),
+                'timestamp': self.min_ago,
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -524,7 +529,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
-                'timestamp': timezone.now().isoformat(),
+                'timestamp': self.min_ago,
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -561,7 +566,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
-                'timestamp': timezone.now().isoformat(),
+                'timestamp': self.min_ago,
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -598,7 +603,7 @@ class JiraIntegrationTest(APITestCase):
             data={
                 'event_id': 'a' * 32,
                 'message': 'message',
-                'timestamp': timezone.now().isoformat(),
+                'timestamp': self.min_ago,
                 'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
             },
             project_id=self.project.id,
@@ -637,7 +642,7 @@ class JiraIntegrationTest(APITestCase):
         event = self.store_event(
             data={
                 'message': 'oh no',
-                'timestamp': timezone.now().isoformat()
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id
         )
@@ -663,7 +668,7 @@ class JiraIntegrationTest(APITestCase):
         event = self.store_event(
             data={
                 'message': 'oh no',
-                'timestamp': timezone.now().isoformat()
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id
         )
