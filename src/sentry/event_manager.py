@@ -566,6 +566,28 @@ class EventManager(object):
         if transaction_name:
             transaction_name = force_text(transaction_name)
 
+        # Right now the event type is the signal to skip the group. This
+        # is going to change a lot.
+        if event.get_event_type() == 'transaction':
+            create_group = False
+        else:
+            create_group = True
+
+        org = Organization.objects.get_from_cache(
+            id=project.organization_id
+        )
+        issueless_enabled = features.has('organizations:issueless-events', organization=org)
+        if not create_group and not issueless_enabled:
+            # We discard the event if issueless events are disabled
+            logger.info(
+                'issueless.disabled',
+                extra={
+                    'event_uuid': data['event_id'],
+                    'project_id': project.id,
+                }
+            )
+            return event
+
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
@@ -658,13 +680,6 @@ class EventManager(object):
         # See GH-3248
         event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
-
-        # Right now the event type is the signal to skip the group. This
-        # is going to change a lot.
-        if event.get_event_type() == 'transaction':
-            create_group = False
-        else:
-            create_group = True
 
         if create_group:
             # The group gets the same metadata as the event when it's flushed but

@@ -849,6 +849,8 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
+    # Enable the ingestion of issueless events
+    'organizations:issueless-events': False,
     # Enable org-wide saved searches and user pinned search
     'organizations:org-saved-searches': False,
     # Enable organizations to create and utilize Sentry Apps.

@@ -334,25 +334,28 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
     def test_issueless_event(self):
         self.login_as(user=self.user)
 
-        cur_event = self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': self.two_min_ago,
-                'fingerprint': ['whatever-will-be-ignored'],
-                'transaction': 'wait',
-                'contexts': {
-                    'trace': {
-                        'parent_span_id': 'bce14471e0e9654d',
-                        'trace_id': 'a0fa8803753e40fd8124b21eeb2986b5',
-                        'span_id': 'bf5be759039ede9a'
-                    }
-                },
-                'spans': [],
-                'start_timestamp': '2019-06-14T14:01:40Z',
-                'type': 'transaction',
+        data = {
+            'event_id': 'b' * 32,
+            'timestamp': self.two_min_ago,
+            'fingerprint': ['whatever-will-be-ignored'],
+            'transaction': 'wait',
+            'contexts': {
+                'trace': {
+                    'parent_span_id': 'bce14471e0e9654d',
+                    'trace_id': 'a0fa8803753e40fd8124b21eeb2986b5',
+                    'span_id': 'bf5be759039ede9a'
+                }
             },
-            project_id=self.project.id
-        )
+            'spans': [],
+            'start_timestamp': '2019-06-14T14:01:40Z',
+            'type': 'transaction',
+        }
+
+        with self.feature('organizations:issueless-events'):
+            cur_event = self.store_event(
+                data,
+                project_id=self.project.id
+            )
 
         url = reverse(
             'sentry-api-0-event-details', kwargs={

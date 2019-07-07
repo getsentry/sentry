@@ -1398,7 +1398,9 @@ class EventManagerTest(TestCase):
                 platform='python',
             )
         )
-        event = manager.save(self.project.id)
+
+        with self.feature('organizations:issueless-events'):
+            event = manager.save(self.project.id)
 
         assert event.group is None
         assert tsdb.get_sums(
@@ -1409,33 +1411,34 @@ class EventManagerTest(TestCase):
         )[self.project.id] == 1
 
     def test_fingerprint_ignored(self):
-        manager1 = EventManager(
-            make_event(
-                event_id='a' * 32,
-                fingerprint='fingerprint1'
+        with self.feature('organizations:issueless-events'):
+            manager1 = EventManager(
+                make_event(
+                    event_id='a' * 32,
+                    fingerprint='fingerprint1'
+                )
             )
-        )
-        event1 = manager1.save(self.project.id)
+            event1 = manager1.save(self.project.id)
 
-        manager2 = EventManager(
-            make_event(
-                event_id='b' * 32,
-                fingerprint='fingerprint1',
-                transaction='wait',
-                contexts={
-                    'trace': {
-                        'parent_span_id': 'bce14471e0e9654d',
-                        'trace_id': 'a0fa8803753e40fd8124b21eeb2986b5',
-                        'span_id': 'bf5be759039ede9a'
-                    }
-                },
-                spans=[],
-                start_timestamp='2019-06-14T14:01:40Z',
-                type='transaction',
-                platform='python',
+            manager2 = EventManager(
+                make_event(
+                    event_id='b' * 32,
+                    fingerprint='fingerprint1',
+                    transaction='wait',
+                    contexts={
+                        'trace': {
+                            'parent_span_id': 'bce14471e0e9654d',
+                            'trace_id': 'a0fa8803753e40fd8124b21eeb2986b5',
+                            'span_id': 'bf5be759039ede9a'
+                        }
+                    },
+                    spans=[],
+                    start_timestamp='2019-06-14T14:01:40Z',
+                    type='transaction',
+                    platform='python',
+                )
             )
-        )
-        event2 = manager2.save(self.project.id)
+            event2 = manager2.save(self.project.id)
 
         assert event1.group is not None
         assert event2.group is None
