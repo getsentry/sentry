@@ -124,15 +124,15 @@ const GuideAnchor = createReactClass({
               __html: this.interpolate(guide.steps[step].message, messageVariables),
             }}
           />
-          <div style={{marginTop: '1em'}}>
+          <div css={{marginTop: '1em'}}>
             <div>
               {step < guide.steps.length - 1 ? (
                 <Button priority="success" size="small" onClick={this.handleNextStep}>
-                  {t('NEXT')} &rarr;
+                  {t('Next')} &rarr;
                 </Button>
               ) : (
                 <Button priority="success" size="small" onClick={this.handleFinish}>
-                  {t(guide.steps.length === 1 ? 'GOT IT' : 'DONE')}
+                  {t(guide.steps.length === 1 ? 'Got It' : 'Done')}
                 </Button>
               )}
             </div>

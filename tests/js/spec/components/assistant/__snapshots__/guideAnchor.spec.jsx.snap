@@ -28,11 +28,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
             }
           />
           <div
-            style={
-              Object {
-                "marginTop": "1em",
-              }
-            }
+            className="css-16f1609"
           >
             <div>
               <Button
@@ -41,7 +37,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                 priority="success"
                 size="small"
               >
-                NEXT
+                Next
                  →
               </Button>
             </div>
@@ -115,7 +111,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       abc
                     </div>
                     <div
-                      style="margin-top: 1em;"
+                      class="css-16f1609"
                     >
                       <div>
                         <button
@@ -126,7 +122,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                           <span
                             class="css-7ui8bl-ButtonLabel e12ma6z1"
                           >
-                            NEXT
+                            Next
                              →
                           </span>
                         </button>
@@ -285,11 +281,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                               }
                             />
                             <div
-                              style={
-                                Object {
-                                  "marginTop": "1em",
-                                }
-                              }
+                              className="css-16f1609"
                             >
                               <div>
                                 <Button
@@ -334,7 +326,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                             <span
                                               className="css-7ui8bl-ButtonLabel e12ma6z1"
                                             >
-                                              NEXT
+                                              Next
                                                →
                                             </span>
                                           </Component>
@@ -392,11 +384,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
             }
           />
           <div
-            style={
-              Object {
-                "marginTop": "1em",
-              }
-            }
+            className="css-16f1609"
           >
             <div>
               <Button
@@ -405,7 +393,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                 priority="success"
                 size="small"
               >
-                DONE
+                Done
               </Button>
             </div>
           </div>
@@ -461,19 +449,19 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                       xyz
                     </div>
                     <div
-                      style="margin-top: 1em;"
+                      class="css-16f1609"
                     >
                       <div>
                         <button
                           aria-disabled="false"
-                          aria-label="DONE"
+                          aria-label="Done"
                           class="css-1xjdilq-StyledButton-getColors e12ma6z0"
                           role="button"
                         >
                           <span
                             class="css-7ui8bl-ButtonLabel e12ma6z1"
                           >
-                            DONE
+                            Done
                           </span>
                         </button>
                       </div>
@@ -589,11 +577,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                               }
                             />
                             <div
-                              style={
-                                Object {
-                                  "marginTop": "1em",
-                                }
-                              }
+                              className="css-16f1609"
                             >
                               <div>
                                 <Button
@@ -604,7 +588,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                 >
                                   <StyledButton
                                     aria-disabled={false}
-                                    aria-label="DONE"
+                                    aria-label="Done"
                                     disabled={false}
                                     onClick={[Function]}
                                     priority="success"
@@ -613,7 +597,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                   >
                                     <ForwardRef
                                       aria-disabled={false}
-                                      aria-label="DONE"
+                                      aria-label="Done"
                                       className="css-1xjdilq-StyledButton-getColors e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
@@ -623,7 +607,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                     >
                                       <button
                                         aria-disabled={false}
-                                        aria-label="DONE"
+                                        aria-label="Done"
                                         className="css-1xjdilq-StyledButton-getColors e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
@@ -641,7 +625,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                             <span
                                               className="css-7ui8bl-ButtonLabel e12ma6z1"
                                             >
-                                              DONE
+                                              Done
                                             </span>
                                           </Component>
                                         </ButtonLabel>

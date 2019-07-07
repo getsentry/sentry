@@ -115,23 +115,21 @@ class Hovercard extends React.Component {
       },
     };
 
-    let visible;
+    const visible = show !== undefined ? show : this.state.visible;
+    const hoverProps =
+      show !== undefined
+        ? {}
+        : {onMouseEnter: this.handleToggleOn, onMouseLeave: this.handleToggleOff};
     const containerProps = {
       'aria-describedby': this.tooltipId,
       className: containerClassName,
+      ...hoverProps,
     };
     const hovercardProps = {
       withHeader: !!header,
       className: cx,
+      ...hoverProps,
     };
-
-    if (show === true || show === false) {
-      visible = show;
-    } else {
-      visible = this.state.visible;
-      containerProps.onMouseEnter = hovercardProps.onMouseEnter = this.handleToggleOn;
-      containerProps.onMouseLeave = hovercardProps.onMouseLeave = this.handleToggleOff;
-    }
 
     return (
       <Manager>
