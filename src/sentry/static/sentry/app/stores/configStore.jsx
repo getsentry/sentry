@@ -23,9 +23,12 @@ const ConfigStore = Reflux.createStore({
     return this.config;
   },
 
-  loadInitialData(config, languageOverride = null) {
+  loadInitialData(config) {
     config.features = new Set(config.features || []);
     this.config = config;
+
+    // Language code is passed from django
+    let languageCode = config.languageCode;
 
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
@@ -43,14 +46,12 @@ const ConfigStore = Reflux.createStore({
         // e.g. unencoded "%"
       }
 
-      // Priority:
-      // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
-      setLocale(
-        queryString.lang || config.user.options.language || languageOverride || 'en'
-      );
-    } else if (languageOverride) {
-      setLocale(languageOverride);
+      languageCode = queryString.lang || config.user.options.language || languageCode;
     }
+
+    // Priority:
+    // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
+    setLocale(languageCode || 'en');
 
     this.trigger(config);
   },
