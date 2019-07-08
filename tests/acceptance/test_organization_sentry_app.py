@@ -69,6 +69,9 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
         provider_element.install_button.click()
         self.browser.wait_until(org_settings_page.modal_selector)
 
+        # need to press install twice
+        self.browser.click('.modal-dialog [aria-label="Install"]')
+        self.browser.wait_until('.modal-dialog')
         self.browser.click('.modal-dialog [aria-label="Install"]')
 
         self.browser.wait_until('.ref-success')
