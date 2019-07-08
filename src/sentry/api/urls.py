@@ -204,6 +204,7 @@ from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
+from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -1386,6 +1387,11 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-app-components'
     ),
     url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/publish-request/$',
+        SentryAppPublishRequestEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-publish-request'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$',
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name='sentry-api-0-org-sentry-app-components'
@@ -1395,7 +1401,6 @@ urlpatterns = patterns(
         SentryAppAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-authorizations'
     ),
-
     # Grouping configs
     url(
         r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),

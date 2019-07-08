@@ -26,6 +26,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
+    onPublishRequest: PropTypes.func,
     showPublishStatus: PropTypes.bool,
     isInternal: PropTypes.bool,
   };
@@ -34,6 +35,34 @@ export default class SentryApplicationRow extends React.PureComponent {
     showPublishStatus: false,
     isInternal: false,
   };
+
+  renderEnabledAdminButtons(app) {
+    return (
+      <ButtonHolder>
+        {this.renderPublishRequest(app)}
+        {this.renderRemoveApp(app)}
+      </ButtonHolder>
+    );
+  }
+
+  renderDisabledAdminButtons() {
+    return (
+      <ButtonHolder>
+        <Button
+          disabled
+          title={t('Organization owner permissions are required for this action.')}
+          size="small"
+          icon="icon-upgrade"
+        />
+        <Button
+          disabled
+          title={t('Organization owner permissions are required for this action.')}
+          size="small"
+          icon="icon-trash"
+        />
+      </ButtonHolder>
+    );
+  }
 
   renderRemoveApp(app) {
     const message = t(
@@ -49,6 +78,29 @@ export default class SentryApplicationRow extends React.PureComponent {
       >
         <Button size="small" icon="icon-trash" />
       </ConfirmDelete>
+    );
+  }
+
+  renderPublishRequest(app) {
+    const message = t(
+      `Pressing this button will send a request to publish ${app.slug}. \
+       If it is approved, users outside your organization will be able to install this integration. \
+       Do you wish to continue?`
+    );
+    return (
+      <Confirm
+        message={message}
+        priority="primary"
+        onConfirm={() => this.props.onPublishRequest(app)}
+      >
+        <StyledButton
+          borderless
+          icon="icon-upgrade"
+          data-test-id="sentry-app-publish-request"
+        >
+          {t('Publish')}
+        </StyledButton>
+      </Confirm>
     );
   }
 
@@ -147,18 +199,9 @@ export default class SentryApplicationRow extends React.PureComponent {
                 <Access access={['org:admin']}>
                   {({hasAccess}) => (
                     <React.Fragment>
-                      {!hasAccess && (
-                        <Button
-                          disabled
-                          title={t(
-                            'Organization owner permissions are required for this action.'
-                          )}
-                          size="small"
-                          icon="icon-trash"
-                        />
-                      )}
-
-                      {hasAccess && this.renderRemoveApp(app)}
+                      {hasAccess
+                        ? this.renderEnabledAdminButtons(app)
+                        : this.renderDisabledAdminButtons()}
                     </React.Fragment>
                   )}
                 </Access>
@@ -252,4 +295,12 @@ const PublishStatus = styled(({status, ...props}) => {
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;
   margin-right: ${space(0.75)};
+`;
+
+const ButtonHolder = styled.div`
+  flex-direction: row;
+  display: flex;
+  & > * {
+    margin-left: ${space(0.5)};
+  }
 `;
