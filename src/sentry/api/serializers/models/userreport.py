@@ -37,6 +37,10 @@ class UserReportSerializer(Serializer):
             'comments': obj.comments,
             'dateCreated': obj.date_added,
             'user': attrs['event_user'],
+            'event': {
+                'id': obj.event_id,
+                'eventID': obj.event_id,
+            }
         }
 
 
