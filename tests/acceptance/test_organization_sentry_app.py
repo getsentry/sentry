@@ -67,12 +67,13 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
         assert provider_element.install_button.icon_href == '#icon-circle-add'
 
         provider_element.install_button.click()
-        self.browser.wait_until(org_settings_page.modal_selector)
 
         # need to press install twice
-        self.browser.click('.modal-dialog [aria-label="Install"]')
-        self.browser.wait_until('.modal-dialog')
-        self.browser.click('.modal-dialog [aria-label="Install"]')
+        install_selecter = '.modal-dialog [aria-label="Install"]'
+        self.browser.wait_until(install_selecter)
+        self.browser.click(install_selecter)
+        self.browser.wait_until(install_selecter)
+        self.browser.click(install_selecter)
 
         self.browser.wait_until('.ref-success')
 
