@@ -65,6 +65,28 @@ export const ALL_VIEWS = deepFreeze([
     ],
     columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
+  {
+    id: 'transactions',
+    name: 'Transactions',
+    data: {
+      fields: ['transaction', 'project', 'rpm', 'avg', '75th', '95th', '% total'],
+      sort: ['-timestamp', '-id'],
+      query: 'event.type:transaction',
+    },
+    tags: [
+      'event.type',
+      'release',
+      'project.name',
+      'user.email',
+      'user.ip',
+      'environment',
+      'trace',
+      'trace.ctx',
+      'trace.span',
+      'transaction',
+    ],
+    columnWidths: ['3fr', '1fr', '1fr', '1fr', '1fr', '1fr', '1fr'],
+  },
 ]);
 
 /**
@@ -73,6 +95,30 @@ export const ALL_VIEWS = deepFreeze([
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS = {
+  '% total': {
+    fields: [],
+    sortField: false,
+    renderFunc: () => {
+      return <Container>% total</Container>;
+    },
+  },
+  transaction: {
+    fields: ['title', 'id', 'project.name', 'transaction'],
+    sortField: 'transaction',
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.transaction}
+          </Link>
+        </Container>
+      );
+    },
+  },
   event: {
     fields: ['title', 'id', 'project.name'],
     sortField: 'title',
