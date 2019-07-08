@@ -10,6 +10,8 @@ import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 
+import {DEPRECATED_PLUGINS} from 'app/views/projectPlugins/constants';
+
 /**
  * There are currently two sources of truths for plugin details:
  *
@@ -79,9 +81,19 @@ class ProjectPluginDetails extends AsyncView {
   renderActions() {
     const {pluginDetails} = this.state;
     const enabled = this.getEnabled();
+    const {pluginId} = this.props.params;
 
+    let disabled = false;
+    if (DEPRECATED_PLUGINS.includes(pluginId)) {
+      disabled = true;
+    }
     const enable = (
-      <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
+      <Button
+        disabled={disabled}
+        size="small"
+        onClick={this.handleEnable}
+        style={{marginRight: '6px'}}
+      >
         {t('Enable Plugin')}
       </Button>
     );
