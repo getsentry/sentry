@@ -11,6 +11,7 @@ import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
+import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -60,6 +61,7 @@ class EventEntries extends React.Component {
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
+    setupCommits: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -137,7 +139,15 @@ class EventEntries extends React.Component {
   }
 
   render() {
-    const {organization, group, isShare, project, event, orgId} = this.props;
+    const {
+      organization,
+      group,
+      isShare,
+      project,
+      event,
+      orgId,
+      setupCommits,
+    } = this.props;
 
     const features = organization ? new Set(organization.features) : new Set();
 
@@ -155,9 +165,12 @@ class EventEntries extends React.Component {
     return (
       <div className="entries">
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
-        {!isShare && !!group.firstRelease && (
-          <EventCause event={event} orgId={orgId} projectId={project.slug} />
-        )}
+        {!isShare &&
+          (setupCommits ? (
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+          ) : (
+            <EventCauseEmpty organization={organization} project={project} />
+          ))}
         {event.userReport && (
           <StyledEventUserFeedback
             report={event.userReport}

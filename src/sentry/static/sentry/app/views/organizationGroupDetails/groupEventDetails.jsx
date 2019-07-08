@@ -38,6 +38,7 @@ class GroupEventDetails extends React.Component {
       error: false,
       event: null,
       eventNavLinks: '',
+      setupReleases: [],
     };
   }
 
@@ -113,6 +114,14 @@ class GroupEventDetails extends React.Component {
 
     const envNames = environments.map(e => e.name);
 
+    api
+      .requestPromise(`/projects/${orgSlug}/${projSlug}/releases/completion/`)
+      .then(data => {
+        this.setState({
+          setupReleases: data,
+        });
+      });
+
     fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
       .then(data => {
         this.setState({
@@ -132,6 +141,11 @@ class GroupEventDetails extends React.Component {
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);
   };
+
+  get setupCommits() {
+    const {setupReleases} = this.state;
+    return setupReleases.some(({step, complete}) => step === 'commit' && complete);
+  }
 
   render() {
     const {group, project, organization, environments, location} = this.props;
@@ -178,6 +192,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 project={project}
+                setupCommits={this.setupCommits}
               />
             )}
           </div>
