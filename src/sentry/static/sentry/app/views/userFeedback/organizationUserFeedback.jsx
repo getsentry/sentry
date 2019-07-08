@@ -51,12 +51,7 @@ class OrganizationUserFeedback extends AsyncView {
         {this.state.reportList.map(item => {
           const issue = item.issue;
           return (
-            <CompactIssue
-              key={item.id}
-              id={issue.id}
-              data={issue}
-              eventId={item.event.eventID}
-            >
+            <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
               <StyledEventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
             </CompactIssue>
           );
