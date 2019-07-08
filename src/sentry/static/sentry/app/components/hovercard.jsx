@@ -120,22 +120,17 @@ class Hovercard extends React.Component {
       show !== undefined
         ? {}
         : {onMouseEnter: this.handleToggleOn, onMouseLeave: this.handleToggleOff};
-    const containerProps = {
-      'aria-describedby': this.tooltipId,
-      className: containerClassName,
-      ...hoverProps,
-    };
-    const hovercardProps = {
-      withHeader: !!header,
-      className: cx,
-      ...hoverProps,
-    };
 
     return (
       <Manager>
         <Reference>
           {({ref}) => (
-            <span ref={ref} {...containerProps}>
+            <span
+              ref={ref}
+              aria-describedby={this.tooltipId}
+              className={containerClassName}
+              {...hoverProps}
+            >
               {this.props.children}
             </span>
           )}
@@ -149,7 +144,9 @@ class Hovercard extends React.Component {
                   innerRef={ref}
                   style={style}
                   placement={placement}
-                  {...hovercardProps}
+                  withHeader={!!header}
+                  className={cx}
+                  {...hoverProps}
                 >
                   {header && <Header>{header}</Header>}
                   {body && <Body className={bodyClassName}>{body}</Body>}
@@ -267,7 +264,7 @@ const HovercardArrow = styled('span')`
     top: 1px;
     border: 10px solid transparent;
     /* stylelint-disable-next-line property-no-unknown */
-    border-${getTipDirection}-color: ${p => p.theme.borderLight};
+    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};

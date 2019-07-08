@@ -132,7 +132,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                 </div>
               </div>
               <span
-                class="css-9l4edj-HovercardArrow e38w1je3"
+                class="css-6jrnh6-HovercardArrow e38w1je3"
               />
             </div>
           </div>
@@ -349,7 +349,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                   tipColor="#3EA573"
                 >
                   <span
-                    className="css-9l4edj-HovercardArrow e38w1je3"
+                    className="css-6jrnh6-HovercardArrow e38w1je3"
                     style={Object {}}
                   />
                 </HovercardArrow>
@@ -470,7 +470,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                 </div>
               </div>
               <span
-                class="css-9l4edj-HovercardArrow e38w1je3"
+                class="css-6jrnh6-HovercardArrow e38w1je3"
               />
             </div>
           </div>
@@ -647,7 +647,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                   tipColor="#3EA573"
                 >
                   <span
-                    className="css-9l4edj-HovercardArrow e38w1je3"
+                    className="css-6jrnh6-HovercardArrow e38w1je3"
                     style={Object {}}
                   />
                 </HovercardArrow>
