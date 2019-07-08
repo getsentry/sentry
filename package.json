@@ -148,7 +148,7 @@
     "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx,.ts,.tsx",
     "lint:css": "stylelint 'src/sentry/static/sentry/app/**/*.jsx'",
-    "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver --browser-reload",
+    "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-server": "webpack-dev-server",
     "storybook": "start-storybook -p 9001 -c .storybook",
     "storybook-build": "build-storybook -c .storybook -o .storybook-out && sed -i -e 's/\\/sb_dll/sb_dll/g' .storybook-out/index.html",
