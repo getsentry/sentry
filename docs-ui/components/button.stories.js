@@ -51,7 +51,7 @@ storiesOf('UI|Buttons', module)
           </Item>
 
           <Item>
-            <Button to={''} disabled onClick={action('click disabled')}>
+            <Button to="" disabled onClick={action('click disabled')}>
               Disabled Button
             </Button>
           </Item>
@@ -59,6 +59,14 @@ storiesOf('UI|Buttons', module)
 
         <Section>
           <h2>Sizes</h2>
+          <Item>
+            <Button size="micro">Micro</Button>
+          </Item>
+
+          <Item>
+            <Button size="zero">Zero</Button>
+          </Item>
+
           <Item>
             <Button size="xsmall">Extra Small</Button>
           </Item>
@@ -86,6 +94,9 @@ storiesOf('UI|Buttons', module)
               <Button size="small" icon="icon-github">
                 View on GitHub
               </Button>
+            </Item>
+            <Item>
+              <Button size="micro" icon="icon-trash" />
             </Item>
           </div>
         </Section>
