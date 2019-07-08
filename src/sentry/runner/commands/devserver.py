@@ -21,11 +21,6 @@ from sentry.runner.decorators import configuration, log_options
 )
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
 @click.option(
-    '--browser-reload/--no-browser-reload',
-    default=False,
-    help='Automatic browser refreshing on webpack builds'
-)
-@click.option(
     '--prefix/--no-prefix',
     default=True,
     help='Show the service name prefix and timestamp'
@@ -44,7 +39,7 @@ from sentry.runner.decorators import configuration, log_options
 )
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
+def devserver(reload, watchers, workers, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -107,13 +102,12 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
 
     daemons = []
 
+    # We proxy all requests through webpacks devserver on the configured port.
+    # The backend is served on port+1 and is proxied via the webpack
+    # configuration.
     if watchers:
         daemons += settings.SENTRY_WATCHERS
 
-    # When using browser_reload we proxy all requests through webpacks
-    # devserver on the configured port. The backend is served on port+1 and is
-    # proxied via the webpack configuration.
-    if watchers and browser_reload:
         proxy_port = port
         port = port + 1
 
