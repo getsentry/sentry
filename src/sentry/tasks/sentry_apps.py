@@ -10,6 +10,7 @@ from sentry import options
 from sentry import features
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
@@ -200,6 +201,14 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         else:
             data[name] = serialize(instance)
             send_webhooks(installation, event, data=data)
+
+        metrics.incr(
+            'resource_change.processed',
+            sample_rate=1.0,
+            tags={
+                'change_event': event,
+            }
+        )
 
 
 @instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)
