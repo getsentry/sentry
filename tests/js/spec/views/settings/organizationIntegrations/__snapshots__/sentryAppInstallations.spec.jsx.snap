@@ -111,14 +111,17 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
     showPublishStatus={false}
   >
     <SentryAppItem
+      data-test-id="sample-app"
       p={2}
     >
       <Base
         className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+        data-test-id="sample-app"
         p={2}
       >
         <div
           className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+          data-test-id="sample-app"
           is={null}
         >
           <StyledFlex>
