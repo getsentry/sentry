@@ -20,7 +20,7 @@ class Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response) {
+  static addMockResponse(response, predicate = () => true) {
     const mock = jest.fn();
     Client.mockResponses.unshift([
       {
@@ -32,14 +32,19 @@ class Client {
         headers: response.headers || {},
       },
       mock,
+      predicate,
     ]);
 
     return mock;
   }
 
   static findMockResponse(url, options) {
-    return Client.mockResponses.find(([response]) => {
-      return url === response.url && (options.method || 'GET') === response.method;
+    return Client.mockResponses.find(([response, mock, predicate]) => {
+      const matchesURL = url === response.url;
+      const matchesMethod = (options.method || 'GET') === response.method;
+      const matchesPredicate = predicate(url, options);
+
+      return matchesURL && matchesMethod && matchesPredicate;
     });
   }
 

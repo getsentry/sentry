@@ -1,4 +1,4 @@
-import {pick} from 'lodash';
+import {pick, get} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -25,7 +25,9 @@ export function getQuery(view, location) {
   const fields = [];
   const groupby = view.data.groupby ? [...view.data.groupby] : [];
 
-  view.data.fields.forEach(field => {
+  const viewFields = get(view, 'data.fields', []);
+
+  viewFields.forEach(field => {
     if (SPECIAL_FIELDS.hasOwnProperty(field)) {
       const specialField = SPECIAL_FIELDS[field];
 

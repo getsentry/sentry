@@ -7,15 +7,35 @@ import {Tags} from 'app/views/organizationEventsV2/tags';
 describe('Tags', function() {
   const org = TestStubs.Organization();
   beforeEach(function() {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/events-distribution/`,
-      body: {
-        key: 'release',
-        name: 'Release',
-        totalValues: 2,
-        topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+    Client.addMockResponse(
+      {
+        url: `/organizations/${org.slug}/events-distribution/`,
+        body: {
+          key: 'release',
+          name: 'Release',
+          totalValues: 2,
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
       },
-    });
+      function predicate(url, options) {
+        return options.query.key === 'release';
+      }
+    );
+
+    Client.addMockResponse(
+      {
+        url: `/organizations/${org.slug}/events-distribution/`,
+        body: {
+          key: 'environment',
+          name: 'Environment',
+          totalValues: 2,
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+      },
+      function predicate(url, options) {
+        return options.query.key === 'environment';
+      }
+    );
 
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-meta/`,
@@ -47,9 +67,13 @@ describe('Tags', function() {
       />
     );
 
+    // component is in loading state
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
+
     await tick();
     wrapper.update();
+
+    // component has loaded
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 });
