@@ -152,9 +152,9 @@ class ProjectEndpoint(Endpoint):
     def handle_exception(self, request, exc):
         if isinstance(exc, ProjectMoved):
             response = Response({
-                'slug': exc.detail['extra']['slug'],
-                'detail': exc.detail
+                'slug': exc.detail['detail']['extra']['slug'],
+                'detail': exc.detail['detail']
             }, status=exc.status_code)
-            response['Location'] = exc.detail['extra']['url']
+            response['Location'] = exc.detail['detail']['extra']['url']
             return response
         return super(ProjectEndpoint, self).handle_exception(request, exc)

@@ -107,7 +107,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const isInstalled = this.isInstalled;
 
     return (
-      <SentryAppItem>
+      <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
@@ -130,7 +130,7 @@ export default class SentryApplicationRow extends React.PureComponent {
             <Box>
               {!isInstalled ? (
                 <Button
-                  onClick={() => this.props.onInstall(app)}
+                  onClick={() => this.openLearnMore()}
                   size="small"
                   icon="icon-circle-add"
                   className="btn btn-default"

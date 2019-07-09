@@ -34,7 +34,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
 
         current_state = message_filters.get_filter_state(filter_id, project)
 
-        new_state = message_filters.set_filter_state(filter_id, project, serializer.object)
+        new_state = message_filters.set_filter_state(filter_id, project, serializer.validated_data)
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
         if filter_id == 'legacy-browsers':

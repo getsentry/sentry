@@ -2,13 +2,13 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import OrganizationStream from 'app/views/organizationStream/overview';
+import IssueList from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
 
-// Mock <StreamSidebar> (need <StreamActions> to toggling real time polling)
-jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/organizationStream/filters', () => jest.fn(() => null));
+// Mock <IssueListSidebar> (need <IssueListActions> to toggling real time polling)
+jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/issueList/filters', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 jest.mock('js-cookie', () => ({
@@ -23,7 +23,7 @@ const DEFAULT_LINKS_HEADER =
 
 jest.useFakeTimers();
 
-describe('OrganizationStream -> Polling', function() {
+describe('IssueList -> Polling', function() {
   let wrapper;
 
   let issuesRequest;
@@ -63,10 +63,7 @@ describe('OrganizationStream -> Polling', function() {
       },
     };
 
-    wrapper = mount(
-      <OrganizationStream {...newRouter} {...defaultProps} {...p} />,
-      routerContext
-    );
+    wrapper = mount(<IssueList {...newRouter} {...defaultProps} {...p} />, routerContext);
 
     await Promise.resolve();
     jest.runAllTimers();

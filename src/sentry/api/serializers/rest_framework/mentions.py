@@ -51,10 +51,9 @@ def seperate_resolved_actors(actors):
 
 
 class MentionsMixin(object):
-    def validate_mentions(self, attrs, source):
-        if source in attrs and 'projects' in self.context:
+    def validate_mentions(self, mentions):
+        if mentions and 'projects' in self.context:
 
-            mentions = attrs[source]
             seperated_actors = seperate_actors(mentions)
             # Validate that all mentioned users exist and are on the project.
             users = seperated_actors['users']
@@ -79,4 +78,4 @@ class MentionsMixin(object):
                 raise serializers.ValidationError(
                     'Mentioned team not found or not associated with project')
 
-        return attrs
+        return mentions

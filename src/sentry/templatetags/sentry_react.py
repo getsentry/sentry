@@ -3,19 +3,22 @@ from __future__ import absolute_import
 import sentry
 
 from django import template
+from django.core.cache import cache
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.db.models import F
 from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
+from sentry.utils.assets import get_asset_url
 from sentry.utils.support import get_support_mail
-from sentry.templatetags.sentry_dsn import get_public_dsn
 
 register = template.Library()
 
@@ -69,6 +72,34 @@ def _get_statuspage():
     return {'id': id, 'api_host': settings.STATUS_PAGE_API_HOST}
 
 
+def _get_project_key(project_id):
+    try:
+        return ProjectKey.objects.filter(
+            project=project_id,
+            roles=F('roles').bitor(ProjectKey.roles.store),
+        )[0]
+    except IndexError:
+        return None
+
+
+def _get_public_dsn():
+    if settings.SENTRY_FRONTEND_DSN:
+        return settings.SENTRY_FRONTEND_DSN
+
+    project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
+    cache_key = 'dsn:%s' % (project_id, )
+
+    result = cache.get(cache_key)
+    if result is None:
+        key = _get_project_key(project_id)
+        if key:
+            result = key.dsn_public
+        else:
+            result = ''
+        cache.set(cache_key, result, 60)
+    return result
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -77,10 +108,25 @@ def get_react_config(context):
         messages = get_messages(request)
         session = getattr(request, 'session', None)
         is_superuser = is_active_superuser(request)
+        language_code = getattr(request, 'LANGUAGE_CODE', 'en')
     else:
         user = None
         messages = []
         is_superuser = False
+        language_code = 'en'
+
+    # User identity is used by the sentry SDK
+    if request and user:
+        user_identity = {'ip_address': request.META['REMOTE_ADDR']}
+        if user and user.is_authenticated():
+            user_identity.update({
+                'email': user.email,
+                'id': user.id,
+            })
+            if user.name:
+                user_identity['name'] = user.name
+    else:
+        user_identity = {}
 
     enabled_features = []
     if features.has('organizations:create', actor=user):
@@ -101,8 +147,9 @@ def get_react_config(context):
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
+        'distPrefix': get_asset_url('sentry', 'dist/'),
         'needsUpgrade': needs_upgrade,
-        'dsn': get_public_dsn(),
+        'dsn': _get_public_dsn(),
         'statuspage': _get_statuspage(),
         'messages': [{
             'message': msg.message,
@@ -117,6 +164,14 @@ def get_react_config(context):
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
         'lastOrganization': session['activeorg'] if session and 'activeorg' in session else None,
+        'languageCode': language_code,
+        'userIdentity': user_identity,
+        'csrfCookieName': settings.CSRF_COOKIE_NAME,
+        'sentryConfig': {
+            'dsn': _get_public_dsn(),
+            'release': version_info['build'],
+            'whitelistUrls': list(settings.ALLOWED_HOSTS),
+        },
     }
     if user and user.is_authenticated():
         context.update({

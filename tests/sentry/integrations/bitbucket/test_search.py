@@ -103,4 +103,4 @@ class BitbucketSearchEndpointTest(APITestCase):
             }
         )
         assert resp.status_code == 400
-        assert resp.content == '{"detail": "Bitbucket Repository has no issue tracker."}'
+        assert resp.data == {"detail": "Bitbucket Repository has no issue tracker."}

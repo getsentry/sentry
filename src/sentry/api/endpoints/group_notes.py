@@ -47,7 +47,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        data = dict(serializer.object)
+        data = dict(serializer.validated_data)
 
         mentions = data.pop('mentions', [])
 

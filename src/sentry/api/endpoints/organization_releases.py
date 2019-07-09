@@ -180,7 +180,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         serializer = ReleaseSerializerWithProjects(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             allowed_projects = {
                 p.slug: p for p in self.get_projects(request, organization)

@@ -54,6 +54,7 @@ register(
     key='sentry:default_loader_version',
     epoch_defaults={
         1: '4.x',
+        2: '5.x',
     }
 )
 

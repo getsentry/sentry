@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 import unittest
+
+import pytz
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
@@ -277,10 +279,10 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert serializer.is_valid()
         assert sorted(serializer.fields.keys()) == sorted(['ref', 'url', 'dateReleased', 'commits'])
 
-        result = serializer.object
+        result = serializer.validated_data
         assert result['ref'] == self.ref
         assert result['url'] == self.url
-        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
         assert result['commits'] == self.commits
 
     def test_fields_not_required(self):
@@ -288,7 +290,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert serializer.is_valid()
 
     def test_do_not_allow_null_commits(self):
-        serializer = ReleaseSerializer({
+        serializer = ReleaseSerializer(data={
             'commits': None,
         })
         assert not serializer.is_valid()

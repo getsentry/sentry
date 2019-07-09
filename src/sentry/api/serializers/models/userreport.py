@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.models import EventUser, UserReport, Event
+from sentry.models import EventUser, UserReport
 
 
 @register(UserReport)
@@ -15,20 +15,10 @@ class UserReportSerializer(Serializer):
 
         event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
 
-        # If a event list with multiple project IDs is passed to this and event IDs are not unique
-        # this could return the wrong eventIDs
-        events_dict = dict(Event.objects.filter(
-            project_id__in={i.project_id for i in item_list},
-            event_id__in=[i.event_id for i in item_list]
-        ).values_list('id', 'event_id'))
-
         attrs = {}
         for item in item_list:
             attrs[item] = {
                 'event_user': event_users.get(item.event_user_id),
-                'event': {
-                    'id': events_dict.get(item.event_id)
-                }
             }
 
         return attrs
@@ -38,7 +28,6 @@ class UserReportSerializer(Serializer):
         # context == user / http / extra interfaces
         return {
             'id': six.text_type(obj.id),
-            # TODO(lyn): Verify this isn't being used and eventually remove this from API
             'eventID': obj.event_id,
             'name': (
                 obj.name or obj.email or
@@ -49,10 +38,9 @@ class UserReportSerializer(Serializer):
             'dateCreated': obj.date_added,
             'user': attrs['event_user'],
             'event': {
-                'id': six.text_type(attrs['event']['id']) if attrs['event']['id'] else None,
-                'eventID': obj.event_id
+                'id': obj.event_id,
+                'eventID': obj.event_id,
             }
-
         }
 
 

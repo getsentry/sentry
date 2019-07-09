@@ -18,19 +18,18 @@ from sentry.incidents.models import IncidentStatus
 
 class IncidentSerializer(serializers.Serializer):
     status = serializers.IntegerField()
-    comment = serializers.CharField(required=False)
+    comment = serializers.CharField(required=False, allow_null=True)
 
-    def validate_status(self, attrs, source):
-        value = attrs[source]
+    def validate_status(self, value):
         try:
-            attrs[source] = IncidentStatus(value)
+            value = IncidentStatus(value)
         except Exception:
             raise serializers.ValidationError(
                 'Invalid value for status. Valid values: {}'.format(
                     [e.value for e in IncidentStatus],
                 ),
             )
-        return attrs
+        return value
 
 
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
@@ -49,7 +48,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
     def put(self, request, organization, incident):
         serializer = IncidentSerializer(data=request.DATA)
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 incident = update_incident_status(
