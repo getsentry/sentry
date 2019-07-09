@@ -17,7 +17,12 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.db.models import (
+    BaseManager,
+    BaseModel,
+    BoundedAutoField,
+    sane_repr
+)
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -135,6 +140,8 @@ class User(BaseModel, AbstractBaseUser):
         db_table = 'auth_user'
         verbose_name = _('user')
         verbose_name_plural = _('users')
+
+    __repr__ = sane_repr('id')
 
     def delete(self):
         if self.username == 'sentry':
