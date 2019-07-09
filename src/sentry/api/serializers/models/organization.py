@@ -116,7 +116,6 @@ class OnboardingTasksSerializer(Serializer):
         }
 
 
-# Does not include project/teams list
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
