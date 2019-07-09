@@ -139,7 +139,7 @@ def load_data(platform, default=None, sample_name=None):
         return
 
     data = CanonicalKeyDict(data)
-    if platform in ('csp', 'hkpk', 'expectct', 'expectstaple'):
+    if platform in ('transaction', 'csp', 'hkpk', 'expectct', 'expectstaple'):
         return data
 
     data['platform'] = platform

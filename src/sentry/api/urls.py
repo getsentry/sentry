@@ -86,6 +86,7 @@ from .endpoints.organization_dashboard_widget_details import OrganizationDashboa
 from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_trace_details import OrganizationTraceDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -693,6 +694,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/searches/$',
         OrganizationSearchesEndpoint.as_view(),
         name='sentry-api-0-organization-searches'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/traces/(?P<trace_id>[^\/]+)/$',
+        OrganizationTraceDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-trace-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/users/issues/$',
