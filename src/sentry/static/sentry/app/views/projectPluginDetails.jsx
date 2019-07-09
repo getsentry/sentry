@@ -83,10 +83,8 @@ class ProjectPluginDetails extends AsyncView {
     const enabled = this.getEnabled();
     const {pluginId} = this.props.params;
 
-    let disabled = false;
-    if (DEPRECATED_PLUGINS.includes(pluginId)) {
-      disabled = true;
-    }
+    const disabled = DEPRECATED_PLUGINS.includes(pluginId);
+
     const enable = (
       <Button
         disabled={disabled}
