@@ -317,8 +317,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                           team should be created for.
         :auth: required
         """
-        is_skinny = request.GET.get('skinny') == '1'
-        serializer = org_serializers.SkinnyDetailedOrganizationSerializer if is_skinny else org_serializers.DetailedOrganizationSerializer
+        is_light = request.GET.get('light') == '1'
+        serializer = org_serializers.LightDetailedOrganizationSerializer if is_light else org_serializers.DetailedOrganizationSerializer
         context = serialize(
             organization,
             request.user,
