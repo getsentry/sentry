@@ -16,7 +16,6 @@ class JSONFieldTest(TestCase):
         serializer = DummySerializer(data={'json_field': data})
         assert serializer.is_valid() is False
         assert serializer.errors == {'json_field': [u'Value must be valid JSON.']}
-        assert serializer.object is None
 
     def test_valid_json(self):
         data = {
@@ -27,7 +26,7 @@ class JSONFieldTest(TestCase):
 
         serializer = DummySerializer(data={'json_field': data})
         assert serializer.is_valid()
-        assert serializer.object == {
+        assert serializer.validated_data == {
             'json_field': {
                 'id': '1234',
                 'name': 'json-tester',

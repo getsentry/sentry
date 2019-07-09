@@ -138,8 +138,8 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             }],
         )
         assert response.status_code == 400
-        assert response.data == {'dataSources': [
-            u'type: Widget data source type not-real-type not recognized.']}
+        assert response.data == {'dataSources':
+                                 {'type': ['Widget data source type not-real-type not recognized.']}}
 
     def test_does_not_exists(self):
         response = self.get_response(

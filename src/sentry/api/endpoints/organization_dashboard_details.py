@@ -57,19 +57,14 @@ class WidgetSerializer(serializers.Serializer):
 
 
 class DashboardWithWidgetsSerializer(serializers.Serializer):
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     widgets = ListField(
         child=WidgetSerializer(),
         required=False,
         allow_null=True,
     )
 
-    def validate_widgets(self, attrs, source):
-        try:
-            widgets = attrs[source]
-        except KeyError:
-            return attrs
-
+    def validate_widgets(self, widgets):
         if len(widgets) != len(set([w['order'] for w in widgets])):
             raise ValidationError('Widgets must not have duplicate order values.')
 
@@ -83,7 +78,7 @@ class DashboardWithWidgetsSerializer(serializers.Serializer):
             raise ValidationError(
                 'All widgets must exist within this dashboard prior to reordering.')
 
-        return attrs
+        return widgets
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -145,7 +140,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-        data = serializer.object
+        data = serializer.validated_data
         try:
             with transaction.atomic():
                 title = data.get('title')

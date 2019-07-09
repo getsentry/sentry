@@ -40,7 +40,7 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.object
+        data = serializer.validated_data
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,

@@ -24,15 +24,14 @@ class AssistantSerializer(serializers.Serializer):
     )
     useful = serializers.BooleanField()
 
-    def validate_guide_id(self, attrs, source):
-        value = attrs[source]
+    def validate_guide_id(self, value):
         valid_ids = manager.get_valid_ids()
 
         if not value:
             raise serializers.ValidationError('Assistant guide id is required')
         if value not in valid_ids:
             raise serializers.ValidationError('Not a valid assistant guide id')
-        return attrs
+        return value
 
 
 class AssistantEndpoint(Endpoint):

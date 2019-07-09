@@ -584,7 +584,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for query in ['title:hi OR title:hello', 'title:hi AND title:hello']:
             response = self.client.get(url, {'query': query}, format='json')
             assert response.status_code == 400
-            assert response.content == '{"detail": "Boolean search operator OR and AND not allowed in this search."}'
+            assert response.data == {
+                'detail': 'Boolean search operator OR and AND not allowed in this search.',
+            }
 
     def test_group_filtering(self):
         user = self.create_user()

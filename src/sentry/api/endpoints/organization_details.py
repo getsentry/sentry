@@ -11,6 +11,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
@@ -74,13 +75,23 @@ def update_organization_scenario(runner):
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
-    accountRateLimit = serializers.IntegerField(
-        min_value=0, max_value=1000000, required=False)
-    projectRateLimit = serializers.IntegerField(
-        min_value=50, max_value=100, required=False)
-    avatar = AvatarField(required=False)
+    accountRateLimit = EmptyIntegerField(
+        min_value=0,
+        max_value=1000000,
+        required=False,
+        allow_null=True,
+    )
+    projectRateLimit = EmptyIntegerField(
+        min_value=50,
+        max_value=100,
+        required=False,
+        allow_null=True,
+    )
+    avatar = AvatarField(required=False, allow_null=True)
     avatarType = serializers.ChoiceField(
-        choices=(('upload', 'upload'), ('letter_avatar', 'letter_avatar'), ), required=False
+        choices=(('upload', 'upload'), ('letter_avatar', 'letter_avatar'), ),
+        required=False,
+        allow_null=True,
     )
 
     openMembership = serializers.BooleanField(required=False)
@@ -110,8 +121,7 @@ class OrganizationSerializer(serializers.Serializer):
         org = self.context['organization']
         return AuthProvider.objects.filter(organization=org).exists()
 
-    def validate_slug(self, attrs, source):
-        value = attrs[source]
+    def validate_slug(self, value):
         # Historically, the only check just made sure there was more than 1
         # character for the slug, but since then, there are many slugs that
         # fit within this new imposed limit. We're not fixing existing, but
@@ -129,30 +139,26 @@ class OrganizationSerializer(serializers.Serializer):
         ).exclude(id=self.context['organization'].id)
         if qs.exists():
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
-        return attrs
+        return value
 
-    def validate_sensitiveFields(self, attrs, source):
-        value = attrs[source]
+    def validate_sensitiveFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError('Empty values are not allowed.')
-        return attrs
+        return value
 
-    def validate_safeFields(self, attrs, source):
-        value = attrs[source]
+    def validate_safeFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError('Empty values are not allowed.')
-        return attrs
+        return value
 
-    def validate_attachmentsRole(self, attrs, source):
-        value = attrs[source]
+    def validate_attachmentsRole(self, value):
         try:
             roles.get(value)
         except KeyError:
             raise serializers.ValidationError('Invalid role')
-        return attrs
+        return value
 
-    def validate_require2FA(self, attrs, source):
-        value = attrs[source]
+    def validate_require2FA(self, value):
         user = self.context['user']
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
@@ -160,12 +166,9 @@ class OrganizationSerializer(serializers.Serializer):
 
         if value and self._has_sso_enabled():
             raise serializers.ValidationError(ERR_SSO_ENABLED)
-        return attrs
+        return value
 
-    def validate_trustedRelays(self, attrs, source):
-        if not attrs[source]:
-            return attrs
-
+    def validate_trustedRelays(self, value):
         from sentry import features
 
         organization = self.context['organization']
@@ -177,19 +180,19 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
-        return attrs
+        return value
 
-    def validate_accountRateLimit(self, attrs, source):
+    def validate_accountRateLimit(self, value):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
                 'The accountRateLimit option cannot be configured for this organization')
-        return attrs
+        return value
 
-    def validate_projectRateLimit(self, attrs, source):
+    def validate_projectRateLimit(self, value):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
                 'The accountRateLimit option cannot be configured for this organization')
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(OrganizationSerializer, self).validate(attrs)
@@ -211,7 +214,7 @@ class OrganizationSerializer(serializers.Serializer):
         changed_data = {}
 
         for key, option, type_, default_value in ORG_OPTIONS:
-            if key not in self.init_data:
+            if key not in self.initial_data:
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(
@@ -220,33 +223,33 @@ class OrganizationSerializer(serializers.Serializer):
                 OrganizationOption.objects.set_value(
                     organization=org,
                     key=option,
-                    value=type_(self.init_data[key]),
+                    value=type_(self.initial_data[key]),
                 )
 
-                if self.init_data[key] != default_value:
-                    changed_data[key] = u'to {}'.format(self.init_data[key])
+                if self.initial_data[key] != default_value:
+                    changed_data[key] = u'to {}'.format(self.initial_data[key])
             else:
-                option_inst.value = self.init_data[key]
+                option_inst.value = self.initial_data[key]
                 # check if ORG_OPTIONS changed
                 if option_inst.has_changed('value'):
                     old_val = option_inst.old_value('value')
                     changed_data[key] = u'from {} to {}'.format(old_val, option_inst.value)
                 option_inst.save()
 
-        if 'openMembership' in self.init_data:
-            org.flags.allow_joinleave = self.init_data['openMembership']
-        if 'allowSharedIssues' in self.init_data:
-            org.flags.disable_shared_issues = not self.init_data['allowSharedIssues']
-        if 'enhancedPrivacy' in self.init_data:
-            org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
-        if 'isEarlyAdopter' in self.init_data:
-            org.flags.early_adopter = self.init_data['isEarlyAdopter']
-        if 'require2FA' in self.init_data:
-            org.flags.require_2fa = self.init_data['require2FA']
-        if 'name' in self.init_data:
-            org.name = self.init_data['name']
-        if 'slug' in self.init_data:
-            org.slug = self.init_data['slug']
+        if 'openMembership' in self.initial_data:
+            org.flags.allow_joinleave = self.initial_data['openMembership']
+        if 'allowSharedIssues' in self.initial_data:
+            org.flags.disable_shared_issues = not self.initial_data['allowSharedIssues']
+        if 'enhancedPrivacy' in self.initial_data:
+            org.flags.enhanced_privacy = self.initial_data['enhancedPrivacy']
+        if 'isEarlyAdopter' in self.initial_data:
+            org.flags.early_adopter = self.initial_data['isEarlyAdopter']
+        if 'require2FA' in self.initial_data:
+            org.flags.require_2fa = self.initial_data['require2FA']
+        if 'name' in self.initial_data:
+            org.name = self.initial_data['name']
+        if 'slug' in self.initial_data:
+            org.slug = self.initial_data['slug']
 
         org_tracked_field = {
             'name': org.name,
@@ -275,14 +278,14 @@ class OrganizationSerializer(serializers.Serializer):
 
         org.save()
 
-        if 'avatar' in self.init_data or 'avatarType' in self.init_data:
+        if 'avatar' in self.initial_data or 'avatarType' in self.initial_data:
             OrganizationAvatar.save_avatar(
                 relation={'organization': org},
-                type=self.init_data.get('avatarType', 'upload'),
-                avatar=self.init_data.get('avatar'),
+                type=self.initial_data.get('avatarType', 'upload'),
+                avatar=self.initial_data.get('avatar'),
                 filename=u'{}.png'.format(org.slug),
             )
-        if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
+        if 'require2FA' in self.initial_data and self.initial_data['require2FA'] is True:
             org.handle_2fa_required(self.context['request'])
         return org, changed_data
 
@@ -293,9 +296,9 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
 
     def save(self, *args, **kwargs):
         org = self.context['organization']
-        cancel_deletion = 'cancelDeletion' in self.init_data and org.status in DELETION_STATUSES
-        if 'defaultRole' in self.init_data:
-            org.default_role = self.init_data['defaultRole']
+        cancel_deletion = 'cancelDeletion' in self.initial_data and org.status in DELETION_STATUSES
+        if 'defaultRole' in self.initial_data:
+            org.default_role = self.initial_data['defaultRole']
         if cancel_deletion:
             org.status = OrganizationStatus.VISIBLE
         return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
