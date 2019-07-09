@@ -483,6 +483,12 @@ export const GlobalSelection = PropTypes.shape({
   }),
 });
 
+export const DebugSourceType = PropTypes.oneOf(['http', 's3', 'gcs']);
+
+// Avoiding code duplication here. This is validated strictly by the server and
+// form elements in the `DebugFilesSourceModal`.
+export const DebugSourceConfig = PropTypes.object;
+
 export const Widget = PropTypes.shape({
   queries: PropTypes.shape({
     discover: PropTypes.arrayOf(DiscoverQuery),
@@ -993,6 +999,8 @@ const SentryTypes = {
   Activity,
   AuthProvider,
   Config,
+  DebugSourceConfig,
+  DebugSourceType,
   Deploy,
   DiscoverQuery,
   DiscoverSavedQuery,

@@ -228,7 +228,11 @@ class FormField extends React.Component {
     flexibleControlStateSize: PropTypes.bool,
 
     // Default value to use for form field if value is not specified in `<Form>` parent
-    defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    defaultValue: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.func,
+    ]),
 
     // the following should only be used without form context
     onChange: PropTypes.func,
