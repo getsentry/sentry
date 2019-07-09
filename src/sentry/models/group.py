@@ -377,12 +377,6 @@ class Group(Model):
         return self.get_latest_event_for_environments()
 
     def get_latest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        # Fetch without environment if Snuba is not enabled
-        if not use_snuba:
-            return self.get_latest_event()
-
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.LATEST,
             environments=environments,
@@ -390,12 +384,6 @@ class Group(Model):
             project_id=self.project_id)
 
     def get_oldest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        # Fetch without environment if Snuba is not enabled
-        if not use_snuba:
-            return self.get_oldest_event()
-
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.OLDEST,
             environments=environments,
