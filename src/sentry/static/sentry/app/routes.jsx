@@ -15,7 +15,6 @@ import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
-import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
 import IssueListContainer from 'app/views/issueList/container';
@@ -57,7 +56,8 @@ const hook = name => HookStore.get(name).map(cb => cb());
 
 const OrganizationMembersView = HookOrDefault({
   hookName: 'component:org-members-view',
-  defaultComponent: OrganizationMembers,
+  defaultComponentPromise: () =>
+    import(/* webpackChunkName: "OrganizationMembers" */ './views/settings/organizationMembers'),
 });
 
 const OnboardingNewProjectView = HookOrDefault({
