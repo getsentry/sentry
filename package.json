@@ -33,6 +33,7 @@
     "clipboard": "^1.7.1",
     "color": "^3.1.0",
     "compression-webpack-plugin": "^2.0.0",
+    "copy-webpack-plugin": "^5.0.3",
     "create-react-class": "^15.6.2",
     "crypto-js": "3.1.5",
     "css-loader": "^2.0.1",

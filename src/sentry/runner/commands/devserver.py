@@ -31,6 +31,11 @@ from sentry.runner.decorators import configuration, log_options
     help='Start local styleguide web server on port 9001'
 )
 @click.option('--environment', default='development', help='The environment name.')
+@click.option(
+    '--experimental-spa/--no-experimental-spa',
+    default=False,
+    help='This enables running sentry with pure separation of the frontend and backend'
+)
 @click.argument(
     'bind',
     default='127.0.0.1:8000',
@@ -39,7 +44,7 @@ from sentry.runner.decorators import configuration, log_options
 )
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, styleguide, prefix, environment, bind):
+def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -101,6 +106,14 @@ def devserver(reload, watchers, workers, styleguide, prefix, environment, bind):
         uwsgi_overrides['py-autoreload'] = 1
 
     daemons = []
+
+    if experimental_spa:
+        os.environ['SENTRY_EXPERIMENTAL_SPA'] = '1'
+        if not watchers:
+            click.secho(
+                'Using experimental SPA mode without watchers enabled has no effect',
+                err=True,
+                fg='yellow')
 
     # We proxy all requests through webpacks devserver on the configured port.
     # The backend is served on port+1 and is proxied via the webpack
