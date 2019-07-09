@@ -122,9 +122,9 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem').exists()).toBe(false);
   });
 
-  it('renders when snoozed more than 3 days ago', function() {
+  it('renders when snoozed more than 7 days ago', function() {
     const snoozed_ts = moment()
-      .subtract(5, 'day')
+      .subtract(9, 'day')
       .unix();
 
     MockApiClient.addMockResponse({
@@ -172,7 +172,7 @@ describe('ReleaseProgress', function() {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/promptsactivity/',
-      body: {data: {dismissed_ts: Date.now() / 1000}},
+      body: {data: {dismissed_ts: moment().unix()}},
     });
 
     wrapper = mount(

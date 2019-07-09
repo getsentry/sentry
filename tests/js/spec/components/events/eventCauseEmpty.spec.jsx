@@ -81,9 +81,9 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('CommitRow').exists()).toBe(false);
   });
 
-  it('renders when snoozed more than 3 days ago', function() {
+  it('renders when snoozed more than 7 days ago', function() {
     const snoozed_ts = moment()
-      .subtract(5, 'day')
+      .subtract(9, 'day')
       .unix();
 
     MockApiClient.addMockResponse({
@@ -130,7 +130,7 @@ describe('EventCauseEmpty', function() {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/promptsactivity/',
-      body: {data: {dismissed_ts: Date.now() / 1000}},
+      body: {data: {dismissed_ts: moment().unix()}},
     });
 
     const wrapper = mount(

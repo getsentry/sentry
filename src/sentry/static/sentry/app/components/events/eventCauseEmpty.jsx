@@ -66,7 +66,7 @@ class EventCauseEmpty extends React.Component {
       return false;
     }
     if (data && data.snoozed_ts) {
-      return snoozedDays(data.snoozed_ts) > 3;
+      return snoozedDays(data.snoozed_ts) > 7;
     }
     return true;
   }

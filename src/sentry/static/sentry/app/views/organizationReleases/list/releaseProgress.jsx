@@ -108,7 +108,7 @@ class ReleaseProgress extends AsyncComponent {
   showBar({data} = {}) {
     let show;
     if (data && data.snoozed_ts) {
-      show = snoozedDays(data.snoozed_ts) > 3;
+      show = snoozedDays(data.snoozed_ts) > 7;
     } else if (data && data.dismissed_ts) {
       show = false;
     } else {
