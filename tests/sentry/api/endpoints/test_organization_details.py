@@ -96,7 +96,7 @@ class OrganizationDetailsTest(APITestCase):
         assert len(team_slugs) == 2
         assert 'deleted' not in team_slugs
 
-    def test_light_details_no_projects_or_teams(self):
+    def test_details_no_projects_or_teams(self):
         user = self.create_user('owner@example.org')
         org = self.create_organization(owner=user)
         team = self.create_team(
@@ -116,7 +116,7 @@ class OrganizationDetailsTest(APITestCase):
         )
         self.login_as(user=user)
 
-        response = self.client.get(u'{}?light=1'.format(url), format='json')
+        response = self.client.get(u'{}?detailed=0'.format(url), format='json')
 
         assert 'projects' not in response.data
         assert 'teams' not in response.data

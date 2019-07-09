@@ -317,8 +317,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                           team should be created for.
         :auth: required
         """
-        is_light = request.GET.get('light') == '1'
-        serializer = org_serializers.LightDetailedOrganizationSerializer if is_light else org_serializers.DetailedOrganizationSerializer
+        is_detailed = request.GET.get('detailed', '1') != '0'
+        serializer = org_serializers.DetailedOrganizationProjectsAndTeamsSerializer if is_detailed else org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
         context = serialize(
             organization,
             request.user,
@@ -390,7 +390,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 serialize(
                     organization,
                     request.user,
-                    org_serializers.DetailedOrganizationSerializer(),
+                    org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                     access=request.access,
                 )
             )
@@ -461,7 +461,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            org_serializers.DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
             access=request.access,
         )
         return self.respond(context, status=202)
