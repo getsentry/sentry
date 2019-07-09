@@ -10,7 +10,6 @@ import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -123,7 +122,6 @@ export default class IgnoreActions extends React.Component {
           windowChoices={this.getIgnoreWindows()}
         />
         <div className="btn-group">
-          <GuideAnchor target="ignore_delete_discard" type="text" />
           <ActionLink
             {...actionLinkProps}
             title="Ignore"
