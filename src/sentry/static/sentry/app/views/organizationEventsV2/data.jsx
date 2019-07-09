@@ -212,11 +212,18 @@ export const SPECIAL_FIELDS = {
   last_seen: {
     title: 'last seen',
     fields: ['last_seen'],
-    renderFunc: data => (
-      <Container>
-        <DynamicWrapper value={<StyledDateTime date={data.last_seen} />} fixed="time" />
-      </Container>
-    ),
+    renderFunc: data => {
+      return (
+        <Container>
+          {data.last_seen ? (
+            <DynamicWrapper
+              value={<StyledDateTime date={data.last_seen} />}
+              fixed="time"
+            />
+          ) : null}
+        </Container>
+      );
+    },
   },
 };
 
