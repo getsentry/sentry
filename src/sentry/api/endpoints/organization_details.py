@@ -315,6 +315,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
+        :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
         is_detailed = request.GET.get('detailed', '1') != '0'
