@@ -65,9 +65,10 @@ class EventCauseEmpty extends React.Component {
       return false;
     }
     if (data && data.snoozed_ts) {
-      const now = Date.now() / 1000;
-      const snoozingTime = (now - data.snoozed_ts) / (60 * 24);
-      return snoozingTime > 3; // 3 days
+      // snoozed_ts is stored in seconds
+      const nowSeconds = Date.now() / 1000;
+      const snoozedDays = (nowSeconds - data.snoozed_ts) / (60 * 60 * 24);
+      return snoozedDays > 3;
     }
     return true;
   }
@@ -109,6 +110,7 @@ class EventCauseEmpty extends React.Component {
               size="small"
               onClick={() => this.handleClick('snoozed')}
               style={{marginLeft: space(1)}}
+              data-test-id="snoozed"
             >
               {t('Remind me later')}
             </Button>
@@ -116,6 +118,7 @@ class EventCauseEmpty extends React.Component {
               size="small"
               onClick={() => this.handleClick('dismissed')}
               style={{marginLeft: space(1)}}
+              data-test-id="dismissed"
             >
               {t('Dismiss')}
             </Button>
