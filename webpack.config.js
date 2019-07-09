@@ -240,7 +240,7 @@ const appConfig = {
      */
     new ExtractTextPlugin(),
     /**
-     * Genreate a index.html file used for running the app in pure client mode.
+     * Generate a index.html file used for running the app in pure client mode.
      * This is currently used for PR deploy previews, where only the frontend
      * is deployed.
      */
