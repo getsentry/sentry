@@ -36,31 +36,46 @@ export default class SentryApplicationRow extends React.PureComponent {
     isInternal: false,
   };
 
-  renderEnabledAdminButtons(app) {
+  renderUnpublishedAdminButtons(app) {
     return (
       <ButtonHolder>
-        {this.renderPublishRequest(app)}
+        {app.status === 'internal'
+          ? this.renderDisabledPublishRequestButton(
+              'Internal integrations cannot be published'
+            )
+          : this.renderPublishRequest(app)}
         {this.renderRemoveApp(app)}
       </ButtonHolder>
     );
   }
 
-  renderDisabledAdminButtons() {
+  renderDisabledPublishRequestButton(message) {
+    return (
+      <StyledButton
+        disabled
+        title={t(message)}
+        size="small"
+        icon="icon-upgrade"
+        data-test-id="sentry-app-publish-request"
+      >
+        {t('Publish')}
+      </StyledButton>
+    );
+  }
+
+  renderDisabledRemoveButton(message) {
+    return <Button disabled title={t(message)} size="small" icon="icon-trash" />;
+  }
+
+  renderUnpublishedNonAdminButtons() {
     return (
       <ButtonHolder>
-        <Button
-          disabled
-          title={t('Organization owner permissions are required for this action.')}
-          size="small"
-          icon="icon-upgrade"
-          data-test-id="sentry-app-publish-request"
-        />
-        <Button
-          disabled
-          title={t('Organization owner permissions are required for this action.')}
-          size="small"
-          icon="icon-trash"
-        />
+        {this.renderDisabledPublishRequestButton(
+          'Organization owner permissions are required for this action.'
+        )}
+        {this.renderDisabledRemoveButton(
+          'Organization owner permissions are required for this action.'
+        )}
       </ButtonHolder>
     );
   }
@@ -68,21 +83,10 @@ export default class SentryApplicationRow extends React.PureComponent {
   renderPublishedAppButtons() {
     return (
       <ButtonHolder>
-        <StyledButton
-          disabled
-          title={t('Published apps cannot be re-published.')}
-          size="small"
-          icon="icon-upgrade"
-        >
-          {t('Publish')}
-        </StyledButton>
-        <Button
-          disabled
-          title={t('Published apps cannot be removed.')}
-          size="small"
-          icon="icon-trash"
-          data-test-id="sentry-app-publish-request"
-        />
+        {this.renderDisabledPublishRequestButton(
+          'Published apps cannot be re-published.'
+        )}
+        {this.renderDisabledRemoveButton('Published apps cannot be removed.')}
       </ButtonHolder>
     );
   }
@@ -223,8 +227,8 @@ export default class SentryApplicationRow extends React.PureComponent {
                   {({hasAccess}) => (
                     <React.Fragment>
                       {hasAccess
-                        ? this.renderEnabledAdminButtons(app)
-                        : this.renderDisabledAdminButtons()}
+                        ? this.renderUnpublishedAdminButtons(app)
+                        : this.renderUnpublishedNonAdminButtons()}
                     </React.Fragment>
                   )}
                 </Access>
