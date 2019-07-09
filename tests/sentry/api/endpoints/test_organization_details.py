@@ -96,6 +96,31 @@ class OrganizationDetailsTest(APITestCase):
         assert len(team_slugs) == 2
         assert 'deleted' not in team_slugs
 
+    def test_skinny_details_no_projects_or_teams(self):
+        user = self.create_user('owner@example.org')
+        org = self.create_organization(owner=user)
+        team = self.create_team(
+            name='appy',
+            organization=org,
+            members=[user])
+        # Create non-member team to test response shape
+        self.create_team(name='no-member', organization=org)
+
+        for i in range(2):
+            self.create_project(organization=org, teams=[team])
+
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        self.login_as(user=user)
+
+        response = self.client.get(u'{}?skinny=1'.format(url), format='json')
+
+        assert 'projects' not in response.data
+        assert 'teams' not in response.data
+
     def test_as_superuser(self):
         self.user = self.create_user('super@example.org', is_superuser=True)
         org = self.create_organization(owner=self.user)

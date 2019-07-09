@@ -116,43 +116,13 @@ class OnboardingTasksSerializer(Serializer):
         }
 
 
-class DetailedOrganizationSerializer(OrganizationSerializer):
+# Does not include project/teams list
+class SkinnyDetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
-
-    def _project_list(self, organization, access):
-        member_projects = list(access.projects)
-        member_project_ids = [p.id for p in member_projects]
-        other_projects = list(Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).exclude(id__in=member_project_ids))
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
-
-        for project in project_list:
-            project._organization_cache = organization
-        return project_list
-
-    def _team_list(self, organization, access):
-        member_teams = list(access.teams)
-        member_team_ids = [p.id for p in member_teams]
-        other_teams = list(Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-        ).exclude(id__in=member_team_ids))
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
-
-        for team in team_list:
-            team._organization_cache = organization
-        return team_list
+        return super(SkinnyDetailedOrganizationSerializer, self).get_attrs(item_list, user)
 
     def serialize(self, obj, attrs, user, access):
         from sentry import experiments
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
-        from sentry.api.serializers.models.team import TeamSerializer
-
-        team_list = self._team_list(obj, access)
-        project_list = self._project_list(obj, access)
 
         onboarding_tasks = list(
             OrganizationOnboardingTask.objects.filter(
@@ -162,7 +132,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
+        context = super(SkinnyDetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
         context['experiments'] = experiment_assignments
         context['quota'] = {
@@ -205,11 +175,54 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
             'trustedRelays': obj.get_option('sentry:trusted-relays', TRUSTED_RELAYS_DEFAULT) or [],
         })
-        context['teams'] = serialize(team_list, user, TeamSerializer())
-        context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
         context['access'] = access.scopes
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()
         context['onboardingTasks'] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
+        return context
+
+
+class DetailedOrganizationSerializer(SkinnyDetailedOrganizationSerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+
+    def _project_list(self, organization, access):
+        member_projects = list(access.projects)
+        member_project_ids = [p.id for p in member_projects]
+        other_projects = list(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).exclude(id__in=member_project_ids))
+        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
+
+        for project in project_list:
+            project._organization_cache = organization
+        return project_list
+
+    def _team_list(self, organization, access):
+        member_teams = list(access.teams)
+        member_team_ids = [p.id for p in member_teams]
+        other_teams = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).exclude(id__in=member_team_ids))
+        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
+
+        for team in team_list:
+            team._organization_cache = organization
+        return team_list
+
+    def serialize(self, obj, attrs, user, access):
+        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.team import TeamSerializer
+
+        context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user, access)
+
+        team_list = self._team_list(obj, access)
+        project_list = self._project_list(obj, access)
+
+        context['teams'] = serialize(team_list, user, TeamSerializer())
+        context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
+
         return context
