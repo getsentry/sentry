@@ -141,7 +141,7 @@ const GuideStore = Reflux.createStore({
         key =>
           !this.state.guides[key].seen &&
           // Don't show guides to users who signed up way before these changes were implemented
-          (user.isSuperuser || new Date(user.dateJoined) > new Date(2019, 6, 1) || true)
+          (user.isSuperuser || new Date(user.dateJoined) > new Date(2019, 6, 1))
       );
     }
 

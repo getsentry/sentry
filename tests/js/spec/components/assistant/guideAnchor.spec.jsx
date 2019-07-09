@@ -63,7 +63,6 @@ describe('GuideAnchor', function() {
       .find('Button')
       .last()
       .simulate('click');
-    //.simulate('click', {stopPropagation: () => {}});
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
       expect.objectContaining({
