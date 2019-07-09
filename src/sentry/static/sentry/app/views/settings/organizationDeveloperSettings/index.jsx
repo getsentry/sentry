@@ -34,7 +34,8 @@ class OrganizationDeveloperSettings extends AsyncView {
   };
 
   publishRequest = app => {
-    publishRequestSentryApp(this.api, app).then(() => {}, () => {});
+    // TODO(scefali) May want to do some state change after the request to show that the publish request has been made
+    publishRequestSentryApp(this.api, app);
   };
 
   renderBody() {
