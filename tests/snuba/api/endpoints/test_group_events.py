@@ -6,7 +6,6 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry import options
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -23,7 +22,6 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
-        options.set('snuba.events-queries.enabled', True)
 
     def test_simple(self):
         self.login_as(user=self.user)
