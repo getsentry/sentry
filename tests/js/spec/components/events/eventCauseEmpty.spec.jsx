@@ -1,4 +1,5 @@
 import React from 'react';
+import moment from 'moment';
 import {mount} from 'enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
@@ -63,8 +64,9 @@ describe('EventCauseEmpty', function() {
   });
 
   it('does not render when snoozed', function() {
-    const now = new Date(); // milliseconds
-    const snoozed_ts = now.setDate(now.getDate() - 1) / 1000;
+    const snoozed_ts = moment()
+      .subtract(1, 'day')
+      .unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -80,8 +82,9 @@ describe('EventCauseEmpty', function() {
   });
 
   it('renders when snoozed more than 3 days ago', function() {
-    const now = new Date(); // milliseconds
-    const snoozed_ts = now.setDate(now.getDate() - 5) / 1000;
+    const snoozed_ts = moment()
+      .subtract(5, 'day')
+      .unix();
 
     MockApiClient.addMockResponse({
       method: 'GET',

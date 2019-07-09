@@ -8,6 +8,7 @@ import CommitRow from 'app/components/commitRow';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
+import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -65,10 +66,7 @@ class EventCauseEmpty extends React.Component {
       return false;
     }
     if (data && data.snoozed_ts) {
-      // snoozed_ts is stored in seconds
-      const nowSeconds = Date.now() / 1000;
-      const snoozedDays = (nowSeconds - data.snoozed_ts) / (60 * 60 * 24);
-      return snoozedDays > 3;
+      return snoozedDays(data.snoozed_ts) > 3;
     }
     return true;
   }
