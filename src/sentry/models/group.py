@@ -374,7 +374,10 @@ class Group(Model):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
-        return self.get_latest_event_for_environments()
+        if not hasattr(self, '_latest_event'):
+            self._latest_event = self.get_latest_event_for_environments()
+
+        return self._latest_event
 
     def get_latest_event_for_environments(self, environments=()):
         return get_oldest_or_latest_event_for_environments(
