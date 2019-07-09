@@ -12,6 +12,10 @@ const respond = (isAsync, fn, ...args) => {
   }
 };
 
+const DEFAULT_MOCK_RESPONSE_OPTIONS = {
+  predicate: () => true,
+};
+
 class Client {
   static mockResponses = [];
 
@@ -20,7 +24,7 @@ class Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(response, predicate = () => true) {
+  static addMockResponse(response, options = DEFAULT_MOCK_RESPONSE_OPTIONS) {
     const mock = jest.fn();
     Client.mockResponses.unshift([
       {
@@ -32,7 +36,7 @@ class Client {
         headers: response.headers || {},
       },
       mock,
-      predicate,
+      options.predicate,
     ]);
 
     return mock;

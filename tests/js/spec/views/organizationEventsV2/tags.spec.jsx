@@ -17,8 +17,10 @@ describe('Tags', function() {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       },
-      function predicate(url, options) {
-        return options.query.key === 'release';
+      {
+        predicate: (url, options) => {
+          return options.query.key === 'release';
+        },
       }
     );
 
@@ -32,8 +34,10 @@ describe('Tags', function() {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       },
-      function predicate(url, options) {
-        return options.query.key === 'environment';
+      {
+        predicate: (url, options) => {
+          return options.query.key === 'environment';
+        },
       }
     );
 
