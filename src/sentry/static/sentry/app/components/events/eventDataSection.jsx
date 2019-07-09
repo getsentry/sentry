@@ -50,10 +50,15 @@ class EventDataSection extends React.Component {
       raw,
       wrapTitle,
     } = this.props;
-    const guideAnchor =
-      type === 'tags' && hideGuide === false ? (
-        <GuideAnchor target="tags" type="text" />
-      ) : null;
+
+    let titleNode = wrapTitle ? <h3>{title}</h3> : <div>{title}</div>;
+    if (type === 'tags' && hideGuide === false) {
+      titleNode = (
+        <GuideAnchor target="tags" position="top">
+          {titleNode}
+        </GuideAnchor>
+      );
+    }
 
     return (
       <div className={(className || '') + ' box'}>
@@ -62,17 +67,7 @@ class EventDataSection extends React.Component {
             <a href={'#' + type} className="permalink">
               <em className="icon-anchor" />
             </a>
-            {wrapTitle ? (
-              <h3>
-                {guideAnchor}
-                {title}
-              </h3>
-            ) : (
-              <div>
-                {guideAnchor}
-                {title}
-              </div>
-            )}
+            {titleNode}
             {type === 'extra' && (
               <div className="btn-group pull-right">
                 <a

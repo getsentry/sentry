@@ -174,10 +174,11 @@ class BreadcrumbsInterface extends React.Component {
 
     const title = (
       <div>
-        <GuideAnchor target="breadcrumbs" type="text" />
-        <h3>
-          <strong>{t('Breadcrumbs')}</strong>
-        </h3>
+        <GuideAnchor target="breadcrumbs" position="top">
+          <h3>
+            <strong>{t('Breadcrumbs')}</strong>
+          </h3>
+        </GuideAnchor>
         {this.getSearchField()}
       </div>
     );

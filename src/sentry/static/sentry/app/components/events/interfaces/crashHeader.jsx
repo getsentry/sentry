@@ -87,25 +87,33 @@ class CrashHeader extends React.Component {
   render() {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
+    let titleNode = (
+      <h3 className="pull-left">
+        {title}
+        <small style={{marginLeft: 5}}>
+          (
+          <Tooltip title={t('Toggle stacktrace order')}>
+            <a onClick={this.handleToggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
+              {newestFirst ? t('most recent call first') : t('most recent call last')}
+            </a>
+          </Tooltip>
+          )
+        </small>
+      </h3>
+    );
+
+    if (!hideGuide) {
+      titleNode = (
+        <GuideAnchor target="exception" position="top">
+          {titleNode}
+        </GuideAnchor>
+      );
+    }
+
     return (
       <div className="crash-title">
         {beforeTitle}
-        {hideGuide === false && <GuideAnchor target="exception" type="text" />}
-        <h3 className="pull-left">
-          {title}
-          <small style={{marginLeft: 5}}>
-            (
-            <Tooltip title={t('Toggle stacktrace order')}>
-              <a
-                onClick={this.handleToggleOrder}
-                style={{borderBottom: '1px dotted #aaa'}}
-              >
-                {newestFirst ? t('most recent call first') : t('most recent call last')}
-              </a>
-            </Tooltip>
-            )
-          </small>
-        </h3>
+        {titleNode}
         <div className="btn-group" style={{marginLeft: 10}}>
           {this.hasSystemFrames() && (
             <a

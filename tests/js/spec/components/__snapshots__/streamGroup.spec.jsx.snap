@@ -12,10 +12,6 @@ exports[`StreamGroup renders with anchors 1`] = `
   <GroupCheckbox
     ml={2}
   >
-    <GuideAnchor
-      target="issues"
-      type="text"
-    />
     <GroupCheckBox
       id="1337"
     />
@@ -175,6 +171,9 @@ exports[`StreamGroup renders with anchors 1`] = `
       userReportCount={0}
     />
   </GroupSummary>
+  <GuideAnchor
+    target="issue_stream"
+  />
   <Box
     className="hidden-xs hidden-sm"
     mx={2}
@@ -266,10 +265,6 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <GuideAnchor
-      target="events"
-      type="text"
-    />
     <StyledCount
       value="327482"
     />
@@ -286,10 +281,6 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <GuideAnchor
-      target="users"
-      type="text"
-    />
     <StyledCount
       value={35097}
     />

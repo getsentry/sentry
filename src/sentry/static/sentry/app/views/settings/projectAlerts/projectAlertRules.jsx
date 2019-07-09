@@ -11,7 +11,6 @@ import {
   addLoadingMessage,
   removeIndicator,
 } from 'app/actionCreators/indicator';
-import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -54,7 +53,6 @@ const RuleRow = withApi(
       projectId: PropTypes.string.isRequired,
       data: PropTypes.object.isRequired,
       onDelete: PropTypes.func.isRequired,
-      firstRule: PropTypes.bool,
       canEdit: PropTypes.bool,
     };
 
@@ -143,22 +141,17 @@ const RuleRow = withApi(
                       When <strong>{data.actionMatch}</strong> of these conditions are
                       met:
                     </h6>
-                    {conditionalGuideAnchor(
-                      this.props.firstRule,
-                      'alert_conditions',
-                      'text',
-                      <table className="conditions-list table">
-                        <tbody>
-                          {data.conditions.map((condition, i) => {
-                            return (
-                              <tr key={i}>
-                                <td>{condition.name}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
+                    <table className="conditions-list table">
+                      <tbody>
+                        {data.conditions.map((condition, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{condition.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </Condition>
                 )}
               </RuleDescriptionColumn>
@@ -172,22 +165,17 @@ const RuleRow = withApi(
                       </strong>{' '}
                       for an issue:
                     </h6>
-                    {conditionalGuideAnchor(
-                      this.props.firstRule,
-                      'alert_actions',
-                      'text',
-                      <table className="actions-list table">
-                        <tbody>
-                          {data.actions.map((action, i) => {
-                            return (
-                              <tr key={i}>
-                                <td>{action.name}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
+                    <table className="actions-list table">
+                      <tbody>
+                        {data.actions.map((action, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{action.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </Condition>
                 )}
               </RuleDescriptionColumn>
@@ -246,7 +234,6 @@ class ProjectAlertRules extends AsyncView {
               params={this.props.params}
               routes={this.props.routes}
               onDelete={this.handleDeleteRule.bind(this, rule)}
-              firstRule={this.state.ruleList.indexOf(rule) === 0}
               canEdit={canEditRule}
             />
           );

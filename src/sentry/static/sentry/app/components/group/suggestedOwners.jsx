@@ -189,10 +189,11 @@ const SuggestedOwners = createReactClass({
         )}
         <Access access={['project:write']}>
           <div className="m-b-1">
-            <h6>
-              <GuideAnchor target="owners" type="text" />
-              <span>{t('Ownership Rules')}</span>
-            </h6>
+            <GuideAnchor target="owners">
+              <h6>
+                <span>{t('Ownership Rules')}</span>
+              </h6>
+            </GuideAnchor>
             <Button
               onClick={() =>
                 openCreateOwnershipRule({
