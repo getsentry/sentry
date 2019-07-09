@@ -96,7 +96,7 @@ class SnubaProtocolEventStream(EventStream):
             logger.error('%r received unexpected tags: %r', self, unexpected_tags)
 
         self._send(project.id, 'insert', extra_data=({
-            'group_id': event.group_id or 0,  # group id is non nullable in Snuba.
+            'group_id': event.group_id,
             'event_id': event.event_id,
             'organization_id': project.organization_id,
             'project_id': event.project_id,
@@ -266,6 +266,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         super(SnubaEventStream, self).insert(group, event, is_new, is_sample,
                                              is_regression, is_new_group_environment,
                                              primary_hash, skip_consume)
-        self._dispatch_post_process_event_task(event, is_new, is_sample,
+        self._dispatch_post_process_group_task(event, is_new, is_sample,
                                                is_regression, is_new_group_environment,
                                                primary_hash, skip_consume)

@@ -118,4 +118,4 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             },
         )
         assert len(result['data']) == 1
-        assert result['data'][0]['group_id'] == 0
+        assert result['data'][0]['group_id'] is None

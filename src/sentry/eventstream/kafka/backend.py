@@ -192,7 +192,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
                 if task_kwargs is not None:
                     with metrics.timer('eventstream.duration', instance='dispatch_post_process_group_task'):
-                        self._dispatch_post_process_event_task(**task_kwargs)
+                        self._dispatch_post_process_group_task(**task_kwargs)
 
                 if i % commit_batch_size == 0:
                     commit_offsets()
