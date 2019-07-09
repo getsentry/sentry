@@ -39,8 +39,7 @@ export async function publishRequestSentryApp(client, app) {
   addLoadingMessage();
   try {
     await client.requestPromise(`/sentry-apps/${app.slug}/publish-request/`, {
-      method: 'PUT',
-      data: {fake: 'es'},
+      method: 'POST',
     });
     addSuccessMessage(t('Request to publish %s successful.', app.slug));
   } catch (err) {

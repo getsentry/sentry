@@ -110,8 +110,9 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   renderPublishRequest(app) {
     const message = t(
-      `Pressing this button will send a request to publish ${app.slug}. \
-       If it is approved, users outside your organization will be able to install this integration. \
+      `Sentry will evaluate your integration ${
+        app.slug
+      } and make it available to all users. \
        Do you wish to continue?`
     );
     return (
