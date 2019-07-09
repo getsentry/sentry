@@ -232,7 +232,7 @@ class ProjectDebugSymbols extends AsyncComponent {
         </TextBlock>
 
         {features.has('symbol-sources') && (
-          <>
+          <React.Fragment>
             <PermissionAlert />
 
             <Form
@@ -247,11 +247,11 @@ class ProjectDebugSymbols extends AsyncComponent {
                 features={features}
                 title={t('External Sources')}
                 disabled={!access.has('project:write')}
-                fields={[fields.builtinSymbolSources, fields.symbolSources]}
+                fields={[fields.symbolSources, fields.builtinSymbolSources]}
                 additionalFieldProps={fieldProps}
               />
             </Form>
-          </>
+          </React.Fragment>
         )}
 
         <TextBlock>

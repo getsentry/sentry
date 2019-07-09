@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 VALID_LAYOUTS = (
     'native',
     'symstore',
+    'symstore_index2',
+    'ssqp',
 )
 
 VALID_FILE_TYPES = (
@@ -68,6 +70,9 @@ COMMON_SOURCE_PROPERTIES = {
         'type': 'string',
         'minLength': 1,
     },
+    'name': {
+        'type': 'string',
+    },
     'layout': LAYOUT_SCHEMA,
     'filetypes': {
         'type': 'array',
@@ -78,6 +83,19 @@ COMMON_SOURCE_PROPERTIES = {
     },
 }
 
+HTTP_SOURCE_SCHEMA = {
+    'type': 'object',
+    'properties': dict(
+        type={
+            'type': 'string',
+            'enum': ['http'],
+        },
+        url={'type': 'string'},
+        **COMMON_SOURCE_PROPERTIES
+    ),
+    'required': ['type', 'id', 'url', 'layout'],
+    'additionalProperties': False,
+}
 
 S3_SOURCE_SCHEMA = {
     'type': 'object',
@@ -97,12 +115,30 @@ S3_SOURCE_SCHEMA = {
     'additionalProperties': False,
 }
 
+GCS_SOURCE_SCHEMA = {
+    'type': 'object',
+    'properties': dict(
+        type={
+            'type': 'string',
+            'enum': ['gcs'],
+        },
+        bucket={'type': 'string'},
+        client_email={'type': 'string'},
+        private_key={'type': 'string'},
+        prefix={'type': 'string'},
+        **COMMON_SOURCE_PROPERTIES
+    ),
+    'required': ['type', 'id', 'bucket', 'client_email', 'private_key', 'layout'],
+    'additionalProperties': False,
+}
+
 SOURCES_SCHEMA = {
     'type': 'array',
     'items': {
         'oneOf': [
-            # TODO: Implement HTTP sources
+            HTTP_SOURCE_SCHEMA,
             S3_SOURCE_SCHEMA,
+            GCS_SOURCE_SCHEMA,
         ],
     }
 }
