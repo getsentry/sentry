@@ -37,6 +37,7 @@ export function removeSentryApp(client, app) {
  */
 export async function publishRequestSentryApp(client, app) {
   addLoadingMessage();
+  console.log('calling');
   try {
     await client.requestPromise(`/sentry-apps/${app.slug}/publish-request/`, {
       method: 'POST',

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry import features
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
-from sentry.utils.email import send_mail
+from sentry.utils import email
 
 
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
@@ -20,7 +20,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         message = 'User %s of organization %s wants to publish %s' % (
             request.user.email, sentry_app.owner.slug, sentry_app.slug)
 
-        send_mail(
+        email.send_mail(
             'Sentry App Publication Request',
             message,
             options.get('mail.from'),

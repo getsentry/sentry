@@ -51,13 +51,7 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   renderDisabledPublishRequestButton(message) {
     return (
-      <StyledButton
-        disabled
-        title={t(message)}
-        size="small"
-        icon="icon-upgrade"
-        data-test-id="sentry-app-publish-request"
-      >
+      <StyledButton disabled title={t(message)} size="small" icon="icon-upgrade">
         {t('Publish')}
       </StyledButton>
     );
@@ -121,11 +115,7 @@ export default class SentryApplicationRow extends React.PureComponent {
         priority="primary"
         onConfirm={() => this.props.onPublishRequest(app)}
       >
-        <StyledButton
-          icon="icon-upgrade"
-          size="small"
-          data-test-id="sentry-app-publish-request"
-        >
+        <StyledButton icon="icon-upgrade" size="small">
           {t('Publish')}
         </StyledButton>
       </Confirm>
