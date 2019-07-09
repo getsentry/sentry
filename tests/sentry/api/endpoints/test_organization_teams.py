@@ -36,7 +36,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.data[1]['id'] == six.text_type(team1.id)
         assert response.data[1]['isMember']
 
-    def test_simple_light_results(self):
+    def test_simple_results_no_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=self.user)
         team1 = self.create_team(organization=org, name='foo')
@@ -49,7 +49,7 @@ class OrganizationTeamsListTest(APITestCase):
             teams=[team1],
         )
 
-        path = u'/api/0/organizations/{}/teams/?light=1'.format(org.slug)
+        path = u'/api/0/organizations/{}/teams/?detailed=0'.format(org.slug)
 
         self.login_as(user=user)
 

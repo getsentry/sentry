@@ -81,7 +81,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
-        :param string light: if this is "1", then do not include projects
+        :param string detailed: Specify "0" to return team details that do not include projects
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
@@ -105,8 +105,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        serializer = team_serializers.TeamSerializer if request.GET.get(
-            'light') == '1' else team_serializers.TeamWithProjectsSerializer
+        is_detailed = request.GET.get('detailed', '1') != '0'
+        serializer = team_serializers.TeamWithProjectsSerializer if is_detailed else team_serializers.TeamSerializer
 
         return self.paginate(
             request=request,
