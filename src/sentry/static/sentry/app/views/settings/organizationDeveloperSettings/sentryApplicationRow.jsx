@@ -53,12 +53,35 @@ export default class SentryApplicationRow extends React.PureComponent {
           title={t('Organization owner permissions are required for this action.')}
           size="small"
           icon="icon-upgrade"
+          data-test-id="sentry-app-publish-request"
         />
         <Button
           disabled
           title={t('Organization owner permissions are required for this action.')}
           size="small"
           icon="icon-trash"
+        />
+      </ButtonHolder>
+    );
+  }
+
+  renderPublishedAppButtons() {
+    return (
+      <ButtonHolder>
+        <StyledButton
+          disabled
+          title={t('Published apps cannot be re-published.')}
+          size="small"
+          icon="icon-upgrade"
+        >
+          {t('Publish')}
+        </StyledButton>
+        <Button
+          disabled
+          title={t('Published apps cannot be removed.')}
+          size="small"
+          icon="icon-trash"
+          data-test-id="sentry-app-publish-request"
         />
       </ButtonHolder>
     );
@@ -94,8 +117,8 @@ export default class SentryApplicationRow extends React.PureComponent {
         onConfirm={() => this.props.onPublishRequest(app)}
       >
         <StyledButton
-          borderless
           icon="icon-upgrade"
+          size="small"
           data-test-id="sentry-app-publish-request"
         >
           {t('Publish')}
@@ -206,12 +229,7 @@ export default class SentryApplicationRow extends React.PureComponent {
                   )}
                 </Access>
               ) : (
-                <Button
-                  disabled
-                  title={t('Published apps cannot be removed.')}
-                  size="small"
-                  icon="icon-trash"
-                />
+                this.renderPublishedAppButtons()
               )}
             </Box>
           )}
