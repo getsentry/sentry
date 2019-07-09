@@ -1,0 +1,52 @@
+{
+  "_grouping": {
+    "enhancement_base": "common:2019-03-23",
+    "enhancements": "function:log_demo::* +app\nfamily:native min-frames=2"
+  },
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_main",
+              "instruction_addr": "0x10d6dd338"
+            },
+            {
+              "function": "std::rt::lang_start_internal",
+              "package": "std",
+              "instruction_addr": "0x10d98ea2c"
+            },
+            {
+              "function": "___rust_maybe_catch_panic",
+              "instruction_addr": "0x10d99175e"
+            },
+            {
+              "function": "std::panicking::try::do_call",
+              "package": "std",
+              "instruction_addr": "0x10d98df37"
+            },
+            {
+              "function": "std::rt::lang_start::{{closure}}",
+              "package": "std",
+              "instruction_addr": "0x10d6d93b5"
+            },
+            {
+              "function": "log_demo::main",
+              "package": "log_demo",
+              "instruction_addr": "0x10d6dd251"
+            },
+            {
+              "function": "log::__private_api_log",
+              "package": "log",
+              "instruction_addr": "0x10d97fdbb"
+            }
+          ]
+        },
+        "type": "log_demo",
+        "value": "Holy shit everything is on fire!"
+      }
+    ]
+  },
+  "platform": "native"
+}
