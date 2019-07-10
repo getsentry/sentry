@@ -9,7 +9,6 @@ import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
-import OrganizationActivity from 'app/views/organizationActivity';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
@@ -860,7 +859,10 @@ function routes() {
           />
           <Route
             path="/organizations/:orgId/activity/"
-            component={errorHandler(OrganizationActivity)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationActivity" */ './views/organizationActivity')
+            }
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="/organizations/:orgId/dashboards/"
