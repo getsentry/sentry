@@ -25,8 +25,10 @@ from sentry.db.models import (
 
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
-from sentry.signals import issue_resolved
-
+from sentry.signals import (
+    issue_resolved,
+    release_commits_updated,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -372,6 +374,9 @@ class Release(Model):
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
+                initial_commit_ids = set(ReleaseCommit.objects.filter(
+                    release=self,
+                ).values_list('commit_id', flat=True))
                 ReleaseCommit.objects.filter(
                     release=self,
                 ).delete()
@@ -504,6 +509,16 @@ class Release(Model):
 
         release_commits = list(ReleaseCommit.objects.filter(release=self)
                                .select_related('commit').values('commit_id', 'commit__key'))
+        final_commit_ids = set(rc['commit_id'] for rc in release_commits)
+        removed_commit_ids = initial_commit_ids - final_commit_ids
+        added_commit_ids = final_commit_ids - initial_commit_ids
+        if removed_commit_ids or added_commit_ids:
+            release_commits_updated.send_robust(
+                release=self,
+                removed_commit_ids=removed_commit_ids,
+                added_commit_ids=added_commit_ids,
+                sender=self.__class__,
+            )
 
         commit_resolutions = list(
             GroupLink.objects.filter(
