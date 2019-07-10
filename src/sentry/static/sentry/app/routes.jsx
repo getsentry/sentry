@@ -9,7 +9,6 @@ import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
-import OrganizationActivity from 'app/views/organizationActivity';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
@@ -642,7 +641,7 @@ function routes() {
 
       <Route
         path="/extensions/vsts/link/"
-        getComponent={(loc, cb) =>
+        getComponent={(_loc, cb) =>
           import(/* webpackChunkName: "VSTSOrganizationLink" */ './views/vstsOrganizationLink').then(
             lazyLoad(cb)
           )
@@ -783,7 +782,7 @@ function routes() {
       <Route component={errorHandler(OrganizationDetails)}>
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
           <IndexRoute
-            getComponent={(loc, cb) =>
+            getComponent={(_loc, cb) =>
               import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
                 lazyLoad(cb)
               )
@@ -793,7 +792,7 @@ function routes() {
           <Route
             path="account/"
             name="Account"
-            getComponent={(loc, cb) =>
+            getComponent={(_loc, cb) =>
               import(/* webpackChunkName: "AccountSettingsLayout" */ './views/settings/account/accountSettingsLayout').then(
                 lazyLoad(cb)
               )
@@ -804,7 +803,7 @@ function routes() {
 
           <Route name="Organization" path=":orgId/">
             <Route
-              getComponent={(loc, cb) =>
+              getComponent={(_loc, cb) =>
                 import(/* webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
                   lazyLoad(cb)
                 )
@@ -817,7 +816,7 @@ function routes() {
             <Route
               name="Project"
               path="projects/:projectId/"
-              getComponent={(loc, cb) =>
+              getComponent={(_loc, cb) =>
                 import(/* webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
                   lazyLoad(cb)
                 )
@@ -855,7 +854,10 @@ function routes() {
           />
           <Route
             path="/organizations/:orgId/activity/"
-            component={errorHandler(OrganizationActivity)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationActivity" */ './views/organizationActivity')
+            }
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="/organizations/:orgId/dashboards/"
