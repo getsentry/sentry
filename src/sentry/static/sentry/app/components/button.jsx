@@ -12,7 +12,7 @@ import Tooltip from 'app/components/tooltip';
 class Button extends React.Component {
   static propTypes = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
+    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -126,7 +126,9 @@ class Button extends React.Component {
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
                 src={icon}
-                size={size && size.endsWith('small') ? '12px' : '16px'}
+                size={
+                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '16px'
+                }
               />
             </Icon>
           )}
@@ -152,6 +154,7 @@ export default Button;
 
 const getFontSize = ({size, theme}) => {
   switch (size) {
+    case 'micro':
     case 'xsmall':
     case 'small':
       return theme.fontSizeSmall;
@@ -263,6 +266,7 @@ const getLabelPadding = ({size, priority, borderless}) => {
   }
 
   switch (size) {
+    case 'micro':
     case 'zero':
       return '0';
     case 'xsmall':
