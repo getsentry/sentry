@@ -23,7 +23,7 @@ const CHART_AXIS_OPTIONS = [
   {label: 'Users', value: 'user_count'},
 ];
 
-export default class Events extends AsyncComponent {
+export default class Events extends React.Component {
   static propTypes = {
     router: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
@@ -31,7 +31,53 @@ export default class Events extends AsyncComponent {
     view: SentryTypes.EventView.isRequired,
   };
 
-  shouldReload = true;
+  render() {
+    const {organization, view, location, router} = this.props;
+    const query = location.query.query || '';
+
+    return (
+      <React.Fragment>
+        <Panel>
+          {getDynamicText({
+            value: (
+              <EventsChart
+                router={router}
+                query={query}
+                organization={organization}
+                showLegend
+                yAxisOptions={CHART_AXIS_OPTIONS}
+              />
+            ),
+            fixed: 'events chart',
+          })}
+        </Panel>
+        <StyledSearchBar
+          organization={organization}
+          query={query}
+          onSearch={this.handleSearch}
+        />
+        <Container>
+          <EventsTable
+            key={view.id}
+            location={location}
+            organization={organization}
+            view={view}
+          />
+          <Tags view={view} organization={organization} location={location} />
+        </Container>
+      </React.Fragment>
+    );
+  }
+}
+
+class EventsTable extends AsyncComponent {
+  static propTypes = {
+    location: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    view: SentryTypes.EventView.isRequired,
+  };
+
+  shouldReload = false;
 
   componentDidUpdate(prevProps, prevContext) {
     // Do not update if we are just opening/closing the modal
@@ -74,45 +120,20 @@ export default class Events extends AsyncComponent {
   }
 
   renderBody() {
-    const {organization, view, location, router} = this.props;
+    const {organization, view, location} = this.props;
     const {data, dataPageLinks, loading} = this.state;
-    const query = location.query.query || '';
 
     return (
-      <React.Fragment>
-        <Panel>
-          {getDynamicText({
-            value: (
-              <EventsChart
-                router={router}
-                query={query}
-                organization={organization}
-                showLegend
-                yAxisOptions={CHART_AXIS_OPTIONS}
-              />
-            ),
-            fixed: 'events chart',
-          })}
-        </Panel>
-        <StyledSearchBar
+      <div>
+        <Table
+          view={view}
           organization={organization}
-          query={query}
-          onSearch={this.handleSearch}
+          data={data}
+          isLoading={loading}
+          location={location}
         />
-        <Container>
-          <div>
-            <Table
-              view={view}
-              organization={organization}
-              data={data}
-              isLoading={loading}
-              location={location}
-            />
-            <Pagination pageLinks={dataPageLinks} />
-          </div>
-          <Tags view={view} organization={organization} location={location} />
-        </Container>
-      </React.Fragment>
+        <Pagination pageLinks={dataPageLinks} />
+      </div>
     );
   }
 }
