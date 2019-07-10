@@ -42,6 +42,14 @@ export const User = PropTypes.shape({
   username: PropTypes.string,
 });
 
+export const AuthConfig = PropTypes.shape({
+  canRegister: PropTypes.bool,
+  serverHostname: PropTypes.string,
+  hasNewsletter: PropTypes.bool,
+  githubLoginLink: PropTypes.string,
+  vstsLoginLink: PropTypes.string,
+});
+
 export const Config = PropTypes.shape({
   dsn: PropTypes.string,
   features: PropTypes.instanceOf(Set),
@@ -996,6 +1004,7 @@ const SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthConfig,
   Activity,
   AuthProvider,
   Config,
