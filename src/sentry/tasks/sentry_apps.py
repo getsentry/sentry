@@ -148,8 +148,10 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # transaction that creates the Group has committed.
     try:
         if issubclass(model, EventCommon):
-            # 'from_event_id' is supported for both Event and SnubaEvent
-            # instance_id is the event.event_id NOT the event.id
+            # XXX:(Meredith): Passing through the entire event was an intentional choice
+            # to avoid having to query NodeStore again for data we had previously in
+            # post_process. While this is not ideal, changing this will most likely involve
+            # an overhaul of how we do things in post_process, not just this task alone.
             instance = kwargs.get('instance')
         else:
             instance = model.objects.get(id=instance_id)
