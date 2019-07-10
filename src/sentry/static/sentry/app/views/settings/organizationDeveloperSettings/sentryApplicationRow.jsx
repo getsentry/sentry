@@ -1,7 +1,7 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
-import omit from 'lodash/omit';
+import {omit} from 'lodash';
 
 import Access from 'app/components/acl/access';
 import BetaTag from 'app/components/betaTag';
