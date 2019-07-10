@@ -221,7 +221,7 @@ export const SPECIAL_FIELDS = {
               fixed="time"
             />
           ) : (
-            <span>{`n/a`}</span>
+            <span>n/a</span>
           )}
         </Container>
       );
