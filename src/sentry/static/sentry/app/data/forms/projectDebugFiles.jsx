@@ -75,7 +75,7 @@ export const fields = {
     setValue: raw => (JSON.parse(raw || null) || []).map(flattenKeys),
 
     renderItem(item) {
-      return item.name || <em>{t('<Unnamed Repository>')}</em>;
+      return item.name ? <span>{item.name}</span> : <em>{t('<Unnamed Repository>')}</em>;
     },
 
     onAddItem(item, addItem) {
