@@ -35,7 +35,12 @@ export default class OrganizationEventsV2 extends React.Component {
             key={view.id}
             to={{
               pathname: `/organizations/${organization.slug}/events/`,
-              query: {...this.props.location.query, view: view.id, cursor: undefined},
+              query: {
+                ...this.props.location.query,
+                view: view.id,
+                cursor: undefined,
+                sort: undefined,
+              },
             }}
             isActive={() => view.id === currentView.id}
           >

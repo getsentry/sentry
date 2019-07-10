@@ -22,7 +22,7 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       fields: ['event', 'type', 'project', 'user', 'time'],
-      orderby: ['-timestamp', '-id'],
+      sort: ['-timestamp', '-id'],
     },
     tags: [
       'event.type',
@@ -40,7 +40,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: ['-last_seen', '-issue.id'],
+      sort: ['-last_seen', '-issue.id'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
@@ -52,7 +52,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: ['-last_seen', '-issue.id'],
+      sort: ['-last_seen', '-issue.id'],
       query: 'event.type:csp',
     },
     tags: [
@@ -74,6 +74,7 @@ export const ALL_VIEWS = deepFreeze([
 export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
+    sortField: 'title',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
@@ -90,6 +91,7 @@ export const SPECIAL_FIELDS = {
   },
   type: {
     fields: ['event.type'],
+    sortField: 'event.type',
     renderFunc: (data, {location, organization}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
@@ -104,6 +106,7 @@ export const SPECIAL_FIELDS = {
   },
   project: {
     fields: ['project.name'],
+    sortField: false,
     renderFunc: (data, {organization}) => {
       const project = organization.projects.find(p => p.slug === data['project.name']);
       return (
@@ -119,6 +122,7 @@ export const SPECIAL_FIELDS = {
   },
   user: {
     fields: ['user', 'user.name', 'user.email', 'user.ip'],
+    sortField: 'user',
     renderFunc: (data, {organization, location}) => {
       const userObj = {
         name: data['user.name'],
@@ -145,6 +149,7 @@ export const SPECIAL_FIELDS = {
   },
   time: {
     fields: ['timestamp'],
+    sortField: 'timestamp',
     renderFunc: data => (
       <Container>
         {data.timestamp ? (
@@ -155,6 +160,7 @@ export const SPECIAL_FIELDS = {
   },
   error: {
     fields: ['issue_title', 'project.name', 'issue.id'],
+    sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
@@ -174,6 +180,7 @@ export const SPECIAL_FIELDS = {
   },
   csp: {
     fields: ['issue_title', 'project.name', 'issue.id'],
+    sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
@@ -194,6 +201,7 @@ export const SPECIAL_FIELDS = {
   event_count: {
     title: 'events',
     fields: ['event_count'],
+    sortField: 'event_count',
     renderFunc: data => (
       <Container>
         {typeof data.event_count === 'number' ? data.event_count.toLocaleString() : null}
@@ -203,6 +211,7 @@ export const SPECIAL_FIELDS = {
   user_count: {
     title: 'users',
     fields: ['user_count'],
+    sortField: 'user_count',
     renderFunc: data => (
       <Container>
         {typeof data.user_count === 'number' ? data.user_count.toLocaleString() : null}
@@ -212,6 +221,7 @@ export const SPECIAL_FIELDS = {
   last_seen: {
     title: 'last seen',
     fields: ['last_seen'],
+    sortField: 'last_seen',
     renderFunc: data => {
       return (
         <Container>

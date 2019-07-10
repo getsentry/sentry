@@ -241,6 +241,68 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['id'] == 'b' * 32
         assert response.data[2]['id'] == 'a' * 32
 
+    def test_sort_title(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'zlast',
+                'timestamp': self.two_min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'message': 'second',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'message': 'first',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['id'],
+                    'sort': 'title'
+                },
+            )
+
+        assert response.data[0]['id'] == 'c' * 32
+        assert response.data[1]['id'] == 'b' * 32
+        assert response.data[2]['id'] == 'a' * 32
+
+    def test_sort_ignore_invalid(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.two_min_ago,
+            },
+            project_id=project.id,
+        )
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['id'],
+                    'sort': 'garbage'
+                },
+            )
+        assert response.status_code == 200
+
     def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
