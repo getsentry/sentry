@@ -115,6 +115,27 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
             self._assert_security_email_sent('mfa-added', email_log)
 
+    def test_sms_invalid_otp(self):
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['sms.twilio-account'] = 'twilio-account'
+
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'sms'}
+            )
+            resp = self.client.post(url, data={
+                "secret": "secret12",
+                "phone": "1231234",
+                "otp": None,
+            })
+            assert resp.status_code == 400
+            resp = self.client.post(url, data={
+                "secret": "secret12",
+                "phone": "1231234",
+                "otp": "",
+            })
+            assert resp.status_code == 400
+
     @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
     def test_u2f_can_enroll(self, try_enroll, email_log):
