@@ -42,7 +42,7 @@ export default class Events extends React.Component {
             value: (
               <EventsChart
                 router={router}
-                query={query}
+                query={getQuery(view, location).query}
                 organization={organization}
                 showLegend
                 yAxisOptions={CHART_AXIS_OPTIONS}
