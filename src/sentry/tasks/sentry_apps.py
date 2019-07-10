@@ -122,24 +122,16 @@ def send_alert_event(event, rule, sentry_app_id):
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
-    # The Event model has different hooks for the differenct types. The sender
+    # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
     if issubclass(model, EventCommon):
-        if not kwargs.get('project_id'):
+        if not kwargs.get('instance'):
             extra = {
                 'sender': sender,
                 'action': action,
                 'event_id': instance_id,
             }
-            logger.info('process_resource_change.event_missing_project_id', extra=extra)
-            return
-        if not kwargs.get('group_id'):
-            extra = {
-                'sender': sender,
-                'action': action,
-                'event_id': instance_id,
-            }
-            logger.info('process_resource_change.event_missing_group_id', extra=extra)
+            logger.info('process_resource_change.event_missing_event', extra=extra)
             return
 
         name = sender.lower()
@@ -156,12 +148,11 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # transaction that creates the Group has committed.
     try:
         if issubclass(model, EventCommon):
-            # 'from_event_id' is supported for both Event and SnubaEvent
-            # instance_id is the event.event_id NOT the event.id
-            instance = model.objects.from_event_id(
-                instance_id,
-                kwargs.get('project_id'),
-            )
+            # XXX:(Meredith): Passing through the entire event was an intentional choice
+            # to avoid having to query NodeStore again for data we had previously in
+            # post_process. While this is not ideal, changing this will most likely involve
+            # an overhaul of how we do things in post_process, not just this task alone.
+            instance = kwargs.get('instance')
         else:
             instance = model.objects.get(id=instance_id)
     except model.DoesNotExist as e:
@@ -191,9 +182,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     for installation in installations:
         data = {}
         if issubclass(model, EventCommon):
-            group_id = kwargs.get('group_id')
-            project_id = kwargs.get('project_id')
-            data[name] = _webhook_event_data(instance, group_id, project_id)
+            data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             # XXX(Meredith): this flag is in place for testing the load this task creates
             # and during testing we don't need to send the webhook.
             if features.has('organizations:integrations-event-hooks', organization=org):
