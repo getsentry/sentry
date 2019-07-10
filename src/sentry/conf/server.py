@@ -923,6 +923,10 @@ SENTRY_LOGIN_URL = None
 SENTRY_PROJECT = 1
 SENTRY_PROJECT_KEY = None
 
+# Default organization to represent the Internal Sentry project.
+# Used as a default when in SINGLE_ORGANIZATION mode.
+SENTRY_ORGANIZATION = 1
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
