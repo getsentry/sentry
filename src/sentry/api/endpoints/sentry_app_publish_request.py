@@ -16,6 +16,13 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
             return Response(status=404)
 
+        #check status of app to make sure it is unpublished
+        if (sentry_app.is_published):
+            return Response({'detail': 'Cannot publish already publish app'}, status=400)
+
+        if (sentry_app.is_internal):
+            return Response({'detail': 'Cannot publish internal app'}, status=400)
+
         # For now, just send an email that a request to publish has been amde
         message = 'User %s of organization %s wants to publish %s' % (
             request.user.email, sentry_app.owner.slug, sentry_app.slug)

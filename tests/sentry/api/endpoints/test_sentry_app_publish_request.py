@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 import mock
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.constants import SentryAppStatus
 
 
 class SentryAppPublishRequestTest(APITestCase):
@@ -33,3 +34,24 @@ class SentryAppPublishRequestTest(APITestCase):
         send_mail.assert_called_with('Sentry App Publication Request',
                                      'User boop@example.com of organization my-org wants to publish testin',
                                      'root@localhost', ['partners@sentry.io'], fail_silently=False)
+
+    @with_feature('organizations:sentry-apps')
+    @mock.patch('sentry.utils.email.send_mail')
+    def test_publish_already_published(self, send_mail):
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        self.login_as(user=self.user)
+        response = self.client.post(self.url, format='json')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Cannot publish already publish app'
+        send_mail.asssert_not_called()
+
+
+    @with_feature('organizations:sentry-apps')
+    @mock.patch('sentry.utils.email.send_mail')
+    def test_publish_internal(self, send_mail):
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        self.login_as(user=self.user)
+        response = self.client.post(self.url, format='json')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Cannot publish internal app'
+        send_mail.asssert_not_called()

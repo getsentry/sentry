@@ -117,10 +117,10 @@ class SentryAppPermission(SentryPermission):
         'DELETE': ('org:write', 'org:admin'),
     }
 
-    # no POST route for a published app yet
     published_scope_map = {
         'GET': (),  # Public endpoint.
         'PUT': ('org:write', 'org:admin'),
+        'POST': ('org:write', 'org:admin'),
         'DELETE': ('org:admin'),
     }
 
