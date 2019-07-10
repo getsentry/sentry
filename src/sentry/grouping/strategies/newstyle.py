@@ -430,6 +430,17 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
+    # Special case for JavaScript where we want to ignore single frame
+    # stacktraces in certain cases where those would be of too low quality
+    # for grouping.
+    if len(frames) == 1 and values[0].contributes and \
+       get_behavior_family_for_platform(frames[0].platform or meta['event'].platform) == 'javascript' and \
+       not frames[0].function and frames[0].is_url():
+        values[0].update(
+            contributes=False,
+            hint='ignored single non-URL JavaScript frame'
+        )
+
     return config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta['event'].platform)
 
