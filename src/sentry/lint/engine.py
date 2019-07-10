@@ -29,9 +29,12 @@ def get_sentry_bin(name):
     return os.path.join(get_project_root(), 'bin', name)
 
 
+def get_node_modules():
+    return os.path.join(get_project_root(), 'node_modules')
+
+
 def get_node_modules_bin(name):
-    return os.path.join(
-        get_project_root(), 'node_modules', '.bin', name)
+    return os.path.join(get_node_modules(), '.bin', name)
 
 
 def get_prettier_path():
@@ -101,6 +104,8 @@ def js_lint(file_list=None, parseable=False, format=False):
 
     # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
+
+    # Note, in CI, we run a relaxed version of our eslint rules (.eslint.relax.js)
     eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
@@ -120,6 +125,7 @@ def js_lint(file_list=None, parseable=False, format=False):
             cmd.append('--fix')
         if parseable:
             cmd.append('--format=checkstyle')
+
         status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
@@ -222,6 +228,7 @@ def js_lint_format(file_list=None):
 
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
+    cmd = [eslint_path, '--fix', ]
 
     has_package_json_errors = False if 'package.json' not in file_list else run_formatter(
         [
@@ -230,7 +237,7 @@ def js_lint_format(file_list=None):
         ], ['package.json']
     )
 
-    has_errors = run_formatter([eslint_path, '--fix', ], js_file_list)
+    has_errors = run_formatter(cmd, js_file_list)
 
     return has_errors or has_package_json_errors
 

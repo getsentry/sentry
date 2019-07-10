@@ -92,7 +92,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = KeySerializer(data=request.DATA, partial=True)
+        serializer = KeySerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
         if serializer.is_valid():

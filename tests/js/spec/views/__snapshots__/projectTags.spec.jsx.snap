@@ -475,6 +475,7 @@ exports[`ProjectTags renders 1`] = `
                                           title="Remove tag?"
                                         >
                                           <Button
+                                            align="center"
                                             data-test-id="delete"
                                             disabled={false}
                                             icon="icon-trash"
@@ -506,14 +507,16 @@ exports[`ProjectTags renders 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
@@ -707,6 +710,7 @@ exports[`ProjectTags renders 1`] = `
                                           title="Remove tag?"
                                         >
                                           <Button
+                                            align="center"
                                             data-test-id="delete"
                                             disabled={false}
                                             icon="icon-trash"
@@ -738,14 +742,16 @@ exports[`ProjectTags renders 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
@@ -939,6 +945,7 @@ exports[`ProjectTags renders 1`] = `
                                           title="Remove tag?"
                                         >
                                           <Button
+                                            align="center"
                                             data-test-id="delete"
                                             disabled={false}
                                             icon="icon-trash"
@@ -970,14 +977,16 @@ exports[`ProjectTags renders 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
@@ -1193,6 +1202,7 @@ exports[`ProjectTags renders 1`] = `
                                                     title="Remove tag?"
                                                   >
                                                     <Button
+                                                      align="center"
                                                       data-test-id="delete"
                                                       disabled={true}
                                                       icon="icon-trash"
@@ -1230,14 +1240,16 @@ exports[`ProjectTags renders 1`] = `
                                                             to={null}
                                                           >
                                                             <ButtonLabel
+                                                              align="center"
                                                               size="xsmall"
                                                             >
                                                               <Component
-                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                align="center"
+                                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                                 size="xsmall"
                                                               >
                                                                 <span
-                                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                                 >
                                                                   <Icon
                                                                     hasChildren={false}
@@ -1457,6 +1469,7 @@ exports[`ProjectTags renders 1`] = `
                                                     title="Remove tag?"
                                                   >
                                                     <Button
+                                                      align="center"
                                                       data-test-id="delete"
                                                       disabled={true}
                                                       icon="icon-trash"
@@ -1494,14 +1507,16 @@ exports[`ProjectTags renders 1`] = `
                                                             to={null}
                                                           >
                                                             <ButtonLabel
+                                                              align="center"
                                                               size="xsmall"
                                                             >
                                                               <Component
-                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                align="center"
+                                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                                 size="xsmall"
                                                               >
                                                                 <span
-                                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                                 >
                                                                   <Icon
                                                                     hasChildren={false}

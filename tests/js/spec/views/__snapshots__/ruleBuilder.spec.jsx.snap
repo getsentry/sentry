@@ -815,6 +815,7 @@ exports[`RuleBuilder renders 1`] = `
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
+                                        align="center"
                                         borderless={true}
                                         disabled={false}
                                         onClick={[Function]}
@@ -975,6 +976,7 @@ exports[`RuleBuilder renders 1`] = `
         </Base>
       </Flex>
       <AddButton
+        align="center"
         disabled={true}
         icon="icon-circle-add"
         onClick={[Function]}
@@ -982,6 +984,7 @@ exports[`RuleBuilder renders 1`] = `
         size="small"
       >
         <Button
+          align="center"
           className="css-8nraqh-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
@@ -1021,16 +1024,18 @@ exports[`RuleBuilder renders 1`] = `
                 to={null}
               >
                 <ButtonLabel
+                  align="center"
                   priority="primary"
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel e12ma6z1"
+                    align="center"
+                    className="css-1h693nz-ButtonLabel e12ma6z1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel e12ma6z1"
+                      className="css-1h693nz-ButtonLabel e12ma6z1"
                     >
                       <Icon
                         hasChildren={false}
@@ -2379,6 +2384,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
+                                        align="center"
                                         borderless={true}
                                         disabled={false}
                                         onClick={[Function]}
@@ -2820,6 +2826,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         </Base>
       </Flex>
       <AddButton
+        align="center"
         disabled={false}
         icon="icon-circle-add"
         onClick={[Function]}
@@ -2827,6 +2834,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         size="small"
       >
         <Button
+          align="center"
           className="css-8nraqh-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
@@ -2860,16 +2868,18 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 size="small"
               >
                 <ButtonLabel
+                  align="center"
                   priority="primary"
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel e12ma6z1"
+                    align="center"
+                    className="css-1h693nz-ButtonLabel e12ma6z1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel e12ma6z1"
+                      className="css-1h693nz-ButtonLabel e12ma6z1"
                     >
                       <Icon
                         hasChildren={false}

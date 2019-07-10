@@ -89,7 +89,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(results, request.user))
 
     def post(self, request, organization):
-        serializer = OrganizationSearchSerializer(data=request.DATA)
+        serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

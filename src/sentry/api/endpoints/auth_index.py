@@ -99,7 +99,7 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        validator = AuthVerifyValidator(data=request.DATA)
+        validator = AuthVerifyValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -152,7 +152,7 @@ class AuthIndexEndpoint(Endpoint):
         Deauthenticate the currently active session. Can also deactivate
         all sessions for a user if the ``all`` parameter is sent.
         """
-        if request.DATA.get('all'):
+        if request.data.get('all'):
             # Rotate the session nonce to invalidate all other sessions.
             request.user.refresh_session_nonce()
             request.user.save()

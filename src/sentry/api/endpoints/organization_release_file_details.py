@@ -111,7 +111,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseFileSerializer(data=request.DATA)
+        serializer = ReleaseFileSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

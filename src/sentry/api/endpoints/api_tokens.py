@@ -34,7 +34,7 @@ class ApiTokensEndpoint(Endpoint):
         return Response(serialize(token_list, request.user))
 
     def post(self, request):
-        serializer = ApiTokenSerializer(data=request.DATA)
+        serializer = ApiTokenSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
@@ -59,7 +59,7 @@ class ApiTokensEndpoint(Endpoint):
         return Response(serializer.errors, status=400)
 
     def delete(self, request):
-        token = request.DATA.get('token')
+        token = request.data.get('token')
         if not token:
             return Response({'token': ''}, status=400)
 

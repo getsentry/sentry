@@ -133,7 +133,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :auth: required
         """
         serializer = ProjectOwnershipSerializer(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             context={'ownership': self.get_ownership(project)}
         )

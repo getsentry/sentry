@@ -30,7 +30,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
         )
 
     def delete(self, request):
-        authorization = request.DATA.get('authorization')
+        authorization = request.data.get('authorization')
         if not authorization:
             return Response({'authorization': ''}, status=400)
 

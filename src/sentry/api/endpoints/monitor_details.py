@@ -34,7 +34,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :auth: required
         """
         validator = MonitorValidator(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             instance={
                 'name': monitor.name,

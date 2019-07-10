@@ -33,7 +33,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission, )
 
     def put(self, request, organization):
-        serializer = OrganizationSearchSerializer(data=request.DATA)
+        serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
@@ -68,7 +68,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
 
     def delete(self, request, organization):
         try:
-            search_type = SearchType(int(request.DATA.get('type', 0)))
+            search_type = SearchType(int(request.data.get('type', 0)))
         except ValueError as e:
             return Response(
                 {'detail': 'Invalid input for `type`. Error: %s' % six.text_type(e)},

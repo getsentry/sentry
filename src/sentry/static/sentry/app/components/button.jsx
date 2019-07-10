@@ -12,7 +12,7 @@ import Tooltip from 'app/components/tooltip';
 class Button extends React.Component {
   static propTypes = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
+    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -40,6 +40,10 @@ class Button extends React.Component {
      */
     borderless: PropTypes.bool,
     /**
+     * Text aligment, takes justify-content properties.
+     */
+    align: PropTypes.oneOf(['center', 'left', 'right']),
+    /**
      * Label for screen-readers (`aria-label`).
      * `children` will be used by default (only if it is a string), but this property takes priority.
      */
@@ -54,6 +58,7 @@ class Button extends React.Component {
 
   static defaultProps = {
     disabled: false,
+    align: 'center',
   };
 
   // Intercept onClick and propagate
@@ -90,6 +95,7 @@ class Button extends React.Component {
       children,
       label,
       borderless,
+      align,
       priority,
       disabled,
       tooltipProps,
@@ -121,12 +127,19 @@ class Button extends React.Component {
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel size={size} priority={priority} borderless={borderless}>
+        <ButtonLabel
+          align={align}
+          size={size}
+          priority={priority}
+          borderless={borderless}
+        >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
                 src={icon}
-                size={size && size.endsWith('small') ? '12px' : '16px'}
+                size={
+                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '16px'
+                }
               />
             </Icon>
           )}
@@ -152,6 +165,7 @@ export default Button;
 
 const getFontSize = ({size, theme}) => {
   switch (size) {
+    case 'micro':
     case 'xsmall':
     case 'small':
       return theme.fontSizeSmall;
@@ -263,6 +277,7 @@ const getLabelPadding = ({size, priority, borderless}) => {
   }
 
   switch (size) {
+    case 'micro':
     case 'zero':
       return '0';
     case 'xsmall':
@@ -277,12 +292,13 @@ const getLabelPadding = ({size, priority, borderless}) => {
   }
 };
 
-const ButtonLabel = styled(({size, priority, borderless, ...props}) => (
+const ButtonLabel = styled(({size, priority, borderless, align, ...props}) => (
   <span {...props} />
 ))`
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
-  justify-content: center;
+  justify-content: ${p => p.align};
   padding: ${getLabelPadding};
 `;
 
