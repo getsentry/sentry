@@ -23,7 +23,7 @@ export function removeSentryApp(client, app) {
     },
     () => {
       clearIndicators();
-      addErrorMessage(t('Unable to remove %s application', app.slug));
+      addErrorMessage(t('Unable to remove %s integration', app.slug));
     }
   );
   return promise;

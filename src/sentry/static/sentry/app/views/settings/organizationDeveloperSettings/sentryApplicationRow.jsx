@@ -1,6 +1,7 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
+import omit from 'lodash/omit';
 
 import Access from 'app/components/acl/access';
 import BetaTag from 'app/components/betaTag';
@@ -78,9 +79,9 @@ export default class SentryApplicationRow extends React.PureComponent {
     return (
       <ButtonHolder>
         {this.renderDisabledPublishRequestButton(
-          'Published apps cannot be re-published.'
+          'Published integrations cannot be re-published.'
         )}
-        {this.renderDisabledRemoveButton('Published apps cannot be removed.')}
+        {this.renderDisabledRemoveButton('Published integrations cannot be removed.')}
       </ButtonHolder>
     );
   }
@@ -143,7 +144,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const {app, showPublishStatus, isInternal} = this.props;
     const isInstalled = this.isInstalled;
     if (isInternal) {
-      return <Status enabled isInternal />;
+      return <Status enabled isInternal={isInternal} />;
     }
     if (showPublishStatus) {
       return <PublishStatus status={app.status} />;
@@ -273,14 +274,16 @@ const StyledButton = styled(Button)`
 `;
 
 const Status = styled(
-  withTheme(({enabled, isInternal, ...props}) => {
+  withTheme(({enabled, ...props}) => {
+    //need to omit isInternal
+    const propsToPass = omit(props, ['isInternal']);
     return (
       <Flex align="center">
         <CircleIndicator
           size={6}
           color={enabled ? props.theme.success : props.theme.gray2}
         />
-        <div {...props}>{enabled ? t('Installed') : t('Not Installed')}</div>
+        <div {...propsToPass}>{enabled ? t('Installed') : t('Not Installed')}</div>
       </Flex>
     );
   })
