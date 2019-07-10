@@ -4,10 +4,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
-import InlineSvg from 'app/components/inlineSvg';
 import Confirm from 'app/components/confirm';
 
 const RichListProps = {
@@ -105,9 +105,7 @@ class RichList extends React.PureComponent {
 
   renderItem = (item, index) => {
     const removeIcon = (onClick = null) => (
-      <ItemIcon onClick={onClick}>
-        <InlineSvg src="icon-trash" size="12px" />
-      </ItemIcon>
+      <ItemButton onClick={onClick} size="micro" icon="icon-trash" borderless />
     );
 
     const removeConfirm = this.props.removeConfirm ? (
@@ -124,16 +122,17 @@ class RichList extends React.PureComponent {
     );
 
     return (
-      <Item size="small" key={index}>
-        <ItemLabel>
-          {this.props.renderItem(item)}
-          {this.props.onEditItem && (
-            <ItemIcon onClick={() => this.onEditItem(item, index)}>
-              <InlineSvg src="icon-settings" size="12px" />
-            </ItemIcon>
-          )}
-          {removeConfirm}
-        </ItemLabel>
+      <Item key={index}>
+        {this.props.renderItem(item)}
+        {this.props.onEditItem && (
+          <ItemButton
+            onClick={() => this.onEditItem(item, index)}
+            icon="icon-settings"
+            size="micro"
+            borderless
+          />
+        )}
+        {removeConfirm}
       </Item>
     );
   };
@@ -198,7 +197,8 @@ const ItemList = styled('ul')`
 `;
 
 const Item = styled('li')`
-  display: inline-block;
+  display: flex;
+  align-items: center;
   background-color: ${p => p.theme.button.default.background};
   border: 1px solid ${p => p.theme.button.default.border};
   border-radius: ${p => p.theme.button.borderRadius};
@@ -206,22 +206,18 @@ const Item = styled('li')`
   cursor: default;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  line-height: 1;
-  padding: 0;
+  line-height: ${p => p.theme.fontSizeSmall};
   text-transform: none;
   margin: 0 10px 5px 0;
-`;
-
-const ItemLabel = styled('div')`
-  padding: 8px 12px;
   white-space: nowrap;
+  padding: 8px 12px;
+  /* match adjacent elements */
+  height: 30px;
 `;
 
-const ItemIcon = styled('span')`
-  padding-left: 10px;
+const ItemButton = styled(Button)`
+  margin-left: 10px;
   color: ${p => p.theme.gray2};
-  cursor: pointer;
-
   &:hover {
     color: ${p => p.theme.button.default.color};
   }
