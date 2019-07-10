@@ -8,7 +8,12 @@ import SentryTypes from 'app/sentryTypes';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
-import {fetchTagDistribution, fetchTotalCount, getEventTagSearchUrl} from './utils';
+import {
+  fetchTagDistribution,
+  fetchTotalCount,
+  getEventTagSearchUrl,
+  getQuery,
+} from './utils';
 import {MODAL_QUERY_KEYS} from './data';
 
 class Tags extends React.Component {
@@ -61,7 +66,11 @@ class Tags extends React.Component {
     });
 
     try {
-      const totalValues = await fetchTotalCount(api, organization.slug, location.query);
+      const totalValues = await fetchTotalCount(
+        api,
+        organization.slug,
+        getQuery(view, location)
+      );
       this.setState({totalValues});
     } catch (err) {
       Sentry.captureException(err);
