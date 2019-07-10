@@ -5,7 +5,6 @@ import App from 'app/views/app';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
-import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
@@ -23,9 +22,6 @@ import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
-import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
-import ProjectInstallOverview from 'app/views/projectInstall/overview';
-import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
@@ -421,11 +417,19 @@ function routes() {
         />
       </Route>
       <Route path="install/" name="Configuration">
-        <IndexRoute component={errorHandler(ProjectInstallOverview)} />
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectInstallOverview" */ './views/projectInstall/overview')
+          }
+          component={errorHandler(LazyLoad)}
+        />
         <Route
           path=":platform/"
           name="Docs"
-          component={errorHandler(ProjectInstallPlatform)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectInstallPlatform" */ './views/projectInstall/platform')
+          }
+          component={errorHandler(LazyLoad)}
         />
       </Route>
     </React.Fragment>
@@ -642,7 +646,7 @@ function routes() {
 
       <Route
         path="/extensions/vsts/link/"
-        getComponent={(loc, cb) =>
+        getComponent={(_loc, cb) =>
           import(/* webpackChunkName: "VSTSOrganizationLink" */ './views/vstsOrganizationLink').then(
             lazyLoad(cb)
           )
@@ -783,7 +787,7 @@ function routes() {
       <Route component={errorHandler(OrganizationDetails)}>
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
           <IndexRoute
-            getComponent={(loc, cb) =>
+            getComponent={(_loc, cb) =>
               import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
                 lazyLoad(cb)
               )
@@ -793,7 +797,7 @@ function routes() {
           <Route
             path="account/"
             name="Account"
-            getComponent={(loc, cb) =>
+            getComponent={(_loc, cb) =>
               import(/* webpackChunkName: "AccountSettingsLayout" */ './views/settings/account/accountSettingsLayout').then(
                 lazyLoad(cb)
               )
@@ -804,7 +808,7 @@ function routes() {
 
           <Route name="Organization" path=":orgId/">
             <Route
-              getComponent={(loc, cb) =>
+              getComponent={(_loc, cb) =>
                 import(/* webpackChunkName: "OrganizationSettingsLayout" */ './views/settings/organization/organizationSettingsLayout').then(
                   lazyLoad(cb)
                 )
@@ -817,7 +821,7 @@ function routes() {
             <Route
               name="Project"
               path="projects/:projectId/"
-              getComponent={(loc, cb) =>
+              getComponent={(_loc, cb) =>
                 import(/* webpackChunkName: "ProjectSettingsLayout" */ './views/settings/project/projectSettingsLayout').then(
                   lazyLoad(cb)
                 )
@@ -952,13 +956,29 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
+
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
-            component={errorHandler(ProjectGettingStarted)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectGettingStarted" */ './views/projectInstall/gettingStarted')
+            }
+            component={errorHandler(LazyLoad)}
           >
-            <IndexRoute component={errorHandler(ProjectInstallOverview)} />
-            <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "ProjectInstallOverview" */ './views/projectInstall/overview')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path=":platform/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "ProjectInstallPlatform" */ './views/projectInstall/platform')
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
+
           <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
@@ -1168,7 +1188,10 @@ function routes() {
           </Route>
           <Route
             path="/organizations/:orgId/projects/new/"
-            component={errorHandler(NewProject)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "NewProject" */ './views/projectInstall/newProject')
+            }
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="/organizations/:orgId/projects/choose/"
@@ -1177,10 +1200,24 @@ function routes() {
         </Route>
         <Route
           path=":projectId/getting-started/"
-          component={errorHandler(ProjectGettingStarted)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectGettingStarted" */ './views/projectInstall/gettingStarted')
+          }
+          component={errorHandler(LazyLoad)}
         >
-          <IndexRoute component={errorHandler(ProjectInstallOverview)} />
-          <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectInstallOverview" */ './views/projectInstall/overview')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path=":platform/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectInstallPlatform" */ './views/projectInstall/platform')
+            }
+            component={errorHandler(LazyLoad)}
+          />
         </Route>
         <Route path=":projectId/">
           {/* Support for deprecated URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
