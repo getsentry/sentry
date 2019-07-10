@@ -49,7 +49,9 @@ const EventModalContent = props => {
         <EventInterfaces event={event} projectId={projectId} />
       </ContentColumn>
       <SidebarColumn>
-        {event.groupID && <LinkedIssuePreview groupId={event.groupID} />}
+        {event.groupID && (
+          <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+        )}
         <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
         <SidebarBlock>
           <TagsTable tags={event.tags} />
