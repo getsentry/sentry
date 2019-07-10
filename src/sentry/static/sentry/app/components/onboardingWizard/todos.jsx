@@ -95,10 +95,10 @@ const TASKS = [
           original untransformed form, which is particularly useful for debugging minified code.`
     ),
     skippable: true,
-    prereq: [1, 2], // Is one of the platforms javascript?
+    prereq: [1, 2],
     featureLocation: 'absolute',
     location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    display: true,
+    display: false,
   },
   {
     task: 8,
@@ -145,9 +145,9 @@ class TodoList extends React.Component {
 
   componentWillMount() {
     // Map server task state (who finished what) to TodoList.TASK objects
-    const org = this.props.organization;
+    const {organization} = this.props;
     const tasks = TASKS.map(task => {
-      for (const serverTask of org.onboardingTasks) {
+      for (const serverTask of organization.onboardingTasks) {
         if (serverTask.task === task.task) {
           Object.assign(task, serverTask);
           break;
@@ -155,7 +155,18 @@ class TodoList extends React.Component {
       }
       return task;
     });
+
+    if (this.hasJavascriptProject) {
+      const uploadSourceMaps = tasks[6];
+      uploadSourceMaps.display = true;
+    }
+
     this.setState({tasks});
+  }
+
+  get hasJavascriptProject() {
+    const {organization} = this.props;
+    return organization.projects.some(({platform}) => platform.includes('javascript'));
   }
 
   skipTask = skippedTask => {
