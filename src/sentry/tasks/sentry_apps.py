@@ -122,7 +122,7 @@ def send_alert_event(event, rule, sentry_app_id):
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
-    # The Event model has different hooks for the differenct types. The sender
+    # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
     if issubclass(model, EventCommon):
         if not kwargs.get('instance'):
