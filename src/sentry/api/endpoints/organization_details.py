@@ -319,7 +319,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         is_detailed = request.GET.get('detailed', '1') != '0'
-        serializer = org_serializers.DetailedOrganizationProjectsAndTeamsSerializer if is_detailed else org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+        serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams if is_detailed else org_serializers.DetailedOrganizationSerializer
         context = serialize(
             organization,
             request.user,
