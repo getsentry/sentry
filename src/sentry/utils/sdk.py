@@ -90,6 +90,10 @@ def configure_sdk():
         upstream_transport = make_transport(get_options(options))
 
     def capture_event(event):
+        if event.get('type') == 'transaction':
+            metrics.incr('internal.apm.events', skip_internal=False)
+            return
+
         # Make sure we log to upstream when available first
         if upstream_transport is not None:
             # TODO(mattrobenolt): Bring this back safely.
@@ -109,6 +113,7 @@ def configure_sdk():
             RustInfoIntegration(),
         ],
         transport=capture_event,
+        traces_sample_rate=1.0,
         **options
     )
 
