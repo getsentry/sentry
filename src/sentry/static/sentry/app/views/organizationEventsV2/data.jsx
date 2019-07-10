@@ -220,7 +220,9 @@ export const SPECIAL_FIELDS = {
               value={<StyledDateTime date={data.last_seen} />}
               fixed="time"
             />
-          ) : null}
+          ) : (
+            <span>{`n/a`}</span>
+          )}
         </Container>
       );
     },
