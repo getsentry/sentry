@@ -14,7 +14,6 @@ import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
-import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
 import IssueListContainer from 'app/views/issueList/container';
@@ -1111,7 +1110,7 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-          <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
+          <Route path="/organizations/:orgId/">
             <Redirect from="/organizations/:orgId/projects/" to="/:orgId/" />
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
