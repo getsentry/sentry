@@ -242,6 +242,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     className="pull-right"
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -254,6 +255,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                       Enable Plugin
                     </Button>
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -308,6 +310,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 className="pull-right"
                               >
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="small"
@@ -358,14 +361,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         }
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel e12ma6z1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel e12ma6z1"
                                             >
                                               Enable Plugin
                                             </span>
@@ -376,6 +381,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   </StyledButton>
                                 </Button>
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="small"
@@ -406,14 +412,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         size="small"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel e12ma6z1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel e12ma6z1"
                                             >
                                               Reset Configuration
                                             </span>

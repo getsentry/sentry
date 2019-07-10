@@ -238,6 +238,7 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-footer"
         >
           <Button
+            align="center"
             disabled={false}
             onClick={[Function]}
             style={
@@ -283,12 +284,15 @@ exports[`ConfirmDelete renders 1`] = `
                     }
                   }
                 >
-                  <ButtonLabel>
+                  <ButtonLabel
+                    align="center"
+                  >
                     <Component
-                      className="css-ga4b18-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Cancel
                       </span>
@@ -299,6 +303,7 @@ exports[`ConfirmDelete renders 1`] = `
             </StyledButton>
           </Button>
           <Button
+            align="center"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={true}
@@ -342,14 +347,16 @@ exports[`ConfirmDelete renders 1`] = `
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Confirm
                       </span>

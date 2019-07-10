@@ -1244,6 +1244,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
         </div>
         <div>
           <Button
+            align="center"
             disabled={false}
             external={true}
             href="https://status.sentry.io"
@@ -1293,14 +1294,16 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     target="_blank"
                   >
                     <ButtonLabel
+                      align="center"
                       size="small"
                     >
                       <Component
-                        className="css-7ui8bl-ButtonLabel e12ma6z1"
+                        align="center"
+                        className="css-1h693nz-ButtonLabel e12ma6z1"
                         size="small"
                       >
                         <span
-                          className="css-7ui8bl-ButtonLabel e12ma6z1"
+                          className="css-1h693nz-ButtonLabel e12ma6z1"
                         >
                           Learn more
                         </span>
@@ -1509,12 +1512,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -1550,14 +1555,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -1627,6 +1634,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -1669,14 +1677,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -1814,12 +1824,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -1855,14 +1867,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -1932,6 +1946,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -1974,14 +1989,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2117,12 +2134,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -2158,14 +2177,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2235,6 +2256,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -2277,14 +2299,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2424,12 +2448,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -2465,14 +2491,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2542,6 +2570,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -2584,14 +2613,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2733,12 +2764,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -2774,14 +2807,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2851,6 +2886,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -2893,14 +2929,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -3042,12 +3080,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -3083,14 +3123,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -3160,6 +3202,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -3202,14 +3245,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -3351,12 +3396,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
+                                    align="center"
                                     disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
                                     <Button
+                                      align="center"
                                       className="css-1q81x7o-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
@@ -3392,14 +3439,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              align="center"
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                align="center"
+                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -3469,6 +3518,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       </Header>
                                       <div>
                                         <Button
+                                          align="center"
                                           disabled={false}
                                           priority="link"
                                           to="/settings/org-slug/support/"
@@ -3511,14 +3561,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   style={Object {}}
                                                 >
                                                   <ButtonLabel
+                                                    align="center"
                                                     priority="link"
                                                   >
                                                     <Component
-                                                      className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                      align="center"
+                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-1dv6dtu-ButtonLabel e12ma6z1"
+                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
                                                       >
                                                         Go to Support
                                                       </span>

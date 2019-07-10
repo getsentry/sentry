@@ -123,11 +123,13 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </div>
     </RedirectionInfo>
     <StyledButton
+      align="center"
       disabled={false}
       onClick={[Function]}
       priority="success"
     >
       <Button
+        align="center"
         className="css-159raph-StyledButton ey7jt0i0"
         disabled={false}
         onClick={[Function]}
@@ -159,14 +161,16 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
               role="button"
             >
               <ButtonLabel
+                align="center"
                 priority="success"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                   priority="success"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Install
                   </span>
@@ -178,10 +182,12 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </Button>
     </StyledButton>
     <StyledButton
+      align="center"
       disabled={false}
       onClick={[MockFunction]}
     >
       <Button
+        align="center"
         className="css-159raph-StyledButton ey7jt0i0"
         disabled={false}
         onClick={[MockFunction]}
@@ -209,12 +215,15 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
               onClick={[Function]}
               role="button"
             >
-              <ButtonLabel>
+              <ButtonLabel
+                align="center"
+              >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Cancel
                   </span>
@@ -352,11 +361,13 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </div>
     </RedirectionInfo>
     <StyledButton
+      align="center"
       disabled={false}
       onClick={[Function]}
       priority="success"
     >
       <Button
+        align="center"
         className="css-159raph-StyledButton ey7jt0i0"
         disabled={false}
         onClick={[Function]}
@@ -388,14 +399,16 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
               role="button"
             >
               <ButtonLabel
+                align="center"
                 priority="success"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                   priority="success"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Install
                   </span>
@@ -407,10 +420,12 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </Button>
     </StyledButton>
     <StyledButton
+      align="center"
       disabled={false}
       onClick={[MockFunction]}
     >
       <Button
+        align="center"
         className="css-159raph-StyledButton ey7jt0i0"
         disabled={false}
         onClick={[MockFunction]}
@@ -438,12 +453,15 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
               onClick={[Function]}
               role="button"
             >
-              <ButtonLabel>
+              <ButtonLabel
+                align="center"
+              >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Cancel
                   </span>

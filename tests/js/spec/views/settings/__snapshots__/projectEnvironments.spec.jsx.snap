@@ -1320,11 +1320,13 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           >
                             <div>
                               <EnvironmentButton
+                                align="center"
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
                                 <Button
+                                  align="center"
                                   className="css-10adnmx-EnvironmentButton e1pnz46f0"
                                   disabled={false}
                                   onClick={[Function]}
@@ -1357,14 +1359,16 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                         size="xsmall"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="xsmall"
                                         >
                                           <Component
-                                            className="css-uthd1f-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-uthd1f-ButtonLabel e12ma6z1"
+                                              className="css-1bqncjo-ButtonLabel e12ma6z1"
                                             >
                                               Show
                                             </span>
