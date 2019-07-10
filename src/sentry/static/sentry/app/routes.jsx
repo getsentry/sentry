@@ -14,7 +14,6 @@ import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
-import OrganizationStats from 'app/views/organizationStats';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import ProjectChooser from 'app/views/projectChooser';
@@ -855,7 +854,10 @@ function routes() {
           />
           <Route
             path="/organizations/:orgId/stats/"
-            component={errorHandler(OrganizationStats)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationStats" */ './views/organizationStats')
+            }
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="/organizations/:orgId/activity/"
