@@ -865,6 +865,7 @@ exports[`Project Ownership Input renders 1`] = `
           </Base>
         </Flex>
         <AddButton
+          align="center"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -872,6 +873,7 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
+            align="center"
             className="css-8nraqh-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
@@ -911,16 +913,18 @@ exports[`Project Ownership Input renders 1`] = `
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                     size="small"
                   >
                     <Component
-                      className="css-7ui8bl-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-1h693nz-ButtonLabel e12ma6z1"
                       priority="primary"
                       size="small"
                     >
                       <span
-                        className="css-7ui8bl-ButtonLabel e12ma6z1"
+                        className="css-1h693nz-ButtonLabel e12ma6z1"
                       >
                         <Icon
                           hasChildren={false}
@@ -1048,6 +1052,7 @@ url:http://example.com/settings/* #product"
               className="css-5zvod-SaveButton en3n9di1"
             >
               <Button
+                align="center"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -1081,16 +1086,18 @@ url:http://example.com/settings/* #product"
                       size="small"
                     >
                       <ButtonLabel
+                        align="center"
                         priority="primary"
                         size="small"
                       >
                         <Component
-                          className="css-7ui8bl-ButtonLabel e12ma6z1"
+                          align="center"
+                          className="css-1h693nz-ButtonLabel e12ma6z1"
                           priority="primary"
                           size="small"
                         >
                           <span
-                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                            className="css-1h693nz-ButtonLabel e12ma6z1"
                           >
                             Save Changes
                           </span>

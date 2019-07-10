@@ -32,6 +32,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
           >
             <div>
               <Button
+                align="center"
                 disabled={false}
                 onClick={[Function]}
                 priority="success"
@@ -120,7 +121,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                           role="button"
                         >
                           <span
-                            class="css-7ui8bl-ButtonLabel e12ma6z1"
+                            class="css-1h693nz-ButtonLabel e12ma6z1"
                           >
                             Next
                              →
@@ -285,6 +286,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                             >
                               <div>
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   priority="success"
@@ -315,16 +317,18 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                         size="small"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           priority="success"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel e12ma6z1"
                                             priority="success"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel e12ma6z1"
                                             >
                                               Next
                                                →
@@ -388,6 +392,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
           >
             <div>
               <Button
+                align="center"
                 disabled={false}
                 onClick={[Function]}
                 priority="success"
@@ -459,7 +464,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                           role="button"
                         >
                           <span
-                            class="css-7ui8bl-ButtonLabel e12ma6z1"
+                            class="css-1h693nz-ButtonLabel e12ma6z1"
                           >
                             Done
                           </span>
@@ -581,6 +586,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                             >
                               <div>
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   priority="success"
@@ -614,16 +620,18 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                         size="small"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           priority="success"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel e12ma6z1"
                                             priority="success"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel e12ma6z1"
                                             >
                                               Done
                                             </span>

@@ -600,6 +600,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                   size="xsmall"
                                                 >
                                                   <Button
+                                                    align="center"
                                                     aria-label="Add Team"
                                                     className="css-13vimgs-StyledButton e1yghndz1"
                                                     disabled={true}
@@ -640,14 +641,16 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                           to={null}
                                                         >
                                                           <ButtonLabel
+                                                            align="center"
                                                             size="xsmall"
                                                           >
                                                             <Component
-                                                              className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                              align="center"
+                                                              className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                               >
                                                                 Add Team
                                                                 <StyledChevronDown>
@@ -744,6 +747,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
         </TeamSelect>
       </withApi(TeamSelect)>
       <Button
+        align="center"
         busy={false}
         className="invite-member-submit"
         disabled={false}
@@ -778,14 +782,16 @@ exports[`InviteMember should render roles when available and allowed, and handle
               role="button"
             >
               <ButtonLabel
+                align="center"
                 priority="primary"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                   priority="primary"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Add Member
                   </span>

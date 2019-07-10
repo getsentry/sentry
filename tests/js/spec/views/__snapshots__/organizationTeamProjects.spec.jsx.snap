@@ -198,6 +198,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             size="xsmall"
                                           >
                                             <Button
+                                              align="center"
                                               className="css-a2adl3-StyledButton e1yghndz1"
                                               disabled={false}
                                               innerRef={null}
@@ -228,14 +229,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <ButtonLabel
+                                                      align="center"
                                                       size="xsmall"
                                                     >
                                                       <Component
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                        align="center"
+                                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                                         >
                                                           Add Project
                                                           <StyledChevronDown>
@@ -606,6 +609,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -633,14 +637,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             size="small"
                           >
                             <ButtonLabel
+                              align="center"
                               size="small"
                             >
                               <Component
-                                className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                align="center"
+                                className="css-1h693nz-ButtonLabel e12ma6z1"
                                 size="small"
                               >
                                 <span
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel e12ma6z1"
                                 >
                                   <RemoveIcon>
                                     <Component
@@ -978,6 +984,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -1005,14 +1012,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             size="small"
                           >
                             <ButtonLabel
+                              align="center"
                               size="small"
                             >
                               <Component
-                                className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                align="center"
+                                className="css-1h693nz-ButtonLabel e12ma6z1"
                                 size="small"
                               >
                                 <span
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel e12ma6z1"
                                 >
                                   <RemoveIcon>
                                     <Component
