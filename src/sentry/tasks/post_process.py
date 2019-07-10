@@ -87,7 +87,7 @@ def _should_send_error_created_hooks(project):
 
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
-    platform = event.platform
+    platform = event.group.platform if event.group else event.platform
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
