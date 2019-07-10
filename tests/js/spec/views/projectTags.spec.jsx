@@ -3,7 +3,7 @@ import React from 'react';
 import $ from 'jquery';
 
 import {mount} from 'enzyme';
-import ProjectTags from 'app/views/projectTags';
+import ProjectTags from 'app/views/settings/projectTags';
 
 describe('ProjectTags', function() {
   let org, project, wrapper;
