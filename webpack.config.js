@@ -1,5 +1,8 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
+
+// SOMETHING EVIL
+
 const path = require('path');
 const fs = require('fs');
 const webpack = require('webpack');
