@@ -26,6 +26,23 @@ const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 
+// Deploy previews are built using netlify. We can check if we're in netlifys
+// build process by checking the existance of the PULL_REQUEST env var.
+//
+// See: https://www.netlify.com/docs/continuous-deployment/#environment-variables
+const DEPLOY_PREVIEW_CONFIG = env.PULL_REQUEST && {
+  commitRef: env.COMMIT_REF,
+  reviewId: env.REVIEW_ID,
+  repoUrl: env.REPOSITORY_URL,
+};
+
+// When deploy previews are enabled always enable experimental SPA mode --
+// deploy previews are served standalone. Otherwise fallback to the environment
+// configuration.
+const SENTRY_EXPERIMENTAL_SPA = !DEPLOY_PREVIEW_CONFIG
+  ? env.SENTRY_EXPERIMENTAL_SPA
+  : true;
+
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
@@ -252,6 +269,8 @@ const appConfig = {
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
+        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       },
     }),
     /**
@@ -367,7 +386,7 @@ if (USE_HOT_MODULE_RELOAD) {
     publicPath: '/_webpack',
     proxy: {'!/_webpack': backendAddress},
     before: app =>
-      app.use((req, res, next) => {
+      app.use((req, _res, next) => {
         req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
         next();
       }),
@@ -381,7 +400,7 @@ if (USE_HOT_MODULE_RELOAD) {
   //
   // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve
   // html views.
-  appConfig.devServer = !env.SENTRY_EXPERIMENTAL_SPA
+  appConfig.devServer = !SENTRY_EXPERIMENTAL_SPA
     ? appConfig.devServer
     : {
         ...appConfig.devServer,
