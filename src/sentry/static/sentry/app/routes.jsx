@@ -15,7 +15,6 @@ import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
-import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
@@ -309,7 +308,10 @@ function routes() {
       <Route
         path="debug-symbols/"
         name="Debug Information Files"
-        component={errorHandler(ProjectDebugFiles)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectDebugFiles" */ './views/settings/projectDebugFiles')
+        }
+        component={errorHandler(LazyLoad)}
       />
       <Route
         path="processing-issues/"

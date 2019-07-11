@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectDebugFiles from 'app/views/projectDebugFiles';
+import ProjectDebugFiles from 'app/views/settings/projectDebugFiles';
 
 const ENDPOINT = '/projects/org/project/files/dsyms/';
 
