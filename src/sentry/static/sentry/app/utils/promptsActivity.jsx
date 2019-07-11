@@ -4,10 +4,10 @@ import moment from 'moment';
  * Given a snoozed unix timestamp in seconds,
  * returns the number of days since the prompt was snoozed
  *
- * @param {Number} snoozed_ts Snoozed timestamp
+ * @param {Number} snoozedTs Snoozed timestamp
  */
-export function snoozedDays(snoozed_ts) {
+export function snoozedDays(snoozedTs) {
   const now = moment.utc();
-  const snoozedDay = moment.unix(snoozed_ts).utc();
+  const snoozedDay = moment.unix(snoozedTs).utc();
   return now.diff(snoozedDay, 'days');
 }

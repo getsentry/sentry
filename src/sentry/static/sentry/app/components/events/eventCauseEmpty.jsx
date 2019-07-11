@@ -2,13 +2,12 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import * as Sentry from '@sentry/browser';
 
 import Button from 'app/components/button';
+import codesworth from 'app/../images/codesworth.png';
 import CommitRow from 'app/components/commitRow';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
-import robotLogo from 'app/../images/robot-logo.png';
 import SentryTypes from 'app/sentryTypes';
 import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
@@ -16,9 +15,11 @@ import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
+const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
+
 const DUMMY_COMMIT = {
-  id: 'ff721e0',
-  author: {name: 'Uh/Oh'},
+  id: EXAMPLE_COMMITS[Math.floor(Math.random() * EXAMPLE_COMMITS.length)],
+  author: {name: 'codesworth'},
   dateCreated: moment()
     .subtract(3, 'day')
     .format(),
@@ -43,25 +44,18 @@ class EventCauseEmpty extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  async fetchData() {
     const {api, project, organization} = this.props;
 
-    api.request('/promptsactivity/', {
-      method: 'GET',
+    const data = await api.requestPromise('/promptsactivity/', {
       query: {
         project_id: project.id,
         organization_id: organization.id,
         feature: 'suspect_commits',
       },
-      success: data => {
-        this.setState({
-          shouldShow: this.shouldShow(data),
-        });
-      },
-      error: err => {
-        Sentry.captureException(err);
-      },
     });
+
+    this.setState({shouldShow: this.shouldShow(data)});
   }
 
   shouldShow({data} = {}) {
@@ -133,7 +127,7 @@ class EventCauseEmpty extends React.Component {
             <CommitRow
               key={DUMMY_COMMIT.id}
               commit={DUMMY_COMMIT}
-              customAvatar={robotLogo}
+              customAvatar={<CustomAvatar src={codesworth} />}
             />
           </Panel>
         </StyledPanel>
@@ -187,6 +181,13 @@ const SnoozeButton = styled(Button)`
 const DismissButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+`;
+
+const CustomAvatar = styled('img')`
+  height: 48px;
+  padding-right: 12px;
+  margin-top: -6px;
+  margin-bottom: -6px;
 `;
 
 export default withApi(EventCauseEmpty);

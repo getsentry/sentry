@@ -13,7 +13,7 @@ import TextOverflow from 'app/components/textOverflow';
 export default class CommitRow extends React.Component {
   static propTypes = {
     commit: PropTypes.object,
-    customAvatar: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    customAvatar: PropTypes.node,
   };
 
   renderMessage = message => {
@@ -32,13 +32,14 @@ export default class CommitRow extends React.Component {
 
     return (
       <PanelItem key={id} align="center">
-        <AvatarWrapper mr={2}>
-          {customAvatar ? (
-            <StyledAvatar src={customAvatar} />
-          ) : (
+        {customAvatar ? (
+          customAvatar
+        ) : (
+          <AvatarWrapper mr={2}>
             <Avatar size={36} user={author} />
-          )}
-        </AvatarWrapper>
+          </AvatarWrapper>
+        )}
+
         <Box flex="1" direction="column" style={{minWidth: 0}} mr={2}>
           <Message>{this.renderMessage(message)}</Message>
           <Meta>
@@ -58,10 +59,6 @@ export default class CommitRow extends React.Component {
 
 const AvatarWrapper = styled(Box)`
   align-self: flex-start;
-`;
-
-const StyledAvatar = styled('img')`
-  height: 36px;
 `;
 
 const Message = styled(TextOverflow)`

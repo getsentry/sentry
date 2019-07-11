@@ -142,7 +142,7 @@ class GroupEventDetails extends React.Component {
     fetchSentryAppComponents(api, orgSlug, projectId);
   };
 
-  get setupCommits() {
+  get hasSetupCommits() {
     const {setupReleases} = this.state;
     return setupReleases.some(({step, complete}) => step === 'commit' && complete);
   }
@@ -192,7 +192,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 project={project}
-                setupCommits={this.setupCommits}
+                showExampleCommit={!this.hasSetupCommits}
               />
             )}
           </div>

@@ -61,7 +61,7 @@ class EventEntries extends React.Component {
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
-    setupCommits: PropTypes.bool,
+    showExampleCommit: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -81,7 +81,7 @@ class EventEntries extends React.Component {
     this.recordIssueError(errorTypes, errorMessages);
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
   }
 
@@ -146,7 +146,7 @@ class EventEntries extends React.Component {
       project,
       event,
       orgId,
-      setupCommits,
+      showExampleCommit,
     } = this.props;
 
     const features = organization ? new Set(organization.features) : new Set();
@@ -166,10 +166,10 @@ class EventEntries extends React.Component {
       <div className="entries">
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
-          (setupCommits ? (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
-          ) : (
+          (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
+          ) : (
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
           ))}
         {event.userReport && (
           <StyledEventUserFeedback
