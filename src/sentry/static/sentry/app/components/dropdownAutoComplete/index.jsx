@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {Suspense} from 'react';
 import styled from 'react-emotion';
 
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
+const DropdownAutoCompleteMenu = React.lazy(() =>
+  import(/* webpackChunkName: "DropdownAutoCompleteMenu" */ './menu')
+);
 
 class DropdownAutoComplete extends React.Component {
   static propTypes = {
-    ...DropdownAutoCompleteMenu.propTypes,
-
     // Should clicking the actor toggle visibility?
     allowActorToggle: PropTypes.bool,
 
@@ -21,32 +21,44 @@ class DropdownAutoComplete extends React.Component {
   render() {
     const {children, allowActorToggle, ...props} = this.props;
 
-    return (
-      <DropdownAutoCompleteMenu {...props}>
-        {renderProps => {
-          // Don't pass `onClick` from `getActorProps`
-          const {
-            //eslint-disable-next-line no-unused-vars
-            onClick,
-            ...actorProps
-          } = renderProps.getActorProps({isStyled: true});
+    const FallbackActor = (
+      <Actor role="button" isDropdownDisabled>
+        {children({
+          getActorProps: () => ({
+            isDropdownDisabled: true,
+          }),
+        })}
+      </Actor>
+    );
 
-          return (
-            <Actor
-              isOpen={renderProps.isOpen}
-              role="button"
-              onClick={
-                renderProps.isOpen && allowActorToggle
-                  ? renderProps.actions.close
-                  : renderProps.actions.open
-              }
-              {...actorProps}
-            >
-              {children(renderProps)}
-            </Actor>
-          );
-        }}
-      </DropdownAutoCompleteMenu>
+    return (
+      <Suspense fallback={FallbackActor}>
+        <DropdownAutoCompleteMenu {...props}>
+          {renderProps => {
+            // Don't pass `onClick` from `getActorProps`
+            const {
+              //eslint-disable-next-line no-unused-vars
+              onClick,
+              ...actorProps
+            } = renderProps.getActorProps({isStyled: true});
+
+            return (
+              <Actor
+                isOpen={renderProps.isOpen}
+                role="button"
+                onClick={
+                  renderProps.isOpen && allowActorToggle
+                    ? renderProps.actions.close
+                    : renderProps.actions.open
+                }
+                {...actorProps}
+              >
+                {children(renderProps)}
+              </Actor>
+            );
+          }}
+        </DropdownAutoCompleteMenu>
+      </Suspense>
     );
   }
 }
