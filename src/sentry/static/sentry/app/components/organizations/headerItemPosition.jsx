@@ -1,6 +1,7 @@
 import styled from 'react-emotion';
-import {AutoCompleteRoot} from 'app/components/dropdownAutoCompleteMenu';
+
 import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/index';
+import AutoCompleteRoot from 'app/components/dropdownAutoComplete/autoCompleteRoot';
 
 const HeaderItemPosition = styled('div')`
   display: flex;

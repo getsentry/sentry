@@ -12,6 +12,8 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 
+import AutoCompleteRoot from './autoCompleteRoot';
+
 const ItemObjectPropType = {
   value: PropTypes.any,
   searchKey: PropTypes.string,
@@ -473,11 +475,6 @@ class DropdownAutoCompleteMenu extends React.Component {
   }
 }
 
-const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => <div {...props} />)`
-  position: relative;
-  display: inline-block;
-`;
-
 const InputLoadingWrapper = styled(Flex)`
   background: #fff;
   align-items: center;
@@ -583,5 +580,3 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 `;
 
 export default DropdownAutoCompleteMenu;
-
-export {AutoCompleteRoot};
