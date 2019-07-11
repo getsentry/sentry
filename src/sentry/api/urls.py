@@ -231,6 +231,7 @@ from .endpoints.sentry_app_components import (
 )
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
+from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.sentry_app_installation_external_issues import (
     SentryAppInstallationExternalIssuesEndpoint
@@ -359,7 +360,8 @@ urlpatterns = patterns(
     url(r'^monitors/', include([
         url(r'^(?P<monitor_id>[^\/]+)/$', MonitorDetailsEndpoint.as_view()),
         url(r'^(?P<monitor_id>[^\/]+)/checkins/$', MonitorCheckInsEndpoint.as_view()),
-        url(r'^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$', MonitorCheckInDetailsEndpoint.as_view()),
+        url(r'^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$',
+            MonitorCheckInDetailsEndpoint.as_view()),
         url(r'^(?P<monitor_id>[^\/]+)/stats/$', MonitorStatsEndpoint.as_view()),
     ])),
 
@@ -1436,7 +1438,11 @@ urlpatterns = patterns(
         SentryAppAuthorizationsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-authorizations'
     ),
-
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/publish-request/$',
+        SentryAppPublishRequestEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-publish-request'
+    ),
     # Grouping configs
     url(
         r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),
