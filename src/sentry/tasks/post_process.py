@@ -102,6 +102,16 @@ def _capture_stats(event, is_new):
     metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
     metrics.timing('events.size.data', event.size, tags=tags)
 
+    # This is an experiment to understand whether we have, in production,
+    # mismatches between event and group before we permanently rely on events
+    # for project and platform. before adding some more verbose logging ont this
+    # case, using a stats will give us a sense of the magnitude of the problem.
+    if event.group:
+        if event.group.platform != event.platform:
+            metrics.incr('events.platform_mismatch', tags=tags)
+        if event.group.project_id != event.project_id:
+            metrics.incr('events.project_mismatch')
+
 
 def check_event_already_post_processed(event):
     cluster_key = getattr(settings, 'SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER', None)
