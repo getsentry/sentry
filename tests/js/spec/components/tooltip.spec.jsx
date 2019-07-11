@@ -3,12 +3,22 @@ import {mount} from 'enzyme';
 import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {
-  it('renders', function() {
+  it('renders fallback', function() {
     const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
     );
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders full tooltip', function() {
+    const wrapper = mount(
+      <Tooltip title="test">
+        <span>My Button</span>
+      </Tooltip>
+    );
+    wrapper.update();
     expect(wrapper).toMatchSnapshot();
   });
 

@@ -285,71 +285,94 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 type="letter_avatar"
                 uploadPath="organization-avatar"
               >
-                <Tooltip
-                  containerDisplayMode="inline-block"
+                <TooltipSuspense
                   disabled={true}
-                  position="top"
                   title="org-slug"
                 >
-                  <StyledBaseAvatar
-                    className="avatar css-6su6fj"
-                    loaded={true}
-                    style={
-                      Object {
-                        "height": "36px",
-                        "width": "36px",
-                      }
+                  <Suspense
+                    fallback={
+                      <StyledBaseAvatar
+                        className="avatar css-6su6fj"
+                        loaded={true}
+                        style={
+                          Object {
+                            "height": "36px",
+                            "width": "36px",
+                          }
+                        }
+                      >
+                        <LetterAvatar
+                          displayName="org slug"
+                          identifier="org-slug"
+                        />
+                      </StyledBaseAvatar>
                     }
                   >
-                    <span
-                      className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "36px",
-                          "width": "36px",
-                        }
-                      }
+                    <Tooltip
+                      disabled={true}
+                      title="org-slug"
                     >
-                      <LetterAvatar
-                        displayName="org slug"
-                        identifier="org-slug"
+                      <StyledBaseAvatar
+                        className="avatar css-6su6fj"
+                        loaded={true}
+                        style={
+                          Object {
+                            "height": "36px",
+                            "width": "36px",
+                          }
+                        }
                       >
-                        <Svg
-                          viewBox="0 0 120 120"
+                        <span
+                          className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
+                          style={
+                            Object {
+                              "height": "36px",
+                              "width": "36px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-123ijso-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
+                          <LetterAvatar
+                            displayName="org slug"
+                            identifier="org-slug"
                           >
-                            <rect
-                              fill="#4674ca"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
-                              }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            <Svg
+                              viewBox="0 0 120 120"
                             >
-                              OS
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <svg
+                                className="css-123ijso-Svg e1knxa8x0"
+                                viewBox="0 0 120 120"
+                              >
+                                <rect
+                                  fill="#4674ca"
+                                  height="120"
+                                  rx="15"
+                                  ry="15"
+                                  width="120"
+                                  x="0"
+                                  y="0"
+                                />
+                                <text
+                                  fill="#FFFFFF"
+                                  fontSize="65"
+                                  style={
+                                    Object {
+                                      "dominantBaseline": "central",
+                                    }
+                                  }
+                                  textAnchor="middle"
+                                  x="50%"
+                                  y="50%"
+                                >
+                                  OS
+                                </text>
+                              </svg>
+                            </Svg>
+                          </LetterAvatar>
+                        </span>
+                      </StyledBaseAvatar>
+                    </Tooltip>
+                  </Suspense>
+                </TooltipSuspense>
               </BaseAvatar>
             </OrganizationAvatar>
           </Avatar>
@@ -755,74 +778,99 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
+                                    <TooltipSuspense
                                       disabled={true}
-                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
-                                      <StyledBaseAvatar
-                                        className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
-                                        loaded={true}
-                                        round={true}
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
+                                      <Suspense
+                                        fallback={
+                                          <StyledBaseAvatar
+                                            className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                            loaded={true}
+                                            round={true}
+                                            style={
+                                              Object {
+                                                "height": "32px",
+                                                "width": "32px",
+                                              }
+                                            }
+                                          >
+                                            <LetterAvatar
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
+                                              round={true}
+                                            />
+                                          </StyledBaseAvatar>
                                         }
                                       >
-                                        <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "32px",
-                                              "width": "32px",
-                                            }
-                                          }
+                                        <Tooltip
+                                          disabled={true}
+                                          title="Foo Bar (foo@example.com)"
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
+                                          <StyledBaseAvatar
+                                            className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                            loaded={true}
                                             round={true}
+                                            style={
+                                              Object {
+                                                "height": "32px",
+                                                "width": "32px",
+                                              }
+                                            }
                                           >
-                                            <Svg
-                                              round={true}
-                                              viewBox="0 0 120 120"
+                                            <span
+                                              className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                              style={
+                                                Object {
+                                                  "height": "32px",
+                                                  "width": "32px",
+                                                }
+                                              }
                                             >
-                                              <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
+                                              <LetterAvatar
+                                                displayName="Foo Bar"
+                                                identifier="foo@example.com"
+                                                round={true}
                                               >
-                                                <rect
-                                                  fill="#315cac"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
+                                                <Svg
+                                                  round={true}
+                                                  viewBox="0 0 120 120"
                                                 >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
+                                                  <svg
+                                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                                    viewBox="0 0 120 120"
+                                                  >
+                                                    <rect
+                                                      fill="#315cac"
+                                                      height="120"
+                                                      rx="15"
+                                                      ry="15"
+                                                      width="120"
+                                                      x="0"
+                                                      y="0"
+                                                    />
+                                                    <text
+                                                      fill="#FFFFFF"
+                                                      fontSize="65"
+                                                      style={
+                                                        Object {
+                                                          "dominantBaseline": "central",
+                                                        }
+                                                      }
+                                                      textAnchor="middle"
+                                                      x="50%"
+                                                      y="50%"
+                                                    >
+                                                      FB
+                                                    </text>
+                                                  </svg>
+                                                </Svg>
+                                              </LetterAvatar>
+                                            </span>
+                                          </StyledBaseAvatar>
+                                        </Tooltip>
+                                      </Suspense>
+                                    </TooltipSuspense>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -3818,25 +3866,35 @@ exports[`Sidebar renders without org and router 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
+                                    <TooltipSuspense
                                       disabled={true}
-                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
-                                      <StyledBaseAvatar
-                                        className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
-                                        loaded={true}
-                                        round={true}
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
+                                      <Suspense
+                                        fallback={
+                                          <StyledBaseAvatar
+                                            className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                            loaded={true}
+                                            round={true}
+                                            style={
+                                              Object {
+                                                "height": "32px",
+                                                "width": "32px",
+                                              }
+                                            }
+                                          >
+                                            <LetterAvatar
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
+                                              round={true}
+                                            />
+                                          </StyledBaseAvatar>
                                         }
                                       >
-                                        <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                        <StyledBaseAvatar
+                                          className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                          loaded={true}
+                                          round={true}
                                           style={
                                             Object {
                                               "height": "32px",
@@ -3844,48 +3902,58 @@ exports[`Sidebar renders without org and router 1`] = `
                                             }
                                           }
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
-                                            round={true}
+                                          <span
+                                            className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                            style={
+                                              Object {
+                                                "height": "32px",
+                                                "width": "32px",
+                                              }
+                                            }
                                           >
-                                            <Svg
+                                            <LetterAvatar
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
                                               round={true}
-                                              viewBox="0 0 120 120"
                                             >
-                                              <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                              <Svg
+                                                round={true}
                                                 viewBox="0 0 120 120"
                                               >
-                                                <rect
-                                                  fill="#315cac"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
+                                                <svg
+                                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                                  viewBox="0 0 120 120"
                                                 >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
+                                                  <rect
+                                                    fill="#315cac"
+                                                    height="120"
+                                                    rx="15"
+                                                    ry="15"
+                                                    width="120"
+                                                    x="0"
+                                                    y="0"
+                                                  />
+                                                  <text
+                                                    fill="#FFFFFF"
+                                                    fontSize="65"
+                                                    style={
+                                                      Object {
+                                                        "dominantBaseline": "central",
+                                                      }
+                                                    }
+                                                    textAnchor="middle"
+                                                    x="50%"
+                                                    y="50%"
+                                                  >
+                                                    FB
+                                                  </text>
+                                                </svg>
+                                              </Svg>
+                                            </LetterAvatar>
+                                          </span>
+                                        </StyledBaseAvatar>
+                                      </Suspense>
+                                    </TooltipSuspense>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

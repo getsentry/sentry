@@ -84,7 +84,7 @@ class Tooltip extends React.Component {
     this.setState({isOpen: true});
   };
 
-  handleOpen = evt => {
+  handleOpen = () => {
     const {delay} = this.props;
 
     if (delay) {
@@ -94,7 +94,7 @@ class Tooltip extends React.Component {
     }
   };
 
-  handleClose = evt => {
+  handleClose = () => {
     this.setState({isOpen: false});
 
     if (this.delayTimeout) {

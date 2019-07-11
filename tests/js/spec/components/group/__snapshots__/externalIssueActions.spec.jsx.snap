@@ -129,7 +129,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
       <div
         className="css-lh3vnw-IssueSyncListElementContainer e1vaar1z0"
       >
-        <Hovercard
+        <HovercardSuspense
           body={
             <IntegrationItem
               integration={
@@ -153,65 +153,64 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             />
           }
           containerClassName="css-2jp7uo-hoverCardContainer"
-          displayTimeout={100}
           header="Linked GitHub Integration"
-          position="top"
         >
-          <Manager>
-            <Reference>
-              <InnerReference
-                setReferenceNode={[Function]}
-              >
-                <span
-                  aria-describedby="hovercard-123456"
-                  className="css-2jp7uo-hoverCardContainer"
-                  onMouseEnter={[Function]}
-                  onMouseLeave={[Function]}
+          <Suspense
+            fallback={
+              Array [
+                <IntegrationIcon
+                  src="icon-github"
+                />,
+                <IntegrationLink
+                  href={null}
+                  onClick={[Function]}
                 >
-                  <IntegrationIcon
-                    src="icon-github"
+                  Link GitHub Issue
+                </IntegrationLink>,
+              ]
+            }
+          >
+            <IntegrationIcon
+              src="icon-github"
+            >
+              <InlineSvg
+                className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                src="icon-github"
+              >
+                <StyledSvg
+                  className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                  height="1em"
+                  viewBox={Object {}}
+                  width="1em"
+                >
+                  <svg
+                    className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
                   >
-                    <InlineSvg
-                      className="css-jn9d7y-IntegrationIcon e1vaar1z1"
-                      src="icon-github"
-                    >
-                      <StyledSvg
-                        className="css-jn9d7y-IntegrationIcon e1vaar1z1"
-                        height="1em"
-                        viewBox={Object {}}
-                        width="1em"
-                      >
-                        <svg
-                          className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
-                          height="1em"
-                          viewBox={Object {}}
-                          width="1em"
-                        >
-                          <use
-                            href="#test"
-                            xlinkHref="#test"
-                          />
-                        </svg>
-                      </StyledSvg>
-                    </InlineSvg>
-                  </IntegrationIcon>
-                  <IntegrationLink
-                    href={null}
-                    onClick={[Function]}
-                  >
-                    <a
-                      className="css-1g8yzea-IntegrationLink e1vaar1z2"
-                      href={null}
-                      onClick={[Function]}
-                    >
-                      Link GitHub Issue
-                    </a>
-                  </IntegrationLink>
-                </span>
-              </InnerReference>
-            </Reference>
-          </Manager>
-        </Hovercard>
+                    <use
+                      href="#test"
+                      xlinkHref="#test"
+                    />
+                  </svg>
+                </StyledSvg>
+              </InlineSvg>
+            </IntegrationIcon>
+            <IntegrationLink
+              href={null}
+              onClick={[Function]}
+            >
+              <a
+                className="css-1g8yzea-IntegrationLink e1vaar1z2"
+                href={null}
+                onClick={[Function]}
+              >
+                Link GitHub Issue
+              </a>
+            </IntegrationLink>
+          </Suspense>
+        </HovercardSuspense>
         <OpenCloseIcon
           isLinked={null}
           onClick={[Function]}

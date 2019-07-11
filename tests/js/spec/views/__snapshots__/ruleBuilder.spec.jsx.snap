@@ -791,8 +791,7 @@ exports[`RuleBuilder renders 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip
-                                        containerDisplayMode="inline-block"
+                                      <TooltipSuspense
                                         position="left"
                                         title="#team-not-in-project is not a member of project"
                                       >
@@ -807,11 +806,9 @@ exports[`RuleBuilder renders 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip>
+                                      </TooltipSuspense>
                                     </DisabledLabel>
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      position="top"
+                                    <TooltipSuspense
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
@@ -825,7 +822,7 @@ exports[`RuleBuilder renders 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip>
+                                    </TooltipSuspense>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -838,8 +835,7 @@ exports[`RuleBuilder renders 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
+                                    <TooltipSuspense
                                       position="left"
                                       title="John Smith is not a member of project"
                                     >
@@ -855,7 +851,7 @@ exports[`RuleBuilder renders 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip>
+                                    </TooltipSuspense>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
@@ -2360,8 +2356,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip
-                                        containerDisplayMode="inline-block"
+                                      <TooltipSuspense
                                         position="left"
                                         title="#team-not-in-project is not a member of project"
                                       >
@@ -2376,11 +2371,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip>
+                                      </TooltipSuspense>
                                     </DisabledLabel>
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      position="top"
+                                    <TooltipSuspense
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
@@ -2394,7 +2387,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip>
+                                    </TooltipSuspense>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -2407,8 +2400,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
+                                    <TooltipSuspense
                                       position="left"
                                       title="John Smith is not a member of project"
                                     >
@@ -2424,7 +2416,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip>
+                                    </TooltipSuspense>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
@@ -2621,101 +2613,126 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               type="letter_avatar"
                                               uploadPath="avatar"
                                             >
-                                              <Tooltip
-                                                containerDisplayMode="inline-block"
+                                              <TooltipSuspense
                                                 disabled={false}
-                                                position="top"
                                                 title="Jane Doe (janedoe@example.com)"
                                               >
-                                                <Manager>
-                                                  <Reference>
-                                                    <InnerReference
-                                                      setReferenceNode={[Function]}
+                                                <Suspense
+                                                  fallback={
+                                                    <StyledBaseAvatar
+                                                      className="avatar"
+                                                      loaded={true}
+                                                      round={true}
+                                                      style={
+                                                        Object {
+                                                          "height": "28px",
+                                                          "width": "28px",
+                                                        }
+                                                      }
                                                     >
-                                                      <Container
-                                                        aria-describedby="tooltip-123456"
-                                                        containerDisplayMode="inline-block"
-                                                        innerRef={[Function]}
-                                                        onBlur={[Function]}
-                                                        onFocus={[Function]}
-                                                        onMouseEnter={[Function]}
-                                                        onMouseLeave={[Function]}
-                                                      >
-                                                        <span
-                                                          aria-describedby="tooltip-123456"
-                                                          className="css-1m3e0hg-Container erna86q0"
-                                                          onBlur={[Function]}
-                                                          onFocus={[Function]}
-                                                          onMouseEnter={[Function]}
-                                                          onMouseLeave={[Function]}
+                                                      <LetterAvatar
+                                                        displayName="Jane Doe"
+                                                        identifier="janedoe@example.com"
+                                                        round={true}
+                                                      />
+                                                    </StyledBaseAvatar>
+                                                  }
+                                                >
+                                                  <Tooltip
+                                                    disabled={false}
+                                                    title="Jane Doe (janedoe@example.com)"
+                                                  >
+                                                    <Manager>
+                                                      <Reference>
+                                                        <InnerReference
+                                                          setReferenceNode={[Function]}
                                                         >
-                                                          <StyledBaseAvatar
-                                                            className="avatar"
-                                                            loaded={true}
-                                                            round={true}
-                                                            style={
-                                                              Object {
-                                                                "height": "28px",
-                                                                "width": "28px",
-                                                              }
-                                                            }
+                                                          <Container
+                                                            aria-describedby="tooltip-123456"
+                                                            containerDisplayMode="inline-block"
+                                                            innerRef={[Function]}
+                                                            onBlur={[Function]}
+                                                            onFocus={[Function]}
+                                                            onMouseEnter={[Function]}
+                                                            onMouseLeave={[Function]}
                                                           >
                                                             <span
-                                                              className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                                                              style={
-                                                                Object {
-                                                                  "height": "28px",
-                                                                  "width": "28px",
-                                                                }
-                                                              }
+                                                              aria-describedby="tooltip-123456"
+                                                              className="css-1m3e0hg-Container ere8h410"
+                                                              onBlur={[Function]}
+                                                              onFocus={[Function]}
+                                                              onMouseEnter={[Function]}
+                                                              onMouseLeave={[Function]}
                                                             >
-                                                              <LetterAvatar
-                                                                displayName="Jane Doe"
-                                                                identifier="janedoe@example.com"
+                                                              <StyledBaseAvatar
+                                                                className="avatar"
+                                                                loaded={true}
                                                                 round={true}
+                                                                style={
+                                                                  Object {
+                                                                    "height": "28px",
+                                                                    "width": "28px",
+                                                                  }
+                                                                }
                                                               >
-                                                                <Svg
-                                                                  round={true}
-                                                                  viewBox="0 0 120 120"
+                                                                <span
+                                                                  className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                                                  style={
+                                                                    Object {
+                                                                      "height": "28px",
+                                                                      "width": "28px",
+                                                                    }
+                                                                  }
                                                                 >
-                                                                  <svg
-                                                                    className="css-1r4mnb9-Svg e1knxa8x0"
-                                                                    viewBox="0 0 120 120"
+                                                                  <LetterAvatar
+                                                                    displayName="Jane Doe"
+                                                                    identifier="janedoe@example.com"
+                                                                    round={true}
                                                                   >
-                                                                    <rect
-                                                                      fill="#f868bc"
-                                                                      height="120"
-                                                                      rx="15"
-                                                                      ry="15"
-                                                                      width="120"
-                                                                      x="0"
-                                                                      y="0"
-                                                                    />
-                                                                    <text
-                                                                      fill="#FFFFFF"
-                                                                      fontSize="65"
-                                                                      style={
-                                                                        Object {
-                                                                          "dominantBaseline": "central",
-                                                                        }
-                                                                      }
-                                                                      textAnchor="middle"
-                                                                      x="50%"
-                                                                      y="50%"
+                                                                    <Svg
+                                                                      round={true}
+                                                                      viewBox="0 0 120 120"
                                                                     >
-                                                                      JD
-                                                                    </text>
-                                                                  </svg>
-                                                                </Svg>
-                                                              </LetterAvatar>
+                                                                      <svg
+                                                                        className="css-1r4mnb9-Svg e1knxa8x0"
+                                                                        viewBox="0 0 120 120"
+                                                                      >
+                                                                        <rect
+                                                                          fill="#f868bc"
+                                                                          height="120"
+                                                                          rx="15"
+                                                                          ry="15"
+                                                                          width="120"
+                                                                          x="0"
+                                                                          y="0"
+                                                                        />
+                                                                        <text
+                                                                          fill="#FFFFFF"
+                                                                          fontSize="65"
+                                                                          style={
+                                                                            Object {
+                                                                              "dominantBaseline": "central",
+                                                                            }
+                                                                          }
+                                                                          textAnchor="middle"
+                                                                          x="50%"
+                                                                          y="50%"
+                                                                        >
+                                                                          JD
+                                                                        </text>
+                                                                      </svg>
+                                                                    </Svg>
+                                                                  </LetterAvatar>
+                                                                </span>
+                                                              </StyledBaseAvatar>
                                                             </span>
-                                                          </StyledBaseAvatar>
-                                                        </span>
-                                                      </Container>
-                                                    </InnerReference>
-                                                  </Reference>
-                                                </Manager>
-                                              </Tooltip>
+                                                          </Container>
+                                                        </InnerReference>
+                                                      </Reference>
+                                                    </Manager>
+                                                  </Tooltip>
+                                                </Suspense>
+                                              </TooltipSuspense>
                                             </BaseAvatar>
                                           </UserAvatar>
                                         </Avatar>

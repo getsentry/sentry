@@ -15,8 +15,7 @@ exports[`ProjectTeams renders 1`] = `
       menuHeader={
         <StyledTeamsLabel>
           Teams
-          <Tooltip
-            containerDisplayMode="inline-block"
+          <TooltipSuspense
             disabled={true}
             position="top"
             title="You must be a project admin to create teams"
@@ -27,7 +26,7 @@ exports[`ProjectTeams renders 1`] = `
             >
               Create Team
             </StyledCreateTeamLink>
-          </Tooltip>
+          </TooltipSuspense>
         </StyledTeamsLabel>
       }
       onAddTeam={[Function]}

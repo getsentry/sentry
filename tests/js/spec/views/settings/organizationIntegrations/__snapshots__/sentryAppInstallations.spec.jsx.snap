@@ -160,76 +160,59 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         >
                           Sample App
                           <BetaTag>
-                            <Tooltip
-                              containerDisplayMode="inline-block"
+                            <TooltipSuspense
                               position="right"
                               title="This feature is in beta and may change in the future."
                             >
-                              <Manager>
-                                <Reference>
-                                  <InnerReference
-                                    setReferenceNode={[Function]}
+                              <Suspense
+                                fallback={
+                                  <StyledTag
+                                    priority="beta"
+                                    size="small"
                                   >
-                                    <Container
-                                      aria-describedby="tooltip-123456"
-                                      containerDisplayMode="inline-block"
-                                      innerRef={[Function]}
-                                      onBlur={[Function]}
-                                      onFocus={[Function]}
-                                      onMouseEnter={[Function]}
-                                      onMouseLeave={[Function]}
+                                    beta
+                                  </StyledTag>
+                                }
+                              >
+                                <StyledTag
+                                  priority="beta"
+                                  size="small"
+                                >
+                                  <Tag
+                                    className="css-f9iwbc-StyledTag e1xs0x250"
+                                    priority="beta"
+                                    size="small"
+                                  >
+                                    <TagTextStyled
+                                      className="css-f9iwbc-StyledTag e1xs0x250"
+                                      priority="beta"
+                                      size="small"
                                     >
-                                      <span
-                                        aria-describedby="tooltip-123456"
-                                        className="css-1m3e0hg-Container erna86q0"
-                                        onBlur={[Function]}
-                                        onFocus={[Function]}
-                                        onMouseEnter={[Function]}
-                                        onMouseLeave={[Function]}
+                                      <Component
+                                        className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                        priority="beta"
+                                        size="small"
                                       >
-                                        <StyledTag
-                                          priority="beta"
-                                          size="small"
+                                        <Box
+                                          className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
                                         >
-                                          <Tag
-                                            className="css-f9iwbc-StyledTag e1xs0x250"
-                                            priority="beta"
-                                            size="small"
+                                          <Base
+                                            className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
                                           >
-                                            <TagTextStyled
-                                              className="css-f9iwbc-StyledTag e1xs0x250"
-                                              priority="beta"
-                                              size="small"
+                                            <div
+                                              className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                              is={null}
                                             >
-                                              <Component
-                                                className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                                priority="beta"
-                                                size="small"
-                                              >
-                                                <Box
-                                                  className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                                >
-                                                  <Base
-                                                    className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                                  >
-                                                    <div
-                                                      className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                                      is={null}
-                                                    >
-                                                      beta
-                                                    </div>
-                                                  </Base>
-                                                </Box>
-                                              </Component>
-                                            </TagTextStyled>
-                                          </Tag>
-                                        </StyledTag>
-                                      </span>
-                                    </Container>
-                                  </InnerReference>
-                                </Reference>
-                              </Manager>
-                            </Tooltip>
+                                              beta
+                                            </div>
+                                          </Base>
+                                        </Box>
+                                      </Component>
+                                    </TagTextStyled>
+                                  </Tag>
+                                </StyledTag>
+                              </Suspense>
+                            </TooltipSuspense>
                           </BetaTag>
                         </div>
                       </SentryAppName>

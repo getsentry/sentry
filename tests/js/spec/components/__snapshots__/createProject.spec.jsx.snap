@@ -58,9 +58,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             placeholder="Select a Team"
             value={0}
           />
-          <Tooltip
-            containerDisplayMode="inline-block"
-            position="top"
+          <TooltipSuspense
             title="Create a team"
           >
             <Button
@@ -72,7 +70,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
               onClick={[Function]}
               type="button"
             />
-          </Tooltip>
+          </TooltipSuspense>
         </TeamSelectInput>
       </div>
       <div>
@@ -1471,136 +1469,152 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
+              <TooltipSuspense
                 title="Create a team"
               >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        innerRef={[Function]}
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container erna86q0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                <Suspense
+                  fallback={
+                    <Button
+                      align="center"
+                      borderless={true}
+                      data-test-id="create-team"
+                      disabled={false}
+                      icon="icon-circle-add"
+                      onClick={[Function]}
+                      type="button"
+                    />
+                  }
+                >
+                  <Tooltip
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <Button
-                            align="center"
-                            borderless={true}
-                            data-test-id="create-team"
-                            disabled={false}
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            innerRef={[Function]}
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <StyledButton
-                              aria-disabled={false}
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              onClick={[Function]}
-                              role="button"
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-1m3e0hg-Container ere8h410"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <ForwardRef
-                                aria-disabled={false}
+                              <Button
+                                align="center"
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <button
+                                <StyledButton
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   type="button"
                                 >
-                                  <ButtonLabel
-                                    align="center"
+                                  <ForwardRef
+                                    aria-disabled={false}
                                     borderless={true}
+                                    className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                    data-test-id="create-team"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    type="button"
                                   >
-                                    <Component
-                                      align="center"
-                                      borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                    <button
+                                      aria-disabled={false}
+                                      className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                      data-test-id="create-team"
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      <ButtonLabel
+                                        align="center"
+                                        borderless={true}
                                       >
-                                        <Icon
-                                          hasChildren={false}
+                                        <Component
+                                          align="center"
+                                          borderless={true}
+                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                         >
-                                          <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
-                                            hasChildren={false}
+                                          <span
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           >
-                                            <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                            <Icon
+                                              hasChildren={false}
                                             >
-                                              <StyledInlineSvg
-                                                size="16px"
-                                                src="icon-circle-add"
+                                              <Component
+                                                className="css-ljhpxy-Icon e12ma6z2"
+                                                hasChildren={false}
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                  size="16px"
-                                                  src="icon-circle-add"
+                                                <span
+                                                  className="css-ljhpxy-Icon e12ma6z2"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                    height="16px"
-                                                    viewBox={Object {}}
-                                                    width="16px"
+                                                  <StyledInlineSvg
+                                                    size="16px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
+                                                    <InlineSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                      size="16px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </ForwardRef>
-                            </StyledButton>
-                          </Button>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <StyledSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                        height="16px"
+                                                        viewBox={Object {}}
+                                                        width="16px"
+                                                      >
+                                                        <svg
+                                                          className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                          height="16px"
+                                                          viewBox={Object {}}
+                                                          width="16px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </StyledSvg>
+                                                    </InlineSvg>
+                                                  </StyledInlineSvg>
+                                                </span>
+                                              </Component>
+                                            </Icon>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </ForwardRef>
+                                </StyledButton>
+                              </Button>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </Suspense>
+              </TooltipSuspense>
             </div>
           </TeamSelectInput>
         </div>
@@ -2461,136 +2475,152 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
+              <TooltipSuspense
                 title="Create a team"
               >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        innerRef={[Function]}
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container erna86q0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                <Suspense
+                  fallback={
+                    <Button
+                      align="center"
+                      borderless={true}
+                      data-test-id="create-team"
+                      disabled={false}
+                      icon="icon-circle-add"
+                      onClick={[Function]}
+                      type="button"
+                    />
+                  }
+                >
+                  <Tooltip
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <Button
-                            align="center"
-                            borderless={true}
-                            data-test-id="create-team"
-                            disabled={false}
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            innerRef={[Function]}
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <StyledButton
-                              aria-disabled={false}
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              onClick={[Function]}
-                              role="button"
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-1m3e0hg-Container ere8h410"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <ForwardRef
-                                aria-disabled={false}
+                              <Button
+                                align="center"
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <button
+                                <StyledButton
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   type="button"
                                 >
-                                  <ButtonLabel
-                                    align="center"
+                                  <ForwardRef
+                                    aria-disabled={false}
                                     borderless={true}
+                                    className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                    data-test-id="create-team"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    type="button"
                                   >
-                                    <Component
-                                      align="center"
-                                      borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                    <button
+                                      aria-disabled={false}
+                                      className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                      data-test-id="create-team"
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      <ButtonLabel
+                                        align="center"
+                                        borderless={true}
                                       >
-                                        <Icon
-                                          hasChildren={false}
+                                        <Component
+                                          align="center"
+                                          borderless={true}
+                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                         >
-                                          <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
-                                            hasChildren={false}
+                                          <span
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           >
-                                            <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                            <Icon
+                                              hasChildren={false}
                                             >
-                                              <StyledInlineSvg
-                                                size="16px"
-                                                src="icon-circle-add"
+                                              <Component
+                                                className="css-ljhpxy-Icon e12ma6z2"
+                                                hasChildren={false}
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                  size="16px"
-                                                  src="icon-circle-add"
+                                                <span
+                                                  className="css-ljhpxy-Icon e12ma6z2"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                    height="16px"
-                                                    viewBox={Object {}}
-                                                    width="16px"
+                                                  <StyledInlineSvg
+                                                    size="16px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
+                                                    <InlineSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                      size="16px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </ForwardRef>
-                            </StyledButton>
-                          </Button>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <StyledSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                        height="16px"
+                                                        viewBox={Object {}}
+                                                        width="16px"
+                                                      >
+                                                        <svg
+                                                          className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                          height="16px"
+                                                          viewBox={Object {}}
+                                                          width="16px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </StyledSvg>
+                                                    </InlineSvg>
+                                                  </StyledInlineSvg>
+                                                </span>
+                                              </Component>
+                                            </Icon>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </ForwardRef>
+                                </StyledButton>
+                              </Button>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </Suspense>
+              </TooltipSuspense>
             </div>
           </TeamSelectInput>
         </div>
@@ -4151,136 +4181,152 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
+              <TooltipSuspense
                 title="Create a team"
               >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        innerRef={[Function]}
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container erna86q0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                <Suspense
+                  fallback={
+                    <Button
+                      align="center"
+                      borderless={true}
+                      data-test-id="create-team"
+                      disabled={false}
+                      icon="icon-circle-add"
+                      onClick={[Function]}
+                      type="button"
+                    />
+                  }
+                >
+                  <Tooltip
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <Button
-                            align="center"
-                            borderless={true}
-                            data-test-id="create-team"
-                            disabled={false}
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            innerRef={[Function]}
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <StyledButton
-                              aria-disabled={false}
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              onClick={[Function]}
-                              role="button"
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-1m3e0hg-Container ere8h410"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <ForwardRef
-                                aria-disabled={false}
+                              <Button
+                                align="center"
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <button
+                                <StyledButton
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   type="button"
                                 >
-                                  <ButtonLabel
-                                    align="center"
+                                  <ForwardRef
+                                    aria-disabled={false}
                                     borderless={true}
+                                    className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                    data-test-id="create-team"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
+                                    type="button"
                                   >
-                                    <Component
-                                      align="center"
-                                      borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                    <button
+                                      aria-disabled={false}
+                                      className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                      data-test-id="create-team"
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      <ButtonLabel
+                                        align="center"
+                                        borderless={true}
                                       >
-                                        <Icon
-                                          hasChildren={false}
+                                        <Component
+                                          align="center"
+                                          borderless={true}
+                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                         >
-                                          <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
-                                            hasChildren={false}
+                                          <span
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           >
-                                            <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                            <Icon
+                                              hasChildren={false}
                                             >
-                                              <StyledInlineSvg
-                                                size="16px"
-                                                src="icon-circle-add"
+                                              <Component
+                                                className="css-ljhpxy-Icon e12ma6z2"
+                                                hasChildren={false}
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                  size="16px"
-                                                  src="icon-circle-add"
+                                                <span
+                                                  className="css-ljhpxy-Icon e12ma6z2"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                    height="16px"
-                                                    viewBox={Object {}}
-                                                    width="16px"
+                                                  <StyledInlineSvg
+                                                    size="16px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
+                                                    <InlineSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                      size="16px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </ForwardRef>
-                            </StyledButton>
-                          </Button>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <StyledSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                        height="16px"
+                                                        viewBox={Object {}}
+                                                        width="16px"
+                                                      >
+                                                        <svg
+                                                          className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                          height="16px"
+                                                          viewBox={Object {}}
+                                                          width="16px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </StyledSvg>
+                                                    </InlineSvg>
+                                                  </StyledInlineSvg>
+                                                </span>
+                                              </Component>
+                                            </Icon>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </ForwardRef>
+                                </StyledButton>
+                              </Button>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </Suspense>
+              </TooltipSuspense>
             </div>
           </TeamSelectInput>
         </div>

@@ -703,8 +703,7 @@ exports[`ProjectCard renders 1`] = `
                                       preserveAspectRatio="none"
                                       viewBox="0 0 100 400"
                                     >
-                                      <Tooltip
-                                        containerDisplayMode="inline-block"
+                                      <TooltipSuspense
                                         key="1525042800"
                                         position="bottom"
                                         title={
@@ -738,42 +737,50 @@ exports[`ProjectCard renders 1`] = `
                                           </React.Fragment>
                                         }
                                       >
-                                        <Manager>
-                                          <Reference>
-                                            <InnerReference
-                                              setReferenceNode={[Function]}
-                                            >
-                                              <g
-                                                aria-describedby="tooltip-123456"
-                                                onBlur={[Function]}
-                                                onFocus={[Function]}
-                                                onMouseEnter={[Function]}
-                                                onMouseLeave={[Function]}
+                                        <Suspense
+                                          fallback={
+                                            <g>
+                                              <rect
+                                                height="100%"
+                                                opacity="0"
+                                                width="52.3%"
+                                                x="-1.5%"
+                                              />
+                                              <rect
+                                                className="chart-bar barchart-rect"
+                                                data-test-id="chart-column"
+                                                height="9.9%"
+                                                width="49.3%"
+                                                x="0%"
+                                                y="90.1%"
                                               >
-                                                <rect
-                                                  height="100%"
-                                                  opacity="0"
-                                                  width="52.3%"
-                                                  x="-1.5%"
-                                                />
-                                                <rect
-                                                  className="chart-bar barchart-rect"
-                                                  data-test-id="chart-column"
-                                                  height="9.9%"
-                                                  key="0"
-                                                  width="49.3%"
-                                                  x="0%"
-                                                  y="90.1%"
-                                                >
-                                                  1
-                                                </rect>
-                                              </g>
-                                            </InnerReference>
-                                          </Reference>
-                                        </Manager>
-                                      </Tooltip>
-                                      <Tooltip
-                                        containerDisplayMode="inline-block"
+                                                1
+                                              </rect>
+                                            </g>
+                                          }
+                                        >
+                                          <g>
+                                            <rect
+                                              height="100%"
+                                              opacity="0"
+                                              width="52.3%"
+                                              x="-1.5%"
+                                            />
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              data-test-id="chart-column"
+                                              height="9.9%"
+                                              key="0"
+                                              width="49.3%"
+                                              x="0%"
+                                              y="90.1%"
+                                            >
+                                              1
+                                            </rect>
+                                          </g>
+                                        </Suspense>
+                                      </TooltipSuspense>
+                                      <TooltipSuspense
                                         key="1525046400"
                                         position="bottom"
                                         title={
@@ -807,40 +814,49 @@ exports[`ProjectCard renders 1`] = `
                                           </React.Fragment>
                                         }
                                       >
-                                        <Manager>
-                                          <Reference>
-                                            <InnerReference
-                                              setReferenceNode={[Function]}
-                                            >
-                                              <g
-                                                aria-describedby="tooltip-123456"
-                                                onBlur={[Function]}
-                                                onFocus={[Function]}
-                                                onMouseEnter={[Function]}
-                                                onMouseLeave={[Function]}
+                                        <Suspense
+                                          fallback={
+                                            <g>
+                                              <rect
+                                                height="100%"
+                                                opacity="0"
+                                                width="52.3%"
+                                                x="49.3%"
+                                              />
+                                              <rect
+                                                className="chart-bar barchart-rect"
+                                                data-test-id="chart-column"
+                                                height="19.8%"
+                                                width="49.3%"
+                                                x="50.8%"
+                                                y="80.2%"
                                               >
-                                                <rect
-                                                  height="100%"
-                                                  opacity="0"
-                                                  width="52.3%"
-                                                  x="49.3%"
-                                                />
-                                                <rect
-                                                  className="chart-bar barchart-rect"
-                                                  data-test-id="chart-column"
-                                                  height="19.8%"
-                                                  key="0"
-                                                  width="49.3%"
-                                                  x="50.8%"
-                                                  y="80.2%"
-                                                >
-                                                  2
-                                                </rect>
-                                              </g>
-                                            </InnerReference>
-                                          </Reference>
-                                        </Manager>
-                                      </Tooltip>
+                                                2
+                                              </rect>
+                                            </g>
+                                          }
+                                        >
+                                          <g>
+                                            <rect
+                                              height="100%"
+                                              opacity="0"
+                                              width="52.3%"
+                                              x="49.3%"
+                                            />
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              data-test-id="chart-column"
+                                              height="19.8%"
+                                              key="0"
+                                              width="49.3%"
+                                              x="50.8%"
+                                              y="80.2%"
+                                            >
+                                              2
+                                            </rect>
+                                          </g>
+                                        </Suspense>
+                                      </TooltipSuspense>
                                     </svg>
                                   </StyledSvg>
                                 </div>

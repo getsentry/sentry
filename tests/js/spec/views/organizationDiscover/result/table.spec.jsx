@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, render} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import {ResultTable} from 'app/views/organizationDiscover/result/table';
 
@@ -80,7 +80,7 @@ describe('ResultTable', function() {
 
     expectedCellValues.forEach(function({value, row, col}) {
       const cell = cellRenderer({rowIndex: row, columnIndex: col});
-      const markup = render(cell);
+      const markup = mount(cell);
       expect(markup.text()).toBe(value);
     });
   });

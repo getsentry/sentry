@@ -1,27 +1,55 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Tooltip renders 1`] = `
-<Tooltip
-  containerDisplayMode="inline-block"
-  position="top"
+exports[`Tooltip renders fallback 1`] = `
+<TooltipSuspense
   title="test"
 >
-  <Manager>
-    <Reference>
-      <InnerReference
-        setReferenceNode={[Function]}
-      >
-        <span
-          aria-describedby="tooltip-123456"
-          onBlur={[Function]}
-          onFocus={[Function]}
-          onMouseEnter={[Function]}
-          onMouseLeave={[Function]}
-        >
-          My Button
-        </span>
-      </InnerReference>
-    </Reference>
-  </Manager>
-</Tooltip>
+  <Suspense
+    fallback={
+      <span>
+        My Button
+      </span>
+    }
+  >
+    <span>
+      My Button
+    </span>
+  </Suspense>
+</TooltipSuspense>
+`;
+
+exports[`Tooltip renders full tooltip 1`] = `
+<TooltipSuspense
+  title="test"
+>
+  <Suspense
+    fallback={
+      <span>
+        My Button
+      </span>
+    }
+  >
+    <Tooltip
+      title="test"
+    >
+      <Manager>
+        <Reference>
+          <InnerReference
+            setReferenceNode={[Function]}
+          >
+            <span
+              aria-describedby="tooltip-123456"
+              onBlur={[Function]}
+              onFocus={[Function]}
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
+            >
+              My Button
+            </span>
+          </InnerReference>
+        </Reference>
+      </Manager>
+    </Tooltip>
+  </Suspense>
+</TooltipSuspense>
 `;

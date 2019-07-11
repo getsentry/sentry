@@ -43,6 +43,8 @@ describe('GuideAnchor', function() {
     expect(wrapper1).toMatchSnapshot();
 
     // Clicking on next should deactivate the current card and activate the next one.
+    await tick();
+    wrapper1.update();
     wrapper1
       .find('Button')
       .first()

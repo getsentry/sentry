@@ -872,27 +872,33 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                           <div
                                             className="css-1oawdkn-GroupLevel eex8od5"
                                           >
-                                            <Tooltip
-                                              containerDisplayMode="inline-block"
-                                              position="top"
+                                            <TooltipSuspense
                                               title="Error level: Error"
                                             >
-                                              <Manager>
-                                                <Reference>
-                                                  <InnerReference
-                                                    setReferenceNode={[Function]}
-                                                  >
-                                                    <span
-                                                      aria-describedby="tooltip-123456"
-                                                      onBlur={[Function]}
-                                                      onFocus={[Function]}
-                                                      onMouseEnter={[Function]}
-                                                      onMouseLeave={[Function]}
-                                                    />
-                                                  </InnerReference>
-                                                </Reference>
-                                              </Manager>
-                                            </Tooltip>
+                                              <Suspense
+                                                fallback={<span />}
+                                              >
+                                                <Tooltip
+                                                  title="Error level: Error"
+                                                >
+                                                  <Manager>
+                                                    <Reference>
+                                                      <InnerReference
+                                                        setReferenceNode={[Function]}
+                                                      >
+                                                        <span
+                                                          aria-describedby="tooltip-123456"
+                                                          onBlur={[Function]}
+                                                          onFocus={[Function]}
+                                                          onMouseEnter={[Function]}
+                                                          onMouseLeave={[Function]}
+                                                        />
+                                                      </InnerReference>
+                                                    </Reference>
+                                                  </Manager>
+                                                </Tooltip>
+                                              </Suspense>
+                                            </TooltipSuspense>
                                           </div>
                                         </GroupLevel>
                                         <EventOrGroupTitle
@@ -1583,7 +1589,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     className="similar-score-column"
                     key="exception"
                   >
-                    <Hovercard
+                    <HovercardSuspense
                       body={
                         <SimilarScoreCard
                           scoreList={
@@ -1596,247 +1602,302 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           }
                         />
                       }
-                      displayTimeout={100}
-                      position="top"
                     >
-                      <Manager>
-                        <Reference>
-                          <InnerReference
-                            setReferenceNode={[Function]}
-                          >
-                            <span
-                              aria-describedby="hovercard-123456"
-                              onMouseEnter={[Function]}
-                              onMouseLeave={[Function]}
-                            >
-                              <StyledScoreBar
-                                palette={
+                      <Suspense
+                        fallback={
+                          <StyledScoreBar
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={4}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
+                          />
+                        }
+                      >
+                        <Hovercard
+                          body={
+                            <SimilarScoreCard
+                              scoreList={
+                                Array [
                                   Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                score={4}
-                                size={40}
-                                thickness={4}
-                                vertical={true}
+                                    "exception:stacktrace:pairs",
+                                    0.875,
+                                  ],
+                                ]
+                              }
+                            />
+                          }
+                        >
+                          <Manager>
+                            <Reference>
+                              <InnerReference
+                                setReferenceNode={[Function]}
                               >
-                                <ScoreBar
-                                  className="css-omtyju-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  score={4}
-                                  size={40}
-                                  thickness={4}
-                                  vertical={true}
+                                <span
+                                  aria-describedby="hovercard-123456"
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
                                 >
-                                  <div
-                                    className="css-omtyju-StyledScoreBar eecxaw40"
+                                  <StyledScoreBar
+                                    palette={
+                                      Array [
+                                        "#ec5e44",
+                                        "#f38259",
+                                        "#f9a66d",
+                                        "#98b480",
+                                        "#57be8c",
+                                      ]
+                                    }
+                                    score={4}
+                                    size={40}
+                                    thickness={4}
+                                    vertical={true}
                                   >
-                                    <Bar
-                                      color="#98b480"
-                                      key="0"
+                                    <ScoreBar
+                                      className="css-omtyju-StyledScoreBar eecxaw40"
+                                      palette={
+                                        Array [
+                                          "#ec5e44",
+                                          "#f38259",
+                                          "#f9a66d",
+                                          "#98b480",
+                                          "#57be8c",
+                                        ]
+                                      }
+                                      score={4}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1jrlewc-Bar eecxaw41"
-                                        color="#98b480"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      color="#98b480"
-                                      key="1"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-1jrlewc-Bar eecxaw41"
-                                        color="#98b480"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      color="#98b480"
-                                      key="2"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-1jrlewc-Bar eecxaw41"
-                                        color="#98b480"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      color="#98b480"
-                                      key="3"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-1jrlewc-Bar eecxaw41"
-                                        color="#98b480"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      empty={true}
-                                      key="empty-0"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                  </div>
-                                </ScoreBar>
-                              </StyledScoreBar>
-                            </span>
-                          </InnerReference>
-                        </Reference>
-                      </Manager>
-                    </Hovercard>
+                                        className="css-omtyju-StyledScoreBar eecxaw40"
+                                      >
+                                        <Bar
+                                          color="#98b480"
+                                          key="0"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-1jrlewc-Bar eecxaw41"
+                                            color="#98b480"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          color="#98b480"
+                                          key="1"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-1jrlewc-Bar eecxaw41"
+                                            color="#98b480"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          color="#98b480"
+                                          key="2"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-1jrlewc-Bar eecxaw41"
+                                            color="#98b480"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          color="#98b480"
+                                          key="3"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-1jrlewc-Bar eecxaw41"
+                                            color="#98b480"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          empty={true}
+                                          key="empty-0"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                      </div>
+                                    </ScoreBar>
+                                  </StyledScoreBar>
+                                </span>
+                              </InnerReference>
+                            </Reference>
+                          </Manager>
+                        </Hovercard>
+                      </Suspense>
+                    </HovercardSuspense>
                   </div>
                   <div
                     className="similar-score-column"
                     key="message"
                   >
-                    <Hovercard
+                    <HovercardSuspense
                       body={0}
-                      displayTimeout={100}
-                      position="top"
                     >
-                      <Manager>
-                        <Reference>
-                          <InnerReference
-                            setReferenceNode={[Function]}
-                          >
-                            <span
-                              aria-describedby="hovercard-123456"
-                              onMouseEnter={[Function]}
-                              onMouseLeave={[Function]}
-                            >
-                              <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                score={0}
-                                size={40}
-                                thickness={4}
-                                vertical={true}
+                      <Suspense
+                        fallback={
+                          <StyledScoreBar
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={0}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
+                          />
+                        }
+                      >
+                        <Hovercard
+                          body={0}
+                        >
+                          <Manager>
+                            <Reference>
+                              <InnerReference
+                                setReferenceNode={[Function]}
                               >
-                                <ScoreBar
-                                  className="css-omtyju-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  score={0}
-                                  size={40}
-                                  thickness={4}
-                                  vertical={true}
+                                <span
+                                  aria-describedby="hovercard-123456"
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
                                 >
-                                  <div
-                                    className="css-omtyju-StyledScoreBar eecxaw40"
+                                  <StyledScoreBar
+                                    palette={
+                                      Array [
+                                        "#ec5e44",
+                                        "#f38259",
+                                        "#f9a66d",
+                                        "#98b480",
+                                        "#57be8c",
+                                      ]
+                                    }
+                                    score={0}
+                                    size={40}
+                                    thickness={4}
+                                    vertical={true}
                                   >
-                                    <Bar
-                                      empty={true}
-                                      key="empty-0"
+                                    <ScoreBar
+                                      className="css-omtyju-StyledScoreBar eecxaw40"
+                                      palette={
+                                        Array [
+                                          "#ec5e44",
+                                          "#f38259",
+                                          "#f9a66d",
+                                          "#98b480",
+                                          "#57be8c",
+                                        ]
+                                      }
+                                      score={0}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      empty={true}
-                                      key="empty-1"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      empty={true}
-                                      key="empty-2"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      empty={true}
-                                      key="empty-3"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                    <Bar
-                                      empty={true}
-                                      key="empty-4"
-                                      size={40}
-                                      thickness={4}
-                                      vertical={true}
-                                    >
-                                      <div
-                                        className="css-15vxee-Bar eecxaw41"
-                                        size={40}
-                                      />
-                                    </Bar>
-                                  </div>
-                                </ScoreBar>
-                              </StyledScoreBar>
-                            </span>
-                          </InnerReference>
-                        </Reference>
-                      </Manager>
-                    </Hovercard>
+                                        className="css-omtyju-StyledScoreBar eecxaw40"
+                                      >
+                                        <Bar
+                                          empty={true}
+                                          key="empty-0"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          empty={true}
+                                          key="empty-1"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          empty={true}
+                                          key="empty-2"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          empty={true}
+                                          key="empty-3"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                        <Bar
+                                          empty={true}
+                                          key="empty-4"
+                                          size={40}
+                                          thickness={4}
+                                          vertical={true}
+                                        >
+                                          <div
+                                            className="css-15vxee-Bar eecxaw41"
+                                            size={40}
+                                          />
+                                        </Bar>
+                                      </div>
+                                    </ScoreBar>
+                                  </StyledScoreBar>
+                                </span>
+                              </InnerReference>
+                            </Reference>
+                          </Manager>
+                        </Hovercard>
+                      </Suspense>
+                    </HovercardSuspense>
                   </div>
                 </div>
               </div>

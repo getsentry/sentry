@@ -22,7 +22,7 @@ describe('Frame', function() {
     it('should render the source map information as a HTML string', function() {
       const frame = shallow(<Frame data={data} />);
 
-      expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
+      expect(frame.find('TooltipSuspense').prop('title')).toMatchSnapshot();
     });
   });
 

@@ -13,7 +13,7 @@ describe('AccountSecurityDetails', function() {
 
   describe('Totp', function() {
     Client.clearMockResponses();
-    beforeAll(function() {
+    beforeAll(async function() {
       Client.addMockResponse({
         url: ENDPOINT,
         body: TestStubs.AllAuthenticators(),
@@ -41,6 +41,10 @@ describe('AccountSecurityDetails', function() {
           },
         ])
       );
+
+      // Need this because of React Suspense/lazy
+      await tick();
+      wrapper.update();
     });
 
     it('has enrolled circle indicator', function() {
