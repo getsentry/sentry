@@ -12,7 +12,7 @@ describe('Login', function() {
 
   it('renders an error if auth config cannot be loaded', async function() {
     MockApiClient.addMockResponse({
-      url: '/auth/login/',
+      url: '/auth/config/',
       statusCode: 500,
     });
 
@@ -27,7 +27,7 @@ describe('Login', function() {
 
   it('does not show register when disabled', function() {
     MockApiClient.addMockResponse({
-      url: '/auth/login/',
+      url: '/auth/config/',
       body: {canRegister: false},
     });
 
@@ -43,7 +43,7 @@ describe('Login', function() {
 
   it('shows register when canRegister is enabled', async function() {
     MockApiClient.addMockResponse({
-      url: '/auth/login/',
+      url: '/auth/config/',
       body: {canRegister: true},
     });
 
@@ -62,7 +62,7 @@ describe('Login', function() {
 
   it('toggles between tabs', async function() {
     MockApiClient.addMockResponse({
-      url: '/auth/login/',
+      url: '/auth/config/',
       body: {canRegister: true},
     });
 

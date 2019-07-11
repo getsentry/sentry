@@ -43,7 +43,7 @@ class Login extends React.Component {
   fetchData = async () => {
     const {api} = this.props;
     try {
-      const response = await api.requestPromise('/auth/login/');
+      const response = await api.requestPromise('/auth/config/');
 
       const {vsts_login_link, github_login_link, ...config} = response;
       const authConfig = {
