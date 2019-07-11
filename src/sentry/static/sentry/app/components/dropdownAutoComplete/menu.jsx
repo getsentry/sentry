@@ -337,7 +337,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     return (
       <AutoComplete
         resetInputOnClose
-        itemToString={item => ''}
+        itemToString={() => ''}
         onSelect={onSelect}
         inputIsActor={false}
         onOpen={onOpen}
@@ -473,7 +473,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   }
 }
 
-const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
+const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
 `;
