@@ -13,6 +13,7 @@ import SentryTypes from 'app/sentryTypes';
 import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
 const DUMMY_COMMIT = {
@@ -24,7 +25,7 @@ const DUMMY_COMMIT = {
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
-  message: 'This commit accidentally broke something',
+  message: t('This commit accidentally broke something'),
 };
 
 class EventCauseEmpty extends React.Component {
@@ -97,7 +98,7 @@ class EventCauseEmpty extends React.Component {
           <BoxHeader>
             <Description>
               <h3>{t('Suspect Commits')}</h3>
-              <p>{t('Sentry can identify which commit caused this issue')}</p>
+              <p>{t('Identify which commit caused this issue')}</p>
             </Description>
             <ButtonList>
               <Button
@@ -109,13 +110,15 @@ class EventCauseEmpty extends React.Component {
               </Button>
 
               <div>
-                <SnoozeButton
-                  size="small"
-                  onClick={() => this.handleClick('snoozed')}
-                  data-test-id="snoozed"
-                >
-                  {t('Remind me later')}
-                </SnoozeButton>
+                <Tooltip title={t('Remind me in a week')}>
+                  <SnoozeButton
+                    size="small"
+                    onClick={() => this.handleClick('snoozed')}
+                    data-test-id="snoozed"
+                  >
+                    {t('Later')}
+                  </SnoozeButton>
+                </Tooltip>
                 <DismissButton
                   size="small"
                   onClick={() => this.handleClick('dismissed')}
