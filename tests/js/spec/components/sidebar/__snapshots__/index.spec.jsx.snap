@@ -2038,7 +2038,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "Bring your team aboard",
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking mentions, assignment, and suggested issue owners.",
+                  by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
                             "featureLocation": "organization",
                             "location": "members/",
@@ -2083,7 +2083,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Bring your team aboard",
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking mentions, assignment, and suggested issue owners.",
+                  by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
                               "featureLocation": "organization",
                               "location": "members/",
@@ -2668,7 +2668,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "Know who is being affected by crashes",
                             "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
+                  drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
                             "display": true,
                             "featureLocation": "absolute",
                             "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2716,7 +2716,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Know who is being affected by crashes",
                               "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
+                  drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
                               "display": true,
                               "featureLocation": "absolute",
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2987,7 +2987,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "See which releases cause errors",
                             "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
-          and unlock the ability to resolve issues via commit message.",
+                  and unlock the ability to resolve issues via commit message.",
                             "display": true,
                             "featureLocation": "project",
                             "location": "settings/release-tracking/",
@@ -3035,7 +3035,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "See which releases cause errors",
                               "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
-          and unlock the ability to resolve issues via commit message.",
+                  and unlock the ability to resolve issues via commit message.",
                               "display": true,
                               "featureLocation": "project",
                               "location": "settings/release-tracking/",

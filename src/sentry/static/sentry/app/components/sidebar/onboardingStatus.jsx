@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Tooltip from 'app/components/tooltip';
 import {analytics} from 'app/utils/analytics';
+import getOnboardingTasks from 'app/components/onboardingWizard/onboardingTasks';
+import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {tct} from 'app/locale';
-import SidebarPanel from './sidebarPanel';
-import TodoList, {TASKS} from '../onboardingWizard/todos';
+import TodoList from 'app/components/onboardingWizard/todos';
+import Tooltip from 'app/components/tooltip';
 
 class OnboardingStatus extends React.Component {
   static propTypes = {
@@ -45,7 +46,9 @@ class OnboardingStatus extends React.Component {
     const doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'
     );
-    const allDisplayedTasks = TASKS.filter(task => task.display);
+
+    const tasks = getOnboardingTasks(org);
+    const allDisplayedTasks = tasks.filter(task => task.display);
 
     const percentage = Math.round(
       (doneTasks.length / allDisplayedTasks.length) * 100
