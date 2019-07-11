@@ -113,12 +113,14 @@ class SentryAppPermission(SentryPermission):
     unpublished_scope_map = {
         'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
         'PUT': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+        'POST': ('org:write', 'org:admin'),  # used for publishing an app
         'DELETE': ('org:write', 'org:admin'),
     }
 
     published_scope_map = {
         'GET': (),  # Public endpoint.
         'PUT': ('org:write', 'org:admin'),
+        'POST': ('org:write', 'org:admin'),
         'DELETE': ('org:admin'),
     }
 

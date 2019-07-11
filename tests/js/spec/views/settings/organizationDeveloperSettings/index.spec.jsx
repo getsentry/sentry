@@ -9,6 +9,8 @@ describe('Organization Developer Settings', function() {
   const sentryApp = TestStubs.SentryApp();
   const routerContext = TestStubs.routerContext();
 
+  const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
+
   beforeEach(() => {
     Client.clearMockResponses();
   });
@@ -51,17 +53,20 @@ describe('Organization Developer Settings', function() {
   });
 
   describe('with unpublished apps', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [sentryApp],
+    let wrapper;
+
+    beforeEach(() => {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [sentryApp],
+      });
+
+      org.features = ['sentry-apps'];
+      wrapper = mount(
+        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+        routerContext
+      );
     });
-
-    org.features = ['sentry-apps'];
-
-    const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
-    );
 
     it('displays all Apps owned by the Org', () => {
       expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
@@ -74,7 +79,6 @@ describe('Organization Developer Settings', function() {
         method: 'DELETE',
         body: [],
       });
-      org.features = ['sentry-apps'];
 
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
       wrapper.find('[icon="icon-trash"]').simulate('click');
@@ -87,6 +91,20 @@ describe('Organization Developer Settings', function() {
       await tick();
       wrapper.update();
       expect(wrapper.text()).toMatch('No integrations have been created yet');
+    });
+
+    it('can make a request to publish an integration', async () => {
+      const mock = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
+        method: 'POST',
+      });
+
+      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
+      wrapper.find(publishButtonSelector).simulate('click');
+      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+      await tick();
+      wrapper.update();
+      expect(mock).toHaveBeenCalled();
     });
   });
 
@@ -111,6 +129,10 @@ describe('Organization Developer Settings', function() {
     it('trash button is disabled', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
+
+    it('publish button is disabled', () => {
+      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    });
   });
 
   describe('with Internal Integrations', () => {
@@ -128,6 +150,10 @@ describe('Organization Developer Settings', function() {
 
     it('allows deleting', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+    });
+
+    it('publish button is disabled', () => {
+      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
     });
   });
 
@@ -150,6 +176,10 @@ describe('Organization Developer Settings', function() {
 
     it('trash button is disabled', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+    });
+
+    it('publish button is disabled', () => {
+      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
     });
   });
 });
