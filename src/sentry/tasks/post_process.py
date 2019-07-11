@@ -150,6 +150,8 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         # in the database due to sampling.
         from sentry.models import Project
         from sentry.models.group import get_group_with_redirect
+        from sentry.rules.processor import RuleProcessor
+        from sentry.tasks.servicehooks import process_service_hook
 
         # Re-bind node data to avoid renormalization. We only want to
         # renormalize when loading old data from the database.
@@ -173,127 +175,69 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         _capture_stats(event, is_new)
 
-<<<<<<< HEAD
         # we process snoozes before rules as it might create a regression
         has_reappeared = process_snoozes(event.group)
 
-        handle_owner_assignment(event.project, event.group, event)
+        if event.group_id:
+            handle_owner_assignment(event.project, event.group, event)
 
-        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-        has_alert = False
-        # TODO(dcramer): ideally this would fanout, but serializing giant
-        # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
-            has_alert = True
-            safe_execute(callback, event, futures)
+            rp = RuleProcessor(
+                event,
+                is_new,
+                is_regression,
+                is_new_group_environment,
+                has_reappeared)
+            has_alert = False
+            # TODO(dcramer): ideally this would fanout, but serializing giant
+            # objects back and forth isn't super efficient
+            for callback, futures in rp.apply():
+                has_alert = True
+                safe_execute(callback, event, futures)
 
-        if features.has(
-            'projects:servicehooks',
-            project=event.project,
-        ):
-            allowed_events = set(['event.created'])
-            if has_alert:
-                allowed_events.add('event.alert')
+            if features.has(
+                'projects:servicehooks',
+                project=event.project,
+            ):
+                allowed_events = set(['event.created'])
+                if has_alert:
+                    allowed_events.add('event.alert')
 
-            if allowed_events:
-                for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                    if any(e in allowed_events for e in events):
-                        process_service_hook.delay(
-                            servicehook_id=servicehook_id,
-                            event=event,
-                        )
+                if allowed_events:
+                    for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                        if any(e in allowed_events for e in events):
+                            process_service_hook.delay(
+                                servicehook_id=servicehook_id,
+                                event=event,
+                            )
 
-        if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
-            process_resource_change_bound.delay(
-                action='created',
-                sender='Error',
-                instance_id=event.event_id,
-                instance=event,
-            )
-        if is_new:
-            process_resource_change_bound.delay(
-                action='created',
-                sender='Group',
-                instance_id=event.group_id,
-            )
+            if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
+                process_resource_change_bound.delay(
+                    action='created',
+                    sender='Error',
+                    instance_id=event.event_id,
+                    instance=event,
+                )
+            if is_new:
+                process_resource_change_bound.delay(
+                    action='created',
+                    sender='Group',
+                    instance_id=event.group_id,
+                )
 
-        for plugin in plugins.for_project(event.project):
-            plugin_post_process_group(
-                plugin_slug=plugin.slug,
-=======
-        if event.group:
-            process_group(
->>>>>>> Split postprocess
-                event=event,
-                is_new=is_new,
-                is_regression=is_regression,
-                is_sample=is_sample,
-                is_new_group_environment=is_new_group_environment,
-            )
+            for plugin in plugins.for_project(event.project):
+                plugin_post_process_group(
+                    plugin_slug=plugin.slug,
+                    event=event,
+                    is_new=is_new,
+                    is_regresion=is_regression,
+                    is_sample=is_sample,
+                )
 
         event_processed.send_robust(
             sender=post_process_group,
             project=event.project,
             event=event,
             primary_hash=kwargs.get('primary_hash'),
-        )
-
-
-def process_group(event, is_new, is_regression, is_sample, is_new_group_environment):
-    # we process snoozes before rules as it might create a regression
-    has_reappeared = process_snoozes(event.group)
-
-    handle_owner_assignment(event.project, event.group, event)
-
-    from sentry.rules.processor import RuleProcessor
-    from sentry.tasks.servicehooks import process_service_hook
-
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-    has_alert = False
-    # TODO(dcramer): ideally this would fanout, but serializing giant
-    # objects back and forth isn't super efficient
-    for callback, futures in rp.apply():
-        has_alert = True
-        safe_execute(callback, event, futures)
-
-    if features.has(
-        'projects:servicehooks',
-        project=event.project,
-    ):
-        allowed_events = set(['event.created'])
-        if has_alert:
-            allowed_events.add('event.alert')
-
-        if allowed_events:
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(
-                        servicehook_id=servicehook_id,
-                        event=event,
-                    )
-
-    if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
-        process_resource_change_bound.delay(
-            action='created',
-            sender='Error',
-            instance_id=event.event_id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-        )
-    if is_new:
-        process_resource_change_bound.delay(
-            action='created',
-            sender='Group',
-            instance_id=event.group_id,
-        )
-
-    for plugin in plugins.for_project(event.project):
-        plugin_post_process_group(
-            plugin_slug=plugin.slug,
-            event=event,
-            is_new=is_new,
-            is_regresion=is_regression,
-            is_sample=is_sample,
         )
 
 
