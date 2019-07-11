@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.db import connection
 from mock import patch
+import responses
 
 from sentry.mediators.sentry_apps import Destroyer
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, User, SentryApp, SentryAppInstallation
@@ -21,7 +22,9 @@ class TestDestroyer(TestCase):
 
         self.destroyer = Destroyer(sentry_app=self.sentry_app, user=self.user)
 
+    @responses.activate
     def test_deletes_app_installations(self):
+        responses.add(responses.POST, 'https://example.com/webhook', status=200)
         install = self.create_sentry_app_installation(
             organization=self.org,
             slug=self.sentry_app.slug,
