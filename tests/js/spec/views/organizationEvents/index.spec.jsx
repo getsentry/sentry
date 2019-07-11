@@ -38,7 +38,7 @@ describe('OrganizationEvents', function() {
   });
 
   describe('Header', function() {
-    beforeEach(function() {
+    beforeEach(async function() {
       GlobalSelectionStore.reset();
       ProjectsStore.loadInitialData(organization.projects);
 
@@ -56,6 +56,10 @@ describe('OrganizationEvents', function() {
         </OrganizationEventsContainer>,
         routerContext
       );
+
+      // This is for any React.lazy components (e.g. DropdownAutoComplete)
+      await tick();
+      wrapper.update();
 
       mockRouterPush(wrapper, router);
     });

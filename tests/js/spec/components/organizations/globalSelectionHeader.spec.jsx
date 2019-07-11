@@ -494,8 +494,8 @@ describe('GlobalSelectionHeader', function() {
     });
 
     it('renders only environments from the forced project', async function() {
-      await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await wrapper.update();
+      wrapper.update();
+      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
       const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
       expect(items.length).toEqual(1);

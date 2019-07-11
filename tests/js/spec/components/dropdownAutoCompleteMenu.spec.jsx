@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
 
 describe('DropdownAutoCompleteMenu', function() {
   const routerContext = TestStubs.routerContext();

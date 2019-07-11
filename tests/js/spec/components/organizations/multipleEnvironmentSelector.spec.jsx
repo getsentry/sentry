@@ -30,7 +30,7 @@ describe('MultipleEnvironmentSelector', function() {
     },
   ]);
 
-  beforeEach(function() {
+  beforeEach(async function() {
     onChange.mockReset();
     onUpdate.mockReset();
     wrapper = mount(
@@ -42,13 +42,17 @@ describe('MultipleEnvironmentSelector', function() {
       />,
       routerContext
     );
+
+    // Below is needed to support React.lazy/Suspense
+    await tick();
+    wrapper.update();
   });
 
-  it('can select and change environments', async function() {
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+  it('can select and change environments', function() {
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     // Select all envs
-    envs.forEach((env, i) => {
+    envs.forEach((_env, i) => {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(i)
@@ -64,10 +68,10 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onUpdate).toHaveBeenCalledWith();
   });
 
-  it('selects multiple environments and uses chevron to update', async function() {
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+  it('selects multiple environments and uses chevron to update', function() {
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
-    await wrapper
+    wrapper
       .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
       .at(0)
       .simulate('click');
@@ -87,28 +91,28 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onUpdate).toHaveBeenCalledWith();
   });
 
-  it('does not update when there are no changes', async function() {
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+  it('does not update when there are no changes', function() {
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('updates environment options when projects selection changes', async function() {
+  it('updates environment options when projects selection changes', function() {
     // project 2 only has 1 environment.
     wrapper.setProps({selectedProjects: [2]});
     wrapper.update();
 
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
     expect(items.length).toEqual(1);
     expect(items.at(0).text()).toBe('dev');
   });
 
-  it('shows the all environments when there are no projects selected', async function() {
+  it('shows the all environments when there are no projects selected', function() {
     wrapper.setProps({selectedProjects: []});
     wrapper.update();
 
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
 
     expect(items.length).toEqual(3);
@@ -117,9 +121,9 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(2).text()).toBe('dev');
   });
 
-  it('shows the distinct union of environments across all projects', async function() {
+  it('shows the distinct union of environments across all projects', function() {
     wrapper.setProps({selectedProjects: [1, 2]});
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
 
     expect(items.length).toEqual(3);

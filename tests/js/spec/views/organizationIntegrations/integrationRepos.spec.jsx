@@ -36,6 +36,8 @@ describe('IntegrationRepos', function() {
         <IntegrationRepos integration={integration} />,
         routerContext
       );
+      await tick();
+      wrapper.update();
       wrapper.find('DropdownButton').simulate('click');
 
       wrapper.find('StyledListElement').simulate('click');
@@ -87,6 +89,7 @@ describe('IntegrationRepos', function() {
         <IntegrationRepos integration={integration} />,
         routerContext
       );
+      wrapper.update();
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
       await wrapper.update();
@@ -125,6 +128,7 @@ describe('IntegrationRepos', function() {
         <IntegrationRepos integration={integration} />,
         routerContext
       );
+      wrapper.update();
 
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
@@ -158,6 +162,7 @@ describe('IntegrationRepos', function() {
         <IntegrationRepos integration={integration} />,
         routerContext
       );
+      wrapper.update();
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
 

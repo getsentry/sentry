@@ -51,7 +51,7 @@ describe('ProjectSelector', function() {
     ProjectsStore.loadInitialData(mockOrg.projects);
   });
 
-  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
+  it('should show empty message with no projects button, when no projects, and has no "project:write" access', async function() {
     const wrapper = mount(
       <ProjectSelector
         {...props}
@@ -65,6 +65,10 @@ describe('ProjectSelector', function() {
       />,
       routerContext
     );
+
+    // This is for React.lazy/Suspense
+    await tick();
+    wrapper.update();
 
     ProjectsStore.loadInitialData([]);
 
