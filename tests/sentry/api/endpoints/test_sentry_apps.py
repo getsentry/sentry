@@ -351,6 +351,32 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'schema': ["['#general'] is too short"]}
 
+    @with_feature(['organizations:sentry-apps', 'organizations:integrations-event-hooks'])
+    def test_can_create_with_error_created_hook_with_flag(self):
+        self.login_as(user=self.user)
+
+        kwargs = {'events': ('error',)}
+        response = self._post(**kwargs)
+        expected = {
+            'name': 'MyApp',
+            'scopes': ['project:read', 'event:read'],
+            'events': ['error'],
+            'webhookUrl': 'https://example.com',
+        }
+
+        assert response.status_code == 201, response.content
+        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+
+    @with_feature('organizations:sentry-apps')
+    def test_cannot_create_with_error_created_hook_without_flag(self):
+        self.login_as(user=self.user)
+
+        kwargs = {'events': ('error',)}
+        response = self._post(**kwargs)
+
+        assert response.status_code == 403, response.content
+        assert response.content == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
+
     @with_feature('organizations:sentry-apps')
     def test_allows_empty_schema(self):
         self.login_as(self.user)

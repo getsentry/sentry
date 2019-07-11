@@ -294,6 +294,41 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 200
         assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.UNPUBLISHED
 
+    @with_feature('organizations:sentry-apps')
+    def test_cannot_add_error_created_hook_without_flag(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name='SampleApp',
+            organization=self.org,
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'events': ('error',),
+            },
+            format='json',
+        )
+        assert response.status_code == 403
+
+    @with_feature(['organizations:sentry-apps', 'organizations:integrations-event-hooks'])
+    def test_can_add_error_created_hook_with_flag(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name='SampleApp',
+            organization=self.org,
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'events': ('error',),
+                'scopes': ('event:read',)
+            },
+            format='json',
+        )
+        assert response.status_code == 200
+
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     @with_feature('organizations:sentry-apps')
