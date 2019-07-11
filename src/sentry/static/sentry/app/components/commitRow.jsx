@@ -34,7 +34,7 @@ export default class CommitRow extends React.Component {
       <PanelItem key={id} align="center">
         <AvatarWrapper mr={2}>
           {customAvatar ? (
-            <CustomAvatar src={customAvatar} />
+            <StyledAvatar src={customAvatar} />
           ) : (
             <Avatar size={36} user={author} />
           )}
@@ -60,9 +60,10 @@ const AvatarWrapper = styled(Box)`
   align-self: flex-start;
 `;
 
-const CustomAvatar = styled('img')`
+const StyledAvatar = styled('img')`
   height: 36px;
 `;
+
 const Message = styled(TextOverflow)`
   font-size: 15px;
   line-height: 1.1;
