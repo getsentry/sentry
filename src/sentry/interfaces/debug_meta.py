@@ -7,7 +7,7 @@ from sentry.interfaces.base import Interface, prune_empty_keys
 
 class DebugMeta(Interface):
     """
-    Holds debug meta information information for processing stacktraces
+    Holds debug meta information for processing stacktraces
     and similar things.  This information is deleted after event processing.
 
     Currently two attributes exist:
