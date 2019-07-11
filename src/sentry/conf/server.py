@@ -978,6 +978,7 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
+    'spans': 'sentry.interfaces.spans.Spans',
 }
 PREFER_CANONICAL_LEGACY_KEYS = False
 
