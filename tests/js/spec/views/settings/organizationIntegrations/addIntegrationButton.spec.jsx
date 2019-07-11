@@ -13,7 +13,7 @@ describe('AddIntegrationButton', function() {
     const onAdd = jest.fn();
 
     const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus});
+    const open = jest.fn().mockReturnValue({close: jest.fn(), focus});
     global.open = open;
 
     const wrapper = mount(
