@@ -34,6 +34,14 @@ class EventsLineChart extends React.Component {
       return false;
     }
 
+    if (
+      isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
+      isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
+      isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData)
+    ) {
+      return false;
+    }
+
     return true;
   }
 
