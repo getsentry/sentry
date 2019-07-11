@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from requests.exceptions import ReadTimeout
 from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
@@ -34,11 +35,16 @@ class Destroyer(Mediator):
 
     def _destroy_installation(self):
         if self.notify:
-            InstallationNotifier.run(
-                install=self.install,
-                user=self.user,
-                action='deleted',
-            )
+            try:
+                InstallationNotifier.run(
+                    install=self.install,
+                    user=self.user,
+                    action='deleted',
+                )
+            except ReadTimeout:
+                # if we get a read timeout, just move on and delete the installation
+                pass
+
         self.install.delete()
 
     def audit(self):

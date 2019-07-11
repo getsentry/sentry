@@ -4,6 +4,7 @@ import responses
 
 from django.db import connection
 from mock import patch
+from requests.exceptions import ReadTimeout
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, SentryAppInstallation, ServiceHook
@@ -42,6 +43,19 @@ class TestDestroyer(TestCase):
         grant = self.install.api_grant
 
         responses.add(responses.POST, 'https://example.com/webhook')
+        self.destroyer.call()
+
+        assert not ApiGrant.objects.filter(pk=grant.id).exists()
+
+    @responses.activate
+    def test_deletes_on_read_timeout_error(self):
+        grant = self.install.api_grant
+
+        responses.add(
+            responses.POST,
+            'https://example.com/webhook',
+            body=ReadTimeout('Read timed out'))
+
         self.destroyer.call()
 
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
