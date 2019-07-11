@@ -51,11 +51,14 @@ export function getQuery(view, location) {
     'statsPeriod',
     'cursor',
     'query',
+    'sort',
   ]);
 
   data.field = [...new Set(fields)];
   data.groupby = groupby;
-  data.orderby = view.data.orderby;
+  if (!data.sort) {
+    data.sort = view.data.sort;
+  }
   data.per_page = DEFAULT_PER_PAGE;
 
   if (view.data.query) {
