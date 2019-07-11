@@ -569,15 +569,13 @@ class EventManager(object):
         # Right now the event type is the signal to skip the group. This
         # is going to change a lot.
         if event.get_event_type() == 'transaction':
-            create_group = False
+            issueless_event = True
         else:
-            create_group = True
+            issueless_event = False
 
-        org = Organization.objects.get_from_cache(
-            id=project.organization_id
-        )
+        org = project._organization_cache
         issueless_enabled = features.has('organizations:issueless-events', organization=org)
-        if not create_group and not issueless_enabled:
+        if issueless_event and not issueless_enabled:
             # We discard the event if issueless events are disabled
             logger.info(
                 'issueless.disabled',
@@ -681,7 +679,7 @@ class EventManager(object):
         event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
-        if create_group:
+        if not issueless_event:
             # The group gets the same metadata as the event when it's flushed but
             # additionally the `last_received` key is set.  This key is used by
             # _save_aggregate.
