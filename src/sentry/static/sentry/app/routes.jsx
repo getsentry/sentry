@@ -1,9 +1,14 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
+import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
+import AuthLayout from 'app/views/auth/layout';
+import AuthLogin from 'app/views/auth/login';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
+import IssueListContainer from 'app/views/issueList/container';
+import IssueListOverview from 'app/views/issueList/overview';
 import LazyLoad from 'app/components/lazyLoad';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
@@ -13,17 +18,15 @@ import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
-import IssueListContainer from 'app/views/issueList/container';
-import IssueListOverview from 'app/views/issueList/overview';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
-import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import errorHandler from 'app/utils/errorHandler';
+import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -658,6 +661,12 @@ function routes() {
           )
         }
       />
+
+      {EXPERIMENTAL_SPA && (
+        <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
+          <IndexRoute component={errorHandler(AuthLogin)} />
+        </Route>
+      )}
 
       <Redirect from="/account/" to="/settings/account/details/" />
 
