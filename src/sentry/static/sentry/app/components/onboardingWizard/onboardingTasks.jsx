@@ -1,7 +1,7 @@
 import {t} from 'app/locale';
 import {sourceMaps} from 'app/data/platformCategories';
 
-function hasJavaScriptProject(organization) {
+function hasPlatformWithSourceMaps(organization) {
   if (!organization || !organization.projects) {
     return false;
   }
@@ -40,7 +40,7 @@ export default function getOnboardingTasks(organization) {
       description: t('Bring your team aboard'),
       detailedDescription: t(
         `Let Sentry help your team triage and assign issues. Improve your workflow
-                  by unlocking mentions, assignment, and suggested issue owners.`
+        by unlocking mentions, assignment, and suggested issue owners.`
       ),
       skippable: true,
       prereq: [],
@@ -64,8 +64,8 @@ export default function getOnboardingTasks(organization) {
       title: t('Add user context'),
       description: t('Know who is being affected by crashes'),
       detailedDescription: t(
-        `Unlock features that let you
-                  drill down into the number of users affected by an issue and get a broader sense about the quality of your application.`
+        `Unlock features that let you drill down into the number of users affected by an issue
+        and get a broader sense about the quality of your application.`
       ),
       skippable: true,
       prereq: [1, 2],
@@ -78,8 +78,8 @@ export default function getOnboardingTasks(organization) {
       title: t('Set up release tracking'),
       description: t('See which releases cause errors'),
       detailedDescription: t(
-        `Set up releases and associate commits to gain additional context when determining the cause of an issue
-                  and unlock the ability to resolve issues via commit message.`
+        `Set up releases and associate commits to gain additional context when determining the
+        cause of an issue and unlock the ability to resolve issues via commit message.`
       ),
       skippable: true,
       prereq: [1, 2],
@@ -93,13 +93,13 @@ export default function getOnboardingTasks(organization) {
       description: t('Deminify JavaScript stack traces'),
       detailedDescription: t(
         `View source code context obtained from stack traces in its
-                  original untransformed form, which is particularly useful for debugging minified code.`
+        original untransformed form, which is particularly useful for debugging minified code.`
       ),
       skippable: true,
       prereq: [1, 2],
       featureLocation: 'absolute',
       location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-      display: hasJavaScriptProject(organization),
+      display: hasPlatformWithSourceMaps(organization),
     },
     {
       task: 8,
