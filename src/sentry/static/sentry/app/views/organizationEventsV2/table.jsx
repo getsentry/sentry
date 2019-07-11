@@ -11,6 +11,7 @@ import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
 import {QueryLink} from './styles';
+import SortLink from './sortLink';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -63,19 +64,30 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {isLoading, view} = this.props;
+    const {isLoading, location, view} = this.props;
     const {fields} = view.data;
 
     return (
       <Panel>
         <TableHeader className={getGridStyle(view)}>
-          {fields.map(field => (
-            <HeaderItem key={field}>
-              {SPECIAL_FIELDS.hasOwnProperty(field)
-                ? SPECIAL_FIELDS[field].title || field
-                : field}
-            </HeaderItem>
-          ))}
+          {fields.map(field => {
+            let title = field;
+            let sortKey = field;
+            if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+              title = SPECIAL_FIELDS[field].title || field;
+              sortKey = SPECIAL_FIELDS[field].sortField;
+            }
+
+            if (sortKey === false) {
+              return <HeaderItem key={field}>{title}</HeaderItem>;
+            }
+
+            return (
+              <HeaderItem key={field}>
+                <SortLink sortKey={sortKey} title={title} location={location} />
+              </HeaderItem>
+            );
+          })}
         </TableHeader>
         <StyledPanelBody isLoading={isLoading}>
           <LoadingContainer isLoading={isLoading}>{this.renderBody()}</LoadingContainer>

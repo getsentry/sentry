@@ -90,8 +90,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if groupby:
             snuba_args['groupby'] = groupby
 
+        sort = request.GET.getlist('sort')
+        if sort and snuba.valid_orderby(sort, SPECIAL_FIELDS):
+            snuba_args['orderby'] = sort
+
+        # Deprecated. `sort` should be used as it is supported by
+        # more endpoints.
         orderby = request.GET.getlist('orderby')
-        if orderby:
+        if orderby and snuba.valid_orderby(orderby, SPECIAL_FIELDS) and 'orderby' not in snuba_args:
             snuba_args['orderby'] = orderby
 
         # TODO(lb): remove once boolean search is fully functional

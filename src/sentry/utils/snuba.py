@@ -379,6 +379,22 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
+def valid_orderby(orderby, custom_fields=None):
+    """
+    Check if a field can be used in sorting. We don't allow
+    sorting on fields that would be aliased as tag[foo] because those
+    fields are unlikely to be selected.
+    """
+    if custom_fields is None:
+        custom_fields = []
+    fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    for field in fields:
+        field = field.lstrip('-')
+        if field not in SENTRY_SNUBA_MAP and field not in custom_fields:
+            return False
+    return True
+
+
 def transform_aliases_and_query(skip_conditions=False, **kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
