@@ -10,7 +10,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
 
-import {EXPERIMENTAL_SPA} from 'app/constants';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -111,6 +112,10 @@ class App extends React.Component {
         type: msg.level,
       });
     });
+
+    if (DEPLOY_PREVIEW_CONFIG) {
+      displayDeployPreviewAlert();
+    }
 
     $(document).ajaxError(function(_evt, jqXHR) {
       const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
