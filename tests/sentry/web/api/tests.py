@@ -829,3 +829,45 @@ class APIViewTest(TestCase):
     def test_retry_after_int(self):
         resp = self._postWithHeader({})
         assert resp['Retry-After'] == '43'
+
+
+class ClientConfigViewTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-client-config')
+
+    def test_unauthenticated(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert not data['isAuthenticated']
+        assert data['user'] is None
+
+    def test_authenticated(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert data['isAuthenticated']
+        assert data['user']
+        assert data['user']['email'] == user.email
+
+    def test_superuser(self):
+        user = self.create_user('foo@example.com', is_superuser=True)
+        self.login_as(user, superuser=True)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert data['isAuthenticated']
+        assert data['user']
+        assert data['user']['email'] == user.email
+        assert data['user']['isSuperuser']

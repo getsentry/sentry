@@ -135,6 +135,13 @@ urlpatterns += patterns(
     ),
     url(r'^api/store/schema$', api.StoreSchemaView.as_view(), name='sentry-api-store-schema'),
 
+    # Frontend client config
+    url(
+        r'^api/client-config/?$',
+        api.ClientConfigView.as_view(),
+        name='sentry-api-client-config'
+    ),
+
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
         r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$',
