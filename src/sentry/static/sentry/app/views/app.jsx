@@ -22,7 +22,6 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
 import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
-import InstallWizard from 'app/views/installWizard';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -228,7 +227,15 @@ class App extends React.Component {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      return <InstallWizard onConfigured={this.onConfigured} />;
+      const InstallWizard = React.lazy(() =>
+        import(/* webpackChunkName: "InstallWizard" */ 'app/views/installWizard')
+      );
+
+      return (
+        <React.Suspense fallback={null}>
+          <InstallWizard onConfigured={this.onConfigured} />;
+        </React.Suspense>
+      );
     }
 
     if (newsletterConsentPrompt) {
