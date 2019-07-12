@@ -40,7 +40,7 @@ export default class MonitorStats extends AsyncComponent {
     ];
   }
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip(point, _pointIdx, chart) {
     const timeLabel = chart.getTimeLabel(point);
     const [error, ok] = point.y;
 

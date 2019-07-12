@@ -9,7 +9,7 @@ import MonitorHeader from './monitorHeader';
 import MonitorIssues from './monitorIssues';
 import MonitorStats from './monitorStats';
 
-class OrganizationMonitorDetails extends AsyncView {
+class MonitorDetails extends AsyncView {
   getEndpoints() {
     const {params, location} = this.props;
     return [
@@ -67,4 +67,4 @@ class OrganizationMonitorDetails extends AsyncView {
   }
 }
 
-export default OrganizationMonitorDetails;
+export default MonitorDetails;

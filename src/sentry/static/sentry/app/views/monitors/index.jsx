@@ -15,7 +15,7 @@ const Body = styled('div')`
   flex: 1;
 `;
 
-class OrganizationMonitorsContainer extends React.Component {
+class MonitorsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -39,5 +39,5 @@ class OrganizationMonitorsContainer extends React.Component {
   }
 }
 
-export default withOrganization(withGlobalSelection(OrganizationMonitorsContainer));
-export {OrganizationMonitorsContainer};
+export default withOrganization(withGlobalSelection(MonitorsContainer));
+export {MonitorsContainer};
