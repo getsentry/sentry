@@ -67,9 +67,6 @@ class GroupHeader extends React.Component {
 
     let className = 'group-detail';
 
-    className += ' type-' + group.type;
-    className += ' level-' + group.level;
-
     if (group.isBookmarked) {
       className += ' isBookmarked';
     }
