@@ -8,6 +8,8 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import EventAnnotation from 'app/components/events/eventAnnotation';
+import EventMessage from 'app/components/events/eventMessage';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ListLink from 'app/components/links/listLink';
@@ -17,8 +19,6 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
@@ -103,30 +103,34 @@ class GroupHeader extends React.Component {
               </GuideAnchor>
             </h3>
 
-            <EventMessageWrapper>
-              <ErrorLevel level={group.level}>{group.level}</ErrorLevel>
-              {message && <EventMessage>{message}</EventMessage>}
-              {group.logger && (
-                <EventAnnotation>
-                  <Link
-                    to={{
-                      pathname: baseUrl,
-                      query: {query: 'logger:' + group.logger},
-                    }}
-                  >
-                    {group.logger}
-                  </Link>
-                </EventAnnotation>
-              )}
-              {group.annotations.map((annotation, i) => {
-                return (
-                  <EventAnnotation
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
-            </EventMessageWrapper>
+            <EventMessage
+              message={message}
+              level={group.level}
+              annotations={
+                <React.Fragment>
+                  {group.logger && (
+                    <EventAnnotation>
+                      <Link
+                        to={{
+                          pathname: baseUrl,
+                          query: {query: 'logger:' + group.logger},
+                        }}
+                      >
+                        {group.logger}
+                      </Link>
+                    </EventAnnotation>
+                  )}
+                  {group.annotations.map((annotation, i) => {
+                    return (
+                      <EventAnnotation
+                        key={i}
+                        dangerouslySetInnerHTML={{__html: annotation}}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              }
+            />
           </div>
 
           <div className="col-sm-5 stats">
@@ -251,54 +255,3 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export {GroupHeader};
 
 export default withApi(GroupHeader);
-
-const EventMessageWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  line-height: 1.2;
-`;
-
-function getLevelColor({level, theme}) {
-  const COLORS = {
-    error: theme.orange,
-    info: theme.blue,
-    warning: theme.yellowOrange,
-    fatal: theme.red,
-    sample: theme.purple,
-  };
-
-  return `background-color: ${COLORS[level] || theme.orange}`;
-}
-
-const ErrorLevel = styled('span')`
-  padding: 0;
-  margin-right: ${space(1)};
-  position: relative;
-  width: 13px;
-  height: 13px;
-  text-indent: -9999em;
-  display: inline-block;
-  border-radius: 15px;
-  flex-shrink: 0;
-
-  ${getLevelColor}
-`;
-
-const EventMessage = styled('span')`
-  ${overflowEllipsis}
-  width: auto;
-  max-height: 38px;
-`;
-
-const EventAnnotation = styled('span')`
-  margin-left: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  border-left: 1px solid ${p => p.theme.borderLight};
-  padding-left: ${space(1)};
-  color: ${p => p.theme.gray2};
-
-  a {
-    color: ${p => p.theme.gray2};
-  }
-`;
