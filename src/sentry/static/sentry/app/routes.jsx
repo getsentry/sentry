@@ -10,9 +10,6 @@ import HookStore from 'app/stores/hookStore';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import LazyLoad from 'app/components/lazyLoad';
-import OnboardingConfigure from 'app/views/onboarding/configure';
-import OnboardingNewProject from 'app/views/onboarding/newProject';
-import OnboardingWizard from 'app/views/onboarding/wizard';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDetails from 'app/views/organizationDetails';
@@ -52,7 +49,8 @@ const OrganizationMembersView = HookOrDefault({
 
 const OnboardingNewProjectView = HookOrDefault({
   hookName: 'component:onboarding-new-project',
-  defaultComponent: OnboardingNewProject,
+  defaultComponentPromise: () =>
+    import(/* webpackChunkName: "OnboardingNewProject" */ './views/onboarding/newProject'),
 });
 
 function routes() {
@@ -788,11 +786,19 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         {/* TODO(epurkhiser): Old style onboarding experience routes. To be removed in the future */}
-        <Route component={errorHandler(OnboardingWizard)}>
+        <Route
+          componentPromise={() =>
+            import(/* webpackChunkName: "OnboardingWizard" */ './views/onboarding/wizard')
+          }
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRoute component={errorHandler(OnboardingNewProjectView)} />
           <Route
             path=":projectId/configure/:platform/"
-            component={errorHandler(OnboardingConfigure)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OnboardingConfigure" */ './views/onboarding/configure')
+            }
+            component={errorHandler(LazyLoad)}
           />
           {hook('routes:onboarding')}
         </Route>
