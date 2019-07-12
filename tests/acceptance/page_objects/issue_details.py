@@ -62,9 +62,7 @@ class IssueDetailsPage(BasePage):
         return self.browser.find_element_by_css_selector('[data-test-id="note-input-form"]')
 
     def has_comment(self, text):
-        selector = '[data-test-id="activity-note-body"]'
-        self.browser.wait_until(selector)
-        element = self.browser.element(selector)
+        element = self.browser.element('[data-test-id="activity-note-body"]')
         return text in element.text
 
     def dismiss_assistant(self):
