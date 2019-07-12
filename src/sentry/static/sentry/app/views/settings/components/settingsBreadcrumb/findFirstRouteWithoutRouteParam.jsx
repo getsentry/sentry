@@ -10,6 +10,7 @@ export default function findFirstRouteWithoutRouteParam(routes, route) {
   const routesToSearch = route && routeIndex > -1 ? routes.slice(routeIndex) : routes;
 
   return (
-    routesToSearch.filter(({path}) => !!path).find(({path}) => path[0] !== ':') || route
+    routesToSearch.filter(({path}) => !!path).find(({path}) => !path.includes(':')) ||
+    route
   );
 }

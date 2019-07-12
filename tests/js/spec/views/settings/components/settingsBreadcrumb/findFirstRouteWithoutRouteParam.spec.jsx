@@ -23,4 +23,14 @@ describe('findFirstRouteWithoutRouteParam', function() {
     expect(findFirstRouteWithoutRouteParam(routes, routes[6]).path).toBe('api-keys/');
     expect(findFirstRouteWithoutRouteParam(routes, routes[8]).path).toBe('api-keys/');
   });
+
+  it('does not include routes that have any url parameters', function() {
+    const r = [
+      {path: '/settings/', name: 'Settings'},
+      {name: 'Organizations', path: ':orgId/', childRoutes: []},
+      {path: 'api-keys/:apiKey/', name: 'API Key Details'},
+    ];
+
+    expect(findFirstRouteWithoutRouteParam(r, r[1]).path).toBe(':orgId/');
+  });
 });
