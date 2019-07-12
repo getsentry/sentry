@@ -31,6 +31,17 @@ export default class Events extends React.Component {
     view: SentryTypes.EventView.isRequired,
   };
 
+  handleSearch = query => {
+    const {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: getParams({
+        ...(location.query || {}),
+        query,
+      }),
+    });
+  };
+
   render() {
     const {organization, view, location, router} = this.props;
     const query = location.query.query || '';
@@ -103,17 +114,6 @@ class EventsTable extends AsyncComponent {
       ],
     ];
   }
-
-  handleSearch = query => {
-    const {router, location} = this.props;
-    router.push({
-      pathname: location.pathname,
-      query: getParams({
-        ...(location.query || {}),
-        query,
-      }),
-    });
-  };
 
   renderLoading() {
     return this.renderBody();
