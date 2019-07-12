@@ -42,6 +42,14 @@ export const User = PropTypes.shape({
   username: PropTypes.string,
 });
 
+export const AuthConfig = PropTypes.shape({
+  canRegister: PropTypes.bool,
+  serverHostname: PropTypes.string,
+  hasNewsletter: PropTypes.bool,
+  githubLoginLink: PropTypes.string,
+  vstsLoginLink: PropTypes.string,
+});
+
 export const Config = PropTypes.shape({
   dsn: PropTypes.string,
   features: PropTypes.instanceOf(Set),
@@ -482,6 +490,12 @@ export const GlobalSelection = PropTypes.shape({
     utc: PropTypes.bool,
   }),
 });
+
+export const DebugSourceType = PropTypes.oneOf(['http', 's3', 'gcs']);
+
+// Avoiding code duplication here. This is validated strictly by the server and
+// form elements in the `DebugFilesSourceModal`.
+export const DebugSourceConfig = PropTypes.object;
 
 export const Widget = PropTypes.shape({
   queries: PropTypes.shape({
@@ -990,9 +1004,12 @@ const SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthConfig,
   Activity,
   AuthProvider,
   Config,
+  DebugSourceConfig,
+  DebugSourceType,
   Deploy,
   DiscoverQuery,
   DiscoverSavedQuery,

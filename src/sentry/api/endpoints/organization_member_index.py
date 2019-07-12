@@ -111,12 +111,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(
                 {'organization': 'Your organization is not allowed to invite members'}, status=403)
 
-        serializer = OrganizationMemberSerializer(data=request.DATA)
+        serializer = OrganizationMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         _, allowed_roles = get_allowed_roles(request, organization)
 
@@ -169,7 +169,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         if settings.SENTRY_ENABLE_INVITES and result.get('sendInvite'):
             om.send_invite_email()
             member_invited.send_robust(member=om, user=request.user, sender=self,
-                                       referrer=request.DATA.get('referrer'))
+                                       referrer=request.data.get('referrer'))
         self.create_audit_entry(
             request=request,
             organization_id=organization.id,

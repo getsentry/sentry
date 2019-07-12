@@ -5,7 +5,7 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import {removeSentryApp, publishRequestSentryApp} from 'app/actionCreators/sentryApps';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
@@ -31,6 +31,11 @@ class OrganizationDeveloperSettings extends AsyncView {
       },
       () => {}
     );
+  };
+
+  publishRequest = app => {
+    // TODO(scefali) May want to do some state change after the request to show that the publish request has been made
+    publishRequestSentryApp(this.api, app);
   };
 
   renderBody() {
@@ -84,6 +89,7 @@ class OrganizationDeveloperSettings extends AsyncView {
                     app={app}
                     organization={organization}
                     onRemoveApp={this.removeApp}
+                    onPublishRequest={this.publishRequest}
                     showPublishStatus={true}
                   />
                 );

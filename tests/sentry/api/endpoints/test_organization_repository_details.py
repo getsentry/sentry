@@ -340,5 +340,5 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         })
 
         assert response.status_code == 400
-        assert response.data == {'integrationId': ['Enter a whole number.']}
+        assert response.data == {'integrationId': ['A valid integer is required.']}
         assert Repository.objects.get(id=repo.id).name == 'example'

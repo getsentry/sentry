@@ -21,22 +21,22 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     query = serializers.CharField(required=True)
 
-    def validate_type(self, attrs, source):
+    def validate_type(self, value):
         try:
-            SearchType(attrs[source])
+            SearchType(value)
         except ValueError as e:
             raise serializers.ValidationError(six.text_type(e))
-        return attrs
+        return value
 
 
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission, )
 
     def put(self, request, organization):
-        serializer = OrganizationSearchSerializer(data=request.DATA)
+        serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
             SavedSearch.objects.create_or_update(
                 organization=organization,
                 name=PINNED_SEARCH_NAME,
@@ -68,7 +68,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
 
     def delete(self, request, organization):
         try:
-            search_type = SearchType(int(request.DATA.get('type', 0)))
+            search_type = SearchType(int(request.data.get('type', 0)))
         except ValueError as e:
             return Response(
                 {'detail': 'Invalid input for `type`. Error: %s' % six.text_type(e)},

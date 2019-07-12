@@ -10,10 +10,10 @@ import keydown from 'react-keydown';
 import {get, isEqual} from 'lodash';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
+import {fetchGuides} from 'app/actionCreators/guides';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import Alerts from 'app/components/alerts';
-import AssistantHelper from 'app/components/assistant/helper';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
@@ -146,6 +146,7 @@ class App extends React.Component {
 
   componentDidMount() {
     this.updateTracing();
+    fetchGuides();
   }
 
   componentDidUpdate(prevProps) {
@@ -242,7 +243,6 @@ class App extends React.Component {
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-          <AssistantHelper />
         </div>
       </ThemeProvider>
     );

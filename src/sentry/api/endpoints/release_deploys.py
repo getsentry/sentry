@@ -16,17 +16,16 @@ from sentry.signals import deploy_created
 
 
 class DeploySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False)
+    name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
     environment = serializers.CharField(max_length=64)
-    url = serializers.URLField(required=False)
-    dateStarted = serializers.DateTimeField(required=False)
-    dateFinished = serializers.DateTimeField(required=False)
+    url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+    dateStarted = serializers.DateTimeField(required=False, allow_null=True)
+    dateFinished = serializers.DateTimeField(required=False, allow_null=True)
 
-    def validate_environment(self, attrs, source):
-        value = attrs[source]
+    def validate_environment(self, value):
         if not Environment.is_valid_name(value):
             raise serializers.ValidationError('Invalid value for environment')
-        return attrs
+        return value
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
@@ -95,11 +94,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        serializer = DeploySerializer(data=request.DATA)
+        serializer = DeploySerializer(data=request.data)
 
         if serializer.is_valid():
             projects = list(release.projects.all())
-            result = serializer.object
+            result = serializer.validated_data
 
             env = Environment.objects.get_or_create(
                 name=result['environment'],

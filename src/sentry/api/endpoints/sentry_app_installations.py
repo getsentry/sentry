@@ -44,14 +44,14 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         )
 
     def post(self, request, organization):
-        serializer = SentryAppInstallationsSerializer(data=request.DATA)
+        serializer = SentryAppInstallationsSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         install = Creator.run(
             organization=organization,
-            slug=serializer.object.get('slug'),
+            slug=serializer.validated_data.get('slug'),
             user=request.user,
             request=request,
         )

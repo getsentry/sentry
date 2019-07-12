@@ -138,7 +138,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = OrganizationMemberSerializer(
-            data=request.DATA, partial=True)
+            data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(status=400)
@@ -150,7 +150,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             auth_provider = None
 
         allowed_roles = None
-        result = serializer.object
+        result = serializer.validated_data
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level

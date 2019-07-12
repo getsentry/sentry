@@ -63,11 +63,11 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
-        validator = ServiceHookValidator(data=request.DATA, partial=True)
+        validator = ServiceHookValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        result = validator.object
+        result = validator.validated_data
 
         updates = {}
         if result.get('events') is not None:

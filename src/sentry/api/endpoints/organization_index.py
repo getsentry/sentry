@@ -41,11 +41,10 @@ class OrganizationSerializer(serializers.Serializer):
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields['agreeTerms']
 
-    def validate_agreeTerms(self, attrs, source):
-        value = attrs[source]
+    def validate_agreeTerms(self, value):
         if not value:
             raise serializers.ValidationError('This attribute is required.')
-        return attrs
+        return value
 
 
 class OrganizationIndexEndpoint(Endpoint):
@@ -213,10 +212,10 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429
             )
 
-        serializer = OrganizationSerializer(data=request.DATA)
+        serializer = OrganizationSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 with transaction.atomic():

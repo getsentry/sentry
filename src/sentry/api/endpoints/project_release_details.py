@@ -74,12 +74,12 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.DATA, partial=True)
+        serializer = ReleaseSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         was_released = bool(release.date_released)
 

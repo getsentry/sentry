@@ -51,7 +51,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         """
         plugin = self._get_plugin(plugin_id)
 
-        if request.DATA.get('test') and plugin.is_testable():
+        if request.data.get('test') and plugin.is_testable():
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:
@@ -67,7 +67,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 test_results = 'No errors returned'
             return Response({'detail': test_results}, status=200)
 
-        if request.DATA.get('reset'):
+        if request.data.get('reset'):
             plugin = self._get_plugin(plugin_id)
             plugin.reset_options(project=project)
             context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
@@ -126,7 +126,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             for c in plugin.get_config(
                 project=project,
                 user=request.user,
-                initial=request.DATA,
+                initial=request.data,
             )
         ]
 
@@ -134,7 +134,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         errors = {}
         for field in config:
             key = field['name']
-            value = request.DATA.get(key)
+            value = request.data.get(key)
 
             if field.get('required') and not value:
                 errors[key] = ERR_FIELD_REQUIRED

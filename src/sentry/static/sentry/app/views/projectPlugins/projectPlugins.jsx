@@ -16,6 +16,8 @@ import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';
 import SentryTypes from 'app/sentryTypes';
 
+import {DEPRECATED_PLUGINS} from './constants';
+
 class ProjectPlugins extends Component {
   static propTypes = {
     plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
@@ -65,7 +67,12 @@ class ProjectPlugins extends Component {
           </PanelAlert>
 
           {plugins
-            .filter(p => !p.isHidden)
+            .filter(p => {
+              if (DEPRECATED_PLUGINS.includes(p.id) && !p.enabled) {
+                return false;
+              }
+              return !p.isHidden;
+            })
             .map(plugin => (
               <PanelItem key={plugin.id}>
                 <ProjectPluginRow

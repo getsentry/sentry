@@ -76,7 +76,7 @@ def init_all_applications():
 
 init_all_applications()
 
-# Only create one instance of the ReactPageView since it's duplicated errywhere
+# Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
@@ -134,6 +134,13 @@ urlpatterns += patterns(
         name='sentry-api-crossdomain-xml'
     ),
     url(r'^api/store/schema$', api.StoreSchemaView.as_view(), name='sentry-api-store-schema'),
+
+    # Frontend client config
+    url(
+        r'^api/client-config/?$',
+        api.ClientConfigView.as_view(),
+        name='sentry-api-client-config'
+    ),
 
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(

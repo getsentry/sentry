@@ -63,12 +63,7 @@ def _should_send_error_created_hooks(project):
         if random.random() >= options.get('post-process.error-hook-sample-rate'):
             return False
 
-        org = Organization.objects.get_from_cache(id=project.organization_id)
-        result = ServiceHook.objects.filter(
-            organization_id=org.id,
-        ).extra(where=["events @> '{error.created}'"]).exists()
-
-        return result
+        return True
 
     cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
     result = cache.get(cache_key)
@@ -212,8 +207,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                 action='created',
                 sender='Error',
                 instance_id=event.event_id,
-                project_id=event.project_id,
-                group_id=event.group_id,
+                instance=event,
             )
         if is_new:
             process_resource_change_bound.delay(

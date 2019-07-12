@@ -75,10 +75,10 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         return Response(serialize(recent_searches, request.user))
 
     def post(self, request, organization):
-        serializer = RecentSearchSerializer(data=request.DATA)
+        serializer = RecentSearchSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             created = RecentSearch.objects.create_or_update(
                 organization=organization,

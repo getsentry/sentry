@@ -25,41 +25,35 @@ class IncidentSerializer(serializers.Serializer):
     projects = ListField(
         child=serializers.CharField(),
         required=False,
-        allow_null=True,
         default=[],
     )
     groups = ListField(
         child=serializers.CharField(),
         required=True,
         allow_null=False,
-        default=[],
     )
     title = serializers.CharField(required=True)
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     dateStarted = serializers.DateTimeField(required=True)
-    dateDetected = serializers.DateTimeField(required=False)
+    dateDetected = serializers.DateTimeField(required=False, allow_null=True)
 
-    def validate_projects(self, attrs, source):
-        slugs = attrs[source]
+    def validate_projects(self, slugs):
         projects = Project.objects.filter(
             organization=self.context['organization'],
             slug__in=slugs,
         )
         if len(projects) != len(slugs):
             raise serializers.ValidationError('Invalid project slug(s)')
-        attrs[source] = list(projects)
-        return attrs
+        return list(projects)
 
-    def validate_groups(self, attrs, source):
-        group_ids = attrs[source]
+    def validate_groups(self, group_ids):
         groups = Group.objects.filter(
             project__organization=self.context['organization'],
             id__in=group_ids,
         ).select_related('project')
         if len(groups) != len(group_ids):
             raise serializers.ValidationError('Invalid group id(s)')
-        attrs[source] = list(groups)
-        return attrs
+        return list(groups)
 
 
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
@@ -101,13 +95,13 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         serializer = IncidentSerializer(
-            data=request.DATA,
+            data=request.data,
             context={'organization': organization},
         )
 
         if serializer.is_valid():
 
-            result = serializer.object
+            result = serializer.validated_data
             groups = result['groups']
             all_projects = set(result['projects']) | set(g.project for g in result['groups'])
             if any(p for p in all_projects if not request.access.has_project_access(p)):

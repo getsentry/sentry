@@ -12,34 +12,7 @@ from tests.acceptance.page_objects.organization_integration_settings import (
 class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationIntegrationAcceptanceTestCase, self).setUp()
-        self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            name='Rowdy Tiger',
-            owner=None,
-        )
-        self.team = self.create_team(organization=self.org, name='Mariachi Band')
-        self.project = self.create_project(
-            organization=self.org,
-            teams=[self.team],
-            name='Bengal',
-        )
-        self.create_member(
-            user=self.user,
-            organization=self.org,
-            role='owner',
-            teams=[self.team],
-        )
-        self.model = Integration.objects.create(
-            provider='example',
-            external_id='example',
-            name='Test Integration',
-            metadata={
-                'domain_name': 'example-test.com',
-            },
-        )
-        self.org_integration = self.model.add_organization(self.org, self.user)
         self.login_as(self.user)
-
         self.integration_settings_path = 'sentry-api-0-organization-integrations'
 
     def load_page(self, url):

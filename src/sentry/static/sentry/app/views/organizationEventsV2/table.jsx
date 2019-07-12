@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
-import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -12,38 +11,22 @@ import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
 import {QueryLink} from './styles';
+import SortLink from './sortLink';
 
 export default class Table extends React.Component {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
     data: PropTypes.arrayOf(PropTypes.object),
-    isLoading: PropTypes.bool,
+    isLoading: PropTypes.bool.isRequired,
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object,
   };
 
-  state = {
-    isChangingTabs: false,
-  };
-
-  componentDidUpdate(prevProps) {
-    const tabChanged = prevProps.view.id !== this.props.view.id;
-    if (!this.state.isChangingTabs && tabChanged) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({isChangingTabs: true});
-    }
-
-    if (this.state.isChangingTabs && !isEqual(prevProps.data, this.props.data)) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({isChangingTabs: false});
-    }
-  }
-
   renderBody() {
-    const {view, data, organization, location} = this.props;
+    const {view, data, organization, location, isLoading} = this.props;
     const {fields} = view.data;
 
-    if (!data) {
+    if (!data || isLoading) {
       return null;
     }
 
@@ -81,29 +64,33 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {isLoading, view, data} = this.props;
+    const {isLoading, location, view} = this.props;
     const {fields} = view.data;
-    const {isChangingTabs} = this.state;
-
-    // If previous state was empty or we are switching tabs, don't show the
-    // reloading state
-    const isReloading = !!(data && data.length) && isLoading && !isChangingTabs;
 
     return (
       <Panel>
         <TableHeader className={getGridStyle(view)}>
-          {fields.map(field => (
-            <HeaderItem key={field}>
-              {SPECIAL_FIELDS.hasOwnProperty(field)
-                ? SPECIAL_FIELDS[field].title || field
-                : field}
-            </HeaderItem>
-          ))}
+          {fields.map(field => {
+            let title = field;
+            let sortKey = field;
+            if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+              title = SPECIAL_FIELDS[field].title || field;
+              sortKey = SPECIAL_FIELDS[field].sortField;
+            }
+
+            if (sortKey === false) {
+              return <HeaderItem key={field}>{title}</HeaderItem>;
+            }
+
+            return (
+              <HeaderItem key={field}>
+                <SortLink sortKey={sortKey} title={title} location={location} />
+              </HeaderItem>
+            );
+          })}
         </TableHeader>
-        <StyledPanelBody isLoading={isLoading || isReloading}>
-          <LoadingContainer isLoading={isLoading} isReloading={isReloading}>
-            {this.renderBody()}
-          </LoadingContainer>
+        <StyledPanelBody isLoading={isLoading}>
+          <LoadingContainer isLoading={isLoading}>{this.renderBody()}</LoadingContainer>
         </StyledPanelBody>
       </Panel>
     );

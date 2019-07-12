@@ -112,11 +112,11 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request):
-        validator = BroadcastValidator(data=request.DATA, partial=True)
+        validator = BroadcastValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
 
         queryset = Broadcast.objects.filter(
             is_active=True,
@@ -157,11 +157,11 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         if not (is_active_superuser(request) and request.access.has_permission('broadcasts.admin')):
             return self.respond(status=401)
 
-        validator = AdminBroadcastValidator(data=request.DATA)
+        validator = AdminBroadcastValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
 
         with transaction.atomic():
             broadcast = Broadcast.objects.create(

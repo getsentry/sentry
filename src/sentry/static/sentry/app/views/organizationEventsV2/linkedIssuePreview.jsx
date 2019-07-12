@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 class LinkedIssuePreview extends AsyncComponent {
   static propTypes = {
     groupId: PropTypes.string.isRequired,
+    eventId: PropTypes.string.isRequired,
   };
 
   getEndpoints() {
@@ -31,7 +32,9 @@ class LinkedIssuePreview extends AsyncComponent {
   }
 
   renderBody() {
+    const {eventId} = this.props;
     const {group} = this.state;
+    const issueUrl = `${group.permalink}events/${eventId}/`;
 
     return (
       <Container>
@@ -39,7 +42,7 @@ class LinkedIssuePreview extends AsyncComponent {
           <InlineSvg src="icon-link" size="12px" /> {t('Linked Issue')}
         </Title>
         <Section>
-          <Link to={group.permalink}>
+          <Link to={issueUrl} data-test-id="linked-issue">
             <StyledShortId
               shortId={group.shortId}
               avatar={<ProjectBadge project={group.project} avatarSize={16} hideName />}

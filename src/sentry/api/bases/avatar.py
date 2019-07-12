@@ -53,13 +53,13 @@ class AvatarMixin(object):
     def put(self, request, **kwargs):
         obj = kwargs[self.object_type]
         serializer = AvatarSerializer(
-            data=request.DATA,
+            data=request.data,
             context=self.get_serializer_context(obj),
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         self.model.save_avatar(
             relation={self.object_type: obj},

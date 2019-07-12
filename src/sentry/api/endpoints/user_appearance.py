@@ -74,12 +74,12 @@ class UserAppearanceEndpoint(UserEndpoint):
         :param clock_24_hours boolean: use 24 hour clock
         :auth: required
         """
-        serializer = UserAppearanceSerializer(data=request.DATA, partial=True)
+        serializer = UserAppearanceSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         # map API keys to keys in model
         key_map = {

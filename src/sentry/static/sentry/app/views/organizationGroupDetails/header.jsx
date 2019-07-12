@@ -99,7 +99,9 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <EventOrGroupTitle data={group} />
+              <GuideAnchor target="issue_title">
+                <EventOrGroupTitle data={group} />
+              </GuideAnchor>
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
@@ -131,22 +133,23 @@ class GroupHeader extends React.Component {
             <div className="flex flex-justify-right">
               {group.shortId && (
                 <div className="short-id-box count align-right">
-                  <h6 className="nav-header">
-                    <GuideAnchor target="issue_number" type="text" />
-                    <Tooltip
-                      title={t(
-                        'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                      )}
-                      position="bottom"
-                    >
-                      <a
-                        className="help-link"
-                        href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
+                  <GuideAnchor target="issue_number" position="right">
+                    <h6 className="nav-header">
+                      <Tooltip
+                        title={t(
+                          'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                        )}
+                        position="bottom"
                       >
-                        {t('Issue #')}
-                      </a>
-                    </Tooltip>
-                  </h6>
+                        <a
+                          className="help-link"
+                          href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
+                        >
+                          {t('Issue #')}
+                        </a>
+                      </Tooltip>
+                    </h6>
+                  </GuideAnchor>
                   <ShortId
                     shortId={group.shortId}
                     avatar={

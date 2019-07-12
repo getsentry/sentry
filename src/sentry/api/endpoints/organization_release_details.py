@@ -120,12 +120,12 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        serializer = OrganizationReleaseSerializer(data=request.DATA)
+        serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         was_released = bool(release.date_released)
 

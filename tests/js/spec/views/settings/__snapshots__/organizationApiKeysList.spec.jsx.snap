@@ -46,6 +46,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <SettingsPageHeading
       action={
         <Button
+          align="center"
           disabled={false}
           icon="icon-circle-add"
           priority="primary"
@@ -97,6 +98,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     className="css-18luhfc-Action e1kblvez1"
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       icon="icon-circle-add"
                       priority="primary"
@@ -130,16 +132,18 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             size="small"
                           >
                             <ButtonLabel
+                              align="center"
                               priority="primary"
                               size="small"
                             >
                               <Component
-                                className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                align="center"
+                                className="css-1h693nz-ButtonLabel e12ma6z1"
                                 priority="primary"
                                 size="small"
                               >
                                 <span
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel e12ma6z1"
                                 >
                                   <Icon
                                     hasChildren={true}

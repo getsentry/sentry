@@ -513,7 +513,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
                     **kwargs
                 )
             )
-        self.configure(project, request.DATA)
+        self.configure(project, request.data)
         return Response({'message': 'Successfully updated configuration.'})
 
     def handle_signal(self, name, payload, **kwargs):

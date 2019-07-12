@@ -87,7 +87,7 @@ class SlackRequest(object):
 
     def _validate_data(self):
         try:
-            self._data = self.request.DATA
+            self._data = self.request.data
         except (ValueError, TypeError):
             raise SlackRequestError(status=400)
 
@@ -202,7 +202,7 @@ class SlackActionRequest(SlackRequest):
         """
         super(SlackActionRequest, self)._validate_data()
 
-        if 'payload' not in self.request.DATA:
+        if 'payload' not in self.request.data:
             raise SlackRequestError(status=400)
 
         try:

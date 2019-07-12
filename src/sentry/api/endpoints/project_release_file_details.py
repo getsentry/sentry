@@ -160,16 +160,14 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseFileSerializer(data=request.DATA)
+        serializer = ReleaseFileSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
-        releasefile.update(
-            name=result['name'],
-        )
+        releasefile.update(name=result['name'])
 
         return Response(serialize(releasefile, request.user))
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
+import {omit} from 'lodash';
 
 import Access from 'app/components/acl/access';
 import BetaTag from 'app/components/betaTag';
@@ -26,6 +27,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
+    onPublishRequest: PropTypes.func,
     showPublishStatus: PropTypes.bool,
     isInternal: PropTypes.bool,
   };
@@ -34,6 +36,55 @@ export default class SentryApplicationRow extends React.PureComponent {
     showPublishStatus: false,
     isInternal: false,
   };
+
+  renderUnpublishedAdminButtons(app) {
+    return (
+      <ButtonHolder>
+        {app.status === 'internal'
+          ? this.renderDisabledPublishRequestButton(
+              'Internal integrations cannot be published'
+            )
+          : this.renderPublishRequest(app)}
+        {this.renderRemoveApp(app)}
+      </ButtonHolder>
+    );
+  }
+
+  renderDisabledPublishRequestButton(message) {
+    return (
+      <StyledButton disabled title={t(message)} size="small" icon="icon-upgrade">
+        {t('Publish')}
+      </StyledButton>
+    );
+  }
+
+  renderDisabledRemoveButton(message) {
+    return <Button disabled title={t(message)} size="small" icon="icon-trash" />;
+  }
+
+  renderUnpublishedNonAdminButtons() {
+    return (
+      <ButtonHolder>
+        {this.renderDisabledPublishRequestButton(
+          'Organization owner permissions are required for this action.'
+        )}
+        {this.renderDisabledRemoveButton(
+          'Organization owner permissions are required for this action.'
+        )}
+      </ButtonHolder>
+    );
+  }
+
+  renderPublishedAppButtons() {
+    return (
+      <ButtonHolder>
+        {this.renderDisabledPublishRequestButton(
+          'Published integrations cannot be re-published.'
+        )}
+        {this.renderDisabledRemoveButton('Published integrations cannot be removed.')}
+      </ButtonHolder>
+    );
+  }
 
   renderRemoveApp(app) {
     const message = t(
@@ -49,6 +100,26 @@ export default class SentryApplicationRow extends React.PureComponent {
       >
         <Button size="small" icon="icon-trash" />
       </ConfirmDelete>
+    );
+  }
+
+  renderPublishRequest(app) {
+    const message = t(
+      `Sentry will evaluate your integration ${
+        app.slug
+      } and make it available to all users. \
+       Do you wish to continue?`
+    );
+    return (
+      <Confirm
+        message={message}
+        priority="primary"
+        onConfirm={() => this.props.onPublishRequest(app)}
+      >
+        <StyledButton icon="icon-upgrade" size="small">
+          {t('Publish')}
+        </StyledButton>
+      </Confirm>
     );
   }
 
@@ -73,7 +144,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const {app, showPublishStatus, isInternal} = this.props;
     const isInstalled = this.isInstalled;
     if (isInternal) {
-      return <Status enabled isInternal />;
+      return <Status enabled isInternal={isInternal} />;
     }
     if (showPublishStatus) {
       return <PublishStatus status={app.status} />;
@@ -107,7 +178,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const isInstalled = this.isInstalled;
 
     return (
-      <SentryAppItem>
+      <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
@@ -147,28 +218,14 @@ export default class SentryApplicationRow extends React.PureComponent {
                 <Access access={['org:admin']}>
                   {({hasAccess}) => (
                     <React.Fragment>
-                      {!hasAccess && (
-                        <Button
-                          disabled
-                          title={t(
-                            'Organization owner permissions are required for this action.'
-                          )}
-                          size="small"
-                          icon="icon-trash"
-                        />
-                      )}
-
-                      {hasAccess && this.renderRemoveApp(app)}
+                      {hasAccess
+                        ? this.renderUnpublishedAdminButtons(app)
+                        : this.renderUnpublishedNonAdminButtons()}
                     </React.Fragment>
                   )}
                 </Access>
               ) : (
-                <Button
-                  disabled
-                  title={t('Published apps cannot be removed.')}
-                  size="small"
-                  icon="icon-trash"
-                />
+                this.renderPublishedAppButtons()
               )}
             </Box>
           )}
@@ -217,14 +274,16 @@ const StyledButton = styled(Button)`
 `;
 
 const Status = styled(
-  withTheme(({enabled, isInternal, ...props}) => {
+  withTheme(({enabled, ...props}) => {
+    //need to omit isInternal
+    const propsToPass = omit(props, ['isInternal']);
     return (
       <Flex align="center">
         <CircleIndicator
           size={6}
           color={enabled ? props.theme.success : props.theme.gray2}
         />
-        <div {...props}>{enabled ? t('Installed') : t('Not Installed')}</div>
+        <div {...propsToPass}>{enabled ? t('Installed') : t('Not Installed')}</div>
       </Flex>
     );
   })
@@ -252,4 +311,12 @@ const PublishStatus = styled(({status, ...props}) => {
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;
   margin-right: ${space(0.75)};
+`;
+
+const ButtonHolder = styled.div`
+  flex-direction: row;
+  display: flex;
+  & > * {
+    margin-left: ${space(0.5)};
+  }
 `;

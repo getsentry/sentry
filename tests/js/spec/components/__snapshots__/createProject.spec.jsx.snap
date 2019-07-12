@@ -64,6 +64,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             title="Create a team"
           >
             <Button
+              align="center"
               borderless={true}
               data-test-id="create-team"
               disabled={false}
@@ -76,6 +77,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
       </div>
       <div>
         <Button
+          align="center"
           data-test-id="create-project"
           disabled={true}
           priority="primary"
@@ -1497,6 +1499,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           onMouseLeave={[Function]}
                         >
                           <Button
+                            align="center"
                             borderless={true}
                             data-test-id="create-team"
                             disabled={false}
@@ -1532,14 +1535,16 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   type="button"
                                 >
                                   <ButtonLabel
+                                    align="center"
                                     borderless={true}
                                   >
                                     <Component
+                                      align="center"
                                       borderless={true}
-                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                     >
                                       <span
-                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                       >
                                         <Icon
                                           hasChildren={false}
@@ -1601,6 +1606,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         </div>
         <div>
           <Button
+            align="center"
             data-test-id="create-project"
             disabled={true}
             priority="primary"
@@ -1639,14 +1645,16 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>
@@ -2099,6 +2107,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     onClick={[Function]}
                   >
                     <Button
+                      align="center"
                       borderless={true}
                       className="css-9ldjwa-ClearButton exv4dm85"
                       disabled={false}
@@ -2132,16 +2141,18 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             size="xsmall"
                           >
                             <ButtonLabel
+                              align="center"
                               borderless={true}
                               size="xsmall"
                             >
                               <Component
+                                align="center"
                                 borderless={true}
-                                className="css-10ltac7-ButtonLabel e12ma6z1"
+                                className="css-17lag4c-ButtonLabel e12ma6z1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-10ltac7-ButtonLabel e12ma6z1"
+                                  className="css-17lag4c-ButtonLabel e12ma6z1"
                                 >
                                   <Icon
                                     hasChildren={false}
@@ -2478,6 +2489,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           onMouseLeave={[Function]}
                         >
                           <Button
+                            align="center"
                             borderless={true}
                             data-test-id="create-team"
                             disabled={false}
@@ -2513,14 +2525,16 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   type="button"
                                 >
                                   <ButtonLabel
+                                    align="center"
                                     borderless={true}
                                   >
                                     <Component
+                                      align="center"
                                       borderless={true}
-                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                     >
                                       <span
-                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                       >
                                         <Icon
                                           hasChildren={false}
@@ -2582,6 +2596,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         </div>
         <div>
           <Button
+            align="center"
             data-test-id="create-project"
             disabled={true}
             priority="primary"
@@ -2620,14 +2635,16 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>
@@ -2980,6 +2997,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     onClick={[Function]}
                   >
                     <Button
+                      align="center"
                       borderless={true}
                       className="css-9ldjwa-ClearButton exv4dm85"
                       disabled={false}
@@ -3013,16 +3031,18 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             size="xsmall"
                           >
                             <ButtonLabel
+                              align="center"
                               borderless={true}
                               size="xsmall"
                             >
                               <Component
+                                align="center"
                                 borderless={true}
-                                className="css-10ltac7-ButtonLabel e12ma6z1"
+                                className="css-17lag4c-ButtonLabel e12ma6z1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-10ltac7-ButtonLabel e12ma6z1"
+                                  className="css-17lag4c-ButtonLabel e12ma6z1"
                                 >
                                   <Icon
                                     hasChildren={false}
@@ -4159,6 +4179,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           onMouseLeave={[Function]}
                         >
                           <Button
+                            align="center"
                             borderless={true}
                             data-test-id="create-team"
                             disabled={false}
@@ -4194,14 +4215,16 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   type="button"
                                 >
                                   <ButtonLabel
+                                    align="center"
                                     borderless={true}
                                   >
                                     <Component
+                                      align="center"
                                       borderless={true}
-                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
                                     >
                                       <span
-                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
                                       >
                                         <Icon
                                           hasChildren={false}
@@ -4263,6 +4286,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
         </div>
         <div>
           <Button
+            align="center"
             data-test-id="create-project"
             disabled={true}
             priority="primary"
@@ -4301,14 +4325,16 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel e12ma6z1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>

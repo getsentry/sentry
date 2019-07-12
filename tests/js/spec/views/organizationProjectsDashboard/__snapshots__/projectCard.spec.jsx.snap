@@ -958,6 +958,7 @@ exports[`ProjectCard renders 1`] = `
                             is={null}
                           >
                             <Button
+                              align="center"
                               disabled={false}
                               external={true}
                               href="https://docs.sentry.io/learn/releases/"
@@ -1007,14 +1008,16 @@ exports[`ProjectCard renders 1`] = `
                                       target="_blank"
                                     >
                                       <ButtonLabel
+                                        align="center"
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-uthd1f-ButtonLabel e12ma6z1"
+                                          align="center"
+                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           size="xsmall"
                                         >
                                           <span
-                                            className="css-uthd1f-ButtonLabel e12ma6z1"
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           >
                                             Track deploys
                                           </span>
