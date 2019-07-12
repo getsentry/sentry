@@ -157,3 +157,11 @@ export const SEARCH_TYPES = {
 export const MAX_RECENT_SEARCHES = 3;
 
 export const DEFAULT_PER_PAGE = 50;
+
+// Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
+// eslint-disable-next-line no-undef
+export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
+
+// Webpack configures EXPERIMENTAL_SPA.
+// eslint-disable-next-line no-undef
+export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
