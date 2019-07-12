@@ -93,7 +93,6 @@ class GroupHeader extends React.Component {
       query: searchTermWithoutQuery,
     };
 
-    group.annotations = ['test', 'test2'];
     return (
       <div className={className}>
         <div className="row">
