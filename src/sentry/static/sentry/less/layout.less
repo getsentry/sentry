@@ -249,7 +249,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex-grow: 1;
 }
 
 .container {
@@ -266,6 +266,8 @@ body.auth {
 
 // Container around content in app.jsx
 .main-container {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   outline: none;
 }

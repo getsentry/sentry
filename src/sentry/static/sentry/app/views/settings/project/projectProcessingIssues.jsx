@@ -324,7 +324,7 @@ class ProjectProcessingIssues extends React.Component {
                 )}
               </label>
               <AutoSelectText className="form-control disabled" style={{marginBottom: 6}}>
-                curl -sL {fixLink} | bash
+                curl -sL "{fixLink}" | bash
               </AutoSelectText>
             </div>
           </div>

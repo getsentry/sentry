@@ -64,16 +64,27 @@ class Browser(object):
         return self
 
     def element(self, selector):
+        """
+        Get an element from the page. This method will wait for the element to show up.
+        """
+        self.wait_until(selector)
         return self.driver.find_element_by_css_selector(selector)
 
     def element_exists(self, selector):
+        """
+        Check if an element exists on the page. This method will *not* wait for the element.
+        """
         try:
-            self.element(selector)
+            self.driver.find_element_by_css_selector(selector)
         except NoSuchElementException:
             return False
         return True
 
     def element_exists_by_test_id(self, selector):
+        """
+        Check if an element exists on the page using a data-test-id attribute.
+        This method will not wait for the element.
+        """
         return self.element_exists('[data-test-id="%s"]' % (selector))
 
     def click(self, selector):

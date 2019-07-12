@@ -20,7 +20,6 @@ class OrganizationDeveloperSettingsAcceptanceTest(AcceptanceTestCase):
 
     def test_create_new_integration(self):
         with self.feature('organizations:sentry-apps'):
-
             self.load_page(self.org_developer_settings_path)
 
             self.browser.click('[aria-label="Create New Integration"]')
