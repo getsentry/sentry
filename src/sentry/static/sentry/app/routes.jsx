@@ -10,7 +10,6 @@ import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
-import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import IssueListContainer from 'app/views/issueList/container';
@@ -18,7 +17,6 @@ import IssueListOverview from 'app/views/issueList/overview';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
-import ProjectSettings from 'app/views/projectSettings';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
@@ -853,11 +851,20 @@ function routes() {
       </Route>
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
-          <IndexRoute component={errorHandler(OrganizationDashboard)} />
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           {hook('routes:organization-root')}
           <Route
             path="/organizations/:orgId/projects/"
-            component={errorHandler(OrganizationDashboard)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           />
           <Route
             path="/organizations/:orgId/stats/"
@@ -968,7 +975,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             componentPromise={() =>
@@ -990,7 +996,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
@@ -1328,7 +1333,7 @@ function routes() {
             )}
           />
         </Route>
-        <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
+        <Route path=":projectId/settings/">
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
           <Redirect
@@ -1420,7 +1425,6 @@ function routes() {
             from="install/:platform'"
             to="/settings/:orgId/projects/:projectId/install/:platform/"
           />
-          {projectSettingsRoutes}
         </Route>
         <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
         <Redirect
