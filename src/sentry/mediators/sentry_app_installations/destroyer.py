@@ -44,7 +44,7 @@ class Destroyer(Mediator):
                 )
             except Exception as exc:
                 capture_exception(exc)
-                # if the timeout is not due to timeout or connectivity, then raise it to
+                # if the error is not due to timeout or connectivity, then raise it to
                 # the caller function
                 if not isinstance(exc, (ConnectionError, ReadTimeout)):
                     raise exc
