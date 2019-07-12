@@ -14,7 +14,6 @@ import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
 import OrganizationContext from 'app/views/organizationContext';
-import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
@@ -775,7 +774,15 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
-      <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
+
+      <Route
+        path="/organizations/new/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "OrganizationCreate" */ 'app/views/organizationCreate')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         {/* The current (old) version of the onboarding experience does not
             route to anything here. So even though this is new, the route can
