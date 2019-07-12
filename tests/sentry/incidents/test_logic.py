@@ -25,6 +25,7 @@ from sentry.incidents.logic import (
     bulk_get_incident_aggregates,
     bulk_get_incident_event_stats,
     bulk_get_incident_stats,
+    calculate_incident_start,
     create_alert_rule,
     create_event_stat_snapshot,
     create_incident,
@@ -38,6 +39,7 @@ from sentry.incidents.logic import (
     get_incident_subscribers,
     get_incident_suspect_commits,
     get_incident_suspects,
+    INCIDENT_START_ROLLUP,
     subscribe_to_incident,
     StatusAlreadyChangedError,
     update_alert_rule,
@@ -229,7 +231,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return timezone.now()
+        return timezone.now().replace(microsecond=0)
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest):
@@ -555,29 +557,29 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         }
 
 
-@freeze_time()
 class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
 
     def test_snapshot(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        # Define events outside incident range. Should be included in the
-        # snapshot
-        self.create_event(self.now - timedelta(minutes=20))
-        self.create_event(self.now - timedelta(minutes=30))
+        with freeze_time(self.now):
+            self.create_event(self.now - timedelta(minutes=2))
+            self.create_event(self.now - timedelta(minutes=2))
+            self.create_event(self.now - timedelta(minutes=1))
+            # Define events outside incident range. Should be included in the
+            # snapshot
+            self.create_event(self.now - timedelta(minutes=15))
+            self.create_event(self.now - timedelta(minutes=20))
 
-        # Too far out, should be excluded
-        self.create_event(self.now - timedelta(minutes=100))
+            # Too far out, should be excluded
+            self.create_event(self.now - timedelta(minutes=100))
 
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query='',
-            projects=[self.project]
-        )
-        event_stat_snapshot = create_initial_event_stats_snapshot(incident)
-        assert event_stat_snapshot.start == self.now - timedelta(minutes=40)
-        assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
+            incident = self.create_incident(
+                date_started=self.now - timedelta(minutes=5),
+                query='',
+                projects=[self.project]
+            )
+            event_stat_snapshot = create_initial_event_stats_snapshot(incident)
+            assert event_stat_snapshot.start == self.now - timedelta(minutes=20)
+            assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
 
 
 class GetIncidentSuscribersTest(TestCase, BaseIncidentsTest):
@@ -960,3 +962,67 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
+
+
+@freeze_time()
+class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
+
+    def test_empty(self):
+        assert timezone.now() == calculate_incident_start('', [self.project], [])
+
+    def test_single_event(self):
+        start = self.now - timedelta(minutes=2)
+        event = self.create_event(start)
+        assert start == calculate_incident_start('', [self.project], [event.group])
+
+    def test_single_spike(self):
+        fingerprint = 'hello'
+        start = self.now - (INCIDENT_START_ROLLUP * 2)
+        for _ in xrange(3):
+            event = self.create_event(start, fingerprint=fingerprint)
+
+        end = self.now - INCIDENT_START_ROLLUP
+        for _ in xrange(4):
+            event = self.create_event(end, fingerprint=fingerprint)
+        assert start + ((end - start) / 3) == calculate_incident_start(
+            '',
+            [self.project],
+            [event.group],
+        )
+
+    def test_multiple_same_size_spikes(self):
+        # The most recent spike should take precedence
+        fingerprint = 'hello'
+        older_spike = self.now - (INCIDENT_START_ROLLUP * 3)
+        for _ in xrange(3):
+            event = self.create_event(older_spike, fingerprint=fingerprint)
+
+        newer_spike = self.now - INCIDENT_START_ROLLUP
+        for _ in xrange(3):
+            event = self.create_event(newer_spike, fingerprint=fingerprint)
+        assert newer_spike == calculate_incident_start('', [self.project], [event.group])
+
+    def test_multiple_spikes_large_older(self):
+        # The older spike should take precedence because it's much larger
+        fingerprint = 'hello'
+        older_spike = self.now - (INCIDENT_START_ROLLUP * 2)
+        for _ in xrange(4):
+            event = self.create_event(older_spike, fingerprint=fingerprint)
+
+        newer_spike = self.now - INCIDENT_START_ROLLUP
+        for _ in xrange(2):
+            event = self.create_event(newer_spike, fingerprint=fingerprint)
+        assert older_spike == calculate_incident_start('', [self.project], [event.group])
+
+    def test_multiple_spikes_large_much_older(self):
+        # The most recent spike should take precedence because even though the
+        # older spike is larger, it's much older.
+        fingerprint = 'hello'
+        older_spike = self.now - (INCIDENT_START_ROLLUP * 1000)
+        for _ in xrange(3):
+            event = self.create_event(older_spike, fingerprint=fingerprint)
+
+        newer_spike = self.now - INCIDENT_START_ROLLUP
+        for _ in xrange(2):
+            event = self.create_event(newer_spike, fingerprint=fingerprint)
+        assert newer_spike == calculate_incident_start('', [self.project], [event.group])
