@@ -110,7 +110,7 @@ class EventCauseEmpty extends React.Component {
                     onClick={() => this.handleClick('snoozed')}
                     data-test-id="snoozed"
                   >
-                    {t('Later')}
+                    {t('Snooze')}
                   </SnoozeButton>
                 </Tooltip>
                 <DismissButton
@@ -145,7 +145,7 @@ const StyledPanel = styled(Panel)`
 const BoxHeader = styled('div')`
   display: grid;
   align-items: start;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
 `;
 
 const Description = styled('div')`
@@ -157,7 +157,7 @@ const Description = styled('div')`
   }
 
   p {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
     color: ${p => p.theme.gray4};
     margin-bottom: ${space(1.5)};
@@ -169,7 +169,8 @@ const ButtonList = styled('div')`
   grid-auto-flow: column;
   grid-gap: ${space(1)};
   align-items: center;
-  float: right;
+  justify-self: end;
+  margin-bottom: 16px;
 `;
 
 const SnoozeButton = styled(Button)`
@@ -186,8 +187,7 @@ const DismissButton = styled(Button)`
 const CustomAvatar = styled('img')`
   height: 48px;
   padding-right: 12px;
-  margin-top: -6px;
-  margin-bottom: -6px;
+  margin: -6px 0px -6px -2px;
 `;
 
 export default withApi(EventCauseEmpty);

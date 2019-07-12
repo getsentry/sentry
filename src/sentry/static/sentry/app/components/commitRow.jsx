@@ -49,7 +49,7 @@ export default class CommitRow extends React.Component {
             })}
           </Meta>
         </Box>
-        <Box className="hidden-xs">
+        <Box>
           <CommitLink commitId={id} repository={repository} />
         </Box>
       </PanelItem>
