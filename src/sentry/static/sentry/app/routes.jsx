@@ -18,7 +18,6 @@ import IssueListOverview from 'app/views/issueList/overview';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
-import ProjectSettings from 'app/views/projectSettings';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
@@ -1328,7 +1327,7 @@ function routes() {
             )}
           />
         </Route>
-        <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
+        <Route path=":projectId/settings/">
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
           <Redirect
@@ -1420,7 +1419,6 @@ function routes() {
             from="install/:platform'"
             to="/settings/:orgId/projects/:projectId/install/:platform/"
           />
-          {projectSettingsRoutes}
         </Route>
         <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
         <Redirect
