@@ -29,7 +29,7 @@ const StyledSearchBar = styled(SearchBar)`
   flex: 1;
 `;
 
-class OrganizationMonitors extends AsyncView {
+class Monitors extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
     location: PropTypes.object.isRequired,
@@ -127,4 +127,4 @@ class OrganizationMonitors extends AsyncView {
   }
 }
 
-export default withRouter(withOrganization(OrganizationMonitors));
+export default withRouter(withOrganization(Monitors));
