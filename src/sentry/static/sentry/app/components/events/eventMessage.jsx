@@ -38,6 +38,10 @@ export default styled(EventMessage)`
   align-items: center;
   position: relative;
   line-height: 1.2;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const StyledErrorLevel = styled(ErrorLevel)`
