@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 import Button from 'app/components/button';
 import codesworth from 'app/../images/codesworth.png';
 import CommitRow from 'app/components/commitRow';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
@@ -18,7 +19,10 @@ import withApi from 'app/utils/withApi';
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
 
 const DUMMY_COMMIT = {
-  id: EXAMPLE_COMMITS[Math.floor(Math.random() * EXAMPLE_COMMITS.length)],
+  id: getDynamicText({
+    value: EXAMPLE_COMMITS[Math.floor(Math.random() * EXAMPLE_COMMITS.length)],
+    fixed: '5ca1ed',
+  }),
   author: {name: 'codesworth'},
   dateCreated: moment()
     .subtract(3, 'day')
@@ -104,7 +108,7 @@ class EventCauseEmpty extends React.Component {
               </Button>
 
               <div>
-                <Tooltip title={t('Remind me in a week')}>
+                <Tooltip title={t('Remind me next week')}>
                   <SnoozeButton
                     size="small"
                     onClick={() => this.handleClick('snoozed')}
