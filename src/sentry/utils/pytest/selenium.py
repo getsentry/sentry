@@ -64,6 +64,7 @@ class Browser(object):
         return self
 
     def element(self, selector):
+        self.wait_until(selector)
         return self.driver.find_element_by_css_selector(selector)
 
     def element_exists(self, selector):
