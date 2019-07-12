@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from sentry_sdk import capture_exception
+
+import logging
 from requests.exceptions import ReadTimeout, ConnectionError
 from sentry import analytics
 from sentry.mediators import Mediator, Param
@@ -8,6 +9,9 @@ from sentry.mediators import service_hooks
 from sentry.models import AuditLogEntryEvent, ServiceHook
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.utils.audit import create_audit_entry
+
+
+logger = logging.getLogger('sentry.mediators.sentry_app_installations.destroyer')
 
 
 class Destroyer(Mediator):
@@ -43,7 +47,9 @@ class Destroyer(Mediator):
                     action='deleted',
                 )
             except Exception as exc:
-                capture_exception(exc)
+                logger.error(
+                    u'Error calling webhook to delete installation: %s' %
+                    exc, exc_info=True)
                 # if the error is not due to timeout or connectivity, then raise it to
                 # the caller function
                 if not isinstance(exc, (ConnectionError, ReadTimeout)):
