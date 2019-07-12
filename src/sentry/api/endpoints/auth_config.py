@@ -35,6 +35,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         # we always reset the state on GET so you dont end up at an odd location
         auth.initiate_login(request, next_uri)
 
+        # Auth login verifies the test cookie is set
+        request.session.set_test_cookie()
+
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
             org = Organization.get_default()
@@ -55,25 +58,12 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         next_uri = self.get_next_uri(request)
 
         if not auth.is_valid_redirect(next_uri, host=request.get_host()):
-            next_uri = self.org_redirect_url(request)
+            active_org = self.get_active_organization(request)
+            next_uri = auth.get_org_redirect_url(request, active_org)
 
         return Response({
             'nextUri': next_uri,
         })
-
-    def org_redirect_url(self, request):
-        from sentry import features
-
-        organization = self.get_active_organization(request)
-        if organization:
-            return organization.get_url()
-
-        if not features.has('organizations:create'):
-            # TODO(dcramer): deal with case when the user cannot create orgs.
-            # This will likely cause an infinite loop right now.
-            return '/auth/login'
-
-        return '/organizations/new/'
 
     def get_next_uri(self, request):
         next_uri_fallback = None

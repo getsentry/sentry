@@ -103,6 +103,17 @@ def initiate_login(request, next_url=None):
         request.session['_next'] = next_url
 
 
+def get_org_redirect_url(request, active_organization):
+    from sentry import features
+
+    # TODO(dcramer): deal with case when the user cannot create orgs
+    if active_organization:
+        return active_organization.get_url()
+    if not features.has('organizations:create'):
+        return '/auth/login/'
+    return '/organizations/new/'
+
+
 def get_login_redirect(request, default=None):
     if default is None:
         default = get_login_url()
