@@ -163,23 +163,13 @@ describe('IssueList --> Create Incident', function() {
       .find('input[name="title"]')
       .simulate('change', {target: {value: 'New Incident'}})
       .simulate('blur');
-    wrapper.find('DatePickerField[name="dateStarted"] input').simulate('click');
 
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('Calendar')).toHaveLength(1);
-
-    wrapper
-      .find('Calendar DayCell')
-      .at(0)
-      .simulate('mouseUp');
     wrapper.find('Form').simulate('submit');
 
     expect(createIncident).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
       expect.objectContaining({
         data: {
-          dateStarted: new Date('2017-10-01T04:00:00.000Z'),
           groups: ['1', '2'],
           query: '',
           title: 'New Incident',

@@ -34,7 +34,7 @@ class IncidentSerializer(serializers.Serializer):
     )
     title = serializers.CharField(required=True)
     query = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    dateStarted = serializers.DateTimeField(required=True)
+    dateStarted = serializers.DateTimeField(required=False)
     dateDetected = serializers.DateTimeField(required=False, allow_null=True)
 
     def validate_projects(self, slugs):
@@ -113,8 +113,8 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 type=IncidentType.CREATED,
                 title=result['title'],
                 query=result.get('query', ''),
-                date_started=result['dateStarted'],
-                date_detected=result.get('dateDetected', result['dateStarted']),
+                date_started=result.get('dateStarted'),
+                date_detected=result.get('dateDetected'),
                 projects=result['projects'],
                 groups=groups,
                 user=request.user,
