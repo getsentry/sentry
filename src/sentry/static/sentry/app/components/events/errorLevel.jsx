@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-import space from 'app/styles/space';
+const DEFAULT_SIZE = '13px';
 
 function getLevelColor({level, theme}) {
   const COLORS = {
@@ -11,18 +11,17 @@ function getLevelColor({level, theme}) {
     sample: theme.purple,
   };
 
-  return `background-color: ${COLORS[level] || theme.orange}`;
+  return `background-color: ${COLORS[level] || theme.orange};`;
 }
 
 const ErrorLevel = styled('span')`
   padding: 0;
-  margin-right: ${space(1)};
   position: relative;
-  width: 13px;
-  height: 13px;
+  width: ${p => p.size || DEFAULT_SIZE};
+  height: ${p => p.size || DEFAULT_SIZE};
   text-indent: -9999em;
   display: inline-block;
-  border-radius: 15px;
+  border-radius: 50%;
   flex-shrink: 0;
 
   ${getLevelColor}

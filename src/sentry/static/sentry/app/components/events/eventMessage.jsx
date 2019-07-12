@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {PropTypes} from 'mobx-react';
+import space from 'app/styles/space';
 
 const Message = styled('span')`
   ${overflowEllipsis}
@@ -11,10 +12,12 @@ const Message = styled('span')`
   max-height: 38px;
 `;
 
-function EventMessage({className, level, message, annotations}) {
+function EventMessage({className, level, levelIndicatorSize, message, annotations}) {
   return (
     <div className={className}>
-      <ErrorLevel level={level}>{level}</ErrorLevel>
+      <StyledErrorLevel size={levelIndicatorSize} level={level}>
+        {level}
+      </StyledErrorLevel>
       {message && <Message>{message}</Message>}
       {annotations}
     </div>
@@ -23,6 +26,7 @@ function EventMessage({className, level, message, annotations}) {
 
 EventMessage.propTypes = {
   level: PropTypes.oneOf(['error', 'fatal', 'info', 'warning', 'sample']),
+  levelIndicatorSize: PropTypes.string,
   message: PropTypes.node,
   annotations: PropTypes.node,
 };
@@ -32,4 +36,8 @@ export default styled(EventMessage)`
   align-items: center;
   position: relative;
   line-height: 1.2;
+`;
+
+const StyledErrorLevel = styled(ErrorLevel)`
+  margin-right: ${space(1)};
 `;
