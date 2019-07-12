@@ -120,14 +120,12 @@ class GroupHeader extends React.Component {
                       </Link>
                     </EventAnnotation>
                   )}
-                  {group.annotations.map((annotation, i) => {
-                    return (
-                      <EventAnnotation
-                        key={i}
-                        dangerouslySetInnerHTML={{__html: annotation}}
-                      />
-                    );
-                  })}
+                  {group.annotations.map((annotation, i) => (
+                    <EventAnnotation
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  ))}
                 </React.Fragment>
               }
             />

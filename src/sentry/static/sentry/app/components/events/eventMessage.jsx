@@ -15,9 +15,11 @@ const Message = styled('span')`
 function EventMessage({className, level, levelIndicatorSize, message, annotations}) {
   return (
     <div className={className}>
-      <StyledErrorLevel size={levelIndicatorSize} level={level}>
-        {level}
-      </StyledErrorLevel>
+      {level && (
+        <StyledErrorLevel size={levelIndicatorSize} level={level}>
+          {level}
+        </StyledErrorLevel>
+      )}
       {message && <Message>{message}</Message>}
       {annotations}
     </div>
