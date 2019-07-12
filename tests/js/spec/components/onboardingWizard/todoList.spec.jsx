@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import TodoList from 'app/components/onboardingWizard/todos';
+import TodoList from 'app/components/onboardingWizard/todoList';
 
 describe('TodoList', function() {
   const routerContext = TestStubs.routerContext();

@@ -1403,7 +1403,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <StyledTodoList>
                     <ul
-                      className="css-1j5mlad-StyledTodoList e1575y5o0"
+                      className="css-1j5mlad-StyledTodoList e1l1x1b40"
                     >
                       <WithOrganizationMockWrapper
                         key="1"

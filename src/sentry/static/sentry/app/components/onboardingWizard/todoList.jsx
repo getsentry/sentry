@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import getOnboardingTasks from 'app/components/onboardingWizard/onboardingTasks';
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
 import SentryTypes from 'app/sentryTypes';
 import TodoItem from 'app/components/onboardingWizard/toDoItem';
 import withApi from 'app/utils/withApi';

@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {analytics} from 'app/utils/analytics';
-import getOnboardingTasks from 'app/components/onboardingWizard/onboardingTasks';
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {tct} from 'app/locale';
-import TodoList from 'app/components/onboardingWizard/todos';
+import TodoList from 'app/components/onboardingWizard/todoList';
 import Tooltip from 'app/components/tooltip';
 
 class OnboardingStatus extends React.Component {

@@ -4,7 +4,7 @@ import $ from 'jquery';
 import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import getOnboardingTasks from 'app/components/onboardingWizard/onboardingTasks';
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {sortProjects} from 'app/utils';
@@ -21,13 +21,6 @@ class ProjectChooser extends React.Component {
   };
 
   componentWillMount() {
-    const {organization} = this.props;
-
-    const tasks = getOnboardingTasks(organization);
-    this.task = tasks.find(
-      task => task.task === parseInt(this.props.location.query.task, 10)
-    );
-
     this.redirectNoMultipleProjects();
   }
 
@@ -35,24 +28,32 @@ class ProjectChooser extends React.Component {
     $(document.body).removeClass('narrow');
   }
 
+  get onboardingTask() {
+    const {organization} = this.props;
+    const tasks = getOnboardingTasks(organization);
+    return tasks.find(task => task.task === parseInt(this.props.location.query.task, 10));
+  }
+
   redirectNoMultipleProjects() {
     const {organization} = this.props;
     const projects = organization.projects;
+    const task = this.onboardingTask();
 
     if (projects.length === 0) {
       browserHistory.push(`/organizations/${organization.slug}/projects/new/`);
-    } else if (projects.length === 1 && this.task) {
+    } else if (projects.length === 1 && task) {
       const project = projects[0];
-      browserHistory.push(`/${organization.slug}/${project.slug}/${this.task.location}`);
+      browserHistory.push(`/${organization.slug}/${project.slug}/${task.location}`);
     }
   }
 
   render() {
     const {organization} = this.props;
+    const task = this.onboardingTask();
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation === 'project'
     // TODO throw up report dialog if not true
-    if (!this.task || this.task.featureLocation !== 'project') {
+    if (!task || task.featureLocation !== 'project') {
       throw new Error('User arrived on project chooser without a valid task id.');
     }
     return (
@@ -65,7 +66,7 @@ class ProjectChooser extends React.Component {
               <PanelItem p={0} key={project.slug} align="center">
                 <Box p={2} flex="1">
                   <Link
-                    to={`/${organization.slug}/${project.slug}/${this.task.location}`}
+                    to={`/${organization.slug}/${project.slug}/${task.location}`}
                     css={{color: theme.gray3}}
                   >
                     <StyledProjectLabel
