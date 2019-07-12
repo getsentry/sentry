@@ -7,6 +7,7 @@ import {logException} from 'app/utils/logging';
 import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import ConfigStore from 'app/stores/configStore';
 import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
@@ -99,6 +100,11 @@ class EventEntries extends React.Component {
     });
   }
 
+  get isSuperUser() {
+    const user = ConfigStore.get('user');
+    return user && user.isSuperuser;
+  }
+
   renderEntries() {
     const {event, project, isShare} = this.props;
 
@@ -167,7 +173,9 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
           (showExampleCommit ? (
-            <EventCauseEmpty organization={organization} project={project} />
+            this.isSuperUser && (
+              <EventCauseEmpty organization={organization} project={project} />
+            )
           ) : (
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
           ))}
