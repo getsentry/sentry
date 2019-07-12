@@ -10,7 +10,6 @@ import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
-import OrganizationDashboard from 'app/views/organizationProjectsDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import IssueListContainer from 'app/views/issueList/container';
@@ -853,11 +852,20 @@ function routes() {
       </Route>
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
-          <IndexRoute component={errorHandler(OrganizationDashboard)} />
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           {hook('routes:organization-root')}
           <Route
             path="/organizations/:orgId/projects/"
-            component={errorHandler(OrganizationDashboard)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           />
           <Route
             path="/organizations/:orgId/stats/"
@@ -968,7 +976,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             componentPromise={() =>
@@ -990,7 +997,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
