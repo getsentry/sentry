@@ -921,34 +921,34 @@ function routes() {
           <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationMonitorsContainer" */ './views/organizationMonitors')
+              import(/* webpackChunkName: "MonitorsContainer" */ './views/monitors')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationMonitors" */ './views/organizationMonitors/monitors')
+                import(/* webpackChunkName: "Monitors" */ './views/monitors/monitors')
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
               path="/organizations/:orgId/monitors/create/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationMonitorCreate" */ './views/organizationMonitors/create')
+                import(/* webpackChunkName: "MonitorCreate" */ './views/monitors/create')
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
               path="/organizations/:orgId/monitors/:monitorId/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationMonitorDetails" */ './views/organizationMonitors/details')
+                import(/* webpackChunkName: "MonitorDetails" */ './views/monitors/details')
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
               path="/organizations/:orgId/monitors/:monitorId/edit/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationMonitorEdit" */ './views/organizationMonitors/edit')
+                import(/* webpackChunkName: "MonitorEdit" */ './views/monitors/edit')
               }
               component={errorHandler(LazyLoad)}
             />
