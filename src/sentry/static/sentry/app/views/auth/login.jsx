@@ -94,7 +94,7 @@ class Login extends React.Component {
         </Header>
         {loading && <LoadingIndicator />}
         {error && (
-          <LoadingError
+          <StyledLoadingError
             message={t('Unable to load authentication configuration')}
             onRetry={this.fetchData}
           />
@@ -108,6 +108,10 @@ class Login extends React.Component {
     );
   }
 }
+
+const StyledLoadingError = styled(LoadingError)`
+  margin: ${space(2)};
+`;
 
 const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
