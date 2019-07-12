@@ -27,7 +27,7 @@ async function bootWithHydration() {
   // mode, where assets are *currently not versioned*. We hardcode this here
   // for now as a quick workaround for the index.html being aware of versioned
   // asset paths.
-  data.distPrefix = '/_assets';
+  data.distPrefix = '/_assets/';
 
   bootApplication(data);
 
