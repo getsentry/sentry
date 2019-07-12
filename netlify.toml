@@ -19,6 +19,9 @@
   status = 200
   force = true
 
+  # Pass referer as sentry.io to avoid CSRF validation errors.
+  headers = {Referer = "https://sentry.io/"}
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
