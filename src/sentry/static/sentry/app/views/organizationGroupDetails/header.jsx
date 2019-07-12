@@ -17,6 +17,8 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
@@ -94,6 +96,7 @@ class GroupHeader extends React.Component {
       query: searchTermWithoutQuery,
     };
 
+    group.annotations = ['test', 'test2'];
     return (
       <div className={className}>
         <div className="row">
@@ -103,11 +106,12 @@ class GroupHeader extends React.Component {
                 <EventOrGroupTitle data={group} />
               </GuideAnchor>
             </h3>
-            <div className="event-message">
-              <span className="error-level">{group.level}</span>
-              {message && <span className="message">{message}</span>}
+
+            <EventMessageWrapper>
+              <ErrorLevel level={group.level}>{group.level}</ErrorLevel>
+              {message && <EventMessage>{message}</EventMessage>}
               {group.logger && (
-                <span className="event-annotation">
+                <EventAnnotation>
                   <Link
                     to={{
                       pathname: baseUrl,
@@ -116,19 +120,19 @@ class GroupHeader extends React.Component {
                   >
                     {group.logger}
                   </Link>
-                </span>
+                </EventAnnotation>
               )}
               {group.annotations.map((annotation, i) => {
                 return (
-                  <span
-                    className="event-annotation"
+                  <EventAnnotation
                     key={i}
                     dangerouslySetInnerHTML={{__html: annotation}}
                   />
                 );
               })}
-            </div>
+            </EventMessageWrapper>
           </div>
+
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && (
@@ -251,3 +255,54 @@ const StyledProjectBadge = styled(ProjectBadge)`
 export {GroupHeader};
 
 export default withApi(GroupHeader);
+
+const EventMessageWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  line-height: 1.2;
+`;
+
+function getLevelColor({level, theme}) {
+  const COLORS = {
+    error: theme.orange,
+    info: theme.blue,
+    warning: theme.yellowOrange,
+    fatal: theme.red,
+    sample: theme.purple,
+  };
+
+  return `background-color: ${COLORS[level] || theme.orange}`;
+}
+
+const ErrorLevel = styled('span')`
+  padding: 0;
+  margin-right: ${space(1)};
+  position: relative;
+  width: 13px;
+  height: 13px;
+  text-indent: -9999em;
+  display: inline-block;
+  border-radius: 15px;
+  flex-shrink: 0;
+
+  ${getLevelColor}
+`;
+
+const EventMessage = styled('span')`
+  ${overflowEllipsis}
+  width: auto;
+  max-height: 38px;
+`;
+
+const EventAnnotation = styled('span')`
+  margin-left: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  border-left: 1px solid ${p => p.theme.borderLight};
+  padding-left: ${space(1)};
+  color: ${p => p.theme.gray2};
+
+  a {
+    color: ${p => p.theme.gray2};
+  }
+`;
