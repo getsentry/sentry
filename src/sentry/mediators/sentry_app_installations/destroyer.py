@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from requests.exceptions import ReadTimeout
+from sentry_sdk import capture_exception
+from requests.exceptions import ReadTimeout, ConnectionError
 from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
@@ -41,9 +42,12 @@ class Destroyer(Mediator):
                     user=self.user,
                     action='deleted',
                 )
-            except ReadTimeout:
-                # if we get a read timeout, just move on and delete the installation
-                pass
+            except Exception as exc:
+                capture_exception(exc)
+                # if the timeout is not due to timeout or connectivity, then raise it to
+                # the caller function
+                if not isinstance(exc, (ConnectionError, ReadTimeout)):
+                    raise exc
 
         self.install.delete()
 
