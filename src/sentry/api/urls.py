@@ -10,6 +10,7 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
+from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -344,6 +345,7 @@ urlpatterns = patterns(
     url(r'^auth/', include([
         url(r'^$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
         url(r'^config/$', AuthConfigEndpoint.as_view(), name='sentry-api-0-auth-config'),
+        url(r'^login/$', AuthLoginEndpoint.as_view(), name='sentry-api-0-auth-login'),
     ])),
 
     # List Authentiactors
