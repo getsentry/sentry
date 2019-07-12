@@ -3,12 +3,11 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.message_filters import _legacy_browsers_filter  # noqa
-from sentry.web.relay_config import _filter_option_to_config_setting  # noqa
 from sentry.models.projectoption import ProjectOption
 from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase, TestCase
 from sentry.utils.canonical import CanonicalKeyView
-from sentry.web.relay_config import FullRelayConfig
+from sentry.relay.config import RelayConfig, _filter_option_to_config_setting  # noqa
 
 USER_AGENTS = {
     'android_2':
@@ -264,7 +263,7 @@ class LegacyBrowsersFilterTest(TestCase):
         :return: a RelayConfig object with the filter option set and the project taken from
         the TestCase
         """
-        ret_val = FullRelayConfig(self.project, config={})
+        ret_val = RelayConfig(self.project, config={})
         config = ret_val.config
         filter_settings = {}
         config['filter_settings'] = filter_settings

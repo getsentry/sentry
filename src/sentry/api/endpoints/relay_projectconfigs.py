@@ -15,6 +15,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
+        relay = request.relay if hasattr(request, 'relay') else None
+
+        if request.relay is None:
+            return Response("Relay Unauthorized", 403)
+
         project_ids = request.relay_request_data.get('projects') or ()
         projects = {}
 
@@ -24,22 +29,26 @@ class RelayProjectConfigsEndpoint(Endpoint):
         # but only the project settings
         if project_ids:
             for project in Project.objects.filter(pk__in=project_ids):
-                projects[six.text_type(project.id)] = (
-                    project, config.get_project_options(project))
+                # for internal relays return the full, rich, configuration,
+                # for external relays return the minimal config
+                proj_config = config.get_relay_config(project.id, relay.is_internal)
+
+                projects[six.text_type(project.id)] = proj_config
+
                 orgs.add(project.organization_id)
 
         # In the second iteration we check if the project has access to
         # the org at all.
         if orgs:
             orgs = {o.id: o for o in Organization.objects.filter(pk__in=orgs)}
-            for (project, cfg) in list(projects.values()):
-                org = orgs.get(project.organization_id)
+            for cfg in list(projects.values()):
+                org = orgs.get(cfg.project.organization_id)
                 if org is None or not request.relay.has_org_access(org):
-                    projects.pop(six.text_type(project.id))
+                    projects.pop(six.text_type(cfg.project.id))
 
         # Fill in configs that we failed the access check for or don't
         # exist.
-        configs = {p_id: c[1] for p_id, c in six.iteritems(projects)}
+        configs = {p_id: cfg.to_camel_case_dict() for p_id, cfg in six.iteritems(projects)}
         for project_id in project_ids:
             configs.setdefault(six.text_type(project_id), None)
 

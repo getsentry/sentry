@@ -65,7 +65,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
-from sentry.web.relay_config import get_full_relay_config
+from sentry.relay.config import get_relay_config
 
 logger = logging.getLogger('sentry')
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -383,7 +383,7 @@ class APIView(BaseView):
             # if the project id is not directly specified get it from the authentication information
             project_id = _get_project_id_from_request(project_id, request, self.auth_helper_cls, helper)
 
-            relay_config = get_full_relay_config(project_id)
+            relay_config = get_relay_config(project_id)
 
             helper.context.bind_project(relay_config.project)
 
