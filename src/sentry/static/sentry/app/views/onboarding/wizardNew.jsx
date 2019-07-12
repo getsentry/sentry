@@ -208,9 +208,9 @@ const Theme = {
 };
 
 const OnboardingWrapper = styled('main')`
+  flex-grow: 1;
   background: ${Theme.colors.gray[0]};
   padding-bottom: 50vh;
-  min-height: 100vh;
 `;
 
 const Container = styled.div`
