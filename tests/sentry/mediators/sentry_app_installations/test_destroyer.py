@@ -4,7 +4,7 @@ import responses
 
 from django.db import connection
 from mock import patch
-from requests.exceptions import ReadTimeout
+from requests.exceptions import RequestException
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, SentryAppInstallation, ServiceHook
@@ -43,19 +43,6 @@ class TestDestroyer(TestCase):
         grant = self.install.api_grant
 
         responses.add(responses.POST, 'https://example.com/webhook')
-        self.destroyer.call()
-
-        assert not ApiGrant.objects.filter(pk=grant.id).exists()
-
-    @responses.activate
-    def test_deletes_on_read_timeout_error(self):
-        grant = self.install.api_grant
-
-        responses.add(
-            responses.POST,
-            'https://example.com/webhook',
-            body=ReadTimeout('Read timed out'))
-
         self.destroyer.call()
 
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
@@ -138,6 +125,35 @@ class TestDestroyer(TestCase):
             [self.install.id])
 
         assert c.fetchone()[0] == 1
+
+    @responses.activate
+    def test_deletes_on_request_exception(self):
+        install = self.install
+
+        responses.add(
+            responses.POST,
+            'https://example.com/webhook',
+            body=RequestException('Request exception'))
+
+        self.destroyer.call()
+
+        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
+
+    @responses.activate
+    def test_fail_on_other_error(self):
+        install = self.install
+        try:
+            responses.add(
+                responses.POST,
+                'https://example.com/webhook',
+                body=Exception('Other error'))
+
+            self.destroyer.call()
+        except Exception as e:
+            print ("error here", e)
+            assert SentryAppInstallation.objects.filter(pk=install.id).exists()
+        else:
+            assert False, 'Should fail on other error'
 
     @responses.activate
     @patch('sentry.analytics.record')
