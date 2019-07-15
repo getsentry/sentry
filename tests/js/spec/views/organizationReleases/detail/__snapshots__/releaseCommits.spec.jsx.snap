@@ -364,14 +364,12 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                             </div>
                           </Base>
                         </Box>
-                        <Box
-                          className="hidden-xs"
-                        >
+                        <Box>
                           <Base
-                            className="hidden-xs css-roynbj"
+                            className="css-roynbj"
                           >
                             <div
-                              className="hidden-xs css-roynbj"
+                              className="css-roynbj"
                               is={null}
                             >
                               <CommitLink
@@ -774,14 +772,12 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                             </div>
                           </Base>
                         </Box>
-                        <Box
-                          className="hidden-xs"
-                        >
+                        <Box>
                           <Base
-                            className="hidden-xs css-roynbj"
+                            className="css-roynbj"
                           >
                             <div
-                              className="hidden-xs css-roynbj"
+                              className="css-roynbj"
                               is={null}
                             >
                               <CommitLink

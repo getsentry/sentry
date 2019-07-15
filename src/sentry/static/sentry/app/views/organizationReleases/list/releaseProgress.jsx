@@ -8,6 +8,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import {snoozedDays} from 'app/utils/promptsActivity';
 import withOrganization from 'app/utils/withOrganization';
 
 import ProgressBar from './progressBar';
@@ -107,10 +108,7 @@ class ReleaseProgress extends AsyncComponent {
   showBar({data} = {}) {
     let show;
     if (data && data.snoozed_ts) {
-      // check if more than 3 days have passed since snooze
-      const now = Date.now() / 1000;
-      const snoozingTime = (now - data.snoozed_ts) / (60 * 24);
-      show = snoozingTime > 3 ? true : false;
+      show = snoozedDays(data.snoozed_ts) > 7;
     } else if (data && data.dismissed_ts) {
       show = false;
     } else {

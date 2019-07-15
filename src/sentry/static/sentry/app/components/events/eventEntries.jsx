@@ -7,10 +7,12 @@ import {logException} from 'app/utils/logging';
 import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import ConfigStore from 'app/stores/configStore';
 import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
+import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -60,6 +62,7 @@ class EventEntries extends React.Component {
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
+    showExampleCommit: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -79,7 +82,7 @@ class EventEntries extends React.Component {
     this.recordIssueError(errorTypes, errorMessages);
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
   }
 
@@ -95,6 +98,11 @@ class EventEntries extends React.Component {
       error_message: errorMessages,
       ...(platform && {platform}),
     });
+  }
+
+  get isSuperUser() {
+    const user = ConfigStore.get('user');
+    return user && user.isSuperuser;
   }
 
   renderEntries() {
@@ -137,7 +145,15 @@ class EventEntries extends React.Component {
   }
 
   render() {
-    const {organization, group, isShare, project, event, orgId} = this.props;
+    const {
+      organization,
+      group,
+      isShare,
+      project,
+      event,
+      orgId,
+      showExampleCommit,
+    } = this.props;
 
     const features = organization ? new Set(organization.features) : new Set();
 
@@ -155,9 +171,14 @@ class EventEntries extends React.Component {
     return (
       <div className="entries">
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
-        {!isShare && !!group.firstRelease && (
-          <EventCause event={event} orgId={orgId} projectId={project.slug} />
-        )}
+        {!isShare &&
+          (showExampleCommit ? (
+            this.isSuperUser && (
+              <EventCauseEmpty organization={organization} project={project} />
+            )
+          ) : (
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+          ))}
         {event.userReport && (
           <StyledEventUserFeedback
             report={event.userReport}

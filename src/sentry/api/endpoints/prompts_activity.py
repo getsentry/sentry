@@ -15,6 +15,9 @@ PROMPTS = {
     'releases': {
         'required_fields': ['organization_id', 'project_id'],
     },
+    'suspect_commits': {
+        'required_fields': ['organization_id', 'project_id'],
+    }
 }
 
 VALID_STATUSES = frozenset(('snoozed', 'dismissed'))
@@ -55,7 +58,7 @@ class PromptsActivityEndpoint(Endpoint):
 
         try:
             result = PromptsActivity.objects.get(user=request.user,
-                                                 feature='releases',
+                                                 feature=feature,
                                                  **filters)
         except PromptsActivity.DoesNotExist:
             return Response({})
