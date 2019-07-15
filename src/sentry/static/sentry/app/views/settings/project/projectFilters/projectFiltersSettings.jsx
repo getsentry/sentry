@@ -179,7 +179,7 @@ class ProjectFiltersSettings extends AsyncComponent {
     ];
   }
 
-  handleLegacyChange = (onChange, onBlur, filter, subfilters, e) => {
+  handleLegacyChange = (onChange, onBlur, _filter, subfilters, e) => {
     onChange(subfilters, e);
     onBlur(subfilters, e);
   };
@@ -236,7 +236,7 @@ class ProjectFiltersSettings extends AsyncComponent {
             <Panel>
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
-                {this.state.filterList.map((filter, idx) => {
+                {this.state.filterList.map(filter => {
                   const fieldProps = {
                     name: filter.id,
                     label: filter.name,
