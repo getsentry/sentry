@@ -149,8 +149,7 @@ class TestDestroyer(TestCase):
                 body=Exception('Other error'))
 
             self.destroyer.call()
-        except Exception as e:
-            print ("error here", e)
+        except Exception:
             assert SentryAppInstallation.objects.filter(pk=install.id).exists()
         else:
             assert False, 'Should fail on other error'
