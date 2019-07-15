@@ -156,6 +156,9 @@ class Fixtures(object):
             group = self.group
         return Factories.create_event(event_id=event_id, group=group, *args, **kwargs)
 
+    def create_issueless_event(self, event_id=None, *args, **kwargs):
+        return Factories.create_event(event_id=event_id, group=None, *args, **kwargs)
+
     def store_event(self, *args, **kwargs):
         return Factories.store_event(*args, **kwargs)
 

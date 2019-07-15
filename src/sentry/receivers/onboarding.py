@@ -199,7 +199,7 @@ def record_member_joined(member, organization, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_release_received(project, group, event, **kwargs):
+def record_release_received(project, event, **kwargs):
     if not event.get_tag('sentry:release'):
         return
 
@@ -221,7 +221,7 @@ def record_release_received(project, group, event, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_user_context_received(project, group, event, **kwargs):
+def record_user_context_received(project, event, **kwargs):
     user_context = event.data.get('user')
     if not user_context:
         return
@@ -247,7 +247,7 @@ def record_user_context_received(project, group, event, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_sourcemaps_received(project, group, event, **kwargs):
+def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 

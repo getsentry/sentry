@@ -87,8 +87,7 @@ def _should_send_error_created_hooks(project):
 
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
-    group = event.group
-    platform = group.platform
+    platform = event.group.platform if event.group else event.platform
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
@@ -102,6 +101,16 @@ def _capture_stats(event, is_new):
     metrics.incr('events.processed', tags=tags, skip_internal=False)
     metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
     metrics.timing('events.size.data', event.size, tags=tags)
+
+    # This is an experiment to understand whether we have, in production,
+    # mismatches between event and group before we permanently rely on events
+    # for project and platform. before adding some more verbose logging ont this
+    # case, using a stats will give us a sense of the magnitude of the problem.
+    if event.group:
+        if event.group.platform != event.platform:
+            metrics.incr('events.platform_mismatch', tags=tags)
+        if event.group.project_id != event.project_id:
+            metrics.incr('events.project_mismatch')
 
 
 def check_event_already_post_processed(event):
@@ -178,7 +187,12 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         handle_owner_assignment(event.project, event.group, event)
 
-        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        rp = RuleProcessor(
+            event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared)
         has_alert = False
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
@@ -228,7 +242,6 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         event_processed.send_robust(
             sender=post_process_group,
             project=event.project,
-            group=event.group,
             event=event,
             primary_hash=kwargs.get('primary_hash'),
         )

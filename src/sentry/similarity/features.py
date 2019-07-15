@@ -102,7 +102,6 @@ class FeatureSet(object):
 
         items = []
         for event in events:
-            # TODO: how we index events?
             if not event.group_id:
                 continue
             for label, features in self.extract(event).items():
