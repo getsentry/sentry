@@ -171,6 +171,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
             # Re-bind Group since we're pickling the whole Event object
             # which may contain a stale Project.
             event.group, _ = get_group_with_redirect(event.group_id)
+            event.group_id = event.group.id
             project_id = event.group.project_id
         else:
             project_id = event.project_id
