@@ -173,7 +173,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppInstallationsPermission(SentryPermission):
     scope_map = {
         'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-        'POST': ('org:integrations', 'org:write', 'org:admin'),
+        'POST': ('org:integrations', 'org:write', 'org:admin')
     }
 
     def has_object_permission(self, request, view, organization):
@@ -225,9 +225,11 @@ class SentryAppInstallationPermission(SentryPermission):
         # nested endpoints will probably need different scopes - figure out how
         # to deal with that when it happens.
         'POST': ('org:integrations', 'event:write', 'event:admin'),
+        'PUT': ('org:read')
     }
 
     def has_object_permission(self, request, view, installation):
+        print ("\n\n check permissions")
         if not hasattr(request, 'user') or not request.user:
             return False
 
@@ -246,7 +248,9 @@ class SentryAppInstallationPermission(SentryPermission):
 
 
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
+    # permission_classes = ( )
     permission_classes = (SentryAppInstallationPermission, )
+
 
     def convert_args(self, request, uuid, *args, **kwargs):
         try:

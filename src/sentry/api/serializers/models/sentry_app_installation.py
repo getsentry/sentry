@@ -8,6 +8,7 @@ from sentry.models import SentryAppInstallation
 @register(SentryAppInstallation)
 class SentryAppInstallationSerializer(Serializer):
     def serialize(self, install, attrs, user):
+        print ("id", install.id)
         data = {
             'app': {
                 'uuid': install.sentry_app.uuid,
@@ -17,6 +18,7 @@ class SentryAppInstallationSerializer(Serializer):
                 'slug': install.organization.slug,
             },
             'uuid': install.uuid,
+            'status': install.status,
         }
 
         if install.api_grant:
