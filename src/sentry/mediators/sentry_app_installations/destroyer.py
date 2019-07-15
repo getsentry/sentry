@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+
+from requests.exceptions import RequestException
 from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
@@ -13,6 +15,13 @@ class Destroyer(Mediator):
     user = Param('sentry.models.User')
     request = Param('rest_framework.request.Request', required=False)
     notify = Param(bool, default=True)
+
+    @property
+    def _logging_context(self):
+        return {
+            'install_id': self.install.id,
+            'install_uuid': self.install.uuid
+        }
 
     def call(self):
         self._destroy_grant()
@@ -34,11 +43,15 @@ class Destroyer(Mediator):
 
     def _destroy_installation(self):
         if self.notify:
-            InstallationNotifier.run(
-                install=self.install,
-                user=self.user,
-                action='deleted',
-            )
+            try:
+                InstallationNotifier.run(
+                    install=self.install,
+                    user=self.user,
+                    action='deleted',
+                )
+            # if the error is from a request exception, log the error and continue
+            except RequestException as exc:
+                self.log(error=exc)
         self.install.delete()
 
     def audit(self):
