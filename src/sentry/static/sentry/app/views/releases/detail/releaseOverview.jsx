@@ -15,7 +15,7 @@ import ReleaseIssues from './releaseIssues';
 import CommitAuthorStats from './commitAuthorStats';
 import ReleaseProjectStatSparkline from './releaseProjectStatSparkline';
 
-export default class OrganizationReleaseOverview extends AsyncComponent {
+export default class ReleaseOverview extends AsyncComponent {
   static propTypes = {
     release: SentryTypes.Release,
     query: PropTypes.object,

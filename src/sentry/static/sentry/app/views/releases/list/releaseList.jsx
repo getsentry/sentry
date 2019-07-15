@@ -13,54 +13,49 @@ import space from 'app/styles/space';
 import {LastEventColumn, Layout, CountColumn, VersionColumn, StatsColumn} from './layout';
 import LatestDeployOrReleaseTime from './latestDeployOrReleaseTime';
 
-class ReleaseList extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
-    releaseList: PropTypes.array.isRequired,
-  };
+const ReleaseList = props => {
+  const {orgId} = props;
 
-  render() {
-    const {orgId, projectId} = this.props;
-
-    return (
-      <div>
-        {this.props.releaseList.map(release => {
-          return (
-            <ReleasePanelItem key={release.version}>
-              <Layout>
-                <VersionColumn>
-                  <VersionWrapper>
-                    <Version
-                      orgId={orgId}
-                      projectId={projectId}
-                      version={release.version}
-                      preserveGlobalSelection
-                    />
-                  </VersionWrapper>
-                  <LatestDeployOrReleaseTime orgId={orgId} release={release} />
-                </VersionColumn>
-                <StatsColumn>
-                  <ReleaseStats release={release} />
-                </StatsColumn>
-                <CountColumn>
-                  <Count className="release-count" value={release.newGroups || 0} />
-                </CountColumn>
-                <LastEventColumn>
-                  {release.lastEvent ? (
-                    <TimeSince date={release.lastEvent} />
-                  ) : (
-                    <span>—</span>
-                  )}
-                </LastEventColumn>
-              </Layout>
-            </ReleasePanelItem>
-          );
-        })}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      {props.releaseList.map(release => {
+        return (
+          <ReleasePanelItem key={release.version}>
+            <Layout>
+              <VersionColumn>
+                <VersionWrapper>
+                  <Version
+                    orgId={orgId}
+                    version={release.version}
+                    preserveGlobalSelection
+                  />
+                </VersionWrapper>
+                <LatestDeployOrReleaseTime orgId={orgId} release={release} />
+              </VersionColumn>
+              <StatsColumn>
+                <ReleaseStats release={release} />
+              </StatsColumn>
+              <CountColumn>
+                <Count className="release-count" value={release.newGroups || 0} />
+              </CountColumn>
+              <LastEventColumn>
+                {release.lastEvent ? (
+                  <TimeSince date={release.lastEvent} />
+                ) : (
+                  <span>—</span>
+                )}
+              </LastEventColumn>
+            </Layout>
+          </ReleasePanelItem>
+        );
+      })}
+    </div>
+  );
+};
+ReleaseList.propTypes = {
+  orgId: PropTypes.string.isRequired,
+  releaseList: PropTypes.array.isRequired,
+};
 
 export default ReleaseList;
 

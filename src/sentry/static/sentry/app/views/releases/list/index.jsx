@@ -22,22 +22,19 @@ import ReleaseLanding from './releaseLanding';
 import ReleaseProgress from './releaseProgress';
 import {getQuery} from './utils';
 
-class OrganizationReleasesContainer extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    selection: SentryTypes.GlobalSelection.isRequired,
-  };
-
-  render() {
-    const {organization} = this.props;
-    return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
-        <OrganizationReleases {...this.props} />
-      </React.Fragment>
-    );
-  }
-}
+const ReleasesContainer = props => {
+  const {organization} = props;
+  return (
+    <React.Fragment>
+      <GlobalSelectionHeader organization={organization} />
+      <OrganizationReleases {...props} />
+    </React.Fragment>
+  );
+};
+ReleasesContainer.propTypes = {
+  organization: SentryTypes.Organization.isRequired,
+  selection: SentryTypes.GlobalSelection.isRequired,
+};
 
 class OrganizationReleases extends AsyncView {
   static propTypes = {
@@ -183,4 +180,4 @@ class OrganizationReleases extends AsyncView {
   }
 }
 
-export default withOrganization(withGlobalSelection(OrganizationReleasesContainer));
+export default withOrganization(withGlobalSelection(ReleasesContainer));

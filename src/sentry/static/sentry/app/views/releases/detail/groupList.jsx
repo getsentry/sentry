@@ -12,7 +12,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
@@ -27,11 +26,6 @@ const GroupList = createReactClass({
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
-
-    // Provided in the project version, not in org version
-    projectId: PropTypes.string,
-
-    environment: SentryTypes.Environment,
   },
 
   contextTypes: {
@@ -65,10 +59,7 @@ const GroupList = createReactClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (
-      prevProps.orgId !== this.props.orgId ||
-      prevProps.projectId !== this.props.projectId
-    ) {
+    if (prevProps.orgId !== this.props.orgId) {
       this.fetchData();
     }
   },
@@ -110,29 +101,19 @@ const GroupList = createReactClass({
   },
 
   getGroupListEndpoint() {
-    const {orgId, projectId} = this.props;
-    const path = projectId
-      ? `/projects/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
+    const {orgId} = this.props;
+    const path = `/organizations/${orgId}/issues/`;
 
     return `${path}?${qs.stringify(this.getQueryParams())}`;
   },
 
   getQueryParams() {
-    const {projectId, query, environment} = this.props;
+    const {query} = this.props;
 
     const queryParams = this.context.location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = query;
-
-    if (projectId) {
-      if (environment) {
-        queryParams.environment = environment.name;
-      } else {
-        delete queryParams.environment;
-      }
-    }
 
     return queryParams;
   },
