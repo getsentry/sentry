@@ -31,7 +31,7 @@ class ProjectCrumb extends React.Component {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
     //
-    // we manipulate `routes` so that it doesn't include the current projects route
+    // we manipulate `routes` so that it doesn't include the current project's route
     // which, unlike the org version, does not start with a route param
     browserHistory.push(
       recreateRoute(
