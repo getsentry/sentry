@@ -71,7 +71,7 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
-      className="css-3jemnr-ProjectCardWrapper ei886av2"
+      className="css-3jemnr-ProjectCardWrapper e1o95it02"
       data-test-id="project-slug"
       width={
         Array [
@@ -83,17 +83,17 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
-        className="css-3jemnr-ProjectCardWrapper ei886av2"
+        className="css-3jemnr-ProjectCardWrapper e1o95it02"
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
-            className="css-18be1td-StyledProjectCard ei886av3"
+            className="css-18be1td-StyledProjectCard e1o95it03"
           >
             <StyledProjectCardHeader>
               <div
-                className="css-v59cbs-StyledProjectCardHeader ei886av1"
+                className="css-v59cbs-StyledProjectCardHeader e1o95it01"
               >
                 <StyledIdBadge
                   avatarSize={18}
@@ -128,7 +128,7 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <IdBadge
                     avatarSize={18}
-                    className="css-1gy4gs4-StyledIdBadge ei886av5"
+                    className="css-1gy4gs4-StyledIdBadge e1o95it05"
                     displayName={
                       <span>
                         project-slug
@@ -167,7 +167,7 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <ProjectBadge
                           avatarSize={18}
-                          className="css-1gy4gs4-StyledIdBadge ei886av5"
+                          className="css-1gy4gs4-StyledIdBadge e1o95it05"
                           displayName={
                             <span>
                               project-slug
@@ -202,7 +202,7 @@ exports[`ProjectCard renders 1`] = `
                           <BaseBadge
                             avatarProps={Object {}}
                             avatarSize={18}
-                            className="css-1gy4gs4-StyledIdBadge ei886av5"
+                            className="css-1gy4gs4-StyledIdBadge e1o95it05"
                             displayName={
                               <span>
                                 project-slug
@@ -235,14 +235,14 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Flex
                               align="center"
-                              className="css-1gy4gs4-StyledIdBadge ei886av5"
+                              className="css-1gy4gs4-StyledIdBadge e1o95it05"
                             >
                               <Base
                                 align="center"
-                                className="ei886av5 css-v2wlq8-StyledIdBadge"
+                                className="e1o95it05 css-v2wlq8-StyledIdBadge"
                               >
                                 <div
-                                  className="ei886av5 css-v2wlq8-StyledIdBadge"
+                                  className="e1o95it05 css-v2wlq8-StyledIdBadge"
                                   is={null}
                                 >
                                   <StyledAvatar
@@ -571,7 +571,7 @@ exports[`ProjectCard renders 1`] = `
             </StyledProjectCardHeader>
             <ChartContainer>
               <div
-                className="css-1s8o1vf-ChartContainer ei886av0"
+                className="css-1s8o1vf-ChartContainer e1o95it00"
               >
                 <Chart
                   noEvents={true}
@@ -607,7 +607,7 @@ exports[`ProjectCard renders 1`] = `
                       }
                     >
                       <BarChart
-                        className="css-h6aoq0-StyledBarChart e114levy0"
+                        className="css-h6aoq0-StyledBarChart e1aigaye0"
                         gap={1.5}
                         height={60}
                         label="events"
@@ -630,7 +630,7 @@ exports[`ProjectCard renders 1`] = `
                               "chart-bar",
                             ]
                           }
-                          className="css-h6aoq0-StyledBarChart e114levy0"
+                          className="css-h6aoq0-StyledBarChart e1aigaye0"
                           gap={1.5}
                           height={60}
                           label="events"
@@ -655,7 +655,7 @@ exports[`ProjectCard renders 1`] = `
                           width={null}
                         >
                           <StyledFigure
-                            className="css-h6aoq0-StyledBarChart e114levy0 barchart"
+                            className="css-h6aoq0-StyledBarChart e1aigaye0 barchart"
                             style={
                               Object {
                                 "height": 60,
@@ -664,7 +664,7 @@ exports[`ProjectCard renders 1`] = `
                             }
                           >
                             <figure
-                              className="e114levy0 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
+                              className="e1aigaye0 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
                               style={
                                 Object {
                                   "height": 60,
@@ -855,7 +855,7 @@ exports[`ProjectCard renders 1`] = `
                 <NoEvents>
                   <Container>
                     <div
-                      className="css-1m9okvh-Container exgrkp30"
+                      className="css-1m9okvh-Container e1acggzn0"
                     >
                       <EmptyText
                         align="center"
@@ -863,11 +863,11 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="css-k1bbsy-EmptyText exgrkp31"
+                          className="css-k1bbsy-EmptyText e1acggzn1"
                           justify="center"
                         >
                           <div
-                            className="css-k1bbsy-EmptyText exgrkp31"
+                            className="css-k1bbsy-EmptyText e1acggzn1"
                             is={null}
                           >
                             No activity yet.
@@ -937,11 +937,11 @@ exports[`ProjectCard renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1y6xtyw-DeployBox eawgu3c5"
+                    className="css-1y6xtyw-DeployBox elff1ar5"
                     p={2}
                   >
                     <div
-                      className="css-1y6xtyw-DeployBox eawgu3c5"
+                      className="css-1y6xtyw-DeployBox elff1ar5"
                       is={null}
                     >
                       <Background
@@ -950,11 +950,11 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="css-itelel-Background eawgu3c6"
+                          className="css-itelel-Background elff1ar6"
                           justify="center"
                         >
                           <div
-                            className="css-itelel-Background eawgu3c6"
+                            className="css-itelel-Background elff1ar6"
                             is={null}
                           >
                             <Button
