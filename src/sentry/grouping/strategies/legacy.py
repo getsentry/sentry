@@ -473,15 +473,10 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    config.enhancements.update_frame_components_contributions(
+    rv = config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta['event'].platform)
-
-    return GroupingComponent(
-        id='stacktrace',
-        values=values,
-        contributes=contributes,
-        hint=hint,
-    )
+    rv.update(contributes=contributes, hint=hint)
+    return rv
 
 
 @strategy(
