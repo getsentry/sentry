@@ -192,10 +192,6 @@
         .transition(all 0.2s ease-in-out);
         background: @yellow;
       }
-
-      .event-message {
-        color: #786e43;
-      }
     }
 
     &:first-child {
@@ -239,16 +235,8 @@
   .event-details {
     padding: 12px 0 8px 24px;
 
-    .event-message,
     .event-extra {
       line-height: 1.1;
-    }
-
-    .event-message {
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: @gray-dark;
-      word-wrap: break-word;
     }
 
     .event-extra {
@@ -579,13 +567,6 @@
         text-decoration: line-through;
         color: @gray;
       }
-    }
-
-    .error-level {
-      .square(12px);
-      border-radius: 50%;
-      top: 13px;
-      left: 12px;
     }
 
     h3 {
@@ -929,12 +910,6 @@
 
   .group-list .group {
     padding-right: 0;
-
-    h3 .error-level {
-      text-align: left;
-      text-indent: -9999em;
-      width: 30px;
-    }
   }
 
   .awaiting-events {
@@ -968,23 +943,6 @@
     line-height: 1.1;
     margin: 0 0 5px;
     font-weight: 600;
-
-    .error-level {
-      position: absolute;
-      left: -6px;
-      top: 13px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: capitalize;
-      text-align: center;
-      color: #fff;
-      padding: 2px 4px;
-      width: 50px;
-      display: block;
-      float: left;
-      border-radius: 2px;
-      margin-right: 5px;
-    }
 
     em {
       font-style: normal;
