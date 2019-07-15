@@ -285,6 +285,11 @@ class EventSerializer(Serializer):
                 'tags': tags_meta,
             },
         }
+        # transaction events have start and end-times that are
+        # timestamp floats.
+        if obj.get_event_type() == 'transaction':
+            d['startTimestamp'] = obj.data.get('start_timestamp')
+            d['timestamp'] = obj.data.get('timestamp')
         return d
 
 

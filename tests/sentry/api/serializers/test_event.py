@@ -11,6 +11,7 @@ from sentry.api.serializers.models.event import (
 )
 from sentry.models import EventError
 from sentry.testutils import TestCase
+from sentry.utils.samples import load_data
 
 
 class EventSerializerTest(TestCase):
@@ -181,6 +182,18 @@ class EventSerializerTest(TestCase):
         assert result['sdk'] is None
         assert result['contexts'] == {}
 
+    def test_transaction_event(self):
+        event_data = load_data('transaction')
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id
+        )
+        result = serialize(event)
+        assert result['timestamp'] == event.data.get('timestamp')
+        assert isinstance(result['timestamp'], float)
+        assert result['startTimestamp'] == event.data.get('start_timestamp')
+        assert isinstance(result['startTimestamp'], float)
+
 
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
@@ -199,7 +212,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry['type'] != 'breadcrumbs'
 
 
-class SnubaEventSerializerTest(TestCase):
+class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
         Use the SimpleEventSerializer to serialize an event
