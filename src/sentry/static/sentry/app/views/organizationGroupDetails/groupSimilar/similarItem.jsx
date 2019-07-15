@@ -64,7 +64,7 @@ const SimilarIssueItem = createReactClass({
     }
   },
 
-  handleToggle(e) {
+  handleToggle() {
     const {issue} = this.props;
 
     // clicking anywhere in the row will toggle the checkbox
@@ -119,7 +119,7 @@ const SimilarIssueItem = createReactClass({
                 onChange={this.handleCheckClick}
               />
             </div>
-            <div className="event-details level-error" style={{flex: 1}}>
+            <div className="event-details" style={{flex: 1}}>
               <EventOrGroupHeader data={issue} />
               <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee />
             </div>

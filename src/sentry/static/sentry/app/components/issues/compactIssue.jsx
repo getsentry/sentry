@@ -1,19 +1,21 @@
+import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Flex, Box} from 'grid-emotion';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import withApi from 'app/utils/withApi';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
+import ErrorLevel from 'app/components/events/errorLevel';
 import SnoozeAction from 'app/components/issues/snoozeAction';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupStore from 'app/stores/groupStore';
+import IndicatorStore from 'app/stores/indicatorStore';
 import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import {PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 class CompactIssueHeader extends React.Component {
@@ -83,7 +85,7 @@ class CompactIssueHeader extends React.Component {
       <React.Fragment>
         <Flex align="center">
           <Box mr={1}>
-            <span className="error-level truncate" title={data.level} />
+            <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           </Box>
           <h3 className="truncate">
             <Link to={issueLink}>
@@ -201,8 +203,6 @@ const CompactIssue = createReactClass({
       className += ' isIgnored';
     }
 
-    className += ' level-' + issue.level;
-
     if (this.props.statsPeriod) {
       className += ' with-graph';
     }
@@ -273,3 +273,7 @@ const CompactIssue = createReactClass({
 
 export {CompactIssue};
 export default withApi(withOrganization(CompactIssue));
+
+const StyledErrorLevel = styled(ErrorLevel)`
+  display: block;
+`;

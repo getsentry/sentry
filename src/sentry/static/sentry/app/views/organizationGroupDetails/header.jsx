@@ -8,6 +8,8 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import EventAnnotation from 'app/components/events/eventAnnotation';
+import EventMessage from 'app/components/events/eventMessage';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ListLink from 'app/components/links/listLink';
@@ -65,9 +67,6 @@ class GroupHeader extends React.Component {
 
     let className = 'group-detail';
 
-    className += ' type-' + group.type;
-    className += ' level-' + group.level;
-
     if (group.isBookmarked) {
       className += ' isBookmarked';
     }
@@ -103,32 +102,35 @@ class GroupHeader extends React.Component {
                 <EventOrGroupTitle data={group} />
               </GuideAnchor>
             </h3>
-            <div className="event-message">
-              <span className="error-level">{group.level}</span>
-              {message && <span className="message">{message}</span>}
-              {group.logger && (
-                <span className="event-annotation">
-                  <Link
-                    to={{
-                      pathname: baseUrl,
-                      query: {query: 'logger:' + group.logger},
-                    }}
-                  >
-                    {group.logger}
-                  </Link>
-                </span>
-              )}
-              {group.annotations.map((annotation, i) => {
-                return (
-                  <span
-                    className="event-annotation"
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
-            </div>
+
+            <EventMessage
+              message={message}
+              level={group.level}
+              annotations={
+                <React.Fragment>
+                  {group.logger && (
+                    <EventAnnotation>
+                      <Link
+                        to={{
+                          pathname: baseUrl,
+                          query: {query: 'logger:' + group.logger},
+                        }}
+                      >
+                        {group.logger}
+                      </Link>
+                    </EventAnnotation>
+                  )}
+                  {group.annotations.map((annotation, i) => (
+                    <EventAnnotation
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  ))}
+                </React.Fragment>
+              }
+            />
           </div>
+
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && (

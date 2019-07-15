@@ -1,15 +1,16 @@
+import {Flex, Box} from 'grid-emotion';
+import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
-import ShortId from 'app/components/shortId';
 import {tct} from 'app/locale';
+import EventAnnotation from 'app/components/events/eventAnnotation';
 import InlineSvg from 'app/components/inlineSvg';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Times from 'app/components/group/times';
 import SentryTypes from 'app/sentryTypes';
+import ShortId from 'app/components/shortId';
+import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 
 class EventOrGroupExtraDetails extends React.Component {
@@ -77,7 +78,7 @@ class EventOrGroupExtraDetails extends React.Component {
             </Box>
           )}
           {logger && (
-            <Box className="event-annotation" mr={2}>
+            <LoggerAnnotation>
               <Link
                 to={{
                   pathname: issuesPath,
@@ -88,14 +89,13 @@ class EventOrGroupExtraDetails extends React.Component {
               >
                 {logger}
               </Link>
-            </Box>
+            </LoggerAnnotation>
           )}
         </GroupExtraCommentsAndLogger>
         {annotations &&
           annotations.map((annotation, key) => {
             return (
-              <div
-                className="event-annotation"
+              <EventAnnotation
                 dangerouslySetInnerHTML={{
                   __html: annotation,
                 }}
@@ -143,6 +143,10 @@ const GroupExtraIcon = styled(InlineSvg)`
   color: ${p => (p.isMentioned ? p.theme.green : null)};
   font-size: 11px;
   margin-right: 4px;
+`;
+
+const LoggerAnnotation = styled(EventAnnotation)`
+  margin-right: ${space(2)};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);
