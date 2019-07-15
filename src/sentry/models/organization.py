@@ -160,10 +160,12 @@ class Organization(Model):
         Return the organization used in single organization mode.
         """
 
-        return cls.objects.get(
-            id=settings.SENTRY_ORGANIZATION,
+        if settings.SENTRY_ORGANIZATION is not None:
+            return cls.objects.get(id=settings.SENTRY_ORGANIZATION)
+
+        return cls.objects.filter(
             status=OrganizationStatus.ACTIVE,
-        )
+        )[0]
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
