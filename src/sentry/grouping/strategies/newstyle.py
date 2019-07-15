@@ -395,8 +395,16 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
     score=1800,
 )
 def stacktrace_v1(stacktrace, config, variant, **meta):
+    return get_stacktrace_component(stacktrace, config, variant, meta)
+
+
+@stacktrace_v1.variant_processor
+def stacktrace_v1_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants)
+
+
+def get_stacktrace_component(stacktrace, config, variant, meta):
     frames = stacktrace.frames
-    hint = None
     all_frames_considered_in_app = False
 
     values = []
@@ -422,19 +430,19 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    config.enhancements.update_frame_components_contributions(
+    # Special case for JavaScript where we want to ignore single frame
+    # stacktraces in certain cases where those would be of too low quality
+    # for grouping.
+    if len(frames) == 1 and values[0].contributes and \
+       get_behavior_family_for_platform(frames[0].platform or meta['event'].platform) == 'javascript' and \
+       not frames[0].function and frames[0].is_url():
+        values[0].update(
+            contributes=False,
+            hint='ignored single non-URL JavaScript frame'
+        )
+
+    return config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta['event'].platform)
-
-    return GroupingComponent(
-        id='stacktrace',
-        values=values,
-        hint=hint,
-    )
-
-
-@stacktrace_v1.variant_processor
-def stacktrace_v1_variant_processor(variants, config, **meta):
-    return remove_non_stacktrace_variants(variants)
 
 
 def single_exception_common(exception, config, meta, with_value):

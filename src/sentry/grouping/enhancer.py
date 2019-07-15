@@ -13,6 +13,7 @@ from parsimonious.exceptions import ParseError
 from sentry import projectoptions
 from sentry.stacktraces.functions import set_in_app
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
@@ -35,7 +36,7 @@ matcher_type     = "path" / "function" / "module" / "family" / "package" / "app"
 actions          = action+
 action           = flag_action / var_action
 var_action       = _ var_name _ "=" _ expr
-var_name         = "max-frames"
+var_name         = "max-frames" / "min-frames"
 flag_action      = _ range? flag flag_action_name
 flag_action_name = "group" / "app"
 flag             = "+" / "-"
@@ -171,7 +172,7 @@ class Action(object):
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
         pass
 
-    def modify_stack_state(self, state, rule):
+    def modify_stacktrace_state(self, state, rule):
         pass
 
     @classmethod
@@ -267,14 +268,14 @@ class VarAction(Action):
     def _to_config_structure(self):
         return [self.var, self.value]
 
-    def modify_stack_state(self, state, rule):
+    def modify_stacktrace_state(self, state, rule):
         state.set(self.var, self.value, rule)
 
 
-class StackState(object):
+class StacktraceState(object):
 
     def __init__(self):
-        self.vars = {'max-frames': 0}
+        self.vars = {'max-frames': 0, 'min-frames': 0}
         self.setters = {}
 
     def set(self, var, value, rule=None):
@@ -289,6 +290,12 @@ class StackState(object):
         rule = self.setters.get(var)
         if rule is not None:
             return rule.matcher_description
+
+    def add_to_hint(self, hint, var):
+        description = self.describe_var_rule(var)
+        if description is None:
+            return hint
+        return '%s by grouping enhancement rule (%s)' % (hint, description)
 
 
 class Enhancements(object):
@@ -315,7 +322,7 @@ class Enhancements(object):
                     action.apply_modifications_to_frame(frames, idx)
 
     def update_frame_components_contributions(self, components, frames, platform):
-        stack_state = StackState()
+        stacktrace_state = StacktraceState()
 
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
@@ -324,10 +331,12 @@ class Enhancements(object):
                 for action in actions or ():
                     action.update_frame_components_contributions(
                         components, frames, idx, rule=rule)
-                    action.modify_stack_state(stack_state, rule)
+                    action.modify_stacktrace_state(stacktrace_state, rule)
 
-        # Use the stack state to update frame contributions again
-        max_frames = stack_state.get('max-frames')
+        # Use the stack state to update frame contributions again to trim
+        # down to max-frames.  min-frames is handled on the other hand for
+        # the entire stacktrace later.
+        max_frames = stacktrace_state.get('max-frames')
         if max_frames > 0:
             ignored = 0
             for component in reversed(components):
@@ -340,10 +349,40 @@ class Enhancements(object):
                     max_frames,
                     'frames are' if max_frames != 1 else 'frame is',
                 )
-                description = stack_state.describe_var_rule('max-frames')
-                if description is not None:
-                    hint = '%s by grouping enhancement rule (%s)' % (hint, description)
+                hint = stacktrace_state.add_to_hint(hint, var='max-frames')
                 component.update(hint=hint, contributes=False)
+
+        return stacktrace_state
+
+    def assemble_stacktrace_component(self, components, frames, platform):
+        """This assembles a stacktrace grouping component out of the given
+        frame components and source frames.  Internally this invokes the
+        `update_frame_components_contributions` method but also handles cases
+        where the entire stacktrace should be discarded.
+        """
+        hint = None
+        contributes = None
+        stacktrace_state = self.update_frame_components_contributions(
+            components, frames, platform)
+
+        min_frames = stacktrace_state.get('min-frames')
+        if min_frames > 0:
+            total_contributes = sum(x.contributes for x in components)
+            if 0 < total_contributes < min_frames:
+                hint = 'discarded because stacktrace only contains %d ' \
+                    'frame%s which is under the configured threshold' % (
+                        total_contributes,
+                        's' if total_contributes != 1 else '',
+                    )
+                hint = stacktrace_state.add_to_hint(hint, var='min-frames')
+                contributes = False
+
+        return GroupingComponent(
+            id='stacktrace',
+            values=components,
+            hint=hint,
+            contributes=contributes,
+        )
 
     def as_dict(self, with_rules=False):
         rv = {
