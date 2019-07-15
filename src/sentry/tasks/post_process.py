@@ -46,24 +46,6 @@ def _get_service_hooks(project_id):
 
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
-    from sentry import options
-    import random
-
-    use_sampling = options.get('post-process.use-error-hook-sampling')
-
-    # XXX(Meredith): Sampling is used to test the process_resource_change task.
-    # We have an option to explicity say we want to use sampling, and the other
-    # to determine what that rate should be.
-    # Going forward the sampling will be removed and the task will only be
-    # gated using the integrations-event-hooks (i.e. gated by plan)
-    #
-    # We also don't want to cache the result in case we need to manually lower the
-    # sample rate immediately, or turn it down completely.
-    if use_sampling:
-        if random.random() >= options.get('post-process.error-hook-sample-rate'):
-            return False
-
-        return True
 
     cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
     result = cache.get(cache_key)
