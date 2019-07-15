@@ -1403,7 +1403,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <StyledTodoList>
                     <ul
-                      className="css-1j5mlad-StyledTodoList e1575y5o0"
+                      className="css-1j5mlad-StyledTodoList e1l1x1b40"
                     >
                       <WithOrganizationMockWrapper
                         key="1"
@@ -1495,9 +1495,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={1}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={1}
                                         >
                                           Create a project
                                         </h4>
@@ -1807,9 +1810,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={2}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={2}
                                         >
                                           Send your first event
                                         </h4>
@@ -2032,7 +2038,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "Bring your team aboard",
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking mentions, assignment, and suggested issue owners.",
+        by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
                             "featureLocation": "organization",
                             "location": "members/",
@@ -2077,7 +2083,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Bring your team aboard",
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking mentions, assignment, and suggested issue owners.",
+        by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
                               "featureLocation": "organization",
                               "location": "members/",
@@ -2117,9 +2123,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="/organizations/org-slug/members/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={3}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={3}
                                         >
                                           Invite team members
                                         </h4>
@@ -2431,9 +2440,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={4}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={4}
                                         >
                                           Add a second platform
                                         </h4>
@@ -2655,8 +2667,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "description": "Know who is being affected by crashes",
-                            "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
+                            "detailedDescription": "Unlock features that let you drill down into the number of users affected by an issue
+        and get a broader sense about the quality of your application.",
                             "display": true,
                             "featureLocation": "absolute",
                             "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2703,8 +2715,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "Know who is being affected by crashes",
-                              "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
+                              "detailedDescription": "Unlock features that let you drill down into the number of users affected by an issue
+        and get a broader sense about the quality of your application.",
                               "display": true,
                               "featureLocation": "absolute",
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2747,9 +2759,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={5}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={5}
                                         >
                                           Add user context
                                         </h4>
@@ -2971,8 +2986,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "description": "See which releases cause errors",
-                            "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
-          and unlock the ability to resolve issues via commit message.",
+                            "detailedDescription": "Set up releases and associate commits to gain additional context when determining the
+        cause of an issue and unlock the ability to resolve issues via commit message.",
                             "display": true,
                             "featureLocation": "project",
                             "location": "settings/release-tracking/",
@@ -3019,8 +3034,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "See which releases cause errors",
-                              "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
-          and unlock the ability to resolve issues via commit message.",
+                              "detailedDescription": "Set up releases and associate commits to gain additional context when determining the
+        cause of an issue and unlock the ability to resolve issues via commit message.",
                               "display": true,
                               "featureLocation": "project",
                               "location": "settings/release-tracking/",
@@ -3063,9 +3078,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader>
+                                      <ItemHeader
+                                        data-test-id={6}
+                                      >
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
+                                          data-test-id={6}
                                         >
                                           Set up release tracking
                                         </h4>
@@ -3184,322 +3202,6 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                   }
                                   task={6}
-                                >
-                                  <Container
-                                    hide={true}
-                                    onClick={[Function]}
-                                  >
-                                    <div
-                                      className="css-1hengah-Container e18z0fp40"
-                                      onClick={[Function]}
-                                    >
-                                      <Header>
-                                        <h4
-                                          className="css-134yp1m-Header e18z0fp41"
-                                        >
-                                          Want help?
-                                        </h4>
-                                      </Header>
-                                      <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
-                                          priority="link"
-                                          to="/settings/org-slug/support/"
-                                        >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
-                                            disabled={false}
-                                            onClick={[Function]}
-                                            priority="link"
-                                            role="button"
-                                            to="/settings/org-slug/support/"
-                                          >
-                                            <ForwardRef
-                                              aria-disabled={false}
-                                              aria-label="Go to Support"
-                                              className="css-xc50ef-StyledButton-getColors e12ma6z0"
-                                              disabled={false}
-                                              onClick={[Function]}
-                                              priority="link"
-                                              role="button"
-                                              to="/settings/org-slug/support/"
-                                            >
-                                              <Link
-                                                aria-disabled={false}
-                                                aria-label="Go to Support"
-                                                className="css-xc50ef-StyledButton-getColors e12ma6z0"
-                                                onClick={[Function]}
-                                                onlyActiveOnIndex={false}
-                                                role="button"
-                                                style={Object {}}
-                                                to="/settings/org-slug/support/"
-                                              >
-                                                <a
-                                                  aria-disabled={false}
-                                                  aria-label="Go to Support"
-                                                  className="css-xc50ef-StyledButton-getColors e12ma6z0"
-                                                  onClick={[Function]}
-                                                  role="button"
-                                                  style={Object {}}
-                                                >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
-                                                  >
-                                                    <Component
-                                                      align="center"
-                                                      className="css-19qfo0c-ButtonLabel e12ma6z1"
-                                                      priority="link"
-                                                    >
-                                                      <span
-                                                        className="css-19qfo0c-ButtonLabel e12ma6z1"
-                                                      >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </div>
-                                    </div>
-                                  </Container>
-                                </Confirmation>
-                              </WithOrganizationMockWrapper>
-                            </li>
-                          </Item>
-                        </TodoItem>
-                      </WithOrganizationMockWrapper>
-                      <WithOrganizationMockWrapper
-                        key="7"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Deminify JavaScript stack traces",
-                            "detailedDescription": "View source code context obtained from stack traces in its
-          original untransformed form, which is particularly useful for debugging minified code.",
-                            "display": true,
-                            "featureLocation": "absolute",
-                            "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
-                            "prereq": Array [
-                              1,
-                              2,
-                            ],
-                            "skippable": true,
-                            "task": 7,
-                            "title": "Upload source maps",
-                          }
-                        }
-                      >
-                        <TodoItem
-                          onSkip={[Function]}
-                          organization={
-                            Object {
-                              "access": Array [
-                                "org:read",
-                                "org:write",
-                                "org:admin",
-                                "org:integrations",
-                                "project:read",
-                                "project:write",
-                                "project:admin",
-                                "team:read",
-                                "team:write",
-                                "team:admin",
-                              ],
-                              "features": Array [],
-                              "id": "3",
-                              "name": "Organization Name",
-                              "onboardingTasks": Array [],
-                              "projects": Array [],
-                              "scrapeJavaScript": true,
-                              "slug": "org-slug",
-                              "status": Object {
-                                "id": "active",
-                                "name": "active",
-                              },
-                              "teams": Array [],
-                            }
-                          }
-                          task={
-                            Object {
-                              "description": "Deminify JavaScript stack traces",
-                              "detailedDescription": "View source code context obtained from stack traces in its
-          original untransformed form, which is particularly useful for debugging minified code.",
-                              "display": true,
-                              "featureLocation": "absolute",
-                              "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
-                              "prereq": Array [
-                                1,
-                                2,
-                              ],
-                              "skippable": true,
-                              "task": 7,
-                              "title": "Upload source maps",
-                            }
-                          }
-                        >
-                          <Item
-                            onMouseOut={[Function]}
-                            onMouseOver={[Function]}
-                          >
-                            <li
-                              className="css-djxgjv-Item e1a4o5470"
-                              onMouseOut={[Function]}
-                              onMouseOver={[Function]}
-                            >
-                              <Content
-                                blur={false}
-                              >
-                                <div
-                                  className="css-qpu70d-Content e1a4o5471"
-                                >
-                                  <Checkbox>
-                                    <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
-                                    />
-                                  </Checkbox>
-                                  <StyledLink
-                                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
-                                    onClick={[Function]}
-                                  >
-                                    <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
-                                      href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
-                                      onClick={[Function]}
-                                    >
-                                      <ItemHeader>
-                                        <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                        >
-                                          Upload source maps
-                                        </h4>
-                                      </ItemHeader>
-                                    </a>
-                                  </StyledLink>
-                                  <Description>
-                                    <p
-                                      className="css-rz8513-Description e1a4o5474"
-                                    >
-                                      Deminify JavaScript stack traces
-                                    </p>
-                                  </Description>
-                                  <SkipButton
-                                    align="center"
-                                    disabled={false}
-                                    hide={true}
-                                    onClick={[Function]}
-                                    size="xsmall"
-                                  >
-                                    <Button
-                                      align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
-                                      disabled={false}
-                                      hide={true}
-                                      onClick={[Function]}
-                                      size="xsmall"
-                                    >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
-                                        disabled={false}
-                                        hide={true}
-                                        onClick={[Function]}
-                                        role="button"
-                                        size="xsmall"
-                                      >
-                                        <ForwardRef
-                                          aria-disabled={false}
-                                          aria-label="Skip task"
-                                          className="e1a4o5477 css-13bbwwz-StyledButton-getColors-SkipButton e12ma6z0"
-                                          disabled={false}
-                                          hide={true}
-                                          onClick={[Function]}
-                                          role="button"
-                                          size="xsmall"
-                                        >
-                                          <button
-                                            aria-disabled={false}
-                                            aria-label="Skip task"
-                                            className="e1a4o5477 css-13bbwwz-StyledButton-getColors-SkipButton e12ma6z0"
-                                            onClick={[Function]}
-                                            role="button"
-                                            size="xsmall"
-                                          >
-                                            <ButtonLabel
-                                              align="center"
-                                              size="xsmall"
-                                            >
-                                              <Component
-                                                align="center"
-                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
-                                                size="xsmall"
-                                              >
-                                                <span
-                                                  className="css-1bqncjo-ButtonLabel e12ma6z1"
-                                                >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
-                                  </SkipButton>
-                                </div>
-                              </Content>
-                              <WithOrganizationMockWrapper
-                                dismiss={[Function]}
-                                hide={true}
-                                onSkip={[Function]}
-                                task={7}
-                              >
-                                <Confirmation
-                                  dismiss={[Function]}
-                                  hide={true}
-                                  onSkip={[Function]}
-                                  organization={
-                                    Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "org:integrations",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [],
-                                      "scrapeJavaScript": true,
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  task={7}
                                 >
                                   <Container
                                     hide={true}

@@ -134,7 +134,9 @@ class TodoItem extends React.Component {
         <Content blur={showConfirmation}>
           <Checkbox>{task.status && <IndicatorIcon status={task.status} />}</Checkbox>
           <StyledLink href={learnMoreUrl} onClick={this.handleClick}>
-            <ItemHeader status={task.status}>{task.title}</ItemHeader>
+            <ItemHeader status={task.status} data-test-id={task.task}>
+              {task.title}
+            </ItemHeader>
           </StyledLink>
           <Description>{description}</Description>
           <SkipButton
