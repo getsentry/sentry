@@ -7,7 +7,6 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry import options
-from sentry import features
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -183,10 +182,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         data = {}
         if issubclass(model, EventCommon):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-            # XXX(Meredith): this flag is in place for testing the load this task creates
-            # and during testing we don't need to send the webhook.
-            if features.has('organizations:integrations-event-hooks', organization=org):
-                send_webhooks(installation, event, data=data)
+            send_webhooks(installation, event, data=data)
         else:
             data[name] = serialize(instance)
             send_webhooks(installation, event, data=data)

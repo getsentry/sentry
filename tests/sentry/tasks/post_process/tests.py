@@ -7,7 +7,6 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
-from sentry import options
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
@@ -513,47 +512,6 @@ class PostProcessGroupTest(TestCase):
         )
 
         assert not delay.called
-
-    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
-    def test_processes_resource_change_task_uses_sampling_option(self, delay):
-        options.set('post-process.use-error-hook-sampling', True)
-        options.set('post-process.error-hook-sample-rate', 1)
-        event = self.store_event(
-            data={
-                'message': 'Foo bar',
-                'level': 'error',
-                'exception': {"type": "Foo", "value": "shits on fiah yo"},
-                'timestamp': timezone.now().isoformat()[:19]
-            },
-            project_id=self.project.id,
-            assert_no_errors=False
-        )
-
-        self.create_service_hook(
-            project=self.project,
-            organization=self.project.organization,
-            actor=self.user,
-            events=['error.created'],
-        )
-
-        post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
-        )
-
-        kwargs = {
-            'instance': event,
-        }
-
-        delay.assert_called_once_with(
-            action='created',
-            sender='Error',
-            instance_id=event.event_id,
-            **kwargs
-        )
 
 
 class IndexEventTagsTest(TestCase):
