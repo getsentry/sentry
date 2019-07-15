@@ -3,7 +3,6 @@ import {Link, browserHistory} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {sortProjects} from 'app/utils';
@@ -117,15 +116,13 @@ class Dashboard extends React.Component {
   }
 }
 
-const OrganizationDashboard = createReactClass({
-  render() {
-    return (
-      <Flex flex="1" direction="column">
-        <Dashboard {...this.props} />
-      </Flex>
-    );
-  },
-});
+const OrganizationDashboard = props => {
+  return (
+    <Flex flex="1" direction="column">
+      <Dashboard {...props} />
+    </Flex>
+  );
+};
 
 const TeamLink = styled(Link)`
   display: flex;

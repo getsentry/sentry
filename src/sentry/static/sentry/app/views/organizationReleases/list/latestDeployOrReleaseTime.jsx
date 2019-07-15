@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
@@ -9,50 +8,45 @@ import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
-const LatestDeployOrReleaseTime = createReactClass({
-  displayName: 'LatestDeployOrReleaseTime',
+const LatestDeployOrReleaseTime = ({release}) => {
+  const earlierDeploysNum = release.totalDeploys - 1;
+  const latestDeploy = release.lastDeploy;
+  // if there are deploys associated with the release
+  // render the most recent deploy (API will return data ordered by dateFinished)
+  // otherwise, render the dateCreated associated with release
+  return (
+    <div>
+      {latestDeploy && latestDeploy.dateFinished ? (
+        <div className="deploy">
+          <p className="m-b-0 text-light">
+            <ReleaseRepoLabel
+              style={{
+                padding: 3,
+                width: 70,
+                maxWidth: 86,
+                fontSize: 12,
+              }}
+            >
+              {latestDeploy.environment + ' '}
+            </ReleaseRepoLabel>{' '}
+            <TimeWithIcon date={latestDeploy.dateFinished} />
+            {earlierDeploysNum > 0 && (
+              <Tooltip title={t('%s earlier deploys', earlierDeploysNum)}>
+                <span className="badge">{earlierDeploysNum}</span>
+              </Tooltip>
+            )}
+          </p>
+        </div>
+      ) : (
+        <TimeWithIcon date={release.dateCreated} />
+      )}
+    </div>
+  );
+};
 
-  propTypes: {
-    release: PropTypes.object.isRequired,
-  },
-
-  render() {
-    const {release} = this.props;
-    const earlierDeploysNum = release.totalDeploys - 1;
-    const latestDeploy = release.lastDeploy;
-    // if there are deploys associated with the release
-    // render the most recent deploy (API will return data ordered by dateFinished)
-    // otherwise, render the dateCreated associated with release
-    return (
-      <div>
-        {latestDeploy && latestDeploy.dateFinished ? (
-          <div className="deploy">
-            <p className="m-b-0 text-light">
-              <ReleaseRepoLabel
-                style={{
-                  padding: 3,
-                  width: 70,
-                  maxWidth: 86,
-                  fontSize: 12,
-                }}
-              >
-                {latestDeploy.environment + ' '}
-              </ReleaseRepoLabel>{' '}
-              <TimeWithIcon date={latestDeploy.dateFinished} />
-              {earlierDeploysNum > 0 && (
-                <Tooltip title={t('%s earlier deploys', earlierDeploysNum)}>
-                  <span className="badge">{earlierDeploysNum}</span>
-                </Tooltip>
-              )}
-            </p>
-          </div>
-        ) : (
-          <TimeWithIcon date={release.dateCreated} />
-        )}
-      </div>
-    );
-  },
-});
+LatestDeployOrReleaseTime.propTypes = {
+  release: PropTypes.object.isRequired,
+};
 
 export default LatestDeployOrReleaseTime;
 
