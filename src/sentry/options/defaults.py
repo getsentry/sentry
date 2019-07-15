@@ -188,6 +188,6 @@ register('store.normalize-after-processing', default=0.0)  # unused
 register('store.disable-trim-in-renormalization', default=0.0)  # unused
 
 # Post Process Error Hook Sampling
-register('post-process.use-error-hook-sampling', default=False)
+register('post-process.use-error-hook-sampling', default=False)  # unused
 # From 0.0 to 1.0: Randomly enqueue process_resource_change task
-register('post-process.error-hook-sample-rate', default=0.0)
+register('post-process.error-hook-sample-rate', default=0.0)  # unused
