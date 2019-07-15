@@ -7,7 +7,7 @@ from sentry.models.projectoption import ProjectOption
 from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase, TestCase
 from sentry.utils.canonical import CanonicalKeyView
-from sentry.relay.config import RelayConfig, _filter_option_to_config_setting  # noqa
+from sentry.relay.config import ProjectConfig, _filter_option_to_config_setting  # noqa
 
 USER_AGENTS = {
     'android_2':
@@ -241,8 +241,8 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
 class LegacyBrowsersFilterTest(TestCase):
 
-    def apply_filter(self, relay_config, data):
-        return _legacy_browsers_filter(relay_config, CanonicalKeyView(data))
+    def apply_filter(self, project_config, data):
+        return _legacy_browsers_filter(project_config, CanonicalKeyView(data))
 
     def get_mock_data(self, user_agent):
         return {
@@ -256,14 +256,14 @@ class LegacyBrowsersFilterTest(TestCase):
             }
         }
 
-    def _get_relay_config(self, filter_opt=None):
+    def _get_project_config(self, filter_opt=None):
         """
-        Constructs a test relay_config with the provided legacy_browsers filter setting
+        Constructs a test project_config with the provided legacy_browsers filter setting
         :param filter_opt: the value for 'filters:legacy-browsers' project options (may be None)
-        :return: a RelayConfig object with the filter option set and the project taken from
+        :return: a ProjectConfig object with the filter option set and the project taken from
         the TestCase
         """
-        ret_val = RelayConfig(self.project, config={})
+        ret_val = ProjectConfig(self.project, config={})
         config = ret_val.config
         filter_settings = {}
         config['filter_settings'] = filter_settings
@@ -273,151 +273,151 @@ class LegacyBrowsersFilterTest(TestCase):
         return ret_val
 
     def test_filters_android_2_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['android_2'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_not_filter_android_4_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['android_4'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filters_ie_9_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['ie_9'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filters_iemobile_9_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['iemobile_9'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_not_filter_ie_10_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['ie_10'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_does_not_filter_iemobile_10_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['iemobile_10'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filters_opera_12_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['opera_12'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filters_opera_mini_7_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_not_filter_chrome_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['chrome'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_does_not_filter_edge_by_default(self):
-        relay_config = self._get_relay_config('1')
+        project_config = self._get_project_config('1')
         data = self.get_mock_data(USER_AGENTS['edge'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filter_opera(self):
-        relay_config = self._get_relay_config(['opera_pre_15'])
+        project_config = self._get_project_config(['opera_pre_15'])
         data = self.get_mock_data(USER_AGENTS['opera_12'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filter_opera_method(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['opera_12'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_dont_filter_opera_15(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['opera_15'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filter_opera_mini(self):
-        relay_config = self._get_relay_config(['opera_mini_pre_8'])
+        project_config = self._get_project_config(['opera_mini_pre_8'])
         data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filter_opera_mini_method(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_dont_filter_opera_mini_8(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['opera_mini_8'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filters_ie8(self):
-        relay_config = self._get_relay_config(['ie_pre_9'])
+        project_config = self._get_project_config(['ie_pre_9'])
         data = self.get_mock_data(USER_AGENTS['ie_8'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filters_ie8_method(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['ie_8'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_filter_ie9(self):
-        relay_config = self._get_relay_config(['ie9'])
+        project_config = self._get_project_config(['ie9'])
         data = self.get_mock_data(USER_AGENTS['ie_9'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_filter_iemobile_9(self):
-        relay_config = self._get_relay_config(['ie9'])
+        project_config = self._get_project_config(['ie9'])
         data = self.get_mock_data(USER_AGENTS['iemobile_9'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_filter_ie10(self):
-        relay_config = self._get_relay_config(['ie10'])
+        project_config = self._get_project_config(['ie10'])
         data = self.get_mock_data(USER_AGENTS['ie_10'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_not_filter_ie10(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['ie_10'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_does_filter_iemobile_10(self):
-        relay_config = self._get_relay_config(['ie10'])
+        project_config = self._get_project_config(['ie10'])
         data = self.get_mock_data(USER_AGENTS['iemobile_10'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_does_not_filter_iemobile_10(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['iemobile_10'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filters_safari(self):
-        relay_config = self._get_relay_config(['safari_pre_6'])
+        project_config = self._get_project_config(['safari_pre_6'])
         data = self.get_mock_data(USER_AGENTS['safari_5'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filters_safari_method(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['safari_5'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_method_does_not_filter_safari_7(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['safari_7'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False
 
     def test_filters_android(self):
-        relay_config = self._get_relay_config(['android_pre_4'])
+        project_config = self._get_project_config(['android_pre_4'])
         data = self.get_mock_data(USER_AGENTS['android_2'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_filters_android_method(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['android_2'])
-        assert self.apply_filter(relay_config, data) is True
+        assert self.apply_filter(project_config, data) is True
 
     def test_method_does_not_filter_android_4(self):
-        relay_config = self._get_relay_config()
+        project_config = self._get_project_config()
         data = self.get_mock_data(USER_AGENTS['android_4'])
-        assert self.apply_filter(relay_config, data) is False
+        assert self.apply_filter(project_config, data) is False

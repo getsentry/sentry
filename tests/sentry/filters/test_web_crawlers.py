@@ -4,15 +4,15 @@ from sentry.models.project import Project
 from unittest import TestCase
 
 from sentry.message_filters import _web_crawlers_filter
-from sentry.relay.config import RelayConfig
+from sentry.relay.config import ProjectConfig
 
 
 class WebCrawlersFilterTest(TestCase):
 
     def apply_filter(self, data):
         project = Project()
-        relay_config = RelayConfig(project)
-        return _web_crawlers_filter(relay_config, data)
+        project_config = ProjectConfig(project)
+        return _web_crawlers_filter(project_config, data)
 
     def get_mock_data(self, user_agent):
         return {

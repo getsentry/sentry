@@ -15,14 +15,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
-        relay = request.relay if hasattr(request, 'relay') else None
 
-        if request.relay is None:
-            return Response("Relay Unauthorized", 403)
+        relay = request.relay
+        assert relay is not None  # should be provided during Authentication
 
         full_config_requested = request.relay_request_data.get('fullConfig')
 
-        if full_config_requested and not request.relay.is_internal:
+        if full_config_requested and not relay.is_internal:
             return Response("Relay unauthorized for full config information", 403)
 
         project_ids = request.relay_request_data.get('projects') or ()
@@ -36,7 +35,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             for project in Project.objects.filter(pk__in=project_ids):
                 # for internal relays return the full, rich, configuration,
                 # for external relays return the minimal config
-                proj_config = config.get_relay_config(project.id, relay.is_internal and full_config_requested)
+                proj_config = config.get_project_config(project.id, relay.is_internal and full_config_requested)
 
                 projects[six.text_type(project.id)] = proj_config
 

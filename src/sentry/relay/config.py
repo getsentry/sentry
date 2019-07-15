@@ -24,12 +24,28 @@ from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import configure_scope
 
 
-def get_project_options(project):
-    """
-    (Deprecated) Returns a minimal relay config dictionary
+def get_project_key_config(project_key):
+    """Returns a dict containing the information for a specific project key"""
+    return {
+        'dsn': project_key.dsn_public,
+    }
 
-    NOTE: Use get_relay_config for new apis, consider this function an implementation detail of the module
+
+def get_project_config(project_id, full_config=True):
     """
+    Constructs the ProjectConfig information.
+
+    :param project_id: the project id as int or string
+    :param full_config: True if only the full config is required, False
+        if only the restricted (for external relays) is required
+        (default True, i.e. full configuration)
+    :return: a ProjectConfig object for the given project
+    """
+    project = _get_project_from_id(six.text_type(project_id))
+
+    if project is None:
+        raise APIError("Invalid project id:{}".format(project_id))
+
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
@@ -46,7 +62,7 @@ def get_project_options(project):
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
 
-    rv = {
+    cfg = {
         'disabled': project.status > 0,
         'slug': project.slug,
         'lastFetch': now,
@@ -58,39 +74,13 @@ def get_project_options(project):
             'trustedRelays': org_options.get('sentry:trusted-relays', []),
             'piiConfig': _get_pii_config(project, org_options),
         },
+        'project_id': project.id,
+        'organization_id': project.organization_id,
     }
-    return rv
-
-
-def get_project_key_config(project_key):
-    """Returns a dict containing the information for a specific project key"""
-    return {
-        'dsn': project_key.dsn_public,
-    }
-
-
-def get_relay_config(project_id, full_config=True):
-    """
-    Constructs the RelayConfig information.
-
-    :param project_id: the project id as int or string
-    :param full_config: True if only the full config is required, False
-        if only the restricted (for external relays) is required
-        (default True, i.e. full configuration)
-    :return: a RelayConfig object for the given project
-    """
-    project = _get_project_from_id(six.text_type(project_id))
-
-    if project is None:
-        raise APIError("Invalid project id:{}".format(project_id))
-
-    cfg = get_project_options(project)
-    cfg['project_id'] = project.id
-    cfg['organization_id'] = project.organization_id
 
     if not full_config:
         # This is all we need for external Relay processors
-        return RelayConfig(project, **cfg)
+        return ProjectConfig(project, **cfg)
 
     # Explicitly bind Organization so we don't implicitly query it later
     # this just allows us to comfortably assure that `project.organization` is safe.
@@ -171,7 +161,7 @@ def get_relay_config(project_id, full_config=True):
                           project.get_option('sentry:scrub_defaults', True))
         project_cfg['scrub_defaults'] = scrub_defaults
 
-    return RelayConfig(project, **cfg)
+    return ProjectConfig(project, **cfg)
 
 
 class _ConfigBase(object):
@@ -200,7 +190,7 @@ class _ConfigBase(object):
                 data[key] = val
 
     def __setattr__(self, key, value):
-        raise Exception("Trying to change read only RelayConfig object")
+        raise Exception("Trying to change read only ProjectConfig object")
 
     def __getattr__(self, name):
         data = self.__get_data()
@@ -283,14 +273,14 @@ class _ConfigBase(object):
         return "({0}){1}".format(self.__class__.__name__, self)
 
 
-class RelayConfig(_ConfigBase):
+class ProjectConfig(_ConfigBase):
     """
     Represents the restricted configuration available to an untrusted
     """
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
-        super(RelayConfig, self).__init__(**kwargs)
+        super(ProjectConfig, self).__init__(**kwargs)
 
 
 def _generate_pii_config(project, org_options):
@@ -454,11 +444,11 @@ def _load_filter_settings(flt, project):
 
 def _filter_option_to_config_setting(flt, setting):
     """
-    Encapsulates the logic for associating a filter database option with the filter setting from relay_config
+    Encapsulates the logic for associating a filter database option with the filter setting from project_config
 
     :param flt: the filter
     :param setting: the option deserialized from the database
-    :return: the option as viewed from relay_config
+    :return: the option as viewed from project_config
     """
     if setting is None:
         raise ValueError("Could not find filter state for filter {0}."
