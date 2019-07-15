@@ -686,7 +686,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 className="css-7g8agk"
                                 is={null}
                               >
-                                <ProjectListItem
+                                <ProjectStatsGraph
                                   key="2"
                                   project={
                                     Object {
@@ -702,7 +702,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   }
                                 >
                                   <div />
-                                </ProjectListItem>
+                                </ProjectStatsGraph>
                               </div>
                             </Base>
                           </Box>

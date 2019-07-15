@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -14,20 +13,17 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
 
-const ReleaseCommits = createReactClass({
-  displayName: 'ReleaseCommits',
-  propTypes: {
+class ReleaseCommits extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
-  },
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      commitList: [],
-      activeRepo: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    commitList: [],
+    activeRepo: null,
+  };
 
   componentDidMount() {
     this.props.api.request(this.getPath(), {
@@ -49,7 +45,7 @@ const ReleaseCommits = createReactClass({
         });
       },
     });
-  },
+  }
 
   getPath() {
     const {orgId, projectId, version} = this.props.params;
@@ -59,7 +55,7 @@ const ReleaseCommits = createReactClass({
     return projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`
       : `/organizations/${orgId}/releases/${encodedVersion}/commits/`;
-  },
+  }
 
   emptyState() {
     return (
@@ -70,13 +66,13 @@ const ReleaseCommits = createReactClass({
         </EmptyStateWarning>
       </Panel>
     );
-  },
+  }
 
   setActiveRepo(repo) {
     this.setState({
       activeRepo: repo,
     });
-  },
+  }
 
   getCommitsByRepository() {
     const {commitList} = this.state;
@@ -90,7 +86,7 @@ const ReleaseCommits = createReactClass({
       return cbr;
     }, {});
     return commitsByRepository;
-  },
+  }
 
   renderCommitsForRepo(repo) {
     const commitsByRepository = this.getCommitsByRepository();
@@ -106,7 +102,7 @@ const ReleaseCommits = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
+  }
 
   render() {
     if (this.state.loading) {
@@ -120,7 +116,7 @@ const ReleaseCommits = createReactClass({
     const {commitList, activeRepo} = this.state;
 
     if (!commitList.length) {
-      return <this.emptyState />;
+      return this.emptyState();
     }
     const commitsByRepository = this.getCommitsByRepository();
     return (
@@ -169,8 +165,8 @@ const ReleaseCommits = createReactClass({
             })}
       </div>
     );
-  },
-});
+  }
+}
 
 export {ReleaseCommits};
 
