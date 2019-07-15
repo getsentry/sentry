@@ -113,6 +113,9 @@ def configure_sdk():
             RustInfoIntegration(),
         ],
         transport=capture_event,
+
+        # We use `capture_event` to discard all transaction events and just
+        # make a statsd metric. Figure out how much we would send.
         traces_sample_rate=1.0,
         **options
     )
