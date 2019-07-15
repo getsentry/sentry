@@ -37,7 +37,7 @@ export default class Deploys extends React.Component {
         <DeployBox p={2} pt={1}>
           {deploys.map(deploy => (
             <Deploy
-              key={deploy.version}
+              key={`${deploy.environment}-${deploy.version}`}
               deploy={deploy}
               project={project}
               organization={organization}
