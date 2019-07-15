@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {Dashboard} from 'app/views/organizationProjectsDashboard';
+import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import * as projectsActions from 'app/actionCreators/projects';
 

@@ -875,7 +875,7 @@ function routes() {
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+              import(/* webpackChunkName: "ProjectsDashboard" */ './views/projectsDashboard')
             }
             component={errorHandler(LazyLoad)}
           />
@@ -883,7 +883,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/projects/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationProjectsDashboard" */ './views/organizationProjectsDashboard')
+              import(/* webpackChunkName: "ProjectsDashboard" */ './views/projectsDashboard')
             }
             component={errorHandler(LazyLoad)}
           />
