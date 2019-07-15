@@ -42,9 +42,18 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         if add_org_key:
             org.update_option('sentry:trusted-relays', [self.relay.public_key])
 
-    def _call_endpoint(self):
+    def _call_endpoint(self, full_config):
         projects = [six.text_type(self.project.id)]
-        raw_json, signature = self.private_key.pack({'projects': projects})
+
+        if full_config is None:
+            raw_json, signature = self.private_key.pack({
+                'projects': projects,
+            })
+        else:
+            raw_json, signature = self.private_key.pack({
+                'projects': projects,
+                'fullConfig': full_config
+            })
 
         resp = self.client.post(
             self.path,
@@ -54,11 +63,23 @@ class RelayQueryGetProjectConfigTest(APITestCase):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content)
+        return json.loads(resp.content), resp.status_code
+
+    def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(self):
+        self._setup_relay(internal=True, add_org_key=False)
+        result, status_code = self._call_endpoint(full_config=False)
+
+        assert status_code < 400
+
+        cfg = safe.get_path(result, 'configs', six.text_type(self.project.id))
+        assert safe.get_path(cfg, 'config', 'filterSettings') is None
+        assert safe.get_path(cfg, 'config', 'groupingConfig') is None
 
     def test_internal_relays_should_receive_full_configs(self):
-        self._setup_relay(True, False)
-        result = self._call_endpoint()
+        self._setup_relay(internal=True, add_org_key=False)
+        result, status_code = self._call_endpoint(full_config=True)
+
+        assert status_code < 400
 
         cfg = safe.get_path(result, 'configs', six.text_type(self.project.id))
         assert safe.get_path(cfg, 'disabled') is False
@@ -86,9 +107,37 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert safe.get_path(cfg, 'config', 'scrubIpAddresses') is True
         assert safe.get_path(cfg, 'config', 'sensitiveFields') == []
 
-    def test_trusted_external_realys_should_receive_minimal_configs(self):
+    def test_trusted_external_relays_should_not_be_able_to_request_full_configs(self):
         self._setup_relay(False, True)
-        result = self._call_endpoint()
+        result, status_code = self._call_endpoint(full_config=True)
+
+        assert status_code == 403
+
+    def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(self):
+        self._setup_relay(internal=True, add_org_key=False)
+        result, status_code = self._call_endpoint(full_config=None)
+
+        assert status_code < 400
+
+        cfg = safe.get_path(result, 'configs', six.text_type(self.project.id))
+        assert safe.get_path(cfg, 'config', 'filterSettings') is None
+        assert safe.get_path(cfg, 'config', 'groupingConfig') is None
+
+    def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(self):
+        self._setup_relay(internal=False, add_org_key=True)
+        result, status_code = self._call_endpoint(full_config=None)
+
+        assert status_code < 400
+
+        cfg = safe.get_path(result, 'configs', six.text_type(self.project.id))
+        assert safe.get_path(cfg, 'config', 'filterSettings') is None
+        assert safe.get_path(cfg, 'config', 'groupingConfig') is None
+
+    def test_trusted_external_relays_should_receive_minimal_configs(self):
+        self._setup_relay(False, True)
+        result, status_code = self._call_endpoint(full_config=False)
+
+        assert status_code < 400
 
         cfg = safe.get_path(result, 'configs', six.text_type(self.project.id))
         assert safe.get_path(cfg, 'disabled') is False
@@ -117,7 +166,10 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
     def test_untrusted_external_relays_should_not_receive_configs(self):
         self._setup_relay(False, False)
-        result = self._call_endpoint()
+        result, status_code = self._call_endpoint(full_config=False)
+
+        assert status_code < 400
 
         cfg = result['configs'][six.text_type(self.project.id)]
+
         assert cfg is None
