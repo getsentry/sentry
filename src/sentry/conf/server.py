@@ -925,7 +925,7 @@ SENTRY_PROJECT_KEY = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
-SENTRY_ORGANIZATION = 1
+SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
