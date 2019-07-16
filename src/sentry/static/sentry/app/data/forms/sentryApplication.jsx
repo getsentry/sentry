@@ -4,6 +4,9 @@ import {t, tct} from 'app/locale';
 const INTERNAL_OPTION_DISABLED_REASON = t(
   "This option can't be changed once selected. Please make a new integration if you no longer want it to be internal."
 );
+const VERIFY_INSTALL_OPTION_DISABLED_REASON = t(
+  'This option is always disabled for Internal integrations.'
+);
 
 const forms = [
   {
@@ -50,6 +53,15 @@ const forms = [
         label: 'Redirect URL',
         placeholder: 'e.g. https://example.com/sentry/setup/',
         help: 'The URL Sentry will redirect users to after installation.',
+      },
+      {
+        name: 'verifyInstall',
+        label: 'Verify Installation',
+        type: 'boolean',
+        disabled: ({statusDisabled}) => statusDisabled,
+        disabledReason: VERIFY_INSTALL_OPTION_DISABLED_REASON,
+        help:
+          'If enabled, installations will need to be verified before becoming installed.',
       },
       {
         name: 'isAlertable',

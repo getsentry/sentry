@@ -62,6 +62,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             'redirectUrl': request.json_body.get('redirectUrl'),
             'isAlertable': request.json_body.get('isAlertable'),
             'isInternal': request.json_body.get('isInternal'),
+            'verifyInstall': request.json_body.get('verifyInstall'),
             'scopes': request.json_body.get('scopes', []),
             'events': request.json_body.get('events', []),
             'schema': request.json_body.get('schema', {}),

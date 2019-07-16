@@ -23,6 +23,7 @@ class InternalCreator(Mediator):
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
+    verify_install = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
     request = Param('rest_framework.request.Request', required=False)

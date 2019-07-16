@@ -23,6 +23,7 @@ class Updater(Mediator):
     webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, required=False)
+    verify_install = Param(bool, required=False)
     schema = Param(dict, required=False)
     overview = Param(six.string_types, required=False)
     user = Param('sentry.models.User')
@@ -36,6 +37,7 @@ class Updater(Mediator):
         self._update_webhook_url()
         self._update_redirect_url()
         self._update_is_alertable()
+        self._update_verify_install()
         self._update_overview()
         self._update_schema()
         self.sentry_app.save()
@@ -92,6 +94,14 @@ class Updater(Mediator):
     @if_param('is_alertable')
     def _update_is_alertable(self):
         self.sentry_app.is_alertable = self.is_alertable
+
+    @if_param('verify_install')
+    def _update_verify_install(self):
+        if self.sentry_app.is_internal:
+            raise APIError(
+                u'Cannot update this option for internal integrations.',
+            )
+        self.sentry_app.verify_install = self.verify_install
 
     @if_param('overview')
     def _update_overview(self):
