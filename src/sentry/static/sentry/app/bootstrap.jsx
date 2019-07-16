@@ -48,6 +48,7 @@ Sentry.configureScope(scope => {
   scope.setSpan(
     Sentry.getCurrentHub().startSpan({
       op: 'pageload',
+      sampled: true
     })
   );
 });
