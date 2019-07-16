@@ -87,7 +87,7 @@ export default class Table extends React.Component {
             return (
               <HeaderItem key={field}>
                 <SortLink
-                  implicitSort={defaultSort}
+                  defaultSort={defaultSort}
                   sortKey={sortKey}
                   title={title}
                   location={location}

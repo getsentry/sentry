@@ -9,13 +9,13 @@ class SortLink extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     sortKey: PropTypes.string.isRequired,
-    implicitSort: PropTypes.string,
+    defaultSort: PropTypes.string.isRequired,
     location: PropTypes.object.isRequired,
   };
 
   getCurrentSort() {
-    const {implicitSort, location} = this.props;
-    return location.query.sort ? location.query.sort : implicitSort;
+    const {defaultSort, location} = this.props;
+    return location.query.sort ? location.query.sort : defaultSort;
   }
 
   getSort() {
