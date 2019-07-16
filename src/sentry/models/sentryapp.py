@@ -107,6 +107,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)
 
+    # does the application need to wait for verification
+    # on behalf of the external service to know if its installations
+    # are successully installed ?
+    verify_install = models.BooleanField(default=True)
+
     events = ArrayField(of=models.TextField, null=True)
 
     overview = models.TextField(null=True)
