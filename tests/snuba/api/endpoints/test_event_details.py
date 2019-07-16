@@ -351,11 +351,10 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
             'type': 'transaction',
         }
 
-        with self.feature('organizations:issueless-events'):
-            cur_event = self.store_event(
-                data,
-                project_id=self.project.id
-            )
+        cur_event = self.store_event(
+            data,
+            project_id=self.project.id
+        )
 
         url = reverse(
             'sentry-api-0-event-details', kwargs={
