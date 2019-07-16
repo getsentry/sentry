@@ -573,19 +573,6 @@ class EventManager(object):
         else:
             issueless_event = False
 
-        org = project._organization_cache
-        issueless_enabled = features.has('organizations:issueless-events', organization=org)
-        if issueless_event and not issueless_enabled:
-            # We discard the event if issueless events are disabled
-            logger.info(
-                'issueless.disabled',
-                extra={
-                    'event_uuid': data['event_id'],
-                    'project_id': project.id,
-                }
-            )
-            return event
-
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
