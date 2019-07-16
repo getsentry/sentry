@@ -519,7 +519,8 @@ class Factories(object):
             assert not errors, errors
 
         event = manager.save(project_id)
-        event.group.save()
+        if event.group:
+            event.group.save()
         return event
 
     @staticmethod
