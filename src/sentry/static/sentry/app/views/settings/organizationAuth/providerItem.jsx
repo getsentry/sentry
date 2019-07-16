@@ -64,7 +64,7 @@ export default class ProviderItem extends React.PureComponent {
           children({...props, renderDisabled: this.renderDisabledLock})
         }
       >
-        {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
+        {({hasFeature, features, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">
             <Flex flex={1}>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
@@ -121,7 +121,7 @@ const DisabledHovercard = styled(Hovercard)`
   width: 350px;
 `;
 
-const LockedFeature = ({provider, features, className, ...props}) => (
+const LockedFeature = ({provider, features, className}) => (
   <DisabledHovercard
     containerClassName={className}
     body={
