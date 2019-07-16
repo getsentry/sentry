@@ -7,6 +7,8 @@ import six
 from exam import fixture
 from django.test import RequestFactory
 from time import time
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts.integration import VstsIntegration
@@ -349,8 +351,15 @@ class VstsIssueFormTest(VstsIssueBase):
                 ]
             },
         )
-        self.group = self.create_group()
-        self.create_event(group=self.group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'fingerprint': ['group1'],
+                'timestamp': min_ago,
+            },
+            project_id=self.project.id,
+        )
+        self.group = event.group
 
     def tearDown(self):
         responses.reset()

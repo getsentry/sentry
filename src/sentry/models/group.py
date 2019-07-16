@@ -407,20 +407,9 @@ class Group(Model):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
-        from sentry.models import Event
-
         if not hasattr(self, '_latest_event'):
-            latest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('-datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-                reverse=True,
-            )
-            try:
-                self._latest_event = latest_events[0]
-            except IndexError:
-                self._latest_event = None
+            self._latest_event = self.get_latest_event_for_environments()
+
         return self._latest_event
 
     def get_latest_event_for_environments(self, environments=()):

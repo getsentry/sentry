@@ -2,26 +2,44 @@ from __future__ import absolute_import
 
 import six
 import mock
+from datetime import timedelta
+from django.utils import timezone
+import copy
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 
 
 class GroupIntegrationDetailsTest(APITestCase):
+    def setUp(self):
+        super(GroupIntegrationDetailsTest, self).setUp()
+        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago.isoformat()[:19],
+                'message': 'message',
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id
+        )
+        self.group = self.event.group
+
     def test_simple_get_link(self):
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
         integration = Integration.objects.create(
             provider='example',
             name='Example',
         )
         integration.add_organization(org, self.user)
 
-        path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(
+            self.group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
@@ -61,13 +79,12 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_simple_get_create(self):
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
-        self.create_event(group=group)
         integration = Integration.objects.create(
             provider='example',
             name='Example',
         )
         integration.add_organization(org, self.user)
+        group = self.group
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
@@ -99,7 +116,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                         'required': True,
                     }, {
                         'default': ('Sentry Issue: [%s](%s)\n\n```\n'
-                                    'Stacktrace (most recent call last):\n\n  '
+                                    'Stacktrace (most recent call first):\n\n  '
                                     'File "sentry/models/foo.py", line 29, in build_msg\n    '
                                     'string_max_length=self.string_max_length)\n\nmessage\n```'
                                     ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url(params={'referrer': 'example_integration'}))),
@@ -121,15 +138,14 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_get_create_with_error(self):
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
-        self.create_event(group=group)
         integration = Integration.objects.create(
             provider='example',
             name='Example',
         )
         integration.add_organization(org, self.user)
 
-        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(
+            self.group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             with mock.patch.object(ExampleIntegration, 'get_create_issue_config', side_effect=IntegrationError('oops')):
@@ -141,15 +157,14 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_get_feature_disabled(self):
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
-        self.create_event(group=group)
         integration = Integration.objects.create(
             provider='example',
             name='Example',
         )
         integration.add_organization(org, self.user)
 
-        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(
+            self.group.id, integration.id)
 
         with self.feature({'organizations:integrations-issue-basic': False}):
             response = self.client.get(path)
@@ -167,7 +182,6 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
-
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.put(path, data={
                 'externalIssue': 'APP-123'
@@ -367,8 +381,14 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
         org = self.organization
-        group = self.create_group()
-        self.create_event(group=group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
+        )
+        group = event.group
         integration = Integration.objects.create(
             provider='example',
             name='Example',
