@@ -37,7 +37,7 @@ class ProjectChooser extends React.Component {
   redirectNoMultipleProjects() {
     const {organization} = this.props;
     const projects = organization.projects;
-    const task = this.onboardingTask();
+    const task = this.onboardingTask;
 
     if (projects.length === 0) {
       browserHistory.push(`/organizations/${organization.slug}/projects/new/`);
@@ -49,7 +49,7 @@ class ProjectChooser extends React.Component {
 
   render() {
     const {organization} = this.props;
-    const task = this.onboardingTask();
+    const task = this.onboardingTask;
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation === 'project'
     // TODO throw up report dialog if not true
