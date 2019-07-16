@@ -174,7 +174,7 @@ export const Group = PropTypes.shape({
   status: PropTypes.string,
   statusDetails: PropTypes.object,
   title: PropTypes.string,
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: PropTypes.oneOf(['error', 'csp', 'default', 'transaction']),
   userCount: PropTypes.number,
 });
 
@@ -186,7 +186,7 @@ export const Event = PropTypes.shape({
   dateReceived: PropTypes.string,
   entries: PropTypes.arrayOf(
     PropTypes.shape({
-      data: PropTypes.object,
+      data: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
       type: PropTypes.string,
     })
   ),
@@ -212,7 +212,7 @@ export const Event = PropTypes.shape({
       value: PropTypes.string,
     })
   ),
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: PropTypes.oneOf(['error', 'csp', 'default', 'transaction']),
   user: PropTypes.object,
 });
 
