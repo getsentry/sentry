@@ -8,7 +8,6 @@ import sentry.utils as utils
 from datetime import datetime
 from pytz import utc
 
-from sentry import options
 from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.message_filters import get_all_filters
@@ -100,14 +99,6 @@ def get_project_config(project_id, full_config=True):
     if project_cfg is None:
         project_cfg = {}
         cfg['config'] = project_cfg
-
-    # getting kafka info
-    try:
-        project_cfg['kafka_max_event_size'] = options.get('kafka-publisher.max-event-size')
-        project_cfg['kafka_raw_event_sample_rate'] = options.get(
-            'kafka-publisher.raw-event-sample-rate')
-    except Exception:
-        pass  # should we log ?
 
     invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if invalid_releases is not None:

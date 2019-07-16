@@ -28,7 +28,7 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas
+from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
 from sentry.constants import ObjectStatus
 from sentry.coreapi import (
@@ -327,7 +327,12 @@ class APIView(BaseView):
             )
 
         if not auth.client:
-            track_outcome(project_config.organization_id, project_config.project_id, None, Outcome.INVALID, "auth_client")
+            track_outcome(
+                project_config.organization_id,
+                project_config.project_id,
+                None,
+                Outcome.INVALID,
+                "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -340,14 +345,12 @@ class APIView(BaseView):
             # This may fail when we e.g. send a multipart form. We ignore those errors for now.
             data = request.body
 
-            config = project_config.config
-
-            max_event_size = config.get('kafka_max_event_size')
+            max_event_size = options.get('kafka-publisher.raw-event-sample-rate')
             if not data or max_event_size is None or len(data) > max_event_size:
                 return
 
             # Sampling
-            raw_event_sample_rate = config.get('kafka_raw_event_sample_rate')
+            raw_event_sample_rate = options.get('kafka-publisher.max-event-size')
             if raw_event_sample_rate is None or random.random() >= raw_event_sample_rate:
                 return
 
@@ -382,7 +385,8 @@ class APIView(BaseView):
             )
 
             # if the project id is not directly specified get it from the authentication information
-            project_id = _get_project_id_from_request(project_id, request, self.auth_helper_cls, helper)
+            project_id = _get_project_id_from_request(
+                project_id, request, self.auth_helper_cls, helper)
 
             project_config = get_project_config(project_id)
 
@@ -393,7 +397,8 @@ class APIView(BaseView):
 
             origin = self.auth_helper_cls.origin_from_request(request)
 
-            response = self._dispatch(request, helper, project_config, origin=origin, *args, **kwargs)
+            response = self._dispatch(request, helper, project_config,
+                                      origin=origin, *args, **kwargs)
         except APIError as e:
             context = {
                 'error': force_bytes(e.msg, errors='replace'),
@@ -561,7 +566,8 @@ class StoreView(APIView):
         """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
         pass
 
-    def process(self, request, project, key, auth, helper, data, project_config, attachments=None, **kwargs):
+    def process(self, request, project, key, auth, helper, data,
+                project_config, attachments=None, **kwargs):
         metrics.incr('events.total', skip_internal=False)
 
         project_id = project_config.project_id
@@ -829,7 +835,8 @@ class MinidumpView(StoreView):
         ))
 
         # Append all other files as generic attachments.
-        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use event-attachments feature)
+        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use
+        # event-attachments feature)
         for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
