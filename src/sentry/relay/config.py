@@ -104,7 +104,8 @@ def get_project_config(project_id, full_config=True):
     # getting kafka info
     try:
         project_cfg['kafka_max_event_size'] = options.get('kafka-publisher.max-event-size')
-        project_cfg['kafka_raw_event_sample_rate'] = options.get('kafka-publisher.raw-event-sample-rate')
+        project_cfg['kafka_raw_event_sample_rate'] = options.get(
+            'kafka-publisher.raw-event-sample-rate')
     except Exception:
         pass  # should we log ?
 
@@ -277,6 +278,7 @@ class ProjectConfig(_ConfigBase):
     """
     Represents the restricted configuration available to an untrusted
     """
+
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
@@ -465,8 +467,7 @@ def _filter_option_to_config_setting(flt, setting):
     if flt.spec.id == FilterStatKeys.LEGACY_BROWSER:
         if is_enabled:
             if setting == '1':
-                # old style filter
-                ret_val['default_filter'] = True
+                ret_val['options'] = ['all']
             else:
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')

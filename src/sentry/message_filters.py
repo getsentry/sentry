@@ -340,7 +340,7 @@ def _legacy_browsers_filter(project_config, data):
     filter_settings = _get_filter_settings(project_config, _legacy_browsers_filter)
 
     # handle old style config
-    if filter_settings is None or filter_settings.get('default_filter', False):
+    if filter_settings is None:
         return _filter_default(browser)
 
     enabled_sub_filters = filter_settings.get('options')
