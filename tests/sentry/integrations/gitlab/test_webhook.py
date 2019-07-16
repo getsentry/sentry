@@ -6,6 +6,7 @@ from sentry.models import (
     PullRequest,
     GroupLink
 )
+from sentry.utils import json
 from .testutils import (
     GitLabTestCase,
     WEBHOOK_TOKEN,
@@ -189,6 +190,23 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
+            content_type='application/json',
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT='Merge Request Hook'
+        )
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
+
+    def test_merge_event_no_last_commit(self):
+        payload = json.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        # Remove required keys. There have been events in prod that are missing
+        # these important attributes. GitLab docs don't explain why though.
+        del payload['object_attributes']['last_commit']
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
             content_type='application/json',
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Merge Request Hook'
