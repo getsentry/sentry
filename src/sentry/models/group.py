@@ -314,11 +314,6 @@ class Group(Model):
         if self.short_id is not None:
             return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
 
-    @property
-    def event_set(self):
-        from sentry.models import Event
-        return Event.objects.filter(group_id=self.id)
-
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
