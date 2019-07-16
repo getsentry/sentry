@@ -74,12 +74,15 @@ def get_project_config(project_id, full_config=True):
             'piiConfig': _get_pii_config(project, org_options),
         },
         'project_id': project.id,
-        'organization_id': project.organization_id,
     }
 
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
+
+    # The organization id is only required for reporting when processing events
+    # internally. Do not expose it to external Relays.
+    cfg['organization_id'] = project.organization_id
 
     # Explicitly bind Organization so we don't implicitly query it later
     # this just allows us to comfortably assure that `project.organization` is safe.
