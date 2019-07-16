@@ -2,16 +2,11 @@ from __future__ import absolute_import
 
 import six
 
-from collections import Iterable
 
-from sentry import analytics
-from sentry.coreapi import APIError
+# from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook
-from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 
 class Updater(Mediator):
@@ -26,14 +21,11 @@ class Updater(Mediator):
     @if_param('status')
     def _update_status(self):
         # convert from string to integer
-        print("update status", self.status)
-        print("update status 1", SentryAppInstallationStatus.STATUS_MAP[self.status])
         self.sentry_app_installation.status = SentryAppInstallationStatus.STATUS_MAP[self.status]
-        print("hey")
 
     def record_analytics(self):
         pass
-        # TODO: Add analytics?
+        # TODO: Add analytics
         # analytics.record(
         #     'sentry_app_installation.updated',
         #     user_id=self.user.id,

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.http import Http404
 from functools import wraps
-from django.conf import settings
 
 from sentry.utils.sdk import configure_scope
 from sentry.api.authentication import ClientIdSecretAuthentication
@@ -174,7 +173,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppInstallationsPermission(SentryPermission):
     scope_map = {
         'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-        'POST': ('org:integrations', 'org:write', 'org:admin')
+        'POST': ('org:integrations', 'org:write', 'org:admin'),
     }
 
     def has_object_permission(self, request, view, organization):
