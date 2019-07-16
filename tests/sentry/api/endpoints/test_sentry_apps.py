@@ -454,3 +454,18 @@ class PostSentryAppsTest(SentryAppsTest):
             body,
             headers={'Content-Type': 'application/json'},
         )
+
+    @with_feature('organizations:sentry-apps')
+    def test_creates_empty_events(self):
+        self.login_as(user=self.user)
+
+        response = self._post(events=[])
+        expected = {
+            'name': 'MyApp',
+            'scopes': ['project:read', 'event:read'],
+            'events': [],
+            'webhookUrl': 'https://example.com',
+        }
+
+        assert response.status_code == 201, response.content
+        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))

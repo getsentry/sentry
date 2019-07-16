@@ -26,7 +26,7 @@ class ApiScopesField(serializers.Field):
 
 class EventListField(serializers.Field):
     def to_internal_value(self, data):
-        if not data:
+        if data is None:
             return
 
         if not set(data).issubset(VALID_EVENT_RESOURCES):
@@ -86,7 +86,7 @@ class SentryAppSerializer(Serializer):
         return value
 
     def validate(self, attrs):
-        if not attrs.get('scopes'):
+        if not attrs.get('scopes') or not attrs.get('events'):
             return attrs
 
         for resource in attrs.get('events'):
