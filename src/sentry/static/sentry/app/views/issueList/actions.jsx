@@ -23,7 +23,6 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
-import GroupStore from 'app/stores/groupStore';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -225,13 +224,14 @@ const IssueListActions = createReactClass({
     this.actionSelectedGroups(itemIds => {
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-      let projectId;
-
-      try {
-        projectId = GroupStore.get(itemIds[0]).project.slug;
-      } catch (err) {
-        // nothing
-      }
+      // If `itemIds` is undefined then it means we expect to bulk update all items
+      // that match the query. In this case we should respect the projects selected in the
+      // global selection header.
+      //
+      // Otherwise if we have a list of itemIds, then we don't need project constraints since
+      // they will be unique
+      const projectConstraints =
+        typeof itemIds === 'undefined' ? {project: selection.projects} : {};
 
       this.props.api.bulkUpdate(
         {
@@ -239,8 +239,8 @@ const IssueListActions = createReactClass({
           itemIds,
           data,
           query: this.props.query,
-          projectId,
           environment: selection.environments,
+          ...projectConstraints,
           ...selection.datetime,
         },
         {
@@ -330,7 +330,6 @@ const IssueListActions = createReactClass({
   },
 
   render() {
-    // TODO(mitsuhiko): very unclear how to translate this
     const {
       allResultsVisible,
       hasReleases,
