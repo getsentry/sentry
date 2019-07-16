@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
+import {omit} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -65,7 +66,8 @@ export default class Table extends React.Component {
 
   render() {
     const {isLoading, location, view} = this.props;
-    const {fields} = view.data;
+    const {fields, sort} = view.data;
+    const defaultSort = sort.length ? sort[0] : null;
 
     return (
       <Panel>
@@ -84,7 +86,12 @@ export default class Table extends React.Component {
 
             return (
               <HeaderItem key={field}>
-                <SortLink sortKey={sortKey} title={title} location={location} />
+                <SortLink
+                  implicitSort={defaultSort}
+                  sortKey={sortKey}
+                  title={title}
+                  location={location}
+                />
               </HeaderItem>
             );
           })}
@@ -128,6 +135,9 @@ const Cell = styled('div')`
   overflow: hidden;
 `;
 
-const StyledPanelBody = styled(({isLoading, ...props}) => <PanelBody {...props} />)`
+const StyledPanelBody = styled(props => {
+  const otherProps = omit(props, 'isLoading');
+  return <PanelBody {...otherProps} />;
+})`
   ${p => p.isLoading && 'min-height: 240px;'};
 `;

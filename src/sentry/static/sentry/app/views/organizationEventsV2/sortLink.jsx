@@ -9,20 +9,21 @@ class SortLink extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     sortKey: PropTypes.string.isRequired,
+    implicitSort: PropTypes.string,
     location: PropTypes.object.isRequired,
   };
 
-  getSort() {
-    const {sortKey, location} = this.props;
+  getCurrentSort() {
+    const {implicitSort, location} = this.props;
+    return location.query.sort ? location.query.sort : implicitSort;
+  }
 
-    // Page has no explicit sorting
-    if (!location.query.sort) {
-      // Default to descending
-      return `-${sortKey}`;
-    }
+  getSort() {
+    const {sortKey} = this.props;
+    const currentSort = this.getCurrentSort();
 
     // Page is currently unsorted or is ascending
-    if (location.query.sort === `-${sortKey}`) {
+    if (currentSort === `-${sortKey}`) {
       return sortKey;
     }
 
@@ -39,12 +40,13 @@ class SortLink extends React.Component {
   }
 
   renderChevron() {
-    const {location, sortKey} = this.props;
-    if (!location.query.sort || location.query.sort.indexOf(sortKey) === -1) {
+    const currentSort = this.getCurrentSort();
+    const {sortKey} = this.props;
+    if (!currentSort || currentSort.indexOf(sortKey) === -1) {
       return null;
     }
 
-    if (location.query.sort[0] === '-') {
+    if (currentSort[0] === '-') {
       return <InlineSvg src="icon-chevron-down" />;
     }
 
