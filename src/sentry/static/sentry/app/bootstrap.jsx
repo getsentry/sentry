@@ -48,32 +48,33 @@ Sentry.configureScope(scope => {
   scope.setSpan(
     Sentry.getCurrentHub().startSpan({
       op: 'pageload',
-      sampled: true
+      sampled: true,
     })
   );
 });
 
 // APM --------------------------------------------------------------
 let flushTransactionTimeout = undefined;
+let firstPageLoad = true;
 
 Router.browserHistory.listen(location => {
   if (location && location.action === 'REPLACE') {
-    // If there was already an ongoing transaction, we flush it
-    const currentScope = Sentry.getCurrentHub().getScope();
-    if (currentScope) {
-      const prevTransactionSpan = currentScope.getSpan();
-      // If there is a transaction we set the name to the route
-      if (prevTransactionSpan) {
-        Sentry.getCurrentHub().finishSpan(prevTransactionSpan);
-      }
-    }
-
     // We do set the transaction name in the router but we want to start it here
     // since in the App component where we set the transaction name, it's called multiple
     // times. This would result in loosing the start of the transaction.
-    const transactionSpan = Sentry.getCurrentHub().startSpan();
-
+    let transactionSpan;
     Sentry.getCurrentHub().configureScope(scope => {
+      if (firstPageLoad) {
+        transactionSpan = scope.getSpan();
+        firstPageLoad = false;
+      } else {
+        const prevTransactionSpan = scope.getSpan();
+        // If there is a transaction we set the name to the route
+        if (prevTransactionSpan) {
+          Sentry.getCurrentHub().finishSpan(prevTransactionSpan);
+        }
+        transactionSpan = Sentry.getCurrentHub().startSpan();
+      }
       scope.setSpan(transactionSpan);
     });
 
