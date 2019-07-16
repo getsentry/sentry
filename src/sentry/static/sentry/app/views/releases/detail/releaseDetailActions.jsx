@@ -13,16 +13,12 @@ import {deleteRelease} from './utils';
 export default class ReleaseDetailsActions extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
-    // Provided in the project release page only
-    projectId: PropTypes.string,
     release: SentryTypes.Release.isRequired,
   };
 
   handleDelete = () => {
-    const {orgId, projectId, release} = this.props;
-    const redirectPath = projectId
-      ? `/${orgId}/${projectId}/releases/`
-      : `/organizations/${orgId}/releases/`;
+    const {orgId, release} = this.props;
+    const redirectPath = `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
 
     deleteRelease(orgId, release.version)
