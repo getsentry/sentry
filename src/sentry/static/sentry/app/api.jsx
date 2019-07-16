@@ -174,10 +174,17 @@ export class Client {
       });
       throw err;
     }
+
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
     const id = uniqueId();
     metric.mark(`api-request-start-${id}`);
+
+    const requestSpan = Sentry.getCurrentHub().startSpan({
+      data,
+      op: 'http',
+      description: path,
+    });
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
@@ -259,7 +266,10 @@ export class Client {
             ...args
           );
         },
-        complete: this.wrapCallback(id, options.complete, true),
+        complete: () => {
+          Sentry.getCurrentHub().finishSpan(requestSpan);
+          return this.wrapCallback(id, options.complete, true);
+        },
       })
     );
 

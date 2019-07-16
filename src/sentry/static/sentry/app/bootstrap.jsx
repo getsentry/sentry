@@ -32,7 +32,6 @@ Sentry.init({
     }),
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
-      autoStartOnDomReady: false,
     }),
   ],
 });
@@ -43,6 +42,40 @@ Sentry.configureScope(scope => {
   }
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
+// APM --------------------------------------------------------------
+let flushTransactionTimeout = undefined;
+
+Router.browserHistory.listen(location => {
+  if (location && location.action === 'REPLACE') {
+    // If there was already an ongoing transaction, we flush it
+    const currentScope = Sentry.getCurrentHub().getScope();
+    if (currentScope) {
+      const prevTransactionSpan = currentScope.getSpan();
+      // If there is a transaction we set the name to the route
+      if (prevTransactionSpan) {
+        Sentry.getCurrentHub().finishSpan(prevTransactionSpan);
+      }
+    }
+
+    // We do set the transaction name in the router but we want to start it here
+    // since in the App component where we set the transaction name, it's called multiple
+    // times. This would result in loosing the start of the transaction.
+    const transactionSpan = Sentry.getCurrentHub().startSpan();
+
+    Sentry.getCurrentHub().configureScope(scope => {
+      scope.setSpan(transactionSpan);
+    });
+
+    if (flushTransactionTimeout) {
+      clearTimeout(flushTransactionTimeout);
+    }
+
+    flushTransactionTimeout = setTimeout(() => {
+      Sentry.getCurrentHub().finishSpan(transactionSpan);
+    }, 5000);
   }
 });
 
