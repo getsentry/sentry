@@ -15,15 +15,19 @@ class SortLink extends React.Component {
   getSort() {
     const {sortKey, location} = this.props;
 
-    // Page is currently unsorted or is ascending
-    if (!location.query.sort || location.query.sort === `-${sortKey}`) {
-      return sortKey;
-    }
-    // Reverse direction
-    if (location.query.sort === sortKey) {
+    // Page has no explicit sorting
+    if (!location.query.sort) {
+      // Default to descending
       return `-${sortKey}`;
     }
-    return sortKey;
+
+    // Page is currently unsorted or is ascending
+    if (location.query.sort === `-${sortKey}`) {
+      return sortKey;
+    }
+
+    // Reverse direction
+    return `-${sortKey}`;
   }
 
   getTarget() {
