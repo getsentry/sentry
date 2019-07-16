@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.http import Http404
 from functools import wraps
+from django.conf import settings
 
 from sentry.utils.sdk import configure_scope
 from sentry.api.authentication import ClientIdSecretAuthentication
@@ -225,11 +226,16 @@ class SentryAppInstallationPermission(SentryPermission):
         # nested endpoints will probably need different scopes - figure out how
         # to deal with that when it happens.
         'POST': ('org:integrations', 'event:write', 'event:admin'),
-        'PUT': ('org:read')
     }
 
+    def has_permission(self, request, *args, **kwargs):
+        # To let the app mark the installation as installed, we don't care about permissions
+        if request.user.is_sentry_app:
+            if request.method == 'PUT':
+                return True
+        return super(SentryAppInstallationPermission, self).has_permission(request, *args, **kwargs)
+
     def has_object_permission(self, request, view, installation):
-        print ("\n\n check permissions")
         if not hasattr(request, 'user') or not request.user:
             return False
 
@@ -237,6 +243,10 @@ class SentryAppInstallationPermission(SentryPermission):
 
         if is_active_superuser(request):
             return True
+
+        # if user is an app, make sure it's for that same app
+        if request.user.is_sentry_app:
+            return request.user == installation.sentry_app.proxy_user
 
         if installation.organization not in request.user.get_orgs():
             raise Http404
@@ -248,9 +258,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
 
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
-    # permission_classes = ( )
     permission_classes = (SentryAppInstallationPermission, )
-
 
     def convert_args(self, request, uuid, *args, **kwargs):
         try:

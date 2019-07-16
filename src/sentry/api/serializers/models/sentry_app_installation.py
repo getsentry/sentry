@@ -3,12 +3,12 @@ from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import SentryAppInstallation
+from sentry.constants import SentryAppInstallationStatus
 
 
 @register(SentryAppInstallation)
 class SentryAppInstallationSerializer(Serializer):
     def serialize(self, install, attrs, user):
-        print ("id", install.id)
         data = {
             'app': {
                 'uuid': install.sentry_app.uuid,
@@ -18,7 +18,7 @@ class SentryAppInstallationSerializer(Serializer):
                 'slug': install.organization.slug,
             },
             'uuid': install.uuid,
-            'status': install.status,
+            'status': SentryAppInstallationStatus.as_str(install.status),
         }
 
         if install.api_grant:

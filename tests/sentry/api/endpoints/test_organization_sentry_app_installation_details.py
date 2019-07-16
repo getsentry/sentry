@@ -4,6 +4,8 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 import responses
+from sentry.mediators.token_exchange import GrantExchanger, Refresher
+from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -17,6 +19,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             name='Test',
             organization=self.super_org,
             published=True,
+            scopes=('org:write', 'team:admin'),
         )
 
         self.installation = self.create_sentry_app_installation(
@@ -58,6 +61,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             },
             'uuid': self.installation2.uuid,
             'code': self.installation2.api_grant.code,
+            'status': 'pending'
         }
 
     def test_no_access_outside_install_organization(self):
@@ -95,3 +99,60 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         response = self.client.delete(self.url, format='json')
 
         assert response.status_code == 403
+
+
+class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
+    def setUp(self):
+        super(MarkInstalledSentryAppInstallationsTest, self).setUp()
+        self.token = GrantExchanger.run(
+            install=self.installation,
+            code=self.installation.api_grant.code,
+            client_id=self.published_app.application.client_id,
+            user=self.published_app.proxy_user,
+        )
+
+    def test_sentry_app_installation_mark_installed(self):
+        self.url = reverse(
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation.uuid],
+        )
+        response = self.client.put(
+            self.url,
+            data={'status': 'installed'},
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'installed'
+
+    def test_sentry_app_installation_mark_bad_status(self):
+        self.url = reverse(
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation.uuid],
+        )
+        response = self.client.put(
+            self.url,
+            data={'status': 'other'},
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
+            format='json',
+        )
+        assert response.status_code == 400
+        assert response.data['status'][0] == u"Invalid value for status. Valid values: ['installed', 'pending']"
+
+    def test_sentry_app_installation_already_installed(self):
+        self.installation.status = SentryAppInstallationStatus.INSTALLED
+        self.installation.save()
+
+        self.url = reverse(
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation.uuid],
+        )
+        response = self.client.put(
+            self.url,
+            data={'status': 'pending'},
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
+            format='json',
+        )
+        print ("data", response.data)
+        assert response.status_code == 400
+        assert response.data['status'][0] == "Cannot change installed integration to pending"
