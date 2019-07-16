@@ -1489,7 +1489,7 @@
 
 "@storybook/podda@^1.2.3":
   version "1.2.3"
-  resolved "http://registry.npmjs.org/@storybook/podda/-/podda-1.2.3.tgz#53c4a1a3f8c7bbd5755dff5c34576fd1af9d38ba"
+  resolved "https://registry.npmjs.org/@storybook/podda/-/podda-1.2.3.tgz#53c4a1a3f8c7bbd5755dff5c34576fd1af9d38ba"
   integrity sha512-g7dsdsn50AhlGZ8iIDKdF8bi7Am++iFOq+QN+hNKz3FvgLuf8Dz+mpC/BFl90eE9bEYxXqXKeMf87399Ec5Qhw==
   dependencies:
     babel-runtime "^6.11.6"
@@ -4879,7 +4879,7 @@ doctrine@^2.1.0:
 
 dom-converter@~0.1:
   version "0.1.4"
-  resolved "http://registry.npmjs.org/dom-converter/-/dom-converter-0.1.4.tgz#a45ef5727b890c9bffe6d7c876e7b19cb0e17f3b"
+  resolved "https://registry.npmjs.org/dom-converter/-/dom-converter-0.1.4.tgz#a45ef5727b890c9bffe6d7c876e7b19cb0e17f3b"
   integrity sha1-pF71cnuJDJv/5tfIduexnLDhfzs=
   dependencies:
     utila "~0.3"
@@ -5001,7 +5001,7 @@ dotenv@^6.0.0:
 
 duplexer@^0.1.1:
   version "0.1.1"
-  resolved "http://registry.npmjs.org/duplexer/-/duplexer-0.1.1.tgz#ace6ff808c1ce66b57d1ebf97977acb02334cfc1"
+  resolved "https://registry.npmjs.org/duplexer/-/duplexer-0.1.1.tgz#ace6ff808c1ce66b57d1ebf97977acb02334cfc1"
   integrity sha1-rOb/gIwc5mtX0ev5eXessCM0z8E=
 
 duplexify@^3.4.2, duplexify@^3.6.0:
@@ -5748,7 +5748,7 @@ express@^4.16.2:
 
 express@^4.16.3:
   version "4.16.3"
-  resolved "http://registry.npmjs.org/express/-/express-4.16.3.tgz#6af8a502350db3246ecc4becf6b5a34d22f7ed53"
+  resolved "https://registry.npmjs.org/express/-/express-4.16.3.tgz#6af8a502350db3246ecc4becf6b5a34d22f7ed53"
   integrity sha1-avilAjUNsyRuzEvs9rWjTSL37VM=
   dependencies:
     accepts "~1.3.5"
@@ -11709,7 +11709,7 @@ read-pkg@^3.0.0:
 
 readable-stream@1.0:
   version "1.0.34"
-  resolved "http://registry.npmjs.org/readable-stream/-/readable-stream-1.0.34.tgz#125820e34bc842d2f2aaafafe4c2916ee32c157c"
+  resolved "https://registry.npmjs.org/readable-stream/-/readable-stream-1.0.34.tgz#125820e34bc842d2f2aaafafe4c2916ee32c157c"
   integrity sha1-Elgg40vIQtLyqq+v5MKRbuMsFXw=
   dependencies:
     core-util-is "~1.0.0"
