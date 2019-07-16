@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 
-# from sentry import analytics
+from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
@@ -24,10 +24,10 @@ class Updater(Mediator):
         self.sentry_app_installation.status = SentryAppInstallationStatus.STATUS_MAP[self.status]
 
     def record_analytics(self):
-        pass
         # TODO: Add analytics
-        # analytics.record(
-        #     'sentry_app_installation.updated',
-        #     user_id=self.user.id,
-        #     sentry_app_installation=self.sentry_app_installation.id,
-        # )
+        analytics.record(
+            'sentry_app_installation.updated',
+            sentry_app_installation_id=self.sentry_app_installation.id,
+            sentry_app_id=self.sentry_app_installation.sentry_app.id,
+            organization_id=self.sentry_app_installation.organization.id
+        )
