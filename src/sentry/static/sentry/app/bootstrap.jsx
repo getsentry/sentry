@@ -43,6 +43,13 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
+  // TODO(daniel): Maybe we need to follows from
+  // This is the inital pageload span
+  scope.setSpan(
+    Sentry.getCurrentHub().startSpan({
+      op: 'pageload',
+    })
+  );
 });
 
 // APM --------------------------------------------------------------
