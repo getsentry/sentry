@@ -70,10 +70,13 @@ Router.browserHistory.listen(location => {
       } else {
         const prevTransactionSpan = scope.getSpan();
         // If there is a transaction we set the name to the route
-        if (prevTransactionSpan) {
+        if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
           Sentry.getCurrentHub().finishSpan(prevTransactionSpan);
         }
-        transactionSpan = Sentry.getCurrentHub().startSpan();
+        transactionSpan = Sentry.getCurrentHub().startSpan({
+          op: 'navigation',
+          sampled: true,
+        });
       }
       scope.setSpan(transactionSpan);
     });
