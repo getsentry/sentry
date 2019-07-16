@@ -175,18 +175,20 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.models import EventMapping, Event
-        group_ids = set()
-        # see above for explanation as to why we're
-        # looking at both Event and EventMapping
-        for model in Event, EventMapping:
-            group_ids.update(
-                model.objects.filter(
-                    project_id__in=project_ids,
-                    event_id=event_id,
-                    group_id__isnull=False,
-                ).values_list('group_id', flat=True)
-            )
+        from sentry.utils import snuba
+
+        group_ids = set([evt['issue'] for evt in snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=['issue'],
+            conditions=[['issue', 'IS NOT NULL', None]],
+            filter_keys={
+                'event_id': [event_id],
+                'project_id': project_ids,
+            },
+            limit=1000,
+            referrer="Group.filter_by_event_id",
+        )['data']])
 
         return Group.objects.filter(id__in=group_ids)
 
