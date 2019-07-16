@@ -94,11 +94,7 @@ def get_project_config(project_id, full_config=True):
     else:
         org_options = {}
 
-    # get the project options
-    project_cfg = cfg.get('config')
-    if project_cfg is None:
-        project_cfg = {}
-        cfg['config'] = project_cfg
+    project_cfg = cfg['config']
 
     invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if invalid_releases is not None:
