@@ -399,6 +399,25 @@ class SentryAppStatus(object):
             return 'internal'
 
 
+class SentryAppInstallationStatus(object):
+    PENDING = 0
+    INSTALLED = 1
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.PENDING, 'pending'),
+            (cls.INSTALLED, 'installed'),
+        )
+
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.PENDING:
+            return 'pending'
+        elif status == cls.INSTALLED:
+            return 'installed'
+
+
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))

@@ -6,7 +6,12 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (FlexibleForeignKey, ParanoidModel)
+from sentry.constants import SentryAppInstallationStatus
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    ParanoidModel,
+)
 
 
 def default_uuid():
@@ -45,6 +50,12 @@ class SentryAppInstallation(ParanoidModel):
 
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
+
+    status = BoundedPositiveIntegerField(
+        default=SentryAppInstallationStatus.PENDING,
+        choices=SentryAppInstallationStatus.as_choices(),
+        db_index=True,
+    )
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
