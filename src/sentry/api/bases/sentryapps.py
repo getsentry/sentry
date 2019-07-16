@@ -45,7 +45,15 @@ def add_integration_platform_metric_tag(func):
 
 class SentryAppsPermission(SentryPermission):
     scope_map = {
-        'GET': (),  # Public endpoint.
+        # Public endpoint.
+        'GET': ('event:read',
+                'event:write',
+                'event:admin',
+                'project:releases',
+                'project:read',
+                'org:read',
+                'member:read',
+                'team:read',),
         'POST': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
     }
 
