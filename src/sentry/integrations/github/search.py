@@ -52,6 +52,10 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
             except ApiError as err:
                 if err.code == 403:
                     return Response({'detail': 'Rate limit exceeded'}, status=429)
+                if err.code == 404:
+                    return Response({
+                        'detail': 'Repositories could not be searched because they do not exist, or you do not have access to them.'
+                    }, status=404)
                 raise
             return Response([{
                 'label': i['name'],
