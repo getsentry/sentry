@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from mock import patch
 
 from sentry.testutils import APITestCase
 import responses
-from sentry.mediators.token_exchange import GrantExchanger, Refresher
+from sentry.mediators.token_exchange import GrantExchanger
 from sentry.constants import SentryAppInstallationStatus
 
 
@@ -111,7 +112,8 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             user=self.published_app.proxy_user,
         )
 
-    def test_sentry_app_installation_mark_installed(self):
+    @patch('sentry.analytics.record')
+    def test_sentry_app_installation_mark_installed(self, record):
         self.url = reverse(
             'sentry-api-0-sentry-app-installation-details',
             args=[self.installation.uuid],
@@ -124,6 +126,13 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         )
         assert response.status_code == 200
         assert response.data['status'] == 'installed'
+
+        record.assert_called_with(
+            'sentry_app_installation.updated',
+            sentry_app_installation_id=self.installation.id,
+            sentry_app_id=self.installation.sentry_app.id,
+            organization_id=self.installation.organization.id
+        )
 
     def test_sentry_app_installation_mark_bad_status(self):
         self.url = reverse(
@@ -153,6 +162,24 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
             format='json',
         )
-        print ("data", response.data)
         assert response.status_code == 400
         assert response.data['status'][0] == "Cannot change installed integration to pending"
+
+    def test_sentry_app_installation_mark_installed_wrong_app(self):
+        self.token = GrantExchanger.run(
+            install=self.installation2,
+            code=self.installation2.api_grant.code,
+            client_id=self.unpublished_app.application.client_id,
+            user=self.unpublished_app.proxy_user,
+        )
+        self.url = reverse(
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation.uuid],
+        )
+        response = self.client.put(
+            self.url,
+            data={'status': 'installed'},
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
+            format='json',
+        )
+        assert response.status_code == 403
