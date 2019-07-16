@@ -22,7 +22,6 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(status=204)
 
     def put(self, request, installation):
-        print("\n\n\n hey there")
         serializer = SentryAppInstallationSerializer(
             installation,
             data=request.data,

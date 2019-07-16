@@ -402,20 +402,26 @@ class SentryAppStatus(object):
 class SentryAppInstallationStatus(object):
     PENDING = 0
     INSTALLED = 1
+    PENDING_STR = 'pending'
+    INSTALLED_STR = 'installed'
+    STATUS_MAP = OrderedDict([
+        (INSTALLED_STR, INSTALLED),
+        (PENDING_STR, PENDING),
+    ])
 
     @classmethod
     def as_choices(cls):
         return (
-            (cls.PENDING, 'pending'),
-            (cls.INSTALLED, 'installed'),
+            (cls.PENDING, cls.PENDING_STR),
+            (cls.INSTALLED, cls.INSTALLED_STR),
         )
 
     @classmethod
     def as_str(cls, status):
         if status == cls.PENDING:
-            return 'pending'
+            return cls.PENDING_STR
         elif status == cls.INSTALLED:
-            return 'installed'
+            return cls.INSTALLED_STR
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
