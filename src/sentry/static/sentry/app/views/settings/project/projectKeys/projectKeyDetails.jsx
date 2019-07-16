@@ -109,7 +109,7 @@ const KeyStats = createReactClass({
     });
   },
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip(point, _pointIdx, chart) {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
@@ -238,7 +238,7 @@ class KeyRateLimitsForm extends React.Component {
                   name="rateLimit"
                   label={t('Rate Limit')}
                   disabled={disabled || !hasFeature}
-                  validate={({id, form, model}) => {
+                  validate={({form}) => {
                     const isValid =
                       form &&
                       form.rateLimit &&
@@ -314,7 +314,7 @@ const KeySettings = createReactClass({
     return {loading: false};
   },
 
-  handleRemove(e) {
+  handleRemove() {
     if (this.state.loading) {
       return;
     }
@@ -323,7 +323,7 @@ const KeySettings = createReactClass({
     const {keyId, orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
-      success: (d, _, jqXHR) => {
+      success: () => {
         this.props.onRemove();
         removeIndicator(loadingIndicator);
         addSuccessMessage(t('Revoked key'));
@@ -489,7 +489,7 @@ export default class ProjectKeyDetails extends AsyncView {
     return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
   }
 
-  handleRemove = data => {
+  handleRemove = () => {
     const {orgId, projectId} = this.props.params;
     browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
   };
