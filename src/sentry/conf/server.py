@@ -79,7 +79,12 @@ MAINTENANCE = False
 
 ADMINS = ()
 
+# Hosts that are considered in the same network (including VPNs).
+# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
+
+# Hosts that are allowed to use system token authentication.
+INTERNAL_SYSTEM_IPS = ()
 
 MANAGERS = ADMINS
 
@@ -130,8 +135,6 @@ if 'DATABASE_URL' in os.environ:
     if url.scheme == 'postgres':
         DATABASES['default']['ENGINE'] = 'sentry.db.postgres'
 
-    if url.scheme == 'mysql':
-        DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
 # This should always be UTC.
 TIME_ZONE = 'UTC'
@@ -233,7 +236,6 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'sentry.middleware.tracing.SentryTracingMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -259,13 +261,25 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
-    'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
-    'rest_framework', 'sentry', 'sentry.analytics',
+    'crispy_forms', 'debug_toolbar',
+    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
-    'sentry.eventstream', 'sentry.auth.providers.google',
+    # we import the legacy tagstore to ensure models stay registered as they're still
+    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
+    'sentry.tagstore.legacy',
+    'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
+)
+
+
+# Silence internal hints from Django's system checks
+SILENCED_SYSTEM_CHECKS = (
+    # Django recommends to use OneToOneField over ForeignKey(unique=True)
+    # however this changes application behavior in ways that break association
+    # loading
+    'fields.W342'
 )
 
 import django
@@ -447,9 +461,8 @@ CELERY_IMPORTS = (
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
-    'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files', 'sentry.tasks.sentry_apps',
+    'sentry.tasks.servicehooks', 'sentry.tagstore.tasks', 'sentry.tasks.assemble',
+    'sentry.tasks.integrations', 'sentry.tasks.files', 'sentry.tasks.sentry_apps',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -474,12 +487,14 @@ CELERY_QUEUES = [
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('files.delete', routing_key='files.delete'),
+    Queue('incidents', routing_key='incidents'),
     Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
     Queue('reports.deliver', routing_key='reports.deliver'),
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
+    Queue('sleep', routing_key='sleep'),
     Queue('stats', routing_key='stats'),
     Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
@@ -766,6 +781,7 @@ LOGGING = {
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DEFAULT_PERMISSION_CLASSES': ('sentry.api.permissions.NoPermission', ),
+    'EXCEPTION_HANDLER': 'sentry.api.handlers.custom_exception_handler',
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -795,6 +811,8 @@ SENTRY_FEATURES = {
     'organizations:advanced-search': True,
     # Enable obtaining and using API keys.
     'organizations:api-keys': False,
+    # Enable explicit use of AND and OR in search.
+    'organizations:boolean-search': False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     'organizations:create': True,
@@ -802,38 +820,47 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    # Enable multi project selection
-    'organizations:global-views': False,
+    # Allow organizations to configure custom external symbol sources.
+    'organizations:symbol-sources': False,
     # Enable the events stream interface.
     'organizations:events': False,
+    # Enable events v2 instead of the events stream
+    'organizations:events-v2': False,
+    # Enable multi project selection
+    'organizations:global-views': False,
+    # Turns on grouping info.
+    'organizations:grouping-info': False,
+    # Lets organizations upgrade grouping configs and tweak them
+    'organizations:tweak-grouping-config': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
+    # Enable incidents feature
+    'organizations:incidents': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
-    'organizations:integrations-issue-basic': False,
+    'organizations:integrations-issue-basic': True,
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
-    'organizations:integrations-issue-sync': False,
+    'organizations:integrations-issue-sync': True,
+    # Enable interface functionality to recieve event hooks.
+    'organizations:integrations-event-hooks': False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
-    # Enable organizations to create and utilize Sentry Apps.
-    'organizations:sentry-apps': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
+    # Enable org-wide saved searches and user pinned search
+    'organizations:org-saved-searches': False,
+    # Enable organizations to create and utilize Sentry Apps.
+    'organizations:sentry-apps': False,
 
-
-    # DEPRECATED: pending removal.
-    'organizations:js-loader': False,
-    # DEPRECATED: pending removal.
-    'organizations:new-teams': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
-    # Enable managing repositories associated to an organization.
-    'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
-    'organizations:sentry10': False,
+    'organizations:sentry10': True,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -843,10 +870,6 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     # Enable Rippling SSO functionality.
     'organizations:sso-rippling': False,
-    # Enable suggested commits associated to a event group in the UI.
-    'organizations:suggested-commits': True,
-    # DEPCREATED: pending removal.
-    'organizations:unreleased-changes': False,
 
     # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
@@ -867,6 +890,8 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
+    # Use Kafka (instead of Celery) for ingestion pipeline.
+    'projects:kafka-ingest': False,
 
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
@@ -877,7 +902,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = DEBUG
+SENTRY_DEBUGGER = None
 
 SENTRY_IGNORE_EXCEPTIONS = ('OperationalError', )
 
@@ -897,6 +922,10 @@ SENTRY_LOGIN_URL = None
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
 SENTRY_PROJECT_KEY = None
+
+# Default organization to represent the Internal Sentry project.
+# Used as a default when in SINGLE_ORGANIZATION mode.
+SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
@@ -953,6 +982,7 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
+    'spans': 'sentry.interfaces.spans.Spans',
 }
 PREFER_CANONICAL_LEGACY_KEYS = False
 
@@ -1063,7 +1093,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.snuba.SnubaSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
@@ -1077,7 +1107,7 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM = 'sentry.eventstream.snuba.SnubaEventStream'
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -1263,8 +1293,8 @@ SENTRY_ROLES = (
         ),
     }, {
         'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'name': 'Organization Owner',
+        'desc': 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
         'is_global': True,
         'scopes': set(
             [
@@ -1359,7 +1389,7 @@ SENTRY_DEVSERVICES = {
         'environment': {
             'KAFKA_ZOOKEEPER_CONNECT': '{containers[zookeeper][name]}:2181',
             'KAFKA_LISTENERS': 'INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092',
-            'KAFKA_ADVERTISED_LISTENERS': 'INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://127.0.0.1:{containers[kafka][ports][9092/tcp]}',
+            'KAFKA_ADVERTISED_LISTENERS': 'INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}',
             'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP': 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT',
             'KAFKA_INTER_BROKER_LISTENER_NAME': 'INTERNAL',
             'KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR': '1',
@@ -1399,6 +1429,20 @@ SENTRY_DEVSERVICES = {
             'REDIS_DB': '1',
         },
     },
+    'bigtable': {
+        'image': 'mattrobenolt/cbtemulator:0.36.0',
+        'ports': {'8086/tcp': 8086},
+    },
+    'memcached': {
+        'image': 'memcached:1.5-alpine',
+        'ports': {'11211/tcp': 11211},
+    },
+    'symbolicator': {
+        'image': 'us.gcr.io/sentryio/symbolicator:latest',
+        'pull': True,
+        'ports': {'3021/tcp': 3021},
+        'command': ['run'],
+    }
 }
 
 # Max file size for avatar photo uploads
@@ -1462,16 +1506,22 @@ EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
 
-# TODO(dcramer): move this to sentry.io so it can be automated
+
+# Endpoint to https://github.com/getsentry/sentry-release-registry, used for
+# alerting the user on outdated SDKs.
+SENTRY_RELEASE_REGISTRY_BASEURL = None
+
+# Hardcoded SDK versions for SDKs that do not have an entry in the release
+# registry.
 SDK_VERSIONS = {
     'raven-js': '3.21.0',
     'raven-node': '2.3.0',
-    'raven-python': '6.4.0',
+    'raven-python': '6.10.0',
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
-    'sentry-laravel': '0.8.0',
-    'sentry-php': '1.8.2',
+    'sentry-laravel': '1.0.2',
+    'sentry-php': '2.0.1',
 }
 
 SDK_URLS = {
@@ -1481,8 +1531,8 @@ SDK_URLS = {
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-java': 'https://docs.sentry.io/clients/java/',
-    'sentry-php': 'https://docs.sentry.io/clients/php/',
-    'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
+    'sentry-php': 'https://docs.sentry.io/platforms/php/',
+    'sentry-laravel': 'https://docs.sentry.io/platforms/php/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
 }
 
@@ -1493,10 +1543,14 @@ DEPRECATED_SDKS = {
     'raven-java:log4j': 'sentry-java',
     'raven-java:log4j2': 'sentry-java',
     'raven-java:logback': 'sentry-java',
+    'raven-js': 'sentry.javascript.browser',
+    'raven-node': 'sentry.javascript.node',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
+    'raven-python': 'sentry.python',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
+    'SharpRaven': 'sentry.dotnet',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
@@ -1507,10 +1561,122 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 TERMS_URL = None
 PRIVACY_URL = None
 
-# Toggles whether minidumps should be cached
-SENTRY_MINIDUMP_CACHE = False
-# The location for cached minidumps
-SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+# Internal sources for debug information files
+#
+# There are two special values in there: "microsoft" and "ios".  These are
+# added by default to any project created.  The "ios" source is currently
+# not enabled in the open source build of sentry because it points to a
+# sentry internal repository and it's unclear if these can be
+# redistributed under the Apple EULA.  If however someone configures their
+# own iOS source and name it 'ios' it will be enabled by default for all
+# projects.
+SENTRY_BUILTIN_SOURCES = {
+    'microsoft': {
+        'type': 'http',
+        'id': 'sentry:microsoft',
+        'name': 'Microsoft',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe'],
+            'path_patterns': ['?:/windows/**']
+        },
+        'url': 'https://msdl.microsoft.com/download/symbols/',
+        'is_public': True,
+    },
+    'citrix': {
+        'type': 'http',
+        'id': 'sentry:citrix',
+        'name': 'Citrix',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'http://ctxsym.citrix.com/symbols/',
+        'is_public': True,
+    },
+    'intel': {
+        'type': 'http',
+        'id': 'sentry:intel',
+        'name': 'Intel',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://software.intel.com/sites/downloads/symbols/',
+        'is_public': True,
+    },
+    'amd': {
+        'type': 'http',
+        'id': 'sentry:amd',
+        'name': 'AMD',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://download.amd.com/dir/bin/',
+        'is_public': True,
+    },
+    'nvidia': {
+        'type': 'http',
+        'id': 'sentry:nvidia',
+        'name': 'NVIDIA',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://driver-symbols.nvidia.com/',
+        'is_public': True,
+    },
+    'chromium': {
+        'type': 'http',
+        'id': 'sentry:chromium',
+        'name': 'Chromium',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://chromium-browser-symsrv.commondatastorage.googleapis.com/',
+        'is_public': True,
+    },
+    'unity': {
+        'type': 'http',
+        'id': 'sentry:unity',
+        'name': 'Unity',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'http://symbolserver.unity3d.com/',
+        'is_public': True,
+    },
+    'mozilla': {
+        'type': 'http',
+        'id': 'sentry:mozilla',
+        'name': 'Mozilla',
+        'layout': {'type': 'symstore'},
+        'url': 'https://symbols.mozilla.org/',
+        'is_public': True,
+    },
+    'autodesk': {
+        'type': 'http',
+        'id': 'sentry:autodesk',
+        'name': 'Autodesk',
+        'layout': {'type': 'symstore'},
+        'url': 'http://symbols.autodesk.com/',
+        'is_public': True,
+    },
+    'electron': {
+        'type': 'http',
+        'id': 'sentry:electron',
+        'name': 'Electron',
+        'layout': {'type': 'native'},
+        'url': 'https://electron-symbols.githubapp.com/',
+        'filters': {
+            'filetypes': ['pdb', 'breakpad'],
+        },
+        'is_public': True,
+    }
+}
 
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
@@ -1548,3 +1714,45 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
 SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
+
+KAFKA_CLUSTERS = {
+    'default': {
+        'bootstrap.servers': 'localhost:9092',
+        'compression.type': 'lz4',
+        'message.max.bytes': 50000000,  # 50MB, default is 1MB
+    }
+}
+
+KAFKA_PREPROCESS = 'events-preprocess'
+KAFKA_PROCESS = 'events-process'
+KAFKA_SAVE = 'events-save'
+KAFKA_EVENTS = 'events'
+KAFKA_OUTCOMES = 'outcomes'
+
+KAFKA_TOPICS = {
+    KAFKA_PREPROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PREPROCESS,
+    },
+    KAFKA_PROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PROCESS,
+    },
+    KAFKA_SAVE: {
+        'cluster': 'default',
+        'topic': KAFKA_SAVE,
+    },
+    KAFKA_EVENTS: {
+        'cluster': 'default',
+        'topic': KAFKA_EVENTS,
+    },
+    KAFKA_OUTCOMES: {
+        'cluster': 'default',
+        'topic': KAFKA_OUTCOMES,
+    },
+}
+
+# Enable this to use the legacy Slack Workspace Token apps. You will likely
+# never need to switch this unless you created a workspace app before slack
+# disabled them.
+SLACK_INTEGRATION_USE_WST = False

@@ -7,7 +7,7 @@ import {selectText} from 'app/utils/selectText';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 
 const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';

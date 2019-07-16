@@ -84,16 +84,16 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <Component
-                  className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                  className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                 >
                   <Flex
-                    className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                    className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   >
                     <Base
-                      className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                      className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
                     >
                       <div
-                        className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                        className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
                         is={null}
                       >
                         <FieldControl
@@ -210,7 +210,7 @@ exports[`FormField + model renders with Form 1`] = `
                                                             value=""
                                                           >
                                                             <input
-                                                              className="css-pzg7em-Input-inputStyles e1xej46s0"
+                                                              className="css-13yodx8-Input-inputStyles e1xej46s0"
                                                               disabled={false}
                                                               id="fieldName"
                                                               name="fieldName"
@@ -317,12 +317,14 @@ exports[`FormField + model renders with Form 1`] = `
       >
         <Observer>
           <Button
+            align="center"
             data-test-id="form-submit"
             disabled={false}
             priority="primary"
             type="submit"
           >
             <StyledButton
+              aria-disabled={false}
               aria-label="Save Changes"
               data-test-id="form-submit"
               disabled={false}
@@ -331,9 +333,10 @@ exports[`FormField + model renders with Form 1`] = `
               role="button"
               type="submit"
             >
-              <Component
+              <ForwardRef
+                aria-disabled={false}
                 aria-label="Save Changes"
-                className="css-1msljz8-StyledButton-getColors eqrebog0"
+                className="css-1qchtmp-StyledButton-getColors e12ma6z0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -342,31 +345,32 @@ exports[`FormField + model renders with Form 1`] = `
                 type="submit"
               >
                 <button
+                  aria-disabled={false}
                   aria-label="Save Changes"
-                  className="css-1msljz8-StyledButton-getColors eqrebog0"
+                  className="css-1qchtmp-StyledButton-getColors e12ma6z0"
                   data-test-id="form-submit"
-                  disabled={false}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                   type="submit"
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-oo1m2a-ButtonLabel e12ma6z1"
                       >
                         Save Changes
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </Observer>

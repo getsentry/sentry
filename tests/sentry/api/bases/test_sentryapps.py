@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.http import Http404
+from mock import patch
 
 from sentry.testutils import TestCase
 from sentry.api.bases.sentryapps import (
@@ -8,7 +9,9 @@ from sentry.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppInstallationBaseEndpoint,
+    add_integration_platform_metric_tag,
 )
+from sentry.testutils.helpers.faux import Mock
 
 
 class SentryAppPermissionTest(TestCase):
@@ -132,3 +135,21 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
     def test_raises_when_sentry_app_not_found(self):
         with self.assertRaises(Http404):
             self.endpoint.convert_args(self.request, '1234')
+
+
+class AddIntegrationPlatformMetricTagTest(TestCase):
+    @patch('sentry.api.bases.sentryapps.add_request_metric_tags')
+    def test_record_platform_integration_metric(self, add_request_metric_tags):
+        @add_integration_platform_metric_tag
+        def get(self, request, *args, **kwargs):
+            pass
+
+        request = Mock()
+        endpoint = Mock(request=request)
+
+        get(endpoint, request)
+
+        add_request_metric_tags.assert_called_with(
+            request,
+            integration_platform=True,
+        )

@@ -20,7 +20,7 @@ from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import CursorResult
-
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -143,14 +143,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if query:
             matching_group = None
             matching_event = None
-            if len(query) == 32:
+            event_id = normalize_event_id(query)
+            if event_id:
                 # check to see if we've got an event ID
                 try:
-                    matching_group = Group.objects.from_event_id(project, query)
+                    matching_group = Group.objects.from_event_id(project, event_id)
                 except Group.DoesNotExist:
                     pass
                 else:
-                    matching_event = Event.objects.from_event_id(query, project.id)
+                    matching_event = Event.objects.from_event_id(event_id, project.id)
                     if matching_event is not None:
                         Event.objects.bind_nodes([matching_event], 'data')
             elif matching_group is None:
@@ -191,7 +192,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
+        # TODO: We should try to integrate this into the search backend, since
+        # this can cause us to arbitrarily return fewer results than requested.
+        status = [
+            search_filter for search_filter in query_kwargs.get('search_filters', [])
+            if search_filter.key.name == 'status'
+        ]
+        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
             context = [r for r in context if r['status'] == 'unresolved']
 
         response = Response(context)

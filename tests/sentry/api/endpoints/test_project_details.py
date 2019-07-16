@@ -6,7 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
+from sentry.models import OrganizationMember, OrganizationOption, Project, EnvironmentProject, ProjectOwnership, ProjectBookmark, ProjectStatus, ProjectTeam, Rule, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -227,6 +227,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:relay_pii_config': '{"applications": {"freeform": []}}',
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
+            'sentry:grouping_config': 'some-config',
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
@@ -268,6 +269,9 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option(
             'sentry:relay_pii_config',
             '') == options['sentry:relay_pii_config']
+        assert project.get_option(
+            'sentry:grouping_config',
+            '') == options['sentry:grouping_config']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
@@ -460,17 +464,13 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data['allowedDomains'] == ['foobar.com', 'https://example.com']
 
         # cannot be empty
-        resp = self.client.put(self.path, data={
-            'allowedDomains': '',
-        })
+        resp = self.client.put(self.path, data={'allowedDomains': ''})
         assert resp.status_code == 400, resp.content
         assert self.project.get_option('sentry:origins') == ['foobar.com', 'https://example.com']
         assert resp.data['allowedDomains'] == [
             'Empty value will block all requests, use * to accept from all domains']
 
-        resp = self.client.put(self.path, data={
-            'allowedDomains': ['*', ''],
-        })
+        resp = self.client.put(self.path, data={'allowedDomains': ['*', '']})
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:origins') == ['*']
         assert resp.data['allowedDomains'] == ['*']
@@ -622,14 +622,228 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('digests:mail:maximum_delay') == max_delay
 
 
+class CopyProjectSettingsTest(APITestCase):
+    def setUp(self):
+        super(CopyProjectSettingsTest, self).setUp()
+        self.login_as(user=self.user)
+
+        self.options_dict = {
+            'sentry:resolve_age': 1,
+            'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
+        }
+        self.other_project = self.create_project()
+        for key, value in six.iteritems(self.options_dict):
+            self.other_project.update_option(
+                key=key,
+                value=value,
+            )
+
+        self.teams = [self.create_team(), self.create_team(), self.create_team()]
+
+        for team in self.teams:
+            ProjectTeam.objects.create(
+                team=team,
+                project=self.other_project,
+            )
+
+        self.environments = [
+            self.create_environment(project=self.other_project),
+            self.create_environment(project=self.other_project)
+        ]
+
+        self.ownership = ProjectOwnership.objects.create(
+            project=self.other_project,
+            raw='{"hello":"hello"}',
+            schema={'hello': 'hello'},
+        )
+
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule1',
+        )
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule2',
+        )
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule3',
+        )
+        # there is a default rule added to project
+        self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by('label')
+
+    def path(self, project):
+        return reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+    def assert_other_project_settings_not_changed(self):
+        # other_project should not have changed. This should check that.
+        self.assert_settings_copied(self.other_project)
+
+    def assert_settings_copied(self, project):
+        for key, value in six.iteritems(self.options_dict):
+            assert project.get_option(key) == value
+
+        project_teams = ProjectTeam.objects.filter(
+            project_id=project.id,
+            team__in=self.teams
+        )
+        assert len(project_teams) == len(self.teams)
+
+        project_env = EnvironmentProject.objects.filter(
+            project_id=project.id,
+            environment__in=self.environments,
+        )
+        assert len(project_env) == len(self.environments)
+
+        ownership = ProjectOwnership.objects.get(project_id=project.id)
+        assert ownership.raw == self.ownership.raw
+        assert ownership.schema == self.ownership.schema
+
+        rules = Rule.objects.filter(
+            project_id=project.id
+        ).order_by('label')
+        for rule, other_rule in zip(rules, self.rules):
+            assert rule.label == other_rule.label
+
+    def assert_settings_not_copied(self, project, teams=()):
+        for key in six.iterkeys(self.options_dict):
+            assert project.get_option(key) is None
+
+        project_teams = ProjectTeam.objects.filter(
+            project_id=project.id,
+            team__in=teams,
+        )
+        assert len(project_teams) == len(teams)
+
+        project_envs = EnvironmentProject.objects.filter(
+            project_id=project.id,
+        )
+        assert len(project_envs) == 0
+
+        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
+
+        # default rule
+        rules = Rule.objects.filter(project_id=project.id)
+        assert len(rules) == 1
+        assert rules[0].label == 'Send a notification for new issues'
+
+    def test_simple(self):
+        project = self.create_project()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id
+        })
+        assert resp.status_code == 200
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()
+
+    def test_additional_params_in_payload(self):
+        # Right now these are overwritten with the copied project's settings
+        project = self.create_project()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id,
+            'sentry:resolve_age': 2,
+            'sentry:scrub_data': True,
+            'sentry:scrub_defaults': True,
+        })
+        assert resp.status_code == 200
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()
+
+    def test_project_from_another_org(self):
+        project = self.create_project()
+        other_project = self.create_project(organization=self.create_organization())
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': other_project.id
+        })
+        assert resp.status_code == 400
+        assert resp.data == {'copy_from_project': ['Project to copy settings from not found.']}
+        self.assert_settings_not_copied(project)
+        self.assert_settings_not_copied(other_project)
+
+    def test_project_does_not_exist(self):
+        project = self.create_project()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': 1234567890
+        })
+        assert resp.status_code == 400
+        assert resp.data == {'copy_from_project': ['Project to copy settings from not found.']}
+        self.assert_settings_not_copied(project)
+
+    def test_user_does_not_have_access_to_copy_from_project(self):
+        user = self.create_user()
+        self.login_as(user=user)
+        team = self.create_team(members=[user])
+        project = self.create_project(teams=[team])
+        OrganizationMember.objects.filter(
+            user=user,
+            organization=self.organization
+        ).update(role='admin')
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id
+        })
+        assert resp.status_code == 400
+        assert resp.data == {'copy_from_project': [
+            'Project settings cannot be copied from a project you do not have access to.']}
+        self.assert_other_project_settings_not_changed()
+        self.assert_settings_not_copied(project, teams=[team])
+
+    def test_project_coping_from_has_team_user_lacks_write_access(self):
+        user = self.create_user()
+        self.login_as(user=user)
+        team = self.create_team(members=[user])
+        project = self.create_project(teams=[team])
+        OrganizationMember.objects.filter(
+            user=user,
+            organization=self.organization
+        ).update(role='admin')
+
+        self.other_project.add_team(team)
+
+        # adding team user lacks write access to
+        self.other_project.add_team(self.create_team())
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id
+        })
+        assert resp.status_code == 400
+        assert resp.data == {'copy_from_project': [
+            'Project settings cannot be copied from a project with a team you do not have write access to.']}
+        self.assert_other_project_settings_not_changed()
+        self.assert_settings_not_copied(project, teams=[team])
+
+    @mock.patch('sentry.models.project.Project.copy_settings_from')
+    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+        mock_copy_settings_from.return_value = False
+        project = self.create_project()
+        resp = self.client.put(self.path(project), data={
+            'copy_from_project': self.other_project.id
+        })
+        assert resp.status_code == 409
+        assert resp.data == {'detail': ['Copy project settings failed.']}
+        self.assert_settings_not_copied(project)
+        self.assert_other_project_settings_not_changed()
+
+
 class ProjectDeleteTest(APITestCase):
+    @mock.patch('sentry.db.mixin.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
-    def test_simple(self, mock_delete_project, mock_uuid4):
+    def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
         class uuid(object):
             hex = 'abc123'
 
-        mock_uuid4.return_value = uuid
+        mock_uuid4_mixin.return_value = uuid
+        mock_uuid4_project.return_value = uuid
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -655,7 +869,13 @@ class ProjectDeleteTest(APITestCase):
             countdown=3600,
         )
 
-        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
+        deleted_project = Project.objects.get(id=project.id)
+        assert deleted_project.status == ProjectStatus.PENDING_DELETION
+        assert deleted_project.slug == 'abc123'
+        assert OrganizationOption.objects.filter(
+            organization_id=deleted_project.organization_id,
+            key=deleted_project.build_pending_deletion_key(),
+        ).exists()
         deleted_project = DeletedProject.objects.get(slug=project.slug)
         self.assert_valid_deleted_log(deleted_project, project)
 

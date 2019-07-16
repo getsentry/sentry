@@ -17,7 +17,7 @@ import returnButton from 'app/views/settings/components/forms/returnButton';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import space from 'app/styles/space';
 
-const FormFieldErrorReason = styled.div`
+const FormFieldErrorReason = styled('div')`
   color: ${p => p.theme.redDark};
   position: absolute;
   right: 2px;
@@ -48,12 +48,12 @@ const FormFieldErrorReason = styled.div`
   }
 `;
 
-const FormFieldError = styled.div`
+const FormFieldError = styled('div')`
   color: ${p => p.theme.redDark};
-  animation: ${pulse} 1s ease infinite;
+  animation: ${p => pulse(1.15)} 1s ease infinite;
 `;
 
-const FormFieldIsSaved = styled.div`
+const FormFieldIsSaved = styled('div')`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
   position: absolute;
@@ -138,7 +138,9 @@ class ControlState extends React.Component {
           {() => {
             const error = model.getError(name);
 
-            if (!error) return null;
+            if (!error) {
+              return null;
+            }
 
             return (
               <ControlStateWrapper>
@@ -212,6 +214,11 @@ class FormField extends React.Component {
     saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
 
     /**
+     * A function producing an optional component with extra information.
+     */
+    selectionInfoFunction: PropTypes.func,
+
+    /**
      * Should hide error message?
      */
     hideErrorMessage: PropTypes.bool,
@@ -221,7 +228,11 @@ class FormField extends React.Component {
     flexibleControlStateSize: PropTypes.bool,
 
     // Default value to use for form field if value is not specified in `<Form>` parent
-    defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    defaultValue: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.func,
+    ]),
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -271,9 +282,13 @@ class FormField extends React.Component {
     if (ref && !this.input) {
       const hash = this.context.location && this.context.location.hash;
 
-      if (!hash) return;
+      if (!hash) {
+        return;
+      }
 
-      if (hash !== `#${this.props.name}`) return;
+      if (hash !== `#${this.props.name}`) {
+        return;
+      }
 
       // Not all form fields have this (e.g. Select fields)
       if (typeof ref.focus === 'function') {
@@ -358,6 +373,7 @@ class FormField extends React.Component {
       saveOnBlur,
       saveMessage,
       saveMessageAlertType,
+      selectionInfoFunction,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
       // eslint-disable-next-line no-unused-vars
@@ -391,7 +407,9 @@ class FormField extends React.Component {
                   {() => {
                     const error = this.getError();
                     const shouldShowErrorMessage = error && !hideErrorMessage;
-                    if (!shouldShowErrorMessage) return null;
+                    if (!shouldShowErrorMessage) {
+                      return null;
+                    }
                     return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                   }}
                 </Observer>
@@ -428,12 +446,27 @@ class FormField extends React.Component {
             </FieldControl>
           )}
         </Field>
+        {selectionInfoFunction && (
+          <Observer>
+            {() => {
+              const error = this.getError();
+              const value = model.getValue(name);
+              return (
+                ((typeof props.visible === 'function' ? props.visible(props) : true) &&
+                  selectionInfoFunction({...props, error, value})) ||
+                null
+              );
+            }}
+          </Observer>
+        )}
         {saveOnBlurFieldOverride && (
           <Observer>
             {() => {
               const showFieldSave = model.getFieldState(name, 'showSave');
 
-              if (!showFieldSave) return null;
+              if (!showFieldSave) {
+                return null;
+              }
 
               return (
                 <PanelAlert type={saveMessageAlertType}>
@@ -466,7 +499,9 @@ class FormField extends React.Component {
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.
-    if (observedProps.length === 0) return makeField();
+    if (observedProps.length === 0) {
+      return makeField();
+    }
 
     const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
     const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));

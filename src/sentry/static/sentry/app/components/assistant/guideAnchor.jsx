@@ -1,25 +1,34 @@
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import React from 'react';
-import styled, {keyframes} from 'react-emotion';
+import styled from 'react-emotion';
+import {css} from 'emotion';
+import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import $ from 'jquery';
-import {registerAnchor, unregisterAnchor} from 'app/actionCreators/guides';
+import theme from 'app/utils/theme';
+import {
+  registerAnchor,
+  unregisterAnchor,
+  nextStep,
+  closeGuide,
+  recordFinish,
+  dismissGuide,
+} from 'app/actionCreators/guides';
 import GuideStore from 'app/stores/guideStore';
-import {expandOut} from 'app/styles/animations';
+import Hovercard from 'app/components/hovercard';
+import Button from 'app/components/button';
+import space from 'app/styles/space';
+import {t} from 'app/locale';
+import {CloseIcon} from 'app/components/assistant/styles';
 
-// A guide anchor provides a ripple-effect on an element to draw attention to it.
-// Guide anchors register with the guide store, which uses this information to
-// determine which guides can be shown on the page. Multiple guide anchors on
-// a page can have the same `target` property, which will make all of them glow
-// when a step in the guide matches that target (although only one of them will
-// be scrolled to).
+// A GuideAnchor puts an informative hovercard around an element.
+// Guide anchors register with the GuideStore, which uses registrations
+// from one or more anchors on the page to determine which guides can
+// be shown on the page.
 const GuideAnchor = createReactClass({
   propTypes: {
     target: PropTypes.string.isRequired,
-    // The `invisible` anchor type can be used for guides not attached to specific elements.
-    type: PropTypes.oneOf(['text', 'button', 'invisible']),
+    position: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
@@ -35,10 +44,10 @@ const GuideAnchor = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (!prevState.active && this.state.active && this.props.type !== 'invisible') {
+    if (this.containerElement && !prevState.active && this.state.active) {
       const windowHeight = $(window).height();
       $('html,body').animate({
-        scrollTop: $(this.anchorElement).offset().top - windowHeight / 4,
+        scrollTop: $(this.containerElement).offset().top - windowHeight / 2,
       });
     }
   },
@@ -48,119 +57,138 @@ const GuideAnchor = createReactClass({
   },
 
   onGuideStateChange(data) {
-    if (
+    const active =
       data.currentGuide &&
-      data.currentStep > 0 &&
-      data.currentGuide.steps[data.currentStep - 1].target == this.props.target &&
-      // TODO(adhiraj): It would be more correct to let invisible anchors become active,
-      // and use CSS to make them invisible.
-      this.props.type !== 'invisible'
-    ) {
-      this.setState({active: true});
-    } else {
-      this.setState({active: false});
-    }
+      data.currentGuide.steps[data.currentStep].target === this.props.target;
+    this.setState({
+      active,
+      guide: data.currentGuide,
+      step: data.currentStep,
+      org: data.org,
+      messageVariables: {
+        orgSlug: data.org && data.org.slug,
+        projectSlug: data.project && data.project.slug,
+      },
+    });
+  },
+
+  interpolate(template, variables) {
+    const regex = /\${([^{]+)}/g;
+    return template.replace(regex, (match, g1) => {
+      return variables[g1.trim()];
+    });
+  },
+
+  /* Terminology:
+   - A guide can be FINISHED by clicking one of the buttons in the last step.
+   - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x).
+   - In both cases we consider it CLOSED.
+  */
+  handleFinish(e) {
+    e.stopPropagation();
+    const {guide, org} = this.state;
+    recordFinish(guide.id, org);
+    closeGuide();
+  },
+
+  handleNextStep(e) {
+    e.stopPropagation();
+    nextStep();
+  },
+
+  handleDismiss(e) {
+    e.stopPropagation();
+    const {guide, step, org} = this.state;
+    dismissGuide(guide.id, step, org);
   },
 
   render() {
-    const {target, type} = this.props;
+    const {active, guide, step, messageVariables} = this.state;
+    if (!active) {
+      return this.props.children ? this.props.children : null;
+    }
+
+    const body = (
+      <GuideContainer>
+        <GuideInputRow>
+          <StyledTitle>{guide.steps[step].title}</StyledTitle>
+          {step < guide.steps.length - 1 && (
+            <CloseLink onClick={this.handleDismiss} href="#" data-test-id="close-button">
+              <CloseIcon />
+            </CloseLink>
+          )}
+        </GuideInputRow>
+        <StyledContent>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: this.interpolate(guide.steps[step].message, messageVariables),
+            }}
+          />
+          <div css={{marginTop: '1em'}}>
+            <div>
+              {step < guide.steps.length - 1 ? (
+                <Button priority="success" size="small" onClick={this.handleNextStep}>
+                  {t('Next')} &rarr;
+                </Button>
+              ) : (
+                <Button priority="success" size="small" onClick={this.handleFinish}>
+                  {t(guide.steps.length === 1 ? 'Got It' : 'Done')}
+                </Button>
+              )}
+            </div>
+          </div>
+        </StyledContent>
+      </GuideContainer>
+    );
 
     return (
-      <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>
-        {this.props.children}
-        <StyledGuideAnchor
-          className={classNames('guide-anchor-ping', target)}
-          active={this.state.active}
-        >
-          <StyledGuideAnchorRipples />
-        </StyledGuideAnchor>
-      </GuideAnchorContainer>
+      <Hovercard
+        show={true}
+        body={body}
+        bodyClassName={css`
+          background-color: ${theme.greenDark};
+          margin: -1px;
+        `}
+        tipColor={theme.greenDark}
+        position={this.props.position}
+      >
+        <span ref={el => (this.containerElement = el)}>{this.props.children}</span>
+      </Hovercard>
     );
   },
 });
 
-export const conditionalGuideAnchor = (condition, target, type, children) => {
-  return condition
-    ? React.createElement(GuideAnchor, {target, type}, children)
-    : children;
-};
-
-const recedeAnchor = keyframes`
-  0% {
-    transform: scale(3, 3);
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(1, 1);
-    opacity: 0.75;
-  }
+const GuideContainer = styled('div')`
+  background-color: ${p => p.theme.greenDark};
+  border-color: ${p => p.theme.greenLight};
+  color: ${p => p.theme.offWhite};
 `;
 
-const GuideAnchorContainer = styled('div')`
-  ${p =>
-    p.type == 'text' &&
-    `
-      display: inline-block;
-      position: relative;
-    `};
+const CloseLink = styled('a')`
+  color: ${p => p.theme.offWhite};
+  &:hover {
+    color: ${p => p.theme.offWhite};
+  }
+  display: flex;
 `;
 
-const StyledGuideAnchor = styled('div')`
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  z-index: 999;
-  position: absolute;
-  pointer-events: none;
-  visibility: hidden;
-
-  ${p =>
-    p.active
-      ? `
-    visibility: visible;
-    animation: ${recedeAnchor} 5s ease-in forwards;
-  `
-      : ''};
+const GuideInputRow = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
-const StyledGuideAnchorRipples = styled('div')`
-  animation: ${expandOut} 1.5s ease-out infinite;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
+const StyledTitle = styled('div')`
+  font-weight: bold;
+  font-size: 1.3em;
+  flex-grow: 1;
+`;
 
-  &,
-  &:before,
-  &:after {
-    position: absolute;
-    display: block;
-    left: calc(50% - 10px);
-    top: calc(50% - 10px);
-    background-color: ${p => p.theme.greenTransparent};
-    border-radius: 50%;
-  }
+const StyledContent = styled('div')`
+  margin-top: ${space(1)};
+  line-height: 1.5;
 
-  &:before,
-  &:after {
-    content: '';
-  }
-
-  &:before {
-    width: 70%;
-    height: 70%;
-    left: calc(50% - 7px);
-    top: calc(50% - 7px);
-    background-color: ${p => p.theme.greenTransparent};
-  }
-
-  &:after {
-    width: 50%;
-    height: 50%;
-    left: calc(50% - 5px);
-    top: calc(50% - 5px);
-    color: ${p => p.theme.green};
+  a {
+    color: ${p => p.theme.greenLight};
   }
 `;
 

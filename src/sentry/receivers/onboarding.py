@@ -11,13 +11,13 @@ from sentry.models import (
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     event_processed,
-    project_created,
     first_event_pending,
     first_event_received,
+    issue_tracker_used,
     member_invited,
     member_joined,
     plugin_enabled,
-    issue_tracker_used,
+    project_created,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -93,7 +93,7 @@ def record_raven_installed(project, user, **kwargs):
 
 
 @first_event_received.connect(weak=False)
-def record_first_event(project, group, **kwargs):
+def record_first_event(project, event, **kwargs):
     """
     Requires up to 2 database calls, but should only run with the first event in
     any project, so performance should not be a huge bottleneck.
@@ -111,7 +111,7 @@ def record_first_event(project, group, **kwargs):
             'project_id': project.id,
             'date_completed': project.first_event,
             'data': {
-                'platform': group.platform
+                'platform': event.platform
             },
         }
     )
@@ -124,7 +124,7 @@ def record_first_event(project, group, **kwargs):
             user_id=user.id,
             organization_id=project.organization_id,
             project_id=project.id,
-            platform=group.platform,
+            platform=event.platform,
         )
         return
 
@@ -138,8 +138,8 @@ def record_first_event(project, group, **kwargs):
 
     # Only counts if it's a new project and platform
     if oot.project_id != project.id and oot.data.get(
-        'platform', group.platform
-    ) != group.platform:
+        'platform', event.platform
+    ) != event.platform:
         rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -149,7 +149,7 @@ def record_first_event(project, group, **kwargs):
                 'project_id': project.id,
                 'date_completed': project.first_event,
                 'data': {
-                    'platform': group.platform
+                    'platform': event.platform
                 },
             }
         )
@@ -159,7 +159,7 @@ def record_first_event(project, group, **kwargs):
                 user_id=user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
-                platform=group.platform,
+                platform=event.platform,
             )
 
 
@@ -199,7 +199,7 @@ def record_member_joined(member, organization, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_release_received(project, group, event, **kwargs):
+def record_release_received(project, event, **kwargs):
     if not event.get_tag('sentry:release'):
         return
 
@@ -221,7 +221,7 @@ def record_release_received(project, group, event, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_user_context_received(project, group, event, **kwargs):
+def record_user_context_received(project, event, **kwargs):
     user_context = event.data.get('user')
     if not user_context:
         return
@@ -247,7 +247,7 @@ def record_user_context_received(project, group, event, **kwargs):
 
 
 @event_processed.connect(weak=False)
-def record_sourcemaps_received(project, group, event, **kwargs):
+def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 

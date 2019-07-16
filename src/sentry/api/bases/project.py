@@ -6,6 +6,7 @@ from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
 from sentry.utils.sdk import configure_scope
 
@@ -31,6 +32,8 @@ class ProjectPermission(OrganizationPermission):
             return any(
                 has_team_permission(request, team, self.scope_map) for team in project.teams.all()
             )
+        elif is_system_auth(request.auth):
+            return True
         elif request.user.is_authenticated():
             # this is only for team-less projects
             if is_active_superuser(request):
@@ -149,9 +152,9 @@ class ProjectEndpoint(Endpoint):
     def handle_exception(self, request, exc):
         if isinstance(exc, ProjectMoved):
             response = Response({
-                'slug': exc.detail['extra']['slug'],
-                'detail': exc.detail
+                'slug': exc.detail['detail']['extra']['slug'],
+                'detail': exc.detail['detail']
             }, status=exc.status_code)
-            response['Location'] = exc.detail['extra']['url']
+            response['Location'] = exc.detail['detail']['extra']['url']
             return response
         return super(ProjectEndpoint, self).handle_exception(request, exc)

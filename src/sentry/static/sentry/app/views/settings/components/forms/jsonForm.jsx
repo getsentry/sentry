@@ -81,7 +81,9 @@ class JsonForm extends React.Component {
   scrollToHash(toHash) {
     const hash = toHash || this.getLocation(this.props).hash;
 
-    if (!hash) return;
+    if (!hash) {
+      return;
+    }
 
     // Push onto callback queue so it runs after the DOM is updated,
     // this is required when navigating from a different page so that

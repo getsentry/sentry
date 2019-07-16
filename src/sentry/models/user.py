@@ -17,7 +17,12 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.db.models import (
+    BaseManager,
+    BaseModel,
+    BoundedAutoField,
+    sane_repr
+)
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
@@ -25,7 +30,24 @@ audit_logger = logging.getLogger('sentry.audit.user')
 
 
 class UserManager(BaseManager, UserManager):
-    pass
+    def get_from_teams(self, organization_id, teams):
+        return User.objects.filter(
+            sentry_orgmember_set__organization_id=organization_id,
+            sentry_orgmember_set__organizationmemberteam__team__in=teams,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        )
+
+    def get_from_projects(self, organization_id, projects):
+        """
+        Returns users associated with a project based on their teams.
+        """
+        return User.objects.filter(
+            sentry_orgmember_set__organization_id=organization_id,
+            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        )
 
 
 class User(BaseModel, AbstractBaseUser):
@@ -36,7 +58,7 @@ class User(BaseModel, AbstractBaseUser):
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_('name'), max_length=200, blank=True, db_column='first_name')
-    email = models.EmailField(_('email address'), blank=True)
+    email = models.EmailField(_('email address'), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
@@ -118,6 +140,8 @@ class User(BaseModel, AbstractBaseUser):
         db_table = 'auth_user'
         verbose_name = _('user')
         verbose_name_plural = _('users')
+
+    __repr__ = sane_repr('id')
 
     def delete(self):
         if self.username == 'sentry':

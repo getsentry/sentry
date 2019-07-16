@@ -8,6 +8,7 @@ exports[`ProjectCard renders 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -70,7 +71,7 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
-      className="css-3jemnr-ProjectCardWrapper ei886av2"
+      className="css-3jemnr-ProjectCardWrapper e1o95it02"
       data-test-id="project-slug"
       width={
         Array [
@@ -82,20 +83,20 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
-        className="css-3jemnr-ProjectCardWrapper ei886av2"
+        className="css-3jemnr-ProjectCardWrapper e1o95it02"
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
-            className="css-18be1td-StyledProjectCard ei886av3"
+            className="css-18be1td-StyledProjectCard e1o95it03"
           >
             <StyledProjectCardHeader>
               <div
-                className="css-v59cbs-StyledProjectCardHeader ei886av1"
+                className="css-v59cbs-StyledProjectCardHeader e1o95it01"
               >
                 <StyledIdBadge
-                  avatarSize={24}
+                  avatarSize={18}
                   displayName={
                     <span>
                       project-slug
@@ -126,8 +127,8 @@ exports[`ProjectCard renders 1`] = `
                   }
                 >
                   <IdBadge
-                    avatarSize={24}
-                    className="css-1gy4gs4-StyledIdBadge ei886av6"
+                    avatarSize={18}
+                    className="css-1gy4gs4-StyledIdBadge e1o95it05"
                     displayName={
                       <span>
                         project-slug
@@ -161,12 +162,12 @@ exports[`ProjectCard renders 1`] = `
                       mini={true}
                     >
                       <ErrorBoundary
-                        className="css-otlbo1-InlineErrorBoundary e83vi020"
+                        className="css-e4um1y-InlineErrorBoundary e83vi020"
                         mini={true}
                       >
                         <ProjectBadge
-                          avatarSize={24}
-                          className="css-1gy4gs4-StyledIdBadge ei886av6"
+                          avatarSize={18}
+                          className="css-1gy4gs4-StyledIdBadge e1o95it05"
                           displayName={
                             <span>
                               project-slug
@@ -200,8 +201,8 @@ exports[`ProjectCard renders 1`] = `
                         >
                           <BaseBadge
                             avatarProps={Object {}}
-                            avatarSize={24}
-                            className="css-1gy4gs4-StyledIdBadge ei886av6"
+                            avatarSize={18}
+                            className="css-1gy4gs4-StyledIdBadge e1o95it05"
                             displayName={
                               <span>
                                 project-slug
@@ -234,18 +235,19 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Flex
                               align="center"
-                              className="css-1gy4gs4-StyledIdBadge ei886av6"
+                              className="css-1gy4gs4-StyledIdBadge e1o95it05"
                             >
                               <Base
                                 align="center"
-                                className="ei886av6 css-v2wlq8-StyledIdBadge"
+                                className="e1o95it05 css-v2wlq8-StyledIdBadge"
                               >
                                 <div
-                                  className="ei886av6 css-v2wlq8-StyledIdBadge"
+                                  className="e1o95it05 css-v2wlq8-StyledIdBadge"
                                   is={null}
                                 >
                                   <StyledAvatar
                                     className="css-0"
+                                    hasTooltip={false}
                                     project={
                                       Object {
                                         "environments": Array [],
@@ -269,7 +271,7 @@ exports[`ProjectCard renders 1`] = `
                                         "teams": Array [],
                                       }
                                     }
-                                    size={24}
+                                    size={18}
                                   >
                                     <Avatar
                                       className="css-robds0-StyledAvatar e165dl3i0"
@@ -297,7 +299,7 @@ exports[`ProjectCard renders 1`] = `
                                           "teams": Array [],
                                         }
                                       }
-                                      size={24}
+                                      size={18}
                                     >
                                       <ProjectAvatar
                                         className="css-robds0-StyledAvatar e165dl3i0"
@@ -325,7 +327,7 @@ exports[`ProjectCard renders 1`] = `
                                             "teams": Array [],
                                           }
                                         }
-                                        size={24}
+                                        size={18}
                                       >
                                         <PlatformList
                                           className="css-robds0-StyledAvatar e165dl3i0"
@@ -338,38 +340,39 @@ exports[`ProjectCard renders 1`] = `
                                               "javascript",
                                             ]
                                           }
-                                          size={24}
+                                          size={18}
                                         >
                                           <PlatformIcons
+                                            className="css-robds0-StyledAvatar e165dl3i0"
                                             consistentWidth={false}
                                             direction="right"
                                             max={1}
-                                            size={24}
+                                            size={18}
                                           >
                                             <div
-                                              className="css-12u7e6y-PlatformIcons ezvce7z0"
+                                              className="e165dl3i0 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
                                               direction="right"
                                               max={1}
-                                              size={24}
+                                              size={18}
                                             >
                                               <StyledPlatformIcon
                                                 key="javascript"
                                                 platform="javascript"
-                                                size={24}
+                                                size={18}
                                               >
                                                 <Component
-                                                  className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                  className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
-                                                  size={24}
+                                                  size={18}
                                                 >
                                                   <Platformicon
-                                                    className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                    className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                     platform="javascript"
-                                                    size="24px"
+                                                    size="18px"
                                                   >
                                                     <img
-                                                      className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
-                                                      height="24px"
+                                                      className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
+                                                      height="18px"
                                                       src={
                                                         Object {
                                                           "default": Object {
@@ -378,7 +381,7 @@ exports[`ProjectCard renders 1`] = `
                                                           },
                                                         }
                                                       }
-                                                      width="24px"
+                                                      width="18px"
                                                     />
                                                   </Platformicon>
                                                 </Component>
@@ -421,27 +424,154 @@ exports[`ProjectCard renders 1`] = `
                     </InlineErrorBoundary>
                   </IdBadge>
                 </StyledIdBadge>
-                <Tooltip
-                  title="Add to bookmarks"
+                <withApi(BookmarkStar)
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  project={
+                    Object {
+                      "environments": Array [],
+                      "hasAccess": true,
+                      "id": "2",
+                      "isBookmarked": false,
+                      "isMember": true,
+                      "name": "Project Name",
+                      "platform": "javascript",
+                      "slug": "project-slug",
+                      "stats": Array [
+                        Array [
+                          1525042800,
+                          1,
+                        ],
+                        Array [
+                          1525046400,
+                          2,
+                        ],
+                      ],
+                      "teams": Array [],
+                    }
+                  }
                 >
-                  <Star
-                    active={false}
-                    className="tip project-select-bookmark icon icon-star-solid"
-                    onClick={[Function]}
-                    title="Add to bookmarks"
+                  <BookmarkStar
+                    api={Client {}}
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    project={
+                      Object {
+                        "environments": Array [],
+                        "hasAccess": true,
+                        "id": "2",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name",
+                        "platform": "javascript",
+                        "slug": "project-slug",
+                        "stats": Array [
+                          Array [
+                            1525042800,
+                            1,
+                          ],
+                          Array [
+                            1525046400,
+                            2,
+                          ],
+                        ],
+                        "teams": Array [],
+                      }
+                    }
                   >
-                    <a
-                      className="tip project-select-bookmark icon icon-star-solid css-1gdf7jd-Star ei886av4"
+                    <Star
+                      isBookmarked={false}
                       onClick={[Function]}
-                      title="Add to bookmarks"
-                    />
-                  </Star>
-                </Tooltip>
+                      src="icon-star-small-filled"
+                    >
+                      <InlineSvg
+                        className="css-fl9x15-Star e5ekdrk0"
+                        isBookmarked={false}
+                        onClick={[Function]}
+                        src="icon-star-small-filled"
+                      >
+                        <StyledSvg
+                          className="css-fl9x15-Star e5ekdrk0"
+                          height="1em"
+                          isBookmarked={false}
+                          onClick={[Function]}
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <svg
+                            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
+                            height="1em"
+                            onClick={[Function]}
+                            viewBox={Object {}}
+                            width="1em"
+                          >
+                            <use
+                              href="#test"
+                              xlinkHref="#test"
+                            />
+                          </svg>
+                        </StyledSvg>
+                      </InlineSvg>
+                    </Star>
+                  </BookmarkStar>
+                </withApi(BookmarkStar)>
               </div>
             </StyledProjectCardHeader>
             <ChartContainer>
               <div
-                className="css-1s8o1vf-ChartContainer ei886av0"
+                className="css-1s8o1vf-ChartContainer e1o95it00"
               >
                 <Chart
                   noEvents={true}
@@ -477,7 +607,7 @@ exports[`ProjectCard renders 1`] = `
                       }
                     >
                       <BarChart
-                        className="css-h6aoq0-StyledBarChart e114levy0"
+                        className="css-h6aoq0-StyledBarChart e1aigaye0"
                         gap={1.5}
                         height={60}
                         label="events"
@@ -500,7 +630,7 @@ exports[`ProjectCard renders 1`] = `
                               "chart-bar",
                             ]
                           }
-                          className="css-h6aoq0-StyledBarChart e114levy0"
+                          className="css-h6aoq0-StyledBarChart e1aigaye0"
                           gap={1.5}
                           height={60}
                           label="events"
@@ -525,7 +655,7 @@ exports[`ProjectCard renders 1`] = `
                           width={null}
                         >
                           <StyledFigure
-                            className="css-h6aoq0-StyledBarChart e114levy0 barchart"
+                            className="css-h6aoq0-StyledBarChart e1aigaye0 barchart"
                             style={
                               Object {
                                 "height": 60,
@@ -534,7 +664,7 @@ exports[`ProjectCard renders 1`] = `
                             }
                           >
                             <figure
-                              className="e114levy0 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
+                              className="e1aigaye0 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
                               style={
                                 Object {
                                   "height": 60,
@@ -545,13 +675,13 @@ exports[`ProjectCard renders 1`] = `
                               <span
                                 className="max-y"
                               >
-                                <count
+                                <Count
                                   value={10}
                                 >
                                   <span>
                                     10
                                   </span>
-                                </count>
+                                </Count>
                               </span>
                               <span
                                 className="min-y"
@@ -568,78 +698,148 @@ exports[`ProjectCard renders 1`] = `
                                     viewBox="0 0 100 400"
                                   >
                                     <svg
-                                      className="css-1vaz76z-StyledSvg e5t71580"
+                                      className="css-e6bn68-StyledSvg e5t71580"
                                       overflow="visible"
                                       preserveAspectRatio="none"
                                       viewBox="0 0 100 400"
                                     >
                                       <Tooltip
+                                        containerDisplayMode="inline-block"
                                         key="1525042800"
-                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "html": true,
-                                            "placement": "bottom",
-                                          }
+                                        position="bottom"
+                                        title={
+                                          <React.Fragment>
+                                            <div
+                                              style={
+                                                Object {
+                                                  "width": "130px",
+                                                }
+                                              }
+                                            >
+                                              <div
+                                                className="time-label"
+                                              >
+                                                <span>
+                                                  April 29, 2018
+                                                  <br />
+                                                  11:00 PM
+                                                  →
+                                                  11:59 PM
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div
+                                              className="value-label"
+                                            >
+                                              1
+                                               
+                                              events
+                                            </div>
+                                          </React.Fragment>
                                         }
                                       >
-                                        <g
-                                          className="tip"
-                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                        >
-                                          <rect
-                                            height="100%"
-                                            opacity="0"
-                                            width="52.3%"
-                                            x="-1.5%"
-                                          />
-                                          <rect
-                                            className="chart-bar barchart-rect"
-                                            data-test-id="chart-column"
-                                            height="9.9%"
-                                            key="0"
-                                            width="49.3%"
-                                            x="0%"
-                                            y="90.1%"
-                                          >
-                                            1
-                                          </rect>
-                                        </g>
+                                        <Manager>
+                                          <Reference>
+                                            <InnerReference
+                                              setReferenceNode={[Function]}
+                                            >
+                                              <g
+                                                aria-describedby="tooltip-123456"
+                                                onBlur={[Function]}
+                                                onFocus={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                              >
+                                                <rect
+                                                  height="100%"
+                                                  opacity="0"
+                                                  width="52.3%"
+                                                  x="-1.5%"
+                                                />
+                                                <rect
+                                                  className="chart-bar barchart-rect"
+                                                  data-test-id="chart-column"
+                                                  height="9.9%"
+                                                  key="0"
+                                                  width="49.3%"
+                                                  x="0%"
+                                                  y="90.1%"
+                                                >
+                                                  1
+                                                </rect>
+                                              </g>
+                                            </InnerReference>
+                                          </Reference>
+                                        </Manager>
                                       </Tooltip>
                                       <Tooltip
+                                        containerDisplayMode="inline-block"
                                         key="1525046400"
-                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "html": true,
-                                            "placement": "bottom",
-                                          }
+                                        position="bottom"
+                                        title={
+                                          <React.Fragment>
+                                            <div
+                                              style={
+                                                Object {
+                                                  "width": "130px",
+                                                }
+                                              }
+                                            >
+                                              <div
+                                                className="time-label"
+                                              >
+                                                <span>
+                                                  April 30, 2018
+                                                  <br />
+                                                  12:00 AM
+                                                  →
+                                                  12:59 AM
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div
+                                              className="value-label"
+                                            >
+                                              2
+                                               
+                                              events
+                                            </div>
+                                          </React.Fragment>
                                         }
                                       >
-                                        <g
-                                          className="tip"
-                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                        >
-                                          <rect
-                                            height="100%"
-                                            opacity="0"
-                                            width="52.3%"
-                                            x="49.3%"
-                                          />
-                                          <rect
-                                            className="chart-bar barchart-rect"
-                                            data-test-id="chart-column"
-                                            height="19.8%"
-                                            key="0"
-                                            width="49.3%"
-                                            x="50.8%"
-                                            y="80.2%"
-                                          >
-                                            2
-                                          </rect>
-                                        </g>
+                                        <Manager>
+                                          <Reference>
+                                            <InnerReference
+                                              setReferenceNode={[Function]}
+                                            >
+                                              <g
+                                                aria-describedby="tooltip-123456"
+                                                onBlur={[Function]}
+                                                onFocus={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                              >
+                                                <rect
+                                                  height="100%"
+                                                  opacity="0"
+                                                  width="52.3%"
+                                                  x="49.3%"
+                                                />
+                                                <rect
+                                                  className="chart-bar barchart-rect"
+                                                  data-test-id="chart-column"
+                                                  height="19.8%"
+                                                  key="0"
+                                                  width="49.3%"
+                                                  x="50.8%"
+                                                  y="80.2%"
+                                                >
+                                                  2
+                                                </rect>
+                                              </g>
+                                            </InnerReference>
+                                          </Reference>
+                                        </Manager>
                                       </Tooltip>
                                     </svg>
                                   </StyledSvg>
@@ -655,7 +855,7 @@ exports[`ProjectCard renders 1`] = `
                 <NoEvents>
                   <Container>
                     <div
-                      className="css-1m9okvh-Container exgrkp30"
+                      className="css-1m9okvh-Container e1acggzn0"
                     >
                       <EmptyText
                         align="center"
@@ -663,11 +863,11 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="css-k1bbsy-EmptyText exgrkp31"
+                          className="css-k1bbsy-EmptyText e1acggzn1"
                           justify="center"
                         >
                           <div
-                            className="css-k1bbsy-EmptyText exgrkp31"
+                            className="css-k1bbsy-EmptyText e1acggzn1"
                             is={null}
                           >
                             No activity yet.
@@ -686,6 +886,7 @@ exports[`ProjectCard renders 1`] = `
                     "org:read",
                     "org:write",
                     "org:admin",
+                    "org:integrations",
                     "project:read",
                     "project:write",
                     "project:admin",
@@ -736,11 +937,11 @@ exports[`ProjectCard renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1y6xtyw-DeployBox eawgu3c5"
+                    className="css-1y6xtyw-DeployBox elff1ar5"
                     p={2}
                   >
                     <div
-                      className="css-1y6xtyw-DeployBox eawgu3c5"
+                      className="css-1y6xtyw-DeployBox elff1ar5"
                       is={null}
                     >
                       <Background
@@ -749,20 +950,22 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="css-itelel-Background eawgu3c6"
+                          className="css-itelel-Background elff1ar6"
                           justify="center"
                         >
                           <div
-                            className="css-itelel-Background eawgu3c6"
+                            className="css-itelel-Background elff1ar6"
                             is={null}
                           >
                             <Button
+                              align="center"
                               disabled={false}
                               external={true}
                               href="https://docs.sentry.io/learn/releases/"
                               size="xsmall"
                             >
                               <StyledButton
+                                aria-disabled={false}
                                 aria-label="Track deploys"
                                 disabled={false}
                                 external={true}
@@ -771,9 +974,10 @@ exports[`ProjectCard renders 1`] = `
                                 role="button"
                                 size="xsmall"
                               >
-                                <Component
+                                <ForwardRef
+                                  aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                   disabled={false}
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
@@ -781,10 +985,10 @@ exports[`ProjectCard renders 1`] = `
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ExternalLink
+                                  <ForwardRef
+                                    aria-disabled={false}
                                     aria-label="Track deploys"
-                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                    disabled={false}
+                                    className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
                                     rel="noreferrer noopener"
@@ -793,9 +997,9 @@ exports[`ProjectCard renders 1`] = `
                                     target="_blank"
                                   >
                                     <a
+                                      aria-disabled={false}
                                       aria-label="Track deploys"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                      disabled={false}
+                                      className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                       href="https://docs.sentry.io/learn/releases/"
                                       onClick={[Function]}
                                       rel="noreferrer noopener"
@@ -804,22 +1008,24 @@ exports[`ProjectCard renders 1`] = `
                                       target="_blank"
                                     >
                                       <ButtonLabel
+                                        align="center"
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          align="center"
+                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           size="xsmall"
                                         >
                                           <span
-                                            className="css-uthd1f-ButtonLabel eqrebog1"
+                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
                                           >
                                             Track deploys
                                           </span>
                                         </Component>
                                       </ButtonLabel>
                                     </a>
-                                  </ExternalLink>
-                                </Component>
+                                  </ForwardRef>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                           </div>

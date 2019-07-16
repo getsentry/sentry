@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
+from six import text_type
+from itertools import chain
 
 
 def get_docker_client():
@@ -23,16 +25,15 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + 's').create(name)
 
 
-class SetType(click.ParamType):
-    name = 'set'
-
-    def convert(self, value, param, ctx):
-        if value is None:
-            return set()
-        return set(value.split(','))
-
-
-Set = SetType()
+def ensure_interface(ports):
+    # If there is no interface specified, make sure the
+    # default interface is 127.0.0.1
+    rv = {}
+    for k, v in ports.items():
+        if not isinstance(v, tuple):
+            v = ('127.0.0.1', v)
+        rv[k] = v
+    return rv
 
 
 @click.group()
@@ -46,15 +47,18 @@ def devservices():
 
 @devservices.command()
 @click.option('--project', default='sentry')
-@click.option('--exclude', type=Set, help='Services to ignore and not run.')
+@click.option('--exclude', multiple=True, help='Services to ignore and not run.')
 def up(project, exclude):
     "Run/update dependent services."
     os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
+
+    exclude = set(chain.from_iterable(x.split(',') for x in exclude))
 
     from sentry.runner import configure
     configure()
 
     from django.conf import settings
+    from sentry import options as sentry_options
 
     import docker
     client = get_docker_client()
@@ -63,14 +67,30 @@ def up(project, exclude):
     # services are run if they're not needed.
     if not exclude:
         exclude = set()
+
+    if 'bigtable' not in settings.SENTRY_NODESTORE:
+        exclude |= {'bigtable'}
+
+    if 'memcached' not in settings.CACHES.get('default', {}).get('BACKEND'):
+        exclude |= {'memcached'}
+
     if 'kafka' in settings.SENTRY_EVENTSTREAM:
         pass
     elif 'snuba' in settings.SENTRY_EVENTSTREAM:
-        click.secho('! Skipping kafka and zookeeper since your eventstream backend does not require it', err=True, fg='cyan')
+        click.secho(
+            '! Skipping kafka and zookeeper since your eventstream backend does not require it',
+            err=True,
+            fg='cyan')
         exclude |= {'kafka', 'zookeeper'}
     else:
-        click.secho('! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it', err=True, fg='cyan')
+        click.secho(
+            '! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it',
+            err=True,
+            fg='cyan')
         exclude |= {'kafka', 'zookeeper', 'snuba', 'clickhouse'}
+
+    if not sentry_options.get('symbolicator.enabled'):
+        exclude |= {'symbolicator'}
 
     get_or_create(client, 'network', project)
 
@@ -85,6 +105,7 @@ def up(project, exclude):
         options.setdefault('ports', {})
         options.setdefault('environment', {})
         options.setdefault('restart_policy', {'Name': 'on-failure'})
+        options['ports'] = ensure_interface(options['ports'])
         containers[name] = options
 
     pulled = set()
@@ -114,7 +135,11 @@ def up(project, exclude):
         else:
             container.stop()
             container.remove()
-        click.secho("> Creating '%s' container" % options['name'], err=True, fg='yellow')
+        listening = ''
+        if options['ports']:
+            listening = ' (listening: %s)' % ', '.join(map(text_type, options['ports'].values()))
+        click.secho("> Creating '%s' container%s" %
+                    (options['name'], listening), err=True, fg='yellow')
         client.containers.run(**options)
 
 
@@ -141,7 +166,9 @@ def down(project, service):
 def rm(project, service):
     "Delete all services and associated data."
 
-    click.confirm('Are you sure you want to continue?\nThis will delete all of your Sentry related data!', abort=True)
+    click.confirm(
+        'Are you sure you want to continue?\nThis will delete all of your Sentry related data!',
+        abort=True)
 
     import docker
     client = get_docker_client()

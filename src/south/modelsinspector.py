@@ -40,7 +40,9 @@ def convert_on_delete_handler(value):
         else:
             # This is totally dependent on the implementation of django.db.models.deletion.SET
             func_name = getattr(value, '__name__', None)
-            if func_name == 'set_on_delete':
+            if func_name == 'SET_NULL':
+                return "%s.SET_NULL" % (django_db_models_module)
+            elif func_name == 'set_on_delete':
                 # we must inspect the function closure to see what parameters were passed in
                 closure_contents = value.__closure__[0].cell_contents
                 if closure_contents is None:

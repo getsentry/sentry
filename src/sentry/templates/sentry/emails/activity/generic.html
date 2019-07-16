@@ -28,7 +28,7 @@
 
   {% endblock %}
 
-  {% if group %}
+  {% if group and not enhanced_privacy %}
     {% include "sentry/emails/group_header.html" %}
   {% endif %}
 

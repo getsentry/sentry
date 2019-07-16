@@ -48,6 +48,7 @@ class EventError(object):
     NATIVE_MISSING_SYMBOL = 'native_missing_symbol'
     NATIVE_SIMULATOR_FRAME = 'native_simulator_frame'
     NATIVE_UNKNOWN_IMAGE = 'native_unknown_image'
+    NATIVE_SYMBOLICATOR_FAILED = 'native_symbolicator_failed'
 
     # Processing: Proguard
     PROGUARD_MISSING_MAPPING = 'proguard_missing_mapping'
@@ -93,6 +94,7 @@ class EventError(object):
         NATIVE_MISSING_SYMBOL: u'Could not resolve one or more frames in debug information file.',
         NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
         NATIVE_UNKNOWN_IMAGE: u'A binary image is referenced that is unknown.',
+        NATIVE_SYMBOLICATOR_FAILED: u'Failed to process native stacktraces.',
 
         PROGUARD_MISSING_MAPPING: u'A proguard mapping file was missing.',
         PROGUARD_MISSING_LINENO: u'A proguard mapping file does not contain line info.',

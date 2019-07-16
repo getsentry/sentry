@@ -1,11 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
 
 import {tct, t} from 'app/locale';
 
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
@@ -53,7 +52,7 @@ export default class Intro extends React.Component {
   render() {
     return (
       <IntroContainer>
-        <Box w={560}>
+        <Content>
           <Heading>{t('Discover lets you query raw event data in Sentry')}</Heading>
           <TextBlock>
             {tct(
@@ -79,7 +78,7 @@ export default class Intro extends React.Component {
               </ExampleQuery>
             ))}
           </TextBlock>
-        </Box>
+        </Content>
       </IntroContainer>
     );
   }
@@ -95,6 +94,10 @@ const IntroContainer = styled('div')`
   height: 100%;
   min-height: 420px;
   min-width: 500px;
+`;
+
+const Content = styled('div')`
+  max-width: 560px;
 `;
 
 const Heading = styled('div')`

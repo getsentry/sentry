@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from sentry.testutils import TestCase
 from sentry import options
 
@@ -19,8 +21,14 @@ class ProjectEventTest(TestCase):
             teams=[self.team],
         )
         self.project = self.create_project(organization=self.org, teams=[self.team])
-        self.group = self.create_group(project=self.project)
-        self.event = self.create_event(event_id='a' * 32, group=self.group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.event = self.store_event(
+            data={
+                'fingerprint': ['group1'],
+                'timestamp': min_ago,
+            },
+            project_id=self.project.id,
+        )
 
     def test_redirect_to_event(self):
         resp = self.client.get(
@@ -29,14 +37,13 @@ class ProjectEventTest(TestCase):
                 args=[
                     self.org.slug,
                     self.project.slug,
-                    'a' * 32]))
+                    self.event.event_id]))
         assert resp.status_code == 302
-        assert resp['Location'] == '{}/{}/{}/issues/{}/events/{}/'.format(
+        assert resp['Location'] == '{}/organizations/{}/issues/{}/events/{}/'.format(
             options.get('system.url-prefix'),
             self.org.slug,
-            self.project.slug,
-            self.group.id,
-            self.event.id,
+            self.event.group_id,
+            self.event.event_id,
         )
 
     def test_event_not_found(self):

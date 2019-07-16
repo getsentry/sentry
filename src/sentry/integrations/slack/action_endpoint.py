@@ -9,7 +9,7 @@ from sentry.utils import json
 
 from .link_identity import build_linking_url
 from .requests import SlackActionRequest, SlackRequestError
-from .utils import build_attachment, logger
+from .utils import build_group_attachment, logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -223,7 +223,7 @@ class SlackActionEndpoint(Endpoint):
                 return self.api_error(e)
 
             group = Group.objects.get(id=group.id)
-            attachment = build_attachment(group, identity=identity, actions=[action])
+            attachment = build_group_attachment(group, identity=identity, actions=[action])
 
             body = self.construct_reply(
                 attachment,
@@ -269,7 +269,7 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        attachment = build_attachment(group, identity=identity, actions=action_list)
+        attachment = build_group_attachment(group, identity=identity, actions=action_list)
         body = self.construct_reply(attachment, is_message=self.is_message(data))
 
         return self.respond(body)

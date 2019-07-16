@@ -5,7 +5,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -31,14 +31,13 @@ class SessionRow extends React.Component {
             <div style={{marginBottom: 5}}>
               <strong>{ipAddress}</strong>
             </div>
-            {countryCode &&
-              regionCode && (
-                <div>
-                  <small>
-                    {countryCode} ({regionCode})
-                  </small>
-                </div>
-              )}
+            {countryCode && regionCode && (
+              <div>
+                <small>
+                  {countryCode} ({regionCode})
+                </small>
+              </div>
+            )}
           </Box>
         </Flex>
         <Flex align="center" w={140} mx={2}>

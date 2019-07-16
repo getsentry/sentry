@@ -13,6 +13,7 @@ from __future__ import absolute_import, print_function
 import logging
 import os.path
 import six
+from datetime import timedelta
 
 from collections import OrderedDict, namedtuple
 from django.conf import settings
@@ -20,6 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
 from sentry.utils.integrationdocs import load_doc
+from sentry.utils.geo import rust_geoip
 
 
 def get_all_languages():
@@ -37,7 +39,10 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-VERSION_LENGTH = 200
+BAD_RELEASE_CHARS = '\n\f\t/'
+MAX_VERSION_LENGTH = 200
+MAX_COMMIT_LENGTH = 64
+COMMIT_RANGE_DELIMITER = '..'
 
 SORT_OPTIONS = OrderedDict(
     (
@@ -220,14 +225,23 @@ FILTER_MASK = '[Filtered]'
 MAX_SYM = 256
 
 # Known debug information file mimetypes
-KNOWN_DIF_TYPES = {
+KNOWN_DIF_FORMATS = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'application/x-elf-binary': 'elf',
+    'application/x-dosexec': 'pe',
+    'application/x-ms-pdb': 'pdb',
     'text/x-proguard+plain': 'proguard',
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
+
+# Maximum number of release files that can be "skipped" (i.e., maximum paginator offset)
+# inside release files API endpoints.
+# If this number is too large, it may cause problems because of inefficient
+# LIMIT-OFFSET database queries.
+# These problems should be solved after we implement artifact bundles workflow.
+MAX_RELEASE_FILES_OFFSET = 20000
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
@@ -365,15 +379,43 @@ class ObjectStatus(object):
 class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
+    INTERNAL = 2
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNPUBLISHED, 'unpublished'),
             (cls.PUBLISHED, 'published'),
+            (cls.INTERNAL, 'internal'),
         )
+
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.UNPUBLISHED:
+            return 'unpublished'
+        elif status == cls.PUBLISHED:
+            return 'published'
+        elif status == cls.INTERNAL:
+            return 'internal'
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))
+
+
+# We need to limit the range of valid timestamps of an event because that
+# timestamp is used to control data retention.
+MAX_SECS_IN_FUTURE = 60
+MAX_SECS_IN_PAST = 2592000  # 30 days
+ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
+
+DEFAULT_STORE_NORMALIZER_ARGS = dict(
+    geoip_lookup=rust_geoip,
+    stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+    max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
+    valid_platforms=list(VALID_PLATFORMS),
+    max_secs_in_future=MAX_SECS_IN_FUTURE,
+    max_secs_in_past=MAX_SECS_IN_PAST,
+    enable_trimming=True,
+)

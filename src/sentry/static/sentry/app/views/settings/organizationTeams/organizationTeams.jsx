@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -35,11 +34,11 @@ class OrganizationTeams extends React.Component {
     } = this.props;
     const org = organization;
 
-    if (!organization) return null;
+    if (!organization) {
+      return null;
+    }
 
-    const canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    const canCreateTeams = new Set(organization.access).has('project:admin');
 
     const action = (
       <Button
@@ -52,7 +51,8 @@ class OrganizationTeams extends React.Component {
         onClick={() =>
           openCreateTeamModal({
             organization,
-          })}
+          })
+        }
         icon="icon-circle-add"
       >
         {t('Create Team')}
@@ -60,7 +60,7 @@ class OrganizationTeams extends React.Component {
     );
 
     const teamRoute = routes.find(({path}) => path === 'teams/');
-    const urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -1});
+    const urlPrefix = recreateRoute(teamRoute, {routes, params, stepBack: -2});
 
     const activeTeamIds = new Set(activeTeams.map(team => team.id));
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));

@@ -25,6 +25,10 @@ MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
 
 
+class BadPaginationError(Exception):
+    pass
+
+
 class BasePaginator(object):
     def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
         if order_by:
@@ -213,11 +217,13 @@ class DateTimePaginator(BasePaginator):
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
 class OffsetPaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT,
+                 max_offset=None, on_results=None):
         self.key = order_by if order_by is None or isinstance(
             order_by, (list, tuple, set)) else (order_by, )
         self.queryset = queryset
         self.max_limit = max_limit
+        self.max_offset = max_offset
         self.on_results = on_results
 
     def get_result(self, limit=100, cursor=None):
@@ -235,6 +241,9 @@ class OffsetPaginator(object):
         page = cursor.offset
         offset = cursor.offset * cursor.value
         stop = offset + (cursor.value or limit) + 1
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError('Pagination offset too large')
 
         results = list(queryset[offset:stop])
         if cursor.value != limit:

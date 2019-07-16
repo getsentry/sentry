@@ -1,4 +1,3 @@
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -18,6 +17,7 @@ import WidgetChart from './widgetChart';
 
 class Widget extends React.Component {
   static propTypes = {
+    releasesLoading: PropTypes.bool,
     releases: PropTypes.arrayOf(SentryTypes.Release),
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
@@ -26,12 +26,21 @@ class Widget extends React.Component {
   };
 
   render() {
-    const {organization, router, widget, releases, selection} = this.props;
+    const {
+      organization,
+      releasesLoading,
+      router,
+      widget,
+      releases,
+      selection,
+    } = this.props;
     const {title, includePreviousPeriod, compareToPeriod} = widget;
 
     return (
       <ErrorBoundary customComponent={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
         <DiscoverQuery
+          releasesLoading={releasesLoading}
+          releases={releases}
           organization={organization}
           selection={selection}
           queries={widget.queries.discover}
@@ -76,7 +85,7 @@ class Widget extends React.Component {
   }
 }
 
-export default withRouter(withOrganization(withGlobalSelection(Widget)));
+export default withOrganization(withGlobalSelection(Widget));
 export {Widget};
 
 const StyledPanel = styled(Panel)`

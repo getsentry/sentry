@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import json
+import pytest
+
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
@@ -22,6 +26,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.path = u'/{}/{}/releases/'.format(
             self.org.slug, self.project.slug)
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_releases(self):
         release = self.create_release(
             project=self.project,
@@ -38,11 +43,23 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.browser.wait_until('.ref-project-releases')
         self.browser.snapshot('project releases with releases')
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_no_releases(self):
+        self.dismiss_assistant()
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.wait_until('.ref-project-releases')
         self.browser.snapshot('project releases without releases')
+
+    def dismiss_assistant(self):
+        # Forward session cookie to django client.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+
+        res = self.client.put(
+            '/api/0/assistant/',
+            content_type='application/json',
+            data=json.dumps({'guide_id': 2, 'status': 'viewed', 'useful': True}))
+        assert res.status_code == 201
 
 
 class ProjectReleaseDetailsTest(AcceptanceTestCase):
@@ -72,6 +89,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
         self.path = u'/{}/{}/releases/{}/'.format(
             self.org.slug, self.project.slug, self.release.version)
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_release_details_no_commits_no_deploys(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')

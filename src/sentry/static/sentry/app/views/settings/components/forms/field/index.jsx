@@ -161,7 +161,11 @@ class Field extends React.Component {
                 {label} {required && <FieldRequiredBadge />}
               </FieldLabel>
             )}
-            {help && <FieldHelp>{help}</FieldHelp>}
+            {help && (
+              <FieldHelp stacked={stacked} inline={inline}>
+                {help}
+              </FieldHelp>
+            )}
           </FieldDescription>
         )}
 

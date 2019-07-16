@@ -126,6 +126,8 @@ export const AVATAR_URL_MAP = {
 
 export const MENU_CLOSE_DELAY = 200;
 
+export const MAX_PICKABLE_DAYS = 90;
+
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_USE_UTC = true;
@@ -147,3 +149,19 @@ export const ALGOLIA_APP_ID = 'OOK48W9UCL';
 export const ALGOLIA_READ_ONLY = '2d64ec1106519cbc672d863b0d200782';
 export const ALGOLIA_DOCS_INDEX = 'sentry-docs';
 export const ALGOLIA_ZENDESK_INDEX = 'zendesk_sentry_articles';
+
+export const SEARCH_TYPES = {
+  ISSUE: 0,
+  EVENT: 1,
+};
+export const MAX_RECENT_SEARCHES = 3;
+
+export const DEFAULT_PER_PAGE = 50;
+
+// Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
+// eslint-disable-next-line no-undef
+export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
+
+// Webpack configures EXPERIMENTAL_SPA.
+// eslint-disable-next-line no-undef
+export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;

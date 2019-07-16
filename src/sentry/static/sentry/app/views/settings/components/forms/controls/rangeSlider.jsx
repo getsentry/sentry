@@ -107,7 +107,9 @@ class RangeSlider extends React.Component {
 
   handleBlur = e => {
     const {onBlur} = this.props;
-    if (typeof onBlur !== 'function') return;
+    if (typeof onBlur !== 'function') {
+      return;
+    }
 
     onBlur(e);
   };
@@ -133,7 +135,7 @@ class RangeSlider extends React.Component {
 
     return (
       <div>
-        <Label for={name}>{displayValue}</Label>
+        <Label htmlFor={name}>{displayValue}</Label>
         <Slider
           type="range"
           name={name}
@@ -154,7 +156,7 @@ class RangeSlider extends React.Component {
 
 export default RangeSlider;
 
-const Slider = styled.input`
+const Slider = styled('input')`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
@@ -284,7 +286,7 @@ const Slider = styled.input`
   }
 `;
 
-const Label = styled.label`
+const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
   color: ${p => p.theme.gray3};

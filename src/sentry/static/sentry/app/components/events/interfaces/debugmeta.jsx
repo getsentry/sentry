@@ -8,64 +8,49 @@ import {t} from 'app/locale';
 
 class DebugMetaInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
 
-  getImageDetail(img, evt) {
-    // in particular proguard images do not have a name, skip them
-    if (img.name === null || img.type === 'proguard') {
+  getImageDetail(img) {
+    // in particular proguard images do not have a code file, skip them
+    if (img === null || img.code_file === null || img.type === 'proguard') {
       return null;
     }
 
-    const name = img.name.split(/^([a-z]:\\|\\\\)/i.test(img.name) ? '\\' : '/').pop();
-    if (name == 'dyld_sim') return null; // this is only for simulator builds
+    const directorySeparator = /^([a-z]:\\|\\\\)/i.test(img.code_file) ? '\\' : '/';
+    const code_file = img.code_file.split(directorySeparator).pop();
+    if (code_file === 'dyld_sim') {
+      // this is only for simulator builds
+      return null;
+    }
 
-    let version = null;
-    if (
-      Number.isInteger(img.major_version) &&
-      Number.isInteger(img.minor_version) &&
-      Number.isInteger(img.revision_version)
-    ) {
-      if (img.major_version == 0 && img.minor_version == 0 && img.revision_version == 0) {
-        // we show the version
-        version = (evt.release && evt.release.shortVersion) || 'unknown';
-      } else
-        version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
-    } else version = img.id || img.uuid || '<none>';
-
-    if (version) return [name, version];
-
-    return null;
+    const version = img.debug_id || '<none>';
+    return [code_file, version];
   }
 
   render() {
     const data = this.props.data;
-    const images = data.images
-      .map(img => this.getImageDetail(img, this.props.event))
-      .filter(img => img); // removes null values
 
-    let result = null;
-
-    if (images.length > 0) {
-      result = (
-        <div>
-          <EventDataSection
-            group={this.props.group}
-            event={this.props.event}
-            type="packages"
-            title={t('Images Loaded')}
-          >
-            <ClippedBox>
-              <KeyValueList data={images} isSorted={false} />
-            </ClippedBox>
-          </EventDataSection>
-        </div>
-      );
+    // skip null values indicating invalid debug images
+    const images = data.images.map(img => this.getImageDetail(img)).filter(img => img);
+    if (images.length === 0) {
+      return null;
     }
 
-    return result;
+    return (
+      <div>
+        <EventDataSection
+          event={this.props.event}
+          type="packages"
+          title={t('Images Loaded')}
+        >
+          <ClippedBox>
+            <KeyValueList data={images} isSorted={false} />
+          </ClippedBox>
+        </EventDataSection>
+      </div>
+    );
   }
 }
 

@@ -6,13 +6,14 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
-from sentry import features
+from sentry import options
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, User, ServiceHook, ServiceHookProject, SentryApp,
+    SentryAppInstallation, Event, EventCommon, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp, SnubaEvent,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -31,21 +32,52 @@ RESOURCE_RENAMES = {
     'Group': 'issue',
 }
 
+USE_SNUBA = options.get('snuba.events-queries.enabled')
+
 TYPES = {
     'Group': Group,
+    'Error': SnubaEvent if USE_SNUBA else Event,
 }
+
+
+def _webhook_event_data(event, group_id, project_id):
+    project = Project.objects.get_from_cache(id=project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    event_context = event.as_dict()
+    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
+        project.organization.slug,
+        project.slug,
+        event.event_id,
+    ]))
+
+    event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
+        organization.slug,
+        group_id,
+        event.event_id,
+    ]))
+
+    # The URL has a regex OR in it ("|") which means `reverse` cannot generate
+    # a valid URL (it can't know which option to pick). We have to manually
+    # create this URL for, that reason.
+    event_context['issue_url'] = absolute_uri(
+        '/api/0/issues/{}/'.format(group_id),
+    )
+
+    return event_context
 
 
 @instrumented_task(name='sentry.tasks.sentry_apps.send_alert_event', **TASK_OPTIONS)
 @retry(on=(RequestException, ))
 def send_alert_event(event, rule, sentry_app_id):
     group = event.group
-    project = group.project
+    project = Project.objects.get_from_cache(id=group.project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     extra = {
         'sentry_app_id': sentry_app_id,
         'project': project.slug,
-        'organization': project.organization.slug,
+        'organization': organization.slug,
         'rule': rule,
     }
 
@@ -57,40 +89,14 @@ def send_alert_event(event, rule, sentry_app_id):
 
     try:
         install = SentryAppInstallation.objects.get(
-            organization=event.project.organization_id,
+            organization=organization.id,
             sentry_app=sentry_app,
         )
     except SentryAppInstallation.DoesNotExist:
         logger.info('event_alert_webhook.missing_installation', extra=extra)
         return
 
-    event_context = event.as_dict()
-    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
-        project.organization.slug,
-        project.slug,
-        event.id,
-    ]))
-
-    if features.has('organizations:sentry10', project.organization):
-        event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
-            project.organization.slug,
-            group.id,
-            event.id,
-        ]))
-    else:
-        event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
-            project.organization.slug,
-            project.slug,
-            group.id,
-            event.id,
-        ]))
-
-    # The URL has a regex OR in it ("|") which means `reverse` cannot generate
-    # a valid URL (it can't know which option to pick). We have to manually
-    # create this URL for, that reason.
-    event_context['issue_url'] = absolute_uri(
-        '/api/0/issues/{}/'.format(group.id),
-    )
+    event_context = _webhook_event_data(event, group.id, project.id)
 
     data = {
         'event': event_context,
@@ -115,10 +121,23 @@ def send_alert_event(event, rule, sentry_app_id):
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
+    # The Event model has different hooks for the different event types. The sender
+    # determines which type eg. Error and therefore the 'name' eg. error
+    if issubclass(model, EventCommon):
+        if not kwargs.get('instance'):
+            extra = {
+                'sender': sender,
+                'action': action,
+                'event_id': instance_id,
+            }
+            logger.info('process_resource_change.event_missing_event', extra=extra)
+            return
 
-    # Some resources are named differently than their model. eg. Group vs
-    # Issue. Looks up the human name for the model. Defaults to the model name.
-    name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+        name = sender.lower()
+    else:
+        # Some resources are named differently than their model. eg. Group vs Issue.
+        # Looks up the human name for the model. Defaults to the model name.
+        name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
     # By default, use Celery's `current` but allow a value to be passed for the
     # bound Task.
@@ -127,7 +146,14 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        instance = model.objects.get(id=instance_id)
+        if issubclass(model, EventCommon):
+            # XXX:(Meredith): Passing through the entire event was an intentional choice
+            # to avoid having to query NodeStore again for data we had previously in
+            # post_process. While this is not ideal, changing this will most likely involve
+            # an overhaul of how we do things in post_process, not just this task alone.
+            instance = kwargs.get('instance')
+        else:
+            instance = model.objects.get(id=instance_id)
     except model.DoesNotExist as e:
         # Explicitly requeue the task, so we don't report this to Sentry until
         # we hit the max number of retries.
@@ -140,8 +166,12 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group):
-        org = instance.organization
+    if isinstance(instance, Group) or issubclass(model, EventCommon):
+        org = Organization.objects.get_from_cache(
+            id=Project.objects.get_from_cache(
+                id=instance.project_id
+            ).organization_id
+        )
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
@@ -150,8 +180,20 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     for installation in installations:
         data = {}
-        data[name] = serialize(instance)
-        send_webhooks(installation, event, data=data)
+        if issubclass(model, EventCommon):
+            data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+            send_webhooks(installation, event, data=data)
+        else:
+            data[name] = serialize(instance)
+            send_webhooks(installation, event, data=data)
+
+        metrics.incr(
+            'resource_change.processed',
+            sample_rate=1.0,
+            tags={
+                'change_event': event,
+            }
+        )
 
 
 @instrumented_task('sentry.tasks.process_resource_change', **TASK_OPTIONS)

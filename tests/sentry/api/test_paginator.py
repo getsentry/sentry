@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import pytest
 from datetime import timedelta
 from django.utils import timezone
 from unittest import TestCase as SimpleTestCase
 
 from sentry.api.paginator import (
+    BadPaginationError,
     Paginator,
     DateTimePaginator,
     OffsetPaginator,
@@ -15,7 +15,6 @@ from sentry.api.paginator import (
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.cursors import Cursor
-from sentry.utils.db import is_mysql
 
 
 class PaginatorTest(TestCase):
@@ -144,6 +143,21 @@ class OffsetPaginatorTest(TestCase):
         assert result.next
         assert result.prev
 
+    def test_max_offset(self):
+        self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+        self.create_user('baz@example.com')
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, max_offset=10)
+        result1 = paginator.get_result(cursor=None)
+        assert len(result1) == 3, result1
+
+        paginator = OffsetPaginator(queryset, max_offset=0)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result()
+
 
 class DateTimePaginatorTest(TestCase):
     def test_ascending(self):
@@ -244,7 +258,6 @@ class DateTimePaginatorTest(TestCase):
         result4 = paginator.get_result(limit=10, cursor=result1.next)
         assert len(result4) == 0, result4
 
-    @pytest.mark.skipif(is_mysql(), reason='MySQL does not support above second accuracy')
     def test_rounding_offset(self):
         joined = timezone.now()
 

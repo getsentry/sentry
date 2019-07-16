@@ -1,5 +1,6 @@
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 import {openModal} from 'app/actionCreators/modal';
+import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/actionCreators/modal');
 
@@ -27,22 +28,33 @@ describe('Query Builder', function() {
   });
 
   describe('loads()', function() {
-    afterEach(function() {
-      MockApiClient.clearMockResponses();
-    });
-
-    it('loads tags', async function() {
-      const discoverMock = MockApiClient.addMockResponse({
+    let discoverMock;
+    beforeEach(function() {
+      discoverMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
         },
       });
+    });
+
+    afterEach(function() {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('loads tags for projects with membership', async function() {
       const queryBuilder = createQueryBuilder(
         {},
-        TestStubs.Organization({projects: [TestStubs.Project()]})
+        TestStubs.Organization({
+          projects: [
+            TestStubs.Project({id: 1, isMember: false}),
+            TestStubs.Project({id: 2}),
+          ],
+          access: ['org:read', 'org:write'],
+        })
       );
+
       await queryBuilder.load();
 
       expect(discoverMock).toHaveBeenCalledWith(
@@ -75,8 +87,81 @@ describe('Query Builder', function() {
       });
     });
 
+    it("loads all project's tags for superuser", async function() {
+      ConfigStore.set('user', TestStubs.User({isSuperuser: true}));
+      const queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({
+          projects: [
+            TestStubs.Project({id: 1, isMember: false}),
+            TestStubs.Project({id: 2}),
+          ],
+        })
+      );
+
+      await queryBuilder.load();
+
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
+            projects: [1, 2],
+            range: '90d',
+          }),
+        })
+      );
+
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tag1',
+        type: 'string',
+        isTag: true,
+      });
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tag2',
+        type: 'string',
+        isTag: true,
+      });
+      expect(queryBuilder.getColumns()).not.toContainEqual({
+        name: 'environment',
+        type: 'string',
+        isTag: true,
+      });
+    });
+
+    it("loads all project's tags for org admins", async function() {
+      ConfigStore.set('user', TestStubs.User());
+      const queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({
+          projects: [
+            TestStubs.Project({id: 1, isMember: false}),
+            TestStubs.Project({id: 2}),
+          ],
+          access: ['org:admin'],
+        })
+      );
+
+      await queryBuilder.load();
+
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
+            projects: [1, 2],
+            range: '90d',
+          }),
+        })
+      );
+    });
+
     it('loads hardcoded tags when API request fails', async function() {
-      const discoverMock = MockApiClient.addMockResponse({
+      discoverMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
       });

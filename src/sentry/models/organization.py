@@ -159,6 +159,10 @@ class Organization(Model):
         """
         Return the organization used in single organization mode.
         """
+
+        if settings.SENTRY_ORGANIZATION is not None:
+            return cls.objects.get(id=settings.SENTRY_ORGANIZATION)
+
         return cls.objects.filter(
             status=OrganizationStatus.ACTIVE,
         )[0]
@@ -443,11 +447,7 @@ class Organization(Model):
         )
 
     def get_url_viewname(self):
-        from sentry import features
-        if features.has('organizations:sentry10', self):
-            return 'sentry-organization-issue-list'
-        else:
-            return 'sentry-organization-home'
+        return 'sentry-organization-issue-list'
 
     def get_url(self):
         return reverse(self.get_url_viewname(), args=[self.slug])

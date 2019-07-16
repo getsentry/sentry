@@ -2,7 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {shallow} from 'enzyme';
 import {Client} from 'app/api';
-import ErrorRobot from 'app/components/errorRobot';
+import {ErrorRobot} from 'app/components/errorRobot';
 
 describe('ErrorRobot', function() {
   let getIssues;
@@ -20,7 +20,11 @@ describe('ErrorRobot', function() {
     let wrapper;
     beforeEach(function() {
       wrapper = shallow(
-        <ErrorRobot org={TestStubs.Organization()} project={TestStubs.Project()} />
+        <ErrorRobot
+          api={new MockApiClient()}
+          org={TestStubs.Organization()}
+          project={TestStubs.Project()}
+        />
       );
     });
 
@@ -55,7 +59,9 @@ describe('ErrorRobot', function() {
     let wrapper;
 
     beforeEach(function() {
-      wrapper = shallow(<ErrorRobot org={TestStubs.Organization()} />);
+      wrapper = shallow(
+        <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />
+      );
     });
 
     it('Renders a disabled create event button', function() {

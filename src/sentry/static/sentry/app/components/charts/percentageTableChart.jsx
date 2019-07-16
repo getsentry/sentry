@@ -16,7 +16,7 @@ const Delta = ({current, previous, className}) => {
   if (typeof previous === 'undefined') {
     return null;
   }
-  const changePercent = Math.round(Math.abs(current - previous) / previous * 100);
+  const changePercent = Math.round((Math.abs(current - previous) / previous) * 100);
   const direction = !changePercent ? 0 : current - previous;
   return (
     <StyledDelta direction={direction} className={className}>

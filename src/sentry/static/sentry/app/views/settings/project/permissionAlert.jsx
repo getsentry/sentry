@@ -11,10 +11,11 @@ const PermissionAlert = ({access, ...props}) => (
       !hasAccess && (
         <Alert type="warning" icon="icon-warning-sm" {...props}>
           {t(
-            'These settings can only be edited by users with the owner, manager, or admin role.'
+            'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         </Alert>
-      )}
+      )
+    }
   </Access>
 );
 

@@ -43,7 +43,7 @@ class ApiHostError(ApiError):
 
     @classmethod
     def from_exception(cls, exception):
-        if hasattr(exception, 'request'):
+        if getattr(exception, 'request'):
             return cls.from_request(exception.request)
         return cls('Unable to reach host')
 
@@ -51,6 +51,21 @@ class ApiHostError(ApiError):
     def from_request(cls, request):
         host = urlparse(request.url).netloc
         return cls(u'Unable to reach host: {}'.format(host))
+
+
+class ApiTimeoutError(ApiError):
+    code = 504
+
+    @classmethod
+    def from_exception(cls, exception):
+        if getattr(exception, 'request'):
+            return cls.from_request(exception.request)
+        return cls('Timed out reaching host')
+
+    @classmethod
+    def from_request(cls, request):
+        host = urlparse(request.url).netloc
+        return cls(u'Timed out attempting to reach host: {}'.format(host))
 
 
 class ApiUnauthorized(ApiError):

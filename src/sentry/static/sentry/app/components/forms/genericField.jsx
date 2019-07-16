@@ -62,7 +62,9 @@ export default class GenericField extends React.Component {
       case 'string':
       case 'text':
       case 'url':
-        if (props.choices) return <SelectCreatableField {...props} />;
+        if (props.choices) {
+          return <SelectCreatableField {...props} />;
+        }
         return <TextField {...props} />;
       case 'number':
         return <NumberField {...props} />;

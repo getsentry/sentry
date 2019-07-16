@@ -90,6 +90,7 @@ const TagStore = Reflux.createStore({
         predefined: true,
       },
     };
+
     this.trigger(this.tags);
   },
 
@@ -125,7 +126,9 @@ const TagStore = Reflux.createStore({
           const old = this.tags[tag.key];
 
           // Don't override predefined filters (e.g. "is")
-          if (!old || !old.predefined) obj[tag.key] = tag;
+          if (!old || !old.predefined) {
+            obj[tag.key] = tag;
+          }
 
           return obj;
         },

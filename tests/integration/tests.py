@@ -39,30 +39,6 @@ DEPENDENCY_TEST_DATA = {
             }
         }
     ),
-    "mysql": (
-        'DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
-            'default': {
-                'ENGINE': "django.db.backends.mysql",
-                'NAME': 'test',
-                'USER': 'root',
-                'PASSWORD': '',
-                'HOST': 'localhost',
-                'PORT': ''
-            }
-        }
-    ),
-    "oracle": (
-        'DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
-            'default': {
-                'ENGINE': "django.db.backends.oracle",
-                'NAME': 'test',
-                'USER': 'root',
-                'PASSWORD': '',
-                'HOST': 'localhost',
-                'PORT': ''
-            }
-        }
-    ),
     "memcache": (
         'CACHES', 'memcache', "caching backend",
         "django.core.cache.backends.memcached.MemcachedCache", {
@@ -198,7 +174,7 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
         assert instance.data['logentry'] == {'formatted': 'hello'}
         assert instance.title == instance.data['title'] == 'hello'
-        assert instance.location is instance.data['location'] is None
+        assert instance.location is instance.data.get('location', None) is None
 
         assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
@@ -257,7 +233,7 @@ class SentryRemoteTest(TestCase):
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(
-            microsecond=0, tzinfo=timezone.utc
+            microsecond=0, tzinfo=timezone.utc,
         ) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': float(timestamp.strftime('%s.%f'))}
         resp = self._postWithSignature(kwargs)
@@ -490,7 +466,7 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
 
 
-class DepdendencyTest(TestCase):
+class DependencyTest(TestCase):
     def raise_import_error(self, package):
         def callable(package_name):
             if package_name != package:
@@ -513,12 +489,6 @@ class DepdendencyTest(TestCase):
 
     def test_validate_fails_on_postgres(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['postgresql'])
-
-    def test_validate_fails_on_mysql(self):
-        self.validate_dependency(*DEPENDENCY_TEST_DATA['mysql'])
-
-    def test_validate_fails_on_oracle(self):
-        self.validate_dependency(*DEPENDENCY_TEST_DATA['oracle'])
 
     def test_validate_fails_on_memcache(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['memcache'])
@@ -561,9 +531,11 @@ class CspReportTest(TestCase):
         resp = self._postCspWithHeader(input)
         assert resp.status_code in (400, 403), resp.content
 
+    def test_invalid_report(self):
+        self.assertReportRejected('')
+
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))
 
     def test_firefox_missing_effective_uri(self):
-        input, _ = get_fixtures('firefox_blocked_asset')
-        self.assertReportRejected(input)
+        self.assertReportCreated(*get_fixtures('firefox_blocked_asset'))

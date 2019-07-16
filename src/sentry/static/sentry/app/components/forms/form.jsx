@@ -73,8 +73,11 @@ class Form extends React.Component {
     let newData = {};
     if (data) {
       Object.keys(curData).forEach(k => {
-        if (data.hasOwnProperty(k)) newData[k] = data[k];
-        else newData[k] = curData[k];
+        if (data.hasOwnProperty(k)) {
+          newData[k] = data[k];
+        } else {
+          newData[k] = curData[k];
+        }
       });
     } else {
       newData = curData;
@@ -119,28 +122,31 @@ class Form extends React.Component {
     const hasChanges = requireChanges
       ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
-    const isError = this.state.state == FormState.ERROR;
+    const isError = this.state.state === FormState.ERROR;
     const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
 
     return (
       <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
-        {isError &&
-          !hideErrors && (
-            <div className="alert alert-error alert-block">
-              {nonFieldErrors ? (
-                <div>
-                  <p>
-                    {t(
-                      'Unable to save your changes. Please correct the following errors try again.'
-                    )}
-                  </p>
-                  <ul>{nonFieldErrors.map((e, i) => <li key={i}>{e}</li>)}</ul>
-                </div>
-              ) : (
-                errorMessage
-              )}
-            </div>
-          )}
+        {isError && !hideErrors && (
+          <div className="alert alert-error alert-block">
+            {nonFieldErrors ? (
+              <div>
+                <p>
+                  {t(
+                    'Unable to save your changes. Please correct the following errors try again.'
+                  )}
+                </p>
+                <ul>
+                  {nonFieldErrors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              errorMessage
+            )}
+          </div>
+        )}
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button

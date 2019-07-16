@@ -103,9 +103,8 @@ class InstallationForm(forms.Form):
     consumer_key = forms.CharField(
         label=_('Jira Consumer Key'),
         widget=forms.TextInput(
-            attrs={'placeholder': _(
-                'sentry-consumer-key')}
-        )
+            attrs={'placeholder': _('sentry-consumer-key')}
+        ),
     )
     private_key = forms.CharField(
         label=_('Jira Consumer Private Key'),
@@ -127,6 +126,12 @@ class InstallationForm(forms.Form):
         except Exception:
             raise forms.ValidationError(
                 'Private key must be a valid SSH private key encoded in a PEM format.')
+        return data
+
+    def clean_consumer_key(self):
+        data = self.cleaned_data['consumer_key']
+        if len(data) > 200:
+            raise forms.ValidationError('Consumer key is limited to 200 characters.')
         return data
 
 
@@ -179,8 +184,11 @@ class OAuthLoginView(PipelineView):
 
             return self.redirect(authorize_url)
         except ApiError as error:
-            logger.info('identity.jira-server.request-token', extra={'error': error})
-            return pipeline.error('Could not fetch a request token from Jira')
+            logger.info('identity.jira-server.request-token', extra={
+                'url': config.get('url'),
+                'error': error
+            })
+            return pipeline.error('Could not fetch a request token from Jira. %s' % error)
 
 
 class OAuthCallbackView(PipelineView):

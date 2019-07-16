@@ -94,7 +94,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
             # set of org ids that user is a member of
             org_ids = self.get_org_ids(user)
-            for org_id, enabled in request.DATA.items():
+            for org_id, enabled in request.data.items():
                 org_id = int(org_id)
                 # We want "0" to be falsey
                 enabled = int(enabled)
@@ -121,7 +121,12 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             update_key = 'organization'
             parent_ids = set(self.get_org_ids(user))
 
-        ids_to_update = set([int(i) for i in request.DATA.keys()])
+        try:
+            ids_to_update = set([int(i) for i in request.data.keys()])
+        except ValueError:
+            return Response({
+                'detail': 'Invalid id value provided. Id values should be integers.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure that the ids we are going to update are a subset of the user's
         # list of orgs or projects
@@ -130,7 +135,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
         if notification_type == 'email':
             # make sure target emails exist and are verified
-            emails_to_check = set(request.DATA.values())
+            emails_to_check = set(request.data.values())
             emails = UserEmail.objects.filter(
                 user=user,
                 email__in=emails_to_check,
@@ -142,8 +147,8 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            for id in request.DATA:
-                val = request.DATA[id]
+            for id in request.data:
+                val = request.data[id]
                 int_val = int(val) if notification_type != 'email' else None
 
                 filter_args['%s_id' % update_key] = id

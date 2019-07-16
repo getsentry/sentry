@@ -63,10 +63,10 @@ class RepositoryFileSummary extends React.Component {
         </h5>
         <ul className="list-group list-group-striped m-b-2">
           {files.map(filename => {
-            const {id, authors, types} = fileChangeSummary[filename];
+            const {authors, types} = fileChangeSummary[filename];
             return (
               <FileChange
-                key={id}
+                key={filename}
                 filename={filename}
                 authors={Object.values(authors)}
                 types={types}
@@ -76,13 +76,12 @@ class RepositoryFileSummary extends React.Component {
           {numCollapsed > 0 && (
             <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
           )}
-          {numCollapsed === 0 &&
-            canCollapse && (
-              <li className="list-group-item list-group-item-sm align-center">
-                <span className="icon-container" />
-                <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-              </li>
-            )}
+          {numCollapsed === 0 && canCollapse && (
+            <li className="list-group-item list-group-item-sm align-center">
+              <span className="icon-container" />
+              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+            </li>
+          )}
         </ul>
       </div>
     );

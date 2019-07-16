@@ -61,9 +61,7 @@ describe('PasswordForm', function() {
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('calls API when all fields are validated and clears form on success', function(
-    done
-  ) {
+  it('calls API when all fields are validated and clears form on success', function(done) {
     wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
     wrapper
       .find('input[name="passwordNew"]')

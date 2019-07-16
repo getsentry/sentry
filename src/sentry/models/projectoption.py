@@ -11,6 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
+from sentry import projectoptions
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import BaseManager
@@ -47,9 +48,16 @@ class ProjectOptionManager(BaseManager):
             result[instance_map[obj.project_id]] = obj.value
         return result
 
-    def get_value(self, project, key, default=None):
+    def get_value(self, project, key, default=None, validate=None):
         result = self.get_all_values(project)
-        return result.get(key, default)
+        if key in result:
+            if validate is None or validate(result[key]):
+                return result[key]
+        if default is None:
+            well_known_key = projectoptions.lookup_well_known_key(key)
+            if well_known_key is not None:
+                return well_known_key.get_default(project)
+        return default
 
     def unset_value(self, project, key):
         self.filter(project=project, key=key).delete()

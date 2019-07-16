@@ -69,7 +69,9 @@ class AcceptProjectTransfer extends AsyncView {
         <p>
           {tct(
             'Projects must be transferred to a specific [organization]. ' +
-              'You can grant specific teams access to the project later under the [projectSettings].',
+              'You can grant specific teams access to the project later under the [projectSettings]. ' +
+              '(Note that granting access to at least one team is necessary for the project to ' +
+              'appear in all parts of the UI.)',
             {
               organization: <strong>{t('Organization')}</strong>,
               projectSettings: <strong>{t('Project Settings')}</strong>,
@@ -91,7 +93,7 @@ class AcceptProjectTransfer extends AsyncView {
           <SelectField
             choices={choices}
             label={t('Organization')}
-            name={'organization'}
+            name="organization"
             style={{borderBottom: 'none'}}
           />
         </Form>

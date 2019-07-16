@@ -46,6 +46,7 @@ class EventsRequest extends React.PureComponent {
      * Absolute start date for query
      */
     start: PropTypes.instanceOf(Date),
+
     /**
      * Absolute end date for query
      */
@@ -84,16 +85,32 @@ class EventsRequest extends React.PureComponent {
      */
     timeAggregationSeriesName: PropTypes.string,
 
-    // Initial loading state
+    /**
+     * Initial loading state
+     */
     loading: PropTypes.bool,
 
+    /**
+     * Should loading be shown.
+     */
     showLoading: PropTypes.bool,
+
+    /**
+     * The yAxis being plotted
+     */
+    yAxis: PropTypes.string,
+
+    /**
+     * issue group id or groupids to filter results by.
+     */
+    groupId: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
   };
 
   static defaultProps = {
     period: null,
     start: null,
     end: null,
+    groupId: null,
     interval: '1d',
     limit: 15,
     getCategory: i => i,
@@ -146,7 +163,9 @@ class EventsRequest extends React.PureComponent {
       timeseriesData = null;
     }
 
-    if (this.unmounting) return;
+    if (this.unmounting) {
+      return;
+    }
 
     this.setState({
       reloading: false,
@@ -194,7 +213,9 @@ class EventsRequest extends React.PureComponent {
   transformPreviousPeriodData = (current, previous) => {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
-    if (!previous) return null;
+    if (!previous) {
+      return null;
+    }
 
     return {
       seriesName: 'Previous Period',
@@ -209,7 +230,9 @@ class EventsRequest extends React.PureComponent {
    * Aggregate all counts for each time stamp
    */
   transformAggregatedTimeseries = (data, seriesName) => {
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     return {
       seriesName,
@@ -223,7 +246,7 @@ class EventsRequest extends React.PureComponent {
   transformTimeseriesData = data => {
     return [
       {
-        seriesName: 'Events',
+        seriesName: 'Current Period',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -233,7 +256,9 @@ class EventsRequest extends React.PureComponent {
   };
 
   transformData = data => {
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     return this.transformTimeseriesData(data);
   };
@@ -286,8 +311,7 @@ class EventsRequest extends React.PureComponent {
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
-    } =
-      (timeseriesData && this.processData(timeseriesData, true)) || {};
+    } = (timeseriesData && this.processData(timeseriesData, true)) || {};
 
     return children({
       loading,

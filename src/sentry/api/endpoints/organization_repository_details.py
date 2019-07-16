@@ -7,8 +7,12 @@ from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationRepositoryPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, Repository
@@ -27,11 +31,12 @@ class RepositorySerializer(serializers.Serializer):
         ('visible', 'visible'),
         ('active', 'active'),
     ))
-    integrationId = serializers.IntegerField(required=False)
+    integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
+    permission_classes = (OrganizationRepositoryPermission,)
 
     def put(self, request, organization, repo_id):
         if not request.user.is_authenticated():
@@ -48,12 +53,12 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if repo.status == ObjectStatus.DELETION_IN_PROGRESS:
             return Response(status=400)
 
-        serializer = RepositorySerializer(data=request.DATA, partial=True)
+        serializer = RepositorySerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
         update_kwargs = {}
         if result.get('status'):
             if result['status'] in ('visible', 'active'):

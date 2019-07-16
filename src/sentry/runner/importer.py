@@ -11,13 +11,19 @@ import imp
 import six
 import sys
 
+import click
+
 
 def install(name, config_path, default_settings, callback=None):
     sys.meta_path.append(Importer(name, config_path, default_settings, callback))
 
 
-class ConfigurationError(ValueError):
-    pass
+class ConfigurationError(ValueError, click.ClickException):
+    def show(self, file=None):
+        if file is None:
+            from click._compat import get_text_stderr
+            file = get_text_stderr()
+        click.secho('!! Configuration error: %s' % self.format_message(), file=file, fg='red')
 
 
 class Importer(object):

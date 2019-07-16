@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from copy import deepcopy
 
 from sentry.utils.meta import Meta
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 input_meta = {'': {

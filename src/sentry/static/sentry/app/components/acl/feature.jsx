@@ -65,6 +65,21 @@ class Feature extends React.Component {
     renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
     /**
+     * Specify the key to use for hookstore functionality.
+     *
+     * The hookstore key that will be checked is:
+     *
+     *     feature-disabled:{hookName}
+     *
+     * When specified, the hookstore will be checked if the feature is
+     * disabled, and the first available hook will be used as the render
+     * function.
+     *
+     * This takes precidence over the renderDisabled hookstore functionality.
+     */
+    hookName: PropTypes.string,
+
+    /**
      * If children is a function then will be treated as a render prop and
      * passed this object:
      *
@@ -125,6 +140,7 @@ class Feature extends React.Component {
       children,
       features,
       renderDisabled,
+      hookName,
       organization,
       project,
       requireAll,
@@ -139,14 +155,19 @@ class Feature extends React.Component {
     let customDisabledRender =
       renderDisabled === false
         ? false
-        : typeof renderDisabled === 'function' ? renderDisabled : () => <ComingSoon />;
+        : typeof renderDisabled === 'function'
+        ? renderDisabled
+        : () => <ComingSoon />;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
-    if (renderDisabled !== false && features.length === 1) {
-      HookStore.get(`feature-disabled:${descopeFeatureName(features[0])}`)
-        .slice(0, 1)
-        .map(hookFn => (customDisabledRender = hookFn));
+    if (hookName || (renderDisabled !== false && features.length === 1)) {
+      const hookKey = hookName || descopeFeatureName(features[0]);
+      const hooks = HookStore.get(`feature-disabled:${hookKey}`);
+
+      if (hooks.length > 0) {
+        customDisabledRender = hooks[0];
+      }
     }
 
     const renderProps = {
@@ -156,7 +177,7 @@ class Feature extends React.Component {
       hasFeature,
     };
 
-    if (!hasFeature && renderDisabled !== false) {
+    if (!hasFeature && customDisabledRender !== false) {
       return customDisabledRender({children, ...renderProps});
     }
 
@@ -164,7 +185,7 @@ class Feature extends React.Component {
       return children(renderProps);
     }
 
-    return hasFeature ? children : null;
+    return hasFeature && children ? children : null;
   }
 }
 

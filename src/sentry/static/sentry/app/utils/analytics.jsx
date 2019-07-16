@@ -1,34 +1,70 @@
 import HookStore from 'app/stores/hookStore';
 
 /**
- * If the backend for `analytics` is reload, you will need to add the event `name`
- * to the inclusion list in https://github.com/getsentry/reload/blob/master/reload_app/events.py
+ * Analytics and metric tracking functionality.
  *
+ * These are primarily driven through hooks provided through the hookstore. For
+ * sentry.io these are currently mapped to our in-house analytics backend
+ * 'Reload' and the Amplitude service.
  *
- * If you are using `gauge` or `increment`, the metric names need to be added to
- * https://github.com/getsentry/reload/blob/master/reload_app/metrics/__init__.py
+ * NOTE: sentry.io contributors, you will need to nesure that the eventKey
+ *       passed exists as an event key in the Reload events.py configuration:
+ *
+ *       https://github.com/getsentry/reload/blob/master/reload_app/events.py
+ *
+ * NOTE: sentry.io contributors, if you are using `gauge` or `increment` the
+ *       name must be added to the Reload metrics module:
+ *
+ *       https://github.com/getsentry/reload/blob/master/reload_app/metrics/__init__.py
  */
+
+/**
+ * This should be primarily used for product events. In that case where you
+ * want to track some one-off Adhoc events, use the `trackAdhocEvent` function.
+ *
+ * Generally this is the function you will want to use for event tracking.
+ *
+ * Refer for the backend implementation provided through HookStore for more
+ * details.
+ *
+ * @param {Object} options Event tracking options
+ * @param {String} options.eventKey The string key of the event to track
+ * @param {String} options.name The human readable string name of the event
+ * @param {...Object} options.data The parameters of the event to track
+ */
+export const trackAnalyticsEvent = options =>
+  HookStore.get('analytics:track-event').forEach(cb => cb(options));
+
+/**
+ * This should be used for adhoc analytics tracking.
+ *
+ * This is used for high volume events, and events with unbounded parameters,
+ * such as tracking search queries.
+ *
+ * Refer for the backend implementation provided through HookStore for a more
+ * thorough explanation of when to use this.
+ *
+ * @param {Object} options Event tracking options
+ * @param {String} options.eventKey The string key of the event to track
+ * @param {...Object} options.data The parameters of the event to track
+ */
+export const trackAdhocEvent = options =>
+  HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));
 
 /**
  * @param {String} name The name of the event
  * @param {Object} data Additional event data to record
  */
-export function analytics(name, data) {
+export const analytics = (name, data) =>
   HookStore.get('analytics:event').forEach(cb => cb(name, data));
-}
-
-export function amplitude(name, organization_id, data) {
-  HookStore.get('amplitude:event').forEach(cb => cb(name, organization_id, data));
-}
 
 /**
  * @param {String} name Metric name
  * @param {Number} value Value to record for this metric
  * @param {Object} tags An additional tags object
  */
-export function metric(name, value, tags) {
+export const metric = (name, value, tags) =>
   HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
-}
 
 // JSDOM implements window.performance but not window.performance.mark
 const CAN_MARK =
@@ -78,6 +114,11 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
   if (!end) {
     endMarkName = `${start}-end`;
     performance.mark(endMarkName);
+  }
+
+  // Check if starting mark exists
+  if (!performance.getEntriesByName(start, 'mark').length) {
+    return;
   }
 
   performance.measure(name, start, endMarkName);

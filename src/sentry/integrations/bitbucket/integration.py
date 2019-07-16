@@ -173,7 +173,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             return {
                 'provider': self.key,
                 'external_id': state['clientKey'],
-                'name': principal_data['username'],
+                'name': principal_data.get('username', principal_data['uuid']),
                 'metadata': {
                     'public_key': state['publicKey'],
                     'shared_secret': state['sharedSecret'],

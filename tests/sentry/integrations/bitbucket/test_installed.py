@@ -94,6 +94,22 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert integration.name == self.username
         assert integration.metadata == self.metadata
 
+    def test_installed_without_username(self):
+        # Remove username to simulate privacy mode.
+        del self.data_from_bitbucket['principal']['username']
+
+        response = self.client.post(
+            self.path,
+            data=self.data_from_bitbucket
+        )
+        assert response.status_code == 200
+        integration = Integration.objects.get(
+            provider=self.provider,
+            external_id=self.client_key
+        )
+        assert integration.name == self.user_data['uuid']
+        assert integration.metadata == self.metadata
+
     @responses.activate
     def test_plugin_migration(self):
         accessible_repo = Repository.objects.create(

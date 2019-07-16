@@ -9,15 +9,6 @@ import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
-export function fetchProject(api, orgId, slug) {
-  const promise = api.requestPromise(`/projects/${orgId}/${slug}/`, {method: 'GET'});
-  promise.then(project => {
-    ProjectActions.fetchSuccess(project);
-  });
-
-  return promise;
-}
-
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
 
@@ -276,4 +267,32 @@ export function sendSampleEvent(api, orgSlug, projectSlug) {
   return api.requestPromise(endpoint, {
     method: 'POST',
   });
+}
+
+/**
+ * Creates a project
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} team The team slug to assign the project to
+ * @param {String} name Name of the project
+ * @param {String} platform The platform key of the project
+ */
+export function createProject(api, orgSlug, team, name, platform) {
+  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
+    method: 'POST',
+    data: {name, platform},
+  });
+}
+
+/**
+ * Load platform documentation specific to the project. The DSN and various
+ * other project specific secrets will be included in the documentation.
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ */
+export function loadDocs(api, orgSlug, projectSlug, platform) {
+  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }

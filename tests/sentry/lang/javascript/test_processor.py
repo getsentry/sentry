@@ -4,6 +4,7 @@ import pytest
 import re
 import responses
 import six
+import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
@@ -319,7 +320,7 @@ class FetchFileTest(TestCase):
         assert exc.value.data['url'] == url
 
 
-class CacheControlTest(TestCase):
+class CacheControlTest(unittest.TestCase):
     def test_simple(self):
         headers = {'content-type': 'application/json', 'cache-control': 'max-age=120'}
         assert get_max_age(headers) == 120
@@ -361,7 +362,7 @@ class CacheControlTest(TestCase):
         assert get_max_age(headers) == CACHE_CONTROL_MIN
 
 
-class DiscoverSourcemapTest(TestCase):
+class DiscoverSourcemapTest(unittest.TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
         result = http.UrlResult('http://example.com', {}, '', 200, None)
@@ -425,7 +426,7 @@ class DiscoverSourcemapTest(TestCase):
             discover_sourcemap(result)
 
 
-class GenerateModuleTest(TestCase):
+class GenerateModuleTest(unittest.TestCase):
     def test_simple(self):
         assert generate_module(None) == '<unknown module>'
         assert generate_module('http://example.com/foo.js') == 'foo'
@@ -512,7 +513,7 @@ class FetchSourcemapTest(TestCase):
             fetch_sourcemap('http://example.com')
 
 
-class TrimLineTest(TestCase):
+class TrimLineTest(unittest.TestCase):
     long_line = 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
     def test_simple(self):
@@ -534,42 +535,7 @@ class TrimLineTest(TestCase):
         ) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
-class GenerateModulesTest(TestCase):
-    def test_get_culprit_is_patched(self):
-        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
-
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'exception': {
-                'values': [
-                    {
-                        'type': 'Error',
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'abs_path': 'http://example.com/foo.js',
-                                    'filename': 'foo.js',
-                                    'lineno': 4,
-                                    'colno': 0,
-                                    'function': 'thing',
-                                },
-                                {
-                                    'abs_path': 'http://example.com/bar.js',
-                                    'filename': 'bar.js',
-                                    'lineno': 1,
-                                    'colno': 0,
-                                    'function': 'oops',
-                                },
-                            ],
-                        },
-                    }
-                ],
-            }
-        }
-        generate_modules(data)
-        fix_culprit(data)
-        assert data['culprit'] == 'oops(bar)'
+class GenerateModulesTest(unittest.TestCase):
 
     def test_ensure_module_names(self):
         from sentry.lang.javascript.plugin import generate_modules
@@ -606,7 +572,7 @@ class GenerateModulesTest(TestCase):
         assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
 
     def test_generate_modules_skips_none(self):
-        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+        from sentry.lang.javascript.plugin import generate_modules
 
         expected = {
             'culprit': '',
@@ -638,11 +604,10 @@ class GenerateModulesTest(TestCase):
 
         actual = deepcopy(expected)
         generate_modules(actual)
-        fix_culprit(actual)
         assert actual == expected
 
 
-class ErrorMappingTest(TestCase):
+class ErrorMappingTest(unittest.TestCase):
     @responses.activate
     def test_react_error_mapping_resolving(self):
         responses.add(

@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 from django.db.models import Q
 
@@ -38,15 +39,11 @@ def score_path_match_length(path_a, path_b):
 
 def _get_frame_paths(event):
     data = event.data
-    try:
-        frames = data['stacktrace']['frames']
-    except KeyError:
-        try:
-            frames = data['exception']['values'][0]['stacktrace']['frames']
-        except (KeyError, TypeError):
-            return []  # can't find stacktrace information
+    frames = get_path(data, 'stacktrace', 'frames', filter=True)
+    if frames:
+        return frames
 
-    return frames
+    return get_path(data, 'exception', 'values', 0, 'stacktrace', 'frames', filter=True) or []
 
 
 def _get_commits(releases):
@@ -128,10 +125,10 @@ def _get_committers(annotated_frames, commits):
     user_dicts = [
         {
             'author': users_by_author.get(six.text_type(author_id)),
-            'commits': _get_commits_committer(
-                commits,
-                author_id,
-            )
+            'commits': [
+                (commit, score) for (commit, score) in commits
+                if commit.author.id == author_id
+            ],
         } for author_id in sorted_committers
     ]
 
@@ -186,7 +183,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event)
+    frames = _get_frame_paths(event) or ()
     app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
@@ -201,7 +198,11 @@ def get_event_file_committers(project, event, frame_limit=25):
             if frame.get('filename') is None:
                 continue
             if '/' not in frame.get('filename') and frame.get('module'):
-                frame['filename'] = frame['module'].replace('.', '/') + '/' + frame['filename']
+                # Replace the last module segment with the filename, as the
+                # terminal element in a module path is the class
+                module = frame['module'].split('.')
+                module[-1] = frame['filename']
+                frame['filename'] = '/'.join(module)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
@@ -228,9 +229,29 @@ def get_event_file_committers(project, event, frame_limit=25):
         {match for match in commit_path_matches for match in commit_path_matches[match]}
     )
 
-    committers = _get_committers(annotated_frames, relevant_commits)
+    return _get_committers(annotated_frames, relevant_commits)
+
+
+def get_serialized_event_file_committers(project, event, frame_limit=25):
+    committers = get_event_file_committers(project, event, frame_limit=frame_limit)
+    commits = [commit for committer in committers for commit in committer['commits']]
+    serialized_commits = serialize(
+        [c for (c, score) in commits], serializer=CommitSerializer(exclude=['author']),
+    )
+
+    serialized_commits_by_id = {}
+
+    for (commit, score), serialized_commit in zip(commits, serialized_commits):
+        serialized_commit['score'] = score
+        serialized_commits_by_id[commit.id] = serialized_commit
+
+    for committer in committers:
+        commit_ids = [commit.id for (commit, _) in committer['commits']]
+        committer['commits'] = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+
     metrics.incr(
         'feature.owners.has-committers',
         instance='hit' if committers else 'miss',
-        skip_internal=False)
+        skip_internal=False,
+    )
     return committers

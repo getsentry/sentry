@@ -49,7 +49,7 @@ class NarrowLayout extends React.Component {
   }
 }
 
-const Logout = styled.span`
+const Logout = styled('span')`
   font-size: 16px;
 `;
 

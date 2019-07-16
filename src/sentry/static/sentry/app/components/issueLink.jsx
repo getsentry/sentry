@@ -1,20 +1,22 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import {Link} from 'react-router';
+import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
-import Hovercard from 'app/components/hovercard';
-import Count from 'app/components/count';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import Count from 'app/components/count';
+import EventAnnotation from 'app/components/events/eventAnnotation';
+import EventMessage from 'app/components/events/eventMessage';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import Hovercard from 'app/components/hovercard';
+import TimeSince from 'app/components/timeSince';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 export default class IssueLink extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     issue: PropTypes.object.isRequired,
     to: PropTypes.string.isRequired,
     card: PropTypes.bool,
@@ -37,78 +39,82 @@ export default class IssueLink extends React.Component {
   }
 
   renderBody() {
-    const {organization, issue, orgId, projectId} = this.props;
+    const {issue, orgId} = this.props;
     const message = this.getMessage(issue);
 
-    const className = classNames(`type-${issue.type}`, `level-${issue.level}`, {
+    const className = classNames({
       isBookmarked: issue.isBookmarked,
       hasSeen: issue.hasSeen,
       isResolved: issue.status === 'resolved',
     });
 
-    const streamPath = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/`;
+    const streamPath = `/organizations/${orgId}/issues/`;
 
     return (
       <div className={className}>
-        <div style={{marginBottom: 15}}>
-          <h3>
+        <Section>
+          <Title>
             <EventOrGroupTitle data={issue} />
-          </h3>
-          <div className="event-message">
-            <span className="error-level">{issue.level}</span>
-            {message && <span className="message">{message}</span>}
-            {issue.logger && (
-              <span className="event-annotation">
-                <Link
-                  to={{
-                    pathname: streamPath,
-                    query: {query: 'logger:' + issue.logger},
-                  }}
-                >
-                  {issue.logger}
-                </Link>
-              </span>
-            )}
-            {issue.annotations.map((annotation, i) => {
-              return (
-                <span
-                  className="event-annotation"
-                  key={i}
-                  dangerouslySetInnerHTML={{__html: annotation}}
-                />
-              );
-            })}
+          </Title>
+
+          <HovercardEventMessage
+            level={issue.level}
+            levelIndicatorSize="9px"
+            message={message}
+            annotations={
+              <React.Fragment>
+                {issue.logger && (
+                  <EventAnnotation>
+                    <Link
+                      to={{
+                        pathname: streamPath,
+                        query: {query: `logger:${issue.logger}`},
+                      }}
+                    >
+                      {issue.logger}
+                    </Link>
+                  </EventAnnotation>
+                )}
+                {issue.annotations.map((annotation, i) => {
+                  return (
+                    <EventAnnotation
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  );
+                })}
+              </React.Fragment>
+            }
+          />
+        </Section>
+
+        <Grid>
+          <div>
+            <GridHeader>{t('First Seen')}</GridHeader>
+            <StyledTimeSince date={issue.firstSeen} />
           </div>
-        </div>
-        <div className="row row-flex" style={{marginBottom: 15}}>
-          <div className="col-xs-6">
-            <h6>{t('First Seen')}</h6>
-            <TimeSince date={issue.firstSeen} />
+          <div>
+            <GridHeader>{t('Last Seen')}</GridHeader>
+            <StyledTimeSince date={issue.lastSeen} />
           </div>
-          <div className="col-xs-6">
-            <h6>{t('Last Seen')}</h6>
-            <TimeSince date={issue.lastSeen} />
-          </div>
-        </div>
-        <div className="row row-flex">
-          <div className="col-xs-6">
-            <h6>{t('Occurrences')}</h6>
+          <div>
+            <GridHeader>{t('Occurrences')}</GridHeader>
             <Count value={issue.count} />
           </div>
-          <div className="col-xs-6">
-            <h6>{t('Users Affected')}</h6>
+          <div>
+            <GridHeader>{t('Users Affected')}</GridHeader>
             <Count value={issue.userCount} />
           </div>
-        </div>
+        </Grid>
       </div>
     );
   }
 
   render() {
     const {card, issue, to} = this.props;
-    if (!card) return <Link to={to}>{this.props.children}</Link>;
+    if (!card) {
+      return <Link to={to}>{this.props.children}</Link>;
+    }
 
     return (
       <Hovercard body={this.renderBody()} header={issue.shortId}>
@@ -117,3 +123,40 @@ export default class IssueLink extends React.Component {
     );
   }
 }
+
+const Title = styled('h3')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0 0 ${space(0.5)};
+  ${overflowEllipsis};
+
+  em {
+    font-style: normal;
+    font-weight: 400;
+    color: ${p => p.theme.gray2};
+    font-size: 90%;
+  }
+`;
+
+const Section = styled('section')`
+  margin-bottom: ${space(2)};
+`;
+
+const Grid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: ${space(2)};
+`;
+const HovercardEventMessage = styled(EventMessage)`
+  font-size: 12px;
+`;
+
+const GridHeader = styled('h5')`
+  color: ${p => p.theme.gray2};
+  font-size: 11px;
+  margin-bottom: ${space(0.5)};
+  text-transform: uppercase;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: inherit;
+`;

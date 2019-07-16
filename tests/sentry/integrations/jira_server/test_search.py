@@ -132,6 +132,7 @@ class JiraSearchEndpointTest(APITestCase):
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
             assert 'HSP' == query['project'][0]
+            assert 'bob' == query['query'][0]
             return (200, {}, EXAMPLE_USER_SEARCH_RESPONSE)
 
         responses.add_callback(

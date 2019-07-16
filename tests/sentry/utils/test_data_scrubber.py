@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.constants import FILTER_MASK
-from sentry.testutils import TestCase
+from unittest import TestCase
 from sentry.utils.data_scrubber import SensitiveDataFilter
 
 VARS = {

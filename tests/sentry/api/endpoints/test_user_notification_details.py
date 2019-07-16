@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 from sentry.testutils import APITestCase
-from sentry.models import UserOption
+from sentry.models import (
+    UserOption,
+    UserOptionValue,
+)
 
 from django.core.urlresolvers import reverse
 
@@ -65,13 +68,14 @@ class UserNotificationDetailsTest(APITestCase):
             key="deploy-emails",
             value=1)
 
-        # default is 0
+        # default is UserOptionValue.participating_only
         UserOption.objects.create(
             user=user,
             project=None,
             organization=org,
             key="workflow:notifications",
-            value=1)
+            value=UserOptionValue.all_conversations,
+        )
 
         self.login_as(user=user)
 
@@ -86,7 +90,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert resp.data.get('personalActivityNotifications') is False
         assert resp.data.get('selfAssignOnResolve') is False
         assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('workflowNotifications') == int(UserOptionValue.participating_only)
 
     def test_saves_and_returns_values(self):
         user = self.create_user(email='a@example.com')
@@ -110,7 +114,7 @@ class UserNotificationDetailsTest(APITestCase):
         assert resp.data.get('personalActivityNotifications') is True
         assert resp.data.get('selfAssignOnResolve') is True
         assert resp.data.get('subscribeByDefault') is True
-        assert resp.data.get('workflowNotifications') == 0
+        assert resp.data.get('workflowNotifications') == int(UserOptionValue.participating_only)
 
         assert UserOption.objects.get(user=user,
                                       project=None,

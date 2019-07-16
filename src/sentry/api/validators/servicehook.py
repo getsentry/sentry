@@ -18,10 +18,9 @@ class ServiceHookValidator(serializers.Serializer):
     ), required=False, default=0)
     isActive = serializers.BooleanField(required=False, default=True)
 
-    def validate_events(self, attrs, source):
-        value = attrs[source]
+    def validate_events(self, value):
         if value:
             for event in value:
                 if event not in SERVICE_HOOK_EVENTS:
                     raise serializers.ValidationError(u'Invalid event name: {}'.format(event))
-        return attrs
+        return value

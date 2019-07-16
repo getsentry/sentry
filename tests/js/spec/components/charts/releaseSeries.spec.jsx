@@ -44,6 +44,23 @@ describe('ReleaseSeries', function() {
     );
   });
 
+  it('fetches releases with project conditions', async function() {
+    const wrapper = mount(
+      <ReleaseSeries projects={[1, 2]}>{renderFunc}</ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {project: [1, 2]},
+      })
+    );
+  });
+
   it('generates an eCharts `markLine` series from releases', async function() {
     const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 

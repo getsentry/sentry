@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import unittest
 
 from exam import fixture
 from django.http import HttpRequest
@@ -24,9 +25,10 @@ from sentry.utils.data_filters import (
     is_valid_error_message,
     FilterTypes,
 )
+from sentry.web.relay_config import get_full_relay_config
 
 
-class AbsoluteUriTest(TestCase):
+class AbsoluteUriTest(unittest.TestCase):
     def test_without_path(self):
         assert absolute_uri() == options.get('system.url-prefix')
 
@@ -34,7 +36,7 @@ class AbsoluteUriTest(TestCase):
         assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'), )
 
 
-class SameDomainTestCase(TestCase):
+class SameDomainTestCase(unittest.TestCase):
     def test_is_same_domain(self):
         url1 = 'http://example.com/foo/bar'
         url2 = 'http://example.com/biz/baz'
@@ -102,7 +104,7 @@ class GetOriginsTestCase(TestCase):
             self.assertEquals(result, frozenset([u'*']))
 
 
-class IsValidOriginTestCase(TestCase):
+class IsValidOriginTestCase(unittest.TestCase):
     @fixture
     def project(self):
         return mock.Mock()
@@ -253,7 +255,8 @@ class IsValidOriginTestCase(TestCase):
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):
         self.project.update_option('sentry:blacklisted_ips', inputs)
-        return is_valid_ip(self.project, ip)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_ip(relay_config, ip)
 
     def test_not_in_blacklist(self):
         assert self.is_valid_ip('127.0.0.1', [])
@@ -274,7 +277,8 @@ class IsValidIPTestCase(TestCase):
 class IsValidReleaseTestCase(TestCase):
     def is_valid_release(self, value, inputs):
         self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), inputs)
-        return is_valid_release(self.project, value)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_release(relay_config, value)
 
     def test_release_not_in_list(self):
         assert self.is_valid_release('1.2.3', None)
@@ -293,7 +297,8 @@ class IsValidReleaseTestCase(TestCase):
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
         self.project.update_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
-        return is_valid_error_message(self.project, value)
+        relay_config = get_full_relay_config(self.project.id)
+        return is_valid_error_message(relay_config, value)
 
     def test_error_class_not_in_list(self):
         assert self.is_valid_error_message(
@@ -319,6 +324,12 @@ class IsValidErrorMessageTestCase(TestCase):
         assert self.is_valid_error_message(1, ['ImportError*'])
         assert self.is_valid_error_message(None, ['ImportError*'])
         assert self.is_valid_error_message({}, ['ImportError*'])
+
+    def test_bad_characters_in_pattern(self):
+        patterns = [
+            u"*google_tag_manager['GTM-3TL3'].macro(...)*",
+        ]
+        assert self.is_valid_error_message('it bad', patterns)
 
 
 class OriginFromRequestTestCase(TestCase):

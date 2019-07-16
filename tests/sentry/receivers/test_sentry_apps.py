@@ -3,25 +3,8 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
-
-
-@patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
-class TestIssueSaved(TestCase):
-    def test_processes_created_issues(self, delay):
-        issue = self.create_group()
-        assert faux(delay).called_with(
-            action='created',
-            sender='Group',
-            instance_id=issue.id,
-        )
-
-    def test_does_not_process_unless_created(self, delay):
-        issue = self.create_group()
-        delay.reset_mock()
-        issue.update(message='Stuff blew up')
-        assert len(delay.mock_calls) == 0
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -61,7 +44,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved'},
+            data={'resolution_type': 'now'},
         )
 
     def test_notify_after_resolve_in_commit(self, delay):
@@ -82,7 +65,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_commit'},
+            data={'resolution_type': 'in_commit'},
         )
 
     def test_notify_after_resolve_in_specific_release(self, delay):
@@ -99,7 +82,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_release'},
         )
 
     def test_notify_after_resolve_in_latest_release(self, delay):
@@ -116,7 +99,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_release'},
         )
 
     def test_notify_after_resolve_in_next_release(self, delay):
@@ -133,7 +116,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_next_release'},
         )
 
     def test_notify_after_resolve_from_set_commits(self, delay):
@@ -178,7 +161,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=None,
-            data={'resolution_type': 'resolved_in_commit'},
+            data={'resolution_type': 'with_commit'},
         )
 
     def test_notify_after_issue_ignored(self, delay):

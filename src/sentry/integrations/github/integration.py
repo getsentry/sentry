@@ -85,6 +85,11 @@ API_ERRORS = {
 }
 
 
+def build_repository_query(metadata, name, query):
+    account_type = 'user' if metadata['account_type'] == 'User' else 'org'
+    return (u'%s:%s %s' % (account_type, name, query)).encode('utf-8')
+
+
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
     repo_search = True
 
@@ -98,8 +103,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 'identifier': i['full_name']
             } for i in self.get_client().get_repositories()]
 
-        account_type = 'user' if self.model.metadata['account_type'] == 'User' else 'org'
-        full_query = (u'%s:%s %s' % (account_type, self.model.name, query)).encode('utf-8')
+        full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [{
             'name': i['name'],

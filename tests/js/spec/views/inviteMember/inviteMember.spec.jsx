@@ -7,37 +7,50 @@ import ConfigStore from 'app/stores/configStore';
 jest.mock('app/api');
 jest.mock('jquery');
 
-describe('CreateProject', function() {
-  let sandbox;
-  const baseProps = {
-    params: {
-      orgId: 'testOrg',
-    },
-    location: {query: {}},
-  };
-
-  const baseContext = TestStubs.routerContext([
-    {
-      organization: {
-        id: '1',
-        slug: 'testOrg',
-        teams: [
-          {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
-          {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
-        ],
-      },
-      location: {query: {}},
-    },
-  ]);
+describe('InviteMember', function() {
+  let organization, baseProps, teams, baseContext;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: true});
-    MockApiClient.clearMockResponses();
-  });
+    organization = TestStubs.Organization({
+      id: '1',
+      slug: 'testOrg',
+      teams: [
+        {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
+        {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+      ],
+    });
 
-  afterEach(function() {
-    sandbox.restore();
+    baseProps = {
+      api: new MockApiClient(),
+      params: {
+        orgId: 'testOrg',
+      },
+      organization,
+      location: {query: {}},
+    };
+
+    teams = [
+      {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
+      {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+    ];
+
+    baseContext = TestStubs.routerContext([
+      {
+        organization,
+        location: {query: {}},
+      },
+    ]);
+
+    jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
+      id: 1,
+      invitesEnabled: true,
+    }));
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/teams/',
+      body: teams,
+    });
   });
 
   it('should render loading', function() {
@@ -62,8 +75,8 @@ describe('CreateProject', function() {
 
     const context = _.cloneDeep(baseContext);
 
-    const team = context.context.organization.teams.slice(0, 1);
-    context.context.organization.teams = team;
+    const team = organization.teams.slice(0, 1);
+    organization.teams = team;
 
     const wrapper = mount(<InviteMember {...baseProps} />, context);
 
@@ -71,61 +84,11 @@ describe('CreateProject', function() {
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
   });
 
-  it('can select and deselect all teams', function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/testOrg/members/me/',
-      body: {
-        roles: [
-          {
-            id: '1',
-            name: 'member',
-            desc: 'a normal member',
-            allowed: true,
-          },
-        ],
-      },
-    });
-
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
-
-    const first = 'TeamSelect Checkbox[id="bar"]';
-    const last = 'TeamSelect Checkbox[id="foo"]';
-    const selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
-
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-    expect(selectAllButton).toHaveLength(1);
-
-    // select and deselect all
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(true);
-
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-    expect(wrapper.find(first).prop('checked')).toBe(false);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-
-    // select one, then select all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(1);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-
-    // select both, then deselect all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(1);
-    wrapper.find(last).simulate('change');
-    expect(wrapper.state('selectedTeams').size).toBe(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('selectedTeams').size).toBe(0);
-  });
-
   it('should use invite/add language based on config', function() {
-    sandbox.restore(ConfigStore, 'getConfig');
-    sandbox.stub(ConfigStore, 'getConfig').returns({id: 1, invitesEnabled: false});
+    jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
+      id: 1,
+      invitesEnabled: false,
+    }));
 
     const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
     wrapper.setState({
@@ -211,9 +174,6 @@ describe('CreateProject', function() {
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
 
-    node = wrapper.find('.team-choices input').first();
-    node.props().onChange({preventDefault: () => {}});
-
     expect(wrapper).toMatchSnapshot();
 
     node = wrapper.find('.invite-member-submit').first();
@@ -255,9 +215,6 @@ describe('CreateProject', function() {
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
 
-    node = wrapper.find('.team-choices input').first();
-    node.props().onChange({preventDefault: () => {}});
-
     node = wrapper.find('.invite-member-submit').first();
     node.props().onClick({preventDefault: () => {}});
     expect(wrapper.state('busy')).toBe(false);
@@ -275,5 +232,106 @@ describe('CreateProject', function() {
     expect(wrapper.find('.has-error')).toHaveLength(1);
     expect(wrapper.find('.has-error #id-email')).toHaveLength(1);
     expect(wrapper.find('.has-error .error').text()).toBe('Enter a valid email address.');
+  });
+
+  it('allows teams to be removed', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/me/',
+      body: {
+        roles: [
+          {id: '1', name: 'member', desc: 'a normal member', allowed: true},
+          {id: '2', name: 'bar', desc: 'another role', allowed: true},
+        ],
+      },
+    });
+    const inviteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/',
+      method: 'POST',
+      statusCode: 200,
+    });
+
+    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    // Wait for team list to load
+    await tick();
+
+    // set the email address
+    wrapper.find('input[name="email"]').simulate('change', {
+      target: {value: 'test@example.com'},
+    });
+
+    // Select new team to join
+    // Open the dropdown
+    wrapper.find('TeamSelect DropdownButton').simulate('click');
+
+    // Click the first item
+    wrapper
+      .find('TeamSelect TeamDropdownElement')
+      .first()
+      .simulate('click');
+
+    // Remove our one team
+    const button = wrapper.find('TeamSelect TeamRow Button');
+    expect(button).toHaveLength(1);
+    button.simulate('click');
+
+    // Save Member
+    wrapper.find('Button[priority="primary"]').simulate('click');
+
+    expect(inviteRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          teams: [],
+        }),
+      })
+    );
+  });
+
+  it('allows teams to be added', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/me/',
+      body: {
+        roles: [
+          {id: '1', name: 'member', desc: 'a normal member', allowed: true},
+          {id: '2', name: 'bar', desc: 'another role', allowed: true},
+        ],
+      },
+    });
+    const inviteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/',
+      method: 'POST',
+      statusCode: 200,
+    });
+    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+
+    // Wait for team list to fetch.
+    await wrapper.update();
+
+    // set the email address
+    wrapper.find('input[name="email"]').simulate('change', {
+      target: {value: 'test@example.com'},
+    });
+
+    // Select new team to join
+    // Open the dropdown
+    wrapper.find('TeamSelect DropdownButton').simulate('click');
+
+    // Click the first item
+    wrapper
+      .find('TeamSelect TeamDropdownElement')
+      .first()
+      .simulate('click');
+
+    // Save Member
+    wrapper.find('Button[priority="primary"]').simulate('click');
+
+    expect(inviteRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          teams: ['bar'],
+        }),
+      })
+    );
   });
 });

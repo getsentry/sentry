@@ -10,7 +10,6 @@ import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -83,7 +82,11 @@ export default class IgnoreActions extends React.Component {
       return (
         <div className="btn-group">
           <Tooltip title={t('Change status to unresolved')}>
-            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+            <a
+              className={linkClassName}
+              data-test-id="button-unresolve"
+              onClick={() => onUpdate({status: 'unresolved'})}
+            >
               <span className="icon-ban" />
             </a>
           </Tooltip>
@@ -121,11 +124,11 @@ export default class IgnoreActions extends React.Component {
         <div className="btn-group">
           <ActionLink
             {...actionLinkProps}
+            title="Ignore"
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 
@@ -195,7 +198,8 @@ export default class IgnoreActions extends React.Component {
                                   this.onIgnore({
                                     ignoreCount: count,
                                     ignoreWindow: hours,
-                                  })}
+                                  })
+                                }
                               >
                                 {label}
                               </ActionLink>
@@ -245,7 +249,8 @@ export default class IgnoreActions extends React.Component {
                                   this.onIgnore({
                                     ignoreUserCount: count,
                                     ignoreUserWindow: hours,
-                                  })}
+                                  })
+                                }
                               >
                                 {label}
                               </ActionLink>

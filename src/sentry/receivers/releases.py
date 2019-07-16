@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.models import (
     Activity, Commit, Group, GroupAssignee, GroupLink, GroupSubscription, GroupSubscriptionReason, GroupStatus, Release, Repository, PullRequest, UserOption
 )
-from sentry.signals import resolved_with_commit
+from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
@@ -140,8 +140,15 @@ def resolved_in_commit(instance, created, **kwargs):
                         organization_id=repo.organization_id,
                     )
                 user = user_list[0] if user_list else None
-                resolved_with_commit.send_robust(
-                    organization_id=repo.organization_id, user=user, group=group, sender='resolved_in_commit')
+
+                issue_resolved.send_robust(
+                    organization_id=repo.organization_id,
+                    user=user,
+                    group=group,
+                    project=group.project,
+                    resolution_type='with_commit',
+                    sender='resolved_with_commit',
+                )
 
 
 def resolved_in_pull_request(instance, created, **kwargs):

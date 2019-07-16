@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
 import six
-import pytz
 
 from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.mediators import sentry_apps
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
 
@@ -17,14 +15,14 @@ class TestSentryAppAuthorizations(APITestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = sentry_apps.Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.create_organization(),
             scopes=('org:read', ),
             webhook_url='http://example.com',
         )
 
-        self.other_sentry_app = sentry_apps.Creator.run(
+        self.other_sentry_app = self.create_sentry_app(
             name='slowdb',
             organization=self.create_organization(),
             scopes=(),
@@ -75,7 +73,6 @@ class TestSentryAppAuthorizations(APITestCase):
             second=0,
             microsecond=0,
         )
-
         assert expires_at == expected_expires_at
 
     def test_incorrect_grant_type(self):
@@ -156,5 +153,5 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.data['refreshToken'] != refresh_token
         assert response.data['expiresAt'] > datetime.utcnow()
 
-        old_token = ApiToken.objects.get(id=token_id)
-        assert old_token.expires_at < datetime.now(pytz.UTC)
+        old_token = ApiToken.objects.filter(id=token_id)
+        assert not old_token.exists()

@@ -71,8 +71,9 @@ export default class IntegrationRepos extends AsyncComponent {
   searchRepositoriesRequest = searchQuery => {
     const orgId = this.context.organization.slug;
     const query = {search: searchQuery};
-    const endpoint = `/organizations/${orgId}/integrations/${this.props.integration
-      .id}/repos/`;
+    const endpoint = `/organizations/${orgId}/integrations/${
+      this.props.integration.id
+    }/repos/`;
     return this.api.request(endpoint, {
       method: 'GET',
       query,
@@ -101,7 +102,7 @@ export default class IntegrationRepos extends AsyncComponent {
       if (!(selection.value && item.externalSlug)) {
         return false;
       }
-      return selection.value == item.externalSlug;
+      return selection.value === item.externalSlug;
     })[0];
 
     let promise;
@@ -120,7 +121,7 @@ export default class IntegrationRepos extends AsyncComponent {
 
   renderDropdown() {
     const access = new Set(this.context.organization.access);
-    if (!access.has('org:write')) {
+    if (!access.has('org:integrations')) {
       return (
         <DropdownButton
           disabled={true}
@@ -199,7 +200,7 @@ export default class IntegrationRepos extends AsyncComponent {
                 icon="icon-commit"
                 title={t('Sentry is better with commit data')}
                 description={t(
-                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
                 )}
                 action={
                   <Button href="https://docs.sentry.io/learn/releases/">

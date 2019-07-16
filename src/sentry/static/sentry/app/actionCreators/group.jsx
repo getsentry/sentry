@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
-import GroupActions from 'app/actions/groupActions';
 import {buildUserId, buildTeamId} from 'app/utils';
 import {uniqueId} from 'app/utils/guid';
+import GroupActions from 'app/actions/groupActions';
+import GroupStore from 'app/stores/groupStore';
 
 export function assignToUser(params) {
   const api = new Client();
@@ -104,4 +105,46 @@ export function assignToActor({id, actor}) {
     .catch(data => {
       GroupActions.assignToError(guid, id, data);
     });
+}
+
+export function deleteNote(api, group, id, oldText) {
+  const index = GroupStore.removeActivity(group.id, id);
+  if (index === -1) {
+    // I dunno, the id wasn't found in the GroupStore
+    return Promise.reject(new Error('Group was not found in store'));
+  }
+
+  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
+    method: 'DELETE',
+  });
+
+  promise.catch(() =>
+    GroupStore.addActivity(group.id, {id, data: {text: oldText}}, index)
+  );
+
+  return promise;
+}
+
+export function createNote(api, group, note) {
+  const promise = api.requestPromise(`/issues/${group.id}/comments/`, {
+    method: 'POST',
+    data: note,
+  });
+
+  promise.then(data => GroupStore.addActivity(group.id, data));
+
+  return promise;
+}
+
+export function updateNote(api, group, note, id, oldText) {
+  GroupStore.updateActivity(group.id, id, {text: note.text});
+
+  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
+    method: 'PUT',
+    data: note,
+  });
+
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
+
+  return promise;
 }

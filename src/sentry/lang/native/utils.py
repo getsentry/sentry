@@ -4,24 +4,66 @@ import re
 import six
 import logging
 
-from collections import namedtuple
-from symbolic import parse_addr, arch_from_macho, arch_is_known
-
-from sentry.interfaces.contexts import DeviceContextType
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
-# Regular expression to parse OS versions from a minidump OS string
+# Regex to parse OS versions from a minidump OS string.
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
-# Regular expression to guess whether we're dealing with Windows or Unix paths
+# Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r'^([a-z]:\\|\\\\)', re.IGNORECASE)
 
-AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
+# Event platforms that could contain native stacktraces
+NATIVE_PLATFORMS = ('cocoa', 'native')
+
+# Debug image types that can be handled by the symbolicator
+NATIVE_IMAGE_TYPES = (
+    'apple',     # Deprecated in favor of "macho"
+    'symbolic',  # Generic if type is not known
+    'elf',       # Linux
+    'macho',     # macOS, iOS
+    'pe'         # Windows
+)
+
+
+def is_native_platform(platform):
+    return platform in NATIVE_PLATFORMS
+
+
+def is_native_image(image):
+    return bool(image) \
+        and image.get('type') in NATIVE_IMAGE_TYPES \
+        and image.get('image_addr') is not None \
+        and image.get('image_size') is not None \
+        and (image.get('debug_id') or image.get('id') or image.get('uuid')) is not None
+
+
+def native_images_from_data(data):
+    return get_path(data, 'debug_meta', 'images', default=(),
+                    filter=is_native_image)
+
+
+def is_native_event(data):
+    if is_native_platform(data.get('platform')):
+        return True
+
+    for stacktrace in find_stacktraces_in_data(data):
+        if any(is_native_platform(x) for x in stacktrace.platforms):
+            return True
+
+    return False
+
+
+def is_minidump_event(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
 
 
 def image_name(pkg):
+    if not pkg:
+        return pkg
     split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
     return pkg.rsplit(split, 1)[-1]
 
@@ -55,43 +97,10 @@ def get_sdk_from_os(data):
     }
 
 
-def cpu_name_from_data(data):
-    """Returns the CPU name from the given data if it exists."""
-    device = DeviceContextType.primary_value_for_data(data)
-    if device and device.get('arch'):
-        return device['arch']
+def signal_from_data(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
+    if signal is not None:
+        return int(signal)
 
-    # TODO: kill this here.  we want to not support that going forward
-    unique_cpu_name = None
-    for img in get_path(data, 'debug_meta', 'images', filter=True, default=()):
-        if img.get('arch') and arch_is_known(img['arch']):
-            cpu_name = img['arch']
-        elif img.get('cpu_type') is not None \
-                and img.get('cpu_subtype') is not None:
-            cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
-        else:
-            cpu_name = None
-        if unique_cpu_name is None:
-            unique_cpu_name = cpu_name
-        elif unique_cpu_name != cpu_name:
-            unique_cpu_name = None
-            break
-
-    return unique_cpu_name
-
-
-def rebase_addr(instr_addr, obj):
-    return parse_addr(instr_addr) - parse_addr(obj.addr)
-
-
-def sdk_info_to_sdk_id(sdk_info):
-    if sdk_info is None:
-        return None
-    rv = '%s_%d.%d.%d' % (
-        sdk_info['sdk_name'], sdk_info['version_major'], sdk_info['version_minor'],
-        sdk_info['version_patchlevel'],
-    )
-    build = sdk_info.get('build')
-    if build is not None:
-        rv = '%s_%s' % (rv, build)
-    return rv
+    return None

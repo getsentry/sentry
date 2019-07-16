@@ -258,3 +258,124 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not om.user.is_managed
 
         assert email_unlink_notifications.delay.called
+
+    def test_edit_sso_settings(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
+
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        assert organization.default_role == 'member'
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.post(path, {
+                'op': 'settings',
+                'require_link': False,
+                'default_role': 'owner',
+            })
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization=organization)
+        assert getattr(auth_provider.flags, 'allow_unlinked')
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'owner'
+
+        assert AuditLogEntry.objects.filter(
+            organization=organization,
+            target_object=auth_provider.id,
+            event=AuditLogEntryEvent.SSO_EDIT,
+            actor=self.user,
+            data={'require_link': u'to False', 'default_role': u'to owner'}
+        ).exists()
+
+    def test_edit_sso_settings__sso_required(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
+
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        assert organization.default_role == 'member'
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.post(path, {
+                'op': 'settings',
+                'require_link': False,
+                'default_role': 'member',
+            })
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization=organization)
+        assert getattr(auth_provider.flags, 'allow_unlinked')
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'member'
+
+        assert AuditLogEntry.objects.filter(
+            organization=organization,
+            target_object=auth_provider.id,
+            event=AuditLogEntryEvent.SSO_EDIT,
+            actor=self.user,
+            data={'require_link': u'to False'}
+        ).exists()
+
+    def test_edit_sso_settings__default_role(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
+
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        assert organization.default_role == 'member'
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.post(path, {
+                'op': 'settings',
+                'require_link': True,
+                'default_role': 'owner',
+            })
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization=organization)
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'owner'
+
+        assert AuditLogEntry.objects.filter(
+            organization=organization,
+            target_object=auth_provider.id,
+            event=AuditLogEntryEvent.SSO_EDIT,
+            actor=self.user,
+            data={'default_role': u'to owner'}
+        ).exists()
+
+    def test_edit_sso_settings__no_change(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        path = reverse('sentry-organization-auth-provider-settings', args=[organization.slug])
+
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        assert organization.default_role == 'member'
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.post(path, {
+                'op': 'settings',
+                'require_link': True,
+                'default_role': 'member',
+            })
+
+        assert resp.status_code == 200
+
+        auth_provider = AuthProvider.objects.get(organization=organization)
+        assert not getattr(auth_provider.flags, 'allow_unlinked')
+        organization = Organization.objects.get(id=organization.id)
+        assert organization.default_role == 'member'
+
+        assert not AuditLogEntry.objects.filter(
+            organization=organization,
+            event=AuditLogEntryEvent.SSO_EDIT,
+        ).exists()

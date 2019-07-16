@@ -1,0 +1,1260 @@
+{
+  "culprit": "/",
+  "event_id": "52291722d1c24b4cb2a29c4ea1e5cc6f",
+  "environment": "local",
+  "platform": "php",
+  "logger": "",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "/server.php",
+              "pre_context": [
+                "// application without having installed a \"real\" web server software here.",
+                "if ($uri !== '/' && file_exists(__DIR__.'/public'.$uri)) {",
+                "    return false;",
+                "}",
+                ""
+              ],
+              "post_context": [
+                ""
+              ],
+              "in_app": true,
+              "lineno": 21,
+              "filename": "/server.php",
+              "context_line": "require_once __DIR__.'/public/index.php';"
+            },
+            {
+              "function": "require_once",
+              "abs_path": "/public/index.php",
+              "pre_context": [
+                "*/",
+                "",
+                "$kernel = $app->make(Illuminate\\Contracts\\Http\\Kernel::class);",
+                "",
+                "$response = $kernel->handle("
+              ],
+              "vars": {
+                "param1": "/Users/haza/Projects/demo-projects/php/blog/public/index.php"
+              },
+              "post_context": [
+                ");",
+                "",
+                "$response->send();",
+                "",
+                "$kernel->terminate($request, $response);"
+              ],
+              "filename": "/public/index.php",
+              "lineno": 55,
+              "in_app": true,
+              "context_line": "    $request = Illuminate\\Http\\Request::capture()"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Kernel::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "pre_context": [
+                "    public function handle($request)",
+                "    {",
+                "        try {",
+                "            $request->enableHttpMethodParameterOverride();",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "        } catch (Exception $e) {",
+                "            $this->reportException($e);",
+                "",
+                "            $response = $this->renderException($request, $e);",
+                "        } catch (Throwable $e) {"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "lineno": 116,
+              "in_app": false,
+              "context_line": "            $response = $this->sendRequestThroughRouter($request);"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "pre_context": [
+                "        $this->bootstrap();",
+                "",
+                "        return (new Pipeline($this->app))",
+                "                    ->send($request)",
+                "                    ->through($this->app->shouldSkipMiddleware() ? [] : $this->middleware)"
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Bootstrap the application for HTTP requests.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "lineno": 151,
+              "in_app": false,
+              "context_line": "                    ->then($this->dispatchToRouter());"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::then",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "    {",
+                "        $pipeline = array_reduce(",
+                "            array_reverse($this->pipes), $this->carry(), $this->prepareDestination($destination)",
+                "        );",
+                ""
+              ],
+              "vars": {
+                "destination": "Lambda Illuminate\\Foundation\\Http\\{closure} [mixed|null request]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Run the pipeline and return the result.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 104,
+              "in_app": false,
+              "context_line": "        return $pipeline($this->passable);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php",
+              "pre_context": [
+                "            }",
+                "",
+                "            throw new MaintenanceModeException($data['time'], $data['retry'], $data['message']);",
+                "        }",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Determine if the request has a URI that should be accessible in maintenance mode.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php",
+              "lineno": 62,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php",
+              "pre_context": [
+                "",
+                "        if ($max > 0 && $request->server('CONTENT_LENGTH') > $max) {",
+                "            throw new PostTooLargeException;",
+                "        }",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Determine the server 'post_max_size' as bytes.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php",
+              "lineno": 27,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+              "pre_context": [
+                "     */",
+                "    public function handle($request, Closure $next)",
+                "    {",
+                "        $this->clean($request);",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Clean the request's data.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+              "lineno": 21,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+              "pre_context": [
+                "     */",
+                "    public function handle($request, Closure $next)",
+                "    {",
+                "        $this->clean($request);",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Clean the request's data.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php",
+              "lineno": 21,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Fideloper\\Proxy\\TrustProxies::handle",
+              "abs_path": "/vendor/fideloper/proxy/src/TrustProxies.php",
+              "pre_context": [
+                "    public function handle(Request $request, Closure $next)",
+                "    {",
+                "        $request::setTrustedProxies([], $this->getTrustedHeaderNames()); // Reset trusted proxies between requests",
+                "        $this->setTrustedProxyIpAddresses($request);",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Sets the trusted proxies on the request to the value of trustedproxy.proxies",
+                "     *"
+              ],
+              "filename": "/vendor/fideloper/proxy/src/TrustProxies.php",
+              "lineno": 57,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "     */",
+                "    protected function prepareDestination(Closure $destination)",
+                "    {",
+                "        return function ($passable) use ($destination) {",
+                "            try {"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "            } catch (Exception $e) {",
+                "                return $this->handleException($passable, $e);",
+                "            } catch (Throwable $e) {",
+                "                return $this->handleException($passable, new FatalThrowableError($e));",
+                "            }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 30,
+              "in_app": false,
+              "context_line": "                return $destination($passable);"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "pre_context": [
+                "    protected function dispatchToRouter()",
+                "    {",
+                "        return function ($request) {",
+                "            $this->app->instance('request', $request);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "        };",
+                "    }",
+                "",
+                "    /**",
+                "     * Call the terminate method on any terminable middleware."
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php",
+              "lineno": 176,
+              "in_app": false,
+              "context_line": "            return $this->router->dispatch($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Router::dispatch",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "pre_context": [
+                "     */",
+                "    public function dispatch(Request $request)",
+                "    {",
+                "        $this->currentRequest = $request;",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Dispatch the request to a route and return the response.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "lineno": 612,
+              "in_app": false,
+              "context_line": "        return $this->dispatchToRoute($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Router::dispatchToRoute",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "pre_context": [
+                "     * @param  \\Illuminate\\Http\\Request  $request",
+                "     * @return \\Illuminate\\Http\\Response|\\Illuminate\\Http\\JsonResponse",
+                "     */",
+                "    public function dispatchToRoute(Request $request)",
+                "    {"
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Find the route matching a given request.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "lineno": 623,
+              "in_app": false,
+              "context_line": "        return $this->runRoute($request, $this->findRoute($request));"
+            },
+            {
+              "function": "Illuminate\\Routing\\Router::runRoute",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "pre_context": [
+                "        });",
+                "",
+                "        $this->events->dispatch(new Events\\RouteMatched($route, $request));",
+                "",
+                "        return $this->prepareResponse($request,"
+              ],
+              "vars": {
+                "route": "Object Illuminate\\Routing\\Route",
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "        );",
+                "    }",
+                "",
+                "    /**",
+                "     * Run the given route within a Stack \"onion\" instance."
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "lineno": 657,
+              "in_app": false,
+              "context_line": "            $this->runRouteWithinStack($route, $request)"
+            },
+            {
+              "function": "Illuminate\\Routing\\Router::runRouteWithinStack",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "pre_context": [
+                "                        ->through($middleware)",
+                "                        ->then(function ($request) use ($route) {",
+                "                            return $this->prepareResponse(",
+                "                                $request, $route->run()",
+                "                            );"
+              ],
+              "vars": {
+                "route": "Object Illuminate\\Routing\\Route",
+                "request": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Gather the middleware for the given route with resolved class names.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "lineno": 682,
+              "in_app": false,
+              "context_line": "                        });"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::then",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "    {",
+                "        $pipeline = array_reduce(",
+                "            array_reverse($this->pipes), $this->carry(), $this->prepareDestination($destination)",
+                "        );",
+                ""
+              ],
+              "vars": {
+                "destination": "Lambda Illuminate\\Routing\\{closure} [mixed|null request]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Run the pipeline and return the result.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 104,
+              "in_app": false,
+              "context_line": "        return $pipeline($this->passable);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Cookie\\Middleware\\EncryptCookies::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php",
+              "pre_context": [
+                "     * @param  \\Closure  $next",
+                "     * @return \\Symfony\\Component\\HttpFoundation\\Response",
+                "     */",
+                "    public function handle($request, Closure $next)",
+                "    {"
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "",
+                "    /**",
+                "     * Decrypt the cookies on the request.",
+                "     *"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php",
+              "lineno": 66,
+              "in_app": false,
+              "context_line": "        return $this->encrypt($next($this->decrypt($request)));"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php",
+              "pre_context": [
+                "     * @param  \\Closure  $next",
+                "     * @return mixed",
+                "     */",
+                "    public function handle($request, Closure $next)",
+                "    {"
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "",
+                "        foreach ($this->cookies->getQueuedCookies() as $cookie) {",
+                "            $response->headers->setCookie($cookie);",
+                "        }",
+                ""
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php",
+              "lineno": 37,
+              "in_app": false,
+              "context_line": "        $response = $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Session\\Middleware\\StartSession::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php",
+              "pre_context": [
+                "        $this->collectGarbage($session);",
+                "",
+                "        $this->storeCurrentUrl($request, $session);",
+                "",
+                "        $this->addCookieToResponse("
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "        );",
+                "",
+                "        // Again, if the session has been configured we will need to close out the session",
+                "        // so that the attributes may be persisted to some storage medium. We will also",
+                "        // add the session identifier cookie to the application response headers now."
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php",
+              "lineno": 59,
+              "in_app": false,
+              "context_line": "            $response = $next($request), $session"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php",
+              "pre_context": [
+                "",
+                "        // Putting the errors in the view for every view allows the developer to just",
+                "        // assume that some errors are always available, which is convenient since",
+                "        // they don't have to continually run checks for the presence of errors.",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "}",
+                ""
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php",
+              "lineno": 49,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php",
+              "pre_context": [
+                "            $this->isReading($request) ||",
+                "            $this->runningUnitTests() ||",
+                "            $this->inExceptArray($request) ||",
+                "            $this->tokensMatch($request)",
+                "        ) {"
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "                if ($this->shouldAddXsrfTokenCookie()) {",
+                "                    $this->addCookieToResponse($request, $response);",
+                "                }",
+                "            });",
+                "        }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php",
+              "lineno": 75,
+              "in_app": false,
+              "context_line": "            return tap($next($request), function ($response) use ($request) {"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "                try {",
+                "                    $slice = parent::carry();",
+                "",
+                "                    $callable = $slice($stack, $pipe);",
+                ""
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                } catch (Exception $e) {",
+                "                    return $this->handleException($passable, $e);",
+                "                } catch (Throwable $e) {",
+                "                    return $this->handleException($passable, new FatalThrowableError($e));",
+                "                }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 53,
+              "in_app": false,
+              "context_line": "                    return $callable($passable);"
+            },
+            {
+              "function": "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "pre_context": [
+                "                    // since the object we're given was already a fully instantiated object.",
+                "                    $parameters = [$passable, $stack];",
+                "                }",
+                "",
+                "                $response = method_exists($pipe, $this->method)"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                                : $pipe(...$parameters);",
+                "",
+                "                return $response instanceof Responsable",
+                "                            ? $response->toResponse($this->getContainer()->make(Request::class))",
+                "                            : $response;"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
+              "lineno": 163,
+              "in_app": false,
+              "context_line": "                                ? $pipe->{$this->method}(...$parameters)"
+            },
+            {
+              "function": "Illuminate\\Routing\\Middleware\\SubstituteBindings::handle",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php",
+              "pre_context": [
+                "    {",
+                "        $this->router->substituteBindings($route = $request->route());",
+                "",
+                "        $this->router->substituteImplicitBindings($route);",
+                ""
+              ],
+              "vars": {
+                "request": "Object Illuminate\\Http\\Request",
+                "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
+              },
+              "post_context": [
+                "    }",
+                "}",
+                ""
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php",
+              "lineno": 41,
+              "in_app": false,
+              "context_line": "        return $next($request);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "pre_context": [
+                "     */",
+                "    protected function prepareDestination(Closure $destination)",
+                "    {",
+                "        return function ($passable) use ($destination) {",
+                "            try {"
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "            } catch (Exception $e) {",
+                "                return $this->handleException($passable, $e);",
+                "            } catch (Throwable $e) {",
+                "                return $this->handleException($passable, new FatalThrowableError($e));",
+                "            }"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php",
+              "lineno": 30,
+              "in_app": false,
+              "context_line": "                return $destination($passable);"
+            },
+            {
+              "function": "Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "pre_context": [
+                "        return (new Pipeline($this->container))",
+                "                        ->send($request)",
+                "                        ->through($middleware)",
+                "                        ->then(function ($request) use ($route) {",
+                "                            return $this->prepareResponse("
+              ],
+              "vars": {
+                "param1": "Object Illuminate\\Http\\Request"
+              },
+              "post_context": [
+                "                            );",
+                "                        });",
+                "    }",
+                "",
+                "    /**"
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
+              "lineno": 680,
+              "in_app": false,
+              "context_line": "                                $request, $route->run()"
+            },
+            {
+              "function": "Illuminate\\Routing\\Route::run",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+              "pre_context": [
+                "        try {",
+                "            if ($this->isControllerAction()) {",
+                "                return $this->runController();",
+                "            }",
+                ""
+              ],
+              "post_context": [
+                "        } catch (HttpResponseException $e) {",
+                "            return $e->getResponse();",
+                "        }",
+                "    }",
+                ""
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+              "lineno": 179,
+              "in_app": false,
+              "context_line": "            return $this->runCallable();"
+            },
+            {
+              "function": "Illuminate\\Routing\\Route::runCallable",
+              "abs_path": "/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+              "pre_context": [
+                "    protected function runCallable()",
+                "    {",
+                "        $callable = $this->action['uses'];",
+                "",
+                "        return $callable(...array_values($this->resolveMethodDependencies("
+              ],
+              "post_context": [
+                "        )));",
+                "    }",
+                "",
+                "    /**",
+                "     * Run the route action and return the response."
+              ],
+              "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
+              "lineno": 205,
+              "in_app": false,
+              "context_line": "            $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
+            },
+            {
+              "function": "Illuminate\\Routing\\RouteFileRegistrar::{closure}",
+              "abs_path": "/routes/web.php",
+              "pre_context": [
+                "        Sentry\\Breadcrumb::TYPE_ERROR,",
+                "        'error_reporting',",
+                "        'foo bar'",
+                "      ));",
+                ""
+              ],
+              "post_context": [
+                "    return view('welcome');",
+                "});",
+                ""
+              ],
+              "filename": "/routes/web.php",
+              "lineno": 22,
+              "in_app": true,
+              "context_line": "    throw new Exception('LARAVEL TEST');"
+            }
+          ]
+        },
+        "type": "Exception",
+        "value": "LARAVEL TEST"
+      }
+    ]
+  },
+  "release": null
+}

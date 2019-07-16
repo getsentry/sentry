@@ -1,5 +1,3 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
-
 /**
  * This function is responsible for fetching and storing result data for
  * result tables and visualizations.
@@ -68,7 +66,7 @@ export default function createResultManager(queryBuilder) {
 
     // If there are aggregations, get by-day data
     if (hasAggregations) {
-      promises.push(queryBuilder.fetch(byDayQuery));
+      promises.push(queryBuilder.fetchWithoutLimit(byDayQuery));
     }
 
     return Promise.all(promises).then(resp => {
@@ -96,7 +94,9 @@ export default function createResultManager(queryBuilder) {
    * @returns {Void}
    */
   function updatePageLinks(pageLinks) {
-    if (!pageLinks) return;
+    if (!pageLinks) {
+      return;
+    }
     const links = parseLinkHeader(pageLinks);
     data.baseQuery.next = links.next.results ? links.next.cursor : null;
     data.baseQuery.previous = links.previous.results ? links.previous.cursor : null;

@@ -3,15 +3,9 @@ import {shallow} from 'enzyme';
 import DiffModal from 'app/components/modals/diffModal';
 
 describe('DiffModal', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
     const wrapper = shallow(<DiffModal Body={({children}) => <div>{children}</div>} />);

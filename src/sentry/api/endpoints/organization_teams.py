@@ -50,11 +50,17 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 class TeamSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False)
+    name = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
     slug = serializers.RegexField(
         r'^[a-z0-9_\-]+$',
         max_length=50,
         required=False,
+        allow_null=True,
         error_messages={
             'invalid': _('Enter a valid slug consisting of lowercase letters, '
                          'numbers, underscores or hyphens.'),
@@ -128,10 +134,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                             name.
         :auth: required
         """
-        serializer = TeamSerializer(data=request.DATA)
+        serializer = TeamSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 with transaction.atomic():

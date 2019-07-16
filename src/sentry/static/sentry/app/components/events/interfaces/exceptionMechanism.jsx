@@ -6,11 +6,12 @@ import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import {isUrl} from 'app/utils';
 
 class ExceptionMechanism extends React.Component {
   static propTypes = {
     data: PropTypes.shape({
-      type: PropTypes.string.isRequired,
+      type: PropTypes.string,
       description: PropTypes.string,
       help_link: PropTypes.string,
       handled: PropTypes.bool,
@@ -27,7 +28,7 @@ class ExceptionMechanism extends React.Component {
         }),
         signal: PropTypes.shape({
           number: PropTypes.number.isRequired,
-          code: PropTypes.nubmer,
+          code: PropTypes.number,
           name: PropTypes.string,
           code_name: PropTypes.string,
         }),
@@ -41,7 +42,7 @@ class ExceptionMechanism extends React.Component {
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
     const {errno, signal, mach_exception} = meta;
 
-    const linkElement = help_link && (
+    const linkElement = help_link && isUrl(help_link) && (
       <a href={help_link} className="external-icon">
         <em className="icon-open" />
       </a>
@@ -62,7 +63,7 @@ class ExceptionMechanism extends React.Component {
     );
 
     const pills = [
-      <Pill key="mechanism" name="mechanism" value={type}>
+      <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
         {descriptionElement || linkElement}
       </Pill>,
     ];

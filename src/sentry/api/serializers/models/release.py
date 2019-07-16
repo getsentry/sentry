@@ -210,7 +210,7 @@ class ReleaseSerializer(Serializer):
         )
         return first_seen, last_seen, issue_counts_by_release
 
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get('project')
         environment = kwargs.get('environment')
         if environment is None:
@@ -252,7 +252,7 @@ class ReleaseSerializer(Serializer):
             result[item].update(deploy_metadata_attrs[item])
         return result
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         d = {
             'version': obj.version,
             'shortVersion': obj.short_version,

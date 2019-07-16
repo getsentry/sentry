@@ -1,6 +1,7 @@
 export function SentryApp(params = {}) {
   return {
     name: 'Sample App',
+    author: 'Sentry',
     slug: 'sample-app',
     scopes: ['project:read'],
     events: [],
@@ -12,6 +13,7 @@ export function SentryApp(params = {}) {
     clientId: 'client-id',
     clientSecret: 'client-secret',
     overview: 'This is an app.',
+    schema: {},
     ...params,
   };
 }

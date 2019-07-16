@@ -6,7 +6,7 @@ import pytest
 import six
 
 from sentry.utils.hashlib import md5_text, sha1_text, hash_values
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 HASHLIB_VALUES_TESTS = (

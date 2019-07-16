@@ -9,7 +9,7 @@ const argv = process.argv.slice(2);
 const cli = new CLIEngine({
   fix: false,
   extensions: argv[1].split(','),
-  useEslintrc: true,
+  configFile: '.eslintrc.relax.js',
 });
 
 // Lint all files

@@ -2,17 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {isEqual, pickBy, keyBy, isObject} from 'lodash';
 import createReactClass from 'create-react-class';
-import classNames from 'classnames';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
-import OrganizationState from 'app/mixins/organizationState';
 import IndicatorStore from 'app/stores/indicatorStore';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
+import SubscribeButton from 'app/components/subscribeButton';
 import {t, tct} from 'app/locale';
 
 import ExternalIssueList from 'app/components/group/externalIssuesList';
@@ -21,17 +21,13 @@ const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
 
   propTypes: {
+    api: PropTypes.object,
+    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
     environments: PropTypes.arrayOf(SentryTypes.Environment),
   },
-
-  contextTypes: {
-    location: PropTypes.object,
-  },
-
-  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {participants: [], environments: this.props.environments};
@@ -39,7 +35,7 @@ const GroupSidebar = createReactClass({
 
   componentWillMount() {
     const {group} = this.props;
-    this.api.request(`/issues/${group.id}/participants/`, {
+    this.props.api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
           participants: data,
@@ -54,7 +50,7 @@ const GroupSidebar = createReactClass({
     });
     // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
-    this.api.request(`/issues/${group.id}/`, {
+    this.props.api.request(`/issues/${group.id}/`, {
       success: data => {
         this.setState({
           allEnvironmentsGroupData: data,
@@ -80,11 +76,11 @@ const GroupSidebar = createReactClass({
     const {group} = this.props;
 
     // Fetch the top values for the current group's top tags.
-    this.api.request(`/issues/${group.id}/tags/`, {
+    this.props.api.request(`/issues/${group.id}/tags/`, {
       query: pickBy({
         key: group.tags.map(data => data.key),
         environment: this.state.environments.map(env => env.name),
-        enable_snuba: this.getFeatures().has('sentry10') ? '1' : '0',
+        enable_snuba: '1',
       }),
       success: data => {
         this.setState({
@@ -112,13 +108,12 @@ const GroupSidebar = createReactClass({
   },
 
   toggleSubscription() {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate(
+    this.props.api.bulkUpdate(
       {
-        orgId: org.slug,
+        orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
         data: {
@@ -127,7 +122,7 @@ const GroupSidebar = createReactClass({
       },
       {
         complete: () => {
-          this.api.request(`/issues/${group.id}/participants/`, {
+          this.props.api.request(`/issues/${group.id}/participants/`, {
             success: data => {
               this.setState({
                 participants: data,
@@ -232,13 +227,8 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    const {group, project} = this.props;
+    const {group, organization, project, environments} = this.props;
     const projectId = project.slug;
-    const organization = this.getOrganization();
-
-    const subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
-      subscribed: group.isSubscribed,
-    });
 
     return (
       <div className="group-stats">
@@ -246,13 +236,19 @@ const GroupSidebar = createReactClass({
         <GroupReleaseStats
           group={this.props.group}
           project={project}
+          environments={environments}
+          organization={organization}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
-        <ExternalIssueList
-          group={this.props.group}
-          project={project}
-          orgId={organization.slug}
-        />
+
+        <ErrorBoundary mini>
+          <ExternalIssueList
+            event={this.props.event}
+            group={this.props.group}
+            project={project}
+            orgId={organization.slug}
+          />
+        </ErrorBoundary>
 
         {this.renderPluginIssue()}
 
@@ -293,14 +289,14 @@ const GroupSidebar = createReactClass({
         </h6>
         <p className="help-block">{this.getNotificationText()}</p>
         {this.canChangeSubscriptionState() && (
-          <a className={subscribeBtnClass} onClick={this.toggleSubscription}>
-            <span className="icon-signal" />
-            {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
-          </a>
+          <SubscribeButton
+            isSubscribed={group.isSubscribed}
+            onClick={this.toggleSubscription}
+          />
         )}
       </div>
     );
   },
 });
 
-export default GroupSidebar;
+export default withApi(GroupSidebar);

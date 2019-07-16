@@ -6,7 +6,7 @@ import mock
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.testutils.cases import TestCase
+from unittest import TestCase
 from sentry.utils.redis import (
     ClusterManager, _shared_pool, get_cluster_from_options, _RedisCluster, logger
 )

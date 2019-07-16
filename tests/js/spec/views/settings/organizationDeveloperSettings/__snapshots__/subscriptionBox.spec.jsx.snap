@@ -5,6 +5,34 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
   checked={false}
   disabled={false}
   onChange={[MockFunction]}
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   resource="issue"
 >
   <SubscriptionGridItemWrapper
@@ -14,7 +42,9 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
       className="css-8xqq56-SubscriptionGridItemWrapper e139qogw2"
     >
       <Tooltip
+        containerDisplayMode="inline-block"
         disabled={true}
+        position="top"
         title="Must have at least 'Read' permissions enabled for issue"
       >
         <SubscriptionGridItem

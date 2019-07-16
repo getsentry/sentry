@@ -9,26 +9,31 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import options, quotas, tagstore
+from sentry import features, options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
+from sentry.api.event_search import get_snuba_query_args
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers.models.event import SnubaEvent
-from sentry.api.serializers import serialize
+from sentry.api.helpers.events import get_direct_hit_response
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Event, Group
+from sentry.models import Event, Group, SnubaEvent
 from sentry.search.utils import (
     InvalidQuery,
     parse_query,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import normalize_event_id
 from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
+    pass
+
+
+class GroupEventsError(Exception):
     pass
 
 
@@ -69,48 +74,61 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             request.GET.get('enable_snuba') == '1'
             or options.get('snuba.events-queries.enabled')
         )
+
         backend = self._get_events_snuba if use_snuba else self._get_events_legacy
         start, end = get_date_range_from_params(request.GET, optional=True)
-        return backend(request, group, environments, query, tags, start, end)
+
+        try:
+            return backend(request, group, environments, query, tags, start, end)
+        except GroupEventsError as exc:
+            return Response({'detail': six.text_type(exc)}, status=400)
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
-        conditions = []
-        if query:
-            msg_substr = ['positionCaseInsensitive', ['message', "'%s'" % (query,)]]
-            message_condition = [msg_substr, '!=', 0]
-            if is_event_id(query):
-                or_condition = [message_condition, ['event_id', '=', query]]
-                conditions.append(or_condition)
-            else:
-                conditions.append(message_condition)
-
-        if tags:
-            for tag_name, tag_val in tags.items():
-                operator = 'IN' if isinstance(tag_val, list) else '='
-                conditions.append([u'tags[{}]'.format(tag_name), operator, tag_val])
-
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
+        params = {
+            'issue.id': [group.id],
+            'project_id': [group.project_id],
+            'start': start if start else default_start,
+            'end': end if end else default_end
+        }
+        direct_hit_resp = get_direct_hit_response(request, query, params, 'api.group-events')
+        if direct_hit_resp:
+            return direct_hit_resp
+
+        if environments:
+            params['environment'] = [env.name for env in environments]
+
+        full = request.GET.get('full', False)
+        snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+
+        # TODO(lb): remove once boolean search is fully functional
+        if snuba_args:
+            has_boolean_op_flag = features.has(
+                'organizations:boolean-search',
+                group.project.organization,
+                actor=request.user
+            )
+            if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+                raise GroupEventsError(
+                    'Boolean search operator OR and AND not allowed in this search.')
+
+        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=max(start, default_start) if start else default_start,
-            end=min(end, default_end) if end else default_end,
-            conditions=conditions,
-            filter_keys={
-                'project_id': [group.project_id],
-                'issue': [group.id]
-            },
-            selected_columns=SnubaEvent.selected_columns + ['tags.key', 'tags.value'],
+            selected_columns=snuba_cols,
             orderby='-timestamp',
             referrer='api.group-events',
+            **snuba_args
         )
 
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user),
+                [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
@@ -129,8 +147,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if query:
             q = Q(message__icontains=query)
 
-            if is_event_id(query):
-                q |= Q(event_id__exact=query)
+            event_id = normalize_event_id(query)
+            if event_id:
+                q |= Q(event_id__exact=event_id)
 
             events = events.filter(q)
 

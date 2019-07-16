@@ -9,14 +9,12 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTestBase, self).setUp()
+        super(OrganizationEventsEndpointTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
 
-
-class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
     def assert_events_in_response(self, response, event_ids):
         assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(event_ids)
 
@@ -27,8 +25,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -50,8 +48,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -70,9 +68,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+        )
         event_2 = self.create_event(
-            'y' * 32,
+            event_id='y' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
@@ -97,13 +100,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project = self.create_project()
         group = self.create_group(project=project)
         event_1 = self.create_event(
-            'x' * 32,
+            event_id='x' * 32,
             group=group,
             message="how to make fast",
             datetime=self.min_ago,
         )
         event_2 = self.create_event(
-            'y' * 32,
+            event_id='y' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
@@ -134,7 +137,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -146,7 +153,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         response = self.client.get(url, {'query': 'hi \n there'}, format='json')
 
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == "Parse error: 'search' (column 1)"
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
 
     def test_project_filtering(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -164,9 +171,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
         group3 = self.create_group(project=project3)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
-        self.create_event('c' * 32, group=group3, datetime=self.min_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event(event_id='b' * 32, group=group2, datetime=self.min_ago)
+        self.create_event(event_id='c' * 32, group=group3, datetime=self.min_ago)
 
         base_url = reverse(
             'sentry-api-0-organization-events',
@@ -208,8 +215,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago)
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -231,8 +238,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago)
+        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago)
 
         now = timezone.now()
 
@@ -365,10 +372,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
+            event_id='a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
         )
         event_2 = self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id='b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
         )
 
         base_url = reverse(
@@ -399,17 +406,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
+            event_id='a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
         )
         event_2 = self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
+            event_id='b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
         )
         event_3 = self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
+            event_id='c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
         )
 
         event_4 = self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
+            event_id='d' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
         )
 
         base_url = reverse(
@@ -460,10 +467,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
+            event_id='a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
         )
         event_2 = self.create_event(
-            'b' * 32,
+            event_id='b' * 32,
             group=group,
             datetime=self.min_ago,
             tags={
@@ -513,127 +520,140 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_event_id_direct_hit(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
 
-class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
-    def test_simple(self):
-        self.login_as(user=self.user)
+        self.login_as(user=user)
 
-        day_ago = self.day_ago.replace(hour=10, minute=0, second=0, microsecond=0)
-
-        project = self.create_project()
-        project2 = self.create_project()
+        project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
         self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
-            datetime=day_ago + timedelta(minutes=1)
-        )
-        self.create_event(
-            'b' * 32,
-            group=group2,
-            datetime=day_ago + timedelta(hours=1, minutes=1)
-        )
-        self.create_event(
-            'c' * 32,
-            group=group2,
-            datetime=day_ago + timedelta(hours=1, minutes=2)
-        )
+            message="best event",
+            datetime=self.min_ago)
 
         url = reverse(
-            'sentry-api-0-organization-events-stats',
-            kwargs={
-                'organization_slug': project.organization.slug,
-            }
-        )
-        response = self.client.get('%s?%s' % (url, urlencode({
-            'start': day_ago.isoformat()[:19],
-            'end': (day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-            'interval': '1h',
-        })), format='json')
-
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data['data']] == [
-            [],
-            [{'count': 1}],
-            [{'count': 2}],
-        ]
-
-    def test_no_projects(self):
-        org = self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
-
-        url = reverse(
-            'sentry-api-0-organization-events-stats',
+            'sentry-api-0-organization-events',
             kwargs={
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.get(url, format='json')
+
+        response = self.client.get(url, {'query': 'a' * 32}, format='json')
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 0
+        assert len(response.data) == 1
+        assert response['X-Sentry-Direct-Hit'] == '1'
 
+    def test_event_id_direct_hit_miss(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
 
-class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
-    def test_simple(self):
-        self.login_as(user=self.user)
+        self.login_as(user=user)
 
-        project = self.create_project()
-        project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('m' * 32, group=group2, datetime=self.min_ago)
-
-        url = reverse(
-            'sentry-api-0-organization-events-meta',
-            kwargs={
-                'organization_slug': project.organization.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200, response.content
-        # this is not exact because of turbo=True
-        assert response.data['count'] == 10
-
-    def test_search(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
-        self.create_event(
-            'm' * 32,
-            group=group,
-            message="Delet the Data",
-            datetime=self.min_ago,
-        )
+        self.create_project(organization=org, teams=[team])
 
         url = reverse(
-            'sentry-api-0-organization-events-meta',
-            kwargs={
-                'organization_slug': project.organization.slug,
-            }
-        )
-        response = self.client.get(url, {'query': 'delet'}, format='json')
-
-        assert response.status_code == 200, response.content
-        # this is not exact because of turbo=True
-        assert response.data['count'] == 10
-
-    def test_no_projects(self):
-        org = self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
-
-        url = reverse(
-            'sentry-api-0-organization-events-meta',
+            'sentry-api-0-organization-events',
             kwargs={
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.get(url, format='json')
+
+        response = self.client.get(url, {'query': 'a' * 32}, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['count'] == 0
+        assert len(response.data) == 0
+
+    def test_boolean_feature_flag_failure(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+
+        for query in ['title:hi OR title:hello', 'title:hi AND title:hello']:
+            response = self.client.get(url, {'query': query}, format='json')
+            assert response.status_code == 400
+            assert response.data == {
+                'detail': 'Boolean search operator OR and AND not allowed in this search.',
+            }
+
+    def test_group_filtering(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        team = self.create_team(organization=org, members=[user])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        events = []
+        for event_id, fingerprint in [
+            ('a' * 32, 'put-me-in-group1'),
+            ('b' * 32, 'put-me-in-group1'),
+            ('c' * 32, 'put-me-in-group2'),
+            ('d' * 32, 'put-me-in-group3'),
+        ]:
+            events.append(self.store_event(
+                data={
+                    'event_id': event_id,
+                    'timestamp': self.min_ago.isoformat()[:19],
+                    'fingerprint': [fingerprint],
+                },
+                project_id=project.id
+            ))
+
+        event_1, event_2, event_3, event_4 = events
+        group_1, group_2, group_3 = event_1.group, event_3.group, event_4.group
+
+        base_url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.get(base_url, format='json', data={'group': [group_1.id]})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
+
+        response = self.client.get(base_url, format='json', data={'group': [group_3.id]})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_4.event_id])
+
+        response = self.client.get(
+            base_url,
+            format='json',
+            data={'group': [group_1.id, group_3.id]},
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        self.assert_events_in_response(
+            response,
+            [event_1.event_id, event_2.event_id, event_4.event_id],
+        )
+
+        response = self.client.get(
+            base_url,
+            format='json',
+            data={'group': [group_1.id, group_2.id, group_3.id]},
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+        self.assert_events_in_response(
+            response,
+            [event_1.event_id, event_2.event_id, event_3.event_id, event_4.event_id],
+        )

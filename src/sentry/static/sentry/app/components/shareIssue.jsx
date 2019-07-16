@@ -30,7 +30,9 @@ class ShareUrlContainer extends React.Component {
 
   // Select URL when its container is clicked
   handleCopyClick = () => {
-    if (!this.urlRef) return;
+    if (!this.urlRef) {
+      return;
+    }
     selectText(ReactDOM.findDOMNode(this.urlRef));
   };
 
@@ -230,15 +232,14 @@ class ShareIssue extends React.Component {
             </FlowLayout>
           )}
 
-          {!busy &&
-            isSharing && (
-              <ShareUrlContainer
-                {...this.props}
-                onCancel={this.handleConfirmCancel}
-                onConfirming={this.handleConfirmReshare}
-                onShare={this.handleShare}
-              />
-            )}
+          {!busy && isSharing && (
+            <ShareUrlContainer
+              {...this.props}
+              onCancel={this.handleConfirmCancel}
+              onConfirming={this.handleConfirmReshare}
+              onShare={this.handleShare}
+            />
+          )}
         </li>
       </DropdownLink>
     );

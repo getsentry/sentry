@@ -1,15 +1,6 @@
 import _ from 'lodash';
 
-// import/export sub-utils
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import Collection from 'app/utils/collection';
-import PendingChangeQueue from 'app/utils/pendingChangeQueue';
-import CursorPoller from 'app/utils/cursorPoller';
-import StreamManager from 'app/utils/streamManager';
-
-/*eslint no-use-before-define:0*/
-
-const arrayIsEqual = function(arr, other, deep) {
+function arrayIsEqual(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
     return true;
@@ -20,14 +11,14 @@ const arrayIsEqual = function(arr, other, deep) {
   }
 
   // compare lengths - can save a lot of time
-  if (arr.length != other.length) {
+  if (arr.length !== other.length) {
     return false;
   }
 
   return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
-};
+}
 
-export const valueIsEqual = function(value, other, deep) {
+export function valueIsEqual(value, other, deep) {
   if (value === other) {
     return true;
   } else if (_.isArray(value) || _.isArray(other)) {
@@ -40,9 +31,9 @@ export const valueIsEqual = function(value, other, deep) {
     }
   }
   return false;
-};
+}
 
-const objectMatchesSubset = function(obj, other, deep) {
+function objectMatchesSubset(obj, other, deep) {
   let k;
 
   if (obj === other) {
@@ -55,7 +46,7 @@ const objectMatchesSubset = function(obj, other, deep) {
 
   if (deep !== true) {
     for (k in other) {
-      if (obj[k] != other[k]) {
+      if (obj[k] !== other[k]) {
         return false;
       }
     }
@@ -68,21 +59,21 @@ const objectMatchesSubset = function(obj, other, deep) {
     }
   }
   return true;
-};
+}
 
 // XXX(dcramer): the previous mechanism of using _.map here failed
 // miserably if a param was named 'length'
-export const objectToArray = function(obj) {
+export function objectToArray(obj) {
   const result = [];
   for (const key in obj) {
     result.push([key, obj[key]]);
   }
   return result;
-};
+}
 
-export const intcomma = function(x) {
+export function intcomma(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-};
+}
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
@@ -132,6 +123,10 @@ export function nl2br(str) {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
 }
 
+/**
+ * This function has a critical security impact, make sure to check all usages before changing this function.
+ * In some parts of our code we rely on that this only really is a string starting with http(s).
+ */
 export function isUrl(str) {
   return (
     !!str &&
@@ -148,7 +143,7 @@ export function escape(str) {
 }
 
 export function percent(value, totalValue, precise) {
-  return value / totalValue * 100;
+  return (value / totalValue) * 100;
 }
 
 export function toTitleCase(str) {
@@ -244,54 +239,15 @@ export function isWebpackChunkLoadingError(error) {
   );
 }
 
-/**
- * This parses our period shorthand strings (e.g. <int><unit>)
- * and converts it into hours
- */
-export function parsePeriodToHours(str) {
-  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
+export function deepFreeze(object) {
+  // Retrieve the property names defined on object
+  const propNames = Object.getOwnPropertyNames(object);
+  // Freeze properties before freezing self
+  for (const name of propNames) {
+    const value = object[name];
 
-  switch (periodLength) {
-    case 's':
-      return periodNumber / (60 * 60);
-    case 'm':
-      return periodNumber / 60;
-    case 'h':
-      return periodNumber;
-    case 'd':
-      return periodNumber * 24;
-    case 'w':
-      return periodNumber * 24 * 7;
-    default:
-      return -1;
+    object[name] = value && typeof value === 'object' ? deepFreeze(value) : value;
   }
+
+  return Object.freeze(object);
 }
-
-// re-export under utils
-export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
-
-// backwards compatible default export for use w/ getsentry (exported
-// as a single object w/ function refs for consumption by getsentry)
-export default {
-  sortArray,
-  objectIsEmpty,
-  defined,
-  nl2br,
-  isUrl,
-  escape,
-  percent,
-  toTitleCase,
-  intcomma,
-  valueIsEqual,
-  parseLinkHeader,
-  buildUserId,
-  buildTeamId,
-  descopeFeatureName,
-
-  // external imports
-  objectToArray,
-  Collection,
-  PendingChangeQueue,
-  StreamManager,
-  CursorPoller,
-};

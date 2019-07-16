@@ -54,11 +54,11 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :auth: required
         """
         # TODO(lb): better document displayType, displayOptions, and dataSources.
-        serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
+        serializer = WidgetSerializer(data=request.data, context={'organization': organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.object
+        data = serializer.validated_data
 
         with transaction.atomic():
             widget.update(

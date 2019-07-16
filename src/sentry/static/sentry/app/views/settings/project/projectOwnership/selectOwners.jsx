@@ -15,7 +15,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
@@ -106,7 +106,7 @@ export default class SelectOwners extends React.Component {
       label: (
         <DisabledLabel>
           <Tooltip
-            tooltipOptions={{container: 'body', placement: 'left'}}
+            position="left"
             title={t('%s is not a member of project', user.name || user.email)}
           >
             {this.renderUserBadge(user)}
@@ -140,7 +140,7 @@ export default class SelectOwners extends React.Component {
         <Flex justify="space-between">
           <DisabledLabel>
             <Tooltip
-              tooltipOptions={{container: 'body', placement: 'left'}}
+              position="left"
               title={t('%s is not a member of project', `#${team.slug}`)}
             >
               <IdBadge team={team} />
@@ -252,7 +252,9 @@ export default class SelectOwners extends React.Component {
 
     // Because this function is debounced, the component can potentially be
     // unmounted before this fires, in which case, `this.api` is null
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
@@ -312,7 +314,7 @@ export default class SelectOwners extends React.Component {
         disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
-        placeholder={t('Add Owners')}
+        placeholder={t('owners')}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}

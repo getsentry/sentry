@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;
@@ -31,7 +32,7 @@ export default class FormField extends React.PureComponent {
 
     // the following should only be used without form context
     onChange: PropTypes.func,
-    error: PropTypes.string,
+    error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
     value: PropTypes.any,
   };
 
@@ -57,7 +58,7 @@ export default class FormField extends React.PureComponent {
 
   componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
-    if (newError != this.state.error) {
+    if (newError !== this.state.error) {
       this.setState({error: newError});
     }
     if (this.props.value !== nextProps.value || defined(nextContext.form)) {
@@ -88,7 +89,7 @@ export default class FormField extends React.PureComponent {
     if (defined(props.error)) {
       return props.error;
     }
-    return form?.errors[props.name] || null;
+    return (form && form.errors[props.name]) || null;
   }
 
   getId() {
@@ -133,12 +134,16 @@ export default class FormField extends React.PureComponent {
 
   renderDisabledReason() {
     const {disabled, disabledReason} = this.props;
-    if (!disabled) return null;
-    if (!disabledReason) return null;
+    if (!disabled) {
+      return null;
+    }
+    if (!disabledReason) {
+      return null;
+    }
     return (
-      <span className="disabled-indicator tip" title={disabledReason}>
+      <Tooltip title={disabledReason}>
         <StyledInlineSvg src="icon-circle-question" size="18px" />
-      </span>
+      </Tooltip>
     );
   }
 

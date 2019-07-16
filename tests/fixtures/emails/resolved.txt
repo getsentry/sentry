@@ -7,7 +7,7 @@ Sentry marked an issue as resolved
 
 ornare elit pulvinar nisl integer cum ad massa
 
-http://testserver/organization/project/issues/1/?referrer=ResolvedActivityEmail
+http://testserver/organizations/organization/issues/1/?referrer=ResolvedActivityEmail
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

@@ -8,7 +8,7 @@ from sentry.models import Deploy, Environment
 
 @register(Deploy)
 class DeploySerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         environments = {
             id: name
             for id, name in Environment.objects.filter(
@@ -24,7 +24,7 @@ class DeploySerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             'id': six.text_type(obj.id),
             'environment': attrs.get('environment'),

@@ -38,7 +38,7 @@ describe('OrganizationProjects', function() {
 
   it('Should render the projects in the store', function() {
     const wrapper = mount(
-      <OrganizationProjectsContainer params={{orgId: org.slug}} />,
+      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
       routerContext
     );
     expect(wrapper).toMatchSnapshot();
@@ -51,8 +51,8 @@ describe('OrganizationProjects', function() {
 
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    wrapper.find('.icon-star-outline').simulate('click');
-    expect(wrapper.find('.icon-star-solid')).toBeTruthy();
+    wrapper.find('BookmarkStar').simulate('click');
+    expect(wrapper.find('Star').prop('isBookmarked')).toBeTruthy();
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
@@ -62,7 +62,7 @@ describe('OrganizationProjects', function() {
       body: [],
     });
     const wrapper = mount(
-      <OrganizationProjectsContainer location={{}} params={{orgId: org.slug}} />,
+      <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
       routerContext
     );
 

@@ -27,8 +27,12 @@ class RouteError extends React.Component {
     const {disableLogSentry, disableReport, routes} = this.props;
     const {organization, project} = this.context;
 
-    if (disableLogSentry) return;
-    if (!error) return;
+    if (disableLogSentry) {
+      return;
+    }
+    if (!error) {
+      return;
+    }
 
     const route = getRouteStringFromRoutes(routes);
     if (route) {
@@ -73,13 +77,12 @@ class RouteError extends React.Component {
         </p>
         <p>If you're daring, you may want to try the following:</p>
         <ul>
-          {window &&
-            window.adblockSuspected && (
-              <li>
-                We detected something AdBlock-like. Try disabling it, as it's known to
-                cause issues.
-              </li>
-            )}
+          {window && window.adblockSuspected && (
+            <li>
+              We detected something AdBlock-like. Try disabling it, as it's known to cause
+              issues.
+            </li>
+          )}
           <li>
             Give it a few seconds and{' '}
             <a
@@ -88,7 +91,8 @@ class RouteError extends React.Component {
               }}
             >
               reload the page
-            </a>.
+            </a>
+            .
           </li>
           <li>
             If all else fails,{' '}

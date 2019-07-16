@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf import settings
+
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.auth import access
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
@@ -20,6 +21,7 @@ REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 SENSITIVE_FIELDS_DEFAULT = None
 SAFE_FIELDS_DEFAULT = None
 STORE_CRASH_REPORTS_DEFAULT = False
+ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
@@ -97,7 +99,6 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
-            'disableNewVisibilityFeatures': bool(obj.flags.disable_new_visibility_features),
             'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
             'features': feature_list
@@ -116,27 +117,42 @@ class OnboardingTasksSerializer(Serializer):
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
-    def serialize(self, obj, attrs, user):
+    def get_attrs(self, item_list, user, **kwargs):
+        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+
+    def _project_list(self, organization, access):
+        member_projects = list(access.projects)
+        member_project_ids = [p.id for p in member_projects]
+        other_projects = list(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).exclude(id__in=member_project_ids))
+        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
+
+        for project in project_list:
+            project._organization_cache = organization
+        return project_list
+
+    def _team_list(self, organization, access):
+        member_teams = list(access.teams)
+        member_team_ids = [p.id for p in member_teams]
+        other_teams = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).exclude(id__in=member_team_ids))
+        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
+
+        for team in team_list:
+            team._organization_cache = organization
+        return team_list
+
+    def serialize(self, obj, attrs, user, access):
         from sentry import experiments
-        from sentry.app import env
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        team_list = sorted(Team.objects.filter(
-            organization=obj,
-            status=TeamStatus.VISIBLE,
-        ), key=lambda x: x.slug)
-
-        for team in team_list:
-            team._organization_cache = obj
-
-        project_list = sorted(Project.objects.filter(
-            organization=obj,
-            status=ProjectStatus.VISIBLE,
-        ), key=lambda x: x.slug)
-
-        for project in project_list:
-            project._organization_cache = obj
+        team_list = self._team_list(obj, access)
+        project_list = self._project_list(obj, access)
 
         onboarding_tasks = list(
             OrganizationOnboardingTask.objects.filter(
@@ -184,16 +200,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'sensitiveFields': obj.get_option('sentry:sensitive_fields', SENSITIVE_FIELDS_DEFAULT) or [],
             'safeFields': obj.get_option('sentry:safe_fields', SAFE_FIELDS_DEFAULT) or [],
             'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', STORE_CRASH_REPORTS_DEFAULT)),
+            'attachmentsRole': six.text_type(obj.get_option('sentry:attachments_role', ATTACHMENTS_ROLE_DEFAULT)),
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)),
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
             'trustedRelays': obj.get_option('sentry:trusted-relays', TRUSTED_RELAYS_DEFAULT) or [],
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
-        if env.request:
-            context['access'] = access.from_request(env.request, obj).scopes
-        else:
-            context['access'] = access.from_user(user, obj).scopes
+        context['access'] = access.scopes
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()

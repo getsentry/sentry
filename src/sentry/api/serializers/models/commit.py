@@ -27,7 +27,7 @@ def get_users_for_commits(item_list, user=None):
 
 @register(Commit)
 class CommitSerializer(Serializer):
-    def __init__(self, exclude=None, *args, **kwargs):
+    def __init__(self, exclude=None, include=None, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
 
@@ -73,7 +73,7 @@ class CommitSerializer(Serializer):
 
 @register(Commit)
 class CommitWithReleaseSerializer(CommitSerializer):
-    def __init__(self, exclude=None, *args, **kwargs):
+    def __init__(self, exclude=None, include=None, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
         self.exclude = frozenset(exclude if exclude else ())
 

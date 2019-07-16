@@ -43,6 +43,8 @@ class AuditLogEntryEvent(object):
     PROJECT_SET_PRIVATE = 34
     PROJECT_REQUEST_TRANSFER = 35
     PROJECT_ACCEPT_TRANSFER = 36
+    PROJECT_ENABLE = 37
+    PROJECT_DISABLE = 38
 
     TAGKEY_REMOVE = 40
 
@@ -68,6 +70,7 @@ class AuditLogEntryEvent(object):
     SET_ONDEMAND = 90
     TRIAL_STARTED = 91
     PLAN_CHANGED = 92
+    PLAN_CANCELLED = 93
 
     SERVICEHOOK_ADD = 100
     SERVICEHOOK_EDIT = 101
@@ -79,9 +82,17 @@ class AuditLogEntryEvent(object):
     INTEGRATION_EDIT = 111
     INTEGRATION_REMOVE = 112
 
+    SENTRY_APP_ADD = 113
+    # SENTRY_APP_EDIT = 114
+    SENTRY_APP_REMOVE = 115
+    SENTRY_APP_INSTALL = 116
+    SENTRY_APP_UNINSTALL = 117
+
     MONITOR_ADD = 120
     MONITOR_EDIT = 121
     MONITOR_REMOVE = 122
+
+    INTERNAL_INTEGRATION_ADD = 130
 
 
 class AuditLogEntry(Model):
@@ -119,6 +130,8 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PROJECT_SET_PRIVATE, 'project.set-private'),
             (AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER, 'project.request-transfer'),
             (AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER, 'project.accept-transfer'),
+            (AuditLogEntryEvent.PROJECT_ENABLE, 'project.enable'),
+            (AuditLogEntryEvent.PROJECT_DISABLE, 'project.disable'),
             (AuditLogEntryEvent.ORG_ADD, 'org.create'),
             (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
             (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
@@ -148,10 +161,16 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
             (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
             (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove'),
+            (AuditLogEntryEvent.SENTRY_APP_ADD, 'sentry-app.add'),
+            (AuditLogEntryEvent.SENTRY_APP_REMOVE, 'sentry-app.remove'),
+            (AuditLogEntryEvent.SENTRY_APP_INSTALL, 'sentry-app.install'),
+            (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, 'internal-integration.create'),
 
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
             (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
+            (AuditLogEntryEvent.PLAN_CANCELLED, 'plan.cancelled'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -248,6 +267,14 @@ class AuditLogEntry(Model):
             return 'requested to transfer project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
             return 'accepted transfer of project %s' % (self.data['slug'], )
+        elif self.event == AuditLogEntryEvent.PROJECT_ENABLE:
+            if isinstance(self.data['state'], set):
+                return 'enabled project filter %s' % (self.data['state'], )
+            return 'enabled project filter %s' % (', '.join(self.data["state"]),)
+        elif self.event == AuditLogEntryEvent.PROJECT_DISABLE:
+            if isinstance(self.data['state'], set):
+                return 'disabled project filter %s' % (self.data['state'], )
+            return 'disabled project filter %s' % (', '.join(self.data["state"]),)
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return 'removed tags matching %s = *' % (self.data['key'], )
@@ -268,7 +295,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
             return 'disabled sso (%s)' % (self.data['provider'], )
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
-            return 'edited sso settings'
+            return 'edited sso settings: ' + (', '.join(u'{} {}'.format(k, v)
+                                                        for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return 'linked their account to a new identity'
 
@@ -294,6 +322,8 @@ class AuditLogEntry(Model):
             return 'started trial'
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
             return 'changed plan to %s' % (self.data['plan_name'], )
+        elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
+            return 'cancelled plan'
 
         elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
             return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )
@@ -315,5 +345,14 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
             return 'disabled integration %s from project %s' % (
                 self.data['integration'], self.data['project'])
+
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_ADD:
+            return 'created sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_REMOVE:
+            return 'removed sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_INSTALL:
+            return 'installed sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.SENTRY_APP_UNINSTALL:
+            return 'uninstalled sentry app %s' % (self.data['sentry_app'])
 
         return ''

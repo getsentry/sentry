@@ -7,8 +7,6 @@ sentry.management.commands.check_notifications
 """
 from __future__ import absolute_import, print_function
 
-from optparse import make_option
-
 from django.core.management.base import BaseCommand, CommandError
 
 from sentry.models import User
@@ -34,23 +32,23 @@ def handle_project(plugin, project, stream):
 class Command(BaseCommand):
     help = 'Dump addresses that would get an email notification'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--organization',
             action='store',
-            type='int',
+            type=int,
             dest='organization',
             default=0,
             help='',
-        ), make_option(
+        )
+        parser.add_argument(
             '--project',
             action='store',
-            type='int',
+            type=int,
             dest='project',
             default=0,
             help='',
-        ),
-    )
+        )
 
     def handle(self, *args, **options):
         if not (options['project'] or options['organization']):

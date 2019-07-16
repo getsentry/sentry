@@ -57,8 +57,12 @@ const OrganizationBadgeContainer = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.state.organization === nextProps.organization) return;
-    if (isEqual(this.state.organization, nextProps.organization)) return;
+    if (this.state.organization === nextProps.organization) {
+      return;
+    }
+    if (isEqual(this.state.organization, nextProps.organization)) {
+      return;
+    }
 
     this.setState({
       organization: nextProps.organization,
@@ -67,7 +71,9 @@ const OrganizationBadgeContainer = createReactClass({
 
   onOrganizationStoreUpdate() {
     const org = OrganizationStore.get(this.state.organization.slug);
-    if (isEqual(org.avatar, this.state.organization.avatar)) return;
+    if (isEqual(org.avatar, this.state.organization.avatar)) {
+      return;
+    }
 
     this.setState({
       organization: OrganizationStore.get(this.state.organization.slug),

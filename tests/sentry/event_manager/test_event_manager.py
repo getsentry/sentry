@@ -13,18 +13,19 @@ from django.utils import timezone
 from time import time
 
 from sentry.app import tsdb
-from sentry.constants import VERSION_LENGTH
+from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
-from sentry.event_hashing import md5_from_hash
+from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport, EventAttachment, File
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TransactionTestCase
+from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
+from sentry.web.relay_config import get_full_relay_config
 
 
 def make_event(**kwargs):
@@ -39,7 +40,7 @@ def make_event(**kwargs):
     return result
 
 
-class EventManagerTest(TransactionTestCase):
+class EventManagerTest(TestCase):
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
@@ -151,7 +152,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
+        assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
@@ -185,7 +186,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.last_seen == event.datetime
         assert group.message == event2.message
 
     def test_differentiates_with_fingerprint(self):
@@ -217,7 +218,7 @@ class EventManagerTest(TransactionTestCase):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
@@ -249,7 +250,7 @@ class EventManagerTest(TransactionTestCase):
     @mock.patch('sentry.event_manager.plugin_is_regression')
     def test_does_not_unresolve_group(self, plugin_is_regression):
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         plugin_is_regression.return_value = False
 
         manager = EventManager(
@@ -611,13 +612,8 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        # MySQL removes sub-second portion
-        assert group.active_at.replace(
-            second=0, microsecond=0) == event2.datetime.replace(
-            second=0, microsecond=0)
-        assert group.active_at.replace(
-            second=0, microsecond=0) != event.datetime.replace(
-            second=0, microsecond=0)
+        assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
+        assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
@@ -693,7 +689,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_release_project_slug_long(self):
         project = self.create_project(name='foo')
-        partial_version_len = VERSION_LENGTH - 4
+        partial_version_len = MAX_VERSION_LENGTH - 4
         release = Release.objects.create(
             version='foo-%s' % ('a' * partial_version_len, ), organization=project.organization
         )
@@ -1004,6 +1000,28 @@ class EventManagerTest(TransactionTestCase):
 
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
+    def test_event_attachment_gets_group_id(self):
+        project = self.create_project()
+        event_id = 'a' * 32
+        uploaded_file_name = 'attachment.zip'
+        EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name=uploaded_file_name,
+            file=File.objects.create(
+                name=uploaded_file_name,
+            ),
+        )
+
+        event = self.store_event(
+            data=make_event(
+                event_id=event_id
+            ),
+            project_id=project.id
+        )
+
+        assert EventAttachment.objects.get(event_id=event_id).group_id == event.group_id
+
     def test_default_event_type(self):
         manager = EventManager(make_event(message='foo bar'))
         manager.normalize()
@@ -1101,6 +1119,8 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['sdk'] == {
             'name': 'sentry-unity',
             'version': '1.0',
+            'integrations': None,
+            'packages': None
         }
 
     def test_no_message(self):
@@ -1129,6 +1149,8 @@ class EventManagerTest(TransactionTestCase):
 
         assert event.data['logentry'] == {
             'formatted': '1234',
+            'message': None,
+            'params': None
         }
 
     def test_bad_message(self):
@@ -1150,6 +1172,8 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_shadowing(self):
@@ -1168,6 +1192,8 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1183,6 +1209,8 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'a plain string',
+            'message': None,
+            'params': None
         }
 
     def test_throws_when_matches_discarded_hash(self):
@@ -1263,7 +1291,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert hashes == [md5_from_hash(checksum), checksum]
+        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
 
     @mock.patch('sentry.event_manager.is_valid_error_message')
     def test_should_filter_message(self, mock_is_valid_error_message):
@@ -1298,14 +1326,15 @@ class EventManagerTest(TransactionTestCase):
             },
         }
 
-        manager = EventManager(data, project=self.project)
+        relay_config = get_full_relay_config(self.project.id)
+        manager = EventManager(data, project=self.project, relay_config=relay_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
 
         assert manager.should_filter() == (True, FilterStatKeys.ERROR_MESSAGE)
 
         assert mock_is_valid_error_message.call_args_list == [
-            mock.call(self.project, item.formatted) for item in items]
+            mock.call(relay_config, item.formatted) for item in items]
 
     def test_legacy_attributes_moved(self):
         event = make_event(
@@ -1331,7 +1360,7 @@ class EventManagerTest(TransactionTestCase):
         assert tags['server_name'] == 'foo.com'
 
 
-class ReleaseIssueTest(TransactionTestCase):
+class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, '1.0')

@@ -21,11 +21,6 @@ from sentry.runner.decorators import configuration, log_options
 )
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
 @click.option(
-    '--browser-reload/--no-browser-reload',
-    default=False,
-    help='Automatic browser refreshing on webpack builds'
-)
-@click.option(
     '--prefix/--no-prefix',
     default=True,
     help='Show the service name prefix and timestamp'
@@ -36,6 +31,11 @@ from sentry.runner.decorators import configuration, log_options
     help='Start local styleguide web server on port 9001'
 )
 @click.option('--environment', default='development', help='The environment name.')
+@click.option(
+    '--experimental-spa/--no-experimental-spa',
+    default=False,
+    help='This enables running sentry with pure separation of the frontend and backend'
+)
 @click.argument(
     'bind',
     default='127.0.0.1:8000',
@@ -44,7 +44,7 @@ from sentry.runner.decorators import configuration, log_options
 )
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, environment, bind):
+def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -107,22 +107,34 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
 
     daemons = []
 
-    if watchers and not browser_reload:
+    if experimental_spa:
+        os.environ['SENTRY_EXPERIMENTAL_SPA'] = '1'
+        if not watchers:
+            click.secho(
+                'Using experimental SPA mode without watchers enabled has no effect',
+                err=True,
+                fg='yellow')
+
+    # We proxy all requests through webpacks devserver on the configured port.
+    # The backend is served on port+1 and is proxied via the webpack
+    # configuration.
+    if watchers:
         daemons += settings.SENTRY_WATCHERS
 
-    # For javascript dev, if browser reload and watchers, then:
-    # devserver listen on PORT + 1
-    # webpack dev server listen on PORT + 2
-    # proxy listen on PORT
-    if watchers and browser_reload:
-        new_port = port + 1
-        os.environ['WEBPACK_DEV_PROXY'] = '%s' % port
-        os.environ['WEBPACK_DEV_PORT'] = '%s' % (new_port + 1)
-        os.environ['SENTRY_DEVSERVER_PORT'] = '%s' % new_port
-        port = new_port
+        proxy_port = port
+        port = port + 1
 
-        daemons += [
-            ('jsproxy', ['yarn', 'dev-proxy']), ('webpack', ['yarn', 'dev-server'])
+        os.environ['SENTRY_WEBPACK_PROXY_PORT'] = '%s' % proxy_port
+        os.environ['SENTRY_BACKEND_PORT'] = '%s' % port
+
+        # Replace the webpack watcher with the drop-in webpack-dev-server
+        webpack_config = next(w for w in daemons if w[0] == 'webpack')[1]
+        webpack_config[0] = os.path.join(
+            *os.path.split(webpack_config[0])[0:-1] + ('webpack-dev-server', )
+        )
+
+        daemons = [w for w in daemons if w[0] != 'webpack'] + [
+            ('webpack', webpack_config),
         ]
 
     if workers:
@@ -188,7 +200,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
     ]
 
     if styleguide:
-        daemons += [('storybook', ['yarn', 'storybook'])]
+        daemons += [('storybook', ['./bin/yarn', 'storybook'])]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 

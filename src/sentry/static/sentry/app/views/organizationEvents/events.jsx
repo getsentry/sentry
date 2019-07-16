@@ -1,20 +1,20 @@
-import {addErrorMessage} from 'app/actionCreators/indicator';
-
-import * as Sentry from '@sentry/browser';
 import {Flex} from 'grid-emotion';
+import {browserHistory} from 'react-router';
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 import styled from 'react-emotion';
 
 import {Panel} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AsyncView from 'app/views/asyncView';
 import Feature from 'app/components/acl/feature';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
-import utils from 'app/utils';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
 
 import {getParams} from './utils/getParams';
@@ -22,7 +22,7 @@ import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
 
 const parseRowFromLinks = (links, numRows) => {
-  links = utils.parseLinkHeader(links);
+  links = parseLinkHeader(links);
   if (!links.previous.results) {
     return `1-${numRows}`;
   }
@@ -80,13 +80,6 @@ class OrganizationEvents extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  constructor(props) {
-    super(props);
-    this.projectsMap = new Map(
-      props.organization.projects.map(project => [project.id, project])
-    );
-  }
-
   shouldComponentUpdate(nextProps, nextState) {
     // Always update if state changes
     if (this.state !== nextState) {
@@ -129,6 +122,21 @@ class OrganizationEvents extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
+  onRequestSuccess({data, jqXHR}) {
+    const {organization} = this.props;
+
+    if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+      const event = data[0];
+      const project = organization.projects.find(p => p.id === event.projectID);
+
+      browserHistory.replace(
+        `/organizations/${organization.slug}/projects/${project.slug}/events/${
+          event.eventID
+        }/`
+      );
+    }
+  }
+
   onRequestError(resp, args) {
     // Allow children to implement this
     if (resp && resp.responseJSON && resp.responseJSON.detail) {
@@ -144,6 +152,10 @@ class OrganizationEvents extends AsyncView {
 
   renderRowCounts() {
     const {events, eventsPageLinks} = this.state;
+    if (!eventsPageLinks) {
+      return null;
+    }
+
     return parseRowFromLinks(eventsPageLinks, events.length);
   }
 
@@ -158,7 +170,8 @@ class OrganizationEvents extends AsyncView {
   renderBody() {
     const {organization, location, router} = this.props;
     const {error, loading, reloading, events, eventsPageLinks} = this.state;
-    const parsedLinks = !loading && !error ? utils.parseLinkHeader(eventsPageLinks) : {};
+    const parsedLinks =
+      !loading && !error && eventsPageLinks ? parseLinkHeader(eventsPageLinks) : {};
 
     return (
       <React.Fragment>
@@ -186,28 +199,26 @@ class OrganizationEvents extends AsyncView {
           onUpdateComplete={this.handleTableUpdateComplete}
         />
 
-        {!loading &&
-          !reloading &&
-          !error && (
-            <Flex align="center" justify="space-between">
-              <RowDisplay>
-                {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
-                {!!events.length && (
-                  <Feature features={['internal-catchall']}>
-                    <TotalEventCount
-                      organization={organization}
-                      location={location}
-                      isAllResults={
-                        !parsedLinks.previous.results && !parsedLinks.next.results
-                      }
-                      numRows={events.length}
-                    />
-                  </Feature>
-                )}
-              </RowDisplay>
-              <Pagination pageLinks={eventsPageLinks} className="" />
-            </Flex>
-          )}
+        {!loading && !reloading && !error && (
+          <Flex align="center" justify="space-between">
+            <RowDisplay>
+              {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
+              {!!events.length && eventsPageLinks && (
+                <Feature features={['internal-catchall']}>
+                  <TotalEventCount
+                    organization={organization}
+                    location={location}
+                    isAllResults={
+                      !parsedLinks.previous.results && !parsedLinks.next.results
+                    }
+                    numRows={events.length}
+                  />
+                </Feature>
+              )}
+            </RowDisplay>
+            <Pagination pageLinks={eventsPageLinks} className="" />
+          </Flex>
+        )}
       </React.Fragment>
     );
   }

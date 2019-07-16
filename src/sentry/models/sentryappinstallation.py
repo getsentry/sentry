@@ -25,17 +25,20 @@ class SentryAppInstallation(ParanoidModel):
     organization = FlexibleForeignKey('sentry.Organization',
                                       related_name='sentry_app_installations')
 
-    # Each installation gets associated with an instance of ApiAuthorization.
-    authorization = models.OneToOneField(
-        'sentry.ApiAuthorization',
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name='sentry_app_installation',
-    )
-
     # Each installation has a Grant that the integration can exchange for an
     # Access Token.
     api_grant = models.OneToOneField('sentry.ApiGrant',
+                                     null=True,
+                                     on_delete=models.SET_NULL,
+                                     related_name='sentry_app_installation')
+
+    # Two scenarios for tokens:
+    # 1) An installation gets an access token once the Grant has been exchanged,
+    # and is updated when the token gets refreshed.
+    #
+    # 2) An installation is created for an internal SentryApp. This token will
+    # not need to be refreshed as it will live forever
+    api_token = models.OneToOneField('sentry.ApiToken',
                                      null=True,
                                      on_delete=models.SET_NULL,
                                      related_name='sentry_app_installation')

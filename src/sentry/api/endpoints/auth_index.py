@@ -99,21 +99,21 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        validator = AuthVerifyValidator(data=request.DATA)
+        validator = AuthVerifyValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
 
         # See if we have a u2f challenge/response
-        if 'challenge' in validator.object and 'response' in validator.object:
+        if 'challenge' in validator.validated_data and 'response' in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, 'u2f')
                 if not interface.is_enrolled:
                     raise LookupError()
 
-                challenge = json.loads(validator.object['challenge'])
-                response = json.loads(validator.object['response'])
+                challenge = json.loads(validator.validated_data['challenge'])
+                response = json.loads(validator.validated_data['response'])
                 authenticated = interface.validate_response(request, challenge, response)
             except ValueError:
                 pass
@@ -122,7 +122,7 @@ class AuthIndexEndpoint(Endpoint):
 
         # attempt password authentication
         else:
-            authenticated = request.user.check_password(validator.object['password'])
+            authenticated = request.user.check_password(validator.validated_data['password'])
 
         # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
@@ -152,7 +152,7 @@ class AuthIndexEndpoint(Endpoint):
         Deauthenticate the currently active session. Can also deactivate
         all sessions for a user if the ``all`` parameter is sent.
         """
-        if request.DATA.get('all'):
+        if request.data.get('all'):
             # Rotate the session nonce to invalidate all other sessions.
             request.user.refresh_session_nonce()
             request.user.save()

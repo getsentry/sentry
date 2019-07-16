@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import unittest
+
 from datetime import timedelta
 from django.utils import timezone
 from mock import Mock
@@ -11,7 +13,7 @@ from sentry.utils.committers import (
     _get_commit_file_changes,
     _get_frame_paths,
     _match_commits_path,
-    get_event_file_committers,
+    get_serialized_event_file_committers,
     get_previous_releases,
     score_path_match_length,
     tokenize_path
@@ -58,7 +60,7 @@ class CommitTestCase(TestCase):
         )
 
 
-class TokenizePathTestCase(TestCase):
+class TokenizePathTestCase(unittest.TestCase):
     def test_forward_slash(self):
         assert list(tokenize_path('foo/bar')) == ['bar', 'foo']
 
@@ -85,7 +87,7 @@ class TokenizePathTestCase(TestCase):
         assert list(tokenize_path('/')) == []
 
 
-class ScorePathMatchLengthTest(TestCase):
+class ScorePathMatchLengthTest(unittest.TestCase):
     def test_equal_paths(self):
         assert score_path_match_length('foo/bar/baz', 'foo/bar/baz') == 3
 
@@ -100,7 +102,7 @@ class ScorePathMatchLengthTest(TestCase):
         assert score_path_match_length('./foo/bar/baz', 'foo/bar/baz') == 3
 
 
-class GetFramePathsTestCase(TestCase):
+class GetFramePathsTestCase(unittest.TestCase):
     def setUp(self):
         self.event = Mock()
         self.event.data = {}
@@ -272,14 +274,14 @@ class GetEventFileCommitters(CommitTestCase):
                 'message': 'i fixed a bug',
                 'patch_set': [
                     {
-                        'path': 'sentry/example/Application/Application.java',
+                        'path': 'src/main/java/io/sentry/example/Application.java',
                         'type': 'M',
                     },
                 ]
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
         assert 'commits' in result[0]
         assert len(result[0]['commits']) == 1
@@ -327,7 +329,7 @@ class GetEventFileCommitters(CommitTestCase):
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
         assert 'commits' in result[0]
         assert len(result[0]['commits']) == 1
@@ -375,7 +377,7 @@ class GetEventFileCommitters(CommitTestCase):
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
     def test_no_commits(self):
@@ -406,4 +408,4 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
         with self.assertRaises(Commit.DoesNotExist):
-            get_event_file_committers(self.project, event)
+            get_serialized_event_file_committers(self.project, event)

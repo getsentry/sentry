@@ -104,9 +104,9 @@ class GroupSerializerBase(Serializer):
         }
 
         # This is the user's default value for any projects that don't have
-        # the option value specifically recorded. (The default "all
-        # conversations" value is convention.)
-        global_default_workflow_option = options.get(None, UserOptionValue.all_conversations)
+        # the option value specifically recorded. (The default
+        # "participating_only" value is convention.)
+        global_default_workflow_option = options.get(None, UserOptionValue.participating_only)
 
         results = {}
         for project, groups in projects.items():
@@ -244,6 +244,14 @@ class GroupSerializerBase(Serializer):
                     safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
+            from sentry.models import PlatformExternalIssue
+            annotations.extend(
+                safe_execute(
+                    PlatformExternalIssue.get_annotations,
+                    group=item,
+                    _with_transaction=False) or ()
+            )
+
             resolution_actor = None
             resolution_type = None
             resolution = release_resolutions.get(item.id)
@@ -371,10 +379,12 @@ class GroupSerializerBase(Serializer):
             'status': status_label,
             'statusDetails': status_details,
             'isPublic': share_id is not None,
+            'platform': obj.platform,
             'project': {
                 'id': six.text_type(obj.project.id),
                 'name': obj.project.name,
                 'slug': obj.project.slug,
+                'platform': obj.project.platform,
             },
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
@@ -544,8 +554,10 @@ class SharedGroupSerializer(GroupSerializer):
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    def __init__(self, environment_ids=None):
+    def __init__(self, environment_ids=None, start=None, end=None):
         self.environment_ids = environment_ids
+        self.start = start
+        self.end = end
 
     def _get_seen_stats(self, item_list, user):
         tagstore = SnubaTagStorage()
@@ -555,6 +567,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
             project_ids,
             group_ids,
             environment_ids=self.environment_ids,
+            start=self.start,
+            end=self.end,
         )
 
         first_seen = {}
@@ -571,6 +585,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 project_ids,
                 group_ids,
                 self.environment_ids,
+                start=self.start,
+                end=self.end,
             )
 
             first_seen_data = {

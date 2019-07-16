@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
 // event ids must have string length of 32
@@ -44,14 +45,6 @@ async function createProjectResults(projectsPromise, orgId) {
   const projects = (await projectsPromise) || [];
   return flatten(
     projects.map(project => [
-      {
-        title: `${project.slug} Dashboard`,
-        description: 'Project Dashboard',
-        model: project,
-        sourceType: 'project',
-        resultType: 'route',
-        to: `/${orgId}/${project.slug}/`,
-      },
       {
         title: `${project.slug} Settings`,
         description: 'Project Settings',
@@ -123,7 +116,9 @@ async function createIntegrationResults(integrationsPromise, orgId) {
 
 async function createShortIdLookupResult(shortIdLookupPromise) {
   const shortIdLookup = await shortIdLookupPromise;
-  if (!shortIdLookup) return null;
+  if (!shortIdLookup) {
+    return null;
+  }
 
   const issue = shortIdLookup && shortIdLookup.group;
   return {
@@ -134,14 +129,18 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
-      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
+      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${
+        shortIdLookup.groupId
+      }/`,
     },
   };
 }
 
 async function createEventIdLookupResult(eventIdLookupPromise) {
   const eventIdLookup = await eventIdLookupPromise;
-  if (!eventIdLookup) return null;
+  if (!eventIdLookup) {
+    return null;
+  }
 
   const event = eventIdLookup && eventIdLookup.event;
   return {
@@ -150,7 +149,9 @@ async function createEventIdLookupResult(eventIdLookupPromise) {
       description: `${event && event.metadata && event.metadata.value}`,
       sourceType: 'event',
       resultType: 'event',
-      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
+      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${
+        eventIdLookup.groupId
+      }/events/${eventIdLookup.eventId}/`,
     },
   };
 }
@@ -162,6 +163,9 @@ class ApiSource extends React.Component {
 
     // fuse.js options
     searchOptions: PropTypes.object,
+
+    // Organization used for search context
+    organization: SentryTypes.Organization,
 
     /**
      * Render function that passes:
@@ -188,7 +192,9 @@ class ApiSource extends React.Component {
 
     this.api = new Client();
 
-    if (typeof props.query !== 'undefined') this.doSearch(props.query);
+    if (typeof props.query !== 'undefined') {
+      this.doSearch(props.query);
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -248,13 +254,17 @@ class ApiSource extends React.Component {
     );
 
     const directRequests = directUrls.map(url => {
-      if (!url) return Promise.resolve(null);
+      if (!url) {
+        return Promise.resolve(null);
+      }
 
       return this.api.requestPromise(url).then(
         resp => resp,
         err => {
           // No need to log 404 errors
-          if (err && err.status === 404) return null;
+          if (err && err.status === 404) {
+            return null;
+          }
           this.handleRequestError(err, {orgId, url});
           return null;
         }
@@ -351,7 +361,9 @@ class ApiSource extends React.Component {
       createEventIdLookupResult(eventIdLookup),
     ])).filter(result => !!result);
 
-    if (!directResults.length) return [];
+    if (!directResults.length) {
+      return [];
+    }
 
     return directResults;
   }

@@ -7,6 +7,7 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
+import os
 from datetime import timedelta
 from uuid import uuid4
 
@@ -43,6 +44,8 @@ def get_project(value):
 # an identity on an object() isn't guaranteed to work between parent
 # and child proc
 _STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
+
+API_TOKEN_TTL_IN_DAYS = 30
 
 
 def multiprocess_worker(task_queue):
@@ -140,6 +143,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
+    os.environ['_SENTRY_CLEANUP'] = '1'
+
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     from multiprocessing import Process, JoinableQueue as Queue
@@ -203,10 +208,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
-    if is_filtered(models.OrganizationMember) and not silent:
-        click.echo('>> Skipping OrganizationMember')
-    else:
+    if not silent:
         click.echo('Removing expired values for OrganizationMember')
+
+    if is_filtered(models.OrganizationMember):
+        if not silent:
+            click.echo('>> Skipping OrganizationMember')
+    else:
         expired_threshold = timezone.now() - timedelta(days=days)
         models.OrganizationMember.delete_expired(expired_threshold)
 
@@ -218,7 +226,18 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
-            model.objects.filter(expires_at__lt=timezone.now()).delete()
+            queryset = model.objects.filter(
+                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS)),
+            )
+
+            # SentryAppInstallations are associated to ApiTokens. We're okay
+            # with these tokens sticking around so that the Integration can
+            # refresh them, but all other non-associated tokens should be
+            # deleted.
+            if model is models.ApiToken:
+                queryset = queryset.filter(sentry_app_installation__isnull=True)
+
+            queryset.delete()
 
     project_id = None
     if project:
@@ -315,7 +334,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     if timed:
         duration = int(time.time() - start_time)
-        metrics.timing('cleanup.duration', duration, instance=router)
+        metrics.timing('cleanup.duration', duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
 
 

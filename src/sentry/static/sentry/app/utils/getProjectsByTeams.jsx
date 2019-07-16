@@ -15,7 +15,7 @@ export default function getProjectsByTeams(teams, projects, isSuperuser = false)
         if (!usersTeams.has(team.slug)) {
           return;
         }
-        if (!projectsByTeam[team.slug]) {
+        if (!projectsByTeam.hasOwnProperty(team.slug)) {
           projectsByTeam[team.slug] = [];
         }
         projectsByTeam[team.slug].push(project);

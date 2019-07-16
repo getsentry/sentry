@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.bases.monitor import MonitorEndpoint
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Monitor, MonitorCheckIn, MonitorStatus, CheckInStatus, ProjectKey
@@ -18,7 +19,7 @@ class CheckInSerializer(serializers.Serializer):
             ('in_progress', CheckInStatus.IN_PROGRESS),
         ),
     )
-    duration = serializers.IntegerField(required=False)
+    duration = EmptyIntegerField(required=False, allow_null=True)
 
 
 class MonitorCheckInsEndpoint(MonitorEndpoint):
@@ -56,8 +57,11 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
+            return self.respond(status=404)
+
         serializer = CheckInSerializer(
-            data=request.DATA,
+            data=request.data,
             context={
                 'project': project,
                 'request': request,
@@ -66,7 +70,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         with transaction.atomic():
             checkin = MonitorCheckIn.objects.create(
@@ -75,14 +79,15 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 duration=result.get('duration'),
                 status=getattr(CheckInStatus, result['status'].upper()),
             )
-            if checkin.status == CheckInStatus.ERROR:
-                monitor.mark_failed(last_checkin=checkin.date_added)
+            if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
+                if not monitor.mark_failed(last_checkin=checkin.date_added):
+                    return self.respond(serialize(checkin, request.user), status=200)
             else:
                 monitor_params = {
                     'last_checkin': checkin.date_added,
                     'next_checkin': monitor.get_next_scheduled_checkin(checkin.date_added),
                 }
-                if checkin.status == CheckInStatus.OK:
+                if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
                     monitor_params['status'] = MonitorStatus.OK
                 Monitor.objects.filter(
                     id=monitor.id,
@@ -90,4 +95,4 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                     last_checkin__gt=checkin.date_added,
                 ).update(**monitor_params)
 
-        return self.respond(serialize(checkin, request.user))
+        return self.respond(serialize(checkin, request.user), status=201)

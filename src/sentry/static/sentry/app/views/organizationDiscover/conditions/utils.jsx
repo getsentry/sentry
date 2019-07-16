@@ -31,23 +31,23 @@ export function isValidCondition(condition, cols) {
 }
 
 /***
-* Converts external Snuba format to internal format for dropdown
-*
-* @param {Array} condition Condition in external Snuba format
-* @param {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
-* @returns {String}
-*/
+ * Converts external Snuba format to internal format for dropdown
+ *
+ * @param {Array} condition Condition in external Snuba format
+ * @param {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
+ * @returns {String}
+ */
 export function getInternal(external) {
   return external.join(' ').trim();
 }
 
 /***
-* Converts internal dropdown format to external Snuba format
-*
-* @param {String} internal Condition in internal format
-* @param {Array} {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
-* @returns {Array} condition Condition in external Snuba format
-*/
+ * Converts internal dropdown format to external Snuba format
+ *
+ * @param {String} internal Condition in internal format
+ * @param {Array} {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
+ * @returns {Array} condition Condition in external Snuba format
+ */
 export function getExternal(internal, columns) {
   internal = internal || '';
   const external = [null, null, null];
@@ -83,11 +83,6 @@ export function getExternal(internal, columns) {
       external[2] = internal.replace(strStart, '');
     }
 
-    // Ignore double quotes if they have been entered
-    if (external[2] !== null && external[2].match(/^".*"$/)) {
-      external[2] = external[2].slice(1, -1);
-    }
-
     const type = columns.find(({name}) => name === colValue).type;
 
     if (type === 'number') {
@@ -114,12 +109,12 @@ export function getExternal(internal, columns) {
 }
 
 /**
-* Transform casing of condition operators to uppercase. Applies to the operators
-* IS NULL, IS NOT NULL, LIKE and NOT LIKE
-*
-* @param {String} input Condition string as input by user
-* @returns {String}
-*/
+ * Transform casing of condition operators to uppercase. Applies to the operators
+ * IS NULL, IS NOT NULL, LIKE and NOT LIKE
+ *
+ * @param {String} input Condition string as input by user
+ * @returns {String}
+ */
 
 export function ignoreCase(input = '') {
   const colName = input.split(' ')[0];

@@ -8,6 +8,7 @@ const theme = {
   offWhite2: '#E7E1EC',
   whiteDark: '#fbfbfc',
   white: '#FFFFFF',
+  foreground: '#493E54',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',
@@ -18,10 +19,12 @@ const theme = {
 
   blue: '#3B6ECC',
   blueLight: '#628BD6',
+  blueLightest: '#F5FAFE',
   blueDark: '#2F58A3',
 
   green: '#57be8c',
   greenLight: '#71D8A6',
+  greenLightest: '#f8fcf7',
   greenDark: '#3EA573',
   greenTransparent: 'rgba(87, 190, 140, 0.5)',
 
@@ -29,6 +32,7 @@ const theme = {
   yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
   yellowDark: '#e6bc23',
+  yellowDarkest: '#ecbb08',
 
   yellowOrange: '#f9a66d',
   yellowOrangeLight: '#FFC087',
@@ -40,6 +44,7 @@ const theme = {
 
   red: '#e03e2f',
   redLight: '#FA5849',
+  redLightest: '#FDF6F5',
   redDark: '#C72516',
 
   pink: '#F868BC',
@@ -57,63 +62,45 @@ const theme = {
   borderLight: '#E2DBE8',
   borderDark: '#D1CAD8',
   borderRadius: '4px',
-  headerSelectorRowHeight: 40,
+  borderRadiusBottom: '0 0 4px 4px',
+  headerSelectorRowHeight: 44,
+  headerSelectorLabelHeight: 28,
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
 
   background: '#fff',
+  placeholderBackground: '#f5f5f5',
 
+  // Try to keep these ordered plz
   zIndex: {
-    orgAndUserMenu: 1004,
-    globalSelectionHeader: 1002,
-    sidebar: 1003,
-    dropdown: 1001,
     header: 1000,
-    modal: 10000,
-    toast: 10001,
-    dropdownAutocomplete: {
-      // needs to be above menu
-      actor: 1008,
+    dropdown: 1001,
 
+    dropdownAutocomplete: {
       // needs to be below actor but above other page elements (e.g. pagination)
       // (e.g. Issue Details "seen" dots on chart is 2)
       // stream header is 1000
       menu: 1007,
-    },
-  },
 
-  alert: {
-    default: {
-      backgroundLight: '#FAF9FB',
-      background: '#BDB4C7',
-      border: '#E2DBE8',
+      // needs to be above menu
+      actor: 1008,
     },
-    info: {
-      backgroundLight: '#F5FAFE',
-      border: '#B5D6ED',
-    },
-    attention: {
-      backgroundLight: '#ECBFA6',
-      background: '#F09E71',
-      border: '#D0816D',
-    },
-    warning: {
-      backgroundLight: '#FFFDF7',
-      background: '#f9a66d',
-      border: '#E1D697',
-    },
-    success: {
-      backgroundLight: '#F8FCF7',
-      background: '#57be8c',
-      border: '#BBD6B3',
-    },
-    error: {
-      backgroundLight: '#FDF6F5',
-      border: '#E7C0BC',
-      textLight: '#92635f',
-    },
-    beta: {},
+
+    globalSelectionHeader: 1009,
+    sidebar: 1010,
+    orgAndUserMenu: 1011,
+
+    // Sentry user feedback modal
+    sentryErrorEmbed: 1090,
+
+    // If you change modal also update shared-components.less
+    // as the z-index for bootstrap modals lives there.
+    modal: 10000,
+    toast: 10001,
+
+    // tooltips and hovercards can be inside modals sometimes.
+    tooltip: 10002,
   },
 
   grid: 8,
@@ -163,19 +150,41 @@ theme.success = theme.green;
 theme.error = theme.red;
 theme.disabled = theme.gray1;
 
-theme.alert.info.iconColor = theme.blue;
-theme.alert.info.background = theme.blue;
-
-theme.alert.warning.iconColor = theme.yellowDark;
-theme.alert.warning.background = theme.yellow;
-
-theme.alert.success.iconColor = theme.greenDark;
-theme.alert.success.background = theme.green;
-
-theme.alert.error.iconColor = theme.redDark;
-theme.alert.error.background = theme.red;
-
-theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
+theme.alert = {
+  muted: {
+    backgroundLight: theme.offWhite,
+    background: theme.gray1,
+    border: theme.gray6,
+  },
+  info: {
+    backgroundLight: theme.blueLightest,
+    border: theme.blueLight,
+    iconColor: theme.blue,
+    background: theme.blue,
+  },
+  warning: {
+    backgroundLight: theme.yellowLightest,
+    background: theme.yellowDarkest,
+    border: theme.yellowDark,
+    iconColor: theme.yellowDark,
+  },
+  success: {
+    backgroundLight: theme.greenLightest,
+    border: theme.green,
+    iconColor: theme.greenDark,
+    background: theme.green,
+  },
+  error: {
+    backgroundLight: theme.redLightest,
+    border: theme.redLight,
+    textLight: theme.redLight,
+    iconColor: theme.red,
+    background: theme.red,
+  },
+  beta: {
+    background: `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`,
+  },
+};
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;

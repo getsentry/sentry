@@ -18,7 +18,7 @@ from django.db.models.signals import pre_delete, pre_save, post_save, post_delet
 
 from sentry.utils import db
 
-_leaf_re = re.compile(r'^(Event|Group)(.+)')
+_leaf_re = re.compile(r'^(UserReport|Event|Group)(.+)')
 
 
 class InvalidQuerySetError(ValueError):
@@ -318,17 +318,6 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None,
                 where (%(query)s)
                 limit %(limit)d
             ))
-        """ % dict(
-            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
-            query=' AND '.join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    elif db.is_mysql():
-        query = """
-            delete from %(table)s
-            where %(partition_query)s (%(query)s)
-            limit %(limit)d
         """ % dict(
             partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
             query=' AND '.join(query),

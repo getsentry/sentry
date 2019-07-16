@@ -5,7 +5,7 @@ import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -17,14 +17,13 @@ const PluginConfig = createReactClass({
   displayName: 'PluginConfig',
 
   propTypes: {
+    api: PropTypes.object,
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
     onDisablePlugin: PropTypes.func,
     enabled: PropTypes.bool,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -77,7 +76,7 @@ const PluginConfig = createReactClass({
 
   testPlugin() {
     const loadingIndicator = IndicatorStore.add(t('Sending test..'));
-    this.api.request(this.getPluginEndpoint(), {
+    this.props.api.request(this.getPluginEndpoint(), {
       method: 'POST',
       data: {
         test: true,
@@ -115,23 +114,22 @@ const PluginConfig = createReactClass({
             </Flex>
             <span>{data.name}</span>
           </Flex>
-          {data.canDisable &&
-            enabled && (
-              <Flex align="center">
-                <Box mr={1}>
-                  {data.isTestable && (
-                    <Button onClick={this.testPlugin} size="small">
-                      {t('Test Plugin')}
-                    </Button>
-                  )}
-                </Box>
-                <Box>
-                  <Button size="small" onClick={this.disablePlugin}>
-                    {t('Disable')}
+          {data.canDisable && enabled && (
+            <Flex align="center">
+              <Box mr={1}>
+                {data.isTestable && (
+                  <Button onClick={this.testPlugin} size="small">
+                    {t('Test Plugin')}
                   </Button>
-                </Box>
-              </Flex>
-            )}
+                )}
+              </Box>
+              <Box>
+                <Button size="small" onClick={this.disablePlugin}>
+                  {t('Disable')}
+                </Button>
+              </Box>
+            </Flex>
+          )}
         </PanelHeader>
         <PanelBody px={2} pt={2} flex wrap="wrap">
           {data.status === 'beta' ? (
@@ -141,7 +139,7 @@ const PluginConfig = createReactClass({
               </strong>
             </div>
           ) : null}
-          {this.state.testResults != '' ? (
+          {this.state.testResults !== '' ? (
             <div className="alert alert-block alert-warning">
               <strong>Test Results: </strong>
               <p>{this.state.testResults}</p>
@@ -162,4 +160,6 @@ const PluginConfig = createReactClass({
   },
 });
 
-export default PluginConfig;
+export {PluginConfig};
+
+export default withApi(PluginConfig);

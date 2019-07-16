@@ -20,7 +20,7 @@ class EventRow extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         event: EventStore.get(this.props.id),
       });
@@ -33,8 +33,9 @@ class EventRow extends React.Component {
 
   render() {
     const event = this.state.event;
-    const eventLink = `/${this.props.orgSlug}/${this.props
-      .projectSlug}/issues/${event.groupID}/events/${event.id}/`;
+    const eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${
+      event.groupID
+    }/events/${event.id}/`;
 
     const tagList = [];
     for (const key in event.tags) {

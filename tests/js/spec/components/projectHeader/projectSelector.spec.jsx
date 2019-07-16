@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ProjectHeaderProjectSelector', function() {
   const testTeam = TestStubs.Team({
@@ -13,6 +14,7 @@ describe('ProjectHeaderProjectSelector', function() {
   const testProject = TestStubs.Project({
     id: 'test-project',
     slug: 'test-project',
+    isBookmarked: true,
     isMember: true,
     teams: [testTeam],
   });
@@ -35,6 +37,10 @@ describe('ProjectHeaderProjectSelector', function() {
   const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
 
   const openMenu = wrapper => wrapper.find('DropdownLabel').simulate('click');
+
+  beforeEach(function() {
+    ProjectsStore.loadInitialData(mockOrg.projects);
+  });
 
   it('renders with "Select a project" when no project is selected', function() {
     const wrapper = mount(

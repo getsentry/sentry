@@ -1,0 +1,17 @@
+---
+created: '2019-03-14T17:12:34.999278Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - gpu.name
+  - AMD Radeon Pro 560
+- - gpu.vendor
+  - Apple
+to_json:
+  gpu:
+    name: AMD Radeon Pro 560
+    type: gpu
+    vendor_name: Apple
+    version: Metal

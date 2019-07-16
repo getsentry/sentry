@@ -8,6 +8,7 @@ import posixpath
 from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
+from symbolic import normalize_debug_id, SymbolicError
 
 from sentry import ratelimits
 
@@ -16,9 +17,10 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import KNOWN_DIF_TYPES
-from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    create_files_from_dif_zip, get_assemble_status, set_assemble_status
+from sentry.constants import KNOWN_DIF_FORMATS
+from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
+from sentry.tasks.assemble import get_assemble_status, set_assemble_status, \
+    AssembleTask, ChunkFileState
 from sentry.utils import json
 
 try:
@@ -33,9 +35,9 @@ ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 
 
 def upload_from_request(request, project):
-    if 'file' not in request.FILES:
+    if 'file' not in request.data:
         return Response({'detail': 'Missing uploaded file'}, status=400)
-    fileobj = request.FILES['file']
+    fileobj = request.data['file']
     files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
@@ -97,28 +99,50 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: If set, the specified DIF will be sent in the response.
         :auth: required
         """
-        query = request.GET.get('query')
-
-        queryset = ProjectDebugFile.objects.filter(
-            project=project,
-        ).select_related('file')
-
-        if query:
-            q = Q(object_name__icontains=query) \
-                | Q(debug_id__icontains=query) \
-                | Q(cpu_name__icontains=query) \
-                | Q(file__headers__icontains=query)
-
-            KNOWN_DIF_TYPES_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_TYPES))
-            dif_type = KNOWN_DIF_TYPES_REVERSE.get(query)
-            if dif_type:
-                q |= Q(file__headers__icontains=dif_type)
-
-            queryset = queryset.filter(q)
-
         download_requested = request.GET.get('id') is not None
         if download_requested and (request.access.has_scope('project:write')):
             return self.download(request.GET.get('id'), project)
+
+        code_id = request.GET.get('code_id')
+        debug_id = request.GET.get('debug_id')
+        query = request.GET.get('query')
+
+        if code_id:
+            # If a code identifier is provided, try to find an exact match and
+            # only consider the debug identifier if the DIF does not have a
+            # primary code identifier.
+            q = Q(code_id__exact=code_id)
+            if debug_id:
+                q |= Q(code_id__exact=None, debug_id__exact=debug_id)
+        elif debug_id:
+            # If only a debug ID is specified, do not consider the stored code
+            # identifier and strictly filter by debug identifier.
+            q = Q(debug_id__exact=debug_id)
+        elif query:
+            if len(query) <= 45:
+                # If this query contains a debug identifier, normalize it to
+                # allow for more lenient queries (e.g. supporting Breakpad ids).
+                try:
+                    query = normalize_debug_id(query.strip())
+                except SymbolicError:
+                    pass
+
+            q = Q(object_name__icontains=query) \
+                | Q(debug_id__icontains=query) \
+                | Q(code_id__icontains=query) \
+                | Q(cpu_name__icontains=query) \
+                | Q(file__headers__icontains=query)
+
+            KNOWN_DIF_FORMATS_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_FORMATS))
+            file_format = KNOWN_DIF_FORMATS_REVERSE.get(query)
+            if file_format:
+                q |= Q(file__headers__icontains=file_format)
+        else:
+            q = Q()
+
+        queryset = ProjectDebugFile.objects \
+            .filter(q, project=project) \
+            .select_related('file')
 
         return self.paginate(
             request=request,
@@ -227,12 +251,16 @@ class DifAssembleEndpoint(ProjectEndpoint):
                     "required": ["name", "chunks"],
                     "properties": {
                         "name": {"type": "string"},
+                        "debug_id": {"type": "string"},
                         "chunks": {
                             "type": "array",
-                            "items": {"type": "string"}
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{40}$",
+                            }
                         }
                     },
-                    "additionalProperties": False
+                    "additionalProperties": True
                 }
             },
             "additionalProperties": False
@@ -250,15 +278,15 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         file_response = {}
 
-        from sentry.tasks.assemble import assemble_dif
         for checksum, file_to_assemble in six.iteritems(files):
             name = file_to_assemble.get('name', None)
+            debug_id = file_to_assemble.get('debug_id', None)
             chunks = file_to_assemble.get('chunks', [])
 
             # First, check the cached assemble status. During assembling, a
             # ProjectDebugFile will be created and we need to prevent a race
             # condition.
-            state, detail = get_assemble_status(project, checksum)
+            state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
             if state == ChunkFileState.OK:
                 file_response[checksum] = {
                     'state': state,
@@ -314,11 +342,15 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
             # We don't have a state yet, this means we can now start
             # an assemble job in the background.
-            set_assemble_status(project, checksum, state)
+            set_assemble_status(AssembleTask.DIF, project.id, checksum,
+                                ChunkFileState.CREATED)
+
+            from sentry.tasks.assemble import assemble_dif
             assemble_dif.apply_async(
                 kwargs={
                     'project_id': project.id,
                     'name': name,
+                    'debug_id': debug_id,
                     'checksum': checksum,
                     'chunks': chunks,
                 }

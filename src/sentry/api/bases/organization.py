@@ -34,8 +34,9 @@ class OrganizationPermission(SentryPermission):
         'DELETE': ['org:admin'],
     }
 
-    def is_not_2fa_compliant(self, user, organization):
-        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
+    def is_not_2fa_compliant(self, request, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(
+            request.user) and not is_active_superuser(request)
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -52,6 +53,15 @@ class OrganizationPermission(SentryPermission):
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+
+class OrganizationEventPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
+    }
 
 
 # These are based on ProjectReleasePermission
@@ -72,6 +82,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
         'POST': ['org:write', 'org:admin', 'org:integrations'],
         'PUT': ['org:write', 'org:admin', 'org:integrations'],
         'DELETE': ['org:admin', 'org:integrations'],
+    }
+
+
+class OrganizationRepositoryPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+        'POST': ['org:write', 'org:admin', 'org:integrations'],
+        'PUT': ['org:write', 'org:admin'],
+        'DELETE': ['org:admin'],
     }
 
 
@@ -109,6 +128,22 @@ class OrganizationUserReportsPermission(OrganizationPermission):
     }
 
 
+class OrganizationPinnedSearchPermission(OrganizationPermission):
+    scope_map = {
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
+class OrganizationSearchPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:write', 'org:admin'],
+        'PUT': ['org:write', 'org:admin'],
+        'DELETE': ['org:write', 'org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
@@ -137,7 +172,7 @@ class OrganizationEndpoint(Endpoint):
         :param include_all_accessible: Whether to factor the organization
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
-        :return: A list of project ids, or raises PermissionDenied.
+        :return: A list of Project objects, or raises PermissionDenied.
         """
         project_ids = set(map(int, request.GET.getlist('project')))
 
@@ -251,6 +286,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission, )
 
     def get_projects(self, request, organization):
+        """
+        Get all projects the current user or API token has access to. More
+        detail in the parent class's method of the same name.
+        """
         has_valid_api_key = False
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
@@ -260,7 +299,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         if not (
             has_valid_api_key
-            or getattr(request, 'user', None) and request.user.is_authenticated()
+            or (getattr(request, 'user', None) and request.user.is_authenticated())
         ):
             return []
 
@@ -272,6 +311,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(self, request, organization, release):
+        """
+        Does the given request have permission to access this release, based
+        on the projects to which the release is attached?
+        """
         return ReleaseProject.objects.filter(
             release=release,
             project__in=self.get_projects(request, organization),

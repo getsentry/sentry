@@ -17,7 +17,7 @@ describe('ProjectPluginDetails', function() {
   const pluginId = plugin.id;
 
   beforeAll(function() {
-    sinon.stub(console, 'info');
+    jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
   beforeEach(function() {

@@ -30,7 +30,7 @@ from sentry.utils import json
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
-from .paginator import Paginator
+from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
 
@@ -128,14 +128,21 @@ class Endpoint(APIView):
             return
 
     def initialize_request(self, request, *args, **kwargs):
+        # XXX: Since DRF 3.x, when the request is passed into
+        # `initialize_request` it's set as an internal variable on the returned
+        # request. Then when we call `rv.auth` it attempts to authenticate,
+        # fails and sets `user` and `auth` to None on the internal request. We
+        # keep track of these here and reassign them as needed.
+        orig_auth = getattr(request, 'auth', None)
+        orig_user = getattr(request, 'user', None)
         rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, '__from_api_client__', False):
             if rv.auth is None:
-                rv.auth = getattr(request, 'auth', None)
+                rv.auth = orig_auth
             if rv.user is None:
-                rv.user = getattr(request, 'user', None)
+                rv.user = orig_user
         return rv
 
     @csrf_exempt
@@ -150,6 +157,10 @@ class Endpoint(APIView):
         self.load_json_body(request)
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
+
+        # Tags that will ultimately flow into the metrics backend at the end of
+        # the request (happens via middleware/stats.py).
+        request._metric_tags = {}
 
         if settings.SENTRY_API_RESPONSE_DELAY:
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
@@ -239,10 +250,13 @@ class Endpoint(APIView):
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
 
-        cursor_result = paginator.get_result(
-            limit=per_page,
-            cursor=input_cursor,
-        )
+        try:
+            cursor_result = paginator.get_result(
+                limit=per_page,
+                cursor=input_cursor,
+            )
+        except BadPaginationError as e:
+            return Response({'detail': e.message}, status=400)
 
         # map results based on callback
         if on_results:

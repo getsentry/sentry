@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+import responses
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -43,7 +43,6 @@ class SentryAppInstallationDetailsTest(APITestCase):
 
 
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:sentry-apps')
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -61,7 +60,6 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             'code': self.installation2.api_grant.code,
         }
 
-    @with_feature('organizations:sentry-apps')
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
 
@@ -73,22 +71,19 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404
-
 
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:sentry-apps')
+    @responses.activate
     def test_delete_install(self):
+        responses.add(
+            url='https://example.com/webhook',
+            method=responses.POST,
+            body={})
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format='json')
 
         assert response.status_code == 204
 
-    @with_feature('organizations:sentry-apps')
     def test_member_cannot_delete_install(self):
         user = self.create_user('bar@example.com')
         self.create_member(

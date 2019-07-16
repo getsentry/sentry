@@ -12,7 +12,7 @@ from django.conf import settings
 from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SnubaTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -51,9 +51,9 @@ def has_shape(data, shape, allow_empty=False):
         return True
 
 
-class SnubaTSDBTest(TestCase):
+class SnubaTSDBTest(TestCase, SnubaTestCase):
     def setUp(self):
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+        super(SnubaTSDBTest, self).setUp()
 
         self.db = SnubaTSDB()
         self.now = datetime.utcnow().replace(

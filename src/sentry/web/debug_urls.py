@@ -10,6 +10,7 @@ from sentry.web.frontend.debug.debug_assigned_email import (
 )
 from sentry.web.frontend.debug.debug_trigger_error import (DebugTriggerErrorView)
 from sentry.web.frontend.debug.debug_error_embed import (DebugErrorPageEmbedView)
+from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import (DebugMfaAddedEmailView)
 from sentry.web.frontend.debug.debug_mfa_removed_email import (DebugMfaRemovedEmailView)
@@ -87,7 +88,7 @@ urlpatterns = patterns(
     url(r'^debug/mail/sso-linked/$', DebugSsoLinkedEmailView.as_view()),
     url(r'^debug/mail/sso-unlinked/$', DebugSsoUnlinkedEmailView.as_view()),
     url(r'^debug/mail/sso-unlinked/no-password$', DebugSsoUnlinkedNoPasswordEmailView.as_view()),
-
+    url(r'^debug/mail/incident-activity$', DebugIncidentActivityEmailView.as_view()),
     url(r'^debug/mail/setup-2fa/$', DebugSetup2faEmailView.as_view()),
 
     url(r'^debug/embed/error-page/$', DebugErrorPageEmbedView.as_view()),
@@ -97,5 +98,4 @@ urlpatterns = patterns(
     url(r'^debug/sudo/$', TemplateView.as_view(template_name='sentry/account/sudo.html')),
     url(r'^debug/oauth/authorize/$', DebugOAuthAuthorizeView.as_view()),
     url(r'^debug/oauth/authorize/error/$', DebugOAuthAuthorizeErrorView.as_view()),
-    url(r'^debug/icons/$', TemplateView.as_view(template_name='sentry/debug/icons.html')),
 )

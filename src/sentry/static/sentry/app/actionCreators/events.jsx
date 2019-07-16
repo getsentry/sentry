@@ -30,6 +30,8 @@ export const doEventsRequest = (
     includePrevious,
     limit,
     query,
+    yAxis,
+    groupId,
   }
 ) => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -38,6 +40,8 @@ export const doEventsRequest = (
     project,
     environment,
     query,
+    yAxis,
+    group: groupId,
   };
 
   // Doubling period for absolute dates is not accurate unless starting and
@@ -52,16 +56,3 @@ export const doEventsRequest = (
     },
   });
 };
-
-/**
- * Get all available values for a given event field name
- * This includes tags as well.
- */
-export function fetchEventFieldValues(api, orgId, tag, query) {
-  return api.requestPromise(`/organizations/${orgId}/tags/${tag}/values/`, {
-    data: {
-      query,
-    },
-    method: 'GET',
-  });
-}

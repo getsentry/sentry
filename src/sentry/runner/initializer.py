@@ -306,6 +306,9 @@ def initialize_app(config, skip_service_validation=False):
         version=settings.ASSET_VERSION,
     )
 
+    if getattr(settings, 'SENTRY_DEBUGGER', None) is None:
+        settings.SENTRY_DEBUGGER = settings.DEBUG
+
     import django
     if hasattr(django, 'setup'):
         # support for Django 1.7+
@@ -318,6 +321,8 @@ def initialize_app(config, skip_service_validation=False):
     initialize_receivers()
 
     validate_options(settings)
+
+    validate_snuba()
 
     configure_sdk()
 
@@ -400,15 +405,17 @@ def bind_cache_to_option_store():
 
 def show_big_error(message):
     if isinstance(message, six.string_types):
-        lines = message.splitlines()
+        lines = message.strip().splitlines()
     else:
         lines = message
     maxline = max(map(len, lines))
     click.echo('', err=True)
-    click.secho('!! %s !!' % ('!' * min(maxline, 80), ), err=True, fg='red')
+    click.secho('!!!%s!!!' % ('!' * min(maxline, 80), ), err=True, fg='red')
+    click.secho('!! %s !!' % ''.center(maxline), err=True, fg='red')
     for line in lines:
         click.secho('!! %s !!' % line.center(maxline), err=True, fg='red')
-    click.secho('!! %s !!' % ('!' * min(maxline, 80), ), err=True, fg='red')
+    click.secho('!! %s !!' % ''.center(maxline), err=True, fg='red')
+    click.secho('!!!%s!!!' % ('!' * min(maxline, 80), ), err=True, fg='red')
     click.echo('', err=True)
 
 
@@ -539,3 +546,112 @@ def on_configure(config):
 
     if 'south' in settings.INSTALLED_APPS:
         skip_migration_if_applied(settings, 'social_auth', 'social_auth_association')
+
+
+def validate_snuba():
+    """
+    Make sure everything related to Snuba is in sync.
+
+    This covers a few cases:
+
+    * When you have features related to Snuba, you must also
+      have Snuba fully configured correctly to continue.
+    * If you have Snuba specific search/tagstore/tsdb backends,
+      you must also have a Snuba compatible eventstream backend
+      otherwise no data will be written into Snuba.
+    * If you only have Snuba related eventstream, yell that you
+      probably want the other backends otherwise things are weird.
+    """
+    if not settings.DEBUG:
+        return
+
+    has_any_snuba_required_backends = (
+        settings.SENTRY_SEARCH == 'sentry.search.snuba.SnubaSearchBackend' or
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage' or
+        # TODO(mattrobenolt): Remove ServiceDelegator check
+        settings.SENTRY_TSDB in (
+            'sentry.tsdb.redissnuba.RedisSnubaTSDB',
+            'sentry.utils.services.ServiceDelegator',
+        )
+    )
+
+    has_all_snuba_required_backends = (
+        settings.SENTRY_SEARCH == 'sentry.search.snuba.SnubaSearchBackend' and
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage' and
+        # TODO(mattrobenolt): Remove ServiceDelegator check
+        settings.SENTRY_TSDB in (
+            'sentry.tsdb.redissnuba.RedisSnubaTSDB',
+            'sentry.utils.services.ServiceDelegator',
+        )
+    )
+
+    eventstream_is_snuba = (
+        settings.SENTRY_EVENTSTREAM == 'sentry.eventstream.snuba.SnubaEventStream' or
+        settings.SENTRY_EVENTSTREAM == 'sentry.eventstream.kafka.KafkaEventStream'
+    )
+
+    # All good here, it doesn't matter what else is going on
+    if has_all_snuba_required_backends and eventstream_is_snuba:
+        return
+
+    from sentry.features import requires_snuba as snuba_features
+
+    snuba_enabled_features = set()
+
+    for feature in snuba_features:
+        if settings.SENTRY_FEATURES.get(feature, False):
+            snuba_enabled_features.add(feature)
+
+    if snuba_enabled_features and not eventstream_is_snuba:
+        from .importer import ConfigurationError
+        show_big_error('''
+You have features enabled which require Snuba,
+but you don't have any Snuba compatible configuration.
+
+Features you have enabled:
+%s
+
+See: https://github.com/getsentry/snuba#sentry--snuba
+''' % '\n'.join(snuba_enabled_features))
+        raise ConfigurationError('Cannot continue without Snuba configured.')
+
+    if has_any_snuba_required_backends and not eventstream_is_snuba:
+        from .importer import ConfigurationError
+        show_big_error('''
+It appears that you are requiring Snuba,
+but your SENTRY_EVENTSTREAM is not compatible.
+
+Current settings:
+
+SENTRY_SEARCH = %r
+SENTRY_TAGSTORE = %r
+SENTRY_TSDB = %r
+SENTRY_EVENTSTREAM = %r
+
+See: https://github.com/getsentry/snuba#sentry--snuba''' % (
+            settings.SENTRY_SEARCH,
+            settings.SENTRY_TAGSTORE,
+            settings.SENTRY_TSDB,
+            settings.SENTRY_EVENTSTREAM,
+        ))
+        raise ConfigurationError('Cannot continue without Snuba configured correctly.')
+
+    if eventstream_is_snuba and not has_all_snuba_required_backends:
+        show_big_error('''
+You are using a Snuba compatible eventstream
+without configuring search/tagstore/tsdb also to use Snuba.
+This is probably not what you want.
+
+Current settings:
+
+SENTRY_SEARCH = %r
+SENTRY_TAGSTORE = %r
+SENTRY_TSDB = %r
+SENTRY_EVENTSTREAM = %r
+
+See: https://github.com/getsentry/snuba#sentry--snuba''' % (
+            settings.SENTRY_SEARCH,
+            settings.SENTRY_TAGSTORE,
+            settings.SENTRY_TSDB,
+            settings.SENTRY_EVENTSTREAM,
+        ))

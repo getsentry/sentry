@@ -7,7 +7,7 @@ import Avatar from 'app/components/avatar';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import IdBadge from 'app/components/idBadge';
@@ -82,18 +82,17 @@ const SidebarDropdown = withApi(
                 >
                   <div style={{display: 'flex', alignItems: 'flex-start'}}>
                     {avatar}
-                    {!collapsed &&
-                      orientation !== 'top' && (
-                        <OrgAndUserWrapper>
-                          <OrgOrUserName>
-                            {hasOrganization ? org.name : user.name}{' '}
-                            <i className="icon-arrow-down" />
-                          </OrgOrUserName>
-                          <UserNameOrEmail>
-                            {hasOrganization ? user.name : user.email}
-                          </UserNameOrEmail>
-                        </OrgAndUserWrapper>
-                      )}
+                    {!collapsed && orientation !== 'top' && (
+                      <OrgAndUserWrapper>
+                        <OrgOrUserName>
+                          {hasOrganization ? org.name : user.name}{' '}
+                          <i className="icon-arrow-down" />
+                        </OrgOrUserName>
+                        <UserNameOrEmail>
+                          {hasOrganization ? user.name : user.email}
+                        </UserNameOrEmail>
+                      </OrgAndUserWrapper>
+                    )}
                   </div>
                 </SidebarDropdownActor>
 
@@ -144,13 +143,11 @@ const SidebarDropdown = withApi(
                           <SidebarMenuItem to="/settings/account/">
                             {t('User settings')}
                           </SidebarMenuItem>
-                          <SidebarMenuItem to={'/settings/account/api/'}>
+                          <SidebarMenuItem to="/settings/account/api/">
                             {t('API keys')}
                           </SidebarMenuItem>
                           {user.isSuperuser && (
-                            <SidebarMenuItem to={'/manage/'}>
-                              {t('Admin')}
-                            </SidebarMenuItem>
+                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                           )}
                           <SidebarMenuItem
                             data-test-id="sidebarSignout"

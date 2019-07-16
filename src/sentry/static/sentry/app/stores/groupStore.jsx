@@ -102,7 +102,9 @@ const GroupStore = Reflux.createStore({
 
   indexOfActivity(group_id, id) {
     const group = this.get(group_id);
-    if (!group) return -1;
+    if (!group) {
+      return -1;
+    }
 
     for (let i = 0; i < group.activity.length; i++) {
       if (group.activity[i].id === id) {
@@ -114,7 +116,9 @@ const GroupStore = Reflux.createStore({
 
   addActivity(id, data, index = -1) {
     const group = this.get(id);
-    if (!group) return;
+    if (!group) {
+      return;
+    }
 
     // insert into beginning by default
     if (index === -1) {
@@ -122,17 +126,23 @@ const GroupStore = Reflux.createStore({
     } else {
       group.activity.splice(index, 0, data);
     }
-    if (data.type === 'note') group.numComments++;
+    if (data.type === 'note') {
+      group.numComments++;
+    }
 
     this.trigger(new Set([id]));
   },
 
   updateActivity(group_id, id, data) {
     const group = this.get(group_id);
-    if (!group) return;
+    if (!group) {
+      return;
+    }
 
     const index = this.indexOfActivity(group_id, id);
-    if (index === -1) return;
+    if (index === -1) {
+      return;
+    }
 
     // Here, we want to merge the new `data` being passed in
     // into the existing `data` object. This effectively
@@ -143,14 +153,20 @@ const GroupStore = Reflux.createStore({
 
   removeActivity(group_id, id) {
     const group = this.get(group_id);
-    if (!group) return -1;
+    if (!group) {
+      return -1;
+    }
 
     const index = this.indexOfActivity(group.id, id);
-    if (index === -1) return -1;
+    if (index === -1) {
+      return -1;
+    }
 
     const activity = group.activity.splice(index, 1);
 
-    if (activity[0].type === 'note') group.numComments--;
+    if (activity[0].type === 'note') {
+      group.numComments--;
+    }
 
     this.trigger(new Set([group.id]));
     return index;
@@ -246,7 +262,9 @@ const GroupStore = Reflux.createStore({
   onDeleteError(changeId, itemIds, response) {
     showAlert(t('Unable to delete events. Please try again.'), 'error');
 
-    if (!itemIds) return;
+    if (!itemIds) {
+      return;
+    }
 
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');

@@ -103,6 +103,19 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         client = self.get_client()
         return client.search_project_issues(project_id, query, iids)
 
+    def error_message_from_json(self, data):
+        """
+        Extract error messages from gitlab API errors.
+        Generic errors come in the `error` key while validation errors
+        are generally in `message`.
+
+        See https://docs.gitlab.com/ee/api/#data-validation-and-error-reporting
+        """
+        if 'message' in data:
+            return data['message']
+        if 'error' in data:
+            return data['error']
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
@@ -170,7 +183,14 @@ class InstallationConfigView(PipelineView):
                     "client_secret": form_data.get('client_secret'),
                     "verify_ssl": form_data.get('verify_ssl')
                 })
-
+                pipeline.get_logger().info(
+                    'gitlab.setup.installation-config-view.success',
+                    extra={
+                        'base_url': form_data.get('url'),
+                        'client_id': form_data.get('client_id'),
+                        'verify_ssl': form_data.get('verify_ssl'),
+                    }
+                )
                 return pipeline.next_step()
         else:
             form = InstallationForm()
@@ -249,7 +269,17 @@ class GitlabIntegrationProvider(IntegrationProvider):
         try:
             resp = client.get_group(installation_data['group'])
             return resp.json
-        except ApiError:
+        except ApiError as e:
+            self.get_logger().info(
+                'gitlab.installation.get-group-info-failure',
+                extra={
+                    'base_url': installation_data['url'],
+                    'verify_ssl': installation_data['verify_ssl'],
+                    'group': installation_data['group'],
+                    'error_message': e.message,
+                    'error_status': e.code,
+                }
+            )
             raise IntegrationError('The requested GitLab group could not be found.')
 
     def get_pipeline_views(self):
@@ -297,7 +327,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'data': oauth_data,
             },
         }
-
         return integration
 
     def setup(self):

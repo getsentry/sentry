@@ -1,7 +1,6 @@
 {% load i18n %}
 {% load sentry_api %}
 {% load sentry_avatars %}
-{% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
@@ -27,21 +26,17 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
-  {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  {% endblock %}
+
+  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
-    window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
-    window.__sentryGlobalStaticPrefix = '{% asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
-    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
-  {% include "sentry/includes/sdk-config.html" %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
@@ -51,9 +46,6 @@
     window.adblockSuspected = true;
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
-  {% endblock %}
-
-  {% block meta %}
   {% endblock %}
 </head>
 
@@ -98,36 +90,8 @@
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
-    {% block header %}
-    {% endblock %}
-
-    {% if organization and ACCESS.org_read %}
-    {% block sub-header %}
-    <div class="sub-header flex flex-container flex-vertically-centered">
-      <div>
-        <div id="blk_projectselect"></div>
-        {% block header_nav %}{% endblock %}
-        <script>
-        $(function(){
-          ReactDOM.render(React.createFactory(SentryApp.ProjectSelector)({
-            organization: {% serialize_detailed_org organization %},
-            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
-          }), document.getElementById('blk_projectselect'));
-        });
-        </script>
-      </div>
-      <div class="align-right project-actions">
-        {% block header_action %}{% endblock %}
-      </div>
-    </div>
-    {% endblock %}
-    {% endif %}
-
     <div class="container">
-      {% block above_content %}{% endblock %}
       <div class="content">
-        {% block content_before %}
-        {% endblock %}
         {% block content %}
         <div class="row" id="blk_content">
           <div class="col-md-2">
@@ -140,16 +104,12 @@
           </div>
         </div>
         {% endblock %}
-
-        {% block content_after %}
-        {% endblock %}
       </div>
     </div>
     <footer>
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% block support_link %}{% endblock %}
           <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
@@ -161,28 +121,6 @@
       </div>
     </footer>
   </div>
-
-  <script>
-  $('.auto-select').click(function() {
-    if (document.selection) {
-      var range = document.body.createTextRange();
-      range.moveToElementText(this.firstChild);
-      range.select();
-    } else if (window.getSelection) {
-      var range = document.createRange();
-      range.selectNode(this.firstChild);
-      window.getSelection().addRange(range);
-    }
-  });
-  </script>
-  <script type="text/javascript">
-  $(function() {
-    // This is duplicated from <ProjectSelector>
-    $('.project-dropdown').on('shown.bs.dropdown', function(event){
-      $(event.target).find('input[type=text]').focus();
-    });
-  });
-  </script>
   {% endblock %}
 
   {% block scripts_bottom %}{% endblock %}

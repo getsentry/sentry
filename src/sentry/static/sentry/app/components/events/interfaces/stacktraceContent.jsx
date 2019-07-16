@@ -1,32 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-//import GroupEventDataSection from "../eventDataSection";
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
-import OrganizationState from 'app/mixins/organizationState';
 
-const StacktraceContent = createReactClass({
-  displayName: 'StacktraceContent',
-
-  propTypes: {
+export default class StacktraceContent extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
-  },
+  };
 
-  mixins: [OrganizationState],
+  static defaultProps = {
+    includeSystemFrames: true,
+    expandFirstFrame: true,
+  };
 
-  getDefaultProps() {
-    return {
-      includeSystemFrames: true,
-      expandFirstFrame: true,
-    };
-  },
-
-  renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
+  renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
       className: 'frame frames-omitted',
       key: 'omitted',
@@ -37,13 +28,13 @@ const StacktraceContent = createReactClass({
       lastFrameOmitted
     );
     return <li {...props}>{text}</li>;
-  },
+  };
 
-  frameIsVisible(frame, nextFrame) {
+  frameIsVisible = (frame, nextFrame) => {
     return (
       this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
     );
-  },
+  };
 
   render() {
     const data = this.props.data;
@@ -59,7 +50,9 @@ const StacktraceContent = createReactClass({
 
     let lastFrameIdx = null;
     data.frames.forEach((frame, frameIdx) => {
-      if (frame.inApp) lastFrameIdx = frameIdx;
+      if (frame.inApp) {
+        lastFrameIdx = frameIdx;
+      }
     });
     if (lastFrameIdx === null) {
       lastFrameIdx = data.frames.length - 1;
@@ -132,7 +125,5 @@ const StacktraceContent = createReactClass({
         <ul>{frames}</ul>
       </div>
     );
-  },
-});
-
-export default StacktraceContent;
+  }
+}

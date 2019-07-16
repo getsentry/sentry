@@ -19,17 +19,10 @@ import pytz
 from dateutil.parser import parse
 from django.db import connections
 
-from sentry.utils.db import get_db_engine
-
 DATE_TRUNC_GROUPERS = {
-    'oracle': {
-        'hour': 'hh24',
-    },
-    'default': {
-        'date': 'day',
-        'hour': 'hour',
-        'minute': 'minute',
-    },
+    'date': 'day',
+    'hour': 'hour',
+    'minute': 'minute',
 }
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
@@ -67,16 +60,7 @@ def floor_to_utc_day(value):
 
 def get_sql_date_trunc(col, db='default', grouper='hour'):
     conn = connections[db]
-
-    engine = get_db_engine(db)
-    # TODO: does extract work for sqlite?
-    if engine.startswith('oracle'):
-        method = DATE_TRUNC_GROUPERS['oracle'].get(
-            grouper, DATE_TRUNC_GROUPERS['default'][grouper])
-        if '"' not in col:
-            col = '"%s"' % col.upper()
-    else:
-        method = DATE_TRUNC_GROUPERS['default'][grouper]
+    method = DATE_TRUNC_GROUPERS[grouper]
     return conn.ops.date_trunc_sql(method, col)
 
 

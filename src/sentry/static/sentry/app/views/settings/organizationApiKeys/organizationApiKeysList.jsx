@@ -2,13 +2,14 @@ import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
-import Link from 'app/components/link';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -97,7 +98,9 @@ class OrganizationApiKeysList extends React.Component {
                         <Link to={apiDetailsUrl}>{label}</Link>
                       </Box>
                       <Box px={2} flex="2">
-                        <div className="form-control disabled auto-select">{key}</div>
+                        <AutoSelectText className="form-control disabled">
+                          {key}
+                        </AutoSelectText>
                       </Box>
                     </Flex>
 

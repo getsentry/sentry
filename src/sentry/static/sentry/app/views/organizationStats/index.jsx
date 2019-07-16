@@ -1,26 +1,26 @@
 import $ from 'jquery';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import OrganizationState from 'app/mixins/organizationState';
-
+import withApi from 'app/utils/withApi';
 import LazyLoad from 'app/components/lazyLoad';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-const OrganizationStatsContainer = createReactClass({
-  displayName: 'OrganizationStatsContainer ',
-  propTypes: {
-    routes: PropTypes.array,
-  },
-  mixins: [ApiMixin, OrganizationState],
+class OrganizationStatsContainer extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    routes: PropTypes.array.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 7;
 
-    return {
+    this.state = {
       projectsError: false,
       projectsLoading: false,
       projectsRequestsPending: 0,
@@ -36,11 +36,11 @@ const OrganizationStatsContainer = createReactClass({
       querySince: since,
       queryUntil: until,
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     // If query string changes, it will be due to pagination.
@@ -53,7 +53,7 @@ const OrganizationStatsContainer = createReactClass({
         projectsLoading: true,
       });
     }
-  },
+  }
 
   componentDidUpdate(prevProps) {
     const prevParams = prevProps.params,
@@ -79,10 +79,10 @@ const OrganizationStatsContainer = createReactClass({
     if (state.projectsLoading && !state.projectsRequestsPending) {
       this.processProjectData();
     }
-  },
+  }
 
   fetchProjectData() {
-    this.api.request(this.getOrganizationProjectsEndpoint(), {
+    this.props.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
       success: (data, textStatus, jqxhr) => {
         const projectMap = {};
@@ -104,7 +104,7 @@ const OrganizationStatsContainer = createReactClass({
         });
       },
     });
-  },
+  }
 
   fetchData() {
     this.setState({
@@ -119,7 +119,7 @@ const OrganizationStatsContainer = createReactClass({
     const statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -146,7 +146,7 @@ const OrganizationStatsContainer = createReactClass({
     });
 
     $.each(this.state.rawProjectData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -173,17 +173,17 @@ const OrganizationStatsContainer = createReactClass({
     });
 
     this.fetchProjectData();
-  },
+  }
 
   getOrganizationStatsEndpoint() {
     const params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
-  },
+  }
 
   getOrganizationProjectsEndpoint() {
     const params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
-  },
+  }
 
   processOrgData() {
     let oReceived = 0;
@@ -220,7 +220,7 @@ const OrganizationStatsContainer = createReactClass({
       },
       statsLoading: false,
     });
-  },
+  }
 
   processProjectData() {
     const rawProjectData = this.state.rawProjectData;
@@ -246,10 +246,10 @@ const OrganizationStatsContainer = createReactClass({
       projectTotals,
       projectsLoading: false,
     });
-  },
+  }
 
   render() {
-    const organization = this.getOrganization();
+    const organization = this.props.organization;
 
     return (
       <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
@@ -257,13 +257,16 @@ const OrganizationStatsContainer = createReactClass({
           component={() =>
             import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
               mod => mod.default
-            )}
+            )
+          }
           organization={organization}
           {...this.state}
         />
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
-export default OrganizationStatsContainer;
+export {OrganizationStatsContainer};
+
+export default withApi(withOrganization(OrganizationStatsContainer));

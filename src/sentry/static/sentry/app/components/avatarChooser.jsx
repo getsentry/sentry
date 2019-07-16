@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader} from './panels';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';
 import Button from './button';
-import ExternalLink from './externalLink';
+import ExternalLink from './links/externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
 
@@ -173,13 +173,12 @@ class AvatarChooser extends React.Component {
             </AvatarGroup>
 
             <AvatarUploadSection>
-              {allowGravatar &&
-                avatarType === 'gravatar' && (
-                  <Well>
-                    {t('Gravatars are managed through ')}
-                    <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </Well>
-                )}
+              {allowGravatar && avatarType === 'gravatar' && (
+                <Well>
+                  {t('Gravatars are managed through ')}
+                  <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
+                </Well>
+              )}
 
               {avatarType === 'upload' && (
                 <AvatarCropper
@@ -207,7 +206,7 @@ class AvatarChooser extends React.Component {
   }
 }
 
-const AvatarGroup = styled.div`
+const AvatarGroup = styled('div')`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;

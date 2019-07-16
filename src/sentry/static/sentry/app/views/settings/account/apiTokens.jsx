@@ -90,8 +90,7 @@ class ApiTokens extends AsyncView {
         <TextBlock>
           <small>
             psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under{' '}
-            <strong>[Project] » Settings » Client Keys</strong>
-            .
+            <strong>[Project] » Settings » Client Keys</strong>.
           </small>
         </TextBlock>
         <Panel>

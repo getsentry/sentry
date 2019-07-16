@@ -8,7 +8,6 @@ const ProjectsStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
-    this.listenTo(ProjectActions.fetchSuccess, this.onFetchSuccess);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
     this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
@@ -33,7 +32,9 @@ const ProjectsStore = Reflux.createStore({
     const prevProject = this.getBySlug(prevSlug);
 
     // This shouldn't happen
-    if (!prevProject) return;
+    if (!prevProject) {
+      return;
+    }
 
     const newProject = {
       ...prevProject,
@@ -51,14 +52,6 @@ const ProjectsStore = Reflux.createStore({
   },
 
   onCreateSuccess(project) {
-    this.itemsById = {
-      ...this.itemsById,
-      [project.id]: project,
-    };
-    this.trigger(new Set([project.id]));
-  },
-
-  onFetchSuccess(project) {
     this.itemsById = {
       ...this.itemsById,
       [project.id]: project,
@@ -103,7 +96,9 @@ const ProjectsStore = Reflux.createStore({
 
   onRemoveTeam(teamSlug, projectSlug) {
     const project = this.getBySlug(projectSlug);
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     this.removeTeamFromProject(teamSlug, project);
     this.trigger(new Set([project.id]));
@@ -113,7 +108,9 @@ const ProjectsStore = Reflux.createStore({
     const project = this.getBySlug(projectSlug);
 
     // Don't do anything if we can't find a project
-    if (!project) return;
+    if (!project) {
+      return;
+    }
 
     this.itemsById = {
       ...this.itemsById,
@@ -150,25 +147,14 @@ const ProjectsStore = Reflux.createStore({
 
   getAll() {
     return Object.values(this.itemsById).sort((a, b) => {
-      if (a.slug > b.slug) return 1;
-      if (a.slug < b.slug) return -1;
+      if (a.slug > b.slug) {
+        return 1;
+      }
+      if (a.slug < b.slug) {
+        return -1;
+      }
       return 0;
     });
-  },
-
-  getAllGroupedByOrganization() {
-    return this.getAll().reduce((acc, project) => {
-      const orgSlug = project.organization.slug;
-      if (acc[orgSlug]) {
-        acc[orgSlug].projects.push(project);
-      } else {
-        acc[orgSlug] = {
-          organization: project.organization,
-          projects: [project],
-        };
-      }
-      return acc;
-    }, {});
   },
 
   getById(id) {

@@ -14,10 +14,11 @@ const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
     : '';
   const flexDirection = flex ? direction : undefined;
   const Comp = flex ? Flex : 'div';
+  const textClassName = textStyles(props);
 
   return (
     <Comp
-      className={cx(padding, textStyles, className)}
+      className={cx(padding, textClassName, className)}
       {...props}
       direction={flexDirection}
     />

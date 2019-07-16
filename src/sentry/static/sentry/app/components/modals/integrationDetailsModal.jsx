@@ -9,7 +9,7 @@ import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -34,7 +34,13 @@ const defaultFeatureGateComponents = {
       ungatedFeatures: p.features,
       gatedFeatureGroups: [],
     }),
-  FeatureList: p => <ul>{p.features.map((f, i) => <li key={i}>{f.description}</li>)}</ul>,
+  FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i}>{f.description}</li>
+      ))}
+    </ul>
+  ),
 };
 
 class IntegrationDetailsModal extends React.Component {
@@ -65,7 +71,7 @@ class IntegrationDetailsModal extends React.Component {
 
   earlyAdopterLabel(provider) {
     return EARLY_ADOPTER_INTEGRATIONS.includes(provider.key) ? (
-      <StyledTag priority="attention">Early Adopter</StyledTag>
+      <StyledTag priority="warning">Early Adopter</StyledTag>
     ) : null;
   }
 
@@ -99,19 +105,18 @@ class IntegrationDetailsModal extends React.Component {
           {...p}
         />
       )) ||
-      (!provider.canAdd &&
-        metadata.aspects.externalInstall && (
-          <Button
-            icon="icon-exit"
-            href={metadata.aspects.externalInstall.url}
-            onClick={closeModal}
-            external
-            {...buttonProps}
-            {...p}
-          >
-            {metadata.aspects.externalInstall.buttonText}
-          </Button>
-        ));
+      (!provider.canAdd && metadata.aspects.externalInstall && (
+        <Button
+          icon="icon-exit"
+          href={metadata.aspects.externalInstall.url}
+          onClick={closeModal}
+          external
+          {...buttonProps}
+          {...p}
+        >
+          {metadata.aspects.externalInstall.buttonText}
+        </Button>
+      ));
 
     // Prepare the features list
     const features = metadata.features.map(f => ({
@@ -132,7 +137,9 @@ class IntegrationDetailsModal extends React.Component {
         <Flex align="center" mb={2}>
           <PluginIcon pluginId={provider.key} size={50} />
           <Flex pl={1} align="flex-start" direction="column" justify="center">
-            <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
+            <ProviderName data-test-id="provider-name">
+              {t('%s Integration', provider.name)}
+            </ProviderName>
             <Flex>
               {this.earlyAdopterLabel(provider)}
               {provider.features.length && this.featureTags(provider.features)}
@@ -160,18 +167,21 @@ class IntegrationDetailsModal extends React.Component {
           {({disabled, disabledReason}) => (
             <div className="modal-footer">
               {disabled && <DisabledNotice reason={disabledReason} />}
-              <Button size="small" onClick={closeModal}>
+              <Button data-test-id="cancel-button" size="small" onClick={closeModal}>
                 {t('Cancel')}
               </Button>
               <Access organization={organization} access={['org:integrations']}>
                 {({hasAccess}) => (
                   <Tooltip
-                    title={t('You must be an Owner or Manager to install this.')}
+                    title={t(
+                      'You must be an organization owner, manager or admin to install this.'
+                    )}
                     disabled={hasAccess}
                   >
-                    <span>
-                      <AddButton disabled={disabled || !hasAccess} />
-                    </span>
+                    <AddButton
+                      data-test-id="add-button"
+                      disabled={disabled || !hasAccess}
+                    />
                   </Tooltip>
                 )}
               </Access>
@@ -199,7 +209,7 @@ const ProviderName = styled(p => <Box {...p} />)`
   margin-bottom: ${space(1)};
 `;
 
-const Description = styled.div`
+const Description = styled('div')`
   font-size: 1.5rem;
   line-height: 2.1rem;
   margin-bottom: ${space(2)};

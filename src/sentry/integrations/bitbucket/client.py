@@ -42,6 +42,7 @@ class BitbucketApiClient(ApiClient):
 
     NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """
+    integration_name = 'bitbucket'
 
     def __init__(self, base_url, shared_secret, subject, *args, **kwargs):
         # subject is probably the clientKey

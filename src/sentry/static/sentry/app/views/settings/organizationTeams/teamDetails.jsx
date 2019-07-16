@@ -6,13 +6,12 @@ import Reflux from 'reflux';
 
 import {fetchTeamDetails} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import IdBadge from 'app/components/idBadge';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
-import OrganizationState from 'app/mixins/organizationState';
 import TeamStore from 'app/stores/teamStore';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -20,10 +19,11 @@ const TeamDetails = createReactClass({
   displayName: 'TeamDetails',
 
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.array,
   },
 
-  mixins: [ApiMixin, OrganizationState, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
 
   getInitialState() {
     const team = TeamStore.getBySlug(this.props.params.teamId);
@@ -63,7 +63,7 @@ const TeamDetails = createReactClass({
   },
 
   fetchData() {
-    fetchTeamDetails(this.api, this.props.params);
+    fetchTeamDetails(this.props.api, this.props.params);
   },
 
   onTeamChange(data) {
@@ -85,8 +85,11 @@ const TeamDetails = createReactClass({
     const {params, routes, children} = this.props;
     const team = this.state.team;
 
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (!team || this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
 
@@ -112,4 +115,6 @@ const TeamDetails = createReactClass({
   },
 });
 
-export default TeamDetails;
+export {TeamDetails};
+
+export default withApi(TeamDetails);

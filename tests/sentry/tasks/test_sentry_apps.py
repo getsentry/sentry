@@ -4,15 +4,19 @@ import six
 
 from celery import Task
 from collections import namedtuple
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from mock import patch
 
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.faux import faux
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
+from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     send_alert_event,
     notify_sentry_app,
@@ -126,13 +130,12 @@ class TestSendAlertEvent(TestCase):
                     url=absolute_uri(reverse('sentry-api-0-project-event-details', args=[
                         self.organization.slug,
                         self.project.slug,
-                        event.id,
+                        event.event_id,
                     ])),
-                    web_url=absolute_uri(reverse('sentry-group-event', args=[
+                    web_url=absolute_uri(reverse('sentry-organization-event-detail', args=[
                         self.organization.slug,
-                        self.project.slug,
                         group.id,
-                        event.id,
+                        event.event_id,
                     ])),
                     issue_url=absolute_uri(
                         '/api/0/issues/{}/'.format(group.id),
@@ -172,8 +175,17 @@ class TestProcessResourceChange(TestCase):
         )
 
     def test_group_created_sends_webhook(self, safe_urlopen):
+        issue = self.create_group(project=self.project)
+        event = self.create_event(group=issue)
+
         with self.tasks():
-            issue = self.create_group(project=self.project)
+            post_process_group(
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_sample=False,
+                is_new_group_environment=False,
+            )
 
         data = json.loads(faux(safe_urlopen).kwargs['data'])
 
@@ -209,6 +221,49 @@ class TestProcessResourceChange(TestCase):
 
         task = faux(process).kwargs['retryer']
         assert isinstance(task, Task)
+
+    @with_feature('organizations:integrations-event-hooks')
+    def test_error_created_sends_webhook(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=['error.created'],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization,
+            slug=sentry_app.slug,
+        )
+
+        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'exception': {"type": "Foo", "value": "shits on fiah yo"},
+                'level': 'error',
+                'timestamp': one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        with self.tasks():
+            post_process_group(
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_sample=False,
+                is_new_group_environment=False,
+            )
+
+        data = json.loads(faux(safe_urlopen).kwargs['data'])
+
+        assert data['action'] == 'created'
+        assert data['installation']['uuid'] == install.uuid
+        assert data['data']['error']['event_id'] == event.event_id
+        assert faux(safe_urlopen).kwargs_contain('headers.Content-Type')
+        assert faux(safe_urlopen).kwargs_contain('headers.Request-ID')
+        assert faux(safe_urlopen).kwargs_contain('headers.Sentry-Hook-Resource')
+        assert faux(safe_urlopen).kwargs_contain('headers.Sentry-Hook-Timestamp')
+        assert faux(safe_urlopen).kwargs_contain('headers.Sentry-Hook-Signature')
 
 
 @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')

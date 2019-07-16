@@ -1,13 +1,12 @@
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOMServer from 'react-dom/server';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
 
 import {intcomma} from 'app/utils';
 import {t, tn} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -16,10 +15,12 @@ import StackedBarChart from 'app/components/stackedBarChart';
 
 const ProjectFiltersChart = createReactClass({
   displayName: 'ProjectFiltersChart',
+  propTypes: {
+    api: PropTypes.object,
+  },
   contextTypes: {
     project: PropTypes.object,
   },
-  mixins: [ApiMixin],
 
   getInitialState() {
     const until = Math.floor(new Date().getTime() / 1000);
@@ -87,7 +88,7 @@ const ProjectFiltersChart = createReactClass({
         // parallelize requests for each statistic
         statOptions.map(stat => {
           const deferred = $.Deferred();
-          this.api.request(statEndpoint, {
+          this.props.api.request(statEndpoint, {
             query: Object.assign({stat}, query),
             success: deferred.resolve.bind(deferred),
             error: deferred.reject.bind(deferred),
@@ -140,7 +141,7 @@ const ProjectFiltersChart = createReactClass({
     }
     const {formattedData} = this.state;
 
-    return ReactDOMServer.renderToStaticMarkup(
+    return (
       <div style={{width: '175px'}}>
         <div className="time-label">
           <span>{timeLabel}</span>
@@ -183,30 +184,30 @@ const ProjectFiltersChart = createReactClass({
         <PanelBody>
           {isLoading && <LoadingIndicator />}
           {hasError && <LoadingError onRetry={this.fetchData} />}
-          {hasLoaded &&
-            !this.state.blankStats && (
-              <StackedBarChart
-                series={this.state.formattedData}
-                label="events"
-                barClasses={classes}
-                className="standard-barchart filtered-stats-barchart"
-                tooltip={this.renderTooltip}
-                minHeights={classes.map(p => (p == 'legacy-browsers' ? 1 : 0))}
-              />
-            )}
-          {hasLoaded &&
-            this.state.blankStats && (
-              <EmptyMessage
-                title={t('Nothing filtered in the last 30 days.')}
-                description={t(
-                  'Issues filtered as a result of your settings below will be shown here.'
-                )}
-              />
-            )}
+          {hasLoaded && !this.state.blankStats && (
+            <StackedBarChart
+              series={this.state.formattedData}
+              label="events"
+              barClasses={classes}
+              className="standard-barchart filtered-stats-barchart"
+              tooltip={this.renderTooltip}
+              minHeights={classes.map(p => (p === 'legacy-browsers' ? 1 : 0))}
+            />
+          )}
+          {hasLoaded && this.state.blankStats && (
+            <EmptyMessage
+              title={t('Nothing filtered in the last 30 days.')}
+              description={t(
+                'Issues filtered as a result of your settings below will be shown here.'
+              )}
+            />
+          )}
         </PanelBody>
       </Panel>
     );
   },
 });
 
-export default ProjectFiltersChart;
+export {ProjectFiltersChart};
+
+export default withApi(ProjectFiltersChart);

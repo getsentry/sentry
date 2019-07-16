@@ -15,13 +15,18 @@ export default class UserFeedbackContainer extends React.Component {
   };
 
   render() {
-    const {location: {pathname, query}, pageLinks, children, status} = this.props;
+    const {
+      location: {pathname, query},
+      pageLinks,
+      children,
+      status,
+    } = this.props;
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <div>
+      <div data-test-id="user-feedback">
         <div className="row">
           <div className="col-sm-9" style={{marginBottom: '5px'}}>
             <PageHeading withMargins>{t('User Feedback')}</PageHeading>

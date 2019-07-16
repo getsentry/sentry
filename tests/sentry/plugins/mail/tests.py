@@ -9,6 +9,7 @@ import pytz
 import six
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
+from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
@@ -18,10 +19,10 @@ from sentry.api.serializers import (
     UserReportWithGroupSerializer,
 )
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam,
-    ProjectOwnership, Rule, UserOption, UserReport
+    Activity, Event, Group, GroupSubscription, Organization, OrganizationMember,
+    OrganizationMemberTeam, ProjectOwnership, Rule, UserOption, UserOptionValue,
+    UserReport
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins import Notification
@@ -38,7 +39,7 @@ class MailPluginTest(TestCase):
         return MailPlugin()
 
     @mock.patch(
-        'sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d)
+        'sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d, **kw: d)
     )
     @mock.patch(
         'sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users', Mock(return_value=[])
@@ -61,59 +62,36 @@ class MailPluginTest(TestCase):
         assert msg.subject == '[Sentry] BAR-1 - Hello world'
         assert 'my rule' in msg.alternatives[0][0]
 
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_title')
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.to_email_html')
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
-        group = Group(
-            id=2,
+    def test_notify_users_renders_interfaces_with_utf8(
+        self, _send_mail, _to_email_html, _get_title,
+    ):
+        group = self.create_group(
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
         )
 
-        stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_email_html.return_value = u'רונית מגן'
-        stacktrace.get_title.return_value = 'Stacktrace'
+        _to_email_html.return_value = u'רונית מגן'
+        _get_title.return_value = 'Stacktrace'
 
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'hello world'
-        event.interfaces = {'stacktrace': stacktrace}
+        event = Event(
+            group_id=group.id,
+            project_id=self.project.id,
+            message='Soubor ji\xc5\xbe existuje',
+            # Create interface so get_title will be called on it.
+            data={'stacktrace': {'frames': [{}]}},
+        )
 
         notification = Notification(event=event)
 
         with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
-        stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_email_html.assert_called_once_with(event)
-
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces_with_utf8_fix_issue_422(self, _send_mail):
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-        )
-
-        stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_email_html.return_value = u'רונית מגן'
-        stacktrace.get_title.return_value = 'Stacktrace'
-
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'Soubor ji\xc5\xbe existuje'
-        event.interfaces = {'stacktrace': stacktrace}
-
-        notification = Notification(event=event)
-
-        with self.options({'system.url-prefix': 'http://example.com'}):
-            self.plugin.notify(notification)
-
-        stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_email_html.assert_called_once_with(event)
+        _get_title.assert_called_once_with()
+        _to_email_html.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_does_email(self, _send_mail):
@@ -311,7 +289,11 @@ class MailPluginTest(TestCase):
 
     @mock.patch(
         'sentry.models.ProjectOption.objects.get_value',
-        Mock(side_effect=lambda p, k, d: "[Example prefix] " if k == "mail:subject_prefix" else d)
+        Mock(
+            side_effect=lambda p,
+            k,
+            d,
+            **kw: "[Example prefix] " if k == "mail:subject_prefix" else d)
     )
     def test_notify_digest_subject_prefix(self):
         project = self.event.project
@@ -334,6 +316,11 @@ class MailPluginTest(TestCase):
         assert msg.subject.startswith('[Example prefix]')
 
     def test_assignment(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -356,6 +343,12 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -379,6 +372,11 @@ class MailPluginTest(TestCase):
 
     def test_note(self):
         user_foo = self.create_user('foo@example.com')
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         activity = Activity.objects.create(
             project=self.project,
@@ -424,17 +422,24 @@ class MailPluginSignalsTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    def test_user_feedback(self):
+    def create_report(self):
         user_foo = self.create_user('foo@example.com')
+        self.project.teams.first().organization.member_set.create(user=user_foo)
 
-        report = UserReport.objects.create(
+        return UserReport.objects.create(
             project=self.project,
             group=self.group,
             name='Homer Simpson',
             email='homer.simpson@example.com'
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+    def test_user_feedback(self):
+        report = self.create_report()
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
 
         with self.tasks():
             self.plugin.handle_signal(
@@ -446,8 +451,43 @@ class MailPluginSignalsTest(TestCase):
             )
 
         assert len(mail.outbox) == 1
-
         msg = mail.outbox[0]
+
+        # email includes issue metadata
+        assert 'group-header' in msg.alternatives[0][0]
+        assert 'enhanced privacy' not in msg.body
+
+        assert msg.subject == u'[Sentry] {} - New Feedback from Homer Simpson'.format(
+            self.group.qualified_short_id,
+        )
+        assert msg.to == [self.user.email]
+
+    def test_user_feedback__enhanced_privacy(self):
+        self.organization.update(flags=F('flags').bitor(Organization.flags.enhanced_privacy))
+        assert self.organization.flags.enhanced_privacy.is_set is True
+        UserOption.objects.set_value(
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        report = self.create_report()
+
+        with self.tasks():
+            self.plugin.handle_signal(
+                name='user-reports.created',
+                project=self.project,
+                payload={
+                    'report': serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
+                },
+            )
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+
+        # email does not include issue metadata
+        assert 'group-header' not in msg.alternatives[0][0]
+        assert 'enhanced privacy' in msg.body
 
         assert msg.subject == u'[Sentry] {} - New Feedback from Homer Simpson'.format(
             self.group.qualified_short_id,
@@ -596,6 +636,12 @@ class MailPluginOwnersTest(TestCase):
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
 
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
+
     def test_get_send_to_with_user_owners(self):
         event = Event(
             group=self.group,
@@ -607,6 +653,12 @@ class MailPluginOwnersTest(TestCase):
         assert (sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)))
 
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
+
     def test_get_send_to_with_user_owner(self):
         event = Event(
             group=self.group,
@@ -615,8 +667,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
         )
-        assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_with_fallthrough(self):
         event = Event(
@@ -626,8 +677,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.jx')
         )
-        assert (sorted(set([self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)))
+        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -638,7 +688,7 @@ class MailPluginOwnersTest(TestCase):
             datetime=self.group.last_seen,
             data=self.make_event_data('foo.cpp')
         )
-        assert [] == sorted(self.plugin.get_send_to(self.project, event.data))
+        assert [] == self.plugin.get_send_to(self.project, event.data)
 
     def test_notify_users_with_owners(self):
         event_all_users = Event(
@@ -667,3 +717,16 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data('foo.jx'),
         )
         self.assert_notify(event_single_user, [self.user2.email])
+
+        # Make sure that disabling mail alerts works as expected
+        UserOption.objects.set_value(
+            user=self.user2, key='mail:alert', value=0, project=self.project
+        )
+        event_all_users = Event(
+            group=self.group,
+            message=self.group.message,
+            project=self.project,
+            datetime=self.group.last_seen,
+            data=self.make_event_data('foo.cbl'),
+        )
+        self.assert_notify(event_all_users, [self.user.email])

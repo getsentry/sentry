@@ -14,6 +14,8 @@ from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
 from . import default_manager
 
+import six
+
 
 def ensure_integration(key, data):
     defaults = {
@@ -40,6 +42,14 @@ class IntegrationPipeline(Pipeline):
         try:
             data = self.provider.build_integration(self.state.data)
         except IntegrationError as e:
+            self.get_logger().info(
+                'build-integration.failure',
+                extra={
+                    'error_message': six.text_type(e),
+                    'error_status': getattr(e, 'code', None),
+                    'provider_key': self.provider.key,
+                }
+            )
             return self.error(e.message)
 
         response = self._finish_pipeline(data)
@@ -101,7 +111,6 @@ class IntegrationPipeline(Pipeline):
                     external_id=identity['external_id'],
                     defaults=identity_data,
                 )
-
                 if not created:
                     identity_model.update(**identity_data)
             except IntegrityError:
@@ -142,7 +151,9 @@ class IntegrationPipeline(Pipeline):
             default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization, self.request.user, default_auth_id=default_auth_id)
+            self.organization,
+            self.request.user,
+            default_auth_id=default_auth_id)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 

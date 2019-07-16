@@ -20,6 +20,7 @@ class JiraServerSetupClient(ApiClient):
     request_token_url = u'{}/plugins/servlet/oauth/request-token'
     access_token_url = u'{}/plugins/servlet/oauth/access-token'
     authorize_url = u'{}/plugins/servlet/oauth/authorize?oauth_token={}'
+    integration_name = 'jira_server_setup'
 
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
         self.base_url = base_url
@@ -135,3 +136,9 @@ class JiraServer(object):
             data=data,
             params=params))
         return request_spec
+
+    def user_id_field(self):
+        """
+        Jira-Server doesn't require GDPR compliant API usage so we can use `name`
+        """
+        return 'name'

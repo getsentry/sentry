@@ -1,10 +1,52 @@
-import {Client} from 'app/api';
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
 import AlertActions from 'app/actions/alertActions';
 
 const MAX_TAGS = 500;
+
+const BUILTIN_TAGS = [
+  'event.type',
+  'platform',
+  'message',
+  'title',
+  'location',
+  'timestamp',
+  'release',
+  'user.id',
+  'user.username',
+  'user.email',
+  'user.ip',
+  'sdk.name',
+  'sdk.version',
+  'contexts.key',
+  'contexts.value',
+  'http.method',
+  'http.url',
+  'os.build',
+  'os.kernel_version',
+  'device.brand',
+  'device.locale',
+  'device.uuid',
+  'device.model_id',
+  'device.arch',
+  'device.orientation',
+  'geo.country_code',
+  'geo.region',
+  'geo.city',
+  'error.type',
+  'error.value',
+  'error.mechanism',
+  'error.handled',
+  'stack.abs_path',
+  'stack.filename',
+  'stack.package',
+  'stack.module',
+  'stack.function',
+  'stack.stack_level',
+].map(tag => ({
+  key: tag,
+}));
 
 function tagFetchSuccess(tags) {
   const trimmedTags = tags.slice(0, MAX_TAGS);
@@ -19,34 +61,23 @@ function tagFetchSuccess(tags) {
 }
 
 /**
- * Fetch tags for a single project
- */
-export function fetchProjectTags(orgId, projectId) {
-  TagStore.reset();
-  TagActions.loadTags();
-  const api = new Client();
-  const url = `/projects/${orgId}/${projectId}/tags/`;
-
-  const promise = api.requestPromise(url);
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
-
-  return promise;
-}
-
-/**
  * Fetch tags for an organization or a subset or projects.
  */
-export function fetchTags(api, orgId, projectIds = null) {
+export function fetchOrganizationTags(api, orgId, projectIds = null) {
   TagStore.reset();
   TagActions.loadTags();
 
   const url = `/organizations/${orgId}/tags/`;
   const query = projectIds ? {project: projectIds} : null;
 
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
+  const promise = api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .then(tags => {
+      return [...BUILTIN_TAGS, ...tags];
+    });
   promise.then(tagFetchSuccess, TagActions.loadTagsError);
 
   return promise;
@@ -70,27 +101,5 @@ export function fetchTagValues(api, orgId, tagKey, search = null, projectIds = n
   return api.requestPromise(url, {
     method: 'GET',
     query,
-  });
-}
-
-/**
- * Fetch tag values for a single project
- */
-export function fetchProjectTagValues(api, orgId, projectId, tagKey, query = null) {
-  const url = `/projects/${orgId}/${projectId}/tags/${tagKey}/values/`;
-
-  if (query) {
-    query = {query};
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}
-
-export function fetchOrganizationTags(api, orgId) {
-  return api.requestPromise(`/organizations/${orgId}/tags/`, {
-    method: 'GET',
   });
 }

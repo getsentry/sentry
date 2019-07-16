@@ -1,0 +1,14 @@
+---
+created: '2019-05-27T14:36:16.428735Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_breadcrumbs.py
+---
+errors: null
+to_json:
+  values:
+  - data:
+      extra:
+        foo: bar
+    level: info
+    timestamp: 1458857193.973
+    type: message

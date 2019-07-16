@@ -214,8 +214,12 @@ class BaseChart extends React.Component {
     } = this.props;
 
     const yAxisOrCustom = !yAxes
-      ? yAxis !== null ? YAxis(yAxis) : null
-      : Array.isArray(yAxes) ? yAxes.slice(0, 2).map(YAxis) : [YAxis(), YAxis()];
+      ? yAxis !== null
+        ? YAxis(yAxis)
+        : null
+      : Array.isArray(yAxes)
+      ? yAxes.slice(0, 2).map(YAxis)
+      : [YAxis(), YAxis()];
 
     return (
       <ReactEchartsCore
@@ -266,6 +270,9 @@ class BaseChart extends React.Component {
                     lineStyle: {
                       color: theme.gray1,
                       type: 'dotted',
+                    },
+                    itemStyle: {
+                      color: theme.gray1,
                     },
                   })
                 ),

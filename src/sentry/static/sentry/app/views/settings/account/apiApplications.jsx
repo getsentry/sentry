@@ -12,7 +12,6 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -26,11 +25,10 @@ const ApiApplicationRow = createReactClass({
   displayName: 'ApiApplicationRow',
 
   propTypes: {
+    api: PropTypes.object,
     app: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -39,7 +37,9 @@ const ApiApplicationRow = createReactClass({
   },
 
   handleRemove() {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const app = this.props.app;
 
@@ -49,7 +49,7 @@ const ApiApplicationRow = createReactClass({
       },
       () => {
         const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        this.api.request(`/api-applications/${app.id}/`, {
+        this.props.api.request(`/api-applications/${app.id}/`, {
           method: 'DELETE',
           success: data => {
             IndicatorStore.remove(loadingIndicator);
@@ -74,7 +74,9 @@ const ApiApplicationRow = createReactClass({
     const app = this.props.app;
 
     let btnClassName = 'btn btn-default';
-    if (this.state.loading) btnClassName += ' disabled';
+    if (this.state.loading) {
+      btnClassName += ' disabled';
+    }
 
     return (
       <PanelItem justify="space-between" px={2} py={2}>
@@ -92,6 +94,7 @@ const ApiApplicationRow = createReactClass({
         <Flex align="center">
           <Box pl={2}>
             <a
+              aria-label="Remove"
               onClick={this.handleRemove}
               className={btnClassName}
               disabled={this.state.loading}
@@ -145,7 +148,6 @@ class ApiApplications extends AsyncView {
       <Button
         priority="primary"
         size="small"
-        className="ref-create-application"
         onClick={this.handleCreateApplication}
         icon="icon-circle-add"
       >
@@ -173,6 +175,7 @@ class ApiApplications extends AsyncView {
               this.state.appList.map(app => {
                 return (
                   <ApiApplicationRow
+                    api={this.api}
                     key={app.id}
                     app={app}
                     onRemove={this.handleRemoveApplication}

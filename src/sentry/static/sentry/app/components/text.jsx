@@ -4,7 +4,7 @@ import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import Panel from 'app/components/panels/panel';
 
-const Text = styled.div`
+const Text = styled('div')`
   ${textStyles};
 
   /* stylelint-disable-next-line no-duplicate-selectors */

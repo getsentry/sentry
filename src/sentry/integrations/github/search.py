@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.exceptions import ApiError
+from sentry.integrations.github.integration import build_repository_query
 from sentry.models import Integration
 
 
@@ -45,9 +46,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
             } for i in response.get('items', [])])
 
         if field == 'repo':
-            account_type = 'user' if integration.metadata['account_type'] == 'User' else 'org'
-            full_query = (u'%s:%s %s' % (account_type, integration.name, query)).encode('utf-8')
-
+            full_query = build_repository_query(integration.metadata, integration.name, query)
             try:
                 response = installation.get_client().search_repositories(full_query)
             except ApiError as err:

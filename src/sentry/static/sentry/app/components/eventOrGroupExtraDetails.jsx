@@ -1,14 +1,16 @@
+import {Flex, Box} from 'grid-emotion';
+import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
-import TimeSince from 'app/components/timeSince';
-import ShortId from 'app/components/shortId';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {t, tct} from 'app/locale';
+import {tct} from 'app/locale';
+import EventAnnotation from 'app/components/events/eventAnnotation';
 import InlineSvg from 'app/components/inlineSvg';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import SentryTypes from 'app/sentryTypes';
+import ShortId from 'app/components/shortId';
+import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 
 class EventOrGroupExtraDetails extends React.Component {
@@ -27,15 +29,8 @@ class EventOrGroupExtraDetails extends React.Component {
     }),
     showAssignee: PropTypes.bool,
     shortId: PropTypes.string,
+    project: SentryTypes.Project,
   };
-
-  getIssuesPath() {
-    const {orgId, projectId} = this.props.params;
-
-    return projectId
-      ? `/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
-  }
 
   render() {
     const {
@@ -49,32 +44,25 @@ class EventOrGroupExtraDetails extends React.Component {
       annotations,
       showAssignee,
       shortId,
+      project,
+      params,
     } = this.props;
 
-    const issuesPath = this.getIssuesPath();
+    const issuesPath = `/organizations/${params.orgId}/issues/`;
 
     return (
       <GroupExtra align="center">
-        {shortId && <GroupShortId shortId={shortId} />}
-        <Times>
-          <div css={overflowEllipsis}>
-            {lastSeen && (
-              <React.Fragment>
-                <GroupTimeIcon src="icon-clock-sm" />
-                <TimeSince date={lastSeen} suffix={t('ago')} />
-              </React.Fragment>
-            )}
-            {firstSeen &&
-              lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
-            {firstSeen && (
-              <TimeSince
-                date={firstSeen}
-                suffix={t('old')}
-                className="hidden-xs hidden-sm"
-              />
-            )}
-          </div>
-        </Times>
+        {shortId && (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ProjectBadge project={project} avatarSize={14} hideName={true} />
+              )
+            }
+          />
+        )}
+        <Times lastSeen={lastSeen} firstSeen={firstSeen} />
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
@@ -90,7 +78,7 @@ class EventOrGroupExtraDetails extends React.Component {
             </Box>
           )}
           {logger && (
-            <Box className="event-annotation" mr={2}>
+            <LoggerAnnotation>
               <Link
                 to={{
                   pathname: issuesPath,
@@ -101,14 +89,13 @@ class EventOrGroupExtraDetails extends React.Component {
               >
                 {logger}
               </Link>
-            </Box>
+            </LoggerAnnotation>
           )}
         </GroupExtraCommentsAndLogger>
         {annotations &&
           annotations.map((annotation, key) => {
             return (
-              <div
-                className="event-annotation"
+              <EventAnnotation
                 dangerouslySetInnerHTML={{
                   __html: annotation,
                 }}
@@ -117,8 +104,9 @@ class EventOrGroupExtraDetails extends React.Component {
             );
           })}
 
-        {showAssignee &&
-          assignedTo && <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>}
+        {showAssignee && assignedTo && (
+          <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+        )}
       </GroupExtra>
     );
   }
@@ -144,12 +132,6 @@ const CommentsLink = styled(Link)`
   flex-shrink: 0;
 `;
 
-const Times = styled('div')`
-  margin-right: ${space(2)};
-  flex-shrink: 1;
-  min-width: 0; /* flex-hack for overflow-ellipsised children */
-`;
-
 const GroupShortId = styled(ShortId)`
   margin-right: ${space(2)};
   flex-shrink: 0;
@@ -163,10 +145,8 @@ const GroupExtraIcon = styled(InlineSvg)`
   margin-right: 4px;
 `;
 
-const GroupTimeIcon = styled(GroupExtraIcon)`
-  /* this is solely for optics, since TimeSince always begins
-  with a number, and numbers do not have descenders */
-  transform: translateY(-1px);
+const LoggerAnnotation = styled(EventAnnotation)`
+  margin-right: ${space(2)};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);

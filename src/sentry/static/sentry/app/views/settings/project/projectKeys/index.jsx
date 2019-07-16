@@ -12,15 +12,13 @@ import {
   addSuccessMessage,
   removeIndicator,
 } from 'app/actionCreators/indicator';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
@@ -33,6 +31,7 @@ const KeyRow = createReactClass({
   displayName: 'KeyRow',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -40,8 +39,6 @@ const KeyRow = createReactClass({
     onToggle: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -51,11 +48,13 @@ const KeyRow = createReactClass({
   },
 
   handleRemove() {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
@@ -74,10 +73,12 @@ const KeyRow = createReactClass({
   },
 
   handleUpdate(params, cb) {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'PUT',
       data: params,
       success: (d, _, jqXHR) => {
@@ -156,16 +157,13 @@ const KeyRow = createReactClass({
             )}
           </Box>
           <Flex align="center">
-            {controls.map((c, n) => <KeyControl key={n}> {c}</KeyControl>)}
+            {controls.map((c, n) => (
+              <KeyControl key={n}> {c}</KeyControl>
+            ))}
           </Flex>
         </PanelHeader>
 
-        <ClippedBox
-          clipHeight={300}
-          defaultClipped={true}
-          btnClassName="btn btn-default btn-sm"
-          btnText={t('Expand')}
-        >
+        <ClippedBox clipHeight={300} defaultClipped={true} btnText={t('Expand')}>
           <PanelBody>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </PanelBody>
@@ -249,7 +247,7 @@ export default class ProjectKeys extends AsyncView {
   renderResults() {
     const {routes, params} = this.props;
     const {orgId, projectId} = params;
-    const access = getOrganizationState(this.context.organization).getAccess();
+    const access = new Set(this.context.organization.access);
 
     return (
       <div>
@@ -277,7 +275,7 @@ export default class ProjectKeys extends AsyncView {
   }
 
   renderBody() {
-    const access = getOrganizationState(this.context.organization).getAccess();
+    const access = new Set(this.context.organization.access);
     const isEmpty = !this.state.keyList.length;
 
     return (
@@ -335,6 +333,6 @@ const PanelHeaderLink = styled(Link)`
   color: ${p => p.theme.gray3};
 `;
 
-const KeyControl = styled.span`
+const KeyControl = styled('span')`
   margin-left: 6px;
 `;

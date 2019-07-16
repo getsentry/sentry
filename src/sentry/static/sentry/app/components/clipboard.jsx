@@ -33,7 +33,9 @@ class Clipboard extends React.Component {
   }
 
   handleMount = ref => {
-    if (!ref) return;
+    if (!ref) {
+      return;
+    }
 
     const {hideMessages, successMessage, errorMessage, onSuccess, onError} = this.props;
     const hasSuccessCb = typeof onSuccess === 'function';
@@ -44,7 +46,9 @@ class Clipboard extends React.Component {
       text: () => this.props.value,
     });
 
-    if (!bindEventHandlers) return;
+    if (!bindEventHandlers) {
+      return;
+    }
 
     this.clipboard
       .on('success', () => {

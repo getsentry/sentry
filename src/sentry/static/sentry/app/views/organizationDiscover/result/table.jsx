@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -46,7 +46,9 @@ class ResultTable extends React.Component {
   }
 
   getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
-    const {data: {data, meta}} = this.props;
+    const {
+      data: {data, meta},
+    } = this.props;
 
     const isSpacingCol = columnIndex === cols.length;
 
@@ -55,7 +57,7 @@ class ResultTable extends React.Component {
     const isNumberCol =
       !isSpacingCol && ['number', 'integer'].includes(meta[columnIndex].type);
 
-    const align = isNumberCol && colName != 'issue.id' ? 'right' : 'left';
+    const align = isNumberCol && colName !== 'issue.id' ? 'right' : 'left';
 
     if (rowIndex === 0) {
       return (
@@ -84,18 +86,12 @@ class ResultTable extends React.Component {
     );
   };
 
-  hasSentry10 = () => {
-    return new Set(this.props.organization.features).has('sentry10');
-  };
-
   getEventLink = event => {
     const {slug, projects} = this.props.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
-    const basePath = this.hasSentry10()
-      ? `/organizations/${slug}/projects/${projectSlug}/`
-      : `/${slug}/${projectSlug}/`;
+    const basePath = `/organizations/${slug}/projects/${projectSlug}/`;
 
     return (
       <Tooltip title={t('Open event')}>
@@ -107,13 +103,8 @@ class ResultTable extends React.Component {
   };
 
   getIssueLink = event => {
-    const {slug, projects} = this.props.organization;
-    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
-      .slug;
-
-    const basePath = this.hasSentry10()
-      ? `/organizations/${slug}/`
-      : `/${slug}/${projectSlug}/`;
+    const {slug} = this.props.organization;
+    const basePath = `/organizations/${slug}/`;
 
     return (
       <Tooltip title={t('Open issue')}>
@@ -130,7 +121,9 @@ class ResultTable extends React.Component {
   // are less than 20 columns of data to check in total.
   // Adds an empty column at the end with the remaining table width if any.
   getColumnWidths = tableWidth => {
-    const {data: {data}} = this.props;
+    const {
+      data: {data},
+    } = this.props;
     const cols = this.getColumnList();
 
     const widths = [];
@@ -175,7 +168,9 @@ class ResultTable extends React.Component {
   };
 
   getRowHeight = (rowIndex, columnsToCheck) => {
-    const {data: {data}} = this.props;
+    const {
+      data: {data},
+    } = this.props;
 
     if (rowIndex === 0) {
       return TABLE_ROW_HEIGHT_WITH_BORDER;
@@ -198,7 +193,10 @@ class ResultTable extends React.Component {
   };
 
   getColumnList = () => {
-    const {query, data: {meta}} = this.props;
+    const {
+      query,
+      data: {meta},
+    } = this.props;
 
     const fields = new Set([
       ...(query.fields || []),
@@ -237,7 +235,10 @@ class ResultTable extends React.Component {
   };
 
   renderTable() {
-    const {data: {data}, height} = this.props;
+    const {
+      data: {data},
+      height,
+    } = this.props;
 
     const cols = this.getColumnList();
 
@@ -316,7 +317,7 @@ const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
 
 const Cell = styled('div')`
   ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
-      `text-align: ${p.align};`} overflow: scroll;
+    `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;

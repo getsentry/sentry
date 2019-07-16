@@ -182,6 +182,7 @@ class BitbucketIssueTest(APITestCase):
                 ]
             },
         )
+
         installation = self.integration.get_installation(self.organization.id)
         assert installation.get_create_issue_config(self.group) == [
             {
@@ -202,7 +203,7 @@ class BitbucketIssueTest(APITestCase):
             }, {
                 'name': 'description',
                 'label': 'Description',
-                'default': u'Sentry Issue: [BAR-1](http://testserver/baz/bar/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
+                'default': u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
                 'type': 'textarea',
                 'autosize': True,
                 'maxRows': 10,

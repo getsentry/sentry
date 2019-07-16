@@ -49,9 +49,11 @@ class ProcessingIssueHint extends React.Component {
       );
       lastEvent = (
         <span className="last-seen">
-          ({tct('last event from [ago]', {
+          (
+          {tct('last event from [ago]', {
             ago: <TimeSince date={issue.lastSeen} />,
-          })})
+          })}
+          )
         </span>
       );
       className['alert-error'] = true;
@@ -91,7 +93,7 @@ class ProcessingIssueHint extends React.Component {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   margin: -1px -1px 0;
   padding: 10px 16px;
 `;

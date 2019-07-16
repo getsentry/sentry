@@ -17,18 +17,20 @@ import re
 import six
 import zlib
 
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
+from sentry import features
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
-from sentry.utils import json
+from sentry.utils import kafka, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
@@ -75,11 +77,12 @@ class APIRateLimited(APIError):
 
 
 class Auth(object):
-    def __init__(self, auth_vars, is_public=False):
-        self.client = auth_vars.get('sentry_client')
-        self.version = six.text_type(auth_vars.get('sentry_version'))
-        self.secret_key = auth_vars.get('sentry_secret')
-        self.public_key = auth_vars.get('sentry_key')
+    def __init__(self, client=None, version=None, secret_key=None,
+                 public_key=None, is_public=False):
+        self.client = client
+        self.version = version
+        self.secret_key = secret_key
+        self.public_key = public_key
         self.is_public = is_public
 
 
@@ -166,7 +169,7 @@ class ClientApiHelper(object):
         if start_time is None:
             start_time = time()
 
-        # we might be passed some sublcasses of dict that fail dumping
+        # we might be passed some subclasses of dict that fail dumping
         if isinstance(data, CANONICAL_TYPES):
             data = dict(data.items())
 
@@ -180,10 +183,25 @@ class ClientApiHelper(object):
         if attachments is not None:
             attachment_cache.set(cache_key, attachments, cache_timeout)
 
-        task = from_reprocessing and \
-            preprocess_event_from_reprocessing or preprocess_event
-        task.delay(cache_key=cache_key, start_time=start_time,
-                   event_id=data['event_id'])
+        # NOTE: Project is bound to the context in most cases in production, which
+        # is enough for us to do `projects:kafka-ingest` testing.
+        project = self.context and self.context.project
+
+        if project and features.has('projects:kafka-ingest', project=project):
+            kafka.produce_sync(
+                settings.KAFKA_PREPROCESS,
+                value=json.dumps({
+                    'cache_key': cache_key,
+                    'start_time': start_time,
+                    'from_reprocessing': from_reprocessing,
+                    'data': data,
+                }),
+            )
+        else:
+            task = from_reprocessing and \
+                preprocess_event_from_reprocessing or preprocess_event
+            task.delay(cache_key=cache_key, start_time=start_time,
+                       event_id=data['event_id'])
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -218,7 +236,11 @@ class ClientAuthHelper(AbstractAuthHelper):
             raise APIUnauthorized('Unable to find authentication information')
 
         origin = cls.origin_from_request(request)
-        auth = Auth(result, is_public=bool(origin))
+        auth = Auth(client=result.get('sentry_client'),
+                    version=six.text_type(result.get('sentry_version')),
+                    secret_key=result.get('sentry_secret'),
+                    public_key=result.get('sentry_key'),
+                    is_public=bool(origin))
         # default client to user agent
         if not auth.client:
             auth.client = request.META.get('HTTP_USER_AGENT')
@@ -251,8 +273,7 @@ class MinidumpAuthHelper(AbstractAuthHelper):
         # Minidump requests are always "trusted".  We at this point only
         # use is_public to identify requests that have an origin set (via
         # CORS)
-        auth = Auth({'sentry_key': key}, is_public=False)
-        auth.client = 'sentry-minidump'
+        auth = Auth(public_key=key, client='sentry-minidump', is_public=False)
         return auth
 
 
@@ -270,11 +291,7 @@ class SecurityAuthHelper(AbstractAuthHelper):
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
 
-        auth = Auth(
-            {
-                'sentry_key': key,
-            }, is_public=True
-        )
+        auth = Auth(public_key=key, is_public=True)
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 

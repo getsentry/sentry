@@ -22,8 +22,14 @@ from sentry.utils.files import get_max_file_size
 CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
-MAX_CONCURRENCY = settings.DEBUG and 1 or 4
+MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = 'sha1'
+
+CHUNK_UPLOAD_ACCEPT = (
+    'debug_files',  # DIF assemble
+    'release_files',  # Artifacts assemble
+    'pdbs',  # PDB upload and debug id override
+)
 
 
 class GzipChunk(BytesIO):
@@ -61,6 +67,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
                 'compression': ['gzip'],
+                'accept': CHUNK_UPLOAD_ACCEPT,
             }
         )
 
@@ -79,8 +86,8 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger = logging.getLogger('sentry.files')
         logger.info('chunkupload.start')
 
-        files = request.FILES.getlist('file')
-        files += [GzipChunk(chunk) for chunk in request.FILES.getlist('file_gzip')]
+        files = request.data.getlist('file')
+        files += [GzipChunk(chunk) for chunk in request.data.getlist('file_gzip')]
         if len(files) == 0:
             # No files uploaded is ok
             logger.info('chunkupload.end', extra={'status': status.HTTP_200_OK})

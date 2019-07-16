@@ -1,0 +1,18 @@
+---
+created: '2019-03-14T17:12:34.953209Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - runtime
+  - .NET Framework 4.7.2
+- - runtime.name
+  - .NET Framework
+to_json:
+  runtime:
+    build: '461808'
+    name: .NET Framework
+    raw_description: .NET Framework 4.0.30319.42000
+    type: runtime
+    version: 4.7.2

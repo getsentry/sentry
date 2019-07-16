@@ -1,4 +1,3 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import {orderBy} from 'lodash';
 import Papa from 'papaparse';
 import React from 'react';
@@ -22,6 +21,7 @@ export function getChartData(data, query) {
   return query.aggregations.map(aggregation => {
     return {
       seriesName: aggregation[2],
+      animation: false,
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
@@ -71,7 +71,7 @@ export function getChartDataForWidget(data, query, options = {}) {
         };
 
         if (options.includePercentages && total) {
-          obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
+          obj.percentage = Math.round((res[aggregation[2]] / total) * 10000) / 100;
         }
 
         return obj;
@@ -325,11 +325,11 @@ export function getDisplayText(val) {
   return `${val}`;
 }
 
-const LightGray = styled.span`
+const LightGray = styled('span')`
   color: ${p => p.theme.gray1};
 `;
 
-const DarkGray = styled.span`
+const DarkGray = styled('span')`
   color: ${p => p.theme.gray5};
 `;
 

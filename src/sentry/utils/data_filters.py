@@ -48,12 +48,12 @@ class FilterTypes(object):
     RELEASES = 'releases'
 
 
-def is_valid_ip(project, ip_address):
+def is_valid_ip(relay_config, ip_address):
     """
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = project.get_option('sentry:blacklisted_ips')
+    blacklist = relay_config.config.get('blacklisted_ips')
     if not blacklist:
         return True
 
@@ -77,12 +77,12 @@ def is_valid_ip(project, ip_address):
     return True
 
 
-def is_valid_release(project, release):
+def is_valid_release(relay_config, release):
     """
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
+    invalid_versions = relay_config.config.get(FilterTypes.RELEASES)
     if not invalid_versions:
         return True
 
@@ -95,19 +95,24 @@ def is_valid_release(project, release):
     return True
 
 
-def is_valid_error_message(project, message):
+def is_valid_error_message(relay_config, message):
     """
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    filtered_errors = relay_config.config.get(FilterTypes.ERROR_MESSAGES)
     if not filtered_errors:
         return True
 
     message = force_text(message).lower()
 
     for error in filtered_errors:
-        if fnmatch.fnmatch(message, error.lower()):
-            return False
+        try:
+            if fnmatch.fnmatch(message, error.lower()):
+                return False
+        except Exception:
+            # fnmatch raises a string when the pattern is bad.
+            # Patterns come from end users and can be full of mistakes.
+            pass
 
     return True

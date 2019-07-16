@@ -1,0 +1,32 @@
+{
+  "threads": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "foo/baz.c",
+              "filename": "foo/baz.c",
+              "lineno": 1,
+              "in_app": true
+            }
+          ]
+        },
+        "name": "Main Thread",
+        "current": true,
+        "crashed": false,
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "lineno": 1,
+              "in_app": true
+            }
+          ]
+        },
+        "id": 42
+      }
+    ]
+  }
+}

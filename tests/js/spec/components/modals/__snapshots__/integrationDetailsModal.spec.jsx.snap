@@ -10,6 +10,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -89,7 +90,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             size={50}
           >
             <div
-              className="css-duaev8-IntegrationIcon e1bhjds90"
+              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
               size={50}
             />
           </IntegrationIcon>
@@ -111,18 +112,24 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               className="css-1wqjzd8"
               is={null}
             >
-              <ProviderName>
+              <ProviderName
+                data-test-id="provider-name"
+              >
                 <Component
                   className="css-1pygq0m-ProviderName e1rf4mlr1"
+                  data-test-id="provider-name"
                 >
                   <Box
                     className="css-1pygq0m-ProviderName e1rf4mlr1"
+                    data-test-id="provider-name"
                   >
                     <Base
                       className="e1rf4mlr1 css-cswdqk-ProviderName"
+                      data-test-id="provider-name"
                     >
                       <div
                         className="e1rf4mlr1 css-cswdqk-ProviderName"
+                        data-test-id="provider-name"
                         is={null}
                       >
                         GitHub Integration
@@ -188,6 +195,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -290,7 +298,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               className="css-roynbj"
               is={null}
             >
-              <ExternalLink
+              <ForwardRef
                 href="http://example.com/integration_source_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -302,8 +310,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   View Source
                 </a>
-              </ExternalLink>
-              <ExternalLink
+              </ForwardRef>
+              <ForwardRef
                 href="http://example.com/integration_issue_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -315,7 +323,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   Report Issue
                 </a>
-              </ExternalLink>
+              </ForwardRef>
             </div>
           </Base>
         </Box>
@@ -323,16 +331,18 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </Base>
   </Metadata>
   <Alert
+    alignTop={false}
     iconSize="24px"
     key="0"
     type="warning"
   >
     <AlertWrapper
+      alignTop={false}
       className="ref-warning"
       type="warning"
     >
       <div
-        className="ref-warning css-3oyttp-AlertWrapper e1xb5l7j1"
+        className="ref-warning css-osoqhl-AlertWrapper-alertStyles e1xb5l7j1"
         type="warning"
       >
         <StyledTextBlock>
@@ -376,6 +386,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -402,49 +413,58 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       className="modal-footer"
     >
       <Button
+        align="center"
+        data-test-id="cancel-button"
         disabled={false}
         onClick={[MockFunction]}
         size="small"
       >
         <StyledButton
+          aria-disabled={false}
           aria-label="Cancel"
+          data-test-id="cancel-button"
           disabled={false}
           onClick={[Function]}
           role="button"
           size="small"
         >
-          <Component
+          <ForwardRef
+            aria-disabled={false}
             aria-label="Cancel"
-            className="css-dkprmi-StyledButton-getColors eqrebog0"
+            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+            data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
             role="button"
             size="small"
           >
             <button
+              aria-disabled={false}
               aria-label="Cancel"
-              className="css-dkprmi-StyledButton-getColors eqrebog0"
-              disabled={false}
+              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+              data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
               size="small"
             >
               <ButtonLabel
+                align="center"
                 size="small"
               >
                 <Component
-                  className="css-7ui8bl-ButtonLabel eqrebog1"
+                  align="center"
+                  className="css-1h693nz-ButtonLabel e12ma6z1"
                   size="small"
                 >
                   <span
-                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    className="css-1h693nz-ButtonLabel e12ma6z1"
                   >
                     Cancel
                   </span>
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
       <withConfig(AccessContainer)
@@ -459,6 +479,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               "org:read",
               "org:write",
               "org:admin",
+              "org:integrations",
               "project:read",
               "project:write",
               "project:admin",
@@ -514,6 +535,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
@@ -586,6 +608,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                   "org:read",
                   "org:write",
                   "org:admin",
+                  "org:integrations",
                   "project:read",
                   "project:write",
                   "project:admin",
@@ -611,109 +634,143 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             requireAll={true}
           >
             <Tooltip
-              disabled={false}
-              title="You must be an Owner or Manager to install this."
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="You must be an organization owner, manager or admin to install this."
             >
-              <span
-                className="tip"
-                title="You must be an Owner or Manager to install this."
+              <AddButton
+                data-test-id="add-button"
+                disabled={false}
               >
-                <AddButton
-                  disabled={true}
-                >
-                  <AddIntegrationButton
-                    disabled={true}
-                    onAddIntegration={[Function]}
-                    priority="primary"
-                    provider={
-                      Object {
-                        "canAdd": true,
-                        "config": Array [],
-                        "externalIssues": Array [],
-                        "features": Array [],
-                        "key": "github",
-                        "metadata": Object {
-                          "aspects": Object {
-                            "alerts": Array [
-                              Object {
-                                "text": "This is a an alert example",
-                                "type": "warning",
-                              },
-                            ],
-                          },
-                          "author": "Morty",
-                          "description": "*markdown* formatted _description_",
-                          "features": Array [
+                <AddIntegrationButton
+                  data-test-id="add-button"
+                  disabled={false}
+                  onAddIntegration={[Function]}
+                  priority="primary"
+                  provider={
+                    Object {
+                      "canAdd": true,
+                      "config": Array [],
+                      "externalIssues": Array [],
+                      "features": Array [],
+                      "key": "github",
+                      "metadata": Object {
+                        "aspects": Object {
+                          "alerts": Array [
                             Object {
-                              "description": "*markdown* feature description",
+                              "text": "This is a an alert example",
+                              "type": "warning",
                             },
                           ],
-                          "issue_url": "http://example.com/integration_issue_url",
-                          "noun": "Installation",
-                          "source_url": "http://example.com/integration_source_url",
                         },
-                        "name": "GitHub",
-                        "setupDialog": Object {
-                          "height": 100,
-                          "url": "/github-integration-setup-uri/",
-                          "width": 100,
-                        },
-                      }
+                        "author": "Morty",
+                        "description": "*markdown* formatted _description_",
+                        "features": Array [
+                          Object {
+                            "description": "*markdown* feature description",
+                          },
+                        ],
+                        "issue_url": "http://example.com/integration_issue_url",
+                        "noun": "Installation",
+                        "source_url": "http://example.com/integration_source_url",
+                      },
+                      "name": "GitHub",
+                      "setupDialog": Object {
+                        "height": 100,
+                        "url": "/github-integration-setup-uri/",
+                        "width": 100,
+                      },
                     }
-                    size="small"
-                    style={
-                      Object {
-                        "marginLeft": "8px",
-                      }
+                  }
+                  size="small"
+                  style={
+                    Object {
+                      "marginLeft": "8px",
                     }
+                  }
+                >
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    disabled={true}
+                    position="top"
+                    title="Integration cannot be added on Sentry. Enable this integration via the GitHub instance."
                   >
-                    <Tooltip
-                      disabled={true}
-                      title="Integration cannot be added on Sentry. Enable this integration via the GitHub instance."
-                    >
-                      <span>
-                        <AddIntegration
-                          onInstall={[Function]}
-                          provider={
-                            Object {
-                              "canAdd": true,
-                              "config": Array [],
-                              "externalIssues": Array [],
-                              "features": Array [],
-                              "key": "github",
-                              "metadata": Object {
-                                "aspects": Object {
-                                  "alerts": Array [
-                                    Object {
-                                      "text": "This is a an alert example",
-                                      "type": "warning",
-                                    },
-                                  ],
+                    <AddIntegration
+                      onInstall={[Function]}
+                      provider={
+                        Object {
+                          "canAdd": true,
+                          "config": Array [],
+                          "externalIssues": Array [],
+                          "features": Array [],
+                          "key": "github",
+                          "metadata": Object {
+                            "aspects": Object {
+                              "alerts": Array [
+                                Object {
+                                  "text": "This is a an alert example",
+                                  "type": "warning",
                                 },
-                                "author": "Morty",
-                                "description": "*markdown* formatted _description_",
-                                "features": Array [
-                                  Object {
-                                    "description": "*markdown* feature description",
-                                  },
-                                ],
-                                "issue_url": "http://example.com/integration_issue_url",
-                                "noun": "Installation",
-                                "source_url": "http://example.com/integration_source_url",
+                              ],
+                            },
+                            "author": "Morty",
+                            "description": "*markdown* formatted _description_",
+                            "features": Array [
+                              Object {
+                                "description": "*markdown* feature description",
                               },
-                              "name": "GitHub",
-                              "setupDialog": Object {
-                                "height": 100,
-                                "url": "/github-integration-setup-uri/",
-                                "width": 100,
-                              },
+                            ],
+                            "issue_url": "http://example.com/integration_issue_url",
+                            "noun": "Installation",
+                            "source_url": "http://example.com/integration_source_url",
+                          },
+                          "name": "GitHub",
+                          "setupDialog": Object {
+                            "height": 100,
+                            "url": "/github-integration-setup-uri/",
+                            "width": 100,
+                          },
+                        }
+                      }
+                    >
+                      <Button
+                        align="center"
+                        data-test-id="add-button"
+                        disabled={false}
+                        onClick={[Function]}
+                        priority="primary"
+                        size="small"
+                        style={
+                          Object {
+                            "marginLeft": "8px",
+                          }
+                        }
+                      >
+                        <StyledButton
+                          aria-disabled={false}
+                          aria-label="Add Installation"
+                          data-test-id="add-button"
+                          disabled={false}
+                          onClick={[Function]}
+                          priority="primary"
+                          role="button"
+                          size="small"
+                          style={
+                            Object {
+                              "marginLeft": "8px",
                             }
                           }
                         >
-                          <Button
-                            disabled={true}
+                          <ForwardRef
+                            aria-disabled={false}
+                            aria-label="Add Installation"
+                            className="css-23553w-StyledButton-getColors e12ma6z0"
+                            data-test-id="add-button"
+                            disabled={false}
                             onClick={[Function]}
                             priority="primary"
+                            role="button"
                             size="small"
                             style={
                               Object {
@@ -721,12 +778,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               }
                             }
                           >
-                            <StyledButton
+                            <button
+                              aria-disabled={false}
                               aria-label="Add Installation"
-                              disabled={true}
-                              href={null}
+                              className="css-23553w-StyledButton-getColors e12ma6z0"
+                              data-test-id="add-button"
                               onClick={[Function]}
-                              priority="primary"
                               role="button"
                               size="small"
                               style={
@@ -734,66 +791,33 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                   "marginLeft": "8px",
                                 }
                               }
-                              to={null}
                             >
-                              <Component
-                                aria-label="Add Installation"
-                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                disabled={true}
-                                href={null}
-                                onClick={[Function]}
+                              <ButtonLabel
+                                align="center"
                                 priority="primary"
-                                role="button"
                                 size="small"
-                                style={
-                                  Object {
-                                    "marginLeft": "8px",
-                                  }
-                                }
-                                to={null}
                               >
-                                <button
-                                  aria-label="Add Installation"
-                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
-                                  disabled={true}
-                                  href={null}
-                                  onClick={[Function]}
+                                <Component
+                                  align="center"
+                                  className="css-1h693nz-ButtonLabel e12ma6z1"
                                   priority="primary"
-                                  role="button"
                                   size="small"
-                                  style={
-                                    Object {
-                                      "marginLeft": "8px",
-                                    }
-                                  }
-                                  to={null}
                                 >
-                                  <ButtonLabel
-                                    priority="primary"
-                                    size="small"
+                                  <span
+                                    className="css-1h693nz-ButtonLabel e12ma6z1"
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
-                                      priority="primary"
-                                      size="small"
-                                    >
-                                      <span
-                                        className="css-7ui8bl-ButtonLabel eqrebog1"
-                                      >
-                                        Add Installation
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </AddIntegration>
-                      </span>
-                    </Tooltip>
-                  </AddIntegrationButton>
-                </AddButton>
-              </span>
+                                    Add Installation
+                                  </span>
+                                </Component>
+                              </ButtonLabel>
+                            </button>
+                          </ForwardRef>
+                        </StyledButton>
+                      </Button>
+                    </AddIntegration>
+                  </Tooltip>
+                </AddIntegrationButton>
+              </AddButton>
             </Tooltip>
           </Access>
         </AccessContainer>

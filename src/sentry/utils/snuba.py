@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
-from collections import OrderedDict
+from collections import (
+    namedtuple,
+    OrderedDict,
+)
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
@@ -26,6 +30,10 @@ from sentry.utils.dates import to_timestamp
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+SAFE_FUNCTION_RE = re.compile(r'-?[a-zA-Z_][a-zA-Z0-9_]*$')
+QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+
+
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
@@ -50,9 +58,7 @@ SENTRY_SNUBA_MAP = {
     'timestamp': 'timestamp',
     'time': 'time',
     # We support type as both tag and a real column
-    'type.name': 'type',
-    # We support version as both tag and a real column
-    'version.name': 'version',
+    'event.type': 'type',
     # user
     'user.id': 'user_id',
     'user.email': 'email',
@@ -76,7 +82,7 @@ SENTRY_SNUBA_MAP = {
     'device.arch': 'device_arch',
     'device.battery_level': 'device_battery_level',
     'device.orientation': 'device_orientation',
-    'device.simulator': 'device_orientation',
+    'device.simulator': 'device_simulator',
     'device.online': 'device_online',
     'device.charging': 'device_charging',
     # geo
@@ -181,6 +187,9 @@ class QueryOutsideGroupActivityError(Exception):
     pass
 
 
+SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
+
+
 @contextmanager
 def timer(name, prefix='snuba.client'):
     t = time.time()
@@ -220,7 +229,14 @@ def options_override(overrides):
 
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=5,
+    retries=urllib3.Retry(
+        total=5,
+        # Expand our retries to POST since all of
+        # our requests are POST and they don't mutate, so they
+        # are safe to retry. Without this, we aren't
+        # actually retrying at all.
+        method_whitelist={'GET', 'POST'},
+    ),
     timeout=30,
     maxsize=10,
 )
@@ -256,7 +272,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             rv.append({'time': key})
 
-    if orderby.startswith('-'):
+    if '-time' in orderby:
         return list(reversed(rv))
 
     return rv
@@ -265,11 +281,96 @@ def zerofill(data, start, end, rollup, orderby):
 def get_snuba_column_name(name):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
-    the column is assumed to be a tag. If name is falsy, leave unchanged.
+    the column is assumed to be a tag. If name is falsy or name is a quoted literal
+    (e.g. "'name'"), leave unchanged.
     """
-    if not name:
+    no_conversion = set(['project_id', 'start', 'end'])
+
+    if name in no_conversion:
         return name
+
+    if not name or QUOTED_LITERAL_RE.match(name):
+        return name
+
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_function_index(column_expr, depth=0):
+    """
+    If column_expr list contains a function, returns the index of its function name
+    within column_expr (and assumption is that index + 1 is the list of arguments),
+    otherwise None.
+
+     A function expression is of the form:
+         [func, [arg1, arg2]]  => func(arg1, arg2)
+     If a string argument is followed by list arg, the pair of them is assumed
+    to be a nested function call, with extra args to the outer function afterward.
+         [func1, [func2, [arg1, arg2], arg3]]  => func1(func2(arg1, arg2), arg3)
+     Although at the top level, there is no outer function call, and the optional
+    3rd argument is interpreted as an alias for the entire expression.
+         [func, [arg1], alias] => function(arg1) AS alias
+     You can also have a function part of an argument list:
+         [func1, [arg1, func2, [arg2, arg3]]] => func1(arg1, func2(arg2, arg3))
+     """
+    index = None
+    if isinstance(column_expr, (tuple, list)):
+        i = 0
+        while i < len(column_expr) - 1:
+            # The assumption here is that a list that follows a string means
+            # the string is a function name
+            if isinstance(column_expr[i], six.string_types) and isinstance(
+                    column_expr[i + 1], (tuple, list)):
+                assert SAFE_FUNCTION_RE.match(column_expr[i])
+                index = i
+                break
+            else:
+                i = i + 1
+
+        return index
+    else:
+        return None
+
+
+def parse_columns_in_functions(col, context=None, index=None):
+    """
+    Checks expressions for arguments that should be considered a column while
+    ignoring strings that represent clickhouse function names
+
+    if col is a list, means the expression has functions and we need
+    to parse for arguments that should be considered column names.
+
+    Assumptions here:
+     * strings that represent clickhouse function names are always followed by a list or tuple
+     * strings that are quoted with single quotes are used as string literals for CH
+     * otherwise we should attempt to get the snuba column name (or custom tag)
+    """
+
+    function_name_index = get_function_index(col)
+
+    if function_name_index is not None:
+        # if this is non zero, that means there are strings before this index
+        # that should be converted to snuba column names
+        # e.g. ['func1', ['column', 'func2', ['arg1']]]
+        if function_name_index > 0:
+            for i in xrange(0, function_name_index):
+                if context is not None:
+                    context[i] = get_snuba_column_name(col[i])
+
+        args = col[function_name_index + 1]
+
+        # check for nested functions in args
+        if get_function_index(args):
+            # look for columns
+            return parse_columns_in_functions(args, args)
+
+        # check each argument for column names
+        else:
+            for (i, arg) in enumerate(args):
+                parse_columns_in_functions(arg, args, i)
+    else:
+        # probably a column name
+        if context is not None and index is not None:
+            context[index] = get_snuba_column_name(col)
 
 
 def get_arrayjoin(column):
@@ -278,7 +379,23 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def transform_aliases_and_query(**kwargs):
+def valid_orderby(orderby, custom_fields=None):
+    """
+    Check if a field can be used in sorting. We don't allow
+    sorting on fields that would be aliased as tag[foo] because those
+    fields are unlikely to be selected.
+    """
+    if custom_fields is None:
+        custom_fields = []
+    fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    for field in fields:
+        field = field.lstrip('-')
+        if field not in SENTRY_SNUBA_MAP and field not in custom_fields:
+            return False
+    return True
+
+
+def transform_aliases_and_query(skip_conditions=False, **kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -294,21 +411,39 @@ def transform_aliases_and_query(**kwargs):
     translated_columns = {}
     derived_columns = set()
 
-    selected_columns = kwargs['selected_columns']
-    groupby = kwargs['groupby']
-    aggregations = kwargs['aggregations']
-    conditions = kwargs['conditions'] or []
+    selected_columns = kwargs.get('selected_columns')
+    groupby = kwargs.get('groupby')
+    aggregations = kwargs.get('aggregations')
+    conditions = kwargs.get('conditions')
     filter_keys = kwargs['filter_keys']
+    arrayjoin = kwargs.get('arrayjoin')
+    rollup = kwargs.get('rollup')
+    orderby = kwargs.get('orderby')
+    having = kwargs.get('having', [])
 
-    for (idx, col) in enumerate(selected_columns):
-        name = get_snuba_column_name(col)
-        selected_columns[idx] = name
-        translated_columns[name] = col
+    if selected_columns:
+        for (idx, col) in enumerate(selected_columns):
+            if isinstance(col, list):
+                # if list, means there are potentially nested functions and need to
+                # iterate and translate potential columns
+                parse_columns_in_functions(col)
+                selected_columns[idx] = col
+                translated_columns[col[2]] = col[2]
+                derived_columns.add(col[2])
+            else:
+                name = get_snuba_column_name(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
 
-    for (idx, col) in enumerate(groupby):
-        name = get_snuba_column_name(col)
-        groupby[idx] = name
-        translated_columns[name] = col
+    if groupby:
+        for (idx, col) in enumerate(groupby):
+            if col not in derived_columns:
+                name = get_snuba_column_name(col)
+            else:
+                name = col
+
+            groupby[idx] = name
+            translated_columns[name] = col
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
@@ -330,16 +465,36 @@ def transform_aliases_and_query(**kwargs):
                 cond[1][0] = get_snuba_column_name(cond[1][0])
         return cond
 
-    kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
+    if conditions:
+        kwargs['conditions'] = []
+        for condition in conditions:
+            field = condition[0]
+            if not isinstance(field, (list, tuple)) and field in derived_columns:
+                having.append(condition)
+            elif skip_conditions:
+                kwargs['conditions'].append(condition)
+            else:
+                kwargs['conditions'].append(handle_condition(condition))
 
-    order_by_column = kwargs['orderby'].lstrip('-')
-    kwargs['orderby'] = u'{}{}'.format(
-        '-' if kwargs['orderby'].startswith('-') else '',
-        order_by_column if order_by_column in derived_columns else get_snuba_column_name(
-            order_by_column)
-    ) or None
+    if having:
+        kwargs['having'] = having
 
-    kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
+    if orderby:
+        if orderby is None:
+            orderby = []
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        translated_orderby = []
+
+        for field_with_order in orderby:
+            field = field_with_order.lstrip('-')
+            translated_orderby.append(u'{}{}'.format(
+                '-' if field_with_order.startswith('-') else '',
+                field if field in derived_columns else get_snuba_column_name(field)
+            ))
+
+        kwargs['orderby'] = translated_orderby
+
+    kwargs['arrayjoin'] = arrayjoin_map.get(arrayjoin, arrayjoin)
 
     result = raw_query(**kwargs)
 
@@ -352,7 +507,7 @@ def transform_aliases_and_query(**kwargs):
 
     if len(translated_columns):
         result['data'] = [get_row(row) for row in result['data']]
-        if kwargs['rollup'] > 0:
+        if rollup and rollup > 0:
             result['data'] = zerofill(
                 result['data'],
                 kwargs['start'],
@@ -417,7 +572,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     else:
         project_ids = []
 
-    for col, keys in six.iteritems(forward(filter_keys.copy())):
+    for col, keys in six.iteritems(forward(deepcopy(filter_keys))):
         if keys:
             if len(keys) == 1 and None in keys:
                 conditions.append((col, 'IS NULL', None))

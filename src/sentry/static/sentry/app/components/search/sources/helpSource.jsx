@@ -130,11 +130,13 @@ function buildHit(hit, options) {
     htmlString: _highlightResult.title.value,
     markTags: HIGHLIGHT_TAGS,
   });
-  const description = parseHtmlMarks({
-    key: 'description',
-    htmlString: _snippetResult[descriptionKey].value,
-    markTags: HIGHLIGHT_TAGS,
-  });
+  const description = _snippetResult
+    ? parseHtmlMarks({
+        key: 'description',
+        htmlString: _snippetResult[descriptionKey].value,
+        markTags: HIGHLIGHT_TAGS,
+      })
+    : {};
 
   const item = {
     sourceType: 'help',

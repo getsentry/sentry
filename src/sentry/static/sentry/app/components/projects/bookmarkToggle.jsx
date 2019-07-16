@@ -1,20 +1,23 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import {update as projectUpdate} from 'app/actionCreators/projects';
 import LatestContextStore from 'app/stores/latestContextStore';
 
 const BookmarkToggle = createReactClass({
   displayName: 'BookmarkToggle',
-
-  mixins: [ApiMixin, Reflux.connect(LatestContextStore, 'latestContext')],
+  propTypes: {
+    api: PropTypes.object,
+  },
+  mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
 
   handleBookmarkClick() {
     const {project, organization} = this.state.latestContext;
     if (project && organization) {
-      projectUpdate(this.api, {
+      projectUpdate(this.props.api, {
         orgId: organization.slug,
         projectId: project.slug,
         data: {
@@ -42,4 +45,6 @@ const BookmarkToggle = createReactClass({
   },
 });
 
-export default BookmarkToggle;
+export {BookmarkToggle};
+
+export default withApi(BookmarkToggle);

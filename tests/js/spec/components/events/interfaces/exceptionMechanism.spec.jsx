@@ -33,6 +33,16 @@ describe('ExceptionMechanism', () => {
       expect(wrapper).toMatchSnapshot();
     });
 
+    it('should not add the help_link if not starts with http(s)', () => {
+      const mechanism = {
+        type: 'generic',
+        description: 'Nothing to see here.',
+        help_link: 'example.org/help',
+      };
+      const wrapper = shallow(<ExceptionMechanism data={mechanism} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
     it('should render the handled pill', () => {
       const mechanism = {type: 'generic', handled: false};
       const wrapper = shallow(<ExceptionMechanism data={mechanism} />);

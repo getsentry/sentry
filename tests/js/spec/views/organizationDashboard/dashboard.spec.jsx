@@ -10,10 +10,13 @@ import OrganizationDashboardContainer from 'app/views/organizationDashboard';
 jest.mock('app/utils/withLatestContext');
 
 describe('OrganizationDashboard', function() {
+  let wrapper;
+  let discoverMock;
+
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
-      features: ['sentry10', 'discover', 'global-views'],
+      features: ['discover', 'global-views'],
     },
     router: {
       location: {
@@ -22,13 +25,20 @@ describe('OrganizationDashboard', function() {
       },
     },
   });
+
   const org = organization;
 
-  let discoverMock;
+  const createWrapper = props => {
+    wrapper = mount(
+      <OrganizationDashboardContainer>
+        <Dashboard {...props} />
+      </OrganizationDashboardContainer>,
+      routerContext
+    );
+    mockRouterPush(wrapper, router);
+  };
 
   beforeEach(function() {
-    router.push.mockRestore();
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
@@ -44,14 +54,17 @@ describe('OrganizationDashboard', function() {
     });
   });
 
+  afterEach(function() {
+    router.push.mockRestore();
+    MockApiClient.clearMockResponses();
+    if (wrapper) {
+      wrapper.unmount();
+    }
+    discoverMock.mockRestore();
+  });
+
   it('queries and renders discover-based widgets grouped by time', async function() {
-    const wrapper = mount(
-      <OrganizationDashboardContainer>
-        <Dashboard {...TestStubs.Dashboard()} />
-      </OrganizationDashboardContainer>,
-      routerContext
-    );
-    mockRouterPush(wrapper, router);
+    createWrapper(TestStubs.Dashboard());
 
     expect(discoverMock).toHaveBeenCalledTimes(2);
     expect(discoverMock).toHaveBeenCalledWith(
@@ -99,36 +112,30 @@ describe('OrganizationDashboard', function() {
   });
 
   it('queries and renders discover-based widgets not grouped by time', async function() {
-    const wrapper = mount(
-      <OrganizationDashboardContainer>
-        <Dashboard
-          {...TestStubs.Dashboard([
-            TestStubs.Widget(
+    createWrapper(
+      TestStubs.Dashboard([
+        TestStubs.Widget(
+          {
+            discover: [
               {
-                discover: [
-                  {
-                    name: 'Browsers',
-                    fields: ['browser.name'],
-                    conditions: [],
-                    aggregations: [['count()', null, 'count']],
-                    limit: 1000,
+                name: 'Browsers',
+                fields: ['browser.name'],
+                conditions: [],
+                aggregations: [['count()', null, 'count']],
+                limit: 1000,
 
-                    orderby: '-count',
-                    groupby: ['browser.name'],
-                  },
-                ],
+                orderby: '-count',
+                groupby: ['browser.name'],
               },
-              {
-                type: 'table',
-                title: 'Table',
-              }
-            ),
-          ])}
-        />
-      </OrganizationDashboardContainer>,
-      routerContext
+            ],
+          },
+          {
+            type: 'table',
+            title: 'Table',
+          }
+        ),
+      ])
     );
-    mockRouterPush(wrapper, router);
 
     expect(discoverMock).toHaveBeenCalledTimes(1);
     expect(discoverMock).toHaveBeenCalledWith(

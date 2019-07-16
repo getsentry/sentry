@@ -24,16 +24,16 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
+            event_id='a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
         )
         self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id='b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
         )
         self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'some_tag': 'some_value'}
+            event_id='c' * 32, group=group, datetime=self.min_ago, tags={'some_tag': 'some_value'}
         )
         self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id='d' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
         )
 
         url = reverse(
@@ -45,9 +45,11 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {'uniqueValues': 2, 'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
-            {'uniqueValues': 1, 'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
+        data = response.data
+        data.sort(key=lambda val: val['totalValues'], reverse=True)
+        assert data == [
+            {'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
+            {'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
         ]
 
     def test_no_projects(self):

@@ -109,7 +109,8 @@ export default class Form extends React.Component {
         this.model.getData(),
         this.onSubmitSuccess,
         this.onSubmitError,
-        e
+        e,
+        this.model.setFormSaving.bind(this.model)
       );
     } else {
       this.model.saveForm();

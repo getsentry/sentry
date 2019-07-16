@@ -16,6 +16,10 @@ class TestTextSchemaValidation(TestCase):
     def test_valid_schema(self):
         validate_component(self.schema)
 
+    def test_with_a_valid_default(self):
+        self.schema['default'] = 'issue.title'
+        validate_component(self.schema)
+
     @invalid_schema
     def test_missing_name(self):
         del self.schema['name']
@@ -34,4 +38,9 @@ class TestTextSchemaValidation(TestCase):
     @invalid_schema
     def test_invalid_name_type(self):
         self.schema['name'] = 1
+        validate_component(self.schema)
+
+    @invalid_schema
+    def test_invalid_default_option(self):
+        self.schema['default'] = 'issue.id'
         validate_component(self.schema)

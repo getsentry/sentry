@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import pytest
 import six
 
+from django.utils import timezone
+from freezegun import freeze_time
 from mock import patch
 
 from sentry.api.exceptions import InvalidRepository
@@ -253,29 +255,34 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='a' * 40,
-        ).exists()
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='c' * 40,
-        ).exists()
-
         author = CommitAuthor.objects.get(
             name='foo bar baz',
             email='foo@example.com',
             organization_id=org.id,
         )
 
+        commit_a = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='a' * 40,
+        )
+        assert commit_a
+        assert commit_a.message == 'i fixed a bug'
+        assert commit_a.author_id == author.id
+
+        commit_c = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='c' * 40,
+        )
+        assert commit_c
+        assert 'fixes' in commit_c.message
+        assert commit_c.author_id == author.id
+
         # test that backfilling fills in missing message and author
         commit = Commit.objects.get(id=commit.id)
         assert commit.message == 'i fixed another bug'
-        assert commit.author
-        assert commit.author.email == 'foo@example.com'
-        assert commit.author.name == 'foo bar baz'
+        assert commit.author_id == author.id
 
         assert ReleaseCommit.objects.filter(
             commit__key='a' * 40,
@@ -296,10 +303,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
-            linked_id=Commit.objects.get(
-                key='c' * 40,
-                repository_id=repo.id,
-            ).id
+            linked_id=commit_c.id
         ).exists()
 
         assert GroupResolution.objects.filter(group=group, release=release).exists()
@@ -319,6 +323,7 @@ class SetCommitsTestCase(TestCase):
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
 
+    @freeze_time()
     def test_using_saved_data(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name='foo')
@@ -339,6 +344,8 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id,
             key='b' * 40,
             author=author,
+            date_added='2019-03-01 12:00:00',
+            message='fixed a thing'
         )
 
         release = Release.objects.create(version='abcdabc', organization=org)
@@ -358,16 +365,28 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
+        date_format = '%Y-%m-%d %H:%M:%S'
         assert Commit.objects.filter(
             repository_id=repo.id,
             organization_id=org.id,
             key='a' * 40,
         ).exists()
-        assert Commit.objects.filter(
+        commit_c = Commit.objects.get(
             repository_id=repo.id,
             organization_id=org.id,
             key='c' * 40,
-        ).exists()
+        )
+        assert commit_c.date_added.strftime(date_format) == timezone.now().strftime(date_format)
+        assert commit_c.message is None
+
+        # Using the id/repository payload should retain existing data.
+        commit_b = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='b' * 40,
+        )
+        assert commit_b.message == 'fixed a thing'
+        assert commit_b.date_added.strftime(date_format) == '2019-03-01 12:00:00'
 
         latest_commit = Commit.objects.get(
             repository_id=repo.id,

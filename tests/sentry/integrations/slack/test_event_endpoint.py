@@ -1,9 +1,16 @@
 from __future__ import absolute_import
 
 import json
+
 import responses
+from six.moves.urllib.parse import parse_qsl
+from django.test.utils import override_settings
 
 from sentry import options
+from sentry.integrations.slack.utils import (
+    build_group_attachment,
+    build_incident_attachment,
+)
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
@@ -22,15 +29,19 @@ LINK_SHARED_EVENT = """{
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group1)s/"
+            "url": "http://testserver/organizations/%(org1)s/issues/%(group1)s/"
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group2)s/bar/"
+            "url": "http://testserver/organizations/%(org2)s/issues/%(group2)s/bar/"
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group1)s/bar/"
+            "url": "http://testserver/organizations/%(org1)s/issues/%(group1)s/bar/"
+        },
+        {
+            "domain": "example.com",
+            "url": "http://testserver/organizations/%(org1)s/incidents/%(incident)s/"
         },
         {
             "domain": "another-example.com",
@@ -40,6 +51,7 @@ LINK_SHARED_EVENT = """{
 }"""
 
 
+@override_settings(SLACK_INTEGRATION_USE_WST=True)
 class BaseEventTest(APITestCase):
     def setUp(self):
         super(BaseEventTest, self).setUp()
@@ -50,7 +62,6 @@ class BaseEventTest(APITestCase):
             external_id='TXXXXXXX1',
             metadata={
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
         OrganizationIntegration.objects.create(
@@ -118,8 +129,27 @@ class LinkSharedEventTest(BaseEventTest):
         project2 = self.create_project(organization=org2)
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        incident = self.create_incident(organization=self.org, projects=[project1])
+        incident.update(identifier=123)
         resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT % {
             'group1': group1.id,
             'group2': group2.id,
+            'incident': incident.identifier,
+            'org1': self.org.slug,
+            'org2': org2.slug,
         }))
         assert resp.status_code == 200, resp.content
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        unfurls = json.loads(data['unfurls'])
+        issue_url = 'http://testserver/organizations/%s/issues/%s/bar/' % (
+            self.org.slug,
+            group1.id,
+        )
+        incident_url = 'http://testserver/organizations/%s/incidents/%s/' % (
+            self.org.slug,
+            incident.identifier,
+        )
+        assert unfurls == {
+            issue_url: build_group_attachment(group1),
+            incident_url: build_incident_attachment(incident),
+        }

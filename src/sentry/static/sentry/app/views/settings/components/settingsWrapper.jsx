@@ -6,14 +6,6 @@ import ScrollToTop from 'app/views/settings/components/scrollToTop';
 import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
-const StyledSettingsWrapper = styled.div`
-  font-family: 'Rubik', sans-serif;
-  font-size: 16px;
-  color: ${p => p.theme.gray5};
-  margin: 0 auto;
-  line-height: 1;
-`;
-
 class SettingsWrapper extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
@@ -29,7 +21,9 @@ class SettingsWrapper extends React.Component {
     this.state = {
       lastAppContext: !!props.project
         ? 'project'
-        : !!props.organization ? 'organization' : null,
+        : !!props.organization
+        ? 'organization'
+        : null,
     };
   }
 
@@ -37,14 +31,6 @@ class SettingsWrapper extends React.Component {
     return {
       lastAppContext: this.state.lastAppContext,
     };
-  }
-
-  componentDidMount() {
-    document.body.classList.add('new-settings');
-  }
-
-  componentWillUnmount() {
-    document.body.classList.remove('new-settings');
   }
 
   render() {
@@ -57,3 +43,16 @@ class SettingsWrapper extends React.Component {
 }
 
 export default withLatestContext(SettingsWrapper);
+
+const StyledSettingsWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  font-size: 16px;
+  color: ${p => p.theme.gray5};
+  margin-bottom: -20px; /* to account for footer margin top */
+  line-height: 1;
+
+  .messages-container {
+    margin: 0;
+  }
+`;

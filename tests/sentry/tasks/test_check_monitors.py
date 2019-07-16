@@ -29,6 +29,66 @@ class CheckMonitorsTest(TestCase):
             status=MonitorStatus.ERROR,
         ).exists()
 
+    def test_missing_checkin_but_disabled(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={'schedule': '* * * * *'},
+            status=MonitorStatus.DISABLED,
+        )
+
+        check_monitors()
+
+        assert Monitor.objects.filter(
+            id=monitor.id,
+            status=MonitorStatus.DISABLED,
+        ).exists()
+
+    def test_missing_checkin_but_pending_deletion(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={'schedule': '* * * * *'},
+            status=MonitorStatus.PENDING_DELETION,
+        )
+
+        check_monitors()
+
+        assert Monitor.objects.filter(
+            id=monitor.id,
+            status=MonitorStatus.PENDING_DELETION,
+        ).exists()
+
+    def test_missing_checkin_but_deletion_in_progress(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={'schedule': '* * * * *'},
+            status=MonitorStatus.DELETION_IN_PROGRESS,
+        )
+
+        check_monitors()
+
+        assert Monitor.objects.filter(
+            id=monitor.id,
+            status=MonitorStatus.DELETION_IN_PROGRESS,
+        ).exists()
+
     def test_not_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)

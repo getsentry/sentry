@@ -7,10 +7,10 @@ import styled, {css} from 'react-emotion';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -47,7 +47,9 @@ class SettingsIndex extends React.Component {
 
   componentDidUpdate(prevProps) {
     const {organization} = this.props;
-    if (prevProps.organization === organization) return;
+    if (prevProps.organization === organization) {
+      return;
+    }
 
     // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
     // (which queries the org index endpoint instead of org details)
@@ -318,7 +320,7 @@ const getHomeIconMargin = css`
   margin-bottom: 20px;
 `;
 
-const HomeIcon = styled.div`
+const HomeIcon = styled('div')`
   background: ${p => p.theme[p.color || 'gray2']};
   color: #fff;
   width: ${HOME_ICON_SIZE}px;
@@ -363,7 +365,7 @@ SupportLinkComponent.propTypes = {
   to: PropTypes.string,
 };
 
-const AvatarContainer = styled.div`
+const AvatarContainer = styled('div')`
   margin-bottom: 20px;
 `;
 

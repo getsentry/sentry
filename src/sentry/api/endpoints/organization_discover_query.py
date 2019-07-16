@@ -7,18 +7,17 @@ from copy import deepcopy
 
 from rest_framework import serializers
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
-from sentry import roles
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from sentry import features
-from sentry.auth.superuser import is_active_superuser
 
 
 class OrganizationDiscoverQueryPermission(OrganizationPermission):
@@ -33,20 +32,25 @@ class DiscoverQuerySerializer(serializers.Serializer):
         required=True,
         allow_null=False,
     )
-    start = serializers.CharField(required=False, allow_none=True)
-    end = serializers.CharField(required=False, allow_none=True)
-    range = serializers.CharField(required=False, allow_none=True)
-    statsPeriod = serializers.CharField(required=False, allow_none=True)
-    statsPeriodStart = serializers.CharField(required=False, allow_none=True)
-    statsPeriodEnd = serializers.CharField(required=False, allow_none=True)
+    start = serializers.CharField(required=False, allow_null=True)
+    end = serializers.CharField(required=False, allow_null=True)
+    range = serializers.CharField(required=False, allow_null=True)
+    statsPeriod = serializers.CharField(required=False, allow_null=True)
+    statsPeriodStart = serializers.CharField(required=False, allow_null=True)
+    statsPeriodEnd = serializers.CharField(required=False, allow_null=True)
     fields = ListField(
         child=serializers.CharField(),
         required=False,
+        default=[],
+    )
+    conditionFields = ListField(
+        child=ListField(),
+        required=False,
         allow_null=True,
     )
-    limit = serializers.IntegerField(min_value=0, max_value=10000, required=False)
-    rollup = serializers.IntegerField(required=False)
-    orderby = serializers.CharField(required=False)
+    limit = EmptyIntegerField(min_value=0, max_value=10000, required=False, allow_null=True)
+    rollup = EmptyIntegerField(required=False, allow_null=True)
+    orderby = serializers.CharField(required=False, default="", allow_blank=True)
     conditions = ListField(
         child=ListField(),
         required=False,
@@ -55,7 +59,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
     aggregations = ListField(
         child=ListField(),
         required=False,
-        allow_null=True,
         default=[]
     )
     groupby = ListField(
@@ -94,6 +97,9 @@ class DiscoverQuerySerializer(serializers.Serializer):
         elif date_fields_provided > 1:
             raise serializers.ValidationError('Conflicting date filters supplied')
 
+        if not data.get('fields') and not data.get('aggregations'):
+            raise serializers.ValidationError('Specify at least one field or aggregation')
+
         try:
             start, end = get_date_range_from_params({
                 'start': data.get('start'),
@@ -101,7 +107,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 'statsPeriod': data.get('statsPeriod') or data.get('range'),
                 'statsPeriodStart': data.get('statsPeriodStart'),
                 'statsPeriodEnd': data.get('statsPeriodEnd'),
-            }, optional=True, validate_window=False)
+            }, optional=True)
         except InvalidParams as exc:
             raise serializers.ValidationError(exc.message)
 
@@ -113,25 +119,13 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
         return data
 
-    def validate_projects(self, attrs, source):
-        projects = attrs[source]
-        org_projects = set(project[0] for project in self.context['projects'])
-
-        if not set(projects).issubset(org_projects):
-            raise PermissionDenied
-
-        return attrs
-
-    def validate_conditions(self, attrs, source):
+    def validate_conditions(self, value):
         # Handle error (exception_stacks), stack(exception_frames)
-        if attrs.get(source):
-            conditions = [self.get_condition(condition) for condition in attrs[source]]
-            attrs[source] = conditions
-        return attrs
+        return [self.get_condition(condition) for condition in value]
 
-    def validate_aggregations(self, attrs, source):
+    def validate_aggregations(self, value):
         valid_functions = set(['count()', 'uniq', 'avg'])
-        requested_functions = set(agg[0] for agg in attrs[source])
+        requested_functions = set(agg[0] for agg in value)
 
         if not requested_functions.issubset(valid_functions):
             invalid_functions = ', '.join((requested_functions - valid_functions))
@@ -140,11 +134,14 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 u'Invalid aggregate function - {}'.format(invalid_functions)
             )
 
-        return attrs
+        return value
 
     def get_array_field(self, field):
         pattern = r"^(error|stack)\..+"
-        return re.search(pattern, field)
+        term = re.search(pattern, field)
+        if term and SENTRY_SNUBA_MAP.get(field):
+            return term
+        return None
 
     def get_condition(self, condition):
         array_field = self.get_array_field(condition[0])
@@ -153,6 +150,12 @@ class DiscoverQuerySerializer(serializers.Serializer):
         # Cast boolean values to 1 / 0
         if isinstance(condition[2], bool):
             condition[2] = int(condition[2])
+
+        # Strip double quotes on strings
+        if isinstance(condition[2], six.string_types):
+            match = re.search(r'^"(.*)"$', condition[2])
+            if match:
+                condition[2] = match.group(1)
 
         # Apply has function to any array field if it's = / != and not part of arrayjoin
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
@@ -282,55 +285,39 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 projects,
             ), status=200)
 
-    def has_projects_access(self, user, organization, requested_projects):
-        member = OrganizationMember.objects.get(
-            user=user, organization=organization)
-
-        has_global_access = roles.get(member.role).is_global
-
-        if has_global_access:
-            return True
-
-        member_project_list = Project.objects.filter(
-            organization=organization,
-            teams__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-            ).values('team'),
-        ).values_list('id', flat=True)
-
-        return set(requested_projects).issubset(set(member_project_list))
-
     def post(self, request, organization):
 
         if not features.has('organizations:discover', organization, actor=request.user):
             return Response(status=404)
 
-        requested_projects = request.DATA['projects']
+        requested_projects = request.data['projects']
 
-        if not is_active_superuser(request) and not self.has_projects_access(
-            request.user, organization, requested_projects
-        ):
-            return Response("Invalid projects", status=400)
-
-        projects = Project.objects.filter(
+        projects = list(Project.objects.filter(
+            id__in=requested_projects,
             organization=organization,
             status=ProjectStatus.VISIBLE,
-        ).values_list('id', 'slug')
+        ))
 
-        serializer = DiscoverQuerySerializer(data=request.DATA, context={'projects': projects})
+        has_invalid_projects = len(projects) < len(requested_projects)
+
+        if has_invalid_projects or not request.access.has_projects_access(projects):
+            return Response("Invalid projects", status=403)
+
+        serializer = DiscoverQuerySerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        serialized = serializer.object
+        serialized = serializer.validated_data
 
         has_aggregations = len(serialized.get('aggregations')) > 0
 
-        selected_columns = [] if has_aggregations else serialized.get('fields')
+        selected_columns = serialized.get(
+            'conditionFields', []) + [] if has_aggregations else serialized.get('fields', [])
 
         projects_map = {}
         for project in projects:
-            projects_map[project[0]] = project[1]
+            projects_map[project.id] = project.slug
 
         # Make sure that all selected fields are in the group by clause if there
         # are aggregations

@@ -7,10 +7,10 @@ from django.core.urlresolvers import reverse
 from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
-from sentry.models.file import ChunkFileState
-from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
 from sentry.testutils import APITestCase
-from sentry.tasks.assemble import assemble_dif, assemble_file
+from sentry.tasks.assemble import assemble_dif, assemble_file, get_assemble_status, \
+    set_assemble_status, AssembleTask, ChunkFileState
 
 
 class DifAssembleEndpoint(APITestCase):
@@ -139,7 +139,9 @@ class DifAssembleEndpoint(APITestCase):
             cpu_name='x86_64',
             project=self.project,
             debug_id='df449af8-0dcd-4320-9943-ec192134d593',
+            code_id='DF449AF80DCD43209943EC192134D593',
         )
+        set_assemble_status(AssembleTask.DIF, self.project.id, checksum, None)
 
         # Request now tells us that everything is alright
         response = self.client.post(
@@ -250,11 +252,14 @@ class DifAssembleEndpoint(APITestCase):
                 'name': 'test',
                 'chunks': chunks,
                 'checksum': total_checksum,
+                'debug_id': None,
             }
         )
 
-        file = assemble_file(self.project, 'test', total_checksum, chunks, 'project.dif')[0]
-        assert get_assemble_status(self.project, total_checksum)[0] != ChunkFileState.ERROR
+        file = assemble_file(AssembleTask.DIF, self.project, 'test',
+                             total_checksum, chunks, 'project.dif')[0]
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
+        assert status != ChunkFileState.ERROR
         assert file.checksum == total_checksum
 
         file_blob_index = FileBlobIndex.objects.all()
@@ -315,4 +320,5 @@ class DifAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.ERROR
-        assert response.data[total_checksum]['detail'].startswith('Invalid debug information file')
+        assert response.data[total_checksum]['detail'].startswith(
+            'Unsupported debug information file')

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
@@ -5,24 +6,24 @@ import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
-import ActorAvatar from 'app/components/actorAvatar';
-import ApiMixin from 'app/mixins/apiMixin';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
-import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
+    api: PropTypes.object,
+    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
   },
-
-  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -49,38 +50,48 @@ const SuggestedOwners = createReactClass({
   },
 
   fetchData(event) {
-    if (!event) return;
-    const org = this.getOrganization();
-    const project = this.props.project;
+    if (!event) {
+      return;
+    }
 
-    this.api.request(
-      `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
+    const {api, project, group, organization} = this.props;
+
+    // No committers if you don't have any releases
+    if (!!group.firstRelease) {
+      // TODO: move this into a store since `EventCause` makes this exact request as well
+      api.request(
+        `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+        {
+          success: (data, _, jqXHR) => {
+            this.setState({
+              committers: data.committers,
+            });
+          },
+          error: error => {
+            this.setState({
+              committers: [],
+            });
+          },
+        }
+      );
+    }
+
+    api.request(
+      `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       {
         success: (data, _, jqXHR) => {
           this.setState({
-            committers: data.committers,
+            owners: data.owners,
+            rules: data.rules,
           });
         },
         error: error => {
           this.setState({
-            committers: [],
+            owners: [],
           });
         },
       }
     );
-    this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          owners: data.owners,
-          rules: data.rules,
-        });
-      },
-      error: error => {
-        this.setState({
-          owners: [],
-        });
-      },
-    });
   },
 
   assign(actor) {
@@ -143,9 +154,8 @@ const SuggestedOwners = createReactClass({
   },
 
   render() {
-    const {group, project} = this.props;
+    const {group, organization, project} = this.props;
     const owners = this.getOwnerList();
-    const org = this.getOrganization();
 
     return (
       <React.Fragment>
@@ -179,17 +189,19 @@ const SuggestedOwners = createReactClass({
         )}
         <Access access={['project:write']}>
           <div className="m-b-1">
-            <h6>
-              <GuideAnchor target="owners" type="text" />
-              <span>{t('Ownership Rules')}</span>
-            </h6>
+            <GuideAnchor target="owners">
+              <h6>
+                <span>{t('Ownership Rules')}</span>
+              </h6>
+            </GuideAnchor>
             <Button
               onClick={() =>
                 openCreateOwnershipRule({
                   project,
-                  organization: org,
+                  organization,
                   issueId: group.id,
-                })}
+                })
+              }
               size="small"
               className="btn btn-default btn-sm btn-create-ownership-rule"
             >
@@ -201,7 +213,8 @@ const SuggestedOwners = createReactClass({
     );
   },
 });
-export default SuggestedOwners;
+export {SuggestedOwners};
+export default withApi(withOrganization(SuggestedOwners));
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
@@ -209,8 +222,8 @@ export default SuggestedOwners;
  */
 function findMatchedRules(rules, owner) {
   const matchOwner = (actorType, key) =>
-    (actorType == 'user' && key === owner.email) ||
-    (actorType == 'team' && key == owner.name);
+    (actorType === 'user' && key === owner.email) ||
+    (actorType === 'team' && key === owner.name);
 
   const actorHasOwner = ([actorType, key]) =>
     actorType === owner.type && matchOwner(actorType, key);

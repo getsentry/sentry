@@ -12,7 +12,9 @@ class OrganizationAvatar extends React.Component {
 
   render() {
     const {organization, ...props} = this.props;
-    if (!organization) return null;
+    if (!organization) {
+      return null;
+    }
     const slug = (organization && organization.slug) || '';
     const title = explodeSlug(slug);
 

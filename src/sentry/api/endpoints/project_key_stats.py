@@ -24,7 +24,10 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        stat_args = self._parse_args(request)
+        try:
+            stat_args = self._parse_args(request)
+        except ValueError:
+            return Response({'detail': 'Invalid request data'}, status=400)
 
         stats = OrderedDict()
         for model, name in (
@@ -32,9 +35,14 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
              'total'), (tsdb.models.key_total_blacklisted, 'filtered'),
             (tsdb.models.key_total_rejected, 'dropped'),
         ):
-            result = tsdb.get_range(model=model, keys=[key.id], **stat_args)[key.id]
-            for ts, count in result:
-                stats.setdefault(int(ts), {})[name] = count
+            # XXX (alex, 08/05/19) key stats were being stored under either key_id or str(key_id)
+            # so merge both of those back into one stats result.
+            result = tsdb.get_range(model=model, keys=[key.id, six.text_type(key.id)], **stat_args)
+            for key_id, points in six.iteritems(result):
+                for ts, count in points:
+                    bucket = stats.setdefault(int(ts), {})
+                    bucket.setdefault(name, 0)
+                    bucket[name] += count
 
         return Response(
             [

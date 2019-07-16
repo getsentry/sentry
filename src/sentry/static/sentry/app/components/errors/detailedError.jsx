@@ -49,7 +49,7 @@ class DetailedError extends React.Component {
         <div className="detailed-error-content">
           <h4>{heading}</h4>
 
-          <p className="detailed-error-content-body">{message}</p>
+          <div className="detailed-error-content-body">{message}</div>
 
           {showFooter && (
             <div className="detailed-error-content-footer">

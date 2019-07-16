@@ -6,7 +6,7 @@ import ResolveActions from 'app/components/actions/resolve';
 describe('ResolveActions', function() {
   describe('disabled', function() {
     let component, button;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
@@ -14,8 +14,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -28,13 +28,13 @@ describe('ResolveActions', function() {
 
     it('does not call onUpdate when clicked', function() {
       button.simulate('click');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('disableDropdown', function() {
     let component, button;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
@@ -42,8 +42,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disableDropdown={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -57,7 +57,7 @@ describe('ResolveActions', function() {
     it('main button calls onUpdate when clicked', function() {
       button = component.find('ActionLink[title="Resolve"]');
       button.simulate('click');
-      expect(spy.called).toBe(true);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('dropdown menu is disabled', function() {
@@ -68,15 +68,15 @@ describe('ResolveActions', function() {
 
   describe('resolved', function() {
     let component;
-    const spy = sinon.stub();
+    const spy = jest.fn();
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
         />,
         TestStubs.routerContext()
@@ -91,20 +91,20 @@ describe('ResolveActions', function() {
 
     it('calls onUpdate with unresolved status when clicked', function() {
       component.find('a.btn.active').simulate('click');
-      expect(spy.calledWith({status: 'unresolved'})).toBeTruthy();
+      expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
   describe('auto resolved', function() {
     it('cannot be unresolved manually', function() {
-      const spy = sinon.stub();
+      const spy = jest.fn();
       const component = mount(
         <ResolveActions
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
           isAutoResolved={true}
         />,
@@ -112,20 +112,20 @@ describe('ResolveActions', function() {
       );
 
       component.find('a.btn').simulate('click');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('without confirmation', function() {
     let component;
-    const spy = sinon.stub();
+    const spy = jest.fn();
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -138,24 +138,24 @@ describe('ResolveActions', function() {
     it('calls spy with resolved status when clicked', function() {
       const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.calledWith({status: 'resolved'})).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({status: 'resolved'});
     });
   });
 
   describe('with confirmation step', function() {
     let component, button;
-    const spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           shouldConfirm={true}
-          confirmMessage={'Are you sure???'}
+          confirmMessage="Are you sure???"
         />,
         TestStubs.routerContext()
       );
@@ -171,12 +171,12 @@ describe('ResolveActions', function() {
 
       const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Are you sure???');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
       $(document.body)
         .find('.modal button:contains("Resolve")')
         .click();
 
-      expect(spy.called).toBe(true);
+      expect(spy).toHaveBeenCalled();
     });
   });
 

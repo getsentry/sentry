@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationRepositoryPermission
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -15,13 +17,7 @@ from sentry.utils.sdk import capture_exception
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
-
-    def has_feature(self, request, organization):
-        return features.has(
-            'organizations:repos',
-            organization=organization,
-            actor=request.user,
-        )
+    permission_classes = (OrganizationRepositoryPermission,)
 
     def get(self, request, organization):
         """
@@ -33,12 +29,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        if not self.has_feature(request, organization):
-            return self.respond({
-                'error_type': 'unavailable_feature',
-                'detail': ['You do not have that feature enabled']
-            }, status=403)
-
         queryset = Repository.objects.filter(
             organization_id=organization.id,
         )
@@ -90,14 +80,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         if not request.user.is_authenticated():
             return Response(status=401)
-
-        if not self.has_feature(request, organization):
-            return self.respond({
-                'error_type': 'unavailable_feature',
-                'detail': ['You do not have that feature enabled']
-            }, status=403)
-
-        provider_id = request.DATA.get('provider')
+        provider_id = request.data.get('provider')
 
         if provider_id is not None and provider_id.startswith('integrations:'):
             try:

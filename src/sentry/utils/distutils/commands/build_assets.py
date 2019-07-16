@@ -118,8 +118,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         except Exception:
             traceback.print_exc()
             log.fatal(
-                'unable to build Sentry\'s static assets!\n'
-                'Hint: You might be running an invalid version of NPM.'
+                'unable to build Sentry\'s static assets!'
             )
             sys.exit(1)
 
@@ -136,7 +135,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
         env['NODE_ENV'] = 'production'
-        self._run_command(['node_modules/.bin/webpack', '--bail'], env=env)
+        self._run_yarn_command(['webpack', '--bail'], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {

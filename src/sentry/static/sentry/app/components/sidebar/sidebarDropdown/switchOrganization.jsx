@@ -60,9 +60,7 @@ class SwitchOrganization extends React.Component {
                 >
                   <OrganizationList>
                     {organizations.map(organization => {
-                      const url = new Set(organization.features).has('sentry10')
-                        ? `/organizations/${organization.slug}/`
-                        : `/${organization.slug}/`;
+                      const url = `/organizations/${organization.slug}/`;
 
                       return (
                         <SidebarMenuItem key={organization.slug} to={url}>
@@ -71,12 +69,13 @@ class SwitchOrganization extends React.Component {
                       );
                     })}
                   </OrganizationList>
-                  {hasOrganizations &&
-                    canCreateOrganization && <Divider css={{marginTop: 0}} />}
+                  {hasOrganizations && canCreateOrganization && (
+                    <Divider css={{marginTop: 0}} />
+                  )}
                   {canCreateOrganization && (
                     <SidebarMenuItem
                       data-test-id="sidebar-create-org"
-                      to={'/organizations/new/'}
+                      to="/organizations/new/"
                       style={{alignItems: 'center'}}
                     >
                       <MenuItemLabelWithIcon>

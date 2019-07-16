@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-import six
-
+from datetime import datetime
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
-from sentry.models import Event
+from sentry.models import Event, SnubaEvent
+
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -41,6 +42,28 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        if not use_snuba:
+            return self.get_legacy(request, project, event_id)
+
+        snuba_event = SnubaEvent.objects.from_event_id(event_id, project.id)
+
+        if snuba_event is None:
+            return Response({'detail': 'Event not found'}, status=404)
+
+        data = serialize(snuba_event, request.user, DetailedEventSerializer())
+        requested_environments = set(request.GET.getlist('environment'))
+
+        next_event_id = snuba_event.next_event_id(environments=requested_environments)
+        prev_event_id = snuba_event.prev_event_id(environments=requested_environments)
+
+        data['nextEventID'] = next_event_id
+        data['previousEventID'] = prev_event_id
+
+        return Response(data)
+
+    def get_legacy(self, request, project, event_id):
         event = Event.objects.from_event_id(event_id, project.id)
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
@@ -48,12 +71,26 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         Event.objects.bind_nodes([event], 'data')
 
         data = serialize(event, request.user, DetailedEventSerializer())
-
-        next_event = event.next_event
-        prev_event = event.prev_event
+        next_event_id = event.next_event_id()
+        prev_event_id = event.prev_event_id()
         # TODO this is inconsistent with the event_details API which uses the
         # `id` instead of the `event_id`
-        data['nextEventID'] = next_event and six.text_type(next_event.event_id)
-        data['previousEventID'] = prev_event and six.text_type(prev_event.event_id)
+        data['nextEventID'] = next_event_id
+        data['previousEventID'] = prev_event_id
 
         return Response(data)
+
+
+class EventJsonEndpoint(ProjectEndpoint):
+
+    def get(self, request, project, event_id):
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+
+        if not event:
+            return Response({'detail': 'Event not found'}, status=404)
+
+        event_dict = event.as_dict()
+        if isinstance(event_dict['datetime'], datetime):
+            event_dict['datetime'] = event_dict['datetime'].isoformat()
+
+        return Response(event_dict, status=200)

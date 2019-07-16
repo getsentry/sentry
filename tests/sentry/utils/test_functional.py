@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.functional import compact
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 class CompactTest(TestCase):

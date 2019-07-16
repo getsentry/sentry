@@ -36,7 +36,7 @@ class MonitorTestCase(TestCase):
         monitor = Monitor(
             last_checkin=datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc),
             config={
-                'schedule': ['month', 1],
+                'schedule': [1, 'month'],
                 'schedule_type': ScheduleType.INTERVAL,
             }
         )

@@ -153,18 +153,29 @@ class Mediator(object):
             param.setup(cls, name)
 
     @classmethod
-    @transaction.atomic
     def run(cls, *args, **kwargs):
-        obj = cls(*args, **kwargs)
+        with transaction.atomic():
+            obj = cls(*args, **kwargs)
 
-        with obj.log():
-            return obj.call()
+            with obj.log():
+                result = obj.call()
+                obj.audit()
+                obj.record_analytics()
+                return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
         self.logger = kwargs.get('logger',
                                  logging.getLogger(self._logging_name))
         self._validate_params(**kwargs)
+
+    def audit(self):
+        # used for creating audit log entries
+        pass
+
+    def record_analytics(self):
+        # used to record data to Amplitude
+        pass
 
     def call(self):
         raise NotImplementedError

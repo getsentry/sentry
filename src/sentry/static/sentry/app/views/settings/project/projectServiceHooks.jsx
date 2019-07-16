@@ -4,7 +4,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -24,8 +23,6 @@ const ServiceHookRow = createReactClass({
     hook: PropTypes.object.isRequired,
     onToggleActive: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -120,8 +117,8 @@ export default class ProjectServiceHooks extends AsyncView {
 
     return (
       <React.Fragment>
-        <PanelHeader key={'header'}>{t('Service Hook')}</PanelHeader>
-        <PanelBody key={'body'}>
+        <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
+        <PanelBody key="body">
           <PanelAlert type="info" icon="icon-circle-exclamation">
             Service Hooks are an early adopter preview feature and will change in the
             future.
@@ -144,8 +141,11 @@ export default class ProjectServiceHooks extends AsyncView {
 
   renderBody() {
     let body;
-    if (this.state.hookList.length > 0) body = this.renderResults();
-    else body = this.renderEmpty();
+    if (this.state.hookList.length > 0) {
+      body = this.renderResults();
+    } else {
+      body = this.renderEmpty();
+    }
 
     const {orgId, projectId} = this.props.params;
     const access = new Set(this.context.organization.access);
@@ -162,7 +162,8 @@ export default class ProjectServiceHooks extends AsyncView {
                 size="small"
                 priority="primary"
               >
-                <span className="icon-plus" />&nbsp;{t('Create New Hook')}
+                <span className="icon-plus" />
+                &nbsp;{t('Create New Hook')}
               </Button>
             ) : null
           }

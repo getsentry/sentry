@@ -2,11 +2,9 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
-
 import six
 
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.serializers.models.event import (
     SharedEventSerializer,
     SnubaEvent,
@@ -203,35 +201,75 @@ class SharedEventSerializerTest(TestCase):
 
 class SnubaEventSerializerTest(TestCase):
     def test_user(self):
+        """
+        Use the SimpleEventSerializer to serialize an event
+        """
+
+        group = self.create_group()
         event = SnubaEvent({
             'event_id': 'a',
             'project_id': 1,
             'message': 'hello there',
             'title': 'hi',
+            'type': 'default',
             'location': 'somewhere',
             'culprit': 'foo',
-            'timestamp': datetime.now(),
-            'user_id': 123,
+            'timestamp': '2011-01-01T00:00:00Z',
+            'user_id': '123',
             'email': 'test@test.com',
             'username': 'test',
             'ip_address': '192.168.0.1',
+            'platform': 'asdf',
+            'group_id': group.id,
             'tags.key': ['sentry:user'],
             'tags.value': ['email:test@test.com'],
         })
-        result = serialize(event)
+        result = serialize(event, None, SimpleEventSerializer())
+
+        # Make sure we didn't have to call out to Nodestore to get the data
+        # required to serialize this event and the NodeData is still empty.
+        assert event.data._node_data is None, "SimpleEventSerializer should not load Nodestore data."
+
         assert result['eventID'] == event.event_id
         assert result['projectID'] == six.text_type(event.project_id)
+        assert result['groupID'] == six.text_type(group.id)
         assert result['message'] == event.message
         assert result['title'] == event.title
         assert result['location'] == event.location
         assert result['culprit'] == event.culprit
-        assert result['dateCreated'] == event.timestamp
+        assert result['dateCreated'] == event.datetime
         assert result['user']['id'] == event.user_id
         assert result['user']['email'] == event.email
         assert result['user']['username'] == event.username
-        assert result['user']['ipAddress'] == event.ip_address
+        assert result['user']['ip_address'] == event.ip_address
         assert result['tags'] == [{
             'key': 'user',
             'value': 'email:test@test.com',
             'query': 'user.email:test@test.com',
         }]
+
+    def test_no_group(self):
+        """
+        Use the SimpleEventSerializer to serialize an event without group
+        """
+
+        event = SnubaEvent({
+            'event_id': 'a',
+            'project_id': 1,
+            'message': 'hello there',
+            'title': 'hi',
+            'type': 'default',
+            'location': 'somewhere',
+            'culprit': 'foo',
+            'timestamp': '2011-01-01T00:00:00Z',
+            'user_id': '123',
+            'email': 'test@test.com',
+            'username': 'test',
+            'ip_address': '192.168.0.1',
+            'platform': 'asdf',
+            'group_id': None,
+            'tags.key': ['sentry:user'],
+            'tags.value': ['email:test@test.com'],
+        })
+        result = serialize(event, None, SimpleEventSerializer())
+        assert result['groupID'] is None

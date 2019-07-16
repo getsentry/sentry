@@ -44,7 +44,9 @@ class RepositoryRow extends React.Component {
     const {api, orgId, repository, onRepositoryChange} = this.props;
     cancelDeleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );
@@ -54,7 +56,9 @@ class RepositoryRow extends React.Component {
     const {api, orgId, repository, onRepositoryChange} = this.props;
     deleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );
@@ -119,7 +123,6 @@ const StyledRow = styled(SpreadLayout)`
   /* shorter top padding because of title lineheight */
   padding: ${space(1)} ${space(2)} ${space(2)};
   flex: 1;
-  align-items: space-between;
 
   ${p =>
     p.status === 'disabled' &&

@@ -63,9 +63,8 @@ describe('TimeRangeSelector', function() {
 
     const newProps = {
       relative: null,
-      start: new Date('2017-10-02T22:41:20.000Z'),
-      end: new Date('2017-10-16T22:41:20.000Z'),
-      utc: true,
+      start: new Date('2017-10-03T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -114,7 +113,6 @@ describe('TimeRangeSelector', function() {
       relative: '14d',
       start: null,
       end: null,
-      utc: false,
     });
 
     wrapper.setProps({relative: '14d', start: null, end: null});
@@ -148,7 +146,6 @@ describe('TimeRangeSelector', function() {
       relative: '14d',
       start: null,
       end: null,
-      utc: true,
     });
 
     wrapper.setProps({relative: '14d', start: null, end: null});
@@ -270,5 +267,18 @@ describe('TimeRangeSelector', function() {
       end: new Date('2017-10-17T23:59:59.000Z'),
       utc: false,
     });
+  });
+
+  it('deselects default filter when absolute date selected', async function() {
+    wrapper = createWrapper({
+      relative: '14d',
+      utc: false,
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
+    expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
   });
 });

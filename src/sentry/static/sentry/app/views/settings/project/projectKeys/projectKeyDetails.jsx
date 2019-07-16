@@ -13,14 +13,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Field from 'app/views/settings/components/forms/field';
@@ -56,8 +55,9 @@ const RATE_LIMIT_FORMAT_MAP = new Map([
 const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
 
 const KeyStats = createReactClass({
-  displayName: 'KeyStats',
-  mixins: [ApiMixin],
+  propTypes: {
+    api: PropTypes.object.isRequired,
+  },
 
   getInitialState() {
     const until = Math.floor(new Date().getTime() / 1000);
@@ -79,7 +79,7 @@ const KeyStats = createReactClass({
 
   fetchData() {
     const {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
       query: {
         since: this.state.since,
         until: this.state.until,
@@ -88,7 +88,9 @@ const KeyStats = createReactClass({
       success: data => {
         let emptyStats = true;
         const stats = data.map(p => {
-          if (p.total) emptyStats = false;
+          if (p.total) {
+            emptyStats = false;
+          }
           return {
             x: p.ts,
             y: [p.accepted, p.dropped],
@@ -111,30 +113,38 @@ const KeyStats = createReactClass({
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
-    let value = `${accepted.toLocaleString()} accepted`;
-    if (dropped) {
-      value += `<br>${dropped.toLocaleString()} rate limited`;
-    }
-    if (filtered) {
-      value += `<br>${filtered.toLocaleString()} filtered`;
-    }
-
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {accepted.toLocaleString()} accepted
+          {dropped > 0 && (
+            <React.Fragment>
+              <br />
+              {dropped.toLocaleString()} rate limited
+            </React.Fragment>
+          )}
+          {filtered > 0 && (
+            <React.Fragment>
+              <br />
+              {filtered.toLocaleString()} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   },
 
   render() {
-    if (this.state.loading)
+    if (this.state.loading) {
       return (
         <div className="box">
           <LoadingIndicator />
         </div>
       );
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     return (
       <Panel>
@@ -146,6 +156,7 @@ const KeyStats = createReactClass({
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}
+              minHeights={[1, 0]}
               className="standard-barchart"
               style={{border: 'none'}}
               tooltip={this.renderTooltip}
@@ -204,7 +215,8 @@ class KeyRateLimitsForm extends React.Component {
         <Feature
           features={['projects:rate-limits']}
           renderDisabled={({children, ...props}) =>
-            children({...props, renderDisabled: disabledAlert})}
+            children({...props, renderDisabled: disabledAlert})
+          }
         >
           {({hasFeature, features, organization, project, renderDisabled}) => (
             <Panel>
@@ -292,22 +304,23 @@ const KeySettings = createReactClass({
   displayName: 'KeySettings',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {loading: false};
   },
 
   handleRemove(e) {
-    if (this.state.loading) return;
+    if (this.state.loading) {
+      return;
+    }
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
@@ -360,9 +373,7 @@ const KeySettings = createReactClass({
                     label={t('Enabled')}
                     required={false}
                     disabled={!hasAccess}
-                    help={
-                      'Accept events from this key? This may be used to temporarily suspend a key.'
-                    }
+                    help="Accept events from this key? This may be used to temporarily suspend a key."
                   />
                   <Field label={t('Created')}>
                     <div className="controls">
@@ -379,45 +390,41 @@ const KeySettings = createReactClass({
               disabled={!hasAccess}
             />
 
-            <Feature features={['organizations:js-loader']}>
-              <Form
-                saveOnBlur
-                apiEndpoint={apiEndpoint}
-                apiMethod="PUT"
-                initialData={data}
-              >
-                <Panel>
-                  <PanelHeader>{t('CDN')}</PanelHeader>
-                  <PanelBody>
-                    <Field
-                      help={tct(
-                        'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
-                              What does the script provide?
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                      inline={false}
-                      flexibleControlStateSize
-                    >
-                      <TextCopyInput
-                      >{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
-                    </Field>
-                    <SelectField
-                      name="browserSdkVersion"
-                      choices={data.browserSdk ? data.browserSdk.choices : []}
-                      placeholder={t('4.x')}
-                      allowClear={false}
-                      enabled={!hasAccess}
-                      help={t('Select the version of the SDK that should be loaded')}
-                    />
-                  </PanelBody>
-                </Panel>
-              </Form>
-            </Feature>
+            <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
+              <Panel>
+                <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
+                <PanelBody>
+                  <Field
+                    help={tct(
+                      'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                            What does the script provide?
+                          </ExternalLink>
+                        ),
+                      }
+                    )}
+                    inline={false}
+                    flexibleControlStateSize
+                  >
+                    <TextCopyInput>
+                      {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+                    </TextCopyInput>
+                  </Field>
+                  <SelectField
+                    name="browserSdkVersion"
+                    choices={data.browserSdk ? data.browserSdk.choices : []}
+                    placeholder={t('4.x')}
+                    allowClear={false}
+                    enabled={!hasAccess}
+                    help={t(
+                      'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
+                    )}
+                  />
+                </PanelBody>
+              </Panel>
+            </Form>
 
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -495,9 +502,14 @@ export default class ProjectKeyDetails extends AsyncView {
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 
-        <KeyStats params={params} />
+        <KeyStats api={this.api} params={params} />
 
-        <KeySettings params={params} data={data} onRemove={this.handleRemove} />
+        <KeySettings
+          api={this.api}
+          params={params}
+          data={data}
+          onRemove={this.handleRemove}
+        />
       </div>
     );
   }

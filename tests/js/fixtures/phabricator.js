@@ -80,9 +80,15 @@ const DEFAULT_AUTOCOMPLETE_TAG1 = {text: 'Bar', id: 'PHID-PROJ-biz3qujawd2dfknvh
 const DEFAULT_AUTOCOMPLETE_TAG2 = {text: 'Foo', id: 'PHID-PROJ-3dfrsmwmavdv4gbg4fxd'};
 
 function PhabricatorAutocomplete(type = 'project', values = null) {
-  if (values) return {[type]: values};
-  if (type === 'assignee') values = [DEFAULT_AUTOCOMPLETE_ASSIGNEE];
-  if (type === 'tags') values = [DEFAULT_AUTOCOMPLETE_TAG1, DEFAULT_AUTOCOMPLETE_TAG2];
+  if (values) {
+    return {[type]: values};
+  }
+  if (type === 'assignee') {
+    values = [DEFAULT_AUTOCOMPLETE_ASSIGNEE];
+  }
+  if (type === 'tags') {
+    values = [DEFAULT_AUTOCOMPLETE_TAG1, DEFAULT_AUTOCOMPLETE_TAG2];
+  }
   return {[type]: values};
 }
 

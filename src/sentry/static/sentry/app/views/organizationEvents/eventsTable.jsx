@@ -27,36 +27,27 @@ class EventsTableBody extends React.PureComponent {
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
       const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
-
-      const hasSentry10 = new Set(organization.features).has('sentry10');
-
-      const eventLink = hasSentry10
-        ? `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
-        : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
-
-      const idBadge = (
-        <IdBadge
-          project={project}
-          avatarSize={16}
-          displayName={<span>{project.slug}</span>}
-          avatarProps={{consistentWidth: true}}
-        />
-      );
+      const eventLink = `/organizations/${organization.slug}/projects/${
+        project.slug
+      }/events/${event.eventID}/`;
 
       return (
-        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
+        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx === 0}>
           <TableData>
             <EventTitle>
               <Link to={eventLink}>{trimmedMessage}</Link>
             </EventTitle>
           </TableData>
 
+          <TableData>{event['event.type']}</TableData>
+
           <TableData>
-            {hasSentry10 ? (
-              idBadge
-            ) : (
-              <Project to={`/${organization.slug}/${project.slug}/`}>{idBadge}</Project>
-            )}
+            <IdBadge
+              project={project}
+              avatarSize={16}
+              displayName={<span>{project.slug}</span>}
+              avatarProps={{consistentWidth: true}}
+            />
           </TableData>
 
           <TableData>
@@ -85,19 +76,13 @@ class EventsTable extends React.Component {
 
     events: PropTypes.array,
     organization: SentryTypes.Organization,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
     utc: PropTypes.bool,
 
     // When Table is in loading state due to chart zoom but has
     // completed its new API request
     onUpdateComplete: PropTypes.func,
   };
-
-  constructor(props) {
-    super(props);
-    this.projectsMap = new Map(
-      props.organization.projects.map(project => [project.id, project])
-    );
-  }
 
   shouldComponentUpdate(nextProps) {
     // Update if any of these "loading"-type props change so we can display loader
@@ -128,6 +113,13 @@ class EventsTable extends React.Component {
     }
   }
 
+  get projectsMap() {
+    const {organization, projects} = this.props;
+    const projectList = projects || organization.projects;
+
+    return new Map(projectList.map(project => [project.id, project]));
+  }
+
   render() {
     const {events, organization, loading, reloading, zoomChanged, utc} = this.props;
     const hasEvents = events && !!events.length;
@@ -137,18 +129,18 @@ class EventsTable extends React.Component {
         <PanelHeader>
           <TableLayout>
             <div>{t('Event')}</div>
+            <div>{t('Event Type')}</div>
             <div>{t('Project')}</div>
             <div>{t('User')}</div>
             <div>{t('Time')}</div>
           </TableLayout>
         </PanelHeader>
         {loading && <LoadingIndicator />}
-        {!loading &&
-          !hasEvents && (
-            <EmptyStateWarning>
-              <p>No events</p>
-            </EmptyStateWarning>
-          )}
+        {!loading && !hasEvents && (
+          <EmptyStateWarning>
+            <p>{t('No events')}</p>
+          </EmptyStateWarning>
+        )}
         {hasEvents && (
           <StyledPanelBody>
             {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}
@@ -175,7 +167,7 @@ const StyledPanelBody = styled(PanelBody)`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
+  grid-template-columns: 0.8fr 0.15fr 0.15fr 0.25fr 200px;
   grid-column-gap: ${space(1.5)};
   width: 100%;
 `;
@@ -201,12 +193,6 @@ const TableData = styled('div')`
 
 const EventTitle = styled(TableData)`
   padding-right: ${space(2)};
-  ${overflowEllipsis};
-`;
-
-const Project = styled(Link)`
-  display: flex;
-  color: ${p => p.theme.gray4};
   ${overflowEllipsis};
 `;
 

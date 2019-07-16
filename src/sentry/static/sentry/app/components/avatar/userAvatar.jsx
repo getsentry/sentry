@@ -35,7 +35,9 @@ class UserAvatar extends React.Component {
   render() {
     const {user, gravatar, renderTooltip, ...props} = this.props;
 
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
 
     const type = this.getType(user, gravatar);
 
@@ -51,6 +53,8 @@ class UserAvatar extends React.Component {
         tooltip={
           typeof renderTooltip === 'function'
             ? renderTooltip(user)
+            : props.tooltip
+            ? props.tooltip
             : userDisplayName(user)
         }
         title={user.name || user.email || user.username || ''}

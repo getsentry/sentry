@@ -5,10 +5,10 @@ import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
-import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
+import {getMessage, getLocation} from 'app/utils/events';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -37,42 +37,17 @@ class EventOrGroupHeader extends React.Component {
     hideIcons: PropTypes.bool,
     hideLevel: PropTypes.bool,
     query: PropTypes.string,
+    size: PropTypes.oneOf(['small', 'normal']),
   };
 
   static defaultProps = {
     includeLink: true,
+    size: 'normal',
   };
-
-  getMessage() {
-    const {data} = this.props;
-    const {metadata, type, culprit} = data || {};
-
-    switch (type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      case 'expectct':
-      case 'expectstaple':
-      case 'hpkp':
-        return '';
-      default:
-        return culprit || '';
-    }
-  }
-
-  getLocation() {
-    const {data} = this.props;
-    if (data.type === 'error') {
-      const {metadata} = data || {};
-      return metadata.filename || null;
-    }
-    return null;
-  }
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params} = this.props;
-    const {orgId, projectId} = params;
+    const {orgId} = params;
 
     const {id, level, groupID} = data || {};
     const isEvent = !!data.eventID;
@@ -80,24 +55,18 @@ class EventOrGroupHeader extends React.Component {
     const props = {};
     let Wrapper;
 
-    const basePath = projectId
-      ? `/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
+    const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
       props.to = {
-        pathname: `${basePath}${isEvent ? groupID : id}/${isEvent
-          ? `events/${data.id}/`
-          : ''}`,
-        search: `${this.props.query
-          ? `?query=${window.encodeURIComponent(this.props.query)}`
-          : ''}`,
+        pathname: `${basePath}${isEvent ? groupID : id}/${
+          isEvent ? `events/${data.id}/` : ''
+        }`,
+        search: `${
+          this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
+        }`,
       };
-      if (projectId) {
-        Wrapper = ProjectLink;
-      } else {
-        Wrapper = Link;
-      }
+      Wrapper = Link;
     } else {
       Wrapper = 'span';
     }
@@ -107,12 +76,13 @@ class EventOrGroupHeader extends React.Component {
         {...props}
         style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
       >
-        {!hideLevel &&
-          level && (
+        {!hideLevel && level && (
+          <GroupLevel level={data.level}>
             <Tooltip title={`Error level: ${capitalize(level)}`}>
-              <GroupLevel level={data.level} />
+              <span />
             </Tooltip>
-          )}
+          </GroupLevel>
+        )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
         <EventOrGroupTitle
@@ -124,16 +94,16 @@ class EventOrGroupHeader extends React.Component {
   }
 
   render() {
-    const {className} = this.props;
+    const {className, size, data} = this.props;
     const cx = classNames('event-issue-header', className);
-    const message = this.getMessage();
-    const location = this.getLocation();
+    const location = getLocation(data);
+    const message = getMessage(data);
 
     return (
       <div className={cx}>
-        <Title>{this.getTitle()}</Title>
-        {location && <Location>{location}</Location>}
-        {message && <Message>{message}</Message>}
+        <Title size={size}>{this.getTitle()}</Title>
+        {location && <Location size={size}>{location}</Location>}
+        {message && <Message size={size}>{message}</Message>}
       </div>
     );
   }
@@ -146,9 +116,17 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const Title = styled.div`
+const getMargin = ({size}) => {
+  if (size === 'small') {
+    return 'margin: 0;';
+  }
+
+  return 'margin: 0 0 5px';
+};
+
+const Title = styled('div')`
   ${truncateStyles};
-  margin: 0 0 5px;
+  ${getMargin};
   & em {
     font-size: 14px;
     font-style: normal;
@@ -157,12 +135,12 @@ const Title = styled.div`
   }
 `;
 
-const LocationWrapper = styled.div`
+const LocationWrapper = styled('div')`
   ${truncateStyles};
+  ${getMargin};
   direction: rtl;
   text-align: left;
   font-size: 14px;
-  margin: 0 0 5px;
   color: ${p => p.theme.gray3};
   span {
     direction: ltr;
@@ -178,10 +156,10 @@ function Location(props) {
   );
 }
 
-const Message = styled.div`
+const Message = styled('div')`
   ${truncateStyles};
+  ${getMargin};
   font-size: 14px;
-  margin: 0 0 5px;
 `;
 
 const iconStyles = css`
@@ -189,17 +167,17 @@ const iconStyles = css`
   margin-right: 5px;
 `;
 
-const Muted = styled.span`
+const Muted = styled('span')`
   ${iconStyles};
   color: ${p => p.theme.red};
 `;
 
-const Starred = styled.span`
+const Starred = styled('span')`
   ${iconStyles};
   color: ${p => p.theme.yellowOrange};
 `;
 
-const GroupLevel = styled.div`
+const GroupLevel = styled('div')`
   position: absolute;
   left: -1px;
   width: 9px;
@@ -222,6 +200,12 @@ const GroupLevel = styled.div`
         return p.theme.gray2;
     }
   }};
+
+  & span {
+    display: block;
+    width: 9px;
+    height: 15px;
+  }
 `;
 
 export default withRouter(EventOrGroupHeader);

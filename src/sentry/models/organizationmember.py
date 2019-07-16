@@ -23,8 +23,10 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import roles
 from sentry.db.models import (
-    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey,
+    Model, sane_repr
 )
+from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
 
 INVITE_DAYS_VALID = 30
@@ -74,7 +76,7 @@ class OrganizationMember(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
-    email = models.EmailField(null=True, blank=True)
+    email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(
         choices=roles.get_choices(),
         max_length=32,
@@ -297,10 +299,8 @@ class OrganizationMember(Model):
     def get_teams(self):
         from sentry.models import Team
 
-        if roles.get(self.role).is_global:
-            return self.organization.team_set.all()
-
         return Team.objects.filter(
+            status=TeamStatus.VISIBLE,
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,

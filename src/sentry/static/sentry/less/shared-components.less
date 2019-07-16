@@ -253,12 +253,6 @@ fieldset[disabled] .btn-danger.active,
     width: 0;
     margin-right: -6px;
   }
-
-  .icon-signal {
-    font-size: 18px;
-    position: relative;
-    top: 2px;
-  }
 }
 
 /* Small button icons */
@@ -475,6 +469,13 @@ table.table.key-value {
   display: inline-block;
 }
 
+.org-avatar {
+  .square(30px);
+  background: @red url(../images/sentry-avatar.png);
+  background-size: cover;
+  border-radius: 3px;
+}
+
 /**
 * Avatar Cropping
 * ============================================================================
@@ -532,7 +533,7 @@ table.table.key-value {
 @loader-size: 64px;
 @check-height: 32px;
 @check-width: 16px;
-@check-left: (@loader-size/6 + @loader-size/12);
+@check-left: (@loader-size / 6 + @loader-size / 12);
 @check-thickness: 6px;
 
 .loading {
@@ -739,6 +740,8 @@ table.table.key-value {
   }
 
   .search-input {
+    // Match the height of buttons adjacent to the search input.
+    height: 40px;
     padding: 8px 24px 8px 37px;
     font-size: 14px;
     background: #fff;
@@ -783,84 +786,6 @@ table.table.key-value {
 
   &:hover {
     color: lighten(@gray, 10);
-  }
-}
-
-.search-dropdown {
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-  border: 1px solid darken(@trim, 6) !important;
-  border-radius: 0 0 4px 4px;
-  position: absolute;
-  top: 37px;
-  right: 0;
-  left: 0;
-  background: #fff;
-  z-index: 100;
-  overflow: hidden;
-}
-
-.search-autocomplete-list {
-  .list-unstyled();
-  margin-bottom: 0;
-
-  li {
-    position: relative;
-    border-top: 1px solid lighten(@trim, 5);
-    padding: 12px 14px 12px 40px;
-    cursor: pointer;
-
-    .icon {
-      position: absolute;
-      left: 9px;
-      top: 7px;
-      color: lighten(@gray-light, 8);
-      font-size: 16px;
-      width: 24px;
-      line-height: 24px;
-      text-align: center;
-
-      &.icon-toggle {
-        font-size: 14px;
-      }
-
-      &.icon-tag {
-        top: 8px;
-      }
-
-      &.icon-hash {
-        font-size: 20px;
-        font-weight: bold;
-        top: 5px;
-      }
-    }
-
-    h4 {
-      margin: 0;
-      font-size: 14px;
-      span {
-        font-weight: normal;
-      }
-    }
-
-    p {
-      margin: 2px 0 0;
-      font-size: 13px;
-      color: @gray-light;
-    }
-
-    &:first-child {
-      border: 0;
-    }
-
-    &:hover,
-    &.active {
-      background: @white-dark;
-      border-color: @trim;
-
-      & + li {
-        border-color: @trim;
-      }
-    }
   }
 }
 
@@ -1163,6 +1088,7 @@ ul.faces {
     .btn-group {
       float: right;
       position: relative;
+      margin-bottom: 8px;
     }
 
     .nav-tabs {
@@ -1282,11 +1208,11 @@ ul.faces {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -15px;
+    bottom: 0;
     padding: 40px 0 0;
-    #gradient > .vertical(rgba(255,255,255, 0.15), rgba(255,255,255, 1));
+    #gradient > .vertical(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
     text-align: center;
-    border-bottom: 15px solid #fff;
+    border-bottom: 10px solid #fff;
   }
 
   &.clipped {
@@ -1344,7 +1270,6 @@ ul.faces {
 * ============================================================================
 */
 
-.sub-header + .alert,
 header + .alert {
   margin-top: -31px;
   position: relative;
@@ -1749,25 +1674,6 @@ header + .alert {
     }
   }
 
-  > li.markdown {
-    float: right;
-    color: @gray;
-    margin-right: 0;
-
-    > .icon-markdown {
-      font-size: 20px;
-    }
-
-    > .supported {
-      // The text doesn't quit line up with the icon, so we
-      // manually fudge this to make it look better.
-      position: relative;
-      top: -4px;
-      left: 5px;
-      font-size: 14px;
-    }
-  }
-
   &.border-bottom {
     border-bottom: 1px solid @trim;
   }
@@ -1855,15 +1761,6 @@ header + .alert {
 * ============================================================================
 */
 
-.repo-label {
-  .label;
-  display: inline-block;
-  vertical-align: text-bottom;
-  padding: 5px 8px;
-  line-height: 1;
-  background: @40;
-}
-
 /**
 * Project nav
 * ============================================================================
@@ -1901,6 +1798,13 @@ ul.radio-inputs {
 */
 .modal-backdrop {
   background-color: @gray-dark;
+  // Match zIndex.modal in theme.jsx
+  z-index: 10000;
+}
+
+.modal {
+  // Match zIndex.modal in theme.jsx
+  z-index: 10000;
 }
 
 .modal-container {
@@ -2048,234 +1952,6 @@ ul.radio-inputs {
   h5 {
     margin-bottom: 10px;
   }
-}
-
-/**
-* Client platform list
-* ============================================================================
-*/
-.client-platform-list {
-  .list-unstyled;
-  .clearfix;
-
-  li {
-    float: left;
-    margin: 0 20px 20px 0;
-    text-align: center;
-    position: relative;
-    min-width: 80px;
-    font-size: 16px;
-
-    a {
-      color: inherit;
-      opacity: 0.85;
-      .transition(opacity 0.1s);
-      font-weight: 600;
-
-      &:hover {
-        opacity: 1;
-      }
-
-      &:after {
-        display: block;
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-      }
-    }
-  }
-
-  .platformicon {
-    display: block;
-    .square(56px);
-    font-size: 42px;
-    line-height: 58px;
-    text-align: center;
-    margin: 15px auto 15px;
-    border-radius: 5px;
-    color: #fff;
-    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
-    background: @gray; // Default BG
-  }
-
-  li.go .platformicon {
-    border: 2px solid @gray;
-  }
-}
-
-.client-platform-list,
-.client-platform {
-  li,
-  span {
-    &.python .platformicon {
-      background: darken(@blue, 6);
-    }
-    &.python-pylons .platformicon:before {
-      content: '\e602';
-    }
-    &.python-celery .platformicon:before {
-      content: '\e602';
-    }
-    &.python-awslambda .platformicon:before {
-      content: '\e602';
-    }
-    &.python-pyramid .platformicon:before {
-      content: '\e602';
-    }
-    &.python-tornado .platformicon:before {
-      content: '\e602';
-    }
-    &.python-rq .platformicon:before {
-      content: '\e602';
-    }
-    &.python-sanic .platformicon:before {
-      content: '\e602';
-    }
-
-    &.javascript .platformicon {
-      background: @yellow;
-      color: #111;
-      text-shadow: none;
-    }
-    &.javascript-backbone .platformicon:before {
-      content: '\e600';
-    }
-    &.javascript-vue .platformicon:before {
-      content: '\e600';
-    }
-
-    &.ruby .platformicon,
-    &.rails .platformicon,
-    &.javascript-angular .platformicon {
-      background: @red;
-      color: #fff;
-    }
-    &.ruby-rack .platformicon:before {
-      content: '\e604';
-    }
-
-    &.javascript-angular2 .platformicon {
-      background: @blue;
-      color: #fff;
-      &:before {
-        content: '\e900';
-      }
-    }
-
-    &.java .platformicon {
-      background: @orange;
-    }
-    &.java-log4j .platformicon:before {
-      content: '\e608';
-    }
-    &.java-log4j2 .platformicon:before {
-      content: '\e608';
-    }
-    &.java-logback .platformicon:before {
-      content: '\e608';
-    }
-
-    &.php .platformicon {
-      background: @purple;
-    }
-    &.php-symfony2 .platformicon:before {
-      content: '\e601';
-    }
-    &.php-monolog .platformicon:before {
-      content: '\e601';
-    }
-
-    &.python-django .platformicon {
-      background: @green;
-    }
-
-    &.node .platformicon {
-      background: #90c541;
-    }
-
-    &.node-express .platformicon:before {
-      content: '\e609';
-    }
-    &.node-connect .platformicon:before {
-      content: '\e609';
-    }
-    &.node-koa .platformicon:before {
-      content: '\e609';
-    }
-
-    &.objc .platformicon,
-    &.cocoa .platformicon {
-      background: @gray;
-    }
-
-    &.app-engine .platformicon {
-      background: @orange;
-    }
-
-    &.csharp .platformicon {
-      background: @blue-light;
-    }
-
-    &.go .platformicon {
-      color: @gray-dark;
-      background: #fff;
-      text-shadow: none;
-    }
-    &.go-http .platformicon:before {
-      content: '\e606';
-    }
-
-    &.javascript-react .platformicon {
-      background: #2d2d2d;
-      color: #00d8ff;
-    }
-
-    &.javascript-ember .platformicon {
-      background: #ed573e;
-      color: #fff;
-    }
-
-    &.elixir .platformicon {
-      background: @purple-dark;
-    }
-  }
-}
-
-.client-platform {
-  li,
-  span {
-    .platformicon {
-      color: black !important;
-      background: white !important;
-    }
-  }
-}
-
-/**
- * Error level colors
- * ============================================================================
- */
-
-.level-error .error-level {
-  background: @orange;
-}
-&.level-info .error-level {
-  background: @blue;
-}
-&.level-warning .error-level {
-  background: @yellow-orange;
-}
-&.level-error .error-level {
-  background: @orange;
-}
-&.level-fatal .error-level {
-  background: @red;
-}
-&.level-sample .error-level {
-  background: @purple;
 }
 
 /**

@@ -7,6 +7,7 @@ from croniter import croniter
 from datetime import datetime, timedelta
 from dateutil import rrule
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from uuid import uuid4
 
@@ -19,7 +20,7 @@ from sentry.db.models import (
     sane_repr,
 )
 
-SCHEDULE_FREQ_MAP = {
+SCHEDULE_INTERVAL_MAP = {
     'year': rrule.YEARLY,
     'month': rrule.MONTHLY,
     'week': rrule.WEEKLY,
@@ -38,10 +39,12 @@ def get_next_schedule(base_datetime, schedule_type, schedule):
         itr = croniter(schedule, base_datetime)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
-        freq, interval = schedule
+        count, unit_name = schedule
+        # count is the "number of units" and unit_name is the "unit name of interval"
+        # which is inverse from what rrule calls them
         rule = rrule.rrule(
-            freq=SCHEDULE_FREQ_MAP[freq],
-            interval=interval,
+            freq=SCHEDULE_INTERVAL_MAP[unit_name],
+            interval=count,
             dtstart=base_datetime,
             count=2)
         if rule[0] > base_datetime:
@@ -152,13 +155,13 @@ class Monitor(Model):
 
         if last_checkin is None:
             next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin
+            last_checkin = self.last_checkin or timezone.now()
         else:
             next_checkin_base = last_checkin
 
         affected = type(self).objects.filter(
+            Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True),
             id=self.id,
-            last_checkin=self.last_checkin,
         ).update(
             next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
             status=MonitorStatus.ERROR,

@@ -4,11 +4,16 @@ import logging
 
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
-from sentry.db.models import (BaseManager, FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    sane_repr
+)
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)

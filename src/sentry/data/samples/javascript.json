@@ -217,16 +217,6 @@
             "name": "Chrome"
         }
     },
-    "sentry.interfaces.Http": {
-        "url": "https://sentry.io/sentry/sentry/issues/231/",
-        "query_string": "foo=bar&bam=baz",
-        "headers": [
-            [
-                "User-Agent",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"
-            ]
-        ]
-    },
     "sentry.interfaces.User": {
         "ip_address": "127.0.0.1",
         "email": "mail@example.org",

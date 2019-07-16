@@ -54,6 +54,7 @@ class DeleteProjectTest(TestCase):
         dif = ProjectDebugFile.objects.create(
             file=file,
             debug_id='uuid',
+            code_id='codeid',
             cpu_name='cpu',
             object_name='object',
             project=project,

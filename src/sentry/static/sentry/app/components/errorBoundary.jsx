@@ -37,18 +37,18 @@ class ErrorBoundary extends React.Component {
     );
   }
 
-  componentWillUnmount() {
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-  }
-
   componentDidCatch(error, errorInfo) {
     this.setState({error});
     Sentry.withScope(scope => {
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
     });
+  }
+
+  componentWillUnmount() {
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
+    }
   }
 
   render() {
@@ -87,14 +87,14 @@ Anyway, we apologize for the inconvenience.`
   }
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled('div')`
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;
 `;
 
-const StackTrace = styled.pre`
+const StackTrace = styled('pre')`
   white-space: pre-wrap;
   margin: 32px;
   margin-left: 85px;

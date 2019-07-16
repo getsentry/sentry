@@ -2,6 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
+import {isEqual} from 'lodash';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getUserTimezone} from 'app/utils/dates';
@@ -14,8 +15,15 @@ import withOrganization from 'app/utils/withOrganization';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization) {
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`);
+function getOrganizationReleases(api, organization, projects = null) {
+  const query = {};
+  if (projects) {
+    query.project = projects;
+  }
+  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+    method: 'GET',
+    query,
+  });
 }
 
 class ReleaseSeries extends React.Component {
@@ -23,6 +31,7 @@ class ReleaseSeries extends React.Component {
     api: PropTypes.object,
     router: PropTypes.object,
     organization: SentryTypes.Organization,
+    projects: PropTypes.arrayOf(PropTypes.number),
 
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
@@ -40,9 +49,19 @@ class ReleaseSeries extends React.Component {
       return;
     }
 
-    const {api, organization} = this.props;
+    this.fetchData();
+  }
 
-    getOrganizationReleases(api, organization)
+  componentDidUpdate(prevProps) {
+    if (!isEqual(prevProps.projects, this.props.projects)) {
+      this.fetchData();
+    }
+  }
+
+  fetchData() {
+    const {api, organization, projects} = this.props;
+
+    getOrganizationReleases(api, organization, projects)
       .then(releases => {
         this.setState({
           releases,
@@ -85,11 +104,9 @@ class ReleaseSeries extends React.Component {
           name: release.shortVersion,
           value: release.shortVersion,
           onClick: () => {
-            if (organization.features.includes('sentry10')) {
-              router.push(
-                `/organizations/${organization.slug}/releases/${release.version}/`
-              );
-            }
+            router.push(
+              `/organizations/${organization.slug}/releases/${release.version}/`
+            );
           },
           label: {
             formatter: () => release.shortVersion,

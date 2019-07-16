@@ -6,6 +6,8 @@ import {defined} from 'app/utils';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
+import ErrorBoundary from 'app/components/errorBoundary';
+import Tooltip from 'app/components/tooltip';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,
@@ -50,17 +52,19 @@ class Breadcrumb extends React.Component {
     const {crumb} = this.props;
     return (
       <li className={this.getClassName()}>
-        <span className="icon-container">
-          <span className="icon" />
-        </span>
-        {defined(crumb.timestamp) ? (
-          <span className="dt" title={moment(crumb.timestamp).format()}>
-            {moment(crumb.timestamp).format('HH:mm:ss')}
+        <ErrorBoundary mini css={{margin: 0, borderRadius: 0}}>
+          <span className="icon-container">
+            <span className="icon" />
           </span>
-        ) : (
-          <span className="dt" />
-        )}
-        {this.renderType()}
+          {defined(crumb.timestamp) ? (
+            <Tooltip title={moment(crumb.timestamp).format('lll')}>
+              <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
+            </Tooltip>
+          ) : (
+            <span className="dt" />
+          )}
+          {this.renderType()}
+        </ErrorBoundary>
       </li>
     );
   }

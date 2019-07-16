@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mount, shallow} from 'enzyme';
-import IncidentStore from 'app/stores/incidentStore';
+import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
 
@@ -26,7 +26,7 @@ describe('Sidebar', function() {
 
   beforeEach(function() {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
+      url: `/organizations/${organization.slug}/broadcasts/`,
       body: [TestStubs.Broadcast()],
     });
     apiMocks.broadcastsMarkAsSeen = MockApiClient.addMockResponse({
@@ -67,7 +67,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('OrgOrUserName').text()).toContain(organization.name);
     expect(wrapper.find('UserNameOrEmail').text()).toContain(user.name);
 
-    wrapper.find('SidebarCollapseItem').simulate('click');
+    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
     await tick();
     wrapper.update();
 
@@ -75,13 +75,13 @@ describe('Sidebar', function() {
     // Instead check for `SidebarItemLabel` which doesn't exist in collapsed state
     expect(wrapper.find('SidebarItemLabel')).toHaveLength(0);
 
-    wrapper.find('SidebarCollapseItem').simulate('click');
+    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
     await tick();
     wrapper.update();
     expect(wrapper.find('SidebarItemLabel').length).toBeGreaterThan(0);
   });
 
-  it('can have onboarding feature', function() {
+  it('can have onboarding feature', async function() {
     wrapper = mount(
       <SidebarContainer
         organization={{...organization, features: ['onboarding']}}
@@ -95,6 +95,7 @@ describe('Sidebar', function() {
 
     wrapper.find('[data-test-id="onboarding-progress-bar"]').simulate('click');
     wrapper.update();
+
     expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
   });
 
@@ -175,7 +176,7 @@ describe('Sidebar', function() {
   describe('SidebarPanel', function() {
     it('displays empty panel when there are no Broadcasts', async function() {
       MockApiClient.addMockResponse({
-        url: '/broadcasts/',
+        url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
       });
       wrapper = createWrapper();
@@ -258,12 +259,12 @@ describe('Sidebar', function() {
 
     it('can show Incidents in Sidebar Panel', async function() {
       wrapper = createWrapper();
-      IncidentStore.onUpdateSuccess({
-        status: {incidents: [TestStubs.Incident()]},
+      ServiceIncidentStore.onUpdateSuccess({
+        status: {incidents: [TestStubs.ServiceIncident()]},
       });
       wrapper.update();
 
-      wrapper.find('Incidents').simulate('click');
+      wrapper.find('ServiceIncidents').simulate('click');
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
@@ -285,18 +286,6 @@ describe('Sidebar', function() {
       });
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
-    });
-
-    it('hides assigned, bookmarks, history, activity and stats for sentry10', function() {
-      const sentry10Org = TestStubs.Organization({features: ['sentry10']});
-      wrapper = createWrapper();
-      wrapper.setProps({organization: sentry10Org});
-      wrapper.update();
-      const labels = wrapper.find('SidebarItemLabel').map(node => node.text());
-      expect(labels).toHaveLength(10);
-      expect(labels).not.toContain('Assigned to me');
-      expect(labels).not.toContain('Bookmarked issues');
-      expect(labels).not.toContain('Recently viewed');
     });
   });
 });

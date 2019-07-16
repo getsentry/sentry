@@ -12,7 +12,11 @@ const withOrganizations = WrappedComponent =>
 
     render() {
       return (
-        <WrappedComponent organizations={this.state.organizations} {...this.props} />
+        <WrappedComponent
+          organizationsLoading={!OrganizationsStore.loaded}
+          organizations={this.state.organizations}
+          {...this.props}
+        />
       );
     },
   });

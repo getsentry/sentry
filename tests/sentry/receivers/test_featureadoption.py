@@ -14,7 +14,7 @@ from sentry.signals import (
     plugin_enabled,
     user_feedback_received,
     issue_assigned,
-    issue_resolved_in_release,
+    issue_resolved,
     advanced_search,
     save_search_created,
     inbound_filter_toggled,
@@ -28,7 +28,7 @@ from sentry.testutils import TestCase
 class FeatureAdoptionTest(TestCase):
     def setUp(self):
         super(FeatureAdoptionTest, self).setUp()
-        self.now = timezone.now().replace(microsecond=0)
+        self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
@@ -42,19 +42,13 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete is None
 
     def test_all_passed_feature_slugs_are_complete(self):
-        group1 = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event1 = self.create_full_event()
-        group2 = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event2 = self.create_full_event(event_id='b')
         event_processed.send(
-            project=self.project, group=group1, event=event1, sender=type(self.project)
+            project=self.project, event=event1, sender=type(self.project)
         )
         event_processed.send(
-            project=self.project, group=group2, event=event2, sender=type(self.project)
+            project=self.project, event=event2, sender=type(self.project)
         )
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
@@ -63,10 +57,14 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete.complete
 
     def test_first_event(self):
-        group = self.create_group(
+        event = self.create_event(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        first_event_received.send(project=self.project, group=group, sender=type(self.project))
+        first_event_received.send(
+            project=self.project,
+            event=event,
+            sender=type(self.project),
+        )
 
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
@@ -77,9 +75,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'javascript'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
@@ -89,9 +87,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='python', message='python error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group)
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         python = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="python")
@@ -101,9 +99,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='node', message='node error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'node'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         node = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="node")
@@ -113,9 +111,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='ruby', message='ruby error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'ruby'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         ruby = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="ruby")
@@ -125,9 +123,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='java', message='java error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'java'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         java = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="java")
@@ -137,9 +135,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='cocoa', message='cocoa error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'cocoa'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         cocoa = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cocoa")
@@ -149,29 +147,33 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='objc', message='objc error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'objc'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         objc = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="objc")
         assert objc.complete
 
     def test_php(self):
-        group = self.create_group(project=self.project, platform='php', message='php error message')
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='php', message='php error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'php'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         php = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="php")
         assert php.complete
 
     def test_go(self):
-        group = self.create_group(project=self.project, platform='go', message='go error message')
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='go', message='go error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'go'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         go = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="go")
@@ -179,21 +181,23 @@ class FeatureAdoptionTest(TestCase):
 
     def test_csharp(self):
         group = self.create_group(
-            project=self.project, platform='csharp', message='C# error message'
+            project=self.project, platform='csharp', message='csharp error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'csharp'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         csharp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csharp")
         assert csharp.complete
 
     def test_perl(self):
-        group = self.create_group(project=self.project, platform='perl', message='C# error message')
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='perl', message='perl error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'perl'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         perl = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="perl")
@@ -201,21 +205,23 @@ class FeatureAdoptionTest(TestCase):
 
     def test_elixir(self):
         group = self.create_group(
-            project=self.project, platform='elixir', message='C# error message'
+            project=self.project, platform='elixir', message='elixir error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'elixir'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         elixir = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="elixir")
         assert elixir.complete
 
     def test_cfml(self):
-        group = self.create_group(project=self.project, platform='cfml', message='C# error message')
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='cfml', message='cfml error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'cfml'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         cfml = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cfml")
@@ -223,33 +229,32 @@ class FeatureAdoptionTest(TestCase):
 
     def test_groovy(self):
         group = self.create_group(
-            project=self.project, platform='groovy', message='C# error message'
+            project=self.project, platform='groovy', message='groovy error message'
         )
-        event = self.create_event()
+        event = self.create_event(group=group, data={'platform': 'groovy'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         groovy = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="groovy")
         assert groovy.complete
 
     def test_csp(self):
-        group = self.create_group(project=self.project, platform='csp', message='C# error message')
-        event = self.create_event()
+        group = self.create_group(
+            project=self.project, platform='csp', message='csp error message'
+        )
+        event = self.create_event(group=group, data={'platform': 'csp'})
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         csp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csp")
         assert csp.complete
 
     def test_release_tracking(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         release_tracking = FeatureAdoption.objects.get_by_slug(
@@ -258,12 +263,9 @@ class FeatureAdoptionTest(TestCase):
         assert release_tracking
 
     def test_environment_tracking(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         environment_tracking = FeatureAdoption.objects.get_by_slug(
@@ -275,9 +277,9 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        event = self.create_full_event()
+        event = self.create_full_event(group=group)
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         javascript = FeatureAdoption.objects.get_by_slug(
@@ -301,12 +303,9 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_user_tracking(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
@@ -400,14 +399,11 @@ class FeatureAdoptionTest(TestCase):
                     ]
                 }
             }"""
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         userless_event = self.create_event(
             event_id='a', platform='javascript', data=json.loads(userless_payload)
         )
         event_processed.send(
-            project=self.project, group=group, event=userless_event, sender=type(self.project)
+            project=self.project, event=userless_event, sender=type(self.project)
         )
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
@@ -500,14 +496,11 @@ class FeatureAdoptionTest(TestCase):
                     ]
                 }
             }"""
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         envless_event = self.create_event(
             event_id='a', platform='javascript', data=json.loads(envless_payload)
         )
         event_processed.send(
-            project=self.project, group=group, event=envless_event, sender=type(self.project)
+            project=self.project, event=envless_event, sender=type(self.project)
         )
 
         feature_complete = FeatureAdoption.objects.get_by_slug(
@@ -516,14 +509,11 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete is None
 
     def test_custom_tags(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event.data['tags'].append(('foo', 'bar'))
         assert event.get_tag('foo') == 'bar'
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         custom_tags = FeatureAdoption.objects.get_by_slug(
@@ -532,12 +522,9 @@ class FeatureAdoptionTest(TestCase):
         assert custom_tags
 
     def test_source_maps(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         source_maps = FeatureAdoption.objects.get_by_slug(
@@ -546,12 +533,9 @@ class FeatureAdoptionTest(TestCase):
         assert source_maps
 
     def test_breadcrumbs(self):
-        group = self.create_group(
-            project=self.project, platform='javascript', message='javascript error message'
-        )
         event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=event, sender=type(self.project)
+            project=self.project, event=event, sender=type(self.project)
         )
 
         breadcrumbs = FeatureAdoption.objects.get_by_slug(
@@ -563,10 +547,15 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform='javascript', message='javascript error message'
         )
-        simple_event = self.create_event()
-        first_event_received.send(project=self.project, group=group, sender=type(self.project))
+        simple_event = self.create_event(group=group, platform='javascript')
+        first_event_received.send(
+            project=self.project,
+            event=simple_event,
+            sender=type(self.project),
+        )
         event_processed.send(
-            project=self.project, group=group, event=simple_event, sender=type(self.project)
+            project=self.project, event=simple_event, sender=type(
+                self.project)
         )
 
         first_event = FeatureAdoption.objects.get_by_slug(
@@ -580,7 +569,8 @@ class FeatureAdoptionTest(TestCase):
 
         full_event = self.create_full_event()
         event_processed.send(
-            project=self.project, group=group, event=full_event, sender=type(self.project)
+            project=self.project, event=full_event, sender=type(
+                self.project)
         )
 
         release_tracking = FeatureAdoption.objects.get_by_slug(
@@ -651,7 +641,22 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_resolved_in_release(self):
-        issue_resolved_in_release.send(
+        issue_resolved.send(
+            organization_id=self.organization.id,
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            resolution_type='in_next_release',
+            sender=type(
+                self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="resolved_in_release"
+        )
+        assert feature_complete
+
+    def test_resolved_manually(self):
+        issue_resolved.send(
+            organization_id=self.organization.id,
             project=self.project,
             group=self.group,
             user=self.user,
@@ -661,7 +666,7 @@ class FeatureAdoptionTest(TestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
-        assert feature_complete
+        assert not feature_complete
 
     def test_advanced_search(self):
         advanced_search.send(project=self.project, sender=type(self.project))

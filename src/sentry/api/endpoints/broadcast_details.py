@@ -39,11 +39,13 @@ class BroadcastDetailsEndpoint(Endpoint):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _serialize_response(self, request, broadcast):
+    def _get_serializer(self, request):
         if is_active_superuser(request):
-            serializer_cls = AdminBroadcastSerializer
-        else:
-            serializer_cls = BroadcastSerializer
+            return AdminBroadcastSerializer
+        return BroadcastSerializer
+
+    def _serialize_response(self, request, broadcast):
+        serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
     def get(self, request, broadcast_id):
@@ -52,11 +54,11 @@ class BroadcastDetailsEndpoint(Endpoint):
 
     def put(self, request, broadcast_id):
         broadcast = self._get_broadcast(request, broadcast_id)
-        validator = self._get_validator(request)(data=request.DATA, partial=True)
+        validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
 
         update_kwargs = {}
         if result.get('title'):
@@ -69,6 +71,8 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs['is_active'] = result['isActive']
         if result.get('dateExpires', -1) != -1:
             update_kwargs['date_expires'] = result['dateExpires']
+        if result.get('cta'):
+            update_kwargs['cta'] = result['cta']
         if update_kwargs:
             with transaction.atomic():
                 broadcast.update(**update_kwargs)

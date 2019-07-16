@@ -11,3 +11,4 @@ from .token_exchange import (  # NOQA
     GrantExchanger,
     Refresher,
 )
+from .sentry_app_components import *  # NOQA

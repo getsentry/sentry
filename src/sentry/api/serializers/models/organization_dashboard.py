@@ -22,7 +22,7 @@ class WidgetSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             'id': six.text_type(obj.id),
             'order': six.text_type(obj.order),
@@ -38,7 +38,7 @@ class WidgetSerializer(Serializer):
 @register(WidgetDataSource)
 class WidgetDataSourceSerializer(Serializer):
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             'id': six.text_type(obj.id),
             'type': obj.type,
@@ -67,7 +67,7 @@ class DashboardWithWidgetsSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = {
             'id': six.text_type(obj.id),
             'title': obj.title,

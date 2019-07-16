@@ -9,7 +9,7 @@ import DiscoverQuery from 'app/views/organizationDashboard/discoverQuery';
 describe('DiscoverQuery', function() {
   const {organization, router, routerContext} = initializeOrg({
     organization: {
-      features: ['sentry10', 'global-views'],
+      features: ['global-views'],
     },
     router: {
       location: {
@@ -103,7 +103,9 @@ describe('DiscoverQuery', function() {
     wrapper.update();
     expect(renderMock).toHaveBeenCalledTimes(0);
 
-    wrapper.setProps({organization: TestStubs.Organization()});
+    wrapper.setProps({
+      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+    });
     wrapper.update();
 
     // Called twice because of fetchData (state.reloading)
@@ -150,6 +152,64 @@ describe('DiscoverQuery', function() {
           expect.objectContaining({range: '24h'}),
           expect.objectContaining({range: '24h'}),
         ],
+      })
+    );
+  });
+
+  it('queries using "recentReleases" constraint', function() {
+    const release = TestStubs.Release();
+    renderMock.mockClear();
+    wrapper = mount(
+      <DiscoverQuery
+        selection={{datetime: {period: '12h'}}}
+        organization={organization}
+        releases={[release]}
+        queries={[
+          {
+            name: 'Events by Release',
+            fields: ['release'],
+            constraints: ['recentReleases'],
+            conditions: [],
+            aggregations: [['count()', null, 'Events']],
+            limit: 5000,
+
+            orderby: '-time',
+            groupby: ['time', 'release'],
+            rollup: 86400,
+          },
+        ]}
+      >
+        {renderMock}
+      </DiscoverQuery>,
+      routerContext
+    );
+
+    mockRouterPush(wrapper, router);
+
+    expect(discoverMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/discover/query/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aggregations: [['count()', null, 'Events']],
+          conditionFields: [
+            [
+              'if',
+              [
+                ['in', ['release', 'tuple', [`'${release.version}'`]]],
+                'release',
+                "'other'",
+              ],
+              'release',
+            ],
+          ],
+          fields: [],
+          groupby: ['time', 'release'],
+          conditions: [],
+          limit: 5000,
+          name: 'Events by Release',
+          orderby: '-time',
+        }),
+        method: 'POST',
       })
     );
   });

@@ -26,7 +26,7 @@ class DjangoDebugToolbarStats(Stats):
 
 
 class FunctionCall(object):
-    def __init__(self, statobj, func, depth=0, stats=None, id=0, parent_ids=[], hsv=(0, 0.5, 1)):
+    def __init__(self, statobj, func, depth=0, stats=None, id=0, parent_ids=(), hsv=(0, 0.5, 1)):
         self.statobj = statobj
         self.func = func
         if stats:
@@ -88,7 +88,7 @@ class FunctionCall(object):
                 self.depth + 1,
                 stats=stats,
                 id=six.text_type(self.id) + '_' + six.text_type(i),
-                parent_ids=self.parent_ids + [self.id],
+                parent_ids=self.parent_ids + (self.id,),
                 hsv=(h1, s1, 1)
             )
 

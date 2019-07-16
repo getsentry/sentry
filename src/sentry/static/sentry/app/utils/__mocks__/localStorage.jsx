@@ -1,15 +1,15 @@
 const localStorageMock = function() {
   let store = {};
   return {
-    getItem: function(key) {
+    getItem: jest.fn(key => {
       return store[key];
-    },
-    setItem: function(key, value) {
+    }),
+    setItem: jest.fn((key, value) => {
       store[key] = value.toString();
-    },
-    clear: function() {
+    }),
+    clear: jest.fn(() => {
       store = {};
-    },
+    }),
   };
 };
 

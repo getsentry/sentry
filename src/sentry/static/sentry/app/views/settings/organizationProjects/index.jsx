@@ -2,7 +2,6 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -13,19 +12,23 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withOrganization from 'app/utils/withOrganization';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
-export default class OrganizationProjects extends AsyncView {
+class OrganizationProjects extends AsyncView {
+  static propTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   static contextTypes = {
     router: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization,
   };
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    const searchQuery = nextProps?.location?.query?.query;
-    if (searchQuery !== this.props?.location?.query?.query) {
+    const searchQuery = nextProps.location.query.query;
+    if (searchQuery !== this.props.location.query.query) {
       this.setState({searchQuery});
     }
   }
@@ -38,7 +41,7 @@ export default class OrganizationProjects extends AsyncView {
         `/organizations/${orgId}/projects/`,
         {
           query: {
-            query: this.props?.location?.query?.query,
+            query: this.props.location.query.query,
           },
         },
       ],
@@ -59,23 +62,19 @@ export default class OrganizationProjects extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: this.props?.location?.query?.query || '',
+      searchQuery: this.props.location.query.query || '',
     };
   }
 
   getTitle() {
-    const org = this.context.organization;
+    const org = this.props.organization;
     return `${org.name} Projects`;
   }
 
   renderBody() {
     const {projectList, projectListPageLinks, projectStats} = this.state;
-    const {organization} = this.context;
-    const canCreateProjects = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
-
-    const hasNewRoutes = new Set(organization.features).has('sentry10');
+    const {organization} = this.props;
+    const canCreateProjects = new Set(organization.access).has('project:admin');
 
     const action = (
       <Button
@@ -111,10 +110,7 @@ export default class OrganizationProjects extends AsyncView {
             {sortProjects(projectList).map((project, i) => (
               <PanelItem p={0} key={project.id} align="center">
                 <Box p={2} flex="1">
-                  <ProjectListItem
-                    project={project}
-                    organization={this.context.organization}
-                  />
+                  <ProjectListItem project={project} organization={organization} />
                 </Box>
                 <Box w={3 / 12} p={2}>
                   <ProjectStatsGraph
@@ -123,17 +119,6 @@ export default class OrganizationProjects extends AsyncView {
                     stats={projectStats[project.id]}
                   />
                 </Box>
-                {!hasNewRoutes && (
-                  <Box p={2} align="right">
-                    <Button
-                      icon="icon-settings"
-                      size="small"
-                      to={`/settings/${organization.slug}/projects/${project.slug}/`}
-                    >
-                      {t('Settings')}
-                    </Button>
-                  </Box>
-                )}
               </PanelItem>
             ))}
             {projectList.length === 0 && (
@@ -148,3 +133,5 @@ export default class OrganizationProjects extends AsyncView {
     );
   }
 }
+
+export default withOrganization(OrganizationProjects);

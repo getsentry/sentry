@@ -1,14 +1,22 @@
 import React from 'react';
+
+import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import {removeSentryApp, publishRequestSentryApp} from 'app/actionCreators/sentryApps';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
-export default class OrganizationDeveloperSettings extends AsyncView {
+class OrganizationDeveloperSettings extends AsyncView {
+  static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+  };
+
   getEndpoints() {
     const {orgId} = this.props.params;
 
@@ -25,7 +33,13 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     );
   };
 
+  publishRequest = app => {
+    // TODO(scefali) May want to do some state change after the request to show that the publish request has been made
+    publishRequestSentryApp(this.api, app);
+  };
+
   renderBody() {
+    const {organization} = this.props;
     const {orgId} = this.props.params;
     const action = (
       <Button
@@ -34,17 +48,38 @@ export default class OrganizationDeveloperSettings extends AsyncView {
         to={`/settings/${orgId}/developer-settings/new/`}
         icon="icon-circle-add"
       >
-        {t('Create New Application')}
+        {t('Create New Integration')}
       </Button>
     );
 
     const isEmpty = this.state.applications.length === 0;
+    if (!organization.features.includes('sentry-apps')) {
+      return (
+        <div>
+          <SettingsPageHeader title={t('Developer Settings')} />
+          <Panel>
+            <PanelBody>
+              <EmptyMessage>
+                {t(
+                  "Want to build on top of the Sentry Integration Platform? We're working closely with early adopters. Please reach out to us by contacting partners@sentry.io"
+                )}
+              </EmptyMessage>
+            </PanelBody>
+          </Panel>
+        </div>
+      );
+    }
 
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} action={action} />
+        <AlertLink to="https://docs.sentry.io/workflow/integrations/integration-platform/">
+          {t(
+            'Have questions about the Integration Platform? Learn more about it in our docs.'
+          )}
+        </AlertLink>
         <Panel>
-          <PanelHeader>{t('Applications')}</PanelHeader>
+          <PanelHeader>{t('Integrations')}</PanelHeader>
           <PanelBody>
             {!isEmpty ? (
               this.state.applications.map(app => {
@@ -52,14 +87,15 @@ export default class OrganizationDeveloperSettings extends AsyncView {
                   <SentryApplicationRow
                     key={app.uuid}
                     app={app}
-                    orgId={orgId}
+                    organization={organization}
                     onRemoveApp={this.removeApp}
+                    onPublishRequest={this.publishRequest}
                     showPublishStatus={true}
                   />
                 );
               })
             ) : (
-              <EmptyMessage>{t('No applications have been created yet.')}</EmptyMessage>
+              <EmptyMessage>{t('No integrations have been created yet.')}</EmptyMessage>
             )}
           </PanelBody>
         </Panel>
@@ -67,3 +103,5 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     );
   }
 }
+
+export default withOrganization(OrganizationDeveloperSettings);

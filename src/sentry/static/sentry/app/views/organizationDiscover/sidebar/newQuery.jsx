@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 
 import Button from 'app/components/button';
@@ -10,7 +9,12 @@ import SentryTypes from 'app/sentryTypes';
 
 import QueryFields from './queryFields';
 import {createSavedQuery, generateQueryName} from '../utils';
-import {ButtonSpinner, QueryFieldsContainer} from '../styles';
+import {
+  ButtonSpinner,
+  QueryActions,
+  QueryActionsGroup,
+  QueryFieldsContainer,
+} from '../styles';
 
 export default class NewQuery extends React.Component {
   static propTypes = {
@@ -32,7 +36,9 @@ export default class NewQuery extends React.Component {
       .then(savedQuery => {
         addSuccessMessage(tct('Successfully saved query [name]', {name: savedQueryName}));
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
+          pathname: `/organizations/${organization.slug}/discover/saved/${
+            savedQuery.id
+          }/`,
           query: {editing: true},
         });
       })
@@ -58,9 +64,9 @@ export default class NewQuery extends React.Component {
           onUpdateField={onUpdateField}
           isLoading={isLoading}
           actions={
-            <Flex justify="space-between">
-              <Flex>
-                <Box mr={1}>
+            <QueryActions>
+              <QueryActionsGroup>
+                <div>
                   <Button
                     size="xsmall"
                     onClick={onRunQuery}
@@ -70,19 +76,19 @@ export default class NewQuery extends React.Component {
                     {t('Run')}
                     {isFetchingQuery && <ButtonSpinner />}
                   </Button>
-                </Box>
-                <Box>
+                </div>
+                <div>
                   <Button size="xsmall" onClick={() => this.saveQuery()}>
                     {t('Save')}
                   </Button>
-                </Box>
-              </Flex>
-              <Box>
+                </div>
+              </QueryActionsGroup>
+              <div>
                 <Button size="xsmall" onClick={onReset}>
                   {t('Reset')}
                 </Button>
-              </Box>
-            </Flex>
+              </div>
+            </QueryActions>
           }
         />
       </QueryFieldsContainer>

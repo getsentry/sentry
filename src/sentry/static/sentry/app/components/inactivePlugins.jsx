@@ -8,7 +8,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import TextOverflow from 'app/components/textOverflow';
 
-const IntegrationButton = styled.button`
+const IntegrationButton = styled('button')`
   width: 175px;
   text-align: center;
   font-size: 12px;
@@ -38,7 +38,9 @@ class InactivePlugins extends React.Component {
 
   render() {
     const plugins = this.props.plugins;
-    if (plugins.length === 0) return null;
+    if (plugins.length === 0) {
+      return null;
+    }
     return (
       <Panel>
         <PanelHeader>{t('Inactive Integrations')}</PanelHeader>

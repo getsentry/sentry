@@ -7,11 +7,11 @@ import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
 describe('TeamSettings', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
-    sinon.stub(window.location, 'assign');
+    jest.spyOn(window.location, 'assign');
   });
 
   afterEach(function() {
-    window.location.assign.restore();
+    window.location.assign.mockRestore();
   });
 
   it('can change name and slug', async function() {
@@ -96,8 +96,7 @@ describe('TeamSettings', function() {
       method: 'DELETE',
     });
     const routerPushMock = jest.fn();
-    const teamStoreTriggerMock = jest.fn();
-    sinon.stub(TeamStore, 'trigger', teamStoreTriggerMock);
+    jest.spyOn(TeamStore, 'trigger');
     TeamStore.loadInitialData([
       {
         slug: 'team-slug',
@@ -116,12 +115,12 @@ describe('TeamSettings', function() {
     );
 
     // Click "Remove Team button
-    wrapper.find('Button[priority="danger"]').simulate('click');
+    wrapper.find('Button[priority="danger"] button').simulate('click');
 
-    TeamStore.trigger.reset();
+    TeamStore.trigger.mockReset();
 
     // Wait for modal
-    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
+    wrapper.find('ModalDialog Button[priority="danger"] button').simulate('click');
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
       expect.objectContaining({
@@ -135,6 +134,6 @@ describe('TeamSettings', function() {
 
     expect(TeamStore.items).toEqual([]);
 
-    TeamStore.trigger.restore();
+    TeamStore.trigger.mockRestore();
   });
 });

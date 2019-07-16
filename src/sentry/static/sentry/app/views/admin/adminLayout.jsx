@@ -4,7 +4,7 @@ import React from 'react';
 
 import Footer from 'app/components/footer';
 import HookStore from 'app/stores/hookStore';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import Sidebar from 'app/components/sidebar';
 import withLatestContext from 'app/utils/withLatestContext';
 
@@ -39,36 +39,37 @@ export default class AdminLayout extends React.Component {
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink index={true} to="/manage/">
+                    <ListLink index to="/manage/">
                       Overview
                     </ListLink>
-                    <ListLink index={true} to="/manage/buffer/">
+                    <ListLink index to="/manage/buffer/">
                       Buffer
                     </ListLink>
-                    <ListLink index={true} to="/manage/queue/">
+                    <ListLink index to="/manage/queue/">
                       Queue
                     </ListLink>
-                    <ListLink index={true} to="/manage/quotas/">
+                    <ListLink index to="/manage/quotas/">
                       Quotas
                     </ListLink>
-                    <li>
-                      <a href="/manage/status/environment/">Environment</a>
-                    </li>
-                    <li>
-                      <a href="/manage/status/packages/">Packages</a>
-                    </li>
-                    <li>
-                      <a href="/manage/status/mail/">Mail</a>
-                    </li>
-                    <ListLink to="/manage/settings/">Settings</ListLink>
-                    <li>
-                      <a href="/manage/status/warnings/">Warnings</a>
-                    </li>
+                    <ListLink index to="/manage/status/environment/">
+                      Environment
+                    </ListLink>
+                    <ListLink index to="/manage/status/packages/">
+                      Packages
+                    </ListLink>
+                    <ListLink index to="/manage/status/mail/">
+                      Mail
+                    </ListLink>
+                    <ListLink index to="/manage/status/warnings/">
+                      Warnings
+                    </ListLink>
+                    <ListLink index to="/manage/settings/">
+                      Settings
+                    </ListLink>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="/manage/relays/">Relays</ListLink>
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <ListLink to="/manage/projects/">Projects</ListLink>
                     <ListLink to="/manage/users/">Users</ListLink>

@@ -73,4 +73,13 @@ def process_inbound_email(mailfrom, group_id, payload):
     max_retries=None
 )
 def send_email(message):
+    # HACK(django18) Django 1.8 assumes that message objects have a reply_to attribute
+    # When a message is enqueued by django 1.6 we need to patch that property on
+    # so that the message can be converted to a stdlib one.
+    #
+    # See
+    # https://github.com/django/django/blob/c686dd8e6bb3817bcf04b8f13c025b4d3c3dc6dc/django/core/mail/message.py#L273-L274
+    if not hasattr(message, 'reply_to'):
+        message.reply_to = []
+
     send_messages([message])

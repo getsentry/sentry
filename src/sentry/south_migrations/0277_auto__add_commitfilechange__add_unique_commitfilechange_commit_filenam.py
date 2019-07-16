@@ -60,7 +60,7 @@ class Migration(SchemaMigration):
         db.add_column(
             'sentry_repository',
             'config',
-            self.gf('jsonfield.fields.JSONField')(default={}),
+            self.gf('sentry.db.models.fields.jsonfield.JSONField')(default={}),
             keep_default=False
         )
 
@@ -74,11 +74,13 @@ class Migration(SchemaMigration):
             keep_default=False
         )
 
-        # Adding unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Adding unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.create_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Removing unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.delete_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
         # Removing unique constraint on 'CommitFileChange', fields ['commit', 'filename']
@@ -313,7 +315,7 @@ class Migration(SchemaMigration):
                     'to': "orm['sentry.AuthProvider']"
                 }
             ),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -345,7 +347,7 @@ class Migration(SchemaMigration):
             'Meta': {
                 'object_name': 'AuthProvider'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -840,7 +842,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -1684,7 +1686,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('organization', 'task'),)",
                 'object_name': 'OrganizationOnboardingTask'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -1938,7 +1940,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('project', 'version'),)",
                 'object_name': 'Release'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2091,7 +2093,7 @@ class Migration(SchemaMigration):
                 'object_name':
                 'Repository'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

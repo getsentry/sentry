@@ -1,5 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
+import {get} from 'lodash';
 import {getFormattedDate} from 'app/utils/dates';
 import {truncationFormatter} from '../utils';
 
@@ -8,7 +9,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc) {
     return value;
   }
 
-  return getFormattedDate(value, 'MMM D, YYYY', utc);
+  return getFormattedDate(value, 'MMM D, YYYY', {local: !utc});
 }
 
 function valueFormatter(value) {
@@ -38,14 +39,28 @@ function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc})
     //
     // Otherwise, it will be an `Object`, and is a tooltip for a single item
     const isAxisItem = Array.isArray(seriesParamsOrParam);
+    const axisFormatterOrDefault = formatAxisLabel || defaultFormatAxisLabel;
+
+    // Special tooltip if component is a `markPoint`
+    if (!isAxisItem && seriesParamsOrParam.componentType === 'markPoint') {
+      const timestamp = seriesParamsOrParam.data.coord[0];
+      const label = axisFormatterOrDefault(timestamp, isGroupedByDate, utc);
+      return `<div>${label} - ${seriesParamsOrParam.name}</div>
+              <div>${truncationFormatter(
+                seriesParamsOrParam.seriesName,
+                truncate
+              )}:  ${valueFormatter(seriesParamsOrParam.data.coord[1])}</div>`;
+    }
+
     const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in its data
-    const timestamp = isAxisItem ? seriesParams[0].axisValue : seriesParams[0]?.data[0];
+    const timestamp = isAxisItem
+      ? seriesParams[0].axisValue
+      : get(seriesParams, '[0].data[0]');
 
     const label =
-      seriesParams.length &&
-      (formatAxisLabel || defaultFormatAxisLabel)(timestamp, isGroupedByDate, utc);
+      seriesParams.length && axisFormatterOrDefault(timestamp, isGroupedByDate, utc);
 
     return [
       `<div>${truncationFormatter(label, truncate)}</div>`,
@@ -63,9 +78,15 @@ function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc})
   };
 }
 
-export default function Tooltip(
-  {filter, isGroupedByDate, formatter, truncate, utc, formatAxisLabel, ...props} = {}
-) {
+export default function Tooltip({
+  filter,
+  isGroupedByDate,
+  formatter,
+  truncate,
+  utc,
+  formatAxisLabel,
+  ...props
+} = {}) {
   formatter =
     formatter || getFormatter({filter, isGroupedByDate, truncate, utc, formatAxisLabel});
 

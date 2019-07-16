@@ -16,8 +16,8 @@ class SearchResult extends React.Component {
     highlighted: PropTypes.bool,
     item: PropTypes.shape({
       /**
-     * The source of the search result (i.e. a model type)
-     */
+       * The source of the search result (i.e. a model type)
+       */
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
@@ -33,11 +33,11 @@ class SearchResult extends React.Component {
         'help',
       ]),
       /**
-     * The type of result this is, for example:
-     * - can be a setting route,
-     * - an application route (e.g. org dashboard)
-     * - form field
-     */
+       * The type of result this is, for example:
+       * - can be a setting route,
+       * - an application route (e.g. org dashboard)
+       * - form field
+       */
       resultType: PropTypes.oneOf([
         'settings',
         'command',
@@ -156,18 +156,18 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled.span`
+const SearchTitle = styled('span')`
   /* stylelint-disable-next-line no-empty-block */
 `;
 
-const SearchDetail = styled.div`
+const SearchDetail = styled('div')`
   font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
   opacity: 0.8;
 `;
 
-const BadgeDetail = styled.div`
+const BadgeDetail = styled('div')`
   line-height: 1.3;
   color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
 `;

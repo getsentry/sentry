@@ -1,0 +1,109 @@
+{
+  "platform": "javascript",
+  "exception": [
+    {
+      "stacktrace": {
+        "frames": [
+          {
+            "function": "dispatchInteractiveEvent",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 4913,
+            "colno": 3,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "interactiveUpdates",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 2208,
+            "colno": 10,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "interactiveUpdates$1",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 17557,
+            "colno": 7,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "performSyncWork",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 17266,
+            "colno": 3,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "performWork",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 17294,
+            "colno": 7,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "performWorkOnRoot",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 17386,
+            "colno": 7,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "renderRoot",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 16547,
+            "colno": 11,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "replayUnitOfWork",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 15744,
+            "colno": 5,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "invokeGuardedCallback",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 248,
+            "colno": 31,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "Object.invokeGuardedCallbackDev",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 195,
+            "colno": 16,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          },
+          {
+            "function": "HTMLUnknownElement.sentryWrapped",
+            "abs_path": "webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js",
+            "in_app": false,
+            "lineno": 3197,
+            "colno": 27,
+            "filename": "webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js"
+          },
+          {
+            "function": "HTMLUnknownElement.callCallback",
+            "abs_path": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js",
+            "in_app": false,
+            "lineno": 145,
+            "colno": 14,
+            "filename": "webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js"
+          }
+        ]
+      },
+      "type": "ReferenceError",
+      "value": "varant is not defined"
+    }
+  ]
+}

@@ -1,7 +1,5 @@
-import React from 'react';
-
 import {extractMultilineFields} from 'app/utils';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -31,26 +29,14 @@ const formGroups = [
         type: 'string',
         required: true,
 
-        label: t('Legacy Name'),
-        help: tct(
-          '[Deprecated] In the future, only [Name] will be used to identify your organization',
-          {
-            Deprecated: <strong>DEPRECATED</strong>,
-            Name: <strong>Name</strong>,
-          }
-        ),
+        label: t('Display Name'),
+        help: t('This is the name that users will see for the organization'),
       },
       {
         name: 'isEarlyAdopter',
         type: 'boolean',
         label: t('Early Adopter'),
         help: t("Opt-in to new features before they're released to the public"),
-      },
-      {
-        name: 'disableNewVisibilityFeatures',
-        type: 'boolean',
-        label: t('Disable New Product Features'),
-        help: t('Temporarily opt-out of new product changes'),
       },
     ],
   },
@@ -213,6 +199,19 @@ const formGroups = [
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
+      {
+        name: 'attachmentsRole',
+        type: 'array',
+        choices: ({initialData} = {}) =>
+          (initialData.availableRoles &&
+            initialData.availableRoles.map(r => [r.id, r.name])) ||
+          [],
+        label: t('Attachments Access'),
+        help: t(
+          'Permissions required to download event attachments, such as native crash reports or log files'
         ),
         visible: ({features}) => features.has('event-attachments'),
       },

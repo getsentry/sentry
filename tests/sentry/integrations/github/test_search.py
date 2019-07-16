@@ -13,12 +13,14 @@ from sentry.testutils import APITestCase
 
 
 class GithubSearchTest(APITestCase):
+    # There is another test case that inherits from this
+    # one to ensure that github:enterprise behaves as expected.
     provider = 'github'
+    base_url = 'https://api.github.com'
 
-    def setUp(self):
-        super(GithubSearchTest, self).setUp()
+    def create_integration(self):
         future = datetime.now() + timedelta(hours=1)
-        self.integration = Integration.objects.create(
+        return Integration.objects.create(
             provider=self.provider,
             name='test',
             external_id=9999,
@@ -29,6 +31,10 @@ class GithubSearchTest(APITestCase):
                 'expires_at': future.replace(microsecond=0).isoformat(),
             }
         )
+
+    def setUp(self):
+        super(GithubSearchTest, self).setUp()
+        self.integration = self.create_integration()
         identity = Identity.objects.create(
             idp=IdentityProvider.objects.create(
                 type=self.provider,
@@ -57,7 +63,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_external_issue_results(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/issues?q=repo:example%20AEIOU',
+            self.base_url + '/search/issues?q=repo:example%20AEIOU',
             json={
                 'items': [
                     {'number': 25, 'title': 'AEIOU Error'},
@@ -84,7 +90,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_external_issue_results_with_id(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/issues?q=repo:example%2025',
+            self.base_url + '/search/issues?q=repo:example%2025',
             json={
                 'items': [
                     {'number': 25, 'title': 'AEIOU Error'},
@@ -109,7 +115,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_repo_results(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/repositories?q=org:test%20ex',
+            self.base_url + '/search/repositories?q=org:test%20ex',
             json={
                 'items': [
                     {
@@ -141,7 +147,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_no_external_issues_results(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/issues?q=repo:example%20nope',
+            self.base_url + '/search/issues?q=repo:example%20nope',
             json={'items': []}
         )
         resp = self.client.get(
@@ -160,7 +166,7 @@ class GithubSearchTest(APITestCase):
     def test_finds_no_project_results(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/repositories?q=org:test%20nope',
+            self.base_url + '/search/repositories?q=org:test%20nope',
             json={}
         )
         resp = self.client.get(
@@ -178,7 +184,7 @@ class GithubSearchTest(APITestCase):
     def test_search_issues_rate_limit(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/issues?q=repo:example%20ex',
+            self.base_url + '/search/issues?q=repo:example%20ex',
             status=403,
             json={
                 'message': 'API rate limit exceeded',
@@ -199,7 +205,7 @@ class GithubSearchTest(APITestCase):
     def test_search_project_rate_limit(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/repositories?q=org:test%20ex',
+            self.base_url + '/search/repositories?q=org:test%20ex',
             status=403,
             json={
                 'message': 'API rate limit exceeded',
@@ -284,7 +290,7 @@ class GithubSearchTest(APITestCase):
     def test_search_issues_request_fails(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/issues?q=repo:example%20ex',
+            self.base_url + '/search/issues?q=repo:example%20ex',
             status=503
         )
         resp = self.client.get(
@@ -301,7 +307,7 @@ class GithubSearchTest(APITestCase):
     def test_projects_request_fails(self):
         responses.add(
             responses.GET,
-            'https://api.github.com/search/repositories?q=org:test%20ex',
+            self.base_url + '/search/repositories?q=org:test%20ex',
             status=503
         )
         resp = self.client.get(

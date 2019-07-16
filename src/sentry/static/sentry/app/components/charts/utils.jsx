@@ -1,6 +1,7 @@
 import moment from 'moment';
 
-import {parsePeriodToHours} from 'app/utils';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {parsePeriodToHours} from 'app/utils/dates';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -57,7 +58,12 @@ export function getInterval(datetimeObj, highFidelity = false) {
 
 export function getDiffInMinutes(datetimeObj) {
   const {period, start, end} = datetimeObj;
-  return typeof period === 'string'
-    ? parsePeriodToHours(period) * 60
-    : moment(end).diff(start, 'minutes');
+
+  if (start && end) {
+    return moment(end).diff(start, 'minutes');
+  }
+
+  return (
+    parsePeriodToHours(typeof period === 'string' ? period : DEFAULT_STATS_PERIOD) * 60
+  );
 }

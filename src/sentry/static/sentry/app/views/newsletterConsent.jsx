@@ -48,9 +48,7 @@ export default createReactClass({
                 We'd love to keep you updated via email with product and feature
                 announcements, promotions, educational materials, and events. Our updates
                 focus on relevant information, and we'll never sell your data to third
-                parties. See our <a href="https://sentry.io/privacy/">
-                  Privacy Policy
-                </a>{' '}
+                parties. See our <a href="https://sentry.io/privacy/">Privacy Policy</a>{' '}
                 for more details.
               </span>
             }

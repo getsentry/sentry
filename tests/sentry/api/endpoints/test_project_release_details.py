@@ -1,8 +1,12 @@
 from __future__ import absolute_import
+import unittest
 
+import pytz
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
+from sentry.api.endpoints.project_release_details import ReleaseSerializer
+from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject)
 from sentry.testutils import APITestCase
 
@@ -254,3 +258,49 @@ class ReleaseDeleteTest(APITestCase):
         assert response.status_code == 400, response.content
 
         assert Release.objects.filter(id=release.id).exists()
+
+
+class ReleaseSerializerTest(unittest.TestCase):
+    def setUp(self):
+        super(ReleaseSerializerTest, self).setUp()
+        self.commits = [{'id': 'a' * 40}, {'id': 'b' * 40}]
+        self.ref = 'master'
+        self.url = 'https://example.com'
+        self.dateReleased = '1000-10-10T06:06'
+
+    def test_simple(self):
+        serializer = ReleaseSerializer(data={
+            'ref': self.ref,
+            'url': self.url,
+            'dateReleased': self.dateReleased,
+            'commits': self.commits,
+        })
+
+        assert serializer.is_valid()
+        assert sorted(serializer.fields.keys()) == sorted(['ref', 'url', 'dateReleased', 'commits'])
+
+        result = serializer.validated_data
+        assert result['ref'] == self.ref
+        assert result['url'] == self.url
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result['commits'] == self.commits
+
+    def test_fields_not_required(self):
+        serializer = ReleaseSerializer(data={})
+        assert serializer.is_valid()
+
+    def test_do_not_allow_null_commits(self):
+        serializer = ReleaseSerializer(data={
+            'commits': None,
+        })
+        assert not serializer.is_valid()
+
+    def test_ref_limited_by_max_version_length(self):
+        serializer = ReleaseSerializer(data={
+            'ref': 'a' * MAX_VERSION_LENGTH,
+        })
+        assert serializer.is_valid()
+        serializer = ReleaseSerializer(data={
+            'ref': 'a' * (MAX_VERSION_LENGTH + 1),
+        })
+        assert not serializer.is_valid()

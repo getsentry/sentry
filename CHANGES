@@ -1,5 +1,77 @@
-Version 9.1 (Unreleased)
-------------------------
+Version 10.0 (Unreleased)
+-------------------------
+
+Version 9.1.1
+-------------
+
+- Bug fixes from 9.1.0 release.
+
+Version 9.1
+-----------
+
+The changelog for Sentry 9.1 is summarized. For full details, we recommend reviewing the
+full set of SCM changes on GitHub.
+
+First, an important preface:
+
+FUTURE VERSIONS OF SENTRY WILL INTRODUCE BACKWARDS INCOMPATIBLE INFRASTRUCTURE
+
+This is the last version in the 9.x series, and our next release will migrate many legacy technologies onto standardized versions our SaaS service uses. The most notable, known concerns are:
+
+- Postgres will be the only supported SQL database
+- Our new search infrastructure (codenamed Snuba) will become required (we'll provide a migration path)
+- Various new infrastructure services will be required (such as Kafka)
+
+This is required for Sentry to continue to support open source releases in a meaningful way, and ensures we have only a single, standard way of running the services.
+
+Integrations
+~~~~~~~~~~~~
+
+We've added a new global integration concept to Sentry, which raises plugins to the organization level. Access to these integrations are controlled with the `org:integrations` scope, and are granted to any user with an Admin or higher role.
+
+This release includes integrations for:
+
+- Azure DevOps
+- BitBucket
+- GitHub
+- GitHub Enterprise
+- GitLab
+- Jira
+- Jira Server
+
+There is additionally a Slack integration, though it requires a now-deprecated workspace token in order to use.
+
+Note: a known issue exists where integrations are always shown as enabled, even when you haven't configured the appropriate server settings (such as OAuth keys).
+
+Native Support
+~~~~~~~~~~~~~~
+
+Various improvements for native (compiled) runtimes is included in this release.
+
+- Improved rendering for native stacktraces.
+- Improved support for Apple crash reports.
+- Added unreal engine 4 crash dump support.
+- Added code identifier support for debug files.
+
+Security
+~~~~~~~~
+
+- Added SAML2 SSO support.
+- Member invitations will now automatically expire after 30 days.
+- Fixed potential settings exposure if sentry was deployed in DEBUG mode.
+
+Misc
+~~~~
+
+- Settings have been greatly improved and updated to allow non-admins read-only access in many areas.
+- Added additional localization configuration for User Feedback dialogs.
+- Added account session history under Account Settings -> Security -> Session History.
+- Event data stored in Redis & RabbitMQ no longer uses pickle to encode data. All data is now encoded in JSON.
+- Various improvements to CSP and other browser Reporting API support.
+- Many features disabled via feature flags now indicate how to enable them in the UI.
+- Improved suspect commit generation for Java projects.
+- Repository access is now coupled to integrations access (`org:integrations`)
+- Various improvements to exception fingerprinting.
 
 Version 9.0
 -----------

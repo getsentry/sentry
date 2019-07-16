@@ -2,21 +2,13 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
-from sentry.utils.safe import set_path, setdefault_path, get_path
-
-import re
-import uuid
-
-_portable_callstack_regexp = re.compile(
-    r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
+from sentry.utils.safe import set_path, setdefault_path
 
 
 def process_unreal_crash(payload, user_id, environment, event):
     """Initial processing of the event from the Unreal Crash Reporter data.
     Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
 
-    event_id = uuid.uuid4().hex
-    event['event_id'] = event_id
     event['environment'] = environment
 
     if user_id:
@@ -50,21 +42,24 @@ def merge_apple_crash_report(apple_crash_report, event):
     event['threads'] = []
     for thread in apple_crash_report['threads']:
         crashed = thread.get('crashed')
+
+        # We don't create an exception because an apple crash report can have
+        # multiple crashed threads.
         event['threads'].append({
             'id': thread.get('id'),
             'name': thread.get('name'),
             'crashed': crashed,
             'stacktrace': {
                 'frames': [{
-                    'function': '<unknown>',  # Required by the interface
                     'instruction_addr': frame.get('instruction_addr'),
                     'package': frame.get('module'),
                     'lineno': frame.get('lineno'),
                     'filename': frame.get('filename'),
                 } for frame in reversed(thread.get('frames', []))],
-                'registers': thread.get('registers', []),
+                'registers': thread.get('registers') or None,
             },
         })
+
         if crashed:
             event['level'] = 'fatal'
 
@@ -78,12 +73,12 @@ def merge_apple_crash_report(apple_crash_report, event):
 
     # Extract referenced (not all loaded) images
     images = [{
-        'type': 'symbolic',
-        'id': module.get('uuid'),
+        'type': 'macho',
+        'code_file': module.get('path'),
+        'debug_id': module.get('uuid'),
         'image_addr': module.get('addr'),
         'image_size': module.get('size'),
         'arch': module.get('arch'),
-        'name': module.get('path'),
     } for module in apple_crash_report.get('binary_images')]
     event.setdefault('debug_meta', {})['images'] = images
 
@@ -118,65 +113,24 @@ def merge_unreal_context_event(unreal_context, event, project):
 
     user_desc = runtime_prop.pop('user_description', None)
     if user_desc is not None:
-        event_id = event.setdefault('event_id', uuid.uuid4().hex)
         feedback_user = 'unknown'
         if username is not None:
             feedback_user = username
 
         UserReport.objects.create(
             project=project,
-            event_id=event_id,
+            event_id=event['event_id'],
             name=feedback_user,
             email='',
             comments=user_desc,
         )
 
-    if not any(thread.get('stacktrace') and thread.get('crashed')
-               for thread in event.get('threads', [])):
-        portable_callstack = runtime_prop.pop('portable_call_stack', None)
-        if portable_callstack is not None:
-            frames = []
-
-            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-            for match in _portable_callstack_regexp.finditer(portable_callstack):
-                baseaddr = int(match.group('baseaddr'), 16)
-                offset = int(match.group('offset'), 16)
-                # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
-                if baseaddr == 0xffffffff and offset == 0xffffffff:
-                    continue
-
-                my_regex = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
-
-                # baseaddr reported in the pcallstack missing most relevant bits:
-                # i.e: 0x0000000080db0000
-                # The image address should be used instead with the offset:
-                it = next(
-                    (item for item in images if item.get("name") is not None and re.search(
-                        my_regex, item.get("name"), re.IGNORECASE)), {})
-
-                image_addr = it.get('image_addr')
-                if image_addr:
-                    # Rebase with the image address if available.
-                    baseaddr = int(image_addr, 16)
-
-                frames.append({
-                    'package': match.group('package'),
-                    'instruction_addr': hex(baseaddr + offset),
-                })
-
-            frames.reverse()
-
-            if len(frames) > 0:
-                event['stacktrace'] = {
-                    'frames': frames
-                }
-
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
 
     # add everything else as extra
-    extra = event.setdefault('extra', {})
-    extra.update(**runtime_prop)
+    set_path(event, 'contexts', 'unreal', 'type', value='unreal')
+    event['contexts']['unreal'].update(**runtime_prop)
 
     # add sdk info
     event['sdk'] = {

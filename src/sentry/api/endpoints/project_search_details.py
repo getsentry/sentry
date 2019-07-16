@@ -68,14 +68,14 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
             request.access.has_team_scope(team, 'project:write') for team in project.teams.all()
         )
         if has_team_scope:
-            serializer = SavedSearchSerializer(data=request.DATA, partial=True)
+            serializer = SavedSearchSerializer(data=request.data, partial=True)
         else:
-            serializer = LimitedSavedSearchSerializer(data=request.DATA, partial=True)
+            serializer = LimitedSavedSearchSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         kwargs = {}
         if result.get('name'):

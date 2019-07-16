@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.testutils import TestCase
 from sentry.lang.javascript.cache import SourceCache
+from unittest import TestCase
 
 
 class BasicCacheTest(TestCase):

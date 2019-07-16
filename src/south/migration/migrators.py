@@ -105,8 +105,7 @@ class Migrator(object):
         # Get the correct ORM.
         south.db.db.current_orm = self.orm(migration)
         # If we're not already in a dry run, and the database doesn't support
-        # running DDL inside a transaction, *cough*MySQL*cough* then do a dry
-        # run first.
+        # running DDL inside a transaction, then do a dry run first.
         if not isinstance(getattr(self, '_wrapper', self), DryRunMigrator):
             if not south.db.db.has_ddl_transactions:
                 dry_run = DryRunMigrator(migrator=self, ignore_fail=False)

@@ -4,6 +4,6 @@ From Organization: {{ from_org }}
 Project: {{ project_name }}
 Requested by: {{ requester }}
 Requested at: {{ request_time }}>
-Approving the transfer for {{ project_name }} will take you to the finals steps for where you would like {{ project_name }} to be transferred to.
+Click below to approve the transfer of {{ project_name }}. If you are an organization owner for more than one Sentry organization, you will be asked to choose which one should accept the project.
 
 Approve transfer: {{url}}

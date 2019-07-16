@@ -2,7 +2,6 @@ import Reflux from 'reflux';
 
 import ProjectActions from 'app/actions/projectActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
-import EnvironmentActions from 'app/actions/environmentActions';
 import NavigationActions from 'app/actions/navigationActions';
 
 // Keeps track of last usable project/org
@@ -22,8 +21,6 @@ const LatestContextStore = Reflux.createStore({
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
-    this.listenTo(EnvironmentActions.setActive, this.onSetActiveEnvironment);
-    this.listenTo(EnvironmentActions.clearActive, this.onClearActiveEnvironment);
     this.listenTo(NavigationActions.setLastRoute, this.onSetLastRoute);
   },
 
@@ -49,10 +46,16 @@ const LatestContextStore = Reflux.createStore({
 
   onUpdateOrganization(org) {
     // Don't do anything if base/target orgs are falsey
-    if (!this.state.organization) return;
-    if (!org) return;
+    if (!this.state.organization) {
+      return;
+    }
+    if (!org) {
+      return;
+    }
     // Check to make sure current active org is what has been updated
-    if (org.slug !== this.state.organization.slug) return;
+    if (org.slug !== this.state.organization.slug) {
+      return;
+    }
 
     this.state = {
       ...this.state,
@@ -103,23 +106,6 @@ const LatestContextStore = Reflux.createStore({
     this.state = {
       ...this.state,
       project,
-    };
-    this.trigger(this.state);
-  },
-
-  onSetActiveEnvironment(environment) {
-    this.state = {
-      ...this.state,
-      environment,
-    };
-
-    this.trigger(this.state);
-  },
-
-  onClearActiveEnvironment() {
-    this.state = {
-      ...this.state,
-      environment: null,
     };
     this.trigger(this.state);
   },

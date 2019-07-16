@@ -1,13 +1,16 @@
-/*global global*/
 import React from 'react';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
-import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
-import {SentryAppInstallations} from 'app/views/organizationIntegrations/sentryAppInstallations';
+import {
+  openSentryAppPermissionModal,
+  openSentryAppDetailsModal,
+} from 'app/actionCreators/modal';
+import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openSentryAppPermissionModal: jest.fn(),
+  openSentryAppDetailsModal: jest.fn(),
 }));
 
 describe('Sentry App Installations', function() {
@@ -30,7 +33,7 @@ describe('Sentry App Installations', function() {
     const wrapper = mount(
       <SentryAppInstallations
         api={api}
-        orgId={org.slug}
+        organization={org}
         applications={[]}
         installs={[]}
       />,
@@ -47,7 +50,7 @@ describe('Sentry App Installations', function() {
     let wrapper = mount(
       <SentryAppInstallations
         api={api}
-        orgId={org.slug}
+        organization={org}
         applications={[sentryApp]}
         installs={[]}
       />,
@@ -72,7 +75,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[install]}
           />,
@@ -85,13 +88,22 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
           routerContext
         );
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sentryApp,
+            organization: org,
+            onInstall: expect.any(Function),
+            isInstalled: false,
+          })
+        );
+        wrapper.instance().openModal(sentryApp);
         expect(openSentryAppPermissionModal).toHaveBeenCalledWith(
           expect.objectContaining({app: sentryApp, orgId: org.slug})
         );
@@ -102,7 +114,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[app]}
             installs={[]}
           />,
@@ -120,7 +132,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
@@ -128,10 +140,20 @@ describe('Sentry App Installations', function() {
         );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sentryApp,
+            organization: org,
+            onInstall: expect.any(Function),
+            isInstalled: false,
+          })
+        );
         wrapper.instance().install(sentryApp);
         await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
-          `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
+          `${sentryApp.redirectUrl}?code=${install.code}&installationId=${
+            install.uuid
+          }&orgSlug=${org.slug}`
         );
       });
 
@@ -144,7 +166,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryAppWithQuery]}
             installs={[]}
           />,
@@ -155,7 +177,9 @@ describe('Sentry App Installations', function() {
         wrapper.instance().install(sentryAppWithQuery);
         await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
-          `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
+          `https://example.com/setup?code=${install.code}&hello=1&installationId=${
+            install.uuid
+          }&orgSlug=${org.slug}`
         );
       });
     });
@@ -172,7 +196,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
@@ -196,7 +220,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[install]}
           />,

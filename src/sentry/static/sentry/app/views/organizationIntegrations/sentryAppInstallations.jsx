@@ -1,22 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {groupBy} from 'lodash';
-import parseurl from 'parseurl';
-import qs from 'query-string';
+
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
-import withApi from 'app/utils/withApi';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
     api: PropTypes.object,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     installs: PropTypes.array.isRequired,
     applications: PropTypes.array.isRequired,
   };
@@ -32,28 +32,25 @@ class SentryAppInstallations extends React.Component {
   redirectUser = data => {
     const {install, app} = data;
     const {installs} = this.state;
+    const {organization} = this.props;
 
     if (!app.redirectUrl) {
       addSuccessMessage(t(`${app.slug} successfully installed.`));
       this.setState({installs: [install, ...installs]});
     } else {
-      const url = parseurl({url: app.redirectUrl});
-      // Order the query params alphabetically.
-      // Otherwise ``qs`` orders them randomly and it's impossible to test.
-      const installQuery = JSON.parse(
-        JSON.stringify({installationId: install.uuid, code: install.code})
-      );
-      const query = {...qs.parse(url.query), ...installQuery};
-      const redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(
-        query
-      )}`;
+      const queryParams = {
+        installationId: install.uuid,
+        code: install.code,
+        orgSlug: organization.slug,
+      };
+      const redirectUrl = addQueryParamsToExistingUrl(app.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
   };
 
   install = app => {
-    const {orgId, api} = this.props;
-    installSentryApp(api, orgId, app).then(
+    const {organization, api} = this.props;
+    installSentryApp(api, organization.slug, app).then(
       data => {
         this.redirectUser({install: {...data}, app: {...app}});
       },
@@ -64,7 +61,7 @@ class SentryAppInstallations extends React.Component {
   uninstall = install => {
     const {api} = this.props;
     const origInstalls = [...this.state.installs];
-    const installs = this.state.installs.filter(i => install.uuid != i.uuid);
+    const installs = this.state.installs.filter(i => install.uuid !== i.uuid);
 
     uninstallSentryApp(api, install).then(
       () => this.setState({installs}),
@@ -76,9 +73,9 @@ class SentryAppInstallations extends React.Component {
   };
 
   openModal = app => {
-    const {orgId} = this.props;
+    const {organization} = this.props;
     const onInstall = () => this.install(app);
-    openSentryAppPermissionModal({app, orgId, onInstall});
+    openSentryAppPermissionModal({app, onInstall, orgId: organization.slug});
   };
 
   get installsByApp() {
@@ -86,7 +83,7 @@ class SentryAppInstallations extends React.Component {
   }
 
   render() {
-    const {orgId} = this.props;
+    const {organization} = this.props;
     const isEmpty = this.state.applications.length === 0;
 
     return (
@@ -97,7 +94,7 @@ class SentryAppInstallations extends React.Component {
               <SentryApplicationRow
                 key={app.uuid}
                 app={app}
-                orgId={orgId}
+                organization={organization}
                 onInstall={() => this.openModal(app)}
                 onUninstall={this.uninstall}
                 installs={this.installsByApp[app.slug]}
@@ -109,5 +106,4 @@ class SentryAppInstallations extends React.Component {
   }
 }
 
-export default withApi(SentryAppInstallations);
-export {SentryAppInstallations};
+export default SentryAppInstallations;

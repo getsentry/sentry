@@ -32,6 +32,7 @@ describe('Utils', function() {
             {value: 2, name: 'project.id 5 environment alpha'},
             {value: 6, name: 'project.id 5 environment production'},
           ],
+          animation: false,
         },
         {
           seriesName: 'uniq_id',
@@ -41,6 +42,7 @@ describe('Utils', function() {
             {value: 4, name: 'project.id 5 environment alpha'},
             {value: 10, name: 'project.id 5 environment production'},
           ],
+          animation: false,
         },
       ];
 

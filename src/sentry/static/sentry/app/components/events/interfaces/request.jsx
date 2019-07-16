@@ -1,18 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 import Truncate from 'app/components/truncate';
 
 class RequestInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -44,9 +43,7 @@ class RequestInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
-    const evt = this.props.event;
-    const data = this.props.data;
+    const {event, data, type} = this.props;
     const view = this.state.view;
 
     let fullUrl = getFullUrl(data);
@@ -110,10 +107,9 @@ class RequestInterface extends React.Component {
     const title = <div>{children}</div>;
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={evt}
-        type={this.props.type}
+      <EventDataSection
+        event={event}
+        type={type}
         title={title}
         wrapTitle={false}
         className="request"
@@ -123,7 +119,7 @@ class RequestInterface extends React.Component {
         ) : (
           <RichHttpContent data={data} />
         )}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

@@ -76,7 +76,9 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   toggleSelect(itemId) {
-    if (!this.records.hasOwnProperty(itemId)) return;
+    if (!this.records.hasOwnProperty(itemId)) {
+      return;
+    }
     this.records[itemId] = !this.records[itemId];
     this.trigger();
   },

@@ -9,7 +9,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.loader.browsersdkversion import get_highest_browser_sdk_version
 
 
 @scenario('ListClientKeys')
@@ -29,9 +28,9 @@ def create_key_scenario(runner):
 
 
 class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
-    public = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
-    secret = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
+    public = serializers.RegexField(r'^[a-f0-9]{32}$', required=False, allow_null=True)
+    secret = serializers.RegexField(r'^[a-f0-9]{32}$', required=False, allow_null=True)
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
@@ -88,17 +87,16 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                                      belong to.
         :param string name: the name for the new key.
         """
-        serializer = KeySerializer(data=request.DATA)
+        serializer = KeySerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             key = ProjectKey.objects.create(
                 project=project,
                 label=result.get('name'),
                 public_key=result.get('public'),
                 secret_key=result.get('secret'),
-                data={'browserSdkVersion': get_highest_browser_sdk_version()}
             )
 
             self.create_audit_entry(

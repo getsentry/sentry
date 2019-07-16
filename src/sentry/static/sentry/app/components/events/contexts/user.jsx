@@ -5,6 +5,7 @@ import _ from 'lodash';
 
 import Avatar from 'app/components/avatar';
 import ErrorBoundary from 'app/components/errorBoundary';
+import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
@@ -27,9 +28,9 @@ class UserContextType extends React.Component {
         <pre>
           {user.email}
           {EMAIL_REGEX.test(user.email) && (
-            <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
+            <ExternalLink href={`mailto:${user.email}`} className="external-icon">
               <em className="icon-envelope" />
-            </a>
+            </ExternalLink>
           )}
         </pre>,
       ]);

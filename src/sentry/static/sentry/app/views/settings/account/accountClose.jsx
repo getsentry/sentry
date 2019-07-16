@@ -11,7 +11,7 @@ import {
 } from 'app/components/panels';
 import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -22,7 +22,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
-const Important = styled.div`
+const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;
@@ -71,7 +71,9 @@ class AccountClose extends AsyncView {
     const checked = event.target.checked;
 
     // Can't unselect an org where you are the single owner
-    if (isSingle) return;
+    if (isSingle) {
+      return;
+    }
 
     this.setState(state => {
       const set = state.orgsToRemove || new Set(this.getSingleOwners());
@@ -136,11 +138,12 @@ class AccountClose extends AsyncView {
           <PanelBody>
             <PanelAlert type="info">
               {t(
-                'Ownership will remain with other members if an organization is not deleted.'
+                'Ownership will remain with other organization owners if an organization is not deleted.'
               )}
               <br />
-              {t(
-                'Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.'
+              {tct(
+                "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
+                {strong: <strong />}
               )}
             </PanelAlert>
 

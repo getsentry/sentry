@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, withRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import {throttle} from 'lodash';
 
@@ -41,6 +41,7 @@ import {
 class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
     onToggleEdit: PropTypes.func,
@@ -89,7 +90,9 @@ class Result extends React.Component {
   };
 
   updateDimensions = () => {
-    if (!this.container) return;
+    if (!this.container) {
+      return;
+    }
 
     this.setState({
       height: this.container.clientHeight,
@@ -188,7 +191,12 @@ class Result extends React.Component {
   }
 
   render() {
-    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage, utc} = this.props;
+    const {
+      data: {baseQuery, byDayQuery},
+      savedQuery,
+      onFetchPage,
+      utc,
+    } = this.props;
 
     const {view} = this.state;
 
@@ -244,6 +252,7 @@ class Result extends React.Component {
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
                 xAxis={{truncate: 80}}
                 renderer="canvas"
+                options={{animation: false}}
               />
             </ChartWrapper>
           )}
@@ -272,6 +281,7 @@ class Result extends React.Component {
                 renderer="canvas"
                 isGroupedByDate={true}
                 utc={utc}
+                options={{animation: false}}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -293,5 +303,4 @@ class Result extends React.Component {
   }
 }
 
-export {Result};
-export default withRouter(Result);
+export default Result;

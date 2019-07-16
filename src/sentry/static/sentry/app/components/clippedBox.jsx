@@ -1,14 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import classnames from 'classnames';
+
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 
 class ClippedBox extends React.Component {
   static propTypes = {
     title: PropTypes.string,
     defaultClipped: PropTypes.bool,
     clipHeight: PropTypes.number,
-    btnClassName: PropTypes.string,
     btnText: PropTypes.string,
   };
 
@@ -16,7 +18,6 @@ class ClippedBox extends React.Component {
     defaultClipped: false,
     clipHeight: 200,
     renderedHeight: null,
-    btnClassName: 'btn btn-primary btn-xs show-more',
     btnText: t('Show More'),
   };
 
@@ -51,13 +52,10 @@ class ClippedBox extends React.Component {
   };
 
   render() {
-    let className = 'box-clippable';
-    if (this.state.clipped) {
-      className += ' clipped';
-    }
-    if (this.state.revealed) {
-      className += ' revealed';
-    }
+    const className = classnames('box-clippable', {
+      clipped: this.state.clipped,
+      revealed: this.state.revealed,
+    });
 
     return (
       <div
@@ -69,9 +67,9 @@ class ClippedBox extends React.Component {
 
         {this.state.clipped && (
           <div className="clip-fade">
-            <a onClick={this.reveal} className={this.props.btnClassName}>
+            <Button onClick={this.reveal} priority="primary" size="xsmall">
               {this.props.btnText}
-            </a>
+            </Button>
           </div>
         )}
       </div>

@@ -17,12 +17,13 @@ describe('MetaData', function() {
       </MetaData>
     );
 
-    expect(
-      renderProp
-    ).toHaveBeenCalledWith('python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err', {
-      len: 29,
-      rem: [['device_id', 'p', 11, 51]],
-    });
+    expect(renderProp).toHaveBeenCalledWith(
+      'python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err',
+      {
+        len: 29,
+        rem: [['device_id', 'p', 11, 51]],
+      }
+    );
   });
 
   it('has the right value', function() {

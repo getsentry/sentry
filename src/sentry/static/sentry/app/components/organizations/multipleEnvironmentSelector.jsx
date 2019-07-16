@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import {uniq, intersection} from 'lodash';
+import {uniq} from 'lodash';
 
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -11,6 +11,7 @@ import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -59,28 +60,14 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // When projects change we may need to update the selected value if the current values
-    // become invalid.
-    const sharedProjects = intersection(
-      prevProps.selectedProjects,
-      this.props.selectedProjects
-    );
-    if (sharedProjects.length !== prevProps.selectedProjects.length) {
-      const selectedEnvs = Array.from(this.state.selectedEnvs.values());
-      const validEnvironments = this.getEnvironments();
-      const newSelection = validEnvironments.filter(env => selectedEnvs.includes(env));
-
-      if (newSelection.length !== selectedEnvs.length) {
-        this.replaceSelected(newSelection);
-      }
+    // Need to sync state
+    if (this.props.value !== prevProps.value) {
+      this.syncSelectedStateFromProps();
     }
   }
 
-  replaceSelected(newSelection) {
-    this.setState({selectedEnvs: new Set(newSelection)});
-    this.props.onChange(newSelection);
-    this.props.onUpdate();
-  }
+  syncSelectedStateFromProps = () =>
+    this.setState({selectedEnvs: new Set(this.props.value)});
 
   /**
    * If value in state is different than value from props, propagate changes
@@ -134,7 +121,9 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
   handleClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) return;
+    if (!this.state.hasChanges) {
+      return;
+    }
 
     analytics('environmentselector.update', {
       count: this.state.selectedEnvs.size,
@@ -233,6 +222,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         menuProps={{style: {position: 'relative'}}}
+        menuFooter={({actions}) =>
+          this.state.hasChanges && (
+            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+          )
+        }
         items={environments.map(env => ({
           value: env,
           searchKey: env,
@@ -252,8 +246,6 @@ class MultipleEnvironmentSelector extends React.PureComponent {
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
             hasSelected={value && !!value.length}
-            hasChanges={this.state.hasChanges}
-            onSubmit={() => this.handleUpdate(actions)}
             onClear={this.handleClear}
             {...getActorProps({
               isStyled: true,
@@ -281,11 +273,11 @@ const StyledInlineSvg = styled(InlineSvg)`
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
   box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: 0;
+  border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
   min-width: 120%;
 `;

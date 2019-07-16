@@ -86,7 +86,7 @@ def exec_(c, file):
         for line in c.splitlines():
             if line.startswith('from __future__'):
                 state = 1
-            elif line and not line.startswith('#', '"', "'") and state == 1:
+            elif line and not line.startswith(('#', '"', "'")) and state == 1:
                 state = 2
             if state == 2:
                 body.append(line)

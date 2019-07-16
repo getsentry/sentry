@@ -1,0 +1,15 @@
+---
+created: '2019-04-08T10:25:47.460482Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - what-is-love
+    matchers:
+    - - message
+      - '*love*'
+  version: 1
+fingerprint:
+- what-is-love

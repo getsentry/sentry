@@ -5,7 +5,7 @@ import responses
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import ApiAuthorization, ApiGrant, ServiceHook, ServiceHookProject
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
 
 
@@ -31,17 +31,6 @@ class TestCreator(TestCase):
             slug='nulldb',
             user=self.user,
         )
-
-    @responses.activate
-    def test_creates_api_authorization(self):
-        responses.add(responses.POST, 'https://example.com/webhook')
-        self.creator.call()
-
-        assert ApiAuthorization.objects.filter(
-            application=self.sentry_app.application,
-            user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
-        ).exists()
 
     @responses.activate
     def test_creates_installation(self):
@@ -71,6 +60,18 @@ class TestCreator(TestCase):
         assert not ServiceHookProject.objects.all()
 
     @responses.activate
+    def test_creates_audit_log_entry(self):
+        responses.add(responses.POST, 'https://example.com/webhook')
+        request = self.make_request(user=self.user, method='GET')
+        Creator.run(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_INSTALL).exists()
+
+    @responses.activate
     @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
     def test_notifies_service(self, run):
         with self.tasks():
@@ -84,4 +85,19 @@ class TestCreator(TestCase):
         install = self.creator.call()
 
         assert install.api_grant is not None
-        assert install.authorization is not None
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Creator.run(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+            request=self.make_request(user=self.user, method='GET'),
+        )
+
+        record.assert_called_with(
+            'sentry_app.installed',
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app='nulldb',
+        )

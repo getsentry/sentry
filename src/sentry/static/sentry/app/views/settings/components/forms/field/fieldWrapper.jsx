@@ -42,7 +42,7 @@ const borderStyle = p =>
 const getPadding = p =>
   p.stacked && !p.inline
     ? css`
-        padding: 0 ${p.hasControlState ? 0 : space(2)} ${space(1)} 0;
+        padding: 0 ${p.hasControlState ? 0 : space(2)} ${space(2)} 0;
       `
     : css`
         padding: ${space(2)} ${p.hasControlState ? 0 : space(2)} ${space(2)} ${space(2)};

@@ -5,9 +5,11 @@ import six
 
 from django.conf import settings
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry import features
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
 )
@@ -16,7 +18,7 @@ from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
-
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -25,6 +27,7 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationEventPermission, )
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(
@@ -103,21 +106,30 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
+
         # we ignore date range for both short id and event ids
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
-            if len(query) == 32:
-                groups = list(
-                    Group.objects.filter_by_event_id(project_ids, query)
+            event_id = normalize_event_id(query)
+            if event_id:
+                # For a direct hit lookup we want to use any passed project ids
+                # (we've already checked permissions on these) plus any other
+                # projects that the user is a member of. This gives us a better
+                # chance of returning the correct result, even if the wrong
+                # project is selected.
+                direct_hit_projects = set(project_ids) | set(
+                    [project.id for project in request.access.projects]
                 )
+                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
                     response = Response(
-                        serialize(
-                            groups, request.user, serializer(
-                                matching_event_id=query
-                            )
-                        )
+                        serialize(groups, request.user, serializer(matching_event_id=event_id))
                     )
                     response['X-Sentry-Direct-Hit'] = '1'
                     return response
@@ -127,8 +139,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
             if group is not None:
-                # check to make sure user has access to project
-                if group.project_id in project_ids:
+                # check all projects user has access to
+                if request.access.has_project_access(group.project):
                     response = Response(
                         serialize(
                             [group], request.user, serializer()
@@ -136,6 +148,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     )
                     response['X-Sentry-Direct-Hit'] = '1'
                     return response
+
+        # If group ids specified, just ignore any query components
+        try:
+            group_ids = set(map(int, request.GET.getlist('group')))
+        except ValueError:
+            return Response({'detail': 'Group ids must be integers'}, status=400)
+
+        if group_ids:
+            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            if any(g for g in groups if not request.access.has_project_access(g.project)):
+                raise PermissionDenied
+            return Response(serialize(groups, request.user, serializer()))
 
         try:
             start, end = get_date_range_from_params(request.GET)
@@ -157,7 +181,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
+        # TODO: We should try to integrate this into the search backend, since
+        # this can cause us to arbitrarily return fewer results than requested.
+        status = [
+            search_filter for search_filter in query_kwargs.get('search_filters', [])
+            if search_filter.key.name == 'status'
+        ]
+        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
             context = [r for r in context if r['status'] == 'unresolved']
 
         response = Response(context)
@@ -228,6 +258,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
 
         projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
 
         search_fn = functools.partial(
             self._search, request, organization, projects,
@@ -261,6 +296,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+                'organizations:global-views', organization, actor=request.user):
+            return Response({
+                'detail': 'You do not have the multi project stream feature enabled'
+            }, status=400)
 
         search_fn = functools.partial(
             self._search, request, organization, projects,

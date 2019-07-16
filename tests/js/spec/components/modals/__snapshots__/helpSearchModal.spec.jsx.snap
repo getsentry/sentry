@@ -119,24 +119,24 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                   >
                     <Content>
                       <Component
-                        className="css-17yjk7u-Content e1deq8q73"
+                        className="css-lo919j-Content e1deq8q73"
                       >
                         <Flex
-                          className="css-17yjk7u-Content e1deq8q73"
+                          className="css-lo919j-Content e1deq8q73"
                           direction="column"
                         >
                           <Base
-                            className="e1deq8q73 css-1j7ynie-Content"
+                            className="e1deq8q73 css-12nl3av-Content"
                             direction="column"
                           >
                             <div
-                              className="e1deq8q73 css-1j7ynie-Content"
+                              className="e1deq8q73 css-12nl3av-Content"
                               is={null}
                             >
                               <div>
                                 <SearchTitle>
                                   <span
-                                    className="css-1iu9oyn-SearchTitle e1deq8q70"
+                                    className="css-jyrvax-SearchTitle e1deq8q70"
                                   >
                                     <span
                                       key="0"
@@ -297,24 +297,24 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                   >
                     <Content>
                       <Component
-                        className="css-17yjk7u-Content e1deq8q73"
+                        className="css-lo919j-Content e1deq8q73"
                       >
                         <Flex
-                          className="css-17yjk7u-Content e1deq8q73"
+                          className="css-lo919j-Content e1deq8q73"
                           direction="column"
                         >
                           <Base
-                            className="e1deq8q73 css-1j7ynie-Content"
+                            className="e1deq8q73 css-12nl3av-Content"
                             direction="column"
                           >
                             <div
-                              className="e1deq8q73 css-1j7ynie-Content"
+                              className="e1deq8q73 css-12nl3av-Content"
                               is={null}
                             >
                               <div>
                                 <SearchTitle>
                                   <span
-                                    className="css-1iu9oyn-SearchTitle e1deq8q70"
+                                    className="css-jyrvax-SearchTitle e1deq8q70"
                                   >
                                     <span
                                       key="0"

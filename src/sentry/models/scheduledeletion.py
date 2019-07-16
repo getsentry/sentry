@@ -4,10 +4,13 @@ from datetime import timedelta
 from django.db import models
 from django.db.models import get_model
 from django.utils import timezone
-from jsonfield import JSONField
 from uuid import uuid4
 
-from sentry.db.models import BoundedBigIntegerField, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    JSONField,
+    Model
+)
 
 
 def default_guid():
@@ -38,13 +41,13 @@ class ScheduledDeletion(Model):
         db_table = 'sentry_scheduleddeletion'
 
     @classmethod
-    def schedule(cls, instance, days=30, data={}, actor=None):
+    def schedule(cls, instance, days=30, data=None, actor=None):
         return cls.objects.create(
             app_label=instance._meta.app_label,
             model_name=type(instance).__name__,
             object_id=instance.pk,
             date_scheduled=timezone.now() + timedelta(days=days),
-            data=data,
+            data=data or {},
             actor_id=actor.id if actor else None,
         )
 

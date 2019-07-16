@@ -96,13 +96,12 @@ class JiraIssueUpdatedWebhook(Endpoint):
         except AtlassianConnectValidationError:
             return self.respond(status=400)
 
-        data = request.DATA
+        data = request.data
 
         if not data.get('changelog'):
             logger.info(
                 'missing-changelog', extra={
                     'integration_id': integration.id,
-                    'data': data,
                 }
             )
             return self.respond()

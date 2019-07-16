@@ -6,19 +6,30 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
+import time
+import jsonschema
 import logging
 import six
-import jsonschema
 
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
+from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
 from sentry.constants import (
-    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
+    DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST,
+)
+from sentry.message_filters import should_filter_event
+from sentry.grouping.api import (
+    get_grouping_config_dict_for_project,
+    get_grouping_config_dict_for_event_data, load_grouping_config,
+    apply_server_fingerprinting, get_fingerprinting_config_for_project,
+    GroupingConfigNotFound,
 )
 from sentry.coreapi import (
     APIError,
@@ -31,17 +42,17 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization,
+    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
-from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -49,21 +60,13 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import is_postgres, is_mysql
+from sentry.utils.db import is_postgres
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.utils.geo import rust_geoip
-from sentry.utils.validators import is_float
-from sentry.utils.contexts_normalization import normalize_user_agent
-from sentry.stacktraces import normalize_in_app
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
-
 
 logger = logging.getLogger("sentry.events")
 
-
-MAX_SECS_IN_FUTURE = 60
-ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
-MAX_SECS_IN_PAST = 2592000  # 30 days
 SECURITY_REPORT_INTERFACES = (
     "csp",
     "hpkp",
@@ -101,6 +104,35 @@ def time_limit(silence):  # ~ 3600 per hour
         if silence >= amount:
             return sample_rate
     return settings.SENTRY_MAX_SAMPLE_TIME
+
+
+def validate_and_set_timestamp(data, timestamp):
+    """
+    Helper function for event processors/enhancers to avoid setting broken timestamps.
+
+    If we set a too old or too new timestamp then this affects event retention
+    and search.
+    """
+    # XXX(markus): We should figure out if we could run normalization
+    # after event processing again. Right now we duplicate code between here
+    # and event normalization
+    if timestamp:
+        current = time.time()
+
+        if current - MAX_SECS_IN_PAST > timestamp:
+            data.setdefault('errors', []).append({
+                'type': EventError.PAST_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        elif timestamp > current + MAX_SECS_IN_FUTURE:
+            data.setdefault('errors', []).append({
+                'type': EventError.FUTURE_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        else:
+            data['timestamp'] = float(timestamp)
 
 
 def parse_client_as_sdk(value):
@@ -145,74 +177,6 @@ def plugin_is_regression(group, event):
     return True
 
 
-def process_timestamp(value, meta, current_datetime=None):
-    original_value = value
-    if value is None:
-        return None
-
-    if is_float(value):
-        try:
-            value = datetime.fromtimestamp(float(value))
-        except Exception:
-            meta.add_error(EventError.INVALID_DATA, original_value)
-            return None
-    elif isinstance(value, six.string_types):
-        # all timestamps are in UTC, but the marker is optional
-        if value.endswith('Z'):
-            value = value[:-1]
-        if '.' in value:
-            # Python doesn't support long microsecond values
-            # https://github.com/getsentry/sentry/issues/1610
-            ts_bits = value.split('.', 1)
-            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-            fmt = '%Y-%m-%dT%H:%M:%S.%f'
-        else:
-            fmt = '%Y-%m-%dT%H:%M:%S'
-        try:
-            value = datetime.strptime(value, fmt)
-        except Exception:
-            meta.add_error(EventError.INVALID_DATA, original_value)
-            return None
-    elif not isinstance(value, datetime):
-        meta.add_error(EventError.INVALID_DATA, original_value)
-        return None
-
-    if current_datetime is None:
-        current_datetime = datetime.now()
-
-    if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        meta.add_error(EventError.FUTURE_TIMESTAMP, original_value)
-        return None
-
-    if value < current_datetime - timedelta(days=30):
-        meta.add_error(EventError.PAST_TIMESTAMP, original_value)
-        return None
-
-    return float(value.strftime('%s'))
-
-
-def sanitize_fingerprint(value):
-    # Special case floating point values: Only permit floats that have an exact
-    # integer representation in JSON to avoid rounding issues.
-    if isinstance(value, float):
-        return six.text_type(int(value)) if abs(value) < (1 << 53) else None
-
-    # Stringify known types
-    if isinstance(value, six.string_types + six.integer_types):
-        return six.text_type(value)
-
-    # Silently skip all other values
-    return None
-
-
-def cast_fingerprint(value):
-    # Return incompatible values so that schema validation can emit errors
-    if not isinstance(value, list):
-        return value
-
-    return list(f for f in map(sanitize_fingerprint, value) if f is not None)
-
-
 def has_pending_commit_resolution(group):
     return GroupLink.objects.filter(
         group_id=group.id,
@@ -228,73 +192,35 @@ class HashDiscarded(Exception):
     pass
 
 
-def scoreclause_sql(sc, connection):
-    db = getattr(connection, 'alias', 'default')
-    has_values = sc.last_seen is not None and sc.times_seen is not None
-    if is_postgres(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
+        self.group = group
+        self.last_seen = last_seen
+        self.times_seen = times_seen
+        # times_seen is likely an F-object that needs the value extracted
+        if hasattr(self.times_seen, 'rhs'):
+            self.times_seen = self.times_seen.rhs.value
+        super(ScoreClause, self).__init__(*args, **kwargs)
+
+    def __int__(self):
+        # Calculate the score manually when coercing to an int.
+        # This is used within create_or_update and friends
+        return self.group.get_score() if self.group else 0
+
+    def as_sql(self, compiler, connection, function=None, template=None):
+        db = getattr(connection, 'alias', 'default')
+        has_values = self.last_seen is not None and self.times_seen is not None
+        if is_postgres(db):
+            if has_values:
+                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
+                                                           to_timestamp(self.last_seen))
+            else:
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
         else:
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-    elif is_mysql(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
-        else:
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-    else:
-        # XXX: if we cant do it atomically let's do it the best we can
-        sql = int(sc)
+            # XXX: if we cant do it atomically let's do it the best we can
+            sql = int(self)
 
-    return (sql, [])
-
-
-try:
-    from django.db.models import Func
-except ImportError:
-    # XXX(dramer): compatibility hack for Django 1.6
-    class ScoreClause(object):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'children'):
-                self.times_seen = self.times_seen.children[1]
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def prepare_database_save(self, unused):
-            return self
-
-        def prepare(self, evaluator, query, allow_joins):
-            return
-
-        def evaluate(self, node, qn, connection):
-            return scoreclause_sql(self, connection)
-
-else:
-    # XXX(dramer): compatibility hack for Django 1.8+
-    class ScoreClause(Func):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'rhs'):
-                self.times_seen = self.times_seen.rhs.value
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def as_sql(self, compiler, connection, function=None, template=None):
-            return scoreclause_sql(self, connection)
+        return (sql, [])
 
 
 def add_meta_errors(errors, meta):
@@ -338,22 +264,35 @@ class EventManager(object):
         data,
         version='5',
         project=None,
+        grouping_config=None,
         client_ip=None,
         user_agent=None,
         auth=None,
         key=None,
         content_encoding=None,
-        for_store=True,
+        is_renormalize=False,
+        remove_other=None,
+        relay_config=None
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
+        # if not explicitly specified try to get the grouping from relay_config
+        if grouping_config is None and relay_config is not None:
+            config = relay_config.config
+            grouping_config = config.get('grouping_config')
+        # if we still don't have a grouping also try the project
+        if grouping_config is None and project is not None:
+            grouping_config = get_grouping_config_dict_for_project(self._project)
+        self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
         self._auth = auth
         self._key = key
-        self._for_store = for_store
+        self._is_renormalize = is_renormalize
+        self._remove_other = remove_other
         self._normalized = False
+        self.relay_config = relay_config
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -406,21 +345,12 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
-        tags = {
-            'use_rust_normalize': True
-        }
-
-        with metrics.timer('events.store.normalize.duration', tags=tags):
+        with metrics.timer('events.store.normalize.duration'):
             self._normalize_impl()
-
-        data = self.get_data()
-
-        data['use_rust_normalize'] = True
 
         metrics.timing(
             'events.store.normalize.errors',
-            len(data.get("errors") or ()),
-            tags=tags,
+            len(self._data.get("errors") or ()),
         )
 
     def _normalize_impl(self):
@@ -430,18 +360,15 @@ class EventManager(object):
 
         from semaphore.processing import StoreNormalizer
         rust_normalizer = StoreNormalizer(
-            geoip_lookup=rust_geoip,
             project_id=self._project.id if self._project else None,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
             key_id=six.text_type(self._key.id) if self._key else None,
+            grouping_config=self._grouping_config,
             protocol_version=six.text_type(self.version) if self.version is not None else None,
-            stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-            max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
-            valid_platforms=list(VALID_PLATFORMS),
-            max_secs_in_future=MAX_SECS_IN_FUTURE,
-            max_secs_in_past=MAX_SECS_IN_PAST,
-            enable_trimming=True,
+            is_renormalize=self._is_renormalize,
+            remove_other=self._remove_other,
+            **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
         self._data = CanonicalKeyDict(
@@ -463,32 +390,27 @@ class EventManager(object):
                 if interface.to_python(self._data[name]).should_filter(self._project):
                     return (True, FilterStatKeys.INVALID_CSP)
 
-        if self._client_ip and not is_valid_ip(self._project, self._client_ip):
+        if self._client_ip and not is_valid_ip(self.relay_config, self._client_ip):
             return (True, FilterStatKeys.IP_ADDRESS)
 
         release = self._data.get('release')
-        if release and not is_valid_release(self._project, release):
+        if release and not is_valid_release(self.relay_config, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
         error_message = get_path(self._data, 'logentry', 'formatted') \
             or get_path(self._data, 'logentry', 'message') \
             or ''
-        if error_message and not is_valid_error_message(self._project, error_message):
+        if error_message and not is_valid_error_message(self.relay_config, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
                 filter(None, map(exc.get, ['type', 'value']))
             )
-            if message and not is_valid_error_message(self._project, message):
+            if message and not is_valid_error_message(self.relay_config, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for filter_cls in filters.all():
-            filter_obj = filter_cls(self._project)
-            if filter_obj.is_enabled() and filter_obj.test(self._data):
-                return (True, six.text_type(filter_obj.id))
-
-        return (False, None)
+        return should_filter_event(self.relay_config, self._data)
 
     def get_data(self):
         return self._data
@@ -508,7 +430,7 @@ class EventManager(object):
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=data,
+            data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
             platform=platform
@@ -625,7 +547,6 @@ class EventManager(object):
 
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        fingerprint = data.get('fingerprint') or ['{{ default }}']
         release = data.get('release')
         dist = data.get('dist')
         environment = data.get('environment')
@@ -684,7 +605,9 @@ class EventManager(object):
 
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
-        normalize_in_app(data)
+        grouping_config = load_grouping_config(
+            get_grouping_config_dict_for_event_data(data, project))
+        normalize_stacktraces_for_grouping(data, grouping_config)
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
@@ -701,10 +624,23 @@ class EventManager(object):
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # Put the actual fingerprint back
-        data['fingerprint'] = fingerprint
+        # The active grouping config was put into the event in the
+        # normalize step before.  We now also make sure that the
+        # fingerprint was set to `'{{ default }}' just in case someone
+        # removed it from the payload.  The call to get_hashes will then
+        # look at `grouping_config` to pick the right paramters.
+        data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
+        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
-        hashes = event.get_hashes()
+        # Here we try to use the grouping config that was requested in the
+        # event.  If that config has since been deleted (because it was an
+        # experimental grouping config) we fall back to the default.
+        try:
+            hashes = event.get_hashes()
+        except GroupingConfigNotFound:
+            data['grouping_config'] = get_grouping_config_dict_for_project(project)
+            hashes = event.get_hashes()
+
         data['hashes'] = hashes
 
         # we want to freeze not just the metadata and type in but also the
@@ -789,7 +725,7 @@ class EventManager(object):
                     extra={
                         'event_uuid': event_id,
                         'project_id': project.id,
-                        'group_id': group.id,
+                        'group_id': group.id if group else None,
                         'model': EventMapping.__name__,
                     }
                 )
@@ -877,6 +813,14 @@ class EventManager(object):
             environment=environment,
         )
 
+        # Update any event attachment that arrived before the event group was defined.
+        EventAttachment.objects.filter(
+            project_id=project.id,
+            event_id=event_id,
+        ).update(
+            group_id=group.id,
+        )
+
         # save the event unless its been sampled
         if not is_sample:
             try:
@@ -889,7 +833,7 @@ class EventManager(object):
                     extra={
                         'event_uuid': event_id,
                         'project_id': project.id,
-                        'group_id': group.id,
+                        'group_id': group.id if group else None,
                         'model': Event.__name__,
                     }
                 )
@@ -898,7 +842,7 @@ class EventManager(object):
             tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                group_id=group.id,
+                group_id=group.id if group else None,
                 environment_id=environment.id,
                 event_id=event.id,
                 tags=event.tags,
@@ -941,7 +885,8 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send_robust(project=project, group=group, sender=Project)
+                first_event_received.send_robust(
+                    project=project, event=event, sender=Project)
 
         eventstream.insert(
             group=group,
@@ -967,6 +912,12 @@ class EventManager(object):
             },
         )
 
+        metrics.timing(
+            'events.size.data.post_save',
+            event.size,
+            tags={'project_id': project.id}
+        )
+
         return event
 
     def _get_event_user(self, project, data):
@@ -990,7 +941,7 @@ class EventManager(object):
             project.id,
             euser.hash,
         )
-        euser_id = default_cache.get(cache_key)
+        euser_id = cache.get(cache_key)
         if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
@@ -1010,7 +961,7 @@ class EventManager(object):
                             name=user_data['name'],
                         )
                     e_userid = euser.id
-                default_cache.set(cache_key, e_userid, 3600)
+                cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):

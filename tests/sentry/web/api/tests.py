@@ -5,11 +5,13 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from exam import fixture
 from mock import Mock
+from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, EventAttachment, Event
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
@@ -190,39 +192,29 @@ class StoreViewTest(TestCase):
         self.assertIn('Content-Length', resp)
         self.assertEquals(resp['Content-Length'], '0')
 
-    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
-    def test_options_response_with_invalid_origin(self):
-        resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        assert resp.status_code == 403, (resp.status_code, resp.content)
+    def test_options_with_no_origin_or_referrer(self):
+        resp = self.client.options(self.path)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
-        self.assertIn('X-Sentry-Error', resp)
-        assert resp['X-Sentry-Error'] == "Invalid origin: http://foo.com"
-        assert json.loads(resp.content)['error'] == resp['X-Sentry-Error']
 
-    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
-    def test_options_response_with_invalid_referrer(self):
-        resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        assert resp.status_code == 403, (resp.status_code, resp.content)
-        self.assertIn('Access-Control-Allow-Origin', resp)
-        self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
-        self.assertIn('X-Sentry-Error', resp)
-        assert resp['X-Sentry-Error'] == "Invalid origin: http://foo.com"
-        assert json.loads(resp.content)['error'] == resp['X-Sentry-Error']
-
-    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
         assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
-    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
         assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
+
+    def test_options_response_origin_preferred_over_referrer(self):
+        resp = self.client.options(self.path, HTTP_REFERER='http://foo.com', HTTP_ORIGIN='http://bar.com')
+        assert resp.status_code == 200, (resp.status_code, resp.content)
+        self.assertIn('Access-Control-Allow-Origin', resp)
+        self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://bar.com')
 
     @mock.patch('sentry.event_manager.is_valid_ip', mock.Mock(return_value=False))
     def test_request_with_blacklisted_ip(self):
@@ -728,6 +720,95 @@ class CrossDomainXmlTest(TestCase):
         )
 
 
+class EventAttachmentStoreViewTest(TestCase):
+    @fixture
+    def path(self):
+        # TODO: Having the event set here means the case where event isnt' created
+        # yet isn't covered by this test class
+        return reverse('sentry-api-event-attachment',
+                       kwargs={'project_id': self.project.id, 'event_id': self.event.event_id})
+
+    def has_attachment(self):
+        return EventAttachment.objects.filter(
+            project_id=self.project.id, event_id=self.event.id).exists()
+
+    def test_event_attachments_feature_creates_attachment(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_without_feature_returns_forbidden(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature({'organizations:event-attachments': False}):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 403
+        assert not self.has_attachment()
+
+    def test_event_attachments_without_files_returns_400(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({}, format='multipart')
+
+        assert response.status_code == 400
+        assert not self.has_attachment()
+
+    def test_event_attachments_event_doesnt_exist_creates_attachment(self):
+        with self.feature('organizations:event-attachments'):
+            self.path = self.path.replace(self.event.event_id, 'z' * 32)
+            out = BytesIO()
+            out.write('hi')
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_event_empty_file_creates_attachment(self):
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile(
+                        'mapping.txt',
+                        BytesIO().getvalue(),
+                        content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_event_exists_without_group_id(self):
+        out = BytesIO()
+        out.write('hi')
+        event_id = 'z' * 32
+        Event.objects.create(project_id=self.project.id, event_id=event_id)
+        with self.feature('organizations:event-attachments'):
+            self.path = self.path.replace(self.event.event_id, event_id)
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert EventAttachment.objects.get(
+            project_id=self.project.id,
+            event_id=self.event.id).group_id is None
+
+
 class RobotsTxtTest(TestCase):
     @fixture
     def path(self):
@@ -748,3 +829,45 @@ class APIViewTest(TestCase):
     def test_retry_after_int(self):
         resp = self._postWithHeader({})
         assert resp['Retry-After'] == '43'
+
+
+class ClientConfigViewTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-client-config')
+
+    def test_unauthenticated(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert not data['isAuthenticated']
+        assert data['user'] is None
+
+    def test_authenticated(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert data['isAuthenticated']
+        assert data['user']
+        assert data['user']['email'] == user.email
+
+    def test_superuser(self):
+        user = self.create_user('foo@example.com', is_superuser=True)
+        self.login_as(user, superuser=True)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+
+        data = json.loads(resp.content)
+        assert data['isAuthenticated']
+        assert data['user']
+        assert data['user']['email'] == user.email
+        assert data['user']['isSuperuser']

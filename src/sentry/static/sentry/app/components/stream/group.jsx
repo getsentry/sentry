@@ -16,7 +16,6 @@ import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectState from 'app/mixins/projectState';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 const StreamGroup = createReactClass({
@@ -31,7 +30,7 @@ const StreamGroup = createReactClass({
     memberList: PropTypes.array,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
@@ -48,7 +47,7 @@ const StreamGroup = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         data: GroupStore.get(this.props.id),
       });
@@ -77,9 +76,15 @@ const StreamGroup = createReactClass({
   },
 
   toggleSelect(evt) {
-    if (evt.target.tagName === 'A') return;
-    if (evt.target.tagName === 'INPUT') return;
-    if ($(evt.target).parents('a').length !== 0) return;
+    if (evt.target.tagName === 'A') {
+      return;
+    }
+    if (evt.target.tagName === 'INPUT') {
+      return;
+    }
+    if ($(evt.target).parents('a').length !== 0) {
+      return;
+    }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
@@ -89,10 +94,15 @@ const StreamGroup = createReactClass({
     const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
-      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+      <Group
+        data-test-id="group"
+        onClick={this.toggleSelect}
+        py={1}
+        px={0}
+        align="center"
+      >
         {canSelect && (
           <GroupCheckbox ml={2}>
-            {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
         )}
@@ -100,15 +110,14 @@ const StreamGroup = createReactClass({
           <EventOrGroupHeader data={data} query={query} />
           <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
+        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
-          {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <StyledCount value={data.count} />
         </Flex>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
-          {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">

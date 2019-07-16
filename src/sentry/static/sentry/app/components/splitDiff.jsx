@@ -24,7 +24,9 @@ class SplitDiff extends React.Component {
     const {className, type, base, target} = this.props;
     const diffFn = diffFnMap[type];
 
-    if (typeof diffFn !== 'function') return null;
+    if (typeof diffFn !== 'function') {
+      return null;
+    }
 
     const baseLines = base.split('\n');
     const targetLines = target.split('\n');
@@ -47,13 +49,15 @@ class SplitDiff extends React.Component {
               <tr key={j}>
                 <Cell isRemoved={highlightRemoved}>
                   <Line>
-                    {line.filter(result => !result.added).map((result, i) => {
-                      return (
-                        <Word key={i} isRemoved={result.removed}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.added)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isRemoved={result.removed}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
 
@@ -61,13 +65,15 @@ class SplitDiff extends React.Component {
 
                 <Cell isAdded={highlightAdded}>
                   <Line>
-                    {line.filter(result => !result.removed).map((result, i) => {
-                      return (
-                        <Word key={i} isAdded={result.added}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.removed)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isAdded={result.added}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
               </tr>

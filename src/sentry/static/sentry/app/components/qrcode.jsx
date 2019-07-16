@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-const Cell = styled.td`
+const Cell = styled('td')`
   height: 6px;
   width: 6px;
   padding: 0;
@@ -14,7 +14,7 @@ const WhiteCell = styled(Cell)`
   background-color: white;
 `;
 
-const Table = styled.table`
+const Table = styled('table')`
   margin: 0;
 `;
 
@@ -33,8 +33,8 @@ class Qrcode extends React.Component {
         <tbody>
           {code.map((row, i) => (
             <tr key={i}>
-              {row.map(
-                (cell, j) => (cell ? <BlackCell key={j} /> : <WhiteCell key={j} />)
+              {row.map((cell, j) =>
+                cell ? <BlackCell key={j} /> : <WhiteCell key={j} />
               )}
             </tr>
           ))}

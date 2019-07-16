@@ -11,8 +11,7 @@ class GroupTagExportTest(TestCase):
     def test_simple(self):
         key, value = 'foo', u'b\xe4r'
 
-        # Drop microsecond value for MySQL
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         project = self.create_project()
         group = self.create_group(project=project)

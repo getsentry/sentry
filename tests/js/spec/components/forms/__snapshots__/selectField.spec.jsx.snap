@@ -17,6 +17,7 @@ exports[`SelectField renders with flat choices 1`] = `
       }
       clearable={true}
       disabled={false}
+      height={36}
       id="id-fieldName"
       multiple={false}
       name="fieldName"
@@ -54,6 +55,7 @@ exports[`SelectField renders with paired choices 1`] = `
       }
       clearable={true}
       disabled={false}
+      height={36}
       id="id-fieldName"
       multiple={false}
       name="fieldName"
@@ -96,6 +98,7 @@ exports[`SelectField renders without form context 1`] = `
       <StyledSelectControl
         clearable={true}
         disabled={false}
+        height={36}
         id="id-fieldName"
         multiple={false}
         name="fieldName"

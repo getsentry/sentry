@@ -77,11 +77,11 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = result['email'].lower().strip()
 
         try:
@@ -115,11 +115,11 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         old_email = user.email.lower()
         new_email = result['email'].lower()
 
@@ -205,11 +205,11 @@ class UserEmailsEndpoint(UserEndpoint):
         :param string email: email to remove
         :auth required:
         """
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        email = validator.object['email']
+        email = validator.validated_data['email']
         primary_email = UserEmail.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
 

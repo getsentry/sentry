@@ -75,9 +75,11 @@ class NotificationPlugin(Plugin):
             return self.notify_users(event.group, event, triggering_rules=[
                                      r.label for r in notification.rules])
         except (SSLError, HTTPError, ApiError, PluginError, urllib2.HTTPError) as err:
-            self.logger.info('notification-plugin.notify-failed.', extra={
+            self.logger.info('notification-plugin.notify-failed', extra={
                 'error': six.text_type(err),
-                'plugin': self.slug
+                'plugin': self.slug,
+                'project_id': event.group.project_id,
+                'organization_id': event.group.project.organization_id,
             })
             return False
 
@@ -136,13 +138,16 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
+    @property
+    def alert_option_key(self):
+        return '%s:alert' % self.get_conf_key()
+
     def get_sendable_users(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
-        user_option = '%s:alert' % self.get_conf_key()
-        return project.get_notification_recipients(user_option)
+        return project.get_notification_recipients(self.alert_option_key)
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(

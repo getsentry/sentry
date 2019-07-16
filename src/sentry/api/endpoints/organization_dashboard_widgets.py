@@ -32,12 +32,12 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         :auth: required
         """
 
-        serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
+        serializer = WidgetSerializer(data=request.data, context={'organization': organization})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         try:
             with transaction.atomic():

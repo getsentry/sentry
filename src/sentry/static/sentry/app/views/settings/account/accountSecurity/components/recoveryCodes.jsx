@@ -38,7 +38,9 @@ class RecoveryCodes extends React.Component {
   render() {
     const {isEnrolled, codes} = this.props;
 
-    if (!isEnrolled || !codes) return null;
+    if (!isEnrolled || !codes) {
+      return null;
+    }
 
     const formattedCodes = codes.join(' \n');
 

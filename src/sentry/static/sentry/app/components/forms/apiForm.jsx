@@ -34,7 +34,7 @@ export default class ApiForm extends Form {
   onSubmit = e => {
     e.preventDefault();
 
-    if (this.state.state == FormState.SAVING) {
+    if (this.state.state === FormState.SAVING) {
       return;
     }
 

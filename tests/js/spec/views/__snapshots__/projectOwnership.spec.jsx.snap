@@ -80,6 +80,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 "org:read",
                 "org:write",
                 "org:admin",
+                "org:integrations",
                 "project:read",
                 "project:write",
                 "project:admin",
@@ -183,6 +184,46 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 },
               ],
               "title": "If ownership cannot be determined for an issue...",
+            },
+          ]
+        }
+      />
+    </Form>
+    <Form
+      allowUndo={false}
+      apiEndpoint="/projects/org-slug/project-slug/ownership/"
+      apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      hideFooter={true}
+      initialData={
+        Object {
+          "autoAssignment": "false",
+        }
+      }
+      onSubmitError={[Function]}
+      onSubmitSuccess={[Function]}
+      requireChanges={false}
+      saveOnBlur={true}
+      submitDisabled={false}
+      submitLabel="Save Changes"
+      submitPriority="primary"
+    >
+      <JsonForm
+        additionalFieldProps={Object {}}
+        forms={
+          Array [
+            Object {
+              "fields": Array [
+                Object {
+                  "disabled": false,
+                  "help": "Issue owners will be automatically assigned.",
+                  "label": "The issue is assigned to the team or user",
+                  "name": "autoAssignment",
+                  "type": "boolean",
+                },
+              ],
+              "title": "If a new event matches any of the ownership rules...",
             },
           ]
         }

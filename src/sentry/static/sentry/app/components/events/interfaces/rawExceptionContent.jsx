@@ -5,7 +5,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
 
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import {t} from 'app/locale';
 
 class RawExceptionContent extends React.Component {
   static propTypes = {
@@ -13,7 +16,9 @@ class RawExceptionContent extends React.Component {
     type: PropTypes.oneOf(['original', 'minified']),
     platform: PropTypes.string,
     eventId: PropTypes.string,
+    projectId: PropTypes.string.isRequired,
     values: PropTypes.array.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   constructor(props) {
@@ -43,8 +48,12 @@ class RawExceptionContent extends React.Component {
   }
 
   getAppleCrashReportEndpoint() {
-    const minified = this.props.type == 'minified';
-    return `/events/${this.props.eventId}/apple-crash-report?minified=${minified}`;
+    const {type, organization, projectId, eventId} = this.props;
+
+    const minified = type === 'minified';
+    return `/projects/${
+      organization.slug
+    }/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
   }
 
   fetchAppleCrashReport() {
@@ -83,9 +92,11 @@ class RawExceptionContent extends React.Component {
           exc
         );
       if (this.isNative()) {
-        if (this.state.loading) content = <LoadingIndicator />;
-        else if (this.state.error) content = <LoadingError onRetry={this.fetchData} />;
-        else if (!this.state.loading && this.state.crashReport != '') {
+        if (this.state.loading) {
+          content = <LoadingIndicator />;
+        } else if (this.state.error) {
+          content = <LoadingError onRetry={this.fetchData} />;
+        } else if (!this.state.loading && this.state.crashReport !== '') {
           content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
           downloadButton = (
             <a
@@ -96,7 +107,7 @@ class RawExceptionContent extends React.Component {
               }
               className="btn btn-default btn-sm pull-right"
             >
-              Download
+              {t('Download')}
             </a>
           );
         }
@@ -114,4 +125,4 @@ class RawExceptionContent extends React.Component {
   }
 }
 
-export default withApi(RawExceptionContent);
+export default withApi(withOrganization(RawExceptionContent));

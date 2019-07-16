@@ -60,7 +60,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ApiKeySerializer(api_key, data=request.DATA, partial=True)
+        serializer = ApiKeySerializer(api_key, data=request.data, partial=True)
 
         if serializer.is_valid():
             api_key = serializer.save()

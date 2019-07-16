@@ -56,11 +56,11 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         :param boolean subscribed: should be subscribed to newsletter
         :auth: required
         """
-        validator = NewsletterValidator(data=request.DATA)
+        validator = NewsletterValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = UserEmail.get_primary_email(user)
 
         kwargs = {
@@ -86,11 +86,11 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         :param boolean subscribed: should be subscribed to newsletter
         :auth: required
         """
-        validator = DefaultNewsletterValidator(data=request.DATA)
+        validator = DefaultNewsletterValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = UserEmail.get_primary_email(user)
 
         kwargs = {

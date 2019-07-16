@@ -1,0 +1,77 @@
+---
+created: '2019-04-30T08:25:08.423212Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+errors: null
+get_api_context:
+  excOmitted: null
+  hasSystemFrames: true
+  values:
+  - mechanism: null
+    module: foobar
+    rawStacktrace:
+      frames:
+      - absPath: null
+        colNo: null
+        context: []
+        errors: null
+        filename: null
+        function: <redacted>
+        inApp: true
+        instructionAddr: null
+        lineNo: 1
+        module: null
+        package: null
+        platform: null
+        rawFunction: null
+        symbol: null
+        symbolAddr: null
+        trust: null
+        vars: null
+      framesOmitted: null
+      hasSystemFrames: true
+      registers: null
+    stacktrace:
+      frames:
+      - absPath: foo/baz.c
+        colNo: null
+        context: []
+        errors: null
+        filename: foo/baz.c
+        function: main
+        inApp: true
+        instructionAddr: null
+        lineNo: 1
+        module: null
+        package: null
+        platform: null
+        rawFunction: null
+        symbol: null
+        symbolAddr: null
+        trust: null
+        vars: null
+      framesOmitted: null
+      hasSystemFrames: true
+      registers: null
+    threadId: null
+    type: ValueError
+    value: hello world
+to_json:
+  values:
+  - module: foobar
+    raw_stacktrace:
+      frames:
+      - function: <redacted>
+        in_app: true
+        lineno: 1
+    stacktrace:
+      frames:
+      - abs_path: foo/baz.c
+        filename: foo/baz.c
+        function: main
+        in_app: true
+        lineno: 1
+    type: ValueError
+    value: hello world
+to_string: "ValueError: hello world\n  File \"foo/baz.c\", line 1, in main"

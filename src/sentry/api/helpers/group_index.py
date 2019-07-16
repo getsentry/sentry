@@ -28,15 +28,13 @@ from sentry.models import (
     Team, User, UserOption
 )
 from sentry.models.group import looks_like_short_id
-from sentry.search.utils import InvalidQuery, parse_query
 from sentry.api.issue_search import (
     convert_query_values,
     InvalidSearchQuery,
     parse_search_query,
 )
 from sentry.signals import (
-    issue_deleted, issue_ignored, issue_resolved, issue_resolved_in_release,
-    resolved_with_commit
+    issue_deleted, issue_ignored, issue_resolved, advanced_search_feature_gated
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -74,13 +72,6 @@ def build_query_params_from_request(request, organization, projects, environment
     query = request.GET.get('query', 'is:unresolved').strip()
     if query:
         try:
-            query_kwargs.update(parse_query(projects, query, request.user, environments))
-        except InvalidQuery as e:
-            raise ValidationError(
-                u'Your search query could not be parsed: {}'.format(
-                    e.message)
-            )
-        try:
             search_filters = convert_query_values(
                 parse_search_query(query),
                 projects,
@@ -90,7 +81,7 @@ def build_query_params_from_request(request, organization, projects, environment
         except InvalidSearchQuery as e:
             raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
-        validate_search_filter_permissions(organization, search_filters)
+        validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs['search_filters'] = search_filters
 
     return query_kwargs
@@ -104,7 +95,7 @@ advanced_search_features = [
 ]
 
 
-def validate_search_filter_permissions(organization, search_filters):
+def validate_search_filter_permissions(organization, search_filters, user):
     """
     Verifies that an organization is allowed to perform the query that they
     submitted.
@@ -121,6 +112,11 @@ def validate_search_filter_permissions(organization, search_filters):
     for search_filter in search_filters:
         for feature_condition, feature_name in advanced_search_features:
             if feature_condition(search_filter):
+                advanced_search_feature_gated.send_robust(
+                    user=user,
+                    organization=organization,
+                    sender=validate_search_filter_permissions,
+                )
                 raise ValidationError(
                     u'You need access to the advanced search feature to use {}'.format(
                         feature_name),
@@ -153,11 +149,10 @@ class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 
-    def validate_repository(self, attrs, source):
-        value = attrs[source]
+    def validate_repository(self, value):
         project = self.context['project']
         try:
-            attrs[source] = Repository.objects.get(
+            value = Repository.objects.get(
                 organization_id=project.organization_id,
                 name=value,
             )
@@ -165,7 +160,7 @@ class InCommitValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'Unable to find the given repository.'
             )
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(InCommitValidator, self).validate(attrs)
@@ -203,12 +198,11 @@ class StatusDetailsValidator(serializers.Serializer):
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
-    def validate_inRelease(self, attrs, source):
-        value = attrs[source]
+    def validate_inRelease(self, value):
         project = self.context['project']
         if value == 'latest':
             try:
-                attrs[source] = Release.objects.filter(
+                value = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
                 ).extra(select={
@@ -220,7 +214,7 @@ class StatusDetailsValidator(serializers.Serializer):
                 )
         else:
             try:
-                attrs[source] = Release.objects.get(
+                value = Release.objects.get(
                     projects=project,
                     organization_id=project.organization_id,
                     version=value,
@@ -229,12 +223,12 @@ class StatusDetailsValidator(serializers.Serializer):
                 raise serializers.ValidationError(
                     'Unable to find a release with the given version.'
                 )
-        return attrs
+        return value
 
-    def validate_inNextRelease(self, attrs, source):
+    def validate_inNextRelease(self, value):
         project = self.context['project']
         try:
-            attrs[source] = Release.objects.filter(
+            value = Release.objects.filter(
                 projects=project,
                 organization_id=project.organization_id,
             ).extra(select={
@@ -244,7 +238,7 @@ class StatusDetailsValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'No release data present in the system to form a basis for \'Next Release\''
             )
-        return attrs
+        return value
 
 
 class GroupValidator(serializers.Serializer):
@@ -269,8 +263,7 @@ class GroupValidator(serializers.Serializer):
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
-    def validate_assignedTo(self, attrs, source):
-        value = attrs[source]
+    def validate_assignedTo(self, value):
         if value and value.type is User and not self.context['project'].member_set.filter(
                 user_id=value.id).exists():
             raise serializers.ValidationError(
@@ -281,7 +274,7 @@ class GroupValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'Cannot assign to a team without access to the project')
 
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
@@ -469,14 +462,14 @@ def update_groups(request, projects, organization_id, search_fn):
     # because of the assignee validation. Punting on this for now.
     for project in projects:
         serializer = GroupValidator(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             context={'project': project},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-    result = dict(serializer.object)
+    result = dict(serializer.validated_data)
 
     # so we won't have to requery for each group
     project_lookup = {p.id: p for p in projects}
@@ -670,28 +663,14 @@ def update_groups(request, projects, organization_id, search_fn):
                     if not is_bulk:
                         activity.send_notification()
 
-            if release:
-                issue_resolved_in_release.send_robust(
-                    group=group,
-                    project=project_lookup[group.project_id],
-                    user=acting_user,
-                    resolution_type=res_type_str,
-                    sender=update_groups,
-                )
-            elif commit:
-                resolved_with_commit.send_robust(
-                    organization_id=organization_id,
-                    user=request.user,
-                    group=group,
-                    sender=update_groups,
-                )
-            else:
-                issue_resolved.send_robust(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    user=acting_user,
-                    sender=update_groups,
-                )
+            issue_resolved.send_robust(
+                organization_id=organization_id,
+                user=acting_user or request.user,
+                group=group,
+                project=project_lookup[group.project_id],
+                resolution_type=res_type_str,
+                sender=update_groups,
+            )
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group.project_id,

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject should render loading 1`] = `
+exports[`InviteMember should render loading 1`] = `
 <div>
   <SettingsPageHeading
     noTitleStyles={false}
@@ -13,11 +13,53 @@ exports[`CreateProject should render loading 1`] = `
 </div>
 `;
 
-exports[`CreateProject should render roles when available and allowed, and handle submitting 1`] = `
+exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
+  api={Client {}}
   location={
     Object {
       "query": Object {},
+    }
+  }
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "1",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "testOrg",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "hasAccess": true,
+          "id": "1",
+          "name": "bar",
+          "slug": "bar",
+        },
+        Object {
+          "hasAccess": false,
+          "id": "2",
+          "name": "foo",
+          "slug": "foo",
+        },
+      ],
     }
   }
   params={
@@ -146,31 +188,29 @@ exports[`CreateProject should render roles when available and allowed, and handl
         selectedRole="member"
         setRole={[Function]}
       >
-        <Panel
-          className="new-invite-team"
-        >
+        <Panel>
           <Component
-            className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e1laxa7d0"
             >
               <PanelHeader>
                 <Component
-                  className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                  className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
                 >
                   <Flex
                     align="center"
-                    className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
                     justify="space-between"
                   >
                     <Base
                       align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                      className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
                       justify="space-between"
                     >
                       <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
                         is={null}
                       >
                         Role
@@ -185,7 +225,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                 flex={false}
               >
                 <div
-                  className="css-9vq8an-textStyles"
+                  className="css-a4ya23-textStyles"
                 >
                   <PanelItem
                     className="css-0"
@@ -347,458 +387,367 @@ exports[`CreateProject should render roles when available and allowed, and handl
           </Component>
         </Panel>
       </RoleSelect>
-      <TeamSelect
-        allSelected={[Function]}
-        onSelectAll={[Function]}
-        selectedTeams={
-          Set {
-            "bar",
+      <withApi(TeamSelect)
+        onAddTeam={[Function]}
+        onRemoveTeam={[Function]}
+        organization={
+          Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "org:integrations",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "1",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "scrapeJavaScript": true,
+            "slug": "testOrg",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "bar",
+                "slug": "bar",
+              },
+              Object {
+                "hasAccess": false,
+                "id": "2",
+                "name": "foo",
+                "slug": "foo",
+              },
+            ],
           }
         }
-        teams={
-          Array [
-            Object {
-              "hasAccess": true,
-              "id": "1",
-              "name": "bar",
-              "slug": "bar",
-            },
-            Object {
-              "hasAccess": false,
-              "id": "2",
-              "name": "foo",
-              "slug": "foo",
-            },
-          ]
-        }
-        toggleTeam={[Function]}
+        selectedTeams={Array []}
       >
-        <Panel
-          className="new-invite-team"
+        <TeamSelect
+          api={Client {}}
+          onAddTeam={[Function]}
+          onRemoveTeam={[Function]}
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "1",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "testOrg",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "bar",
+                  "slug": "bar",
+                },
+                Object {
+                  "hasAccess": false,
+                  "id": "2",
+                  "name": "foo",
+                  "slug": "foo",
+                },
+              ],
+            }
+          }
+          selectedTeams={Array []}
         >
-          <Component
-            className="new-invite-team css-yahxlu-Panel e1laxa7d0"
-          >
-            <div
-              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
+          <Panel>
+            <Component
+              className="css-10qfvek-Panel e1laxa7d0"
             >
-              <PanelHeader
-                hasButtons={true}
+              <div
+                className="css-10qfvek-Panel e1laxa7d0"
               >
-                <Component
-                  className="css-jmvceg-PanelHeader-getPadding e1p8v8nv0"
+                <PanelHeader
                   hasButtons={true}
                 >
-                  <Flex
-                    align="center"
-                    className="css-jmvceg-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
+                  <Component
+                    className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
+                    hasButtons={true}
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-19i62qd-PanelHeader-getPadding"
+                      className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
-                        className="e1p8v8nv0 css-19i62qd-PanelHeader-getPadding"
-                        is={null}
+                      <Base
+                        align="center"
+                        className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
+                        justify="space-between"
                       >
-                        Team
-                        <Button
-                          data-test-id="select-all"
-                          disabled={false}
-                          onClick={[Function]}
-                          size="small"
+                        <div
+                          className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
+                          is={null}
                         >
-                          <StyledButton
-                            data-test-id="select-all"
-                            disabled={false}
-                            onClick={[Function]}
-                            role="button"
-                            size="small"
+                          Team
+                          <DropdownAutoComplete
+                            alignMenu="right"
+                            disabled={true}
+                            emptyMessage="No teams"
+                            items={Array []}
+                            onChange={[Function]}
+                            onSelect={[Function]}
+                          >
+                            <DropdownAutoCompleteMenu
+                              alignMenu="right"
+                              blendCorner={true}
+                              disabled={true}
+                              emptyMessage="No teams"
+                              items={Array []}
+                              maxHeight={300}
+                              onChange={[Function]}
+                              onSelect={[Function]}
+                              searchPlaceholder="Filter search"
+                            >
+                              <AutoComplete
+                                closeOnSelect={true}
+                                disabled={true}
+                                inputIsActor={false}
+                                itemToString={[Function]}
+                                onSelect={[Function]}
+                                resetInputOnClose={true}
+                                shouldSelectWithEnter={true}
+                                shouldSelectWithTab={false}
+                              >
+                                <DropdownMenu
+                                  closeOnEscape={true}
+                                  isOpen={false}
+                                  keepMenuOpen={false}
+                                  onClickOutside={[Function]}
+                                >
+                                  <AutoCompleteRoot>
+                                    <Component
+                                      className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                    >
+                                      <div
+                                        className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                      >
+                                        <Actor
+                                          innerRef={[Function]}
+                                          isOpen={false}
+                                          onClick={[Function]}
+                                          onKeyDown={[Function]}
+                                          onMouseEnter={[Function]}
+                                          onMouseLeave={[Function]}
+                                          role="button"
+                                          style={
+                                            Object {
+                                              "outline": "none",
+                                            }
+                                          }
+                                          tabIndex={-1}
+                                        >
+                                          <div
+                                            className="css-12n6mek-Actor e53us8t0"
+                                            onClick={[Function]}
+                                            onKeyDown={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
+                                            role="button"
+                                            style={
+                                              Object {
+                                                "outline": "none",
+                                              }
+                                            }
+                                            tabIndex={-1}
+                                          >
+                                            <DropdownButton
+                                              aria-label="Add Team"
+                                              disabled={true}
+                                              isOpen={false}
+                                              size="xsmall"
+                                            >
+                                              <StyledButton
+                                                aria-label="Add Team"
+                                                disabled={true}
+                                                isOpen={false}
+                                                size="xsmall"
+                                              >
+                                                <ForwardRef
+                                                  aria-label="Add Team"
+                                                  className="css-13vimgs-StyledButton e1yghndz1"
+                                                  disabled={true}
+                                                  isOpen={false}
+                                                  size="xsmall"
+                                                >
+                                                  <Button
+                                                    align="center"
+                                                    aria-label="Add Team"
+                                                    className="css-13vimgs-StyledButton e1yghndz1"
+                                                    disabled={true}
+                                                    innerRef={null}
+                                                    size="xsmall"
+                                                  >
+                                                    <StyledButton
+                                                      aria-disabled={true}
+                                                      aria-label="Add Team"
+                                                      className="css-13vimgs-StyledButton e1yghndz1"
+                                                      disabled={true}
+                                                      href={null}
+                                                      innerRef={null}
+                                                      onClick={[Function]}
+                                                      role="button"
+                                                      size="xsmall"
+                                                      to={null}
+                                                    >
+                                                      <ForwardRef
+                                                        aria-disabled={true}
+                                                        aria-label="Add Team"
+                                                        className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
+                                                        disabled={true}
+                                                        href={null}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        size="xsmall"
+                                                        to={null}
+                                                      >
+                                                        <button
+                                                          aria-disabled={true}
+                                                          aria-label="Add Team"
+                                                          className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
+                                                          href={null}
+                                                          onClick={[Function]}
+                                                          role="button"
+                                                          size="xsmall"
+                                                          to={null}
+                                                        >
+                                                          <ButtonLabel
+                                                            align="center"
+                                                            size="xsmall"
+                                                          >
+                                                            <Component
+                                                              align="center"
+                                                              className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                                              size="xsmall"
+                                                            >
+                                                              <span
+                                                                className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                                              >
+                                                                Add Team
+                                                                <StyledChevronDown>
+                                                                  <Component
+                                                                    className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                                  >
+                                                                    <InlineSvg
+                                                                      className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                                      src="icon-chevron-down"
+                                                                    >
+                                                                      <StyledSvg
+                                                                        className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                                        height="1em"
+                                                                        viewBox={Object {}}
+                                                                        width="1em"
+                                                                      >
+                                                                        <svg
+                                                                          className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                          height="1em"
+                                                                          viewBox={Object {}}
+                                                                          width="1em"
+                                                                        >
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </StyledSvg>
+                                                                    </InlineSvg>
+                                                                  </Component>
+                                                                </StyledChevronDown>
+                                                              </span>
+                                                            </Component>
+                                                          </ButtonLabel>
+                                                        </button>
+                                                      </ForwardRef>
+                                                    </StyledButton>
+                                                  </Button>
+                                                </ForwardRef>
+                                              </StyledButton>
+                                            </DropdownButton>
+                                          </div>
+                                        </Actor>
+                                      </div>
+                                    </Component>
+                                  </AutoCompleteRoot>
+                                </DropdownMenu>
+                              </AutoComplete>
+                            </DropdownAutoCompleteMenu>
+                          </DropdownAutoComplete>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-a4ya23-textStyles"
+                  >
+                    <EmptyMessage>
+                      <Wrapper
+                        data-test-id="empty-message"
+                      >
+                        <div
+                          className="css-ev9qm0-Wrapper eh488yo0"
+                          data-test-id="empty-message"
+                        >
+                          <Description
+                            noMargin={true}
                           >
                             <Component
-                              className="css-dkprmi-StyledButton-getColors eqrebog0"
-                              data-test-id="select-all"
-                              disabled={false}
-                              onClick={[Function]}
-                              role="button"
-                              size="small"
+                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              noMargin={true}
                             >
-                              <button
-                                className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                data-test-id="select-all"
-                                disabled={false}
-                                onClick={[Function]}
-                                role="button"
-                                size="small"
+                              <div
+                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
                               >
-                                <ButtonLabel
-                                  size="small"
-                                >
-                                  <Component
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
-                                    size="small"
-                                  >
-                                    <span
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
-                                    >
-                                      <SelectAll>
-                                        <span
-                                          className="css-7qfmdl-SelectAll e1tbg1m41"
-                                        >
-                                          Select All
-                                        </span>
-                                      </SelectAll>
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </button>
+                                No Teams assigned
+                              </div>
                             </Component>
-                          </StyledButton>
-                        </Button>
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                className="grouping-controls team-choices"
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles grouping-controls team-choices"
-                >
-                  <PanelItem
-                    className="css-1jkp9i7"
-                    p={2}
-                  >
-                    <Base
-                      className="css-15ezwr8-PanelItem eo8n7lk0"
-                      p={2}
-                    >
-                      <div
-                        className="css-15ezwr8-PanelItem eo8n7lk0"
-                        is={null}
-                      >
-                        <TeamItem
-                          key="bar"
-                        >
-                          <div
-                            className="css-16v1fbz-TeamItem e1tbg1m40"
-                          >
-                            <label
-                              className="checkbox"
-                            >
-                              <Checkbox
-                                checked={false}
-                                id="bar"
-                                onChange={[Function]}
-                                style={
-                                  Object {
-                                    "verticalAlign": "middle",
-                                  }
-                                }
-                              >
-                                <input
-                                  checked={false}
-                                  className="chk-select"
-                                  id="bar"
-                                  onChange={[Function]}
-                                  style={
-                                    Object {
-                                      "verticalAlign": "middle",
-                                    }
-                                  }
-                                  type="checkbox"
-                                />
-                              </Checkbox>
-                              <IdBadge
-                                hideAvatar={true}
-                                team={
-                                  Object {
-                                    "hasAccess": true,
-                                    "id": "1",
-                                    "name": "bar",
-                                    "slug": "bar",
-                                  }
-                                }
-                              >
-                                <InlineErrorBoundary
-                                  mini={true}
-                                >
-                                  <ErrorBoundary
-                                    className="css-otlbo1-InlineErrorBoundary e83vi020"
-                                    mini={true}
-                                  >
-                                    <TeamBadgeContainer
-                                      hideAvatar={true}
-                                      team={
-                                        Object {
-                                          "hasAccess": true,
-                                          "id": "1",
-                                          "name": "bar",
-                                          "slug": "bar",
-                                        }
-                                      }
-                                    >
-                                      <TeamBadge
-                                        avatarSize={24}
-                                        hideAvatar={true}
-                                        hideOverflow={true}
-                                        team={
-                                          Object {
-                                            "hasAccess": true,
-                                            "id": "1",
-                                            "name": "bar",
-                                            "slug": "bar",
-                                          }
-                                        }
-                                      >
-                                        <BaseBadge
-                                          avatarProps={Object {}}
-                                          avatarSize={24}
-                                          displayName={
-                                            <BadgeDisplayName
-                                              hideOverflow={true}
-                                            >
-                                              #
-                                              bar
-                                            </BadgeDisplayName>
-                                          }
-                                          hideAvatar={true}
-                                          team={
-                                            Object {
-                                              "hasAccess": true,
-                                              "id": "1",
-                                              "name": "bar",
-                                              "slug": "bar",
-                                            }
-                                          }
-                                        >
-                                          <Flex
-                                            align="center"
-                                          >
-                                            <Base
-                                              align="center"
-                                              className="css-5ipae5"
-                                            >
-                                              <div
-                                                className="css-5ipae5"
-                                                is={null}
-                                              >
-                                                <DisplayNameAndDescription>
-                                                  <Base
-                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                  >
-                                                    <div
-                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                      is={null}
-                                                    >
-                                                      <DisplayName
-                                                        data-test-id="badge-display-name"
-                                                      >
-                                                        <span
-                                                          className="css-d0rtl9-DisplayName e165dl3i2"
-                                                          data-test-id="badge-display-name"
-                                                        >
-                                                          <BadgeDisplayName
-                                                            hideOverflow={true}
-                                                          >
-                                                            <Component
-                                                              className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              hideOverflow={true}
-                                                            >
-                                                              <span
-                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              >
-                                                                #
-                                                                bar
-                                                              </span>
-                                                            </Component>
-                                                          </BadgeDisplayName>
-                                                        </span>
-                                                      </DisplayName>
-                                                    </div>
-                                                  </Base>
-                                                </DisplayNameAndDescription>
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </BaseBadge>
-                                      </TeamBadge>
-                                    </TeamBadgeContainer>
-                                  </ErrorBoundary>
-                                </InlineErrorBoundary>
-                              </IdBadge>
-                            </label>
-                          </div>
-                        </TeamItem>
-                        <TeamItem
-                          key="foo"
-                        >
-                          <div
-                            className="css-16v1fbz-TeamItem e1tbg1m40"
-                          >
-                            <label
-                              className="checkbox"
-                            >
-                              <Checkbox
-                                checked={false}
-                                id="foo"
-                                onChange={[Function]}
-                                style={
-                                  Object {
-                                    "verticalAlign": "middle",
-                                  }
-                                }
-                              >
-                                <input
-                                  checked={false}
-                                  className="chk-select"
-                                  id="foo"
-                                  onChange={[Function]}
-                                  style={
-                                    Object {
-                                      "verticalAlign": "middle",
-                                    }
-                                  }
-                                  type="checkbox"
-                                />
-                              </Checkbox>
-                              <IdBadge
-                                hideAvatar={true}
-                                team={
-                                  Object {
-                                    "hasAccess": false,
-                                    "id": "2",
-                                    "name": "foo",
-                                    "slug": "foo",
-                                  }
-                                }
-                              >
-                                <InlineErrorBoundary
-                                  mini={true}
-                                >
-                                  <ErrorBoundary
-                                    className="css-otlbo1-InlineErrorBoundary e83vi020"
-                                    mini={true}
-                                  >
-                                    <TeamBadgeContainer
-                                      hideAvatar={true}
-                                      team={
-                                        Object {
-                                          "hasAccess": false,
-                                          "id": "2",
-                                          "name": "foo",
-                                          "slug": "foo",
-                                        }
-                                      }
-                                    >
-                                      <TeamBadge
-                                        avatarSize={24}
-                                        hideAvatar={true}
-                                        hideOverflow={true}
-                                        team={
-                                          Object {
-                                            "hasAccess": false,
-                                            "id": "2",
-                                            "name": "foo",
-                                            "slug": "foo",
-                                          }
-                                        }
-                                      >
-                                        <BaseBadge
-                                          avatarProps={Object {}}
-                                          avatarSize={24}
-                                          displayName={
-                                            <BadgeDisplayName
-                                              hideOverflow={true}
-                                            >
-                                              #
-                                              foo
-                                            </BadgeDisplayName>
-                                          }
-                                          hideAvatar={true}
-                                          team={
-                                            Object {
-                                              "hasAccess": false,
-                                              "id": "2",
-                                              "name": "foo",
-                                              "slug": "foo",
-                                            }
-                                          }
-                                        >
-                                          <Flex
-                                            align="center"
-                                          >
-                                            <Base
-                                              align="center"
-                                              className="css-5ipae5"
-                                            >
-                                              <div
-                                                className="css-5ipae5"
-                                                is={null}
-                                              >
-                                                <DisplayNameAndDescription>
-                                                  <Base
-                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                  >
-                                                    <div
-                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                      is={null}
-                                                    >
-                                                      <DisplayName
-                                                        data-test-id="badge-display-name"
-                                                      >
-                                                        <span
-                                                          className="css-d0rtl9-DisplayName e165dl3i2"
-                                                          data-test-id="badge-display-name"
-                                                        >
-                                                          <BadgeDisplayName
-                                                            hideOverflow={true}
-                                                          >
-                                                            <Component
-                                                              className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              hideOverflow={true}
-                                                            >
-                                                              <span
-                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              >
-                                                                #
-                                                                foo
-                                                              </span>
-                                                            </Component>
-                                                          </BadgeDisplayName>
-                                                        </span>
-                                                      </DisplayName>
-                                                    </div>
-                                                  </Base>
-                                                </DisplayNameAndDescription>
-                                              </div>
-                                            </Base>
-                                          </Flex>
-                                        </BaseBadge>
-                                      </TeamBadge>
-                                    </TeamBadgeContainer>
-                                  </ErrorBoundary>
-                                </InlineErrorBoundary>
-                              </IdBadge>
-                            </label>
-                          </div>
-                        </TeamItem>
-                      </div>
-                    </Base>
-                  </PanelItem>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </TeamSelect>
+                          </Description>
+                        </div>
+                      </Wrapper>
+                    </EmptyMessage>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </TeamSelect>
+      </withApi(TeamSelect)>
       <Button
+        align="center"
         busy={false}
         className="invite-member-submit"
         disabled={false}
@@ -806,6 +755,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
         priority="primary"
       >
         <StyledButton
+          aria-disabled={false}
           aria-label="Add Member"
           busy={false}
           className="invite-member-submit"
@@ -814,39 +764,41 @@ exports[`CreateProject should render roles when available and allowed, and handl
           priority="primary"
           role="button"
         >
-          <Component
+          <ForwardRef
+            aria-disabled={false}
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
+            className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
             role="button"
           >
             <button
+              aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
-              disabled={false}
+              className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
               onClick={[Function]}
-              priority="primary"
               role="button"
             >
               <ButtonLabel
+                align="center"
                 priority="primary"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel eqrebog1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel e12ma6z1"
                   priority="primary"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel eqrebog1"
+                    className="css-oo1m2a-ButtonLabel e12ma6z1"
                   >
                     Add Member
                   </span>
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </div>
@@ -854,7 +806,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
 </InviteMember>
 `;
 
-exports[`CreateProject should use invite/add language based on config 1`] = `
+exports[`InviteMember should use invite/add language based on config 1`] = `
 <TextBlock>
   You may add a user by their username if they already have an account. Multiple inputs delimited by commas.
 </TextBlock>

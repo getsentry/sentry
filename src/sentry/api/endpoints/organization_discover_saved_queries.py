@@ -33,14 +33,14 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
-        serializer = DiscoverSavedQuerySerializer(data=request.DATA, context={
+        serializer = DiscoverSavedQuerySerializer(data=request.data, context={
             'organization': organization,
         })
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.object
+        data = serializer.validated_data
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,

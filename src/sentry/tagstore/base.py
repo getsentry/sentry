@@ -57,7 +57,6 @@ class TagStorage(Service):
 
         'get_group_ids_for_users',
         'get_group_tag_values_for_users',
-        'get_group_ids_for_search_filter',
 
         'get_group_tag_keys_and_top_values',
 
@@ -67,7 +66,6 @@ class TagStorage(Service):
         'get_group_tag_value_iter',
 
         'get_group_tag_value_qs',
-        'get_event_tag_qs',
     ])
 
     __write_methods__ = frozenset([
@@ -216,9 +214,12 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(
+        self, project_id, environment_id, status=TagKeyStatus.VISIBLE,
+        include_values_seen=False,
+    ):
         """
-        >>> get_tag_key(1, 2)
+        >>> get_tag_keys(1, 2)
         """
         raise NotImplementedError
 
@@ -347,15 +348,11 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_tag_qs(self, project_id, environment_id, key, value):
-        """
-        >>> get_event_tag_qs(1, 2, 'environment', 'prod')
-        """
-        raise NotImplementedError
-
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids,
+                               start=None, end=None):
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])
+        `start` and `end` are only used by the snuba backend
         """
         raise NotImplementedError
 
@@ -402,13 +399,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_ids_for_search_filter(
-            self, project_id, environment_id, tags, candidates=None, limit=1000):
-        """
-        >>> get_group_ids_for_search_filter(1, 2, [('key1', 'value1'), ('key2', 'value2')])
-        """
-        raise NotImplementedError
-
     def update_group_for_events(self, project_id, event_ids, destination_id):
         """
         >>> update_group_for_events(1, [2, 3], 4)
@@ -422,7 +412,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_keys_and_top_values(
-            self, project_id, group_id, environment_ids, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+            self, project_id, group_id, environment_ids, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
 
         # only the snuba backend supports multi env, and that overrides this method
         if environment_ids and len(environment_ids) > 1:

@@ -78,7 +78,9 @@ class Search extends React.Component {
   }
 
   handleSelect = (item, state) => {
-    if (!item) return;
+    if (!item) {
+      return;
+    }
 
     analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
 
@@ -91,7 +93,9 @@ class Search extends React.Component {
       return;
     }
 
-    if (!to) return;
+    if (!to) {
+      return;
+    }
 
     if (to.startsWith('http')) {
       const open = window.open();
@@ -114,7 +118,9 @@ class Search extends React.Component {
   };
 
   saveQueryMetrics = debounce(query => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
     analytics(`${this.props.entryPoint}.query`, {query});
   }, 200);
 
@@ -210,8 +216,9 @@ class Search extends React.Component {
                             getItemProps,
                           });
                         })}
-                      {!isLoading &&
-                        !hasAnyResults && <EmptyItem>{t('No results found')}</EmptyItem>}
+                      {!isLoading && !hasAnyResults && (
+                        <EmptyItem>{t('No results found')}</EmptyItem>
+                      )}
                     </DropdownBox>
                   )}
                 </SearchSources>
@@ -226,7 +233,7 @@ class Search extends React.Component {
 
 export default withRouter(Search);
 
-const DropdownBox = styled.div`
+const DropdownBox = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -238,7 +245,7 @@ const DropdownBox = styled.div`
   overflow: hidden;
 `;
 
-const SearchWrapper = styled.div`
+const SearchWrapper = styled('div')`
   position: relative;
 `;
 

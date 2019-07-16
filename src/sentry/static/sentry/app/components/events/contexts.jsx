@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
@@ -52,16 +52,25 @@ class ContextChunk extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
+    if (
+      prevProps.group.id !== this.props.group.id ||
+      prevProps.type !== this.props.type
+    ) {
       this.syncPlugin();
     }
   }
 
   syncPlugin = () => {
-    const sourcePlugin = getSourcePlugin(
-      this.props.group.pluginContexts,
-      this.props.type
-    );
+    const {group, type, alias} = this.props;
+
+    // Search using `alias` first because old plugins rely on it and type is set to "default"
+    // e.g. sessionstack
+    const sourcePlugin =
+      type === 'default'
+        ? getSourcePlugin(group.pluginContexts, alias) ||
+          getSourcePlugin(group.pluginContexts, type)
+        : getSourcePlugin(group.pluginContexts, type);
+
     if (!sourcePlugin) {
       this.setState({
         pluginLoading: false,
@@ -111,7 +120,10 @@ class ContextChunk extends React.Component {
     const group = this.props.group;
     const evt = this.props.event;
     const {type, alias, value} = this.props;
-    const Component = getContextComponent(type);
+    const Component =
+      type === 'default'
+        ? getContextComponent(alias) || getContextComponent(type)
+        : getContextComponent(type);
 
     // this can happen if the component does not exist
     if (!Component) {
@@ -119,7 +131,7 @@ class ContextChunk extends React.Component {
     }
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         group={group}
         event={evt}
         key={`context-${alias}`}
@@ -127,7 +139,7 @@ class ContextChunk extends React.Component {
         title={this.renderTitle(Component)}
       >
         <Component alias={alias} data={value} />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

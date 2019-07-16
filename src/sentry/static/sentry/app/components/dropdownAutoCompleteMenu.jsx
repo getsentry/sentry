@@ -3,13 +3,14 @@ import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
+import DropdownBubble from 'app/components/dropdownBubble';
 import Input from 'app/views/settings/components/forms/controls/input';
-import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import space from 'app/styles/space';
 
 const ItemObjectPropType = {
   value: PropTypes.any,
@@ -121,6 +122,11 @@ class DropdownAutoCompleteMenu extends React.Component {
     virtualizedHeight: PropTypes.number,
 
     /**
+     * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
+     */
+    virtualizedLabelHeight: PropTypes.number,
+
+    /**
      * Search input's placeholder text
      */
     searchPlaceholder: PropTypes.string,
@@ -191,7 +197,9 @@ class DropdownAutoCompleteMenu extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
-    if (!items) return [];
+    if (!items) {
+      return [];
+    }
 
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
@@ -215,8 +223,19 @@ class DropdownAutoCompleteMenu extends React.Component {
     return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
   };
 
+  getHeight = items => {
+    const {maxHeight, virtualizedHeight, virtualizedLabelHeight} = this.props;
+    const minHeight = virtualizedLabelHeight
+      ? items.reduce(
+          (a, r) => a + (r.groupLabel ? virtualizedLabelHeight : virtualizedHeight),
+          0
+        )
+      : items.length * virtualizedHeight;
+    return Math.min(minHeight, maxHeight);
+  };
+
   renderList = ({items, ...otherProps}) => {
-    const {maxHeight, virtualizedHeight} = this.props;
+    const {virtualizedHeight, virtualizedLabelHeight} = this.props;
 
     // If `virtualizedHeight` is defined, use a virtualized list
     if (typeof virtualizedHeight !== 'undefined') {
@@ -225,9 +244,14 @@ class DropdownAutoCompleteMenu extends React.Component {
           {({width}) => (
             <List
               width={width}
-              height={Math.min(items.length * virtualizedHeight, maxHeight)}
+              style={{outline: 'none'}}
+              height={this.getHeight(items)}
               rowCount={items.length}
-              rowHeight={virtualizedHeight}
+              rowHeight={({index}) => {
+                return items[index].groupLabel && virtualizedLabelHeight
+                  ? virtualizedLabelHeight
+                  : virtualizedHeight;
+              }}
               rowRenderer={({key, index, style}) => {
                 const item = items[index];
                 return this.renderRow({
@@ -263,7 +287,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     const {index} = item;
 
     return item.groupLabel ? (
-      <LabelWithBorder style={style} key={item.label || item.id}>
+      <LabelWithBorder style={style} key={item.id}>
         {item.label && <GroupLabel>{item.label}</GroupLabel>}
       </LabelWithBorder>
     ) : (
@@ -357,6 +381,12 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
+          // When virtualization is turned on, we need to pass in the number of
+          // selecteable items for arrow-key limits
+          const itemCount =
+            this.props.virtualizedHeight &&
+            autoCompleteResults.filter(i => !i.groupLabel).length;
+
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
@@ -374,13 +404,14 @@ class DropdownAutoCompleteMenu extends React.Component {
               })}
 
               {isOpen && (
-                <StyledMenu
+                <BubbleWithMinWidth
                   className={className}
                   {...getMenuProps({
                     ...menuProps,
                     style,
                     isStyled: true,
                     css: this.props.css,
+                    itemCount,
                     blendCorner,
                     alignMenu,
                     menuWithArrow,
@@ -403,7 +434,10 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
 
-                    <StyledItemList maxHeight={maxHeight}>
+                    <StyledItemList
+                      data-test-id="autocomplete-list"
+                      maxHeight={maxHeight}
+                    >
                       {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
                       {showNoResultsMessage && (
                         <EmptyMessage>
@@ -429,7 +463,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                       <LabelWithPadding>{renderedFooter}</LabelWithPadding>
                     )}
                   </div>
-                </StyledMenu>
+                </BubbleWithMinWidth>
               )}
             </AutoCompleteRoot>
           );
@@ -438,69 +472,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     );
   }
 }
-
-/**
- * If `blendCorner` is false, then we apply border-radius to all corners
- *
- * Otherwise apply radius to opposite side of `alignMenu`
- */
-const getMenuBorderRadius = ({blendCorner, alignMenu, theme}) => {
-  const radius = theme.borderRadius;
-  if (!blendCorner) {
-    return css`
-      border-radius: ${radius};
-    `;
-  }
-
-  const hasTopLeftRadius = alignMenu !== 'left';
-  const hasTopRightRadius = !hasTopLeftRadius;
-
-  return css`
-    border-radius: ${hasTopLeftRadius ? radius : 0} ${hasTopRightRadius ? radius : 0}
-      ${radius} ${radius};
-  `;
-};
-
-const getMenuArrow = ({menuWithArrow, alignMenu}) => {
-  if (!menuWithArrow) return '';
-  const alignRight = alignMenu === 'right';
-
-  return css`
-    top: 32px;
-
-    &::before {
-      width: 0;
-      height: 0;
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-bottom: 9px solid rgba(52, 60, 69, 0.35);
-      content: '';
-      display: block;
-      position: absolute;
-      top: -9px;
-      left: 10px;
-      z-index: -2;
-      ${alignRight && 'left: auto;'};
-      ${alignRight && 'right: 10px;'};
-    }
-
-    &:after {
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-bottom: 8px solid #fff;
-      content: '';
-      display: block;
-      position: absolute;
-      top: -8px;
-      left: 11px;
-      z-index: -1;
-      ${alignRight && 'left: auto;'};
-      ${alignRight && 'right: 11px;'};
-    }
-  `;
-};
 
 const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   position: relative;
@@ -538,8 +509,12 @@ const StyledInput = styled(Input)`
 `;
 
 const getItemPaddingForSize = size => {
-  if (size === 'small') return `${space(0.5)} ${space(1)}`;
-  if (size === 'zero') return '0';
+  if (size === 'small') {
+    return `${space(0.5)} ${space(1)}`;
+  }
+  if (size === 'zero') {
+    return '0';
+  }
 
   return space(1);
 };
@@ -553,7 +528,7 @@ const AutoCompleteItem = styled('div')`
 
   font-size: 0.9em;
   background-color: ${p =>
-    p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+    p.index === p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -569,8 +544,10 @@ const AutoCompleteItem = styled('div')`
 
 const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.offWhite};
-  border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
     border-top: none;
@@ -588,24 +565,6 @@ const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
 `;
 
-const StyledMenu = styled('div')`
-  background: #fff;
-  border: 1px solid ${p => p.theme.borderDark};
-  position: absolute;
-  top: calc(100% - 1px);
-  min-width: 250px;
-  z-index: ${p =>
-    p.theme.zIndex.dropdownAutocomplete
-      .menu}; /* This is needed to be able to cover e.g. pagination buttons, but also be below dropdown actor button's zindex */
-  right: 0;
-  box-shadow: ${p => p.theme.dropShadowLight};
-
-  ${getMenuBorderRadius};
-  ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
-
-  ${getMenuArrow};
-`;
-
 const StyledItemList = styled('div')`
   max-height: ${p =>
     typeof p.maxHeight === 'number' ? `${p.maxHeight}px` : p.maxHeight};
@@ -619,6 +578,10 @@ const EmptyMessage = styled('div')`
   text-transform: none;
 `;
 
+const BubbleWithMinWidth = styled(DropdownBubble)`
+  min-width: 250px;
+`;
+
 export default DropdownAutoCompleteMenu;
 
-export {StyledMenu, AutoCompleteRoot};
+export {AutoCompleteRoot};

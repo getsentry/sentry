@@ -14,10 +14,13 @@ import time
 from django.conf import settings
 
 from sentry import features
+from sentry.models import EventDict
 from sentry.utils import snuba
 from sentry.utils.cache import cache
+from sentry.exceptions import PluginError
 from sentry.plugins import plugins
 from sentry.signals import event_processed
+from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -41,16 +44,37 @@ def _get_service_hooks(project_id):
     return result
 
 
+def _should_send_error_created_hooks(project):
+    from sentry.models import ServiceHook, Organization
+
+    cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
+    result = cache.get(cache_key)
+
+    if result is None:
+
+        org = Organization.objects.get_from_cache(id=project.organization_id)
+        if not features.has('organizations:integrations-event-hooks', organization=org):
+            cache.set(cache_key, 0, 60)
+            return False
+
+        result = ServiceHook.objects.filter(
+            organization_id=org.id,
+        ).extra(where=["events @> '{error.created}'"]).exists()
+
+        cache_value = 1 if result else 0
+        cache.set(cache_key, cache_value, 60)
+
+    return result
+
+
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
-    group = event.group
-    platform = group.platform
+    platform = event.group.platform if event.group else event.platform
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
     tags = {
         'platform': platform,
-        'use_rust_normalize': event.data.get('use_rust_normalize', 'unknown')
     }
 
     if is_new:
@@ -59,6 +83,16 @@ def _capture_stats(event, is_new):
     metrics.incr('events.processed', tags=tags, skip_internal=False)
     metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
     metrics.timing('events.size.data', event.size, tags=tags)
+
+    # This is an experiment to understand whether we have, in production,
+    # mismatches between event and group before we permanently rely on events
+    # for project and platform. before adding some more verbose logging ont this
+    # case, using a stats will give us a sense of the magnitude of the problem.
+    if event.group:
+        if event.group.platform != event.platform:
+            metrics.incr('events.platform_mismatch', tags=tags)
+        if event.group.project_id != event.project_id:
+            metrics.incr('events.project_mismatch')
 
 
 def check_event_already_post_processed(event):
@@ -75,6 +109,18 @@ def check_event_already_post_processed(event):
     )
 
     return not result
+
+
+def handle_owner_assignment(project, group, event):
+    from sentry.models import GroupAssignee, ProjectOwnership
+
+    # Is the issue already assigned to a team or user?
+    if group.assignee_set.exists():
+        return
+
+    owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
+    if owner is not None:
+        GroupAssignee.objects.assign(group, owner)
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
@@ -99,6 +145,10 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
 
+        # Re-bind node data to avoid renormalization. We only want to
+        # renormalize when loading old data from the database.
+        event.data = EventDict(event.data, skip_renormalization=True)
+
         # Re-bind Group since we're pickling the whole Event object
         # which may contain a stale Group.
         event.group, _ = get_group_with_redirect(event.group_id)
@@ -117,7 +167,14 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         # we process snoozes before rules as it might create a regression
         has_reappeared = process_snoozes(event.group)
 
-        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        handle_owner_assignment(event.project, event.group, event)
+
+        rp = RuleProcessor(
+            event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared)
         has_alert = False
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
@@ -141,6 +198,20 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             event=event,
                         )
 
+        if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Error',
+                instance_id=event.event_id,
+                instance=event,
+            )
+        if is_new:
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Group',
+                instance_id=event.group_id,
+            )
+
         for plugin in plugins.for_project(event.project):
             plugin_post_process_group(
                 plugin_slug=plugin.slug,
@@ -153,7 +224,6 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         event_processed.send_robust(
             sender=post_process_group,
             project=event.project,
-            group=event.group,
             event=event,
             primary_hash=kwargs.get('primary_hash'),
         )
@@ -193,7 +263,12 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         scope.set_tag("project", event.project_id)
 
     plugin = plugins.get(plugin_slug)
-    safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
+    safe_execute(
+        plugin.post_process,
+        event=event,
+        group=event.group,
+        expected_errors=(PluginError,),
+        **kwargs)
 
 
 @instrumented_task(

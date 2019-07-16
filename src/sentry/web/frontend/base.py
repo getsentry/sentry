@@ -108,8 +108,9 @@ class OrganizationMixin(object):
             organization=organization,
         ).exists()
 
-    def is_not_2fa_compliant(self, user, organization):
-        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
+    def is_not_2fa_compliant(self, request, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(
+            request.user) and not is_active_superuser(request)
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -215,7 +216,7 @@ class BaseView(View, OrganizationMixin):
             return self.handle_permission_required(request, *args, **kwargs)
 
         if 'organization' in kwargs and self.is_not_2fa_compliant(
-                request.user, kwargs['organization']):
+                request, kwargs['organization']):
             return self.handle_not_2fa_compliant(request, *args, **kwargs)
 
         self.request = request
@@ -247,7 +248,7 @@ class BaseView(View, OrganizationMixin):
             redirect_to = reverse('sentry-auth-organization', args=[kwargs['organization_slug']])
         else:
             redirect_to = auth.get_login_url()
-        return self.redirect(redirect_to)
+        return self.redirect(redirect_to, headers={'X-Robots-Tag': 'noindex, nofollow'})
 
     def is_sudo_required(self, request, *args, **kwargs):
         return self.sudo_required and not request.is_sudo()
@@ -283,8 +284,12 @@ class BaseView(View, OrganizationMixin):
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def redirect(self, url):
-        return HttpResponseRedirect(url)
+    def redirect(self, url, headers=None):
+        res = HttpResponseRedirect(url)
+        if headers:
+            for k, v in headers.items():
+                res[k] = v
+        return res
 
     def get_team_list(self, user, organization):
         return Team.objects.get_for_user(

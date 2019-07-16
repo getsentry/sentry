@@ -3,18 +3,13 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {logAjaxError} from 'app/utils/logging';
-import {
-  fetchProcessingIssues,
-  fetchProjectProcessingIssues,
-} from 'app/actionCreators/processingIssues';
+import {fetchProcessingIssues} from 'app/actionCreators/processingIssues';
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 import SentryTypes from 'app/sentryTypes';
 
 class ProcessingIssueList extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project,
     projectIds: PropTypes.array,
     showProject: PropTypes.bool,
   };
@@ -47,13 +42,8 @@ class ProcessingIssueList extends React.Component {
   }
 
   fetchIssues() {
-    const {organization, project, projectIds} = this.props;
-    let promise;
-    if (project) {
-      promise = fetchProjectProcessingIssues(this.api, organization.slug, project.slug);
-    } else {
-      promise = fetchProcessingIssues(this.api, organization.slug, projectIds);
-    }
+    const {organization, projectIds} = this.props;
+    const promise = fetchProcessingIssues(this.api, organization.slug, projectIds);
 
     promise.then(
       data => {
@@ -67,7 +57,6 @@ class ProcessingIssueList extends React.Component {
       },
       error => {
         // this is okay. it's just a ui hint
-        logAjaxError(error);
       }
     );
   }

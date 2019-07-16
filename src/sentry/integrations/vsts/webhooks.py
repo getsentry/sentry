@@ -31,7 +31,7 @@ class WorkItemWebhook(Endpoint):
         return super(WorkItemWebhook, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        data = request.DATA
+        data = request.data
         try:
             event_type = data['eventType']
             external_id = data['resourceContainers']['collection']['id']
@@ -108,7 +108,7 @@ class WorkItemWebhook(Endpoint):
                 'vsts.updated-workitem-fields-not-passed',
                 extra={
                     'error': six.text_type(e),
-                    'payload': data,
+                    'workItemId': data['resource']['workItemId'],
                     'integration_id': integration.id
                 }
             )

@@ -1,27 +1,9 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-class PageHeading extends React.Component {
-  static propTypes = {
-    children: PropTypes.node,
-    className: PropTypes.string,
-    withMargins: PropTypes.bool,
-  };
-
-  render() {
-    const {children, className, withMargins} = this.props;
-    return (
-      <Wrapper className={className} withMargins={withMargins}>
-        {children}
-      </Wrapper>
-    );
-  }
-}
-
-const Wrapper = styled('h1')`
+const PageHeading = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
   line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;
@@ -30,5 +12,11 @@ const Wrapper = styled('h1')`
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
 `;
+
+PageHeading.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  withMargins: PropTypes.bool,
+};
 
 export default PageHeading;

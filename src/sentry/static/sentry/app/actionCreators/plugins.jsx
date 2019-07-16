@@ -46,7 +46,9 @@ export function fetchPlugins({orgId, projectId}, options) {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
   // Make sure we throttle fetches
-  if (activeFetch[path]) return activeFetch[path];
+  if (activeFetch[path]) {
+    return activeFetch[path];
+  }
 
   PluginActions.fetchAll(options);
   const request = api.requestPromise(path, {

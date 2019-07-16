@@ -2,7 +2,7 @@ import styled from 'react-emotion';
 import {AutoCompleteRoot} from 'app/components/dropdownAutoCompleteMenu';
 import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/index';
 
-const HeaderItemPosition = styled.div`
+const HeaderItemPosition = styled('div')`
   display: flex;
   flex: 1;
   max-width: 450px;

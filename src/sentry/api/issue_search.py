@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.utils.functional import cached_property
+from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     event_search_grammar,
@@ -67,9 +68,21 @@ class IssueSearchVisitor(SearchVisitor):
             search_value,
         )
 
+    def visit_boolean_operator(self, node, children):
+        raise InvalidSearchQuery(
+            'Boolean statements containing "OR" or "AND" are not supported in this search')
+
 
 def parse_search_query(query):
-    tree = event_search_grammar.parse(query)
+    try:
+        tree = event_search_grammar.parse(query)
+    except IncompleteParseError as e:
+        raise InvalidSearchQuery(
+            '%s %s' % (
+                u'Parse error: %r (column %d).' % (e.expr.name, e.column()),
+                'This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.',
+            )
+        )
     return IssueSearchVisitor().visit(tree)
 
 

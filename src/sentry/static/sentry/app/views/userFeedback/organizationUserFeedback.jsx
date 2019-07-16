@@ -1,18 +1,18 @@
 import React from 'react';
+import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import CompactIssue from 'app/components/compactIssue';
-import EventUserFeedback from 'app/components/events/userFeedback';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import CompactIssue from 'app/components/issues/compactIssue';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EventUserFeedback from 'app/components/events/userFeedback';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 import UserFeedbackContainer from './container';
 import {getQuery} from './utils';
@@ -23,7 +23,10 @@ class OrganizationUserFeedback extends AsyncView {
   };
 
   getEndpoints() {
-    const {organization, location: {search}} = this.props;
+    const {
+      organization,
+      location: {search},
+    } = this.props;
 
     return [
       [
@@ -43,24 +46,18 @@ class OrganizationUserFeedback extends AsyncView {
   renderResults() {
     const {orgId} = this.props.params;
 
-    const children = this.state.reportList.map(item => {
-      const issue = item.issue;
-      return (
-        <CompactIssue key={item.id} id={issue.id} data={issue}>
-          <EventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
-        </CompactIssue>
-      );
-    });
-
-    return children;
-  }
-
-  renderList() {
-    if (this.state.reportList.length === 0) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
+    return (
+      <div data-test-id="user-feedback-list">
+        {this.state.reportList.map(item => {
+          const issue = item.issue;
+          return (
+            <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
+              <StyledEventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
+            </CompactIssue>
+          );
+        })}
+      </div>
+    );
   }
 
   renderEmpty() {
@@ -68,14 +65,6 @@ class OrganizationUserFeedback extends AsyncView {
       <EmptyStateWarning>
         <p>{t('Sorry, no results match your search query.')}</p>
       </EmptyStateWarning>
-    );
-  }
-
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
     );
   }
 
@@ -104,11 +93,7 @@ class OrganizationUserFeedback extends AsyncView {
     const {reportListPageLinks} = this.state;
 
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
+      <React.Fragment>
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -121,10 +106,14 @@ class OrganizationUserFeedback extends AsyncView {
             </UserFeedbackContainer>
           </NoProjectMessage>
         </PageContent>
-      </Feature>
+      </React.Fragment>
     );
   }
 }
 
 export {OrganizationUserFeedback};
 export default withOrganization(OrganizationUserFeedback);
+
+const StyledEventUserFeedback = styled(EventUserFeedback)`
+  margin: ${space(2)} 0 0;
+`;

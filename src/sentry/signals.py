@@ -60,13 +60,13 @@ event_dropped = BetterSignal(providing_args=["ip", "data", "project", "reason_co
 event_filtered = BetterSignal(providing_args=["ip", "data", "project"])
 event_received = BetterSignal(providing_args=["ip", "project"])
 pending_delete = BetterSignal(providing_args=['instance', 'actor'])
-event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
+event_processed = BetterSignal(providing_args=['project', 'event'])
 event_saved = BetterSignal(providing_args=["project"])
 
 # Organization Onboarding Signals
 project_created = BetterSignal(providing_args=["project", "user"])
 first_event_pending = BetterSignal(providing_args=["project", "user"])
-first_event_received = BetterSignal(providing_args=["project", "group"])
+first_event_received = BetterSignal(providing_args=["project", "event"])
 member_invited = BetterSignal(providing_args=["member", "user"])
 member_joined = BetterSignal(providing_args=["member", "organization"])
 issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
@@ -78,14 +78,17 @@ mocks_loaded = BetterSignal(providing_args=["project"])
 
 user_feedback_received = BetterSignal(providing_args=["project"])
 issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
-issue_resolved = BetterSignal(providing_args=["project", "group", "user"])
-issue_resolved_in_release = BetterSignal(
+
+issue_resolved = BetterSignal(
     providing_args=[
+        "organization_id",
         "project",
         "group",
         "user",
         "resolution_type"])
+
 advanced_search = BetterSignal(providing_args=["project"])
+advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
 save_search_created = BetterSignal(providing_args=["project", "user"])
 inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
@@ -94,7 +97,6 @@ alert_rule_created = BetterSignal(providing_args=["project", "rule", "user"])
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
-resolved_with_commit = BetterSignal(providing_args=["organization_id", "user", "group"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 

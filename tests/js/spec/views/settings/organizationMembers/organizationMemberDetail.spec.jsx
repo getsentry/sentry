@@ -65,6 +65,10 @@ describe('OrganizationMemberDetail', function() {
         url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
         body: expiredMember,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
+      });
     });
 
     it('changes role to owner', function() {
@@ -101,37 +105,52 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
-    it('joins a team', function() {
+    it('leaves a team', async function() {
       wrapper = mount(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      // Wait for team list to load
+      await tick();
 
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .first()
-          .prop('checked')
-      ).toBe(true);
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .last()
-          .prop('checked')
-      ).toBe(false);
+      // Remove our one team
+      const button = wrapper.find('TeamSelect TeamRow Button');
+      expect(button).toHaveLength(1);
+      button.simulate('click');
+
+      // Save Member
+      wrapper.find('Button[priority="primary"]').simulate('click');
+
+      expect(updateMember).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            teams: [],
+          }),
+        })
+      );
+    });
+
+    it('joins a team', async function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: member.id}} />,
+        routerContext
+      );
+      // Wait for team list to fetch.
+      await wrapper.update();
+
+      // Should have one team enabled
+      expect(wrapper.find('TeamSelect PanelItem')).toHaveLength(1);
 
       // Select new team to join
-      wrapper
-        .find('TeamSelect Checkbox')
-        .last()
-        .simulate('change');
+      // Open the dropdown
+      wrapper.find('TeamSelect DropdownButton').simulate('click');
 
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .last()
-          .prop('checked')
-      ).toBe(true);
+      // Click the first item
+      wrapper
+        .find('TeamSelect TeamDropdownElement')
+        .first()
+        .simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -147,70 +166,31 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
-  it('can select and deselect all', function() {
-    wrapper = mount(
-      <OrganizationMemberDetail params={{memberId: member.id}} />,
-      routerContext
-    );
-
-    const first = 'TeamSelect Checkbox[id="team-slug"]';
-    const last = 'TeamSelect Checkbox[id="new-team"]';
-    const selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
-
-    expect(selectAllButton).toHaveLength(1);
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-    expect(wrapper.state('member').teams).toHaveLength(1);
-
-    // select and deselect all
-    selectAllButton.simulate('click');
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(true);
-    expect(wrapper.state('member').teams).toHaveLength(2);
-
-    selectAllButton.simulate('click');
-    expect(wrapper.find(first).prop('checked')).toBe(false);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-    expect(wrapper.state('member').teams).toHaveLength(0);
-
-    // select one, then select all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(1);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(0);
-
-    // select both, then deselect all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(1);
-    wrapper.find(last).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(0);
-  });
-
   describe('Cannot Edit', function() {
     beforeAll(function() {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('can not change roles, teams, or save', function() {
+    it('can not change roles, teams, or save', async function() {
       wrapper = mount(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      await wrapper.update();
 
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
       expect(
+        wrapper
+          .find('TeamRow Button')
+          .first()
+          .prop('disabled')
+      ).toBe(true);
+      expect(
         wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
       ).toBe(true);
-      expect(wrapper.find('Button[data-test-id="select-all"]').prop('disabled')).toBe(
-        true
-      );
     });
   });
 
@@ -336,6 +316,10 @@ describe('OrganizationMemberDetail', function() {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${multipleOrgs.id}/`,
         body: multipleOrgs,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
       });
     });
 

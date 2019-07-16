@@ -28,6 +28,7 @@ class WidgetChart extends React.Component {
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
+    reloading: PropTypes.bool,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -35,7 +36,7 @@ class WidgetChart extends React.Component {
       return false;
     }
 
-    // It's not a big deal to re-render if this.prop.results == nextProps.results == []
+    // It's not a big deal to re-render if this.prop.results === nextProps.results === []
     const isDataEqual =
       this.props.results.length &&
       nextProps.results.length &&
@@ -93,7 +94,8 @@ class WidgetChart extends React.Component {
               ...extra,
               ...chartData,
               series: [...chartData.series, ...releaseSeries],
-            })}
+            })
+          }
         </ReleaseSeries>
       );
     }

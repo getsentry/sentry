@@ -4,7 +4,7 @@ import six
 
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 from sentry.utils.safe import get_path
@@ -56,7 +56,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardMappingView.from_path(dif_path)
+                view = ProguardMappingView.open(dif_path)
                 if not view.has_line_info:
                     error_type = EventError.PROGUARD_MISSING_LINENO
                 else:

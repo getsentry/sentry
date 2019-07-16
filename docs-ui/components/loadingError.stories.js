@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LoadingError from 'app/components/loadingError';
 
-storiesOf('UI|LoadingError', module)
+storiesOf('UI|Loaders/LoadingError', module)
   .add(
     'default',
     withInfo('Loading error with default message')(() => (

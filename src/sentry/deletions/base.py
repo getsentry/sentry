@@ -6,7 +6,7 @@ import re
 from sentry.constants import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
 
-_leaf_re = re.compile(r'^(Event|Group)(.+)')
+_leaf_re = re.compile(r'^(UserReport|Event|Group)(.+)')
 
 
 class BaseRelation(object):

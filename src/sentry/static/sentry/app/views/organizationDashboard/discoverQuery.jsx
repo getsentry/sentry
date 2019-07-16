@@ -1,15 +1,36 @@
-import {isEqual, omit} from 'lodash';
+import {isEqual, memoize, omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {getInterval} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {parsePeriodToHours} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
+// Note: Limit max releases so that chart is still a bit readable
+const MAX_RECENT_RELEASES = 20;
+const createReleaseFieldCondition = releases => [
+  [
+    'if',
+    [
+      [
+        'in',
+        ['release', 'tuple', releases.slice(0, MAX_RECENT_RELEASES).map(r => `'${r}'`)],
+      ],
+      'release',
+      "'other'",
+    ],
+    'release',
+  ],
+];
+
 class DiscoverQuery extends React.Component {
   static propTypes = {
+    // means a parent component is still loading releases
+    // and we should not perform any API requests yet (if we depend on releases)
+    releasesLoading: PropTypes.bool,
     compareToPeriod: PropTypes.shape({
       statsPeriodStart: PropTypes.string,
       statsPeriodEnd: PropTypes.string,
@@ -18,6 +39,7 @@ class DiscoverQuery extends React.Component {
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
     queries: PropTypes.arrayOf(SentryTypes.DiscoverQuery),
+    releases: PropTypes.arrayOf(SentryTypes.Release),
   };
 
   constructor(props) {
@@ -30,17 +52,31 @@ class DiscoverQuery extends React.Component {
 
     // Query builders based on `queries`
     this.queryBuilders = [];
-
-    this.createQueryBuilders();
   }
 
   componentDidMount() {
+    this.createQueryBuilders();
     this.fetchData();
   }
 
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state !== nextState) {
       return true;
+    }
+
+    // Allow component to update if queries are dependent on releases
+    // and if releases change, or releasesLoading prop changes
+    if (this.doesRequireReleases(nextProps.queries)) {
+      if (!isEqual(this.props.releases, nextProps.releases)) {
+        return true;
+      }
+
+      if (
+        !nextProps.releasesLoading &&
+        this.props.releasesLoading !== nextProps.releasesLoading
+      ) {
+        return true;
+      }
     }
 
     if (
@@ -55,21 +91,62 @@ class DiscoverQuery extends React.Component {
 
   componentDidUpdate(prevProps) {
     const keysToIgnore = ['children'];
+
+    // Ignore "releasesLoading" and "releases" props if we are not waiting for releases
+    // Otherwise we can potentially make an extra request if releasesLoading !== nextBusy and
+    // globalSelection === nextGlobalSelection
+    if (!this.doesRequireReleases(this.props.queries)) {
+      keysToIgnore.push('releasesLoading');
+      keysToIgnore.push('releases');
+    }
+
     if (isEqual(omit(prevProps, keysToIgnore), omit(this.props, keysToIgnore))) {
       return;
     }
 
+    this.createQueryBuilders();
     this.fetchData();
   }
 
   componentWillUnmount() {
     this.queryBuilders.forEach(builder => builder.cancelRequests());
+    // Cleanup query builders
+    this.queryBuilders = [];
   }
+
+  // Checks queries for any that are dependent on recent releases
+  doesRequireReleases = memoize(
+    queries =>
+      !!queries.find(
+        ({constraints}) => constraints && constraints.includes('recentReleases')
+      )
+  );
 
   createQueryBuilders() {
     const {organization, queries} = this.props;
-    queries.forEach(query => {
-      this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
+
+    this.queryBuilders = [];
+
+    queries.forEach(({constraints, ...query}) => {
+      if (constraints && constraints.includes('recentReleases')) {
+        // Can't create query yet because no releases
+        if (!this.props.releases) {
+          return;
+        }
+        const newQuery = {
+          ...query,
+          fields: [],
+          conditionFields:
+            this.props.releases &&
+            createReleaseFieldCondition(this.props.releases.map(({version}) => version)),
+        };
+        this.queryBuilders.push(
+          createQueryBuilder(this.getQuery(newQuery), organization)
+        );
+        this.fetchData();
+      } else {
+        this.queryBuilders.push(createQueryBuilder(this.getQuery(query), organization));
+      }
     });
   }
 
@@ -88,7 +165,12 @@ class DiscoverQuery extends React.Component {
     if (query.rollup) {
       // getInterval returns a period string depending on current datetime range selected
       // we then use a helper function to parse into hours and then convert back to seconds
-      query.rollup = parsePeriodToHours(getInterval(datetime)) * 60 * 60;
+      query.rollup =
+        parsePeriodToHours(
+          getInterval({...datetime, period: datetime.period || DEFAULT_STATS_PERIOD})
+        ) *
+        60 *
+        60;
     }
 
     return {
@@ -108,11 +190,14 @@ class DiscoverQuery extends React.Component {
   }
 
   async fetchData() {
-    // Reset query builder
-    this.resetQueries();
+    this.setState({reloading: true});
+
+    // Do not fetch data if dependent on releases and parent component is busy fetching releases
+    if (this.doesRequireReleases(this.props.queries) && this.props.releasesLoading) {
+      return;
+    }
 
     // Fetch
-    this.setState({reloading: true});
     const promises = this.queryBuilders.map(builder => builder.fetchWithoutLimit());
     const results = await Promise.all(promises);
 

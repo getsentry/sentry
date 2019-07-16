@@ -1,16 +1,35 @@
 import React from 'react';
-import {shallow} from 'enzyme';
 
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mount} from 'enzyme';
 import GroupSidebar from 'app/components/group/sidebar';
 
 describe('GroupSidebar', function() {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
-  const project = TestStubs.Project();
+  const {organization, project, routerContext} = initializeOrg();
   const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
-  let tagValuesMock;
+  let tagsMock;
 
   beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/committers/',
+      body: {committers: []},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/owners/',
+      body: {
+        owners: [],
+        rules: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/groups/1/integrations/',
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: '/issues/1/participants/',
       body: [],
@@ -21,19 +40,20 @@ describe('GroupSidebar', function() {
       body: group,
     });
 
-    tagValuesMock = MockApiClient.addMockResponse({
+    tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
-      body: TestStubs.TagValues(),
+      body: TestStubs.Tags(),
     });
 
-    wrapper = shallow(
+    wrapper = mount(
       <GroupSidebar
         group={group}
         project={project}
+        organization={organization}
         event={TestStubs.Event()}
         environments={[environment]}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
   });
 
@@ -43,17 +63,18 @@ describe('GroupSidebar', function() {
 
   describe('sidebar', function() {
     it('should make a request to the /tags/ endpoint to get top values', function() {
-      expect(tagValuesMock).toHaveBeenCalled();
+      expect(tagsMock).toHaveBeenCalled();
     });
   });
 
   describe('renders with tags', function() {
     it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders tags', function() {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(4);
+      expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
+      expect(wrapper.find('GroupReleaseStats')).toHaveLength(1);
+      expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
+      expect(
+        wrapper.find('GroupTagDistributionMeter[data-test-id="group-tag"]')
+      ).toHaveLength(5);
     });
   });
 
@@ -70,14 +91,16 @@ describe('GroupSidebar', function() {
         body: [],
       });
 
-      wrapper = shallow(
+      wrapper = mount(
         <GroupSidebar
+          api={new MockApiClient()}
           group={group}
+          organization={organization}
           project={project}
           event={TestStubs.Event()}
           environments={[environment]}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
     });
 
@@ -103,7 +126,7 @@ describe('GroupSidebar', function() {
     });
 
     it('can subscribe', function() {
-      const btn = wrapper.find('.btn-subscribe');
+      const btn = wrapper.find('SubscribeButton');
 
       btn.simulate('click');
 
@@ -119,10 +142,10 @@ describe('GroupSidebar', function() {
   describe('environment toggle', function() {
     it('re-requests tags with correct environment', function() {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
-      expect(tagValuesMock).toHaveBeenCalledTimes(1);
+      expect(tagsMock).toHaveBeenCalledTimes(1);
       wrapper.setProps({environments: [stagingEnv]});
-      expect(tagValuesMock).toHaveBeenCalledTimes(2);
-      expect(tagValuesMock).toHaveBeenCalledWith(
+      expect(tagsMock).toHaveBeenCalledTimes(2);
+      expect(tagsMock).toHaveBeenCalledWith(
         '/issues/1/tags/',
         expect.objectContaining({
           query: expect.objectContaining({

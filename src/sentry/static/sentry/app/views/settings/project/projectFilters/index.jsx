@@ -20,7 +20,9 @@ class ProjectFilters extends React.Component {
   render() {
     const {project} = this.context;
     const {orgId, projectId, filterType} = this.props.params;
-    if (!project) return null;
+    if (!project) {
+      return null;
+    }
 
     const features = new Set(project.features);
 
@@ -55,7 +57,7 @@ class ProjectFilters extends React.Component {
             </NavTabs>
           )}
 
-          {filterType == 'discarded-groups' ? (
+          {filterType === 'discarded-groups' ? (
             <GroupTombstones orgId={orgId} projectId={projectId} />
           ) : (
             <ProjectFiltersSettings

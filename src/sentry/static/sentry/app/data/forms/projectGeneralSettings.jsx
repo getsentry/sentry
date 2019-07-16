@@ -1,12 +1,14 @@
 import {Flex} from 'grid-emotion';
 import React from 'react';
+import marked from 'marked';
 import styled from 'react-emotion';
 
 import {extractMultilineFields} from 'app/utils';
-import {flattenedPlatforms} from 'app/views/onboarding/utils';
 import {t, tct, tn} from 'app/locale';
-import Platformicon from 'app/components/platformicon';
+import HintPanelItem from 'app/components/panels/hintPanelItem';
+import PlatformIcon from 'app/components/platformIcon';
 import getDynamicText from 'app/utils/getDynamicText';
+import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
 
@@ -62,10 +64,10 @@ export const fields = {
     type: 'array',
     label: t('Platform'),
     choices: () =>
-      flattenedPlatforms.map(({id, name}) => [
+      platforms.map(({id, name}) => [
         id,
         <PlatformWrapper key={id}>
-          <StyledPlatformicon platform={id} size="20" />
+          <StyledPlatformIcon platform={id} size="20" />
           {name}
         </PlatformWrapper>,
       ]),
@@ -108,6 +110,145 @@ export const fields = {
       }
     ),
     saveMessageAlertType: 'warning',
+  },
+
+  groupingConfig: {
+    name: 'groupingConfig',
+    type: 'array',
+    label: t('Grouping Config'),
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping config will apply to future events only.'),
+    selectionInfoFunction: args => {
+      const {groupingConfigs, value} = args;
+      const selection = groupingConfigs.find(({id}) => id === value);
+      const changelog = (selection && selection.changelog) || '';
+      if (!changelog) {
+        return null;
+      }
+      return (
+        <HintPanelItem>
+          <div>
+            <h2>{selection.id}:</h2>
+            <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
+          </div>
+        </HintPanelItem>
+      );
+    },
+    choices: ({groupingConfigs}) => {
+      return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
+    },
+    help: t('Sets the grouping algorithm to be used for new events.'),
+    visible: ({features}) => features.has('set-grouping-config'),
+  },
+  groupingEnhancementsBase: {
+    name: 'groupingEnhancementsBase',
+    type: 'array',
+    label: t('Grouping Enhancements Base'),
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping enhancements will apply to future events only.'),
+    selectionInfoFunction: args => {
+      const {groupingEnhancementBases, value} = args;
+      const selection = groupingEnhancementBases.find(({id}) => id === value);
+      const changelog = (selection && selection.changelog) || '';
+      if (!changelog) {
+        return null;
+      }
+      return (
+        <HintPanelItem>
+          <div>
+            <h2>{selection.id}:</h2>
+            <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
+          </div>
+        </HintPanelItem>
+      );
+    },
+    choices: ({groupingEnhancementBases}) => {
+      return groupingEnhancementBases.map(({id}) => [
+        id.toString(),
+        <code key={id}>{id}</code>,
+      ]);
+    },
+    help: t('The built-in base version of grouping enhancements.'),
+    visible: ({features}) => features.has('set-grouping-config'),
+  },
+  groupingEnhancements: {
+    name: 'groupingEnhancements',
+    type: 'string',
+    label: t('Custom Grouping Enhancements'),
+    placeholder: t('function:raise_an_exception ^-group\nfunction:namespace::* +app'),
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 20,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing grouping enhancements will apply to future events only.'),
+    formatMessageValue: false,
+    help: (
+      <React.Fragment>
+        <div style={{marginBottom: 3}}>
+          {tct(
+            `This can be used to enhance the grouping algorithm with custom rules.
+        Rules follow the pattern [pattern].`,
+            {
+              pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+            }
+          )}
+        </div>
+        <pre>
+          {'# remove all frames above a certain function from grouping\n' +
+            'function:panic_handler      ^-group\n' +
+            '# mark all functions following a prefix in-app\n' +
+            'function:mylibrary_*        +app\n'}
+        </pre>
+      </React.Fragment>
+    ),
+    validate: ({id, form}) => {
+      return [];
+    },
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
+  },
+  fingerprintingRules: {
+    name: 'fingerprintingRules',
+    type: 'string',
+    label: t('Server Side Fingerprinting'),
+    placeholder: t(
+      'type:MyException -> fingerprint-value\nfunction:some_panic_function -> fingerprint-value'
+    ),
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 20,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Changing fingerprinting rules will apply to future events only.'),
+    formatMessageValue: false,
+    help: (
+      <React.Fragment>
+        <div style={{marginBottom: 3}}>
+          {tct(
+            `This can be used to modify the fingerprinting rules on the server with custom rules.
+        Rules follow the pattern [pattern].`,
+            {
+              pattern: <code>matcher:glob -> fingerprint, values</code>,
+            }
+          )}
+        </div>
+        <pre>
+          {'# force all errors of the same type to have the same fingerprint\n' +
+            'type:DatabaseUnavailable -> system-down\n' +
+            '# force all memory allocation errors to be grouped together\n' +
+            'family:native function:malloc -> memory-allocation-error\n'}
+        </pre>
+      </React.Fragment>
+    ),
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },
 
   dataScrubber: {
@@ -217,7 +358,6 @@ export const fields = {
       return [];
     },
   },
-
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',
@@ -270,7 +410,7 @@ export const fields = {
 const PlatformWrapper = styled(Flex)`
   align-items: center;
 `;
-const StyledPlatformicon = styled(Platformicon)`
+const StyledPlatformIcon = styled(PlatformIcon)`
   border-radius: 3px;
   margin-right: ${space(1)};
 `;

@@ -1,21 +1,28 @@
 from __future__ import absolute_import
 
-from hashlib import md5
+import functools
 import logging
 import time
 from datetime import timedelta
+from hashlib import md5
 
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query
+from sentry import (
+    options,
+    quotas,
+)
+from sentry.api.event_search import (
+    convert_search_filter_to_snuba_query,
+    InvalidSearchQuery,
+)
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
-from sentry.event_manager import ALLOWED_FUTURE_DELTA
-from sentry.models import Group
-from sentry.search.django import backend as ds
+from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.models import Group, Release, GroupEnvironment
+from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
-
+from sentry.utils.db import is_postgres
 
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
@@ -36,17 +43,139 @@ dependency_aggregations = {
 
 aggregation_defs = {
     'times_seen': ['count()', ''],
-    'first_seen': ['toUInt64(min(timestamp)) * 1000', ''],
-    'last_seen': ['toUInt64(max(timestamp)) * 1000', ''],
+    'first_seen': ['multiply(toUInt64(min(timestamp)), 1000)', ''],
+    'last_seen': ['multiply(toUInt64(max(timestamp)), 1000)', ''],
     # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-    'priority': ['(toUInt64(log(times_seen) * 600)) + last_seen', ''],
+    'priority': ['toUInt64(plus(multiply(log(times_seen), 600), last_seen))', ''],
     # Only makes sense with WITH TOTALS, returns 1 for an individual group.
     'total': ['uniq', 'issue'],
 }
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-    'subscribed_by', 'active_at', 'first_release',
+    'subscribed_by', 'active_at', 'first_release', 'first_seen',
 ])
+
+
+class QuerySetBuilder(object):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def build(self, queryset, search_filters):
+        for search_filter in search_filters:
+            name = search_filter.key.name
+            if name in self.conditions:
+                condition = self.conditions[name]
+                queryset = condition.apply(queryset, search_filter)
+        return queryset
+
+
+class Condition(object):
+    """\
+    Adds a single filter to a ``QuerySet`` object. Used with
+    ``QuerySetBuilder``.
+    """
+
+    def apply(self, queryset, name, parameters):
+        raise NotImplementedError
+
+
+class QCallbackCondition(Condition):
+    def __init__(self, callback):
+        self.callback = callback
+
+    def apply(self, queryset, search_filter):
+        value = search_filter.value.raw_value
+        q = self.callback(value)
+        if search_filter.operator not in ('=', '!='):
+            raise InvalidSearchQuery(
+                u'Operator {} not valid for search {}'.format(
+                    search_filter.operator,
+                    search_filter,
+                ),
+            )
+        queryset_method = queryset.filter if search_filter.operator == '=' else queryset.exclude
+        queryset = queryset_method(q)
+        return queryset
+
+
+class ScalarCondition(Condition):
+    """
+    Adds a scalar filter to a ``QuerySet`` object. Only accepts `SearchFilter`
+    instances
+    """
+    OPERATOR_TO_DJANGO = {
+        '>=': 'gte',
+        '<=': 'lte',
+        '>': 'gt',
+        '<': 'lt',
+    }
+
+    def __init__(self, field, extra=None):
+        self.field = field
+        self.extra = extra
+
+    def _get_operator(self, search_filter):
+        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, '')
+        if django_operator:
+            django_operator = '__{}'.format(django_operator)
+        return django_operator
+
+    def apply(self, queryset, search_filter):
+        django_operator = self._get_operator(search_filter)
+        qs_method = queryset.exclude if search_filter.operator == '!=' else queryset.filter
+
+        q_dict = {'{}{}'.format(self.field, django_operator): search_filter.value.raw_value}
+        if self.extra:
+            q_dict.update(self.extra)
+
+        return qs_method(**q_dict)
+
+
+def assigned_to_filter(actor, projects):
+    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+    if isinstance(actor, Team):
+        return Q(assignee_set__team=actor)
+
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user=actor,
+                organization_id=projects[0].organization_id,
+            ),
+            is_active=True,
+        ).values('team')
+    )
+
+    return Q(
+        Q(assignee_set__user=actor, assignee_set__project__in=projects) |
+        Q(assignee_set__team__in=teams)
+    )
+
+
+def unassigned_filter(unassigned, projects):
+    from sentry.models.groupassignee import GroupAssignee
+    query = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects],
+        ).values_list('group_id', flat=True),
+    )
+    if unassigned:
+        query = ~query
+    return query
+
+
+def message_regex_filter(queryset, message):
+    operator = ('!' if message.operator == '!=' else '') + '~*'
+
+    # XXX: We translate these to a regex like '^<pattern>$'. Since we want to
+    # search anywhere in the string, drop those characters.
+    message_value = message.value.value[1:-1]
+
+    return queryset.extra(
+        where=['message {0} %s OR view {0} %s'.format(operator)],
+        params=[message_value, message_value],
+    )
 
 
 def get_search_filter(search_filters, name, operator):
@@ -70,46 +199,157 @@ def get_search_filter(search_filters, name, operator):
     return found_val
 
 
-class SnubaSearchBackend(ds.DjangoSearchBackend):
-    def _query(self, projects, retention_window_start, group_queryset, tags, environments,
-               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
-               **parameters):
+class SnubaSearchBackend(SearchBackend):
+    def query(
+        self, projects, environments=None, sort_by='date', limit=100,
+        cursor=None, count_hits=False, paginator_options=None,
+        search_filters=None, date_from=None, date_to=None,
+    ):
+        from sentry.models import Group, GroupStatus, GroupSubscription
 
-        # TODO: Product decision: we currently search Group.message to handle
-        # the `query` parameter, because that's what we've always done. We could
-        # do that search against every event in Snuba instead, but results may
-        # differ.
+        search_filters = search_filters if search_filters is not None else []
+
+        # ensure projects are from same org
+        if len({p.organization_id for p in projects}) != 1:
+            raise RuntimeError('Cross organization search not supported')
+
+        if paginator_options is None:
+            paginator_options = {}
+
+        group_queryset = Group.objects.filter(project__in=projects).exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ])
+
+        qs_builder_conditions = {
+            'status': QCallbackCondition(
+                lambda status: Q(status=status),
+            ),
+            'bookmarked_by': QCallbackCondition(
+                lambda user: Q(
+                    bookmark_set__project__in=projects,
+                    bookmark_set__user=user,
+                ),
+            ),
+            'assigned_to': QCallbackCondition(
+                functools.partial(assigned_to_filter, projects=projects),
+            ),
+            'unassigned': QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects),
+            ),
+            'subscribed_by': QCallbackCondition(
+                lambda user: Q(
+                    id__in=GroupSubscription.objects.filter(
+                        project__in=projects,
+                        user=user,
+                        is_active=True,
+                    ).values_list('group'),
+                ),
+            ),
+            'active_at': ScalarCondition('active_at'),
+        }
+
+        message = [
+            search_filter for search_filter in search_filters
+            if search_filter.key.name == 'message'
+        ]
+        if message and message[0].value.raw_value:
+            message = message[0]
+            # We only support full wildcard matching in postgres
+            if is_postgres() and message.value.is_wildcard():
+                group_queryset = message_regex_filter(group_queryset, message)
+            else:
+                # Otherwise, use the standard LIKE query
+                qs_builder_conditions['message'] = QCallbackCondition(
+                    lambda message: Q(
+                        Q(message__icontains=message) | Q(culprit__icontains=message),
+                    ),
+                )
+
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset,
+            search_filters,
+        )
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+        return self._query(
+            projects, retention_window_start, group_queryset, environments,
+            sort_by, limit, cursor, count_hits, paginator_options,
+            search_filters, date_from, date_to,
+        )
+
+    def _query(self, projects, retention_window_start, group_queryset, environments,
+               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
+               date_from, date_to):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
+            environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=[
-                    environment.id for environment in environments
-                ],
+                groupenvironment__environment_id__in=environment_ids
             )
-            group_queryset = ds.SearchFilterQuerySetBuilder({
-                'first_release': ds.QCallbackCondition(
+            group_queryset = QuerySetBuilder({
+                'first_release': QCallbackCondition(
                     lambda version: Q(
+                        # if environment(s) are selected, we just filter on the group
+                        # environment's first_release attribute.
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
+                        groupenvironment__environment_id__in=environment_ids,
                     )
+                ),
+                'first_seen': ScalarCondition(
+                    'groupenvironment__first_seen',
+                    {'groupenvironment__environment_id__in': environment_ids}
                 ),
             }).build(group_queryset, search_filters)
         else:
-            group_queryset = ds.SearchFilterQuerySetBuilder({
-                'first_release': ds.QCallbackCondition(
-                    lambda version: Q(
-                        first_release__organization_id=projects[0].organization_id,
-                        first_release__version=version,
+
+            group_queryset = QuerySetBuilder({
+                'first_release': QCallbackCondition(
+                    lambda release_version: Q(
+                        # if no specific environments are supplied, we either choose any
+                        # groups/issues whose first release matches the given release_version,
+                        Q(
+                            first_release_id__in=Release.objects.filter(
+                                version=release_version,
+                                organization_id=projects[0].organization_id
+                            )
+                        ) |
+                        # or we choose any groups whose first occurrence in any environment and the latest release at
+                        # the time of the groups' first occurrence matches the given release_version
+                        Q(
+                            id__in=GroupEnvironment.objects.filter(
+                                first_release__version=release_version,
+                                first_release__organization_id=projects[0].organization_id,
+                                environment__organization_id=projects[0].organization_id
+                            ).values_list('group_id')
+                        )
                     ),
                 ),
+                'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
         now = timezone.now()
         end = None
         end_params = filter(
             None,
-            [parameters.get('date_to'), get_search_filter(search_filters, 'date', '<')],
+            [date_to, get_search_filter(search_filters, 'date', '<')],
         )
         if end_params:
             end = min(end_params)
@@ -122,11 +362,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # are no other Snuba-based search predicates, we can simply
             # return the results from Postgres.
             if (
-                cursor is None
-                and sort_by == 'date'
-                and not environments
+                cursor is None and
+                sort_by == 'date' and
+                not environments and
                 # This handles tags and date parameters for search filters.
-                and not [
+                not [
                     sf for sf in search_filters
                     if sf.key.name not in issue_only_fields.union(['date', 'message'])
                 ]
@@ -151,7 +391,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # better, maybe outside the backend. Should be easier once we're on
         # just the new search filters
         start_params = [
-            parameters.get('date_from'),
+            date_from,
             retention_date,
             get_search_filter(search_filters, 'date', '>'),
         ]
@@ -179,6 +419,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
         max_candidates = options.get('snuba.search.max-pre-snuba-candidates')
+        too_many_candidates = False
         candidate_ids = list(
             group_queryset.values_list('id', flat=True)[:max_candidates + 1]
         )
@@ -198,7 +439,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # this queryset to the results from Snuba, which we call
             # post-filtering.
             metrics.incr('snuba.search.too_many_candidates', skip_internal=False)
-            candidate_ids = None
+            too_many_candidates = True
+            candidate_ids = []
 
         sort_field = sort_strategies[sort_by]
         chunk_growth = options.get('snuba.search.chunk-growth-rate')
@@ -215,13 +457,25 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         max_time = options.get('snuba.search.max-total-chunk-time-seconds')
         time_start = time.time()
 
-        if count_hits and candidate_ids is None:
-            # If we have no candidates, get a random sample of groups matching
-            # the snuba side of the query, and see how many of those pass the
-            # post-filter in postgres. This should give us an estimate of the
-            # total number of snuba matches that will be overall matches, which
-            # we can use to get an estimate for X-Hits. Note no cursor, so we
-            # are always estimating the total hits.
+        if count_hits and (too_many_candidates or cursor is not None):
+            # If we had too many candidates to reasonably pass down to snuba,
+            # or if we have a cursor that bisects the overall result set (such
+            # that our query only sees results on one side of the cursor) then
+            # we need an alternative way to figure out the total hits that this
+            # query has.
+
+            # To do this, we get a sample of groups matching the snuba side of
+            # the query, and see how many of those pass the post-filter in
+            # postgres. This should give us an estimate of the total number of
+            # snuba matches that will be overall matches, which we can use to
+            # get an estimate for X-Hits.
+
+            # The sampling is not simple random sampling. It will return *all*
+            # matching groups if there are less than N groups matching the
+            # query, or it will return a random, deterministic subset of N of
+            # the groups if there are more than N overall matches. This means
+            # that the "estimate" is actually an accurate result when there are
+            # less than N matching groups.
 
             # The number of samples required to achieve a certain error bound
             # with a certain confidence interval can be calculated from a
@@ -272,7 +526,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # and weird queries, up to a max size
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
             # but if we have candidate_ids always query for at least that many items
-            chunk_limit = max(chunk_limit, len(candidate_ids) if candidate_ids else 0)
+            chunk_limit = max(chunk_limit, len(candidate_ids))
 
             # {group_id: group_score, ...}
             snuba_groups, total = snuba_search(
@@ -302,7 +556,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 # the candidate_ids, we know we got all of them (ie there are
                 # no more chunks after the first)
                 result_groups = snuba_groups
-                if count_hits:
+                if count_hits and hits is None:
                     hits = len(snuba_groups)
             else:
                 # pre-filtered candidates were *not* passed down to Snuba,
@@ -323,19 +577,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     group_score = group_to_score[group_id]
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
-
-                if count_hits:
-                    if not more_results:
-                        # We know we have got all possible groups from snuba and filtered
-                        # them all down, so we have all hits.
-                        # TODO this probably doesn't work because we could be on page N
-                        # and not be including hits from previous pages.
-                        hits = len(result_groups)
-                    else:
-                        # We also could have underestimated hits from our sample and have
-                        # already seen more hits than the estimate, so make sure hits is
-                        # at least as big as what we have seen.
-                        hits = max(hits, len(result_groups))
 
             # TODO do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
@@ -400,7 +641,7 @@ def snuba_search(start, end, project_ids, environment_ids, sort_field,
     if environment_ids is not None:
         filters['environment'] = environment_ids
 
-    if candidate_ids is not None:
+    if candidate_ids:
         filters['issue'] = candidate_ids
 
     conditions = []
@@ -408,13 +649,15 @@ def snuba_search(start, end, project_ids, environment_ids, sort_field,
     for search_filter in search_filters:
         if (
             # Don't filter on issue fields here, they're not available
-            search_filter.key.name in issue_only_fields
+            search_filter.key.name in issue_only_fields or
             # We special case date
-            or search_filter.key.name == 'date'
+            search_filter.key.name == 'date'
         ):
             continue
         converted_filter = convert_search_filter_to_snuba_query(search_filter)
-        if search_filter.key.name in aggregation_defs:
+
+        # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
+        if search_filter.key.name in aggregation_defs and not search_filter.key.is_tag:
             having.append(converted_filter)
         else:
             conditions.append(converted_filter)
@@ -434,12 +677,6 @@ def snuba_search(start, end, project_ids, environment_ids, sort_field,
 
     selected_columns = []
     if get_sample:
-        # Get a random sample of matching groups. Because we use any(rand()),
-        # we are testing against a single random value per group, and so the
-        # sample is independent of the number of events in a group. Since we
-        # are sampling using `ORDER by random() LIMIT x`, we will always grab
-        # the full result set if there less than x total results.
-
         query_hash = md5(repr(conditions)).hexdigest()[:8]
         selected_columns.append(('cityHash64', ("'{}'".format(query_hash), 'issue'), 'sample'))
         sort_field = 'sample'

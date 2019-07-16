@@ -34,7 +34,7 @@ class OwnerInput extends React.Component {
   }
 
   componentWillReceiveProps({initialText}) {
-    if (initialText != this.state.initialText) {
+    if (initialText !== this.state.initialText) {
       this.setState({initialText});
     }
   }
@@ -68,7 +68,7 @@ class OwnerInput extends React.Component {
 
     request
       .then(() => {
-        addSuccessMessage(t('Updated ownership rules'));
+        addSuccessMessage(t('Updated issue ownership rules'));
         this.setState({
           initialText: text,
         });
@@ -77,7 +77,9 @@ class OwnerInput extends React.Component {
         this.setState({error: error.responseJSON});
         if (error.status === 403) {
           addErrorMessage(
-            t("You don't have permission to modify ownership rules for this project")
+            t(
+              "You don't have permission to modify issue ownership rules for this project"
+            )
           );
         } else if (
           error.status === 400 &&
@@ -85,10 +87,10 @@ class OwnerInput extends React.Component {
           error.responseJSON.raw[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
-            t('Unable to save ownership rules changes: ' + error.responseJSON.raw[0])
+            t('Unable to save issue ownership rule changes: ' + error.responseJSON.raw[0])
           );
         } else {
-          addErrorMessage(t('Unable to save ownership rules changes'));
+          addErrorMessage(t('Unable to save issue ownership rule changes'));
         }
       });
 
@@ -105,9 +107,11 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     const {project} = this.props;
-    return (ProjectsStore.getBySlug(project.slug) || {
-      teams: [],
-    }).teams.map(team => ({
+    return (
+      ProjectsStore.getBySlug(project.slug) || {
+        teams: [],
+      }
+    ).teams.map(team => ({
       id: team.id,
       display: `#${team.slug}`,
       email: team.id,
@@ -144,7 +148,7 @@ class OwnerInput extends React.Component {
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
-            if (e.metaKey && e.key == 'Enter') {
+            if (e.metaKey && e.key === 'Enter') {
               this.handleUpdateOwnership();
             }
           }}
@@ -183,7 +187,7 @@ class OwnerInput extends React.Component {
 const TEXTAREA_PADDING = 4;
 const TEXTAREA_LINE_HEIGHT = 24;
 
-const SyntaxOverlay = styled.div`
+const SyntaxOverlay = styled('div')`
   ${inputStyles};
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
@@ -194,7 +198,7 @@ const SyntaxOverlay = styled.div`
   top: ${({line}) => TEXTAREA_PADDING + line * 24}px;
 `;
 
-const SaveButton = styled.div`
+const SaveButton = styled('div')`
   text-align: end;
   padding-top: 10px;
 `;

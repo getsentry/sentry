@@ -21,20 +21,20 @@ const UserInfo = styled(Box)`
   flex: 1;
 `;
 
-const NameContainer = styled.div`
+const NameContainer = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
 `;
 
-const Name = styled.div`
+const Name = styled('div')`
   font-weight: 600;
   font-size: 15px;
 `;
-const Note = styled.div`
+const Note = styled('div')`
   font-size: 13px;
 `;
-const OverflowBox = styled.div`
+const OverflowBox = styled('div')`
   ${overflowEllipsis};
 `;
 const avatarStyle = {

@@ -3,14 +3,13 @@ module.exports = {
   verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx}',
-    'src/sentry/static/sentry/app/**/*.{js,jsx}',
+    'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'lcov', 'cobertura'],
   coverageDirectory: '.artifacts/coverage/',
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^app-test/(.*)': '<rootDir>/tests/js/$1',
-    '^app-test-helpers(.*)': '<rootDir>/tests/js/helpers$1',
     '\\.(css|less|png)$': '<rootDir>/tests/js/helpers/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/helpers/svgMock.js',
     'integration-docs-platforms':
@@ -28,4 +27,10 @@ module.exports = {
     '<rootDir>/node_modules/react',
     '<rootDir>/node_modules/reflux',
   ],
+  transform: {
+    '^.+\\.jsx?$': 'babel-jest',
+    '^.+\\.tsx?$': 'babel-jest',
+  },
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  globals: {},
 };

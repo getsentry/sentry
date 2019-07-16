@@ -9,7 +9,9 @@ export default function replaceRouterParams(route, params) {
   // replace with current params
   matches.forEach(param => {
     const paramName = param.slice(1);
-    if (typeof params[paramName] === 'undefined') return;
+    if (typeof params[paramName] === 'undefined') {
+      return;
+    }
 
     route = route.replace(param, params[paramName]);
   });

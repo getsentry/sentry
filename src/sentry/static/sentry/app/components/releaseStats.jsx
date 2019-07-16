@@ -32,14 +32,14 @@ const ReleaseStats = createReactClass({
       <div className="release-stats">
         <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>
         <span style={{display: 'inline-block'}}>
-          <AvatarList users={release.authors} avatarSize={25} typeMembers={'authors'} />
+          <AvatarList users={release.authors} avatarSize={25} typeMembers="authors" />
         </span>
       </div>
     );
   },
 });
 
-const ReleaseSummaryHeading = styled.div`
+const ReleaseSummaryHeading = styled('div')`
   color: ${p => p.theme.gray2};
   font-size: 12px;
   line-height: 1.2;

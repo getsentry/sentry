@@ -13,18 +13,14 @@ __all__ = ('Http', )
 import re
 import six
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
 from django.utils.http import urlencode
-from six.moves.urllib.parse import parse_qsl, urlsplit, urlunsplit
+from six.moves.urllib.parse import parse_qsl
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.safe import trim, trim_dict, trim_pairs, get_path
-from sentry.utils.http import heuristic_decode
-from sentry.utils.validators import validate_ip
+from sentry.utils.safe import get_path
 from sentry.web.helpers import render_to_string
 
 # Instead of relying on a list of hardcoded methods, just loosly match
@@ -125,111 +121,19 @@ class Http(Interface):
 
     @classmethod
     def to_python(cls, data):
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid interface data")
-
-        kwargs = {}
-
-        if data.get('method'):
-            method = data['method'].upper()
-            # Optimize for the common path here, where it's a GET/POST, falling
-            # back to a regular expresion test
-            if method not in ('GET', 'POST') and not http_method_re.match(method):
-                raise InterfaceValidationError("Invalid value for 'method'")
-            kwargs['method'] = method
-        else:
-            kwargs['method'] = None
-
-        if data.get('url', None):
-            url = to_unicode(data['url'])
-            # The JavaScript SDK used to send an ellipsis character for
-            # truncated URLs. Canonical URLs do not contain UTF-8 characters in
-            # either the path, query string or fragment, so we replace it with
-            # three dots (which is the behavior of other SDKs). This effectively
-            # makes the string two characters longer, but it will be trimmed
-            # again down below.
-            if url.endswith(u"\u2026"):
-                url = url[:-1] + "..."
-            scheme, netloc, path, query_bit, fragment_bit = urlsplit(url)
-        else:
-            scheme = netloc = path = query_bit = fragment_bit = None
-
-        query_string = data.get('query_string') or query_bit
-        if query_string:
-            if isinstance(query_string, six.string_types):
-                if query_string[0] == '?':
-                    query_string = query_string[1:]
-                if query_string.endswith(u"\u2026"):
-                    query_string = query_string[:-1] + "..."
-                query_string = [
-                    (to_unicode(k), jsonify(v))
-                    for k, v in parse_qsl(query_string, keep_blank_values=True)
-                ]
-            elif isinstance(query_string, dict):
-                query_string = [(to_unicode(k), jsonify(v)) for k, v in six.iteritems(query_string)]
-            elif isinstance(query_string, list):
-                query_string = [
-                    tuple(tup) for tup in query_string
-                    if isinstance(tup, (tuple, list)) and len(tup) == 2
-                ]
-            else:
-                query_string = []
-            kwargs['query_string'] = trim(query_string, 4096)
-        else:
-            kwargs['query_string'] = []
-
-        fragment = data.get('fragment') or fragment_bit
-
-        cookies = data.get('cookies')
-        # if cookies were [also] included in headers we
-        # strip them out
-        if data.get("headers"):
-            headers, cookie_header = format_headers(get_path(data, "headers", filter=True))
-            if not cookies and cookie_header:
-                cookies = cookie_header
-        else:
-            headers = ()
-
-        # We prefer the body to be a string, since we can then attempt to parse it
-        # as JSON OR decode it as a URL encoded query string, without relying on
-        # the correct content type header being passed.
-        body = data.get('data')
-
-        content_type = next((v for k, v in headers if k == 'Content-Type'), None)
-
-        # Remove content type parameters
-        if content_type is not None:
-            content_type = content_type.partition(';')[0].rstrip()
-
-        # We process request data once during ingestion and again when
-        # requesting the http interface over the API. Avoid overwriting
-        # decoding the body again.
-        inferred_content_type = data.get('inferred_content_type', content_type)
-
-        if 'inferred_content_type' not in data and not isinstance(body, dict):
-            body, inferred_content_type = heuristic_decode(body, content_type)
-
-        if body:
-            body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
-
-        env = data.get('env', {})
-        # TODO (alex) This could also be accomplished with schema (with formats)
-        if 'REMOTE_ADDR' in env:
-            try:
-                validate_ip(env['REMOTE_ADDR'], required=False)
-            except ValueError:
-                del env['REMOTE_ADDR']
-
-        kwargs['inferred_content_type'] = inferred_content_type
-        kwargs['cookies'] = trim_pairs(format_cookies(cookies))
-        kwargs['env'] = trim_dict(env)
-        kwargs['headers'] = trim_pairs(headers)
-        kwargs['data'] = fix_broken_encoding(body)
-        kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
-        kwargs['fragment'] = trim(fragment, 1024)
-
-        return cls(**kwargs)
+        data.setdefault('query_string', [])
+        for key in (
+            "method",
+            "url",
+            "fragment",
+            "cookies",
+            "headers",
+            "data",
+            "env",
+            "inferred_content_type",
+        ):
+            data.setdefault(key, None)
+        return cls(**data)
 
     def to_json(self):
         return prune_empty_keys({
@@ -249,7 +153,7 @@ class Http(Interface):
         url = self.url
         if url:
             if self.query_string:
-                url = url + '?' + urlencode(self.query_string)
+                url = url + '?' + urlencode(get_path(self.query_string, filter=True))
             if self.fragment:
                 url = url + '#' + self.fragment
         return url
@@ -261,7 +165,7 @@ class Http(Interface):
                 'url': self.full_url,
                 'short_url': self.url,
                 'method': self.method,
-                'query_string': urlencode(self.query_string),
+                'query_string': urlencode(get_path(self.query_string, filter=True)),
                 'fragment': self.fragment,
             }
         )
@@ -269,7 +173,7 @@ class Http(Interface):
     def get_title(self):
         return _('Request')
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         if is_public:
             return {}
 
@@ -294,7 +198,7 @@ class Http(Interface):
         }
         return data
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if is_public:
             return None
 

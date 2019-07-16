@@ -15,6 +15,9 @@ PROMPTS = {
     'releases': {
         'required_fields': ['organization_id', 'project_id'],
     },
+    'suspect_commits': {
+        'required_fields': ['organization_id', 'project_id'],
+    }
 }
 
 VALID_STATUSES = frozenset(('snoozed', 'dismissed'))
@@ -27,12 +30,12 @@ class PromptsActivitySerializer(serializers.Serializer):
         required=True,
     )
 
-    def validate_feature(self, attrs, source):
-        if attrs[source] is None:
+    def validate_feature(self, value):
+        if value is None:
             raise serializers.ValidationError('Must specify feature name')
-        if attrs[source] not in PROMPTS:
+        if value not in PROMPTS:
             raise serializers.ValidationError('Not a valid feature prompt')
-        return attrs
+        return value
 
 
 class PromptsActivityEndpoint(Endpoint):
@@ -55,7 +58,7 @@ class PromptsActivityEndpoint(Endpoint):
 
         try:
             result = PromptsActivity.objects.get(user=request.user,
-                                                 feature='releases',
+                                                 feature=feature,
                                                  **filters)
         except PromptsActivity.DoesNotExist:
             return Response({})
@@ -64,17 +67,17 @@ class PromptsActivityEndpoint(Endpoint):
 
     def put(self, request):
         serializer = PromptsActivitySerializer(
-            data=request.DATA,
+            data=request.data,
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        serialized = serializer.object
+        serialized = serializer.validated_data
         feature = serialized['feature']
         status = serialized['status']
 
         required_fields = PROMPTS[feature]['required_fields']
-        fields = {k: request.DATA.get(k) for k in required_fields}
+        fields = {k: request.data.get(k) for k in required_fields}
 
         if any(elem is None for elem in fields.values()):
             return Response({'detail': 'Missing required field'}, status=400)

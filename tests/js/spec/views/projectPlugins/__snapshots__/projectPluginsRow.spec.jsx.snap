@@ -155,7 +155,7 @@ exports[`ProjectPluginRow renders 1`] = `
                         size={48}
                       >
                         <div
-                          className="ectqpp2 css-lxugym-IntegrationIcon-StyledPluginIcon e1bhjds90"
+                          className="ectqpp2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e1bhjds90"
                           size={48}
                         />
                       </IntegrationIcon>
@@ -204,7 +204,7 @@ exports[`ProjectPluginRow renders 1`] = `
                           </div>
                         </PluginName>
                         <div>
-                          <ExternalLink
+                          <ForwardRef
                             className="css-8vm1xp-grayText"
                             href="https://github.com/getsentry/sentry"
                             rel="noreferrer noopener"
@@ -218,7 +218,7 @@ exports[`ProjectPluginRow renders 1`] = `
                             >
                               Sentry Team
                             </a>
-                          </ExternalLink>
+                          </ForwardRef>
                           <span>
                              
                             ·

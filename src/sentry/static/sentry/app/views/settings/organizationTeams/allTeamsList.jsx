@@ -23,7 +23,9 @@ class AllTeamsList extends React.Component {
   handleCreateTeam = e => {
     const {useCreateModal, organization} = this.props;
 
-    if (!useCreateModal) return;
+    if (!useCreateModal) {
+      return;
+    }
 
     e.preventDefault();
 

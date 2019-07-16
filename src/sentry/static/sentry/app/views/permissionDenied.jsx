@@ -5,7 +5,7 @@ import React from 'react';
 import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 

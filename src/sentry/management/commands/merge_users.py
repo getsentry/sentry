@@ -4,33 +4,35 @@ import operator
 import sys
 
 from collections import defaultdict
-from django.core.management.base import BaseCommand, CommandError, make_option
+from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
-from six.moves import input, reduce
+from six.moves import input
 
 from sentry.models import Organization, OrganizationMember, User
+from functools import reduce
 
 
 class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--organization', help='Find all potential duplicate users within that organization.'
-        ), make_option(
+        )
+        parser.add_argument(
             '--noinput',
             dest='noinput',
             action='store_true',
             default=False,
             help='Dont ask for confirmation before merging accounts.'
-        ), make_option(
+        )
+        parser.add_argument(
             '--no-delete',
             dest='delete',
             action='store_false',
             default=True,
             help='Don\'t remove merged accounts.'
-        ),
-    )
+        )
 
     def _get_organization_user_sets(self, organization):
         queryset = OrganizationMember.objects.filter(

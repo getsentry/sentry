@@ -1,35 +1,12 @@
 from __future__ import absolute_import
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-from sentry.models import Group, GroupAssignee, Organization
+from sentry.models import GroupAssignee
 from sentry.signals import (
     issue_ignored,
     issue_assigned,
     issue_resolved,
-    issue_resolved_in_release,
-    resolved_with_commit,
 )
-from sentry.tasks.sentry_apps import (
-    process_resource_change_bound,
-    workflow_notification,
-)
-
-
-@receiver(post_save, sender=Group, weak=False)
-def issue_saved(sender, instance, created, **kwargs):
-    issue = instance
-
-    # We only send webhooks for creation right now.
-    if not created:
-        return
-
-    process_resource_change_bound.delay(
-        action='created',
-        sender=sender.__name__,
-        instance_id=issue.id,
-    )
+from sentry.tasks.sentry_apps import workflow_notification
 
 
 @issue_assigned.connect(weak=False)
@@ -56,25 +33,14 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
     send_workflow_webhooks(org, group, user, 'issue.assigned', data=data)
 
 
-@issue_resolved_in_release.connect(weak=False)
-def send_issue_resolved_in_release_webhook(project, group, user, resolution_type, **kwargs):
-    send_workflow_webhooks(
-        project.organization,
-        group,
-        user,
-        'issue.resolved',
-        data={'resolution_type': 'resolved_in_release'},
-    )
-
-
 @issue_resolved.connect(weak=False)
-def send_issue_resolved_webhook(project, group, user, **kwargs):
+def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
     send_workflow_webhooks(
         project.organization,
         group,
         user,
         'issue.resolved',
-        data={'resolution_type': 'resolved'},
+        data={'resolution_type': resolution_type},
     )
 
 
@@ -87,18 +53,6 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
             user,
             'issue.ignored',
         )
-
-
-@resolved_with_commit.connect(weak=False)
-def send_resolved_with_commit_webhook(organization_id, group, user, **kwargs):
-    organization = Organization.objects.get(id=organization_id)
-    send_workflow_webhooks(
-        organization,
-        group,
-        user,
-        'issue.resolved',
-        data={'resolution_type': 'resolved_in_commit'},
-    )
 
 
 def send_workflow_webhooks(organization, issue, user, event, data=None):

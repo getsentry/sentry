@@ -33,6 +33,7 @@ register('system.event-retention-days', default=0, flags=FLAG_ALLOW_EMPTY | FLAG
 register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register('system.internal-url-prefix', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -113,6 +114,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
 )
 
+# Symbolicator
+register('symbolicator.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    'symbolicator.options',
+    default={'url': 'http://localhost:3021'},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
 register('analytics.options', default={}, flags=FLAG_NOSTORE)
@@ -150,7 +159,8 @@ register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)
 register('snuba.search.max-total-chunk-time-seconds', default=30.0)
 register('snuba.search.hits-sample-size', default=100)
-register('snuba.events-queries.enabled', type=Bool, default=False)
+register('snuba.events-queries.enabled', type=Bool, default=True)
+register('snuba.track-outcomes-sample-rate', default=0.0)
 
 # Kafka Publisher
 register('kafka-publisher.raw-event-sample-rate', default=0.0)
@@ -165,3 +175,19 @@ register('store.projects-normalize-in-rust-percent-opt-in', default=0.0)  # unus
 
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register('store.empty-interface-sample-rate', default=0.0)
+
+# Symbolicator refactors
+# - Disabling minidump stackwalking in endpoints
+register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])  # unused
+register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])  # unused
+register('symbolicator.minidump-refactor-random-sampling', default=0.0)  # unused
+
+
+# Normalization after processors
+register('store.normalize-after-processing', default=0.0)  # unused
+register('store.disable-trim-in-renormalization', default=0.0)  # unused
+
+# Post Process Error Hook Sampling
+register('post-process.use-error-hook-sampling', default=False)  # unused
+# From 0.0 to 1.0: Randomly enqueue process_resource_change task
+register('post-process.error-hook-sample-rate', default=0.0)  # unused

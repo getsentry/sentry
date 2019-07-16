@@ -9,23 +9,24 @@ import {analytics} from 'app/utils/analytics';
 import {sendSampleEvent} from 'app/actionCreators/projects';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',
 
   propTypes: {
+    api: PropTypes.object,
     org: PropTypes.object.isRequired,
     project: PropTypes.object,
+
     // sampleIssueId can have 3 values:
     // - empty string to indicate it doesn't exist (render "create sample event")
     // - non-empty string to indicate it exists (render "see sample event")
     // - null/undefined to indicate the project API should be consulted to find out
     sampleIssueId: PropTypes.string,
+
     gradient: PropTypes.bool,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -52,7 +53,7 @@ const ErrorRobot = createReactClass({
       const requestParams = {limit: 1};
 
       this.setState({loading: true});
-      this.api.request(url, {
+      this.props.api.request(url, {
         method: 'GET',
         data: requestParams,
         success: (data, ignore, jqXHR) => {
@@ -82,7 +83,7 @@ const ErrorRobot = createReactClass({
       source: 'robot',
     });
 
-    sendSampleEvent(this.api, org.slug, project.slug)
+    sendSampleEvent(this.props.api, org.slug, project.slug)
       .then(data => {
         browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
       })
@@ -157,7 +158,9 @@ const ErrorRobot = createReactClass({
   },
 });
 
-export default ErrorRobot;
+export {ErrorRobot};
+
+export default withApi(ErrorRobot);
 
 const ErrorRobotWrapper = styled('div')`
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);

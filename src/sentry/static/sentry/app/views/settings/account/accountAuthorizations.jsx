@@ -52,7 +52,7 @@ class AuthorizationRow extends React.Component {
   }
 }
 
-const Description = styled.p`
+const Description = styled('p')`
   font-size: 0.9em;
   margin-bottom: 30px;
 `;

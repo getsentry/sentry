@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {Dashboard} from 'app/views/organizationProjectsDashboard';
+import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import * as projectsActions from 'app/actionCreators/projects';
 
@@ -100,27 +100,7 @@ describe('OrganizationDashboard', function() {
           teams,
           firstEvent: true,
         }),
-      ];
 
-      const wrapper = shallow(
-        <Dashboard
-          teams={teams}
-          projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
-        />,
-        TestStubs.routerContext()
-      );
-      const emptyState = wrapper.find('NoProjectMessage');
-      const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
-      const teamSection = wrapper.find('TeamSection');
-      expect(emptyState).toHaveLength(0);
-      expect(favorites).toHaveLength(0);
-      expect(teamSection).toHaveLength(1);
-    });
-
-    it('renders favorited project in favorites section ', function() {
-      const projects = [
         TestStubs.Project({
           teams,
           isBookmarked: true,
@@ -137,8 +117,10 @@ describe('OrganizationDashboard', function() {
         />,
         TestStubs.routerContext()
       );
-      const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
-      expect(favorites).toHaveLength(1);
+      const emptyState = wrapper.find('NoProjectMessage');
+      const teamSection = wrapper.find('TeamSection');
+      expect(emptyState).toHaveLength(0);
+      expect(teamSection).toHaveLength(1);
     });
 
     it('renders bookmarked projects first in team list', function() {
@@ -218,39 +200,6 @@ describe('OrganizationDashboard', function() {
       expect(projectCards.at(4).prop('data-test-id')).toBe('m');
       expect(projectCards.at(5).prop('data-test-id')).toBe('z');
     });
-
-    it('renders favorited projects if there is any, even if team list is empty', function() {
-      const projects = [
-        TestStubs.Project({
-          id: '1',
-          slug: 'm',
-          teams: [],
-          isBookmarked: true,
-          stats: [],
-          firstEvent: true,
-        }),
-      ];
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projects,
-      });
-
-      const wrapper = mount(
-        <Dashboard
-          teams={[]}
-          projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
-        />,
-        routerContext
-      );
-
-      expect(wrapper.find('TeamSection')).toHaveLength(1);
-      const projectCards = wrapper.find('ProjectCard');
-      expect(projectCards).toHaveLength(1);
-      const emptyState = wrapper.find('NoProjectMessage');
-      expect(emptyState).toHaveLength(0);
-    });
   });
 
   describe('ProjectsStatsStore', function() {
@@ -315,12 +264,11 @@ describe('OrganizationDashboard', function() {
         routerContext
       );
 
-      // Favorites = 3 + 6 for first team
-      expect(loadStatsSpy).toHaveBeenCalledTimes(9);
+      expect(loadStatsSpy).toHaveBeenCalledTimes(6);
       expect(mock).not.toHaveBeenCalled();
 
-      // Has 8 Loading Cards because 1 project has been loaded in store already
-      expect(wrapper.find('LoadingCard')).toHaveLength(8);
+      // Has 5 Loading Cards because 1 project has been loaded in store already
+      expect(wrapper.find('LoadingCard')).toHaveLength(5);
 
       // Advance timers so that batched request fires
       jest.advanceTimersByTime(51);
@@ -340,7 +288,7 @@ describe('OrganizationDashboard', function() {
       await tick();
       wrapper.update();
       expect(wrapper.find('LoadingCard')).toHaveLength(0);
-      expect(wrapper.find('Chart')).toHaveLength(9);
+      expect(wrapper.find('Chart')).toHaveLength(6);
 
       // Resets store when it unmounts
       wrapper.unmount();

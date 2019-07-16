@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import pytest
 import pickle
 
 from sentry.models import Environment
-from sentry.testutils import TestCase
 from sentry.db.models.fields.node import NodeData
 from sentry.event_manager import EventManager
+from sentry.testutils import TestCase
+from sentry.testutils.factories import Factories
 
 
 class EventTest(TestCase):
@@ -160,6 +162,51 @@ class EventTest(TestCase):
 
         event = self.create_event()
         assert event.ip_address is None
+
+    def test_issueless_event(self):
+        event = Factories.create_event(
+            group=None,
+            project=self.project,
+            event_id='a' * 32,
+            tags={'level': 'info'},
+            message='Foo bar',
+            data={
+                'culprit': 'app/components/events/eventEntries in map',
+            },
+        )
+        assert event.group is None
+        assert event.culprit == 'app/components/events/eventEntries in map'
+        assert event.level is None
+        assert event.get_level_display() is None
+
+
+@pytest.mark.django_db
+def test_renormalization(monkeypatch, factories, task_runner, default_project):
+    from semaphore.processing import StoreNormalizer
+
+    old_normalize = StoreNormalizer.normalize_event
+    normalize_mock_calls = []
+
+    def normalize(*args, **kwargs):
+        normalize_mock_calls.append(1)
+        return old_normalize(*args, **kwargs)
+
+    monkeypatch.setattr('semaphore.processing.StoreNormalizer.normalize_event',
+                        normalize)
+
+    with task_runner():
+        factories.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'production',
+            },
+            project_id=default_project.id
+        )
+
+    # Assert we only renormalize this once. If this assertion fails it's likely
+    # that you will encounter severe performance issues during event processing
+    # or postprocessing.
+    assert len(normalize_mock_calls) == 1
 
 
 class EventGetLegacyMessageTest(TestCase):

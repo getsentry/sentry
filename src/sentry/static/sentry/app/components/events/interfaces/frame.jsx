@@ -1,25 +1,65 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
+import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
+import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
+import ErrorBoundary from 'app/components/errorBoundary';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
   const filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
+}
+
+class FunctionName extends React.Component {
+  static propTypes = {
+    frame: PropTypes.object,
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      rawFunction: false,
+    };
+  }
+
+  toggle = event => {
+    event.stopPropagation();
+    this.setState(({rawFunction}) => ({rawFunction: !rawFunction}));
+  };
+
+  render() {
+    const {frame, ...props} = this.props;
+    const func = frame.function;
+    const rawFunc = frame.rawFunction;
+    const canToggle = rawFunc && func && func !== rawFunc;
+
+    if (!canToggle) {
+      return <code {...props}>{func || rawFunc || '<unknown>'}</code>;
+    }
+
+    const current = this.state.rawFunction ? rawFunc : func;
+    const title = this.state.rawFunction ? null : rawFunc;
+    return (
+      <code {...props} title={title}>
+        <a onClick={this.toggle}>{current || '<unknown>'}</a>
+      </code>
+    );
+  }
 }
 
 const Frame = createReactClass({
@@ -85,19 +125,15 @@ const Frame = createReactClass({
   renderOriginalSourceInfo() {
     const data = this.props.data;
 
-    const sourceMapText = t('Source Map');
-
-    let out = `
-    <div>
-      <strong>${sourceMapText}</strong><br/>`;
-
     // mapUrl not always present; e.g. uploaded source maps
-    if (data.mapUrl) out += `${_.escape(data.mapUrl)}<br/>`;
-    else out += `${_.escape(data.map)}<br/>`;
-
-    out += '</div>';
-
-    return out;
+    return (
+      <React.Fragment>
+        <strong>{t('Source Map')}</strong>
+        <br />
+        {data.mapUrl ? data.mapUrl : data.map}
+        <br />
+      </React.Fragment>
+    );
   },
 
   getPlatform() {
@@ -118,6 +154,10 @@ const Frame = createReactClass({
 
   preventCollapse(evt) {
     evt.stopPropagation();
+  },
+
+  getSentryAppComponents() {
+    return SentryAppComponentsStore.getComponentByType('stacktrace-link');
   },
 
   renderDefaultTitle() {
@@ -144,7 +184,7 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
+          <Tooltip title={data.filename}>
             <a className="in-at real-filename">
               <span className="icon-question" />
             </a>
@@ -154,16 +194,15 @@ const Frame = createReactClass({
 
       if (isUrl(data.absPath)) {
         title.push(
-          <a
+          <ExternalLink
             href={data.absPath}
             className="icon-open"
             key="share"
-            target="_blank"
             onClick={this.preventCollapse}
           />
         );
       }
-      if (defined(data.function)) {
+      if (defined(data.function) || defined(data.rawFunction)) {
         title.push(
           <span className="in-at" key="in">
             {' '}
@@ -173,18 +212,14 @@ const Frame = createReactClass({
       }
     }
 
-    if (defined(data.function)) {
-      title.push(
-        <code key="function" className="function">
-          {data.function}
-        </code>
-      );
+    if (defined(data.function) || defined(data.rawFunction)) {
+      title.push(<FunctionName frame={data} key="function" className="function" />);
     }
 
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
-    if (defined(data.lineNo) && data.lineNo != 0) {
+    if (defined(data.lineNo) && data.lineNo !== 0) {
       title.push(
         <span className="in-at in-at-line" key="no">
           {' '}
@@ -214,11 +249,7 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <Tooltip
-          key="info-tooltip"
-          title={this.renderOriginalSourceInfo()}
-          tooltipOptions={{html: true}}
-        >
+        <Tooltip key="info-tooltip" title={this.renderOriginalSourceInfo()}>
           <a className="in-at original-src">
             <span className="icon-question" />
           </a>
@@ -260,8 +291,38 @@ const Frame = createReactClass({
 
           {data.context &&
             contextLines.map((line, index) => {
+              const isActive = data.lineNo === line[0];
+              const components = this.getSentryAppComponents();
+              const hasComponents = isActive && components.length > 0;
+              const className = hasComponents
+                ? css`
+                    background: inherit;
+                    padding: 0;
+                    text-indent: 20px;
+                    z-index: 1000;
+                  `
+                : css`
+                    background: inherit;
+                    padding: 0 20px;
+                  `;
               return (
-                <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />
+                <ContextLine
+                  key={index}
+                  line={line}
+                  isActive={isActive}
+                  className={className}
+                >
+                  {hasComponents && (
+                    <ErrorBoundary mini>
+                      <OpenInContextLine
+                        key={index}
+                        lineNo={line[0]}
+                        filename={data.filename}
+                        components={components}
+                      />
+                    </ErrorBoundary>
+                  )}
+                </ContextLine>
               );
             })}
 
@@ -309,8 +370,8 @@ const Frame = createReactClass({
   isInlineFrame() {
     return (
       this.props.prevFrame &&
-      this.getPlatform() == (this.props.prevFrame.platform || this.props.platform) &&
-      this.props.data.instructionAddr == this.props.prevFrame.instructionAddr
+      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
+      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
     );
   },
 
@@ -321,7 +382,7 @@ const Frame = createReactClass({
     if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
       return t('Found by stack scanning');
     }
-    if (this.getPlatform() == 'cocoa') {
+    if (this.getPlatform() === 'cocoa') {
       const func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
         return t('Objective-C -> Swift shim frame');
@@ -339,7 +400,9 @@ const Frame = createReactClass({
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
       return <span className="leads-to-app-hint">{'Called from: '}</span>;
-    } else return null;
+    } else {
+      return null;
+    }
   },
 
   renderRepeats() {
@@ -355,7 +418,9 @@ const Frame = createReactClass({
           </RepeatedContent>
         </RepeatedFrames>
       );
-    } else return null;
+    } else {
+      return null;
+    }
   },
 
   renderDefaultLine() {
@@ -392,15 +457,18 @@ const Frame = createReactClass({
             )}
             <span className="address">{data.instructionAddr}</span>
             <span className="symbol">
-              <code>{data.function || '<unknown>'}</code>{' '}
+              <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span className="filename">
+                <span
+                  className="filename"
+                  title={data.absPath !== data.filename ? data.absPath : null}
+                >
                   {data.filename}
                   {data.lineNo ? ':' + data.lineNo : ''}
                 </span>
               )}
               {hint !== null ? (
-                <Tooltip title={_.escape(hint)}>
+                <Tooltip title={hint}>
                   <a key="inline">
                     <span className="icon-question" />
                   </a>

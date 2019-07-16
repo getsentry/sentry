@@ -111,41 +111,36 @@ export default class IntegrationInstallation extends AsyncView {
           )}
         </p>
 
-        {selectedOrg &&
-          organization &&
-          !this.hasAccess(organization) && (
-            <Alert type="error" icon="icon-circle-exclamation">
-              <p>
-                {tct(
-                  `You do not have permission to install integrations in
-                  [organization]. Ask your organization owner or manager to
+        {selectedOrg && organization && !this.hasAccess(organization) && (
+          <Alert type="error" icon="icon-circle-exclamation">
+            <p>
+              {tct(
+                `You do not have permission to install integrations in
+                  [organization]. Ask an organization owner or manager to
                   visit this page to finish installing this integration.`,
-                  {organization: <strong>{organization.slug}</strong>}
-                )}
-              </p>
-              <InstallLink>{window.location.href}</InstallLink>
-            </Alert>
-          )}
+                {organization: <strong>{organization.slug}</strong>}
+              )}
+            </p>
+            <InstallLink>{window.location.href}</InstallLink>
+          </Alert>
+        )}
 
-        {this.provider &&
-          organization &&
-          this.hasAccess(organization) &&
-          FeatureList && (
-            <React.Fragment>
-              <p>
-                {tct(
-                  'The following features will be availble for [organization] when installed.',
-                  {organization: <strong>{organization.slug}</strong>}
-                )}
-              </p>
-              <FeatureList
-                organization={organization}
-                features={this.provider.metadata.features}
-                formatter={singleLineRenderer}
-                provider={this.provider}
-              />
-            </React.Fragment>
-          )}
+        {this.provider && organization && this.hasAccess(organization) && FeatureList && (
+          <React.Fragment>
+            <p>
+              {tct(
+                'The following features will be availble for [organization] when installed.',
+                {organization: <strong>{organization.slug}</strong>}
+              )}
+            </p>
+            <FeatureList
+              organization={organization}
+              features={this.provider.metadata.features}
+              formatter={singleLineRenderer}
+              provider={this.provider}
+            />
+          </React.Fragment>
+        )}
 
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (

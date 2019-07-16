@@ -166,20 +166,20 @@ class ProjectSummarySerializerTest(TestCase):
 
         self.release = self.create_release(self.project)
 
-        environment_1 = Environment.objects.create(
+        self.environment_1 = Environment.objects.create(
             organization_id=self.organization.id,
             name='production',
         )
-        environment_1.add_project(self.project)
-        environment_1.save()
-        environment_2 = Environment.objects.create(
+        self.environment_1.add_project(self.project)
+        self.environment_1.save()
+        self.environment_2 = Environment.objects.create(
             organization_id=self.organization.id,
             name='staging',
         )
-        environment_2.add_project(self.project)
-        environment_2.save()
+        self.environment_2.add_project(self.project)
+        self.environment_2.save()
         deploy = Deploy.objects.create(
-            environment_id=environment_1.id,
+            environment_id=self.environment_1.id,
             organization_id=self.organization.id,
             release=self.release,
             date_finished=self.date
@@ -187,7 +187,7 @@ class ProjectSummarySerializerTest(TestCase):
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=self.release.id,
-            environment_id=environment_1.id,
+            environment_id=self.environment_1.id,
             last_deploy_id=deploy.id
         )
 
@@ -258,6 +258,69 @@ class ProjectSummarySerializerTest(TestCase):
         }
         assert result['latestRelease'] == {'version': self.release.version}
         assert result['environments'] == ['production', 'staging']
+
+    def test_multiple_environments_deploys(self):
+        env_1_release = self.create_release(self.project)
+        env_1_deploy = Deploy.objects.create(
+            environment_id=self.environment_1.id,
+            organization_id=self.organization.id,
+            release=env_1_release,
+            date_finished=self.date + timedelta(minutes=20),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=env_1_release.id,
+            environment_id=self.environment_1.id,
+            last_deploy_id=env_1_deploy.id,
+        )
+
+        env_2_release = self.create_release(self.project)
+        Deploy.objects.create(
+            environment_id=self.environment_2.id,
+            organization_id=self.organization.id,
+            release=env_2_release,
+            date_finished=self.date - timedelta(days=5),
+        )
+        env_2_deploy = Deploy.objects.create(
+            environment_id=self.environment_2.id,
+            organization_id=self.organization.id,
+            release=env_2_release,
+            date_finished=self.date,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=env_2_release.id,
+            environment_id=self.environment_2.id,
+            last_deploy_id=env_2_deploy.id,
+        )
+        other_project = self.create_project()
+        other_project_release = self.create_release(other_project)
+        other_project_deploy = Deploy.objects.create(
+            environment_id=self.environment_2.id,
+            organization_id=self.organization.id,
+            release=other_project_release,
+            date_finished=self.date - timedelta(minutes=350),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=other_project.id,
+            release_id=other_project_release.id,
+            environment_id=self.environment_2.id,
+            last_deploy_id=other_project_deploy.id,
+        )
+        result = serialize(
+            [self.project, other_project],
+            self.user,
+            ProjectSummarySerializer(),
+        )
+        assert result[0]['id'] == six.text_type(self.project.id)
+        assert result[0]['latestDeploys'] == {
+            self.environment_1.name: {'version': env_1_release.version, 'dateFinished': env_1_deploy.date_finished},
+            self.environment_2.name: {'version': env_2_release.version, 'dateFinished': env_2_deploy.date_finished},
+        }
+        assert result[1]['id'] == six.text_type(other_project.id)
+        assert result[1]['latestDeploys'] == {
+            self.environment_2.name: {'version': other_project_release.version, 'dateFinished': other_project_deploy.date_finished},
+        }
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):

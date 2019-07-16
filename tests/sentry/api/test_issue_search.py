@@ -127,21 +127,34 @@ class ParseSearchQueryTest(TestCase):
                 value=SearchValue(raw_value=500),
             ),
         ]
-        # Non numeric shouldn't match
-        assert parse_search_query('times_seen:<hello') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator="=",
-                value=SearchValue(raw_value="<hello"),
-            ),
+        invalid_queries = [
+            'times_seen:<hello',
+            'times_seen:<512.1.0',
+            'times_seen:2018-01-01',
+            'times_seen:+7d',
+            'times_seen:>2018-01-01',
+            'times_seen:"<10"',
         ]
-        assert parse_search_query('times_seen:<512.1.0') == [
-            SearchFilter(
-                key=SearchKey(name='times_seen'),
-                operator="=",
-                value=SearchValue(raw_value="<512.1.0"),
-            ),
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery,
+                expected_regex='Invalid format for numeric search',
+            ):
+                parse_search_query(invalid_query)
+
+    def test_boolean_operators_not_allowed(self):
+        invalid_queries = [
+            'user.email:foo@example.com OR user.email:bar@example.com',
+            'user.email:foo@example.com AND user.email:bar@example.com',
+            'user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com',
+            'user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com',
         ]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery,
+                expected_regex='Boolean statements containing "OR" or "AND" are not supported in this search',
+            ):
+                parse_search_query(invalid_query)
 
 
 class ConvertQueryValuesTest(TestCase):

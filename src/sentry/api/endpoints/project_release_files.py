@@ -12,6 +12,8 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.endpoints.organization_release_files import load_dist
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -80,14 +82,15 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file', 'dist').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            max_offset=MAX_RELEASE_FILES_OFFSET,
+            on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
     @attach_scenarios([upload_file_scenario])
@@ -132,12 +135,12 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         logger = logging.getLogger('sentry.files')
         logger.info('projectreleasefile.start')
 
-        if 'file' not in request.FILES:
+        if 'file' not in request.data:
             return Response({'detail': 'Missing uploaded file'}, status=400)
 
-        fileobj = request.FILES['file']
+        fileobj = request.data['file']
 
-        full_name = request.DATA.get('name', fileobj.name)
+        full_name = request.data.get('name', fileobj.name)
         if not full_name or full_name == 'file':
             return Response({'detail': 'File name must be specified'}, status=400)
 
@@ -150,7 +153,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                 }, status=400
             )
 
-        dist_name = request.DATA.get('dist')
+        dist_name = request.data.get('dist')
         dist = None
         if dist_name:
             dist = release.add_dist(dist_name)
@@ -158,7 +161,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         headers = {
             'Content-Type': fileobj.content_type,
         }
-        for headerval in request.DATA.getlist('header') or ():
+        for headerval in request.data.getlist('header') or ():
             try:
                 k, v = headerval.split(':', 1)
             except ValueError:

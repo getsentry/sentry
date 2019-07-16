@@ -9,6 +9,7 @@ exports[`Project Ownership Input renders 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -57,6 +58,7 @@ exports[`Project Ownership Input renders 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -97,6 +99,9 @@ exports[`Project Ownership Input renders 1`] = `
       >
         <BuilderSelect
           clearable={false}
+          disabled={false}
+          hideErrorMessage={false}
+          multiple={false}
           name="select-type"
           onChange={[Function]}
           options={
@@ -111,6 +116,7 @@ exports[`Project Ownership Input renders 1`] = `
               },
             ]
           }
+          required={false}
           showSearch={false}
           style={
             Object {
@@ -162,6 +168,7 @@ exports[`Project Ownership Input renders 1`] = `
                 <StyledSelectControl
                   clearable={false}
                   disabled={false}
+                  height={36}
                   id="id-select-type"
                   multiple={false}
                   name="select-type"
@@ -485,7 +492,7 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
-            className="css-1enrgn8-Input-inputStyles-BuilderInput e1hyuoc77"
+            className="css-exo5e5-Input-inputStyles-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -541,6 +548,7 @@ exports[`Project Ownership Input renders 1`] = `
                       "org:read",
                       "org:write",
                       "org:admin",
+                      "org:integrations",
                       "project:read",
                       "project:write",
                       "project:admin",
@@ -586,7 +594,7 @@ exports[`Project Ownership Input renders 1`] = `
                   loadOptions={[Function]}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={Array []}
                   valueComponent={[Function]}
                 >
@@ -602,7 +610,7 @@ exports[`Project Ownership Input renders 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={Array []}
                     valueComponent={[Function]}
                   >
@@ -622,7 +630,7 @@ exports[`Project Ownership Input renders 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={Array []}
                       valueComponent={[Function]}
                     >
@@ -642,7 +650,7 @@ exports[`Project Ownership Input renders 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={Array []}
                         valueComponent={[Function]}
                       >
@@ -663,7 +671,7 @@ exports[`Project Ownership Input renders 1`] = `
                           multiple={true}
                           onChange={[Function]}
                           onInputChange={[Function]}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           value={Array []}
                           valueComponent={[Function]}
                         >
@@ -687,7 +695,7 @@ exports[`Project Ownership Input renders 1`] = `
                             onChange={[Function]}
                             onInputChange={[Function]}
                             options={Array []}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             searchPromptText="Type to search"
                             value={Array []}
                             valueComponent={[Function]}
@@ -857,6 +865,7 @@ exports[`Project Ownership Input renders 1`] = `
           </Base>
         </Flex>
         <AddButton
+          align="center"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -864,7 +873,8 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
-            className="css-po7kq7-AddButton e1hyuoc79"
+            align="center"
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -872,7 +882,8 @@ exports[`Project Ownership Input renders 1`] = `
             size="small"
           >
             <StyledButton
-              className="css-po7kq7-AddButton e1hyuoc79"
+              aria-disabled={true}
+              className="css-8nraqh-AddButton e1hyuoc79"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -881,8 +892,9 @@ exports[`Project Ownership Input renders 1`] = `
               size="small"
               to={null}
             >
-              <Component
-                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
+              <ForwardRef
+                aria-disabled={true}
+                className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -892,38 +904,39 @@ exports[`Project Ownership Input renders 1`] = `
                 to={null}
               >
                 <button
-                  className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
-                  disabled={true}
+                  aria-disabled={true}
+                  className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
                   href={null}
                   onClick={[Function]}
-                  priority="primary"
                   role="button"
                   size="small"
                   to={null}
                 >
                   <ButtonLabel
+                    align="center"
                     priority="primary"
                     size="small"
                   >
                     <Component
-                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      align="center"
+                      className="css-1h693nz-ButtonLabel e12ma6z1"
                       priority="primary"
                       size="small"
                     >
                       <span
-                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                        className="css-1h693nz-ButtonLabel e12ma6z1"
                       >
                         <Icon
                           hasChildren={false}
                           size="small"
                         >
                           <Component
-                            className="css-ljhpxy-Icon eqrebog2"
+                            className="css-ljhpxy-Icon e12ma6z2"
                             hasChildren={false}
                             size="small"
                           >
                             <span
-                              className="css-ljhpxy-Icon eqrebog2"
+                              className="css-ljhpxy-Icon e12ma6z2"
                               size="small"
                             >
                               <StyledInlineSvg
@@ -931,18 +944,18 @@ exports[`Project Ownership Input renders 1`] = `
                                 src="icon-circle-add"
                               >
                                 <InlineSvg
-                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                   size="12px"
                                   src="icon-circle-add"
                                 >
                                   <StyledSvg
-                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
                                   >
                                     <svg
-                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                       height="12px"
                                       viewBox={Object {}}
                                       width="12px"
@@ -962,7 +975,7 @@ exports[`Project Ownership Input renders 1`] = `
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </AddButton>
@@ -978,6 +991,7 @@ exports[`Project Ownership Input renders 1`] = `
     }
   >
     <StyledTextArea
+      async={false}
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
@@ -985,6 +999,7 @@ exports[`Project Ownership Input renders 1`] = `
       placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product"
+      rows={1}
       spellCheck="false"
       value="new"
     >
@@ -993,7 +1008,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-cqfvlz-StyledTextArea-inputStyles en3n9di2"
+        className="css-2wuf31-StyledTextArea-inputStyles en3n9di2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1007,7 +1022,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-cqfvlz-StyledTextArea-inputStyles en3n9di2"
+          className="css-2wuf31-StyledTextArea-inputStyles en3n9di2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1037,12 +1052,14 @@ url:http://example.com/settings/* #product"
               className="css-5zvod-SaveButton en3n9di1"
             >
               <Button
+                align="center"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
                 size="small"
               >
                 <StyledButton
+                  aria-disabled={false}
                   aria-label="Save Changes"
                   disabled={false}
                   onClick={[Function]}
@@ -1050,9 +1067,10 @@ url:http://example.com/settings/* #product"
                   role="button"
                   size="small"
                 >
-                  <Component
+                  <ForwardRef
+                    aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                    className="css-23553w-StyledButton-getColors e12ma6z0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -1060,32 +1078,33 @@ url:http://example.com/settings/* #product"
                     size="small"
                   >
                     <button
+                      aria-disabled={false}
                       aria-label="Save Changes"
-                      className="css-zvpqlo-StyledButton-getColors eqrebog0"
-                      disabled={false}
+                      className="css-23553w-StyledButton-getColors e12ma6z0"
                       onClick={[Function]}
-                      priority="primary"
                       role="button"
                       size="small"
                     >
                       <ButtonLabel
+                        align="center"
                         priority="primary"
                         size="small"
                       >
                         <Component
-                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                          align="center"
+                          className="css-1h693nz-ButtonLabel e12ma6z1"
                           priority="primary"
                           size="small"
                         >
                           <span
-                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                            className="css-1h693nz-ButtonLabel e12ma6z1"
                           >
                             Save Changes
                           </span>
                         </Component>
                       </ButtonLabel>
                     </button>
-                  </Component>
+                  </ForwardRef>
                 </StyledButton>
               </Button>
             </div>

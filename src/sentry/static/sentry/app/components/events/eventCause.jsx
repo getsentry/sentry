@@ -1,61 +1,63 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {uniqBy, flatMap} from 'lodash';
 import styled from 'react-emotion';
 
-import ApiMixin from 'app/mixins/apiMixin';
 import CommitRow from 'app/components/commitRow';
 import InlineSvg from 'app/components/inlineSvg';
+import withApi from 'app/utils/withApi';
 
 import {t} from 'app/locale';
 
 import {Panel} from 'app/components/panels';
 
-const ExpandButton = styled.span`
+const ExpandButton = styled('span')`
   cursor: pointer;
   position: absolute;
   right: 0;
   top: 7px;
 `;
 
-export default createReactClass({
-  displayName: 'EventCause',
-
-  propTypes: {
+class EventCause extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {committers: undefined, expanded: false};
-  },
+  state = {
+    committers: undefined,
+    expanded: false,
+  };
 
   componentDidMount() {
     this.fetchData(this.props.event);
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.event && nextProps.event) {
-      if (this.props.event.id !== nextProps.event.id) {
-        //two events, with different IDs
-        this.fetchData(nextProps.event);
-      }
-    } else if (nextProps.event) {
-      //going from having no event to having an event
-      this.fetchData(nextProps.event);
+  componentDidUpdate(prevProps) {
+    let doFetch = false;
+    if (!prevProps.event && this.props.event) {
+      // going from having no event to having an event
+      doFetch = true;
+    } else if (this.props.event && this.props.event.id !== prevProps.event.id) {
+      doFetch = true;
     }
-  },
+
+    if (doFetch) {
+      this.fetchData(this.props.event);
+    }
+  }
 
   fetchData(event) {
     // TODO(dcramer): this API request happens twice, and we need a store for it
-    if (!event) return;
-    this.api.request(
-      `/projects/${this.props.orgId}/${this.props
-        .projectId}/events/${event.id}/committers/`,
+    if (!event) {
+      return;
+    }
+    this.props.api.request(
+      `/projects/${this.props.orgId}/${this.props.projectId}/events/${
+        event.id
+      }/committers/`,
       {
         success: (data, _, jqXHR) => {
           this.setState(data);
@@ -67,7 +69,7 @@ export default createReactClass({
         },
       }
     );
-  },
+  }
 
   getUniqueCommitsWithAuthors() {
     const {committers} = this.state;
@@ -82,7 +84,7 @@ export default createReactClass({
     //remove duplicate commits
     const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
     return uniqueCommitsWithAuthors;
-  },
+  }
 
   render() {
     const {committers, expanded} = this.state;
@@ -119,5 +121,7 @@ export default createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
+
+export default withApi(EventCause);

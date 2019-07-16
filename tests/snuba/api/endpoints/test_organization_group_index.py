@@ -58,6 +58,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
 
+    def test_feature_gate(self):
+        # ensure there are two or more projects
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+
+        response = self.get_response()
+        assert response.status_code == 400
+        assert response.data['detail'] == 'You do not have the multi project stream feature enabled'
+
+        with self.feature('organizations:global-views'):
+            response = self.get_response()
+            assert response.status_code == 200
+
+    def test_boolean_search_feature_flag(self):
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by='date', query='title:hello OR title:goodbye')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+
+        response = self.get_response(sort_by='date', query='title:hello AND title:goodbye')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
+
     def test_invalid_query(self):
         now = timezone.now()
         self.create_group(
@@ -68,10 +91,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by='date', query='timesSeen:>1k')
         assert response.status_code == 400
-        assert 'could not' in response.data['detail']
+        assert 'Invalid format for numeric search' in response.data['detail']
 
     def test_simple_pagination(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
         group1 = self.create_group(
             project=self.project,
             last_seen=now - timedelta(seconds=2),
@@ -204,6 +227,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]['id'] == six.text_type(group.id)
         assert response.data[0]['matchingEventId'] == event_id
 
+    def test_lookup_by_event_id_incorrect_project_id(self):
+        self.store_event(
+            data={'event_id': 'a' * 32, 'timestamp': self.min_ago.isoformat()[:19]},
+            project_id=self.project.id
+        )
+        event_id = 'b' * 32
+        event = self.store_event(
+            data={'event_id': event_id, 'timestamp': self.min_ago.isoformat()[:19]},
+            project_id=self.project.id
+        )
+
+        other_project = self.create_project(teams=[self.team])
+        user = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            teams=[self.team],
+            user=user,
+        )
+        self.login_as(user=user)
+
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(query=event_id, project=[other_project.id])
+        assert response['X-Sentry-Direct-Hit'] == '1'
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(event.group.id)
+        assert response.data[0]['matchingEventId'] == event_id
+
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
@@ -241,15 +291,31 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
-    def test_lookup_by_short_id_no_perms(self):
+    def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         project2 = self.create_project(organization=organization)
-        team = self.create_team(organization=organization)
-        project2.add_team(team)
+        group = self.create_group(project=project2)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        short_id = group.qualified_short_id
+
+        self.login_as(user=user)
+
+        response = self.get_valid_response(
+            organization.slug,
+            project=project.id,
+            query=short_id,
+            shortIdLookup=1)
+        assert len(response.data) == 1
+
+    def test_lookup_by_short_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
         group = self.create_group(project=project)
         user = self.create_user()
-        self.create_member(organization=organization, user=user, teams=[team])
+        self.create_member(organization=organization, user=user, has_global_access=False)
 
         short_id = group.qualified_short_id
 
@@ -257,6 +323,28 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
+
+    def test_lookup_by_group_id(self):
+        self.login_as(user=self.user)
+        response = self.get_valid_response(group=self.group.id)
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(self.group.id)
+        group_2 = self.create_group()
+        response = self.get_valid_response(group=[self.group.id, group_2.id])
+        assert set([g['id'] for g in response.data]) == set([
+            six.text_type(self.group.id),
+            six.text_type(group_2.id),
+        ])
+
+    def test_lookup_by_group_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+        response = self.get_response(group=[group.id])
+        assert response.status_code == 403
 
     def test_lookup_by_first_release(self):
         now = timezone.now()
@@ -276,7 +364,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             group=group2,
             datetime=now - timedelta(seconds=1),
         )
-        response = self.get_valid_response(**{'first-release': '"%s"' % release.version})
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(**{'first-release': '"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]['id']) == group2.id
@@ -352,7 +441,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=['org:read'])
+        token = ApiToken.objects.create(user=self.user, scope_list=['event:read'])
         response = self.client.get(
             reverse('sentry-api-0-organization-group-index', args=[self.project.organization.slug]),
             format='json',
@@ -383,8 +472,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(statsPeriod='1h')
             assert len(response.data) == 0
 
-    def test_advanced_search_errors(self):
+    @patch('sentry.analytics.record')
+    def test_advanced_search_errors(self, mock_record):
         self.login_as(user=self.user)
+        response = self.get_response(sort_by='date', query='!has:user')
+        assert response.status_code == 200, response.data
+        assert not any(
+            c[0][0] == 'advanced_search.feature_gated' for c in mock_record.call_args_list)
+
         with self.feature({'organizations:advanced-search': False}):
             response = self.get_response(sort_by='date', query='!has:user')
             assert response.status_code == 400, response.data
@@ -393,8 +488,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 'search' == response.data['detail']
             )
 
-        response = self.get_response(sort_by='date', query='!has:user')
-        assert response.status_code == 200, response.data
+            mock_record.assert_called_with(
+                'advanced_search.feature_gated',
+                user_id=self.user.id,
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+            )
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -476,6 +575,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user,
             group=new_group4,
         )
+
+    def test_resolve_member(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.UNRESOLVED)
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            teams=group.project.teams.all(),
+            user=member,
+        )
+
+        self.login_as(user=member)
+        response = self.get_valid_response(
+            qs_params={'status': 'unresolved', 'project': self.project.id},
+            status='resolved',
+        )
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {},
+        }
+        assert response.status_code == 200
 
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
@@ -735,10 +854,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            status='resolved',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                status='resolved',
+            )
         assert response.data == {
             'status': 'resolved',
             'statusDetails': {},
@@ -1059,7 +1179,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             statusDetails={'inCommit': {'commit': 'a' * 40, 'repository': repo.name}},
         )
         assert response.status_code == 400
-        assert response.data['statusDetails'][0]['inCommit'][0]['commit']
+        assert response.data['statusDetails']['inCommit']['commit'][0] == 'Unable to find the given commit.'
 
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version='abc')
@@ -1140,10 +1260,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ignoreDuration=30,
         )
         snooze = GroupSnooze.objects.get(group=group)
-        snooze.until = snooze.until.replace(microsecond=0)
+        snooze.until = snooze.until
 
-        # Drop microsecond value for MySQL
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         assert snooze.count is None
         assert snooze.until > now + timedelta(minutes=29)
@@ -1152,11 +1271,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_window is None
         assert snooze.window is None
 
-        # Drop microsecond value for MySQL
-        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails'
-                                                                      ]['ignoreUntil'].replace(
-                                                                          microsecond=0
-                                                                      )  # noqa
+        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil']
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count
@@ -1197,7 +1312,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
-        for i in range(100):
+        for i in range(10):
             event = self.store_event(
                 data={
                     'fingerprint': ['put-me-in-group-1'],
@@ -1216,15 +1331,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={'id': group.id},
             status='ignored',
-            ignoreUserCount=100,
+            ignoreUserCount=10,
         )
         snooze = GroupSnooze.objects.get(group=group)
         assert snooze.count is None
         assert snooze.until is None
-        assert snooze.user_count == 100
+        assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
-        assert snooze.state['users_seen'] == 100
+        assert snooze.state['users_seen'] == 10
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count
@@ -1245,10 +1360,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            isBookmarked='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                isBookmarked='true',
+            )
         assert response.data == {
             'isBookmarked': True,
         }
@@ -1284,10 +1400,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            isSubscribed='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                isSubscribed='true',
+            )
         assert response.data == {
             'isSubscribed': True,
             'subscriptionDetails': {
@@ -1373,10 +1490,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            hasSeen='true',
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                hasSeen='true',
+            )
         assert response.data == {
             'hasSeen': True,
         }
@@ -1591,9 +1709,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             )
 
         self.login_as(user=self.user)
-        response = self.get_response(
-            qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-        )
+        with self.feature('organizations:global-views'):
+            response = self.get_response(
+                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+            )
 
         mock_eventstream_api.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id])
@@ -1615,9 +1734,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
         with self.tasks():
-            response = self.get_response(
-                qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
-            )
+            with self.feature('organizations:global-views'):
+                response = self.get_response(
+                    qs_params={'id': [group1.id, group2.id], 'group4': group4.id},
+                )
 
         mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 

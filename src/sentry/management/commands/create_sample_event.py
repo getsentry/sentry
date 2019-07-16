@@ -7,16 +7,16 @@ sentry.management.commands.create_sample_event
 """
 from __future__ import absolute_import
 
-from django.core.management.base import BaseCommand, CommandError, make_option
+from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
     help = 'Creates a sample event in Sentry (if applicable)'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--project', dest='project', help="project ID or team-slug/project-slug"),
-        make_option('--platform', dest='platform'),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('--project', dest='project',
+                            help="project ID or team-slug/project-slug"),
+        parser.add_argument('--platform', dest='platform'),
 
     def handle(self, **options):
         from django.conf import settings

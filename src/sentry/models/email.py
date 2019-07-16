@@ -15,7 +15,7 @@ class Email(Model):
     """
     __core__ = True
 
-    email = CIEmailField(_('email address'), unique=True)
+    email = CIEmailField(_('email address'), unique=True, max_length=75)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

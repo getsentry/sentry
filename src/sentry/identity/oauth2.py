@@ -137,15 +137,42 @@ class OAuth2Provider(Provider):
         formatted_error = u'HTTP {} ({}): {}'.format(req.status_code, error_name, error_description)
 
         if req.status_code == 401:
+            self.logger.info(
+                'identity.oauth.refresh.identity-not-valid-error',
+                extra={
+                    'error_name': error_name,
+                    'error_status_code': req.status_code,
+                    'error_description': error_description,
+                    'provider_key': self.key,
+                }
+            )
             raise IdentityNotValid(formatted_error)
 
         if req.status_code == 400:
             # this may not be common, but at the very least Google will return
             # an invalid grant when a user is suspended
             if error_name == 'invalid_grant':
+                self.logger.info(
+                    'identity.oauth.refresh.identity-not-valid-error',
+                    extra={
+                        'error_name': error_name,
+                        'error_status_code': req.status_code,
+                        'error_description': error_description,
+                        'provider_key': self.key,
+                    }
+                )
                 raise IdentityNotValid(formatted_error)
 
         if req.status_code != 200:
+            self.logger.info(
+                'identity.oauth.refresh.api-error',
+                extra={
+                    'error_name': error_name,
+                    'error_status_code': req.status_code,
+                    'error_description': error_description,
+                    'provider_key': self.key,
+                }
+            )
             raise ApiError(formatted_error)
 
     def refresh_identity(self, identity, *args, **kwargs):
@@ -287,7 +314,12 @@ class OAuth2CallbackView(PipelineView):
             return pipeline.error(error)
 
         if state != pipeline.fetch_state('state'):
-            pipeline.logger.info('identity.token-exchange-error', extra={'error': 'invalid_state'})
+            pipeline.logger.info('identity.token-exchange-error', extra={
+                'error': 'invalid_state',
+                'state': state,
+                'pipeline_state': pipeline.fetch_state('state'),
+                'code': code
+            })
             return pipeline.error(ERR_INVALID_STATE)
 
         data = self.exchange_token(request, pipeline, code)

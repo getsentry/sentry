@@ -16,7 +16,7 @@
         </div>
 
         <p style="font-size: 1.3em;">
-          {% blocktrans %}<strong>{{ org_name }}</strong> is using Sentry to aggregate errors.{% endblocktrans %}
+          {% blocktrans %}<strong>{{ org_name }}</strong> is using Sentry to track and debug errors.{% endblocktrans %}
         </p>
 
         {% if existing_member %}
@@ -40,14 +40,14 @@
             <div class="pull-right" style="margin-top: 5px;">
               <a href="{{ login_url }}">{% trans "Login as an existing user" %}</a>
             </div>
-            <a href="{{ register_url }}" class="btn btn-primary">{% trans "Create a new account" %}</a>
+            <a href="{{ register_url }}" class="btn btn-primary" data-test-id="create-account">{% trans "Create a new account" %}</a>
           </fieldset>
 
         {% elif needs_2fa %}
           <p>{% blocktrans %}To continue, <strong>{{ org_name }}</strong> requires all members to setup two-factor authentication.{% endblocktrans %}</p>
 
           <p class="form-actions">
-            <a href="{% url 'sentry-account-settings-security' %}" class="btn btn-primary">
+            <a href="{% url 'sentry-account-settings-security' %}" class="btn btn-primary" data-test-id="setup-2fa">
               {% trans "Setup Two-Factor Authentication" %}
             </a>
           </p>
@@ -56,7 +56,7 @@
           <form method="POST">
             {% csrf_token %}
             <p>
-              <button type="submit" class="btn btn-primary">
+              <button type="submit" class="btn btn-primary" data-test-id="join-organization">
                 {% blocktrans %}Join the {{ org_name }} organization{% endblocktrans %}
               </button>
             </p>

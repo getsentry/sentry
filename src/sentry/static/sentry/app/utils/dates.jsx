@@ -5,10 +5,22 @@ import ConfigStore from 'app/stores/configStore';
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
-const DATE_FORMAT_NO_TIMEZONE = 'YYYY-MM-DD HH:mm:ss';
+const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 
 function getParser(local = false) {
   return local ? moment : moment.utc;
+}
+
+/**
+ * Checks if string is valid time. Only accepts 24 hour format.
+ *
+ * Chrome's time input will (at least for US locale), allow you to input 12
+ * hour format with AM/PM but the raw value is in 24 hour.
+ *
+ * Safari does not do any validation so you could get a value of > 24 hours
+ */
+export function isValidTime(str) {
+  return moment(str, 'HH:mm', true).isValid();
 }
 
 /**
@@ -131,4 +143,49 @@ export function getPeriodAgo(period, unit) {
 // e.g. 2 weeks ago at midnight
 export function getStartOfPeriodAgo(period, unit, options) {
   return getStartOfDay(getPeriodAgo(period, unit), options);
+}
+
+/**
+ * Convert an interval string into a number of seconds.
+ * This allows us to create end timestamps from starting ones
+ * enabling us to find events in narrow windows.
+ *
+ * @param {String} interval The interval to convert.
+ * @return {Integer}
+ */
+export function intervalToMilliseconds(interval) {
+  const pattern = /^(\d+)(h|m)$/;
+  const matches = pattern.exec(interval);
+  if (!matches) {
+    return 0;
+  }
+  const [_, value, unit] = matches;
+  const multipliers = {
+    h: 60 * 60,
+    m: 60,
+  };
+  return parseInt(value, 10) * multipliers[unit] * 1000;
+}
+
+/**
+ * This parses our period shorthand strings (e.g. <int><unit>)
+ * and converts it into hours
+ */
+export function parsePeriodToHours(str) {
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
+
+  switch (periodLength) {
+    case 's':
+      return periodNumber / (60 * 60);
+    case 'm':
+      return periodNumber / 60;
+    case 'h':
+      return parseInt(periodNumber, 10);
+    case 'd':
+      return periodNumber * 24;
+    case 'w':
+      return periodNumber * 24 * 7;
+    default:
+      return -1;
+  }
 }

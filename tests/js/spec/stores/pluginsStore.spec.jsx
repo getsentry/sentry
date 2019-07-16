@@ -2,16 +2,14 @@ import PluginsStore from 'app/stores/pluginsStore';
 import PluginActions from 'app/actions/pluginActions';
 
 describe('PluginsStore', function() {
-  let sandbox;
-
+  beforeAll(function() {
+    jest.spyOn(PluginsStore, 'trigger');
+  });
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    sandbox.stub(PluginsStore, 'trigger');
+    PluginsStore.trigger.mockReset();
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('has correct initial state', function() {
     PluginsStore.reset();
@@ -30,82 +28,68 @@ describe('PluginsStore', function() {
 
     it('has correct state when all plugins fetched successfully', function() {
       PluginActions.fetchAll.trigger();
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: true,
-          error: null,
-          pageLinks: null,
-          plugins: [],
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: true,
+        error: null,
+        pageLinks: null,
+        plugins: [],
+      });
 
       PluginActions.fetchAllSuccess.trigger(TestStubs.Plugins(), {pageLinks: null});
 
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: false,
-          error: null,
-          pageLinks: null,
-          plugins: TestStubs.Plugins(),
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: false,
+        error: null,
+        pageLinks: null,
+        plugins: TestStubs.Plugins(),
+      });
     });
 
     it('has correct state when error in fetching all plugins', function() {
       PluginActions.fetchAll.trigger();
 
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: true,
-          error: null,
-          pageLinks: null,
-          plugins: [],
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: true,
+        error: null,
+        pageLinks: null,
+        plugins: [],
+      });
 
       PluginActions.fetchAllError.trigger({responseJSON: {message: 'Error'}});
 
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: false,
-          error: {responseJSON: {message: 'Error'}},
-          pageLinks: null,
-          plugins: [],
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: false,
+        error: {responseJSON: {message: 'Error'}},
+        pageLinks: null,
+        plugins: [],
+      });
     });
 
     it('does not reset loading state on consecutive fetches', function() {
       PluginActions.fetchAll.trigger();
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: true,
-          error: null,
-          pageLinks: null,
-          plugins: [],
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: true,
+        error: null,
+        pageLinks: null,
+        plugins: [],
+      });
 
       PluginActions.fetchAllSuccess.trigger(TestStubs.Plugins(), {pageLinks: null});
 
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: false,
-          error: null,
-          pageLinks: null,
-          plugins: TestStubs.Plugins(),
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: false,
+        error: null,
+        pageLinks: null,
+        plugins: TestStubs.Plugins(),
+      });
 
       PluginActions.fetchAll.trigger();
-      expect(
-        PluginsStore.trigger.calledWith({
-          loading: false,
-          error: null,
-          pageLinks: null,
-          plugins: TestStubs.Plugins(),
-        })
-      ).toBe(true);
+      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+        loading: false,
+        error: null,
+        pageLinks: null,
+        plugins: TestStubs.Plugins(),
+      });
     });
   });
 

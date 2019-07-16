@@ -25,6 +25,7 @@ describe('ExternalIssueActions', function() {
         url: '/groups/1/integrations/1/?action=create',
         body: {createIssueConfig: []},
       });
+
       it('opens when clicking text', function() {
         wrapper.find('IntegrationLink a').simulate('click');
         expect(

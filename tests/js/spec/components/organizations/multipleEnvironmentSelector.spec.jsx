@@ -52,53 +52,30 @@ describe('MultipleEnvironmentSelector', function() {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(i)
-        .find('CheckboxWrapper')
+        .find('CheckboxHitbox')
         .simulate('click', {});
     });
     expect(onChange).toHaveBeenCalledTimes(3);
     expect(onChange).toHaveBeenLastCalledWith(envs, expect.anything());
 
-    wrapper.setProps({value: envs});
-    wrapper.update();
     wrapper
-      .find('MultipleEnvironmentSelector')
-      .instance()
-      .doUpdate();
-    expect(onUpdate).toHaveBeenCalledWith();
-  });
-
-  it('will call onUpdate when project selection change causes invalid values', async function() {
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-
-    // Select 'production'
-    await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
-      .at(0)
+      .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
       .simulate('click');
-    await wrapper.update();
-
-    // Update project selection so that 'production' is no longer an option.
-    wrapper.setProps({selectedProjects: [2]});
-    await wrapper.update();
-
-    expect(onChange).toHaveBeenCalled();
-    expect(onUpdate).toHaveBeenCalled();
-    const selector = wrapper.find('MultipleEnvironmentSelector').instance();
-    expect(selector.state.selectedEnvs).toEqual(new Set([]));
+    expect(onUpdate).toHaveBeenCalledWith();
   });
 
   it('selects multiple environments and uses chevron to update', async function() {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
+      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
       .at(0)
       .simulate('click');
 
     expect(onChange).toHaveBeenLastCalledWith(['production'], expect.anything());
 
     wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxWrapper')
+      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
       .at(1)
       .simulate('click');
     expect(onChange).toHaveBeenLastCalledWith(

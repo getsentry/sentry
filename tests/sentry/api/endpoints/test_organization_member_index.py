@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from django.core.urlresolvers import reverse
 from django.core import mail
 
@@ -69,6 +71,31 @@ class OrganizationMemberListTest(APITestCase):
     def test_user_email_email_query(self):
         self.create_useremail(self.owner_user, 'baz@localhost')
         response = self.client.get(self.url + "?query=email:baz@localhost")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.owner_user.email
+
+    def test_scope_query(self):
+        response = self.client.get(self.url + "?query=scope:\"invalid:scope\"")
+
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        response = self.client.get(self.url + "?query=scope:\"org:admin\"")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.owner_user.email
+
+    def test_role_query(self):
+        response = self.client.get(self.url + "?query=role:member")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.user_2.email
+
+        response = self.client.get(self.url + "?query=role:owner")
 
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -306,7 +333,7 @@ class OrganizationMemberListPostTest(APITestCase):
         self.team = self.create_team(organization=self.org)
         self.login_as(user=self.owner_user)
 
-    def test(self):
+    def test_forbid_qq(self):
         resp = self.get_response(
             self.org.slug,
             email='1234@qq.com',
@@ -315,3 +342,51 @@ class OrganizationMemberListPostTest(APITestCase):
         )
         assert resp.status_code == 400
         assert resp.data['email'][0] == 'Enter a valid email address.'
+
+    @patch.object(OrganizationMember, 'send_invite_email')
+    def test_simple(self, mock_send_invite_email):
+        resp = self.get_response(
+            self.org.slug,
+            email='jane@gmail.com',
+            role='member',
+            teams=[self.team.slug],
+        )
+        assert resp.status_code == 201
+        om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
+        assert om.email == 'jane@gmail.com'
+        assert om.role == 'member'
+        assert list(om.teams.all()) == [self.team]
+
+        mock_send_invite_email.assert_called_once_with()
+
+    def test_no_teams(self):
+        resp = self.get_response(
+            self.org.slug,
+            email='jane@gmail.com',
+            role='member',
+        )
+        assert resp.status_code == 201
+        om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
+        assert om.email == 'jane@gmail.com'
+        assert om.role == 'member'
+        assert list(om.teams.all()) == []
+
+    @patch.object(OrganizationMember, 'send_invite_email')
+    def test_no_email(self, mock_send_invite_email):
+        resp = self.get_response(
+            self.org.slug,
+            email='jane@gmail.com',
+            role='member',
+            teams=[self.team.slug],
+            sendInvite=False,
+        )
+        assert resp.status_code == 201
+        om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
+        assert om.email == 'jane@gmail.com'
+        assert om.role == 'member'
+        assert list(om.teams.all()) == [self.team]
+
+        assert not mock_send_invite_email.mock_calls

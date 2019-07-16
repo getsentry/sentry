@@ -27,13 +27,9 @@ from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField', )
+__all__ = ('NodeField', 'NodeData')
 
 logger = logging.getLogger('sentry')
-
-
-class NodeUnpopulated(Exception):
-    pass
 
 
 class NodeIntegrityFailure(Exception):
@@ -49,7 +45,8 @@ class NodeData(collections.MutableMapping):
         data=None means, this is a node that needs to be fetched from nodestore.
         data={...} means, this is an object that should be saved to nodestore.
     """
-    def __init__(self, field, id, data=None):
+
+    def __init__(self, field, id, data=None, wrapper=None):
         self.field = field
         self.id = id
         self.ref = None
@@ -57,6 +54,9 @@ class NodeData(collections.MutableMapping):
         # (this does not mean the Event is mutable, it just removes ref checking
         #  in the case of something changing on the data model)
         self.ref_version = None
+        self.wrapper = wrapper
+        if data is not None and self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def __getstate__(self):
@@ -100,10 +100,9 @@ class NodeData(collections.MutableMapping):
         return '<%s: id=%s>' % (cls_name, self.id, )
 
     def get_ref(self, instance):
-        ref_func = self.field.ref_func
-        if not ref_func:
+        if not self.field or not self.field.ref_func:
             return
-        return ref_func(instance)
+        return self.field.ref_func(instance)
 
     def copy(self):
         return self.data.copy()
@@ -118,27 +117,24 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         elif self.id:
-            if settings.DEBUG:
-                raise NodeUnpopulated('You should populate node data before accessing it.')
-            else:
-                warnings.warn('You should populate node data before accessing it.')
+            warnings.warn('You should populate node data before accessing it.')
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
         rv = {}
-        if self.field.wrapper is not None:
+        if self.field is not None and self.field.wrapper is not None:
             rv = self.field.wrapper(rv)
         return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
         self.ref_version = data.pop('_ref_version', None)
-        if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
+        if self.field is not None and self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
-        if self.field.wrapper is not None:
-            data = self.field.wrapper(data)
+        if self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -223,10 +219,7 @@ class NodeField(GzippedDictField):
             # to load data from, and no data to save.
             value = None
 
-        if value is not None and self.wrapper is not None:
-            value = self.wrapper(value)
-
-        return NodeData(self, node_id, value)
+        return NodeData(self, node_id, value, wrapper=self.wrapper)
 
     def get_prep_value(self, value):
         """

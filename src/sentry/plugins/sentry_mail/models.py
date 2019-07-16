@@ -18,7 +18,7 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import features, options
+from sentry import options
 from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
@@ -27,7 +27,7 @@ from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.committers import get_event_file_committers
+from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
@@ -148,21 +148,26 @@ class MailPlugin(NotificationPlugin):
                     },
                     skip_internal=True,
                 )
-                send_to_list = []
-                teams_to_resolve = []
+                send_to_list = set()
+                teams_to_resolve = set()
                 for owner in owners:
                     if owner.type == User:
-                        send_to_list.append(owner.id)
+                        send_to_list.add(owner.id)
                     else:
-                        teams_to_resolve.append(owner.id)
+                        teams_to_resolve.add(owner.id)
 
                 # get all users in teams
                 if teams_to_resolve:
-                    send_to_list += User.objects.filter(
+                    send_to_list |= set(User.objects.filter(
                         is_active=True,
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                    ).values_list('id', flat=True)
-                return send_to_list
+                    ).values_list('id', flat=True))
+
+                alert_settings = project.get_member_alert_settings(self.alert_option_key)
+                disabled_users = set(
+                    user for user, setting in alert_settings.items() if setting == 0
+                )
+                return send_to_list - disabled_users
             else:
                 metrics.incr(
                     'features.owners.send_to',
@@ -223,22 +228,21 @@ class MailPlugin(NotificationPlugin):
 
         # lets identify possibly suspect commits and owners
         commits = {}
-        if features.has('organizations:suggested-commits', org):
-            try:
-                committers = get_event_file_committers(project, event)
-            except (Commit.DoesNotExist, Release.DoesNotExist):
-                pass
-            except Exception as exc:
-                logging.exception(six.text_type(exc))
-            else:
-                for committer in committers:
-                    for commit in committer['commits']:
-                        if commit['id'] not in commits:
-                            commit_data = commit.copy()
-                            commit_data['shortId'] = commit_data['id'][:7]
-                            commit_data['author'] = committer['author']
-                            commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
-                            commits[commit['id']] = commit_data
+        try:
+            committers = get_serialized_event_file_committers(project, event)
+        except (Commit.DoesNotExist, Release.DoesNotExist):
+            pass
+        except Exception as exc:
+            logging.exception(six.text_type(exc))
+        else:
+            for committer in committers:
+                for commit in committer['commits']:
+                    if commit['id'] not in commits:
+                        commit_data = commit.copy()
+                        commit_data['shortId'] = commit_data['id'][:7]
+                        commit_data['author'] = committer['author']
+                        commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
+                        commits[commit['id']] = commit_data
 
         context = {
             'project_label': project.get_full_name(),
@@ -263,7 +267,7 @@ class MailPlugin(NotificationPlugin):
                 interface_list.append((interface.get_title(), mark_safe(body), text_body))
 
             context.update({
-                'tags': event.get_tags(),
+                'tags': event.tags,
                 'interfaces': interface_list,
             })
 
@@ -368,6 +372,9 @@ class MailPlugin(NotificationPlugin):
         if not participants:
             return
 
+        org = group.organization
+        enhanced_privacy = org.flags.enhanced_privacy
+
         context = {
             'project': project,
             'project_link': absolute_uri(u'/{}/{}/'.format(
@@ -387,6 +394,7 @@ class MailPlugin(NotificationPlugin):
             )),
             'group': group,
             'report': payload['report'],
+            'enhanced_privacy': enhanced_privacy,
         }
 
         subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()

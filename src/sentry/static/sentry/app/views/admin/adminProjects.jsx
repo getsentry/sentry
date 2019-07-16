@@ -37,7 +37,7 @@ class AdminProjects extends React.Component {
         <h3>{t('Projects')}</h3>
         <ResultGrid
           path="/manage/projects/"
-          endpoint={'/projects/?show=all'}
+          endpoint="/projects/?show=all"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

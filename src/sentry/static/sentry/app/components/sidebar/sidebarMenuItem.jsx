@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import Link from 'app/components/link';
-import ExternalLink from 'app/components/externalLink';
+import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {OrgSummary} from './sidebarOrgSummary';
 

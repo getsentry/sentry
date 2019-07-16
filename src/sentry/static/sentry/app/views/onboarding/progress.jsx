@@ -3,12 +3,12 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {analytics, amplitude} from 'app/utils/analytics';
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',
@@ -24,18 +24,15 @@ const ProgressNodes = createReactClass({
 
   componentDidMount() {
     const {organization} = this.context;
-    const user = ConfigStore.get('user');
     const step = this.inferStep();
 
     if (step === 1) {
-      analytics('onboarding.create_project_viewed', {
-        org_id: parseInt(organization.id, 10),
+      trackAnalyticsEvent({
+        eventKey: 'onboarding.create_project_viewed',
+        eventName: 'Viewed Onboarding Create Project',
+        organization_id: organization.id,
       });
-      amplitude('Viewed Onboarding Create Project', parseInt(organization.id, 10));
     }
-
-    HookStore.get('analytics:onboarding-survey-log').length &&
-      HookStore.get('analytics:onboarding-survey-log')[0](organization, user);
   },
 
   steps: Object.keys(onboardingSteps),
@@ -64,8 +61,12 @@ const ProgressNodes = createReactClass({
     const {params} = this.props;
     const steps = this.getAsset('steps');
 
-    if (!params.projectId) return steps.project;
-    if (params.projectId && pathname.indexOf('/configure/') === -1) return steps.survey;
+    if (!params.projectId) {
+      return steps.project;
+    }
+    if (params.projectId && pathname.indexOf('/configure/') === -1) {
+      return steps.survey;
+    }
 
     return steps.configure;
   },

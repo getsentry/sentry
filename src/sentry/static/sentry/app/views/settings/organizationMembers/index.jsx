@@ -9,7 +9,6 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ConfigStore from 'app/stores/configStore';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -31,8 +30,8 @@ class OrganizationMembersView extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    const searchQuery = nextProps?.location?.query?.query;
-    if (searchQuery !== this.props?.location?.query?.query) {
+    const searchQuery = nextProps.location.query.query;
+    if (searchQuery !== this.props.location.query.query) {
       this.setState({searchQuery});
     }
   }
@@ -46,7 +45,7 @@ class OrganizationMembersView extends AsyncView {
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
-      searchQuery: this.props?.location?.query?.query || '',
+      searchQuery: this.props.location.query.query || '',
     };
   }
 
@@ -57,7 +56,7 @@ class OrganizationMembersView extends AsyncView {
         `/organizations/${this.props.params.orgId}/members/`,
         {
           query: {
-            query: this.props?.location?.query?.query,
+            query: this.props.location.query.query,
           },
         },
         {paginate: true},
@@ -234,33 +233,28 @@ class OrganizationMembersView extends AsyncView {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    let action = (
-      <Button
-        priority="primary"
-        size="small"
-        disabled={!canAddMembers}
-        title={
-          !canAddMembers
-            ? t('You do not have enough permission to add new members')
-            : undefined
-        }
-        to={recreateRoute('new/', {routes, params})}
-        icon="icon-circle-add"
-      >
-        {t('Invite Member')}
-      </Button>
-    );
-
-    if (canAddMembers)
-      action = (
-        <GuideAnchor target="member_add" type="invisible">
-          {action}
-        </GuideAnchor>
-      );
-
     return (
       <div>
-        <SettingsPageHeader title="Members" action={action} />
+        <SettingsPageHeader
+          title="Members"
+          action={
+            <Button
+              priority="primary"
+              size="small"
+              disabled={!canAddMembers}
+              title={
+                !canAddMembers
+                  ? t('You do not have enough permission to add new members')
+                  : undefined
+              }
+              to={recreateRoute('new/', {routes, params})}
+              icon="icon-circle-add"
+              data-test-id="invite-member"
+            >
+              {t('Invite Member')}
+            </Button>
+          }
+        />
 
         <OrganizationAccessRequests
           onApprove={this.handleApprove}
@@ -269,7 +263,7 @@ class OrganizationMembersView extends AsyncView {
           requestList={requestList}
         />
 
-        <Panel>
+        <Panel data-test-id="org-member-list">
           <PanelHeader hasButtons>
             {t('Member')}
 
@@ -299,7 +293,6 @@ class OrganizationMembersView extends AsyncView {
                   onSendInvite={this.handleSendInvite}
                   onRemove={this.handleRemove}
                   onLeave={this.handleLeave}
-                  firstRow={members.indexOf(member) === 0}
                 />
               );
             })}

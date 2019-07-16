@@ -4,18 +4,18 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -48,14 +48,18 @@ const AssigneeSelectorComponent = createReactClass({
   statics: {
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
-      if (!members) return [];
+      if (!members) {
+        return [];
+      }
 
       const sessionUser = ConfigStore.get('user');
       const sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
       );
 
-      if (sessionUserIndex === -1) return members;
+      if (sessionUserIndex === -1) {
+        return members;
+      }
 
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
@@ -97,6 +101,15 @@ const AssigneeSelectorComponent = createReactClass({
       return true;
     }
 
+    // If the memberList in props has changed, re-render as
+    // props have updated, and we won't use internal state anyways.
+    if (
+      nextProps.memberList &&
+      !valueIsEqual(this.props.memberList, nextProps.memberList)
+    ) {
+      return true;
+    }
+
     const currentMembers = this.memberList();
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
@@ -117,9 +130,11 @@ const AssigneeSelectorComponent = createReactClass({
   assignableTeams() {
     const group = GroupStore.get(this.props.id);
 
-    return (ProjectsStore.getBySlug(group.project.slug) || {
-      teams: [],
-    }).teams
+    return (
+      ProjectsStore.getBySlug(group.project.slug) || {
+        teams: [],
+      }
+    ).teams
       .sort((a, b) => a.slug.localeCompare(b.slug))
       .map(team => ({
         id: buildTeamId(team.id),
@@ -150,7 +165,13 @@ const AssigneeSelectorComponent = createReactClass({
     this.setState({loading: true});
   },
 
-  handleAssign({value: {type, assignee}}, state, e) {
+  handleAssign(
+    {
+      value: {type, assignee},
+    },
+    state,
+    e
+  ) {
     if (type === 'member') {
       this.assignToUser(assignee);
     }
@@ -179,6 +200,7 @@ const AssigneeSelectorComponent = createReactClass({
         searchKey: `${member.email} ${member.name} ${member.slug}`,
         label: ({inputValue}) => (
           <MenuItemWrapper
+            data-test-id="assignee-option"
             key={buildUserId(member.id)}
             onSelect={this.assignToUser.bind(this, member)}
           >
@@ -202,7 +224,11 @@ const AssigneeSelectorComponent = createReactClass({
         value: {type: 'team', assignee: team},
         searchKey: team.slug,
         label: ({inputValue}) => (
-          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
+          <MenuItemWrapper
+            data-test-id="assignee-option"
+            key={id}
+            onSelect={this.assignToTeam.bind(this, team)}
+          >
             <IconContainer>
               <Avatar team={team} size={size} />
             </IconContainer>
@@ -244,7 +270,9 @@ const AssigneeSelectorComponent = createReactClass({
             zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
-              if (!e) return;
+              if (!e) {
+                return;
+              }
               e.stopPropagation();
             }}
             busy={memberList === null}
@@ -276,8 +304,9 @@ const AssigneeSelectorComponent = createReactClass({
                 <InviteMemberLink
                   data-test-id="invite-member"
                   disabled={loading}
-                  to={`/settings/${this.context.organization
-                    .slug}/members/new/?referrer=assignee_selector`}
+                  to={`/settings/${
+                    this.context.organization.slug
+                  }/members/new/?referrer=assignee_selector`}
                 >
                   <MenuItemWrapper>
                     <IconContainer>
@@ -314,7 +343,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
 
   /* manually align menu underneath dropdown caret */
   /* stylelint-disable-next-line no-duplicate-selectors */
-  ${StyledMenu} {
+  ${DropdownBubble} {
     right: -14px;
   }
 `;
@@ -336,7 +365,7 @@ const IconUser = styled(InlineSvg)`
   margin-right: 2px;
 `;
 
-const IconContainer = styled.div`
+const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;

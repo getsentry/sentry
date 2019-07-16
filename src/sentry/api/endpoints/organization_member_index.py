@@ -35,6 +35,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
     teams = ListField(required=False, allow_null=False)
+    sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
 
 
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
@@ -67,6 +68,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(Q(email__in=value) |
                                                Q(user__email__in=value) |
                                                Q(user__emails__email__in=value))
+
+                elif key == 'scope':
+                    queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
+
+                elif key == 'role':
+                    queryset = queryset.filter(role__in=value)
+
                 elif key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(Q(email__icontains=value) |
@@ -103,24 +111,26 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(
                 {'organization': 'Your organization is not allowed to invite members'}, status=403)
 
-        serializer = OrganizationMemberSerializer(data=request.DATA)
+        serializer = OrganizationMemberSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         _, allowed_roles = get_allowed_roles(request, organization)
 
         # ensure listed teams are real teams
-        teams = list(Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-            slug__in=result['teams'],
-        ))
-
-        if len(set(result['teams'])) != len(teams):
-            return Response({'teams': 'Invalid team'}, 400)
+        if result.get('teams'):
+            teams = list(Team.objects.filter(
+                organization=organization,
+                status=TeamStatus.VISIBLE,
+                slug__in=result['teams'],
+            ))
+            if len(set(result['teams'])) != len(teams):
+                return Response({'teams': 'Invalid team'}, 400)
+        else:
+            teams = []
 
         if not result['role'] in {r.id for r in allowed_roles}:
             return Response({'role': 'You do not have permission to invite that role.'}, 403)
@@ -151,15 +161,15 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
-        lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
-        with TimedRetryPolicy(10)(lock.acquire):
-            self.save_team_assignments(om, teams)
+        if teams:
+            lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
+                self.save_team_assignments(om, teams)
 
-        if settings.SENTRY_ENABLE_INVITES:
+        if settings.SENTRY_ENABLE_INVITES and result.get('sendInvite'):
             om.send_invite_email()
             member_invited.send_robust(member=om, user=request.user, sender=self,
-                                       referrer=request.DATA.get('referrer'))
-
+                                       referrer=request.data.get('referrer'))
         self.create_audit_entry(
             request=request,
             organization_id=organization.id,

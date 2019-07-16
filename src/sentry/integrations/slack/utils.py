@@ -2,8 +2,12 @@ from __future__ import absolute_import
 
 import logging
 
+from django.core.urlresolvers import reverse
+
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
+from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.models import IncidentStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -80,13 +84,16 @@ def build_attachment_title(group, event=None):
         return u'{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
     else:
         if group.culprit:
-            return u'{} - {}'.format(group.title[:40], group.culprit)
+            return u'{} - {}'.format(group.title, group.culprit)
         return group.title
 
 
 def build_attachment_text(group, event=None):
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
+    # Group and Event both implement get_event_{type,metadata}
+    obj = event if event is not None else group
+    ev_metadata = obj.get_event_metadata()
+    ev_type = obj.get_event_type()
+
     if ev_type == 'error':
         return ev_metadata.get('value') or ev_metadata.get('function')
     else:
@@ -145,7 +152,7 @@ def build_action_text(group, identity, action):
     )
 
 
-def build_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
+def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
 
@@ -282,4 +289,41 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
         'ts': to_timestamp(ts),
         'color': color,
         'actions': payload_actions,
+    }
+
+
+def build_incident_attachment(incident):
+    logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
+
+    aggregates = get_incident_aggregates(incident)
+    status = 'Closed' if incident.status == IncidentStatus.CLOSED.value else 'Open'
+
+    fields = [
+        {'title': 'Status', 'value': status, 'short': True},
+        {'title': 'Events', 'value': aggregates['count'], 'short': True},
+        {'title': 'Users', 'value': aggregates['unique_users'], 'short': True},
+    ]
+
+    ts = incident.date_started
+
+    title = u'INCIDENT: {} (#{})'.format(incident.title, incident.identifier)
+
+    return {
+        'fallback': title,
+        'title': title,
+        'title_link': absolute_uri(reverse(
+            'sentry-incident',
+            kwargs={
+                'organization_slug': incident.organization.slug,
+                'incident_id': incident.identifier,
+            },
+        )),
+        'text': ' ',
+        'fields': fields,
+        'mrkdwn_in': ['text'],
+        'footer_icon': logo_url,
+        'footer': 'Sentry Incident',
+        'ts': to_timestamp(ts),
+        'color': LEVEL_TO_COLOR['error'],
+        'actions': [],
     }

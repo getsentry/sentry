@@ -1,24 +1,17 @@
 from __future__ import absolute_import
 
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import ReleaseSerializer
+
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.constants import VERSION_LENGTH
+
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
-
-
-class ReleaseSerializer(serializers.Serializer):
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
-    url = serializers.URLField(required=False)
-    dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
@@ -81,12 +74,12 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.DATA, partial=True)
+        serializer = ReleaseSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         was_released = bool(release.date_released)
 

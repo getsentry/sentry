@@ -31,13 +31,13 @@ class EventStream(Service):
         'run_post_process_forwarder',
     )
 
-    def insert(self, group, event, is_new, is_sample, is_regression,
-               is_new_group_environment, primary_hash, skip_consume=False):
+    def _dispatch_post_process_group_task(self, event, is_new, is_sample,
+                                          is_regression, is_new_group_environment,
+                                          primary_hash, skip_consume=False):
         if skip_consume:
             logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
         else:
             post_process_group.delay(
-                group=group,
                 event=event,
                 is_new=is_new,
                 is_sample=is_sample,
@@ -45,6 +45,12 @@ class EventStream(Service):
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
             )
+
+    def insert(self, group, event, is_new, is_sample, is_regression,
+               is_new_group_environment, primary_hash, skip_consume=False):
+        self._dispatch_post_process_group_task(event, is_new, is_sample,
+                                               is_regression, is_new_group_environment,
+                                               primary_hash, skip_consume)
 
     def start_delete_groups(self, project_id, group_ids):
         pass

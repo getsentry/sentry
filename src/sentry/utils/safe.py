@@ -23,6 +23,8 @@ def safe_execute(func, *args, **kwargs):
     # TODO: we should make smart savepoints (only executing the savepoint server
     # side if we execute a query)
     _with_transaction = kwargs.pop('_with_transaction', True)
+    expected_errors = kwargs.pop('expected_errors', None)
+    _passthrough_errors = kwargs.pop('_passthrough_errors', None)
     try:
         if _with_transaction:
             with transaction.atomic():
@@ -30,6 +32,8 @@ def safe_execute(func, *args, **kwargs):
         else:
             result = func(*args, **kwargs)
     except Exception as e:
+        if _passthrough_errors and isinstance(e, _passthrough_errors):
+            raise
         if hasattr(func, 'im_class'):
             cls = func.im_class
         else:
@@ -37,8 +41,11 @@ def safe_execute(func, *args, **kwargs):
 
         func_name = getattr(func, '__name__', six.text_type(func))
         cls_name = cls.__name__
-
         logger = logging.getLogger('sentry.safe.%s' % (cls_name.lower(), ))
+
+        if expected_errors and isinstance(e, expected_errors):
+            logger.info('%s.process_error_ignored', func_name, extra={'exception': e})
+            return
         logger.error('%s.process_error', func_name, exc_info=True, extra={'exception': e})
     else:
         return result

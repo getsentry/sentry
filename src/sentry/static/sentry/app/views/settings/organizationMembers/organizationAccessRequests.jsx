@@ -38,7 +38,9 @@ class OrganizationAccessRequests extends React.Component {
   render() {
     const {accessRequestBusy, requestList} = this.props;
 
-    if (!requestList || !requestList.length) return null;
+    if (!requestList || !requestList.length) {
+      return null;
+    }
 
     return (
       <Panel>

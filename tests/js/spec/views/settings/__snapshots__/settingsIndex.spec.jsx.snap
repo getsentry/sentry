@@ -11,6 +11,7 @@ exports[`SettingsIndex renders 1`] = `
           "org:read",
           "org:write",
           "org:admin",
+          "org:integrations",
           "project:read",
           "project:write",
           "project:admin",
@@ -72,7 +73,11 @@ exports[`SettingsIndex renders 1`] = `
               My Account
             </HomeLinkIcon>
           </HomePanelHeader>
-          <HomePanelBody>
+          <HomePanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
             <h3>
               Quick links
               :
@@ -121,6 +126,7 @@ exports[`SettingsIndex renders 1`] = `
                         "org:read",
                         "org:write",
                         "org:admin",
+                        "org:integrations",
                         "project:read",
                         "project:write",
                         "project:admin",
@@ -152,7 +158,11 @@ exports[`SettingsIndex renders 1`] = `
               </OrganizationName>
             </HomeLinkIcon>
           </HomePanelHeader>
-          <HomePanelBody>
+          <HomePanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
             <h3>
               Quick links
               :
@@ -192,6 +202,8 @@ exports[`SettingsIndex renders 1`] = `
             <ExternalHomeLink
               className="css-1rszxb1-flexCenter"
               href="https://docs.sentry.io/"
+              rel="noreferrer noopener"
+              target="_blank"
             >
               <HomeIcon
                 color="orange"
@@ -204,11 +216,17 @@ exports[`SettingsIndex renders 1`] = `
             </ExternalHomeLink>
             <ExternalHomeLink
               href="https://docs.sentry.io/"
+              rel="noreferrer noopener"
+              target="_blank"
             >
               Documentation
             </ExternalHomeLink>
           </HomePanelHeader>
-          <HomePanelBody>
+          <HomePanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
             <h3>
               Quick links
               :
@@ -217,6 +235,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://docs.sentry.io/quickstart/"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Quickstart Guide
                 </ExternalHomeLink>
@@ -224,6 +244,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://docs.sentry.io/clients/"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Platforms & Frameworks
                 </ExternalHomeLink>
@@ -231,6 +253,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://docs.sentry.io/learn/cli/"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Sentry CLI
                 </ExternalHomeLink>
@@ -261,7 +285,11 @@ exports[`SettingsIndex renders 1`] = `
               Support
             </SupportLinkComponent>
           </HomePanelHeader>
-          <HomePanelBody>
+          <HomePanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
             <h3>
               Quick links
               :
@@ -278,6 +306,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://github.com/getsentry/sentry/issues"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Sentry on GitHub
                 </ExternalHomeLink>
@@ -285,6 +315,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://status.sentry.io/"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Service Status
                 </ExternalHomeLink>
@@ -311,7 +343,11 @@ exports[`SettingsIndex renders 1`] = `
               API Keys
             </HomeLinkIcon>
           </HomePanelHeader>
-          <HomePanelBody>
+          <HomePanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
             <h3>
               Quick links
               :
@@ -334,6 +370,8 @@ exports[`SettingsIndex renders 1`] = `
               <li>
                 <ExternalHomeLink
                   href="https://docs.sentry.io/hosted/api/"
+                  rel="noreferrer noopener"
+                  target="_blank"
                 >
                   Documentation
                 </ExternalHomeLink>

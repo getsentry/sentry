@@ -1,4 +1,3 @@
-/*global global*/
 import React from 'react';
 
 import {Client} from 'app/api';

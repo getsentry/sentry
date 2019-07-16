@@ -9,32 +9,34 @@ try:
 except ImportError:
     from django.http import HttpResponse, StreamingHttpResponse
 
-from sentry.api.base import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry import options
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Event
+from sentry.models import Event, SnubaEvent
 from sentry.lang.native.applecrashreport import AppleCrashReport
 from sentry.utils.safe import get_path
 
 
-class EventAppleCrashReportEndpoint(Endpoint):
-    permission_classes = (GroupPermission, )
+class EventAppleCrashReportEndpoint(ProjectEndpoint):
 
-    def get(self, request, event_id):
+    def get(self, request, project, event_id):
         """
-        Retrieve an Apple Crash Report from and event
+        Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````
 
         This endpoint returns the an apple crash report for a specific event.
-        The event ID is the event as it appears in the Sentry database
-        and not the event ID that is reported by the client upon submission.
+        The event ID is either the event as it appears in the Sentry database
+        or the event ID that is reported by the client upon submission.
         This works only if the event.platform == cocoa
         """
-        event = Event.objects.from_event_id(event_id, project_id=None)
+
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        event_cls = event_cls = SnubaEvent if use_snuba else Event
+
+        event = event_cls.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, event.group)
 
         Event.objects.bind_nodes([event], 'data')
 

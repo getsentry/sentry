@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
@@ -22,7 +22,9 @@ class Filter extends React.Component {
     const selected = this.props.options.filter(item => {
       return item[0] === (this.props.value || '');
     })[0];
-    if (selected) return this.props.name + ': ' + selected[1];
+    if (selected) {
+      return this.props.name + ': ' + selected[1];
+    }
     return this.props.name + ': ' + 'Any';
   };
 
@@ -119,7 +121,9 @@ class SortBy extends React.Component {
   };
 
   render() {
-    if (this.props.options.length === 0) return null;
+    if (this.props.options.length === 0) {
+      return null;
+    }
 
     return (
       <div className="sort-options">
@@ -138,6 +142,7 @@ const ResultGrid = createReactClass({
   displayName: 'ResultGrid',
 
   propTypes: {
+    api: PropTypes.object,
     columns: PropTypes.array,
     columnsForRow: PropTypes.func,
     defaultSort: PropTypes.string,
@@ -153,8 +158,6 @@ const ResultGrid = createReactClass({
     path: PropTypes.string,
     sortOptions: PropTypes.array,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -234,7 +237,7 @@ const ResultGrid = createReactClass({
       (this.props.location || {}).query || {}
     );
 
-    this.api.request(this.props.endpoint, {
+    this.props.api.request(this.props.endpoint, {
       method: this.props.method,
       data: queryParams,
       success: (data, _, jqXHR) => {
@@ -365,17 +368,20 @@ const ResultGrid = createReactClass({
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                ? this.renderError()
-                : this.state.rows.length === 0
-                  ? this.renderNoResults()
-                  : this.renderResults()}
+              ? this.renderError()
+              : this.state.rows.length === 0
+              ? this.renderNoResults()
+              : this.renderResults()}
           </tbody>
         </table>
-        {this.props.hasPagination &&
-          this.state.pageLinks && <Pagination pageLinks={this.state.pageLinks} />}
+        {this.props.hasPagination && this.state.pageLinks && (
+          <Pagination pageLinks={this.state.pageLinks} />
+        )}
       </div>
     );
   },
 });
 
-export default ResultGrid;
+export {ResultGrid};
+
+export default withApi(ResultGrid);

@@ -3,10 +3,14 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    JSONField,
+    Model,
+    sane_repr
+)
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.signals import pending_delete
 
@@ -72,11 +76,11 @@ class Repository(Model, PendingDeletionMixin):
         # as it is pending deletion, this is added to display the fields
         # correctly to the user.
         self.config['pending_deletion_name'] = self.name
-        super(Repository, self).rename_on_pending_deletion(fields)
+        super(Repository, self).rename_on_pending_deletion(fields, ['config'])
 
     def reset_pending_deletion_field_names(self):
         del self.config['pending_deletion_name']
-        super(Repository, self).reset_pending_deletion_field_names()
+        super(Repository, self).reset_pending_deletion_field_names(['config'])
 
 
 def on_delete(instance, actor=None, **kwargs):

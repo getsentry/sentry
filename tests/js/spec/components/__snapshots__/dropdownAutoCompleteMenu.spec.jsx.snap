@@ -8,6 +8,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
   items={
     Array [
       Object {
+        "id": "countries",
         "items": Array [
           Object {
             "label": <div>
@@ -56,7 +57,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
             className="css-6v04yn-AutoCompleteRoot ejumqxq0"
           >
             Click Me!
-            <StyledMenu
+            <BubbleWithMinWidth
               blendCorner={true}
               innerRef={[Function]}
               onClick={[Function]}
@@ -65,7 +66,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq10"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -90,7 +91,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -114,16 +115,18 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq9"
+                      className="css-5kh8cy-StyledItemList ejumqxq8"
+                      data-test-id="autocomplete-list"
                     >
                       <LabelWithBorder
                         key="countries"
                       >
                         <div
-                          className="css-o8s6pc-LabelWithBorder ejumqxq5"
+                          className="css-1lqzols-LabelWithBorder ejumqxq5"
                         >
                           <GroupLabel>
                             <div
@@ -141,7 +144,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
+                          className="css-ahi473-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -156,7 +159,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -168,7 +171,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                   </StyledItemList>
                 </div>
               </div>
-            </StyledMenu>
+            </BubbleWithMinWidth>
           </div>
         </Component>
       </AutoCompleteRoot>
@@ -233,7 +236,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
             className="css-6v04yn-AutoCompleteRoot ejumqxq0"
           >
             Click Me!
-            <StyledMenu
+            <BubbleWithMinWidth
               blendCorner={true}
               innerRef={[Function]}
               onClick={[Function]}
@@ -242,7 +245,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq10"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -267,7 +270,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -291,10 +294,12 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
-                      className="css-5kh8cy-StyledItemList ejumqxq9"
+                      className="css-5kh8cy-StyledItemList ejumqxq8"
+                      data-test-id="autocomplete-list"
                     >
                       <AutoCompleteItem
                         highlightedIndex={0}
@@ -303,7 +308,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
+                          className="css-ahi473-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -318,7 +323,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -333,7 +338,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -345,7 +350,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                   </StyledItemList>
                 </div>
               </div>
-            </StyledMenu>
+            </BubbleWithMinWidth>
           </div>
         </Component>
       </AutoCompleteRoot>

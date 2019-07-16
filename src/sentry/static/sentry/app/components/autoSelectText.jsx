@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import {selectText} from 'app/utils/selectText';
 
@@ -17,7 +18,9 @@ class AutoSelectText extends React.Component {
   };
 
   selectText = () => {
-    if (!this.el) return;
+    if (!this.el) {
+      return;
+    }
 
     selectText(this.el);
   };
@@ -27,7 +30,7 @@ class AutoSelectText extends React.Component {
   };
 
   render() {
-    const {children, ...props} = this.props;
+    const {children, className, ...props} = this.props;
 
     if (typeof children === 'function') {
       return children({
@@ -41,7 +44,11 @@ class AutoSelectText extends React.Component {
     // div (including the div itself) which causes newlines to be selected
     // in chrome.
     return (
-      <div {...props} onClick={this.selectText} className="auto-select-text">
+      <div
+        {...props}
+        onClick={this.selectText}
+        className={classNames('auto-select-text', className)}
+      >
         <span ref={this.handleMount}>{children}</span>
       </div>
     );

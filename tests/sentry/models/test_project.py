@@ -2,7 +2,13 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Environment, OrganizationMember, OrganizationMemberTeam, Project, Release, ReleaseProject, ReleaseProjectEnvironment, Rule
+import six
+
+from sentry.models import (
+    Environment, OrganizationMember, OrganizationMemberTeam,
+    Project, EnvironmentProject, ProjectOwnership, ProjectTeam,
+    Release, ReleaseProject, ReleaseProjectEnvironment, Rule
+)
 from sentry.testutils import TestCase
 
 
@@ -218,3 +224,128 @@ class ProjectTest(TestCase):
             project=project,
             release=release,
         ).exists()
+
+
+class CopyProjectSettingsTest(TestCase):
+    def setUp(self):
+        super(CopyProjectSettingsTest, self).setUp()
+        self.login_as(user=self.user)
+
+        self.options_dict = {
+            'sentry:resolve_age': 1,
+            'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
+        }
+        self.other_project = self.create_project()
+        for key, value in six.iteritems(self.options_dict):
+            self.other_project.update_option(
+                key=key,
+                value=value,
+            )
+
+        self.teams = [self.create_team(), self.create_team(), self.create_team()]
+
+        for team in self.teams:
+            ProjectTeam.objects.create(
+                team=team,
+                project=self.other_project,
+            )
+
+        self.environments = [
+            self.create_environment(project=self.other_project),
+            self.create_environment(project=self.other_project)
+        ]
+
+        self.ownership = ProjectOwnership.objects.create(
+            project=self.other_project,
+            raw='{"hello":"hello"}',
+            schema={'hello': 'hello'},
+        )
+
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule1',
+        )
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule2',
+        )
+        Rule.objects.create(
+            project=self.other_project,
+            label='rule3',
+        )
+        # there is a default rule added to project
+        self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by('label')
+
+    def assert_other_project_settings_not_changed(self):
+        # other_project should not have changed. This should check that.
+        self.assert_settings_copied(self.other_project)
+
+    def assert_settings_copied(self, project):
+        for key, value in six.iteritems(self.options_dict):
+            assert project.get_option(key) == value
+
+        project_teams = ProjectTeam.objects.filter(
+            project_id=project.id,
+            team__in=self.teams
+        )
+        assert len(project_teams) == len(self.teams)
+
+        project_env = EnvironmentProject.objects.filter(
+            project_id=project.id,
+            environment__in=self.environments,
+        )
+        assert len(project_env) == len(self.environments)
+
+        ownership = ProjectOwnership.objects.get(project_id=project.id)
+        assert ownership.raw == self.ownership.raw
+        assert ownership.schema == self.ownership.schema
+
+        rules = Rule.objects.filter(
+            project_id=project.id
+        ).order_by('label')
+        for rule, other_rule in zip(rules, self.rules):
+            assert rule.label == other_rule.label
+
+    def assert_settings_not_copied(self, project, teams=()):
+        for key in six.iterkeys(self.options_dict):
+            assert project.get_option(key) is None
+
+        project_teams = ProjectTeam.objects.filter(
+            project_id=project.id,
+            team__in=teams,
+        )
+        assert len(project_teams) == len(teams)
+
+        project_envs = EnvironmentProject.objects.filter(
+            project_id=project.id,
+        )
+        assert len(project_envs) == 0
+
+        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
+
+        # default rule
+        rules = Rule.objects.filter(project_id=project.id)
+        assert len(rules) == 1
+        assert rules[0].label == 'Send a notification for new issues'
+
+    def test_simple(self):
+        project = self.create_project()
+
+        assert project.copy_settings_from(self.other_project.id)
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()
+
+    def test_copy_with_previous_settings(self):
+        project = self.create_project()
+        project.update_option('sentry:resolve_age', 200)
+        ProjectTeam.objects.create(
+            team=self.create_team(),
+            project=project,
+        )
+        self.create_environment(project=project)
+        Rule.objects.filter(project_id=project.id)[0]
+
+        assert project.copy_settings_from(self.other_project.id)
+        self.assert_settings_copied(project)
+        self.assert_other_project_settings_not_changed()

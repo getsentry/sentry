@@ -14,7 +14,6 @@ import string
 from django.utils.encoding import force_text
 
 from sentry.interfaces.base import Interface, prune_empty_keys
-from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 from sentry.utils.safe import get_path, trim
 
 __all__ = ('Contexts', )
@@ -121,10 +120,6 @@ class RuntimeContextType(ContextType):
         'name': u'{name}',
     }
 
-    def __init__(self, alias, data):
-        normalize_runtime(data)
-        super(RuntimeContextType, self).__init__(alias, data)
-
 
 @contexttype
 class BrowserContextType(ContextType):
@@ -146,10 +141,6 @@ class OsContextType(ContextType):
     }
     # build, rooted
 
-    def __init__(self, alias, data):
-        normalize_os(data)
-        super(OsContextType, self).__init__(alias, data)
-
 
 @contexttype
 class GpuContextType(ContextType):
@@ -168,6 +159,16 @@ class MonitorContextType(ContextType):
     }
 
 
+@contexttype
+class TraceContextType(ContextType):
+    type = 'trace'
+    indexed_fields = {
+        '': u'{trace_id}',
+        'span': u'{span_id}',
+        'ctx': u'{trace_id}-{span_id}',
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
@@ -179,6 +180,8 @@ class Contexts(Interface):
     def to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
+            # XXX(markus): The `None`-case should be handled in the UI and
+            # other consumers of this interface
             if value is not None:
                 rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)

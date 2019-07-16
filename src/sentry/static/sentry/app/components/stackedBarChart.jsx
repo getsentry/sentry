@@ -154,20 +154,20 @@ class StackedBarChart extends React.Component {
     const format = this.use24Hours() ? 'HH:mm' : 'LT';
 
     return (
-      '<span>' +
-      timeMoment.format('LL') +
-      '<br />' +
-      timeMoment.format(format) +
-      '  &#8594; ' +
-      nextMoment.format(format) +
-      '</span>'
+      <span>
+        {timeMoment.format('LL')}
+        <br />
+        {timeMoment.format(format)}
+        &#8594;
+        {nextMoment.format(format)}
+      </span>
     );
   }
 
   timeLabelAsDay(point) {
     const timeMoment = moment(point.x * 1000);
 
-    return `<span>${timeMoment.format('LL')}</span>`;
+    return <span>{timeMoment.format('LL')}</span>;
   }
 
   timeLabelAsRange(interval, point) {
@@ -175,13 +175,13 @@ class StackedBarChart extends React.Component {
     const nextMoment = timeMoment.clone().add(interval - 1, 'second');
     const format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
 
+    // e.g. Aug 23rd, 12:50 pm
     return (
-      '<span>' +
-      // e.g. Aug 23rd, 12:50 pm
-      timeMoment.format(format) +
-      ' &#8594 ' +
-      nextMoment.format(format) +
-      '</span>'
+      <span>
+        {timeMoment.format(format)}
+        &#8594
+        {nextMoment.format(format)}
+      </span>
     );
   }
 
@@ -214,25 +214,27 @@ class StackedBarChart extends React.Component {
 
   renderMarker(marker, index, pointWidth) {
     const timeLabel = moment(marker.x * 1000).format('lll');
-    const title =
-      '<div style="width:130px">' + marker.label + '<br/>' + timeLabel + '</div>';
+    const title = (
+      <div style={{width: '130px'}}>
+        {marker.label}
+        <br />
+        {timeLabel}
+      </div>
+    );
 
     // example key: m-last-seen-22811123, m-first-seen-228191
     const key = ['m', marker.className, marker.x].join('-');
     const markerOffset = marker.offset || 0;
 
     return (
-      <Tooltip
-        title={title}
+      <CircleSvg
         key={key}
-        tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
+        left={index * pointWidth}
+        offset={markerOffset || 0}
+        viewBox="0 0 10 10"
+        size={10}
       >
-        <CircleSvg
-          left={index * pointWidth}
-          offset={markerOffset || 0}
-          viewBox="0 0 10 10"
-          size={10}
-        >
+        <Tooltip title={title} position="bottom">
           <circle
             data-test-id="chart-column"
             r="4"
@@ -244,35 +246,43 @@ class StackedBarChart extends React.Component {
           >
             {marker.label}
           </circle>
-        </CircleSvg>
-      </Tooltip>
+        </Tooltip>
+      </CircleSvg>
     );
   }
 
   renderTooltip = (point, pointIdx) => {
     const timeLabel = this.getTimeLabel(point);
     const totalY = point.y.reduce((a, b) => a + b);
-    let title =
-      '<div style="width:130px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      '</div>';
-    if (this.props.label) {
-      title += `<div class="value-label">${totalY.toLocaleString()} ${this.props
-        .label}</div>`;
-    }
-    point.y.forEach((y, i) => {
-      const s = this.state.series[i];
-      if (s.label) {
-        title += `<div><span style="color:${s.color}">${s.label}:</span> ${(y || 0
-        ).toLocaleString()}</div>`;
-      }
-    });
-    return title;
+    return (
+      <React.Fragment>
+        <div style={{width: '130px'}}>
+          <div className="time-label">{timeLabel}</div>
+        </div>
+        {this.props.label && (
+          <div className="value-label">
+            {totalY.toLocaleString()} {this.props.label}
+          </div>
+        )}
+        {point.y.map((y, i) => {
+          const s = this.state.series[i];
+          if (s.label) {
+            return (
+              <div>
+                <span style={{color: s.color}}>{s.label}:</span>{' '}
+                {(y || 0).toLocaleString()}
+              </div>
+            );
+          }
+          return null;
+        })}
+      </React.Fragment>
+    );
   };
 
   getMinHeight(index, pointLength) {
     const {minHeights} = this.props;
-    return minHeights && (minHeights[index] || minHeights[index] == 0)
+    return minHeights && (minHeights[index] || minHeights[index] === 0)
       ? this.props.minHeights[index]
       : 1;
   }
@@ -286,7 +296,7 @@ class StackedBarChart extends React.Component {
     let prevPct = 0;
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
-        totalY && this.floatFormat(y / totalY * totalPct * maxPercentage, 2),
+        totalY && this.floatFormat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 
@@ -314,7 +324,7 @@ class StackedBarChart extends React.Component {
     return (
       <Tooltip
         title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
-        tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
+        position="bottom"
         key={point.x}
       >
         <g>
