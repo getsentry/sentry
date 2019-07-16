@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseLanding from 'app/views/organizationReleases/list/releaseLanding';
+import ReleaseLanding from 'app/views/releases/list/releaseLanding';
 
-describe('ProjectReleasesLanding', function() {
+describe('ReleasesLanding', function() {
   describe('renders and progresses', function() {
     let wrapper;
     beforeEach(function() {

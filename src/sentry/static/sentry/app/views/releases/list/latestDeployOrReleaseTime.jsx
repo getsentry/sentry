@@ -43,7 +43,6 @@ const LatestDeployOrReleaseTime = ({release}) => {
     </div>
   );
 };
-
 LatestDeployOrReleaseTime.propTypes = {
   release: PropTypes.object.isRequired,
 };

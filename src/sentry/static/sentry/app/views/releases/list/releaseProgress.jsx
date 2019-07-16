@@ -1,5 +1,5 @@
-import React from 'react';
 import {t} from 'app/locale';
+import React from 'react';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
@@ -57,7 +57,8 @@ class ReleaseProgress extends AsyncComponent {
       ],
     ];
   }
-  onRequestSuccess({stateKey, data, jqXHR}) {
+
+  onRequestSuccess({stateKey, data}) {
     if (stateKey === 'promptsActivity') {
       this.showBar(data);
     } else if (stateKey === 'setupStatus') {

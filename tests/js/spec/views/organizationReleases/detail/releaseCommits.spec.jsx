@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseCommits from 'app/views/organizationReleases/detail/releaseCommits';
+import ReleaseCommits from 'app/views/releases/detail/releaseCommits';
 
 describe('ReleaseCommits', function() {
   let wrapper, projectMockResponse, organizationMockResponse;

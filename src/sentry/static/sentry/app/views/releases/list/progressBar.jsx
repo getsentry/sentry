@@ -2,19 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-class ProgressBar extends React.Component {
-  static propTypes = {
-    width: PropTypes.number,
-  };
-
-  render() {
-    return (
-      <StyledBar>
-        <StyledSlider width={this.props.width} />
-      </StyledBar>
-    );
-  }
-}
+const ProgressBar = props => {
+  return (
+    <StyledBar>
+      <StyledSlider width={props.width} />
+    </StyledBar>
+  );
+};
+ProgressBar.propTypes = {
+  width: PropTypes.number,
+};
 
 const StyledBar = styled('div')`
   background: #767676;

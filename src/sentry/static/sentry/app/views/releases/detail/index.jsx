@@ -13,20 +13,17 @@ import {PageContent} from 'app/styles/organization';
 
 import ReleaseHeader from './releaseHeader';
 
-class OrganizationReleaseDetailsContainer extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  render() {
-    return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={this.props.organization} />
-        <OrganizationReleaseDetails {...this.props} />
-      </React.Fragment>
-    );
-  }
-}
+const ReleaseDetailsContainer = props => {
+  return (
+    <React.Fragment>
+      <GlobalSelectionHeader organization={props.organization} />
+      <OrganizationReleaseDetails {...props} />
+    </React.Fragment>
+  );
+};
+ReleaseDetailsContainer.propTypes = {
+  organization: SentryTypes.Organization,
+};
 
 class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
@@ -86,4 +83,4 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 }
 
-export default withOrganization(OrganizationReleaseDetailsContainer);
+export default withOrganization(ReleaseDetailsContainer);

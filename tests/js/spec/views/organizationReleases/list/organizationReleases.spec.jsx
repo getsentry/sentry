@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationReleases from 'app/views/organizationReleases/list/';
+import ReleaseList from 'app/views/releases/list/';
 
-describe('OrganizationReleases', function() {
+describe('ReleaseList', function() {
   let organization;
   let props;
   let wrapper;
@@ -40,7 +40,7 @@ describe('OrganizationReleases', function() {
     };
 
     wrapper = mount(
-      <OrganizationReleases {...props} />,
+      <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
   });
@@ -63,7 +63,7 @@ describe('OrganizationReleases', function() {
     });
     organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
     wrapper = mount(
-      <OrganizationReleases {...props} />,
+      <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
     const content = wrapper.find('PageContent');
@@ -78,7 +78,7 @@ describe('OrganizationReleases', function() {
     organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
     props.selection = {projects: []};
     wrapper = mount(
-      <OrganizationReleases {...props} />,
+      <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
     const content = wrapper.find('PageContent');
@@ -91,7 +91,7 @@ describe('OrganizationReleases', function() {
       body: [],
     });
     wrapper = mount(
-      <OrganizationReleases {...props} />,
+      <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
     const landing = wrapper.find('ReleaseLanding');

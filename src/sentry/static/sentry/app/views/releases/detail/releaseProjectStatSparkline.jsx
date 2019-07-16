@@ -51,7 +51,7 @@ class ReleaseProjectStatSparkline extends React.Component {
     return api.requestPromise(path, {
       method: 'GET',
       data: 'stat=received',
-      success: (data, _, jqXHR) => {
+      success: data => {
         this.setState({
           stats: data,
         });
@@ -73,7 +73,7 @@ class ReleaseProjectStatSparkline extends React.Component {
     )}/`;
     return api.requestPromise(issuesPath, {
       method: 'GET',
-      success: (data, _, jqXHR) => {
+      success: data => {
         this.setState({
           newIssueCount: data.newGroups,
           loading: false,

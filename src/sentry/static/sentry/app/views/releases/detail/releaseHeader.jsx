@@ -18,7 +18,6 @@ export default class ReleaseHeader extends React.Component {
   static propTypes = {
     release: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
   };
 
   static contextTypes = {
@@ -26,11 +25,11 @@ export default class ReleaseHeader extends React.Component {
   };
 
   render() {
-    const {release, orgId, projectId} = this.props;
+    const {release, orgId} = this.props;
 
-    const releasePath = projectId
-      ? `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`
-      : `/organizations/${orgId}/releases/${encodeURIComponent(release.version)}/`;
+    const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(
+      release.version
+    )}/`;
 
     const links = [
       {title: t('Overview'), to: releasePath},
@@ -47,12 +46,7 @@ export default class ReleaseHeader extends React.Component {
             <h3>
               {t('Release')}{' '}
               <strong>
-                <Version
-                  orgId={orgId}
-                  projectId={projectId}
-                  version={release.version}
-                  anchor={false}
-                />
+                <Version orgId={orgId} version={release.version} anchor={false} />
               </strong>
             </h3>
             {!!release.url && (
@@ -103,12 +97,7 @@ export default class ReleaseHeader extends React.Component {
             </div>
           </div>
         </div>
-        <ReleaseDetailsActions
-          api={this.api}
-          orgId={orgId}
-          projectId={projectId}
-          release={release}
-        />
+        <ReleaseDetailsActions api={this.api} orgId={orgId} release={release} />
         <NavTabs>
           {links.map(link => (
             <ListLink
