@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {deepFreeze} from 'app/utils';
+import Count from 'app/components/count';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -203,9 +204,9 @@ export const SPECIAL_FIELDS = {
     fields: ['event_count'],
     sortField: 'event_count',
     renderFunc: data => (
-      <Container>
-        {typeof data.event_count === 'number' ? data.event_count.toLocaleString() : null}
-      </Container>
+      <NumberContainer>
+        {typeof data.event_count === 'number' ? <Count value={data.event_count} /> : null}
+      </NumberContainer>
     ),
   },
   user_count: {
@@ -213,9 +214,9 @@ export const SPECIAL_FIELDS = {
     fields: ['user_count'],
     sortField: 'user_count',
     renderFunc: data => (
-      <Container>
-        {typeof data.user_count === 'number' ? data.user_count.toLocaleString() : null}
-      </Container>
+      <NumberContainer>
+        {typeof data.user_count === 'number' ? <Count value={data.user_count} /> : null}
+      </NumberContainer>
     ),
   },
   last_seen: {
@@ -240,8 +241,13 @@ export const SPECIAL_FIELDS = {
 };
 
 const Container = styled('div')`
-  display: flex;
   padding: ${space(1)};
+  ${overflowEllipsis};
+`;
+
+const NumberContainer = styled('div')`
+  padding: ${space(1)};
+  text-align: right;
   ${overflowEllipsis};
 `;
 
