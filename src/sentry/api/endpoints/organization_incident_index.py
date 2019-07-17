@@ -88,6 +88,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             order_by='-date_started',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
+            default_per_page=25,
         )
 
     def post(self, request, organization):
