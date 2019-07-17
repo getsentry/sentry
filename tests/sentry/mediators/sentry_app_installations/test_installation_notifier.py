@@ -63,6 +63,7 @@ class TestInstallationNotifier(TestCase):
                     },
                     'uuid': self.install.uuid,
                     'code': self.install.api_grant.code,
+                    'status': 'pending'
                 },
             },
             'actor': {
@@ -106,6 +107,7 @@ class TestInstallationNotifier(TestCase):
                     },
                     'uuid': self.install.uuid,
                     'code': self.install.api_grant.code,
+                    'status': 'pending'
                 },
             },
             'actor': {

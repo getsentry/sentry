@@ -58,6 +58,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             },
             'uuid': self.installation2.uuid,
             'code': self.installation2.api_grant.code,
+            'status': 'pending',
         }]
 
         url = reverse(
@@ -78,6 +79,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             },
             'uuid': self.installation.uuid,
             'code': self.installation.api_grant.code,
+            'status': 'pending'
         }]
 
     def test_users_only_sees_installs_on_their_org(self):
@@ -95,6 +97,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             },
             'uuid': self.installation2.uuid,
             'code': self.installation2.api_grant.code,
+            'status': 'pending',
         }]
 
         # Org the User is not a part of
