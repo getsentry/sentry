@@ -99,7 +99,7 @@ class Updater(Mediator):
     def _update_verify_install(self):
         if self.sentry_app.is_internal:
             raise APIError(
-                u'Cannot update this option for internal integrations.',
+                u'Internal integrations do not require installation verification.',
             )
         self.sentry_app.verify_install = self.verify_install
 

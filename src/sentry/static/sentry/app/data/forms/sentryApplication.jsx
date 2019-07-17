@@ -5,7 +5,7 @@ const INTERNAL_OPTION_DISABLED_REASON = t(
   "This option can't be changed once selected. Please make a new integration if you no longer want it to be internal."
 );
 const VERIFY_INSTALL_OPTION_DISABLED_REASON = t(
-  'This option is always disabled for Internal integrations.'
+  'Internal integrations do not require installation verification.'
 );
 
 const forms = [
