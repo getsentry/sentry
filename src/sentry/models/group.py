@@ -130,7 +130,11 @@ class GroupManager(BaseManager):
                 raise ValueError()
         except ValueError:
             raise Group.DoesNotExist()
-        return Group.objects.get(
+        return Group.objects.exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ]).get(
             project__organization=organization_id,
             project__slug=slug,
             short_id=short_id,
