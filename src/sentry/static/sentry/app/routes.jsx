@@ -45,12 +45,6 @@ const OrganizationMembersView = HookOrDefault({
     import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers'),
 });
 
-const OnboardingNewProjectView = HookOrDefault({
-  hookName: 'component:onboarding-new-project',
-  defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OnboardingNewProject" */ 'app/views/onboarding/newProject'),
-});
-
 function routes() {
   const accountSettingsRoutes = (
     <React.Fragment>
@@ -786,9 +780,7 @@ function routes() {
       />
 
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
-        {/* The current (old) version of the onboarding experience does not
-            route to anything here. So even though this is new, the route can
-            live where it will eventually live. */}
+        <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
           componentPromise={() =>
@@ -796,23 +788,6 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
-        {/* TODO(epurkhiser): Old style onboarding experience routes. To be removed in the future */}
-        <Route
-          componentPromise={() =>
-            import(/* webpackChunkName: "OnboardingWizard" */ 'app/views/onboarding/wizard')
-          }
-          component={errorHandler(LazyLoad)}
-        >
-          <IndexRoute component={errorHandler(OnboardingNewProjectView)} />
-          <Route
-            path=":projectId/configure/:platform/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OnboardingConfigure" */ 'app/views/onboarding/configure')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          {hook('routes:onboarding')}
-        </Route>
       </Route>
       <Route component={errorHandler(OrganizationDetails)}>
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
