@@ -16,11 +16,4 @@ class SentryAppInstallationSerializer(Serializer):
                 u"Invalid value '{}' for status. Valid values: '{}'".format(
                     new_status, SentryAppInstallationStatus.INSTALLED_STR))
 
-        if self.instance:
-            # convert status to str for comparison
-            last_status = SentryAppInstallationStatus.as_str(self.instance.status)
-            # make sure we don't go from installed to pending
-            if last_status == SentryAppInstallationStatus.INSTALLED_STR and new_status == SentryAppInstallationStatus.PENDING_STR:
-                raise ValidationError('Cannot change installed integration to pending')
-
         return new_status

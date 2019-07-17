@@ -6,7 +6,6 @@ from mock import patch
 from sentry.testutils import APITestCase
 import responses
 from sentry.mediators.token_exchange import GrantExchanger
-from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -134,24 +133,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             organization_id=self.installation.organization.id
         )
 
-    def test_sentry_app_installation_mark_bad_status(self):
-        self.url = reverse(
-            'sentry-api-0-sentry-app-installation-details',
-            args=[self.installation.uuid],
-        )
-        response = self.client.put(
-            self.url,
-            data={'status': 'other'},
-            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
-            format='json',
-        )
-        assert response.status_code == 400
-        assert response.data['status'][0] == u"Invalid value for status. Valid values: ['installed', 'pending']"
-
-    def test_sentry_app_installation_already_installed(self):
-        self.installation.status = SentryAppInstallationStatus.INSTALLED
-        self.installation.save()
-
+    def test_sentry_app_installation_mark_pending_status(self):
         self.url = reverse(
             'sentry-api-0-sentry-app-installation-details',
             args=[self.installation.uuid],
@@ -163,7 +145,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             format='json',
         )
         assert response.status_code == 400
-        assert response.data['status'][0] == "Cannot change installed integration to pending"
+        assert response.data['status'][0] == u"Invalid value 'pending' for status. Valid values: 'installed'"
 
     def test_sentry_app_installation_mark_installed_wrong_app(self):
         self.token = GrantExchanger.run(
