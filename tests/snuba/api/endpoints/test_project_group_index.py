@@ -10,11 +10,10 @@ from exam import fixture
 from mock import patch, Mock
 
 from sentry.models import (
-    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
+    Activity, ApiToken, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
     GroupTombstone, ExternalIssue, Integration, Release, OrganizationIntegration, UserOption
 )
-from sentry.models.event import Event
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from six.moves.urllib.parse import quote
@@ -192,31 +191,31 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
-        group = self.create_group(checksum='a' * 32)
-        self.create_group(checksum='b' * 32)
         event_id = 'c' * 32
-        event = Event.objects.create(project_id=self.project.id, event_id=event_id)
-        EventMapping.objects.create(
-            event_id=event_id,
-            project=group.project,
-            group=group,
+        event = self.store_event(
+            data={
+                'event_id': event_id,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
         )
-
         self.login_as(user=self.user)
 
         response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(event.group.id)
         assert response.data[0]['matchingEventId'] == event.id
 
     def test_lookup_by_event_with_matching_environment(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
         self.create_environment(name="test", project=project)
+
         event = self.store_event(
             data={
                 'environment': 'test',
+                'timestamp': self.min_ago.isoformat()[:19],
             },
             project_id=self.project.id,
         )
@@ -235,21 +234,20 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
-        group = self.create_group(checksum='a' * 32)
-        self.create_group(checksum='b' * 32)
-        EventMapping.objects.create(
-            event_id='c' * 32,
-            project=group.project,
-            group=group,
+        event = self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
         )
-
         self.login_as(user=self.user)
         response = self.client.get(
             u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(event.group.id)
 
     def test_lookup_by_unknown_event_id(self):
         project = self.project

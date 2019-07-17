@@ -158,24 +158,13 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry.models import EventMapping, Event
+        from sentry.models import SnubaEvent
         group_id = None
 
-        # Look up event_id in both Event and EventMapping,
-        # and bail when it matches one of them, prioritizing
-        # Event since it contains more history.
-        for model in Event, EventMapping:
-            try:
-                group_id = model.objects.filter(
-                    project_id=project.id,
-                    event_id=event_id,
-                ).values_list('group_id', flat=True)[0]
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
 
-                # It's possible that group_id is NULL
-                if group_id is not None:
-                    break
-            except IndexError:
-                pass
+        if event:
+            group_id = event.group_id
 
         if group_id is None:
             # Raise a Group.DoesNotExist here since it makes
