@@ -23,7 +23,6 @@ class InternalCreator(Mediator):
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
-    verify_install = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
     request = Param('rest_framework.request.Request', required=False)
@@ -32,6 +31,7 @@ class InternalCreator(Mediator):
     def call(self):
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.status = SentryAppStatus.INTERNAL
+        self.sentry_app.verify_install = False
         self.sentry_app.save()
 
         self._create_access_token()

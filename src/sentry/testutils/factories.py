@@ -735,9 +735,11 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration(**kwargs):
-        return sentry_apps.InternalCreator.run(
+        app = sentry_apps.InternalCreator.run(
             **Factories._sentry_app_kwargs(**kwargs)
         )
+        app.update(verify_install=False)
+        return app
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):
@@ -747,6 +749,7 @@ class Factories(object):
             'organization': kwargs.get('organization', Factories.create_organization()),
             'author': kwargs.get('author', 'A Company'),
             'scopes': kwargs.get('scopes', ()),
+            'verify_install': kwargs.get('verify_install', True),
             'webhook_url': kwargs.get('webhook_url', 'https://example.com/webhook'),
             'events': [],
             'schema': {},

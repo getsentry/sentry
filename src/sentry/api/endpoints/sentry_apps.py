@@ -83,6 +83,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data['redirect_url'] = data['redirectUrl']
             data['webhook_url'] = data['webhookUrl']
             data['is_alertable'] = data['isAlertable']
+            data['verify_install'] = data['verifyInstall']
 
             creator = InternalCreator if data.get('isInternal') else Creator
             sentry_app = creator.run(request=request, **data)
