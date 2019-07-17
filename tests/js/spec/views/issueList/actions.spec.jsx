@@ -212,6 +212,7 @@ describe('IssueListActions', function() {
           expect.objectContaining({
             query: {
               id: [3, 6, 9],
+              project: [1],
             },
             data: {status: 'resolved'},
           })
