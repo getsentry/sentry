@@ -9,21 +9,26 @@ class SortLink extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     sortKey: PropTypes.string.isRequired,
+    defaultSort: PropTypes.string.isRequired,
     location: PropTypes.object.isRequired,
   };
 
+  getCurrentSort() {
+    const {defaultSort, location} = this.props;
+    return location.query.sort ? location.query.sort : defaultSort;
+  }
+
   getSort() {
-    const {sortKey, location} = this.props;
+    const {sortKey} = this.props;
+    const currentSort = this.getCurrentSort();
 
     // Page is currently unsorted or is ascending
-    if (!location.query.sort || location.query.sort === `-${sortKey}`) {
+    if (currentSort === `-${sortKey}`) {
       return sortKey;
     }
+
     // Reverse direction
-    if (location.query.sort === sortKey) {
-      return `-${sortKey}`;
-    }
-    return sortKey;
+    return `-${sortKey}`;
   }
 
   getTarget() {
@@ -35,12 +40,13 @@ class SortLink extends React.Component {
   }
 
   renderChevron() {
-    const {location, sortKey} = this.props;
-    if (!location.query.sort || location.query.sort.indexOf(sortKey) === -1) {
+    const currentSort = this.getCurrentSort();
+    const {sortKey} = this.props;
+    if (!currentSort || currentSort.indexOf(sortKey) === -1) {
       return null;
     }
 
-    if (location.query.sort[0] === '-') {
+    if (currentSort[0] === '-') {
       return <InlineSvg src="icon-chevron-down" />;
     }
 
