@@ -63,7 +63,7 @@ from sentry.utils.http import (
 )
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import safe_execute, get_path
 from sentry.utils.sdk import configure_scope
 from sentry.web.helpers import render_to_response
 from sentry.web.client_config import get_client_config
@@ -591,6 +591,9 @@ class StoreView(APIView):
             raise APIError('No JSON data was found')
 
         remote_addr = request.META['REMOTE_ADDR']
+        ip_address = get_path(data, 'user', 'ip_address')
+        if ip_address:
+            remote_addr = ip_address
 
         event_manager = EventManager(
             data,
