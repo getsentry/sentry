@@ -7,12 +7,10 @@ import {logException} from 'app/utils/logging';
 import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
-import ConfigStore from 'app/stores/configStore';
 import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
-import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -27,6 +25,7 @@ import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
+import HookOrDefault from 'app/components/hookOrDefault';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
 import SentryTypes from 'app/sentryTypes';
@@ -50,6 +49,13 @@ export const INTERFACES = {
   threads: ThreadsInterface,
   debugmeta: DebugMetaInterface,
 };
+
+const EventCauseEmptyHook = HookOrDefault({
+  hookName: 'component:event-cause-empty',
+  defaultComponent: () => {
+    return null;
+  },
+});
 
 class EventEntries extends React.Component {
   static propTypes = {
@@ -98,11 +104,6 @@ class EventEntries extends React.Component {
       error_message: errorMessages,
       ...(platform && {platform}),
     });
-  }
-
-  get isSuperUser() {
-    const user = ConfigStore.get('user');
-    return user && user.isSuperuser;
   }
 
   renderEntries() {
@@ -173,9 +174,7 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
           (showExampleCommit ? (
-            this.isSuperUser && (
-              <EventCauseEmpty organization={organization} project={project} />
-            )
+            <EventCauseEmptyHook organization={organization} project={project} />
           ) : (
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
           ))}

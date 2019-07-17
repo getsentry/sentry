@@ -26,6 +26,7 @@ const validHookNames = new Set([
   'component:org-members-view',
   'component:header-date-range',
   'component:header-selector-items',
+  'component:event-cause-empty',
 
   // Additional settings
   'settings:organization-navigation',

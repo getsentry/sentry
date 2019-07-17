@@ -3,7 +3,6 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import ConfigStore from 'app/stores/configStore';
 import {GroupEventDetails} from 'app/views/organizationGroupDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
@@ -240,37 +239,6 @@ describe('groupEventDetails', () => {
     wrapper.update();
 
     expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
-    expect(wrapper.find('EventCause').exists()).toBe(false);
-  });
-
-  it('renders suspect commit empty state for super users', async function() {
-    ConfigStore.set('user', TestStubs.User({isSuperuser: true}));
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: false,
-        },
-      ],
-    });
-
-    const wrapper = mount(
-      <GroupEventDetails
-        api={new MockApiClient()}
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
-        location={{query: {environment: 'dev'}}}
-      />,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('EventCauseEmpty').exists()).toBe(true);
     expect(wrapper.find('EventCause').exists()).toBe(false);
   });
 
