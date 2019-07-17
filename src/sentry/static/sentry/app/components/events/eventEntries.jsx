@@ -25,7 +25,7 @@ import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
-import HookOrDefault from 'app/components/hookOrDefault';
+import Hook from 'app/components/hook';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
 import SentryTypes from 'app/sentryTypes';
@@ -49,13 +49,6 @@ export const INTERFACES = {
   threads: ThreadsInterface,
   debugmeta: DebugMetaInterface,
 };
-
-const EventCauseEmptyHook = HookOrDefault({
-  hookName: 'component:event-cause-empty',
-  defaultComponent: () => {
-    return null;
-  },
-});
 
 class EventEntries extends React.Component {
   static propTypes = {
@@ -174,7 +167,11 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
           (showExampleCommit ? (
-            <EventCauseEmptyHook organization={organization} project={project} />
+            <Hook
+              name="component:event-cause-empty"
+              organization={organization}
+              project={project}
+            />
           ) : (
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
           ))}
