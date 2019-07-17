@@ -1,4 +1,3 @@
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
 import React from 'react';
 import moment from 'moment';
