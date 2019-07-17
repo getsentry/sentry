@@ -57,38 +57,42 @@ Sentry.configureScope(scope => {
 let flushTransactionTimeout = undefined;
 let firstPageLoad = true;
 
-Router.browserHistory.listen(location => {
-  if (location && location.action === 'REPLACE') {
-    // We do set the transaction name in the router but we want to start it here
-    // since in the App component where we set the transaction name, it's called multiple
-    // times. This would result in loosing the start of the transaction.
-    let transactionSpan;
-    Sentry.getCurrentHub().configureScope(scope => {
-      if (firstPageLoad) {
-        transactionSpan = scope.getSpan();
-        firstPageLoad = false;
-      } else {
-        const prevTransactionSpan = scope.getSpan();
-        // If there is a transaction we set the name to the route
-        if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
-          Sentry.getCurrentHub().finishSpan(prevTransactionSpan);
-        }
-        transactionSpan = Sentry.getCurrentHub().startSpan({
-          op: 'navigation',
-          sampled: true,
-        });
+function trackTrace() {
+  // We do set the transaction name in the router but we want to start it here
+  // since in the App component where we set the transaction name, it's called multiple
+  // times. This would result in losing the start of the transaction.
+  let transactionSpan;
+  const hub = Sentry.getCurrentHub();
+  hub.configureScope(scope => {
+    if (firstPageLoad) {
+      transactionSpan = scope.getSpan();
+      firstPageLoad = false;
+    } else {
+      const prevTransactionSpan = scope.getSpan();
+      // If there is a transaction we set the name to the route
+      if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
+        hub.finishSpan(prevTransactionSpan);
       }
-      scope.setSpan(transactionSpan);
-    });
-
-    if (flushTransactionTimeout) {
-      clearTimeout(flushTransactionTimeout);
+      transactionSpan = hub.startSpan({
+        op: 'navigation',
+        sampled: true,
+      });
     }
+    scope.setSpan(transactionSpan);
+  });
 
-    flushTransactionTimeout = setTimeout(() => {
-      Sentry.getCurrentHub().finishSpan(transactionSpan);
-    }, 5000);
+  if (flushTransactionTimeout) {
+    clearTimeout(flushTransactionTimeout);
   }
+
+  flushTransactionTimeout = setTimeout(() => {
+    hub.finishSpan(transactionSpan);
+  }, 5000);
+}
+
+trackTrace();
+Router.browserHistory.listen(() => {
+  trackTrace();
 });
 
 // -----------------------------------------------------------------

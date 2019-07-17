@@ -180,7 +180,8 @@ export class Client {
     const id = uniqueId();
     metric.mark(`api-request-start-${id}`);
 
-    const requestSpan = Sentry.getCurrentHub().startSpan({
+    const hub = Sentry.getCurrentHub();
+    const requestSpan = hub.startSpan({
       data,
       op: 'http',
       description: path,
@@ -267,7 +268,7 @@ export class Client {
           );
         },
         complete: () => {
-          Sentry.getCurrentHub().finishSpan(requestSpan);
+          hub.finishSpan(requestSpan);
           return this.wrapCallback(id, options.complete, true);
         },
       })
