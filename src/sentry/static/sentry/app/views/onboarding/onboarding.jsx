@@ -50,7 +50,7 @@ const stepShape = PropTypes.shape({
   Component: PropTypes.func,
 });
 
-class OnboardingWizard extends React.Component {
+class Onboarding extends React.Component {
   static propTypes = {
     steps: PropTypes.arrayOf(stepShape),
     projects: PropTypes.arrayOf(SentryTypes.Project),
@@ -327,4 +327,4 @@ export const stepPropTypes = {
   onUpdate: PropTypes.func,
 };
 
-export default withOrganization(withProjects(OnboardingWizard));
+export default withOrganization(withProjects(Onboarding));
