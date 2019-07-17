@@ -4,7 +4,6 @@ import React from 'react';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
-import AuthLogin from 'app/views/auth/login';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import IssueListContainer from 'app/views/issueList/container';
@@ -659,7 +658,12 @@ function routes() {
 
       {EXPERIMENTAL_SPA && (
         <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-          <IndexRoute component={errorHandler(AuthLogin)} />
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "AuthLogin" */ 'app/views/auth/login')
+            }
+            component={errorHandler(LazyLoad)}
+          />
         </Route>
       )}
 
