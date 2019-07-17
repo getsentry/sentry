@@ -19,7 +19,7 @@ class GroupTest(TestCase):
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
         self.sec_ago = (timezone.now() - timedelta(seconds=1)).isoformat()[:19]
-        self.two_sec_ago = (timezone.now() - timedelta(seconds=1)).isoformat()[:19]
+        self.just_over_one_min_ago = (timezone.now() - timedelta(seconds=61)).isoformat()[:19]
 
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -68,27 +68,12 @@ class GroupTest(TestCase):
 
         assert group.get_latest_event().event_id == 'b' * 32
 
-    def test_get_latest_identical_timestamps(self):
-        events = []
-        for i in 'abc':
-            event = self.store_event(
-                data={
-                    'event_id': i * 32,
-                    'fingerprint': ['group-1'],
-                    'timestamp': self.min_ago,
-                },
-                project_id=self.project.id,
-            )
-            events.append(event)
-
-        assert events[0].group.get_latest_event().event_id == 'c' * 32
-
     def test_get_latest_almost_identical_timestamps(self):
         self.store_event(
             data={
                 'event_id': 'a' * 32,
                 'fingerprint': ['group-1'],
-                'timestamp': self.two_sec_ago,
+                'timestamp': self.just_over_one_min_ago,
             },
             project_id=self.project.id,
         )
