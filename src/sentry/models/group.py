@@ -186,7 +186,7 @@ class GroupManager(BaseManager):
                 'event_id': [event_id],
                 'project_id': project_ids,
             },
-            limit=1000,
+            limit=len(project_ids),
             referrer="Group.filter_by_event_id",
         )['data']])
 
