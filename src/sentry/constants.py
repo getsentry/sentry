@@ -404,10 +404,6 @@ class SentryAppInstallationStatus(object):
     INSTALLED = 1
     PENDING_STR = 'pending'
     INSTALLED_STR = 'installed'
-    STATUS_MAP = OrderedDict([
-        (INSTALLED_STR, INSTALLED),
-        (PENDING_STR, PENDING),
-    ])
 
     @classmethod
     def as_choices(cls):

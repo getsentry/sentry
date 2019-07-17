@@ -10,15 +10,11 @@ class SentryAppInstallationSerializer(Serializer):
     status = serializers.CharField()
 
     def validate_status(self, new_status):
-        # make sure the status in in our defined list
-        try:
-            SentryAppInstallationStatus.STATUS_MAP[new_status]
-        except KeyError:
+        # can only set status to installed
+        if new_status != SentryAppInstallationStatus.INSTALLED_STR:
             raise ValidationError(
-                'Invalid value for status. Valid values: {}'.format(
-                    SentryAppInstallationStatus.STATUS_MAP.keys(),
-                ),
-            )
+                u"Invalid value '{}' for status. Valid values: '{}'".format(
+                    new_status, SentryAppInstallationStatus.INSTALLED_STR))
 
         if self.instance:
             # convert status to str for comparison

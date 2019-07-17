@@ -21,7 +21,8 @@ class Updater(Mediator):
     @if_param('status')
     def _update_status(self):
         # convert from string to integer
-        self.sentry_app_installation.status = SentryAppInstallationStatus.STATUS_MAP[self.status]
+        if self.status == SentryAppInstallationStatus.INSTALLED_STR:
+            self.sentry_app_installation.status = SentryAppInstallationStatus.INSTALLED
 
     def record_analytics(self):
         # TODO: Add analytics
