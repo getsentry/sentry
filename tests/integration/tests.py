@@ -150,9 +150,7 @@ class RavenIntegrationTest(TransactionTestCase):
         assert request.call_count is 1
         assert Group.objects.count() == 1
         group = Group.objects.get()
-        assert group.event_set.count() == 1
-        instance = group.event_set.get()
-        assert instance.data['logentry']['formatted'] == 'foo'
+        assert group.data['title'] == 'foo'
 
 
 class SentryRemoteTest(TestCase):
