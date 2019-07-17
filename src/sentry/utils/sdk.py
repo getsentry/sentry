@@ -109,6 +109,7 @@ def configure_sdk():
             RustInfoIntegration(),
         ],
         transport=capture_event,
+        traceparent_v2=True,
         **options
     )
 
