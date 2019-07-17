@@ -166,6 +166,7 @@ export class Client {
     let query;
     try {
       query = $.param(options.query || '', true);
+      query = $.param(options.query || [], true);
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setExtra('path', path);
