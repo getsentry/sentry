@@ -166,6 +166,10 @@ class GroupTest(TestCase):
 
         assert group2 == group
 
+        group.update(status=GroupStatus.PENDING_DELETION)
+        with self.assertRaises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(group.organization.id, short_id)
+
     def test_first_last_release(self):
         project = self.create_project()
         release = Release.objects.create(
