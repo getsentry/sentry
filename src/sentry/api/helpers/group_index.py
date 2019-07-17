@@ -261,7 +261,8 @@ class GroupValidator(serializers.Serializer):
     assignedTo = ActorField()
 
     # TODO(dcramer): remove in 9.0
-    snoozeDuration = serializers.IntegerField()
+    # for the moment, the CLI sends this for any issue update, so allow nulls
+    snoozeDuration = serializers.IntegerField(allow_null=True)
 
     def validate_assignedTo(self, value):
         if value and value.type is User and not self.context['project'].member_set.filter(

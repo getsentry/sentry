@@ -265,42 +265,6 @@ describe('Feature', function() {
       delete HookStore.hooks['feature-disabled:org-baz'];
     });
 
-    it('calls renderDisabled function from HookStore when no features', function() {
-      const noFeatureRenderer = jest.fn(() => null);
-      const children = <div>The Child</div>;
-      const wrapper = mount(
-        <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
-          {children}
-        </Feature>,
-        routerContext
-      );
-
-      expect(wrapper.find('Feature div')).toHaveLength(0);
-      expect(noFeatureRenderer).not.toHaveBeenCalled();
-
-      expect(hookFn).toHaveBeenCalledWith({
-        hasFeature: false,
-        children,
-        organization,
-        project,
-        features: ['org-baz'],
-      });
-    });
-
-    it('does not check hook store for multiple features', function() {
-      const noFeatureRenderer = jest.fn(() => null);
-      const wrapper = mount(
-        <Feature features={['org-baz', 'org-bazar']} renderDisabled={noFeatureRenderer}>
-          <div>The Child</div>
-        </Feature>,
-        routerContext
-      );
-
-      expect(wrapper.find('Feature div')).toHaveLength(0);
-      expect(hookFn).not.toHaveBeenCalled();
-      expect(noFeatureRenderer).toHaveBeenCalled();
-    });
-
     it('uses hookName if provided', function() {
       const children = <div>The Child</div>;
       const wrapper = mount(

@@ -1,6 +1,5 @@
-import PropTypes from 'prop-types';
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import createReactClass from 'create-react-class';

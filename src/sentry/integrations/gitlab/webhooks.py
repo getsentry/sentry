@@ -71,9 +71,12 @@ class MergeEventWebhook(Webhook):
             created_at = event['object_attributes']['created_at']
             merge_commit_sha = event['object_attributes']['merge_commit_sha']
 
-            author = event['object_attributes']['last_commit']['author']
-            author_email = author['email']
-            author_name = author['name']
+            last_commit = event['object_attributes']['last_commit']
+            author_email = None
+            author_name = None
+            if last_commit:
+                author_email = last_commit['author']['email']
+                author_name = last_commit['author']['name']
         except KeyError as e:
             logger.info(
                 'gitlab.webhook.invalid-merge-data',
@@ -81,6 +84,8 @@ class MergeEventWebhook(Webhook):
                     'integration_id': integration.id,
                     'error': six.string_type(e)
                 })
+
+        if not author_email:
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(

@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {descopeFeatureName} from 'app/utils';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
@@ -48,19 +47,6 @@ class Feature extends React.Component {
      * When a custom render function is used, the same object that would be
      * passed to `children` if a func is provided there, will be used here,
      * aditionally `children` will also be passed.
-     *
-     * NOTE: HookStore capability.
-     *
-     * Enabling the renderDisabled prop (by setting `true` or passing a
-     * function) will enable functionality to check the HookStore for a hook to
-     * retrieve the no feature render function.
-     *
-     * The hookstore key that will be checked is:
-     *
-     *     feature-disabled:{unscoped-feature-name}
-     *
-     * This functionality will ONLY BE ACTIVATED when exactly ONE feature is
-     * provided through the feature property.
      */
     renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
@@ -74,8 +60,6 @@ class Feature extends React.Component {
      * When specified, the hookstore will be checked if the feature is
      * disabled, and the first available hook will be used as the render
      * function.
-     *
-     * This takes precidence over the renderDisabled hookstore functionality.
      */
     hookName: PropTypes.string,
 
@@ -161,9 +145,8 @@ class Feature extends React.Component {
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
-    if (hookName || (renderDisabled !== false && features.length === 1)) {
-      const hookKey = hookName || descopeFeatureName(features[0]);
-      const hooks = HookStore.get(`feature-disabled:${hookKey}`);
+    if (hookName) {
+      const hooks = HookStore.get(`feature-disabled:${hookName}`);
 
       if (hooks.length > 0) {
         customDisabledRender = hooks[0];
