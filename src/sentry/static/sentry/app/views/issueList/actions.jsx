@@ -225,13 +225,12 @@ const IssueListActions = createReactClass({
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
-      // that match the query. In this case we should respect the projects selected in the
-      // global selection header.
+      // that match the query.
       //
-      // Otherwise if we have a list of itemIds, then we don't need project constraints since
-      // they will be unique
-      const projectConstraints =
-        typeof itemIds === 'undefined' ? {project: selection.projects} : {};
+      // We need to always respect the projects selected in the global selection header:
+      // * users with no global views requires a project to be specified
+      // * users with global views need to be explicit about what projects the query will run against
+      const projectConstraints = {project: selection.projects};
 
       this.props.api.bulkUpdate(
         {
