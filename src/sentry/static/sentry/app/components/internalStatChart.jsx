@@ -1,4 +1,3 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -31,7 +30,7 @@ class InternalStatChart extends React.Component {
     this.fetchData();
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, nextState) {
     return this.state.loading !== nextState.loading;
   }
 
@@ -48,18 +47,13 @@ class InternalStatChart extends React.Component {
         resolution: this.props.resolution,
         key: this.props.stat,
       },
-      success: data => {
+      success: data =>
         this.setState({
           data,
           loading: false,
           error: false,
-        });
-      },
-      error: data => {
-        this.setState({
-          error: true,
-        });
-      },
+        }),
+      error: () => this.setState({error: true}),
     });
   }
 
