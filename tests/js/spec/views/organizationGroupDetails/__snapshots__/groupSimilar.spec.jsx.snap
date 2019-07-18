@@ -844,6 +844,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     size="normal"
                                   >
                                     <Link
+                                      data-test-id="resolved-issue"
                                       onlyActiveOnIndex={false}
                                       style={
                                         Object {
@@ -858,6 +859,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       }
                                     >
                                       <a
+                                        data-test-id="resolved-issue"
                                         onClick={[Function]}
                                         style={
                                           Object {
