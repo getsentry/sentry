@@ -658,7 +658,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <input
                               checked={false}
-                              className="chk-select"
                               id="271"
                               onChange={[Function]}
                               type="checkbox"
