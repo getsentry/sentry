@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -14,6 +15,13 @@ const InlineSvg = ({src, size, width, height, ...props}: PropTypes) => {
       <use href={`#${id}`} xlinkHref={`#${id}`} />
     </StyledSvg>
   );
+};
+
+InlineSvg.propTypes = {
+  src: PropTypes.string.isRequired,
+  size: PropTypes.string,
+  width: PropTypes.string,
+  height: PropTypes.string,
 };
 
 type PropTypes = {
