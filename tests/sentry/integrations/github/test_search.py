@@ -144,6 +144,30 @@ class GithubSearchTest(APITestCase):
         ]
 
     @responses.activate
+    def test_repo_search_validation_error(self):
+        responses.add(
+            responses.GET,
+            self.base_url + '/search/repositories?q=org:test%20nope',
+            json={
+                'message': 'Validation Error',
+                'errors': [
+                    {'message': 'Cannot search for that org'}
+                ]
+            },
+            status=422
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'repo',
+                'query': 'nope',
+                'repo': 'example',
+            }
+        )
+        assert resp.status_code == 404
+        assert 'detail' in resp.data
+
+    @responses.activate
     def test_finds_no_external_issues_results(self):
         responses.add(
             responses.GET,
