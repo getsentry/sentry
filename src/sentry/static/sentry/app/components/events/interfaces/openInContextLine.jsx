@@ -67,6 +67,8 @@ const OpenInContainer = styled('div')`
   background-color: white;
   color: ${p => p.theme.purple2};
   box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.05);
+  overflow: auto;
+  white-space: nowrap;
 `;
 
 const OpenInIcon = styled(SentryAppIcon)`
@@ -74,13 +76,14 @@ const OpenInIcon = styled(SentryAppIcon)`
   height: 15px;
   width: 15px;
   margin-left: ${space(1)};
+  margin-right: 4px;
 `;
 
 const OpenInLink = styled('a')`
   color: ${p => p.theme.gray2};
   cursor: pointer;
   margin-left: 5px;
-  &:after {
+  &:not(:last-child):after {
     border-right: 1px solid ${p => p.theme.gray1};
     content: '';
     height: 60%;
