@@ -17,6 +17,7 @@ from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
+from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
@@ -82,14 +83,17 @@ def configure_sdk():
 
     assert sentry_sdk.Hub.main.client is None
 
-    options = settings.SENTRY_SDK_CONFIG
+    sdk_options = settings.SENTRY_SDK_CONFIG
 
     internal_transport = InternalTransport()
     upstream_transport = None
-    if options.get('dsn'):
-        upstream_transport = make_transport(get_options(options))
+    if sdk_options.get('dsn'):
+        upstream_transport = make_transport(get_options(sdk_options))
 
     def capture_event(event):
+        if event.get('type') == 'transaction' and options.get('transaction-events.force-disable'):
+            return
+
         # Make sure we log to upstream when available first
         if upstream_transport is not None:
             # TODO(mattrobenolt): Bring this back safely.
@@ -110,7 +114,7 @@ def configure_sdk():
         ],
         transport=capture_event,
         traceparent_v2=True,
-        **options
+        **sdk_options
     )
 
 
