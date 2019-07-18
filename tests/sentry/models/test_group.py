@@ -81,7 +81,7 @@ class GroupTest(TestCase):
             data={
                 'event_id': 'b' * 32,
                 'fingerprint': ['group-1'],
-                'timestamp': self.sec_ago,
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id,
         )
