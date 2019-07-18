@@ -33,9 +33,14 @@ class OpenInContextLine extends React.Component {
 
   renderOneComponent = component => {
     const url = this.getUrl(component);
+    const {slug} = component.sentryApp;
     return (
-      <OpenInLink key={component.uuid} data-test-id="stacktrace-link" href={url}>
-        <OpenInIcon slug={component.sentryApp.slug} />
+      <OpenInLink
+        key={component.uuid}
+        data-test-id={`stacktrace-link-${slug}`}
+        href={url}
+      >
+        <OpenInIcon slug={slug} />
         <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
       </OpenInLink>
     );
@@ -74,10 +79,17 @@ const OpenInIcon = styled(SentryAppIcon)`
 const OpenInLink = styled('a')`
   color: ${p => p.theme.gray2};
   cursor: pointer;
+  margin-left: 5px;
+  &:after {
+    border-right: 1px solid ${p => p.theme.gray1};
+    content: '';
+    height: 60%;
+    margin-top: 15%;
+    margin-left: 10px;
+  }
 `;
 
 const OpenInName = styled('span')`
   font-weight: bold;
   color: ${p => p.theme.gray3};
-  margin-left: 5px;
 `;
