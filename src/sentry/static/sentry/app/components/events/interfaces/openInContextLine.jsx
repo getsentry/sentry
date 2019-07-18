@@ -21,26 +21,32 @@ class OpenInContextLine extends React.Component {
     };
   }
 
-  getUrl() {
-    const {filename, lineNo, components} = this.props;
+  getUrl(component) {
+    const {filename, lineNo} = this.props;
 
     const queryParams = {
       lineNo,
       filename,
     };
-    return addQueryParamsToExistingUrl(components[0].schema.url, queryParams);
+    return addQueryParamsToExistingUrl(component.schema.url, queryParams);
   }
+
+  renderOneComponent = component => {
+    const url = this.getUrl(component);
+    return (
+      <OpenInLink key={component.uuid} data-test-id="stacktrace-link" href={url}>
+        <OpenInIcon slug={component.sentryApp.slug} />
+        <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
+      </OpenInLink>
+    );
+  };
 
   render() {
     const {components} = this.props;
-    const url = this.getUrl();
     return (
       <OpenInContainer>
         <span>{t('Open this line in:')}</span>
-        <OpenInLink data-test-id="stacktrace-link" href={url}>
-          <OpenInIcon slug={components[0].sentryApp.slug} />
-          <OpenInName>{t(`${components[0].sentryApp.name}`)}</OpenInName>
-        </OpenInLink>
+        {components.map(this.renderOneComponent)}
       </OpenInContainer>
     );
   }
