@@ -13,6 +13,7 @@ import SentryTypes from 'app/sentryTypes';
 import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
@@ -45,7 +46,17 @@ class EventCauseEmpty extends React.Component {
   };
 
   componentDidMount() {
+    const {project, organization} = this.props;
+
     this.fetchData();
+
+    // send to reload only due to high event volume
+    trackAdhocEvent({
+      eventKey: 'feature.event_cause.viewed',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   }
 
   async fetchData() {
@@ -72,7 +83,7 @@ class EventCauseEmpty extends React.Component {
     return true;
   }
 
-  handleClick(action) {
+  handleClick({action, eventKey, eventName}) {
     const {api, project, organization} = this.props;
 
     const data = {
@@ -82,6 +93,19 @@ class EventCauseEmpty extends React.Component {
       status: action,
     };
     promptsUpdate(api, data).then(this.setState({shouldShow: false}));
+    this.trackAnalytics({eventKey, eventName});
+  }
+
+  trackAnalytics({eventKey, eventName}) {
+    const {project, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey,
+      eventName,
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   }
 
   render() {
@@ -103,6 +127,13 @@ class EventCauseEmpty extends React.Component {
                 size="small"
                 priority="primary"
                 href="https://docs.sentry.io/workflow/releases/#create-release"
+                onClick={() =>
+                  this.trackAnalytics({
+                    eventKey: 'feature.event_cause.docs_clicked',
+                    eventName: 'Event Cause Docs Clicked',
+                  })
+                }
+                data-test-id="read-the-docs"
               >
                 {t('Read the docs')}
               </Button>
@@ -111,7 +142,13 @@ class EventCauseEmpty extends React.Component {
                 <Tooltip title={t('Remind me next week')}>
                   <SnoozeButton
                     size="small"
-                    onClick={() => this.handleClick('snoozed')}
+                    onClick={() =>
+                      this.handleClick({
+                        action: 'snoozed',
+                        eventKey: 'feature.event_cause.snoozed',
+                        eventName: 'Event Cause Snoozed',
+                      })
+                    }
                     data-test-id="snoozed"
                   >
                     {t('Snooze')}
@@ -119,7 +156,13 @@ class EventCauseEmpty extends React.Component {
                 </Tooltip>
                 <DismissButton
                   size="small"
-                  onClick={() => this.handleClick('dismissed')}
+                  onClick={() =>
+                    this.handleClick({
+                      action: 'dismissed',
+                      eventKey: 'feature.event_cause.dismissed',
+                      eventName: 'Event Cause Dismissed',
+                    })
+                  }
                   data-test-id="dismissed"
                 >
                   {t('Dismiss')}

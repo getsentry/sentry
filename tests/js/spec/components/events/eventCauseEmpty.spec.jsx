@@ -3,12 +3,15 @@ import moment from 'moment';
 import {mount} from 'enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
+import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+
+jest.mock('app/utils/analytics');
 
 describe('EventCauseEmpty', function() {
   let putMock;
   const routerContext = TestStubs.routerContext();
   const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const project = TestStubs.Project({platform: 'javascript'});
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
@@ -38,6 +41,13 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     expect(wrapper.find('CommitRow').exists()).toBe(true);
+
+    expect(trackAdhocEvent).toHaveBeenCalledWith({
+      eventKey: 'feature.event_cause.viewed',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   });
 
   it('can be snoozed', async function() {
@@ -68,6 +78,14 @@ describe('EventCauseEmpty', function() {
     );
 
     expect(wrapper.find('CommitRow').exists()).toBe(false);
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'feature.event_cause.snoozed',
+      eventName: 'Event Cause Snoozed',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   });
 
   it('does not render when snoozed', async function() {
@@ -142,6 +160,14 @@ describe('EventCauseEmpty', function() {
     );
 
     expect(wrapper.find('CommitRow').exists()).toBe(false);
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'feature.event_cause.dismissed',
+      eventName: 'Event Cause Dismissed',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   });
 
   it('does not render when dismissed', async function() {
@@ -160,5 +186,28 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     expect(wrapper.find('CommitRow').exists()).toBe(false);
+  });
+
+  it('can capture analytics on docs click', async function() {
+    const wrapper = mount(
+      <EventCauseEmpty organization={organization} project={project} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper
+      .find('[data-test-id="read-the-docs"]')
+      .first()
+      .simulate('click');
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'feature.event_cause.docs_clicked',
+      eventName: 'Event Cause Docs Clicked',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
+    });
   });
 });
