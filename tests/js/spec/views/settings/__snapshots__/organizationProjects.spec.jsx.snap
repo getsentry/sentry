@@ -207,7 +207,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                                       width="12px"
                                                     >
                                                       <svg
-                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
+                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                         height="12px"
                                                         viewBox={Object {}}
                                                         width="12px"
@@ -599,7 +599,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                                   width="1em"
                                                 >
                                                   <svg
-                                                    className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink enyz4ql0"
+                                                    className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
                                                     height="1em"
                                                     onClick={[Function]}
                                                     viewBox={Object {}}
