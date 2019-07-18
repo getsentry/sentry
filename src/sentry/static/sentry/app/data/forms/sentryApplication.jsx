@@ -58,7 +58,7 @@ const forms = [
         name: 'verifyInstall',
         label: 'Verify Installation',
         type: 'boolean',
-        disabled: ({statusDisabled}) => statusDisabled,
+        disabled: ({changeVerifyDisabled}) => changeVerifyDisabled,
         disabledReason: VERIFY_INSTALL_OPTION_DISABLED_REASON,
         help:
           'If enabled, installations will need to be verified before becoming installed.',
