@@ -446,7 +446,6 @@ class SnubaEvent(EventCommon):
 
     # A list of all useful columns we can get from snuba.
     selected_columns = minimal_columns + [
-        'type',
         'culprit',
         'location',
         'message',
