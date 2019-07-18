@@ -46,17 +46,22 @@ class EventCauseEmpty extends React.Component {
   };
 
   componentDidMount() {
-    const {project, organization} = this.props;
-
     this.fetchData();
+  }
 
-    // send to reload only due to high event volume
-    trackAdhocEvent({
-      eventKey: 'feature.event_cause.viewed',
-      org_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
-      platform: project.platform,
-    });
+  componentDidUpdate(prevProps, prevState) {
+    const {project, organization} = this.props;
+    const {shouldShow} = this.state;
+
+    if (!prevState.shouldShow && shouldShow) {
+      // send to reload only due to high event volume
+      trackAdhocEvent({
+        eventKey: 'feature.event_cause.viewed',
+        org_id: parseInt(organization.id, 10),
+        project_id: parseInt(project.id, 10),
+        platform: project.platform,
+      });
+    }
   }
 
   async fetchData() {
