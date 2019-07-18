@@ -18,7 +18,6 @@ class GroupTest(TestCase):
         super(GroupTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
-        self.sec_ago = (timezone.now() - timedelta(seconds=1)).isoformat()[:19]
         self.just_over_one_min_ago = (timezone.now() - timedelta(seconds=61)).isoformat()[:19]
 
     def test_is_resolved(self):
