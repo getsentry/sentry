@@ -13,7 +13,7 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic
+from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -313,13 +313,6 @@ urlpatterns += patterns(
     url(r'^account/settings/social/', include('social_auth.urls')),
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
-
-    # Admin - Plugins
-    url(
-        r'^manage/plugins/(?P<slug>[\w_-]+)/$',
-        admin.configure_plugin,
-        name='sentry-admin-configure-plugin'
-    ),
 
     # Admin
     url(r'^manage/', react_page_view, name='sentry-admin-overview'),
