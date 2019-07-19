@@ -18,12 +18,19 @@ from django.utils import timezone
 from exam import fixture
 from gzip import GzipFile
 from sentry_sdk import Hub, Client
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
 from six import StringIO
+from werkzeug.test import Client as WerkzeugClient
 
 from sentry.models import (Group, Event)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
+from sentry.utils.sdk import configure_scope
+from sentry.web.api import disable_transaction_events
+from sentry.wsgi import application
+
 
 DEPENDENCY_TEST_DATA = {
     "postgresql": (
@@ -462,6 +469,63 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get(event_id=event_id)
 
         assert instance.message == 'hello'
+
+
+class SentryWsgiRemoteTest(TransactionTestCase):
+
+    def test_traceparent_header_wsgi(self):
+        # Assert that posting something to store will not create another
+        # (transaction) event under any circumstances.
+        #
+        # We use Werkzeug's test client because Django's test client bypasses a
+        # lot of request handling code that we want to test implicitly (such as
+        # all our WSGI middlewares and the entire Django instrumentation by
+        # sentry-sdk).
+        #
+        # XXX(markus): Ideally methods such as `_postWithHeader` would always
+        # call the WSGI application => swap out Django's test client with e.g.
+        # Werkzeug's.
+        client = WerkzeugClient(application)
+
+        calls = []
+
+        def new_disable_transaction_events():
+            with configure_scope() as scope:
+                assert scope.span.sampled
+                assert scope.span.transaction
+                disable_transaction_events()
+                assert not scope.span.sampled
+
+            calls.append(1)
+
+        events = []
+
+        auth = get_auth_header(
+            '_postWithWerkzeug/0.0.0',
+            self.projectkey.public_key,
+            self.projectkey.secret_key,
+            '7'
+        )
+
+        with mock.patch('sentry.web.api.disable_transaction_events', new_disable_transaction_events):
+            with self.tasks():
+                with Hub(Client(transport=events.append, integrations=[CeleryIntegration(), DjangoIntegration()])):
+                    app_iter, status, headers = client.post(
+                        reverse('sentry-api-store'),
+                        data=b'{"message": "hello"}',
+                        headers={
+                            'x-sentry-auth': auth,
+                            'sentry-trace': '1',
+                            'content-type': 'application/octet-stream',
+                        },
+                        environ_base={'REMOTE_ADDR': '127.0.0.1'}
+                    )
+
+                    body = ''.join(app_iter)
+
+        assert status == '200 OK', body
+        assert not events
+        assert calls == [1]
 
 
 class DependencyTest(TestCase):
