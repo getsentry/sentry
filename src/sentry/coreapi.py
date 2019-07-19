@@ -1,10 +1,3 @@
-"""
-sentry.coreapi
-~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).

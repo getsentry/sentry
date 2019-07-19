@@ -1,10 +1,4 @@
 """
-sentry.rules.base
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-
 Rules apply either before an event gets stored, or immediately after.
 
 Basic actions:
@@ -32,9 +26,7 @@ by the rule's logic. Each rule condition may be associated with a form.
 
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
-
 """
-
 from __future__ import absolute_import
 
 import logging

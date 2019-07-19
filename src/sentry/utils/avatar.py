@@ -1,12 +1,6 @@
 """
-sentry.utils.avatar
-~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-
-Note: also see letterAvatar.jsx. Anything changed in this file (how colors are
-selected, the svg, etc) will also need to be changed there.
+Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
+      selected, the svg, etc) will also need to be changed there.
 """
 from __future__ import absolute_import
 
