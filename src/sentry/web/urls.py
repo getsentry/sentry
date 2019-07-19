@@ -314,21 +314,14 @@ urlpatterns += patterns(
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
 
-    # Admin - Users
-    url(r'^manage/users/(?P<user_id>\d+)/$',
-        admin.edit_user, name='sentry-admin-edit-user'),
-    url(
-        r'^manage/users/(?P<user_id>\d+)/remove/$',
-        admin.remove_user,
-        name='sentry-admin-remove-user'
-    ),
-
     # Admin - Plugins
     url(
         r'^manage/plugins/(?P<slug>[\w_-]+)/$',
         admin.configure_plugin,
         name='sentry-admin-configure-plugin'
     ),
+
+    # Admin
     url(r'^manage/', react_page_view, name='sentry-admin-overview'),
 
     # Legacy Redirects

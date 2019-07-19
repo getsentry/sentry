@@ -86,14 +86,16 @@ class UserSerializer(BaseUserSerializer):
         return super(UserSerializer, self).validate(attrs)
 
 
-class AdminUserSerializer(BaseUserSerializer):
+class SuperuserUserSerializer(BaseUserSerializer):
     isActive = serializers.BooleanField(source='is_active')
+    isStaff = serializers.BooleanField(source='is_staff')
+    isSuperuser = serializers.BooleanField(source='is_superuser')
 
     class Meta:
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'username', 'isActive')
+        fields = ('name', 'username', 'isActive', 'isStaff', 'isSuperuser')
         # write_only_fields = ('password',)
 
 
@@ -131,7 +133,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
 
         if is_active_superuser(request):
-            serializer_cls = AdminUserSerializer
+            serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.data, partial=True)
