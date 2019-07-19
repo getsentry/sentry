@@ -86,19 +86,22 @@ class UserSerializer(BaseUserSerializer):
         return super(UserSerializer, self).validate(attrs)
 
 
-class AdminUserSerializer(BaseUserSerializer):
+class SuperuserUserSerializer(BaseUserSerializer):
     isActive = serializers.BooleanField(source='is_active')
+    isStaff = serializers.BooleanField(source='is_staff')
+    isSuperuser = serializers.BooleanField(source='is_superuser')
 
     class Meta:
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'username', 'isActive')
+        fields = ('name', 'username', 'isActive', 'isStaff', 'isSuperuser')
         # write_only_fields = ('password',)
 
 
-class OrganizationsSerializer(serializers.Serializer):
+class DeleteUserSerializer(serializers.Serializer):
     organizations = ListField(child=serializers.CharField(required=False), required=True)
+    hardDelete = serializers.BooleanField(required=False)
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -130,12 +133,13 @@ class UserDetailsEndpoint(UserEndpoint):
         """
 
         if is_active_superuser(request):
-            serializer_cls = AdminUserSerializer
+            serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
         serializer = serializer_cls(user, data=request.data, partial=True)
 
-        serializer_options = UserOptionsSerializer(data=request.data.get('options', {}), partial=True)
+        serializer_options = UserOptionsSerializer(
+            data=request.data.get('options', {}), partial=True)
 
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
@@ -170,11 +174,12 @@ class UserDetailsEndpoint(UserEndpoint):
 
         Also removes organizations if they are an owner
         :pparam string user_id: user id
+        :param boolean hard_delete: Completely remove the user from the database (requires super user)
         :param list organizations: List of organization ids to remove
         :auth required:
         """
 
-        serializer = OrganizationsSerializer(data=request.data)
+        serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -194,19 +199,12 @@ class UserDetailsEndpoint(UserEndpoint):
             })
 
         avail_org_slugs = set([o['organization'].slug for o in org_results])
-        orgs_to_remove = set(serializer.validated_data.get('organizations')).intersection(avail_org_slugs)
+        orgs_to_remove = set(serializer.validated_data.get(
+            'organizations')).intersection(avail_org_slugs)
 
         for result in org_results:
             if result['single_owner']:
                 orgs_to_remove.add(result['organization'].slug)
-
-        delete_logger.info(
-            'user.deactivate',
-            extra={
-                'actor_id': request.user.id,
-                'ip_address': request.META['REMOTE_ADDR'],
-            }
-        )
 
         for org_slug in orgs_to_remove:
             client.delete(
@@ -221,15 +219,33 @@ class UserDetailsEndpoint(UserEndpoint):
         if remaining_org_ids:
             OrganizationMember.objects.filter(
                 organization__in=remaining_org_ids,
-                user=request.user,
+                user=user,
             ).delete()
 
-        User.objects.filter(
-            id=request.user.id,
-        ).update(
-            is_active=False,
-        )
+        logging_data = {
+            'actor_id': request.user.id,
+            'ip_address': request.META['REMOTE_ADDR'],
+        }
 
-        logout(request)
+        hard_delete = serializer.validated_data.get('hardDelete', False)
+
+        # Only active superusers can hard delete accounts
+        if hard_delete and not is_active_superuser(request):
+            return Response(
+                {'detail': 'Only superusers may hard delete a user account'},
+                status=status.HTTP_403_FORBIDDEN)
+
+        is_current_user = request.user.id == user.id
+
+        if hard_delete:
+            user.delete()
+            delete_logger.info('user.removed', extra=logging_data)
+        else:
+            User.objects.filter(id=user.id).update(is_active=False)
+            delete_logger.info('user.deactivate', extra=logging_data)
+
+        # if the user deleted their own account log them out
+        if is_current_user:
+            logout(request)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

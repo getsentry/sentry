@@ -273,3 +273,47 @@ class UserUpdateTest(APITestCase):
             id=org_single_owner.id).status == OrganizationStatus.PENDING_DELETION
         # should NOT delete `not_owned_org`
         assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
+
+    def test_cannot_hard_delete_account(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': self.user.id,
+            }
+        )
+
+        # Cannot hard delete your own account
+        response = self.client.delete(url, data={
+            'hardDelete': True,
+            'organizations': []
+        })
+        assert response.status_code == 403
+
+    def test_hard_delete_account(self):
+        self.login_as(user=self.user)
+        user2 = self.create_user(email="user2@example.com")
+
+        url = reverse(
+            'sentry-api-0-user-details', kwargs={
+                'user_id': user2.id,
+            }
+        )
+
+        # failed authorization, user does not have permissios to delete another
+        # user
+        response = self.client.delete(url, data={
+            'hardDelete': True,
+            'organizations': []
+        })
+        assert response.status_code == 403
+
+        # Reauthenticate as super user to hard delete an account
+        self.user.update(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.delete(url, data={
+            'hardDelete': True,
+            'organizations': []
+        })
+        assert response.status_code == 204
