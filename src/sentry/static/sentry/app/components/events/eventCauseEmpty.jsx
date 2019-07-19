@@ -128,7 +128,7 @@ class EventCauseEmpty extends React.Component {
               <p>{t('Identify which commit caused this issue')}</p>
             </Description>
             <ButtonList>
-              <Button
+              <DocsButton
                 size="small"
                 priority="primary"
                 href="https://docs.sentry.io/workflow/releases/#create-release"
@@ -141,7 +141,7 @@ class EventCauseEmpty extends React.Component {
                 data-test-id="read-the-docs"
               >
                 {t('Read the docs')}
-              </Button>
+              </DocsButton>
 
               <div>
                 <Tooltip title={t('Remind me next week')}>
@@ -223,6 +223,12 @@ const ButtonList = styled('div')`
   align-items: center;
   justify-self: end;
   margin-bottom: 16px;
+`;
+
+const DocsButton = styled(Button)`
+  &:focus {
+    color: ${p => p.theme.white};
+  }
 `;
 
 const SnoozeButton = styled(Button)`
