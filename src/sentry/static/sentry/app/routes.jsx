@@ -731,13 +731,21 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
-        <Route
-          path="users/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "AdminUsers" */ 'app/views/admin/adminUsers')
-          }
-          component={errorHandler(LazyLoad)}
-        />
+        <Route path="users/">
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "AdminUsers" */ 'app/views/admin/adminUsers')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path=":id"
+            componentPromise={() =>
+              import(/* webpackChunkName: "AdminUserEdit" */ 'app/views/admin/adminUserEdit')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
         <Route
           path="status/mail/"
           componentPromise={() =>
