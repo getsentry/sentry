@@ -91,7 +91,10 @@ def configure_sdk():
         upstream_transport = make_transport(get_options(sdk_options))
 
     def capture_event(event):
-        if event.get('type') == 'transaction' and options.get('transaction-events.force-disable'):
+        if (
+            event.get('type') == 'transaction'
+            and options.get('transaction-events.force-disable-internal-project')
+        ):
             return
 
         # Make sure we log to upstream when available first
