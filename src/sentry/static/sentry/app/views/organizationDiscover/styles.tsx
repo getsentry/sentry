@@ -158,10 +158,12 @@ export const LoadingContainer = styled('div')`
   height: 100%;
 `;
 
-export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
+export const SidebarTabs = styled((props: any) => (
+  <NavTabs {...props} underlined={true} />
+))`
   padding: ${space(3)} ${space(3)} 0;
   margin: 0;
-` as any;
+`;
 
 export const PlaceholderText = styled('div')`
   color: ${p => p.theme.gray6};

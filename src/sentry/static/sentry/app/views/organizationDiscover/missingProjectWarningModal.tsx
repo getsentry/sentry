@@ -11,11 +11,6 @@ type MissingProjectWarningModalProps = {
   closeModal: () => void;
 };
 
-// TODO: any
-const HeaderAny = Header as any;
-const BodyAny = Body as any;
-const FooterAny = Footer as any;
-
 export default class MissingProjectWarningModal extends React.Component<
   MissingProjectWarningModalProps
 > {
@@ -36,16 +31,16 @@ export default class MissingProjectWarningModal extends React.Component<
 
     return (
       <Modal show={true} onHide={() => {}}>
-        <HeaderAny>{t('Project access')}</HeaderAny>
-        <BodyAny>
+        <Header>{t('Project access')}</Header>
+        <Body>
           <p>{text}</p>
           <ul>{invalidProjects.map(id => this.renderProject(id))}</ul>
-        </BodyAny>
-        <FooterAny>
+        </Body>
+        <Footer>
           <Button priority="primary" onClick={this.props.closeModal}>
             {t('View results')}
           </Button>
-        </FooterAny>
+        </Footer>
       </Modal>
     );
   }

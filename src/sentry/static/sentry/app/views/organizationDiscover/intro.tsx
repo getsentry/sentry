@@ -12,9 +12,6 @@ type IntroProps = {
   updateQuery: (query: any) => void;
 };
 
-// TODO: any
-const ExternalLinkAny = ExternalLink as any;
-
 export default class Intro extends React.Component<IntroProps> {
   getExampleQueries() {
     return [
@@ -61,7 +58,7 @@ export default class Intro extends React.Component<IntroProps> {
               `Getting started? Try running one of the example queries below.
             To learn more about how to use the query builder, [docs:see the docs].`,
               {
-                docs: <ExternalLinkAny href="https://docs.sentry.io/product/discover/" />,
+                docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />,
               }
             )}
           </TextBlock>
