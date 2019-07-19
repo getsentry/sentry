@@ -27,9 +27,6 @@ import {getOrderbyFields} from '../utils';
 import {SavedQuery, ReactSelectOption} from '../types';
 import {QueryBuilder} from '../queryBuilder';
 
-// TODO: Find better way to use wrong styled components
-const DocsLinkAny = DocsLink as any;
-
 type QueryFieldsProps = {
   queryBuilder: QueryBuilder;
   onUpdateField: (filedType: string, value: any) => void;
@@ -158,13 +155,13 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
         </Fieldset>
         <Fieldset>{actions}</Fieldset>
         <DocsSeparator />
-        <DocsLinkAny href="https://docs.sentry.io/product/discover/">
+        <DocsLink href="https://docs.sentry.io/product/discover/">
           <DiscoverDocs>
             <DocsIcon src="icon-docs" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
             <StyledInlineSvg src="icon-chevron-right" size="1em" />
           </DiscoverDocs>
-        </DocsLinkAny>
+        </DocsLink>
       </div>
     );
   }
