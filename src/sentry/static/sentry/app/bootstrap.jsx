@@ -21,6 +21,7 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
+import {startApm} from 'app/utils/apm';
 
 // SDK INIT  --------------------------------------------------------
 Sentry.init({
@@ -43,8 +44,6 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
-  // TODO(daniel): Maybe we need to follows from
-  // This is the inital pageload span
   scope.setSpan(
     Sentry.getCurrentHub().startSpan({
       op: 'pageload',
@@ -52,50 +51,6 @@ Sentry.configureScope(scope => {
     })
   );
 });
-
-// APM --------------------------------------------------------------
-let flushTransactionTimeout = undefined;
-let firstPageLoad = true;
-
-function trackTrace() {
-  // We do set the transaction name in the router but we want to start it here
-  // since in the App component where we set the transaction name, it's called multiple
-  // times. This would result in losing the start of the transaction.
-  let transactionSpan;
-  const hub = Sentry.getCurrentHub();
-  hub.configureScope(scope => {
-    if (firstPageLoad) {
-      transactionSpan = scope.getSpan();
-      firstPageLoad = false;
-    } else {
-      const prevTransactionSpan = scope.getSpan();
-      // If there is a transaction we set the name to the route
-      if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
-        hub.finishSpan(prevTransactionSpan);
-      }
-      transactionSpan = hub.startSpan({
-        op: 'navigation',
-        sampled: true,
-      });
-    }
-    scope.setSpan(transactionSpan);
-  });
-
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
-  }
-
-  flushTransactionTimeout = setTimeout(() => {
-    hub.finishSpan(transactionSpan);
-  }, 5000);
-}
-
-trackTrace();
-Router.browserHistory.listen(() => {
-  trackTrace();
-});
-
-// -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -111,6 +66,19 @@ jQuery.ajaxSetup({
 if (window.__initialData) {
   ConfigStore.loadInitialData(window.__initialData);
 }
+
+// APM -------------------------------------------------------------
+const config = ConfigStore.getConfig();
+// This is just a simple gatekeeper to not enable apm for whole sentry.io at first
+if (
+  config &&
+  config.userIdentity &&
+  config.userIdentity.email &&
+  config.userIdentity.email.includes('sentry')
+) {
+  startApm();
+}
+// -----------------------------------------------------------------
 
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
