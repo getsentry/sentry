@@ -43,7 +43,7 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('CommitRow').exists()).toBe(true);
 
     expect(trackAdhocEvent).toHaveBeenCalledWith({
-      eventKey: 'feature.event_cause.viewed',
+      eventKey: 'event_cause.viewed',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
@@ -80,7 +80,7 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('CommitRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'feature.event_cause.snoozed',
+      eventKey: 'event_cause.snoozed',
       eventName: 'Event Cause Snoozed',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
@@ -162,7 +162,7 @@ describe('EventCauseEmpty', function() {
     expect(wrapper.find('CommitRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'feature.event_cause.dismissed',
+      eventKey: 'event_cause.dismissed',
       eventName: 'Event Cause Dismissed',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
@@ -203,7 +203,7 @@ describe('EventCauseEmpty', function() {
       .simulate('click');
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'feature.event_cause.docs_clicked',
+      eventKey: 'event_cause.docs_clicked',
       eventName: 'Event Cause Docs Clicked',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),

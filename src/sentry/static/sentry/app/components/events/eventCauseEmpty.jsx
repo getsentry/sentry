@@ -49,14 +49,14 @@ class EventCauseEmpty extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(_prevProps, prevState) {
     const {project, organization} = this.props;
     const {shouldShow} = this.state;
 
     if (!prevState.shouldShow && shouldShow) {
       // send to reload only due to high event volume
       trackAdhocEvent({
-        eventKey: 'feature.event_cause.viewed',
+        eventKey: 'event_cause.viewed',
         org_id: parseInt(organization.id, 10),
         project_id: parseInt(project.id, 10),
         platform: project.platform,
@@ -134,7 +134,7 @@ class EventCauseEmpty extends React.Component {
                 href="https://docs.sentry.io/workflow/releases/#create-release"
                 onClick={() =>
                   this.trackAnalytics({
-                    eventKey: 'feature.event_cause.docs_clicked',
+                    eventKey: 'event_cause.docs_clicked',
                     eventName: 'Event Cause Docs Clicked',
                   })
                 }
@@ -150,7 +150,7 @@ class EventCauseEmpty extends React.Component {
                     onClick={() =>
                       this.handleClick({
                         action: 'snoozed',
-                        eventKey: 'feature.event_cause.snoozed',
+                        eventKey: 'event_cause.snoozed',
                         eventName: 'Event Cause Snoozed',
                       })
                     }
@@ -164,7 +164,7 @@ class EventCauseEmpty extends React.Component {
                   onClick={() =>
                     this.handleClick({
                       action: 'dismissed',
-                      eventKey: 'feature.event_cause.dismissed',
+                      eventKey: 'event_cause.dismissed',
                       eventName: 'Event Cause Dismissed',
                     })
                   }
