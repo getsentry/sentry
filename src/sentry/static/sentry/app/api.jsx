@@ -163,6 +163,13 @@ export class Client {
   }
 
   request(path, options = {}) {
+    const hub = Sentry.getCurrentHub();
+    const requestSpan = hub.startSpan({
+      data,
+      op: 'http',
+      description: path,
+    });
+
     let query;
     try {
       query = $.param(options.query || [], true);
@@ -179,13 +186,6 @@ export class Client {
     let data = options.data;
     const id = uniqueId();
     metric.mark(`api-request-start-${id}`);
-
-    const hub = Sentry.getCurrentHub();
-    const requestSpan = hub.startSpan({
-      data,
-      op: 'http',
-      description: path,
-    });
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
