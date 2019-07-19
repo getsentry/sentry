@@ -10,9 +10,9 @@ from django.utils import timezone
 from mock import patch, Mock
 
 from sentry.models import (
-    Activity, ApiToken, Event, EventMapping, ExternalIssue, Group, GroupAssignee,
-    GroupBookmark, GroupHash, GroupLink, GroupSeen, GroupShare, GroupSnooze,
-    GroupStatus, GroupResolution, GroupSubscription, GroupTombstone, Integration,
+    Activity, ApiToken, ExternalIssue, Group, GroupAssignee, GroupBookmark,
+    GroupHash, GroupLink, GroupSeen, GroupShare, GroupSnooze, GroupStatus,
+    GroupResolution, GroupSubscription, GroupTombstone, Integration,
     OrganizationIntegration, UserOption, Release
 )
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -209,14 +209,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
-        group = self.create_group(checksum='a' * 32)
-        self.create_group(checksum='b' * 32)
         event_id = 'c' * 32
-        Event.objects.create(project_id=self.project.id, event_id=event_id)
-        EventMapping.objects.create(
-            event_id=event_id,
-            project=group.project,
-            group=group,
+        event = self.store_event(
+            data={
+                'event_id': event_id,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
         )
 
         self.login_as(user=self.user)
@@ -224,7 +223,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(query='c' * 32)
         assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(event.group.id)
         assert response.data[0]['matchingEventId'] == event_id
 
     def test_lookup_by_event_id_incorrect_project_id(self):
@@ -257,20 +256,20 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
-        group = self.create_group(checksum='a' * 32)
         event_id = 'c' * 32
-        self.create_group(checksum='b' * 32)
-        EventMapping.objects.create(
-            event_id=event_id,
-            project=group.project,
-            group=group,
+        event = self.store_event(
+            data={
+                'event_id': event_id,
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
         )
 
         self.login_as(user=self.user)
         response = self.get_valid_response(query='  {}  '.format('c' * 32))
         assert response['X-Sentry-Direct-Hit'] == '1'
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['id'] == six.text_type(event.group.id)
         assert response.data[0]['matchingEventId'] == event_id
 
     def test_lookup_by_unknown_event_id(self):
