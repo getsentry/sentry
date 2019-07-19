@@ -64,6 +64,7 @@ from sentry.utils.http import (
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
+from sentry.utils.sdk import configure_scope
 from sentry.web.helpers import render_to_response
 from sentry.web.relay_config import get_full_relay_config
 from sentry.web.client_config import get_client_config
@@ -128,6 +129,17 @@ def allow_cors_options(func):
         return response
 
     return allow_cors_options_wrapper
+
+
+def disable_transaction_events():
+    """
+    Do not send a transaction event for the current transaction.
+
+    This is used in StoreView to prevent infinite recursion.
+    """
+    with configure_scope() as scope:
+        if scope.span:
+            scope.span.sampled = False
 
 
 def api(func):
@@ -327,7 +339,12 @@ class APIView(BaseView):
             )
 
         if not auth.client:
-            track_outcome(relay_config.organization_id, relay_config.project_id, None, Outcome.INVALID, "auth_client")
+            track_outcome(
+                relay_config.organization_id,
+                relay_config.project_id,
+                None,
+                Outcome.INVALID,
+                "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -382,7 +399,8 @@ class APIView(BaseView):
             )
 
             # if the project id is not directly specified get it from the authentication information
-            project_id = _get_project_id_from_request(project_id, request, self.auth_helper_cls, helper)
+            project_id = _get_project_id_from_request(
+                project_id, request, self.auth_helper_cls, helper)
 
             relay_config = get_full_relay_config(project_id)
 
@@ -561,7 +579,9 @@ class StoreView(APIView):
         """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
         pass
 
-    def process(self, request, project, key, auth, helper, data, relay_config, attachments=None, **kwargs):
+    def process(self, request, project, key, auth, helper,
+                data, relay_config, attachments=None, **kwargs):
+        disable_transaction_events()
         metrics.incr('events.total', skip_internal=False)
 
         project_id = relay_config.project_id
@@ -829,7 +849,8 @@ class MinidumpView(StoreView):
         ))
 
         # Append all other files as generic attachments.
-        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use event-attachments feature)
+        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use
+        # event-attachments feature)
         for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
