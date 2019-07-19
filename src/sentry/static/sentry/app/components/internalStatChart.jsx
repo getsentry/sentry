@@ -34,8 +34,14 @@ class InternalStatChart extends React.Component {
     return this.state.loading !== nextState.loading;
   }
 
-  componentDidUpdate() {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.since !== this.props.since ||
+      prevProps.stat !== this.props.stat ||
+      prevProps.resolution !== this.props.resolution
+    ) {
+      this.fetchData();
+    }
   }
 
   fetchData() {
