@@ -82,7 +82,7 @@ describe('EventCauseEmpty', function() {
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.snoozed',
       eventName: 'Event Cause Snoozed',
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
@@ -164,7 +164,7 @@ describe('EventCauseEmpty', function() {
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.dismissed',
       eventName: 'Event Cause Dismissed',
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
@@ -205,7 +205,7 @@ describe('EventCauseEmpty', function() {
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.docs_clicked',
       eventName: 'Event Cause Docs Clicked',
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });

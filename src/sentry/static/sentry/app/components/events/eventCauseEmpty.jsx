@@ -107,7 +107,7 @@ class EventCauseEmpty extends React.Component {
     trackAnalyticsEvent({
       eventKey,
       eventName,
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
