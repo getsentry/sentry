@@ -267,9 +267,9 @@ export class Client {
             ...args
           );
         },
-        complete: () => {
+        complete: (...args) => {
           hub.finishSpan(requestSpan);
-          return this.wrapCallback(id, options.complete, true);
+          return this.wrapCallback(id, options.complete, true)(...args);
         },
       })
     );
