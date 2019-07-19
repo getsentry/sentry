@@ -42,6 +42,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 
+import CongratsRobots from './congratsRobots';
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import IssueListSidebar from './sidebar';
@@ -564,10 +565,15 @@ const IssueList = createReactClass({
     return <LoadingIndicator />;
   },
 
+  renderNoUnresolvedIssues() {
+    return <CongratsRobots />;
+  },
+
   renderStreamBody() {
     let body;
     const {organization} = this.props;
     const selectedProjects = this.getGlobalSearchProjects();
+    const query = this.getQuery();
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
@@ -584,6 +590,8 @@ const IssueList = createReactClass({
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
     } else if (noFirstEvents) {
       body = this.renderAwaitingEvents(projects);
+    } else if (query === DEFAULT_QUERY) {
+      body = this.renderNoUnresolvedIssues();
     } else {
       body = this.renderEmpty();
     }
