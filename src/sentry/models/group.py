@@ -62,23 +62,33 @@ def looks_like_short_id(value):
     return _short_id_re.match((value or '').strip()) is not None
 
 
-def get_group_with_redirect(id_or_qualified_short_id, queryset=None):
+def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organization=None):
     """
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
     if queryset is None:
-        queryset = Group.objects.all()
-        # When not passing a queryset, we want to read from cache
-        getter = Group.objects.get_from_cache
+        if organization:
+            queryset = Group.objects.filter(project__organization=organization)
+            getter = queryset.get
+        else:
+            queryset = Group.objects.all()
+            # When not passing a queryset, we want to read from cache
+            getter = Group.objects.get_from_cache
     else:
+        if organization:
+            queryset = queryset.filter(project__organization=organization)
         getter = queryset.get
 
     if not (isinstance(id_or_qualified_short_id, (long, int)) or id_or_qualified_short_id.isdigit()):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
-        if not short_id:
+        if not short_id or not organization:
             raise Group.DoesNotExist()
-        params = {'project__slug': short_id.project_slug, 'short_id': short_id.short_id}
+        params = {
+            'project__slug': short_id.project_slug,
+            'short_id': short_id.short_id,
+            'project__organization': organization,
+        }
     else:
         short_id = None
         params = {'id': id_or_qualified_short_id}
@@ -90,6 +100,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None):
         if short_id:
             params = {
                 'id': GroupRedirect.objects.filter(
+                    organization_id=organization.id,
                     previous_short_id=short_id.short_id,
                     previous_project_slug=short_id.project_slug
                 ).values_list('group_id', flat=True),
