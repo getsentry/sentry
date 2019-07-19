@@ -200,16 +200,13 @@ class App extends React.Component {
     e.stopPropagation();
   }
 
-  onConfigured() {
-    this.setState({needsUpgrade: false});
+  onConfigured = () => this.setState({needsUpgrade: false};
   }
 
-  handleNewsletterConsent = () => {
-    // this is somewhat hackish
-    this.setState({
-      newsletterConsentPrompt: false,
-    });
-  };
+  // this is somewhat hackish
+  handleNewsletterConsent = () => this.setState({
+    newsletterConsentPrompt: false,
+  });
 
   handleGlobalModalClose = () => {
     if (!this.mainContainerRef) {
