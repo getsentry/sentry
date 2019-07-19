@@ -11,6 +11,7 @@ class GroupRedirect(Model):
     """
     __core__ = False
 
+    organization_id = BoundedBigIntegerField(null=True)
     group_id = BoundedBigIntegerField(db_index=True)
     previous_group_id = BoundedBigIntegerField(unique=True)
     previous_short_id = BoundedBigIntegerField(null=True)
@@ -19,7 +20,7 @@ class GroupRedirect(Model):
     class Meta:
         db_table = 'sentry_groupredirect'
         app_label = 'sentry'
-        unique_together = (('previous_short_id', 'previous_project_slug'),)
+        unique_together = (('organization_id', 'previous_short_id', 'previous_project_slug'),)
 
     __repr__ = sane_repr(
         'group_id',
@@ -31,6 +32,7 @@ class GroupRedirect(Model):
     @classmethod
     def create_for_group(cls, from_group, to_group):
         return cls.objects.create(
+            organization_id=to_group.project.organization_id,
             group_id=to_group.id,
             previous_group_id=from_group.id,
             previous_short_id=from_group.short_id,

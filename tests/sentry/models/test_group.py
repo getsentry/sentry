@@ -155,21 +155,31 @@ class GroupTest(TestCase):
     def test_get_group_with_redirect_from_qualified_short_id(self):
         group = self.create_group()
         assert group.qualified_short_id
-        assert get_group_with_redirect(group.qualified_short_id) == (group, False)
+        assert get_group_with_redirect(
+            group.qualified_short_id,
+            organization=group.project.organization) == (
+            group,
+            False)
 
         duplicate_group = self.create_group()
         duplicate_id = duplicate_group.id
         GroupRedirect.create_for_group(duplicate_group, group)
         Group.objects.filter(id=duplicate_id).delete()
 
-        assert get_group_with_redirect(duplicate_group.qualified_short_id) == (group, True)
+        assert get_group_with_redirect(
+            duplicate_group.qualified_short_id,
+            organization=group.project.organization) == (
+            group,
+            True)
 
         # We shouldn't end up in a case where the redirect points to a bad
         # reference, but testing this path for completeness.
         group.delete()
 
         with pytest.raises(Group.DoesNotExist):
-            get_group_with_redirect(duplicate_group.qualified_short_id)
+            get_group_with_redirect(
+                duplicate_group.qualified_short_id,
+                organization=group.project.organization)
 
     def test_invalid_shared_id(self):
         with pytest.raises(Group.DoesNotExist):
