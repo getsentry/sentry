@@ -277,6 +277,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         ).exclude(
             is_hidden=True,
             # HACK(lb): avoiding the no environment value
+        ).exclude(
             environment__name=''
         ).values('project_id', 'environment__name')
 
