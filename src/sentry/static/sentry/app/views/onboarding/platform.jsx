@@ -4,7 +4,7 @@ import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
-import {stepPropTypes} from 'app/views/onboarding/wizardNew';
+import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';

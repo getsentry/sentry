@@ -798,7 +798,7 @@ function routes() {
         <Route
           path=":step/"
           componentPromise={() =>
-            import(/* webpackChunkName: "OnboardingWizardNew" */ 'app/views/onboarding/wizardNew')
+            import(/* webpackChunkName: "Onboarding" */ 'app/views/onboarding/onboarding')
           }
           component={errorHandler(LazyLoad)}
         />

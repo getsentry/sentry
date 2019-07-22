@@ -2,7 +2,7 @@ import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 
 import {analytics} from 'app/utils/analytics';
-import {stepPropTypes} from 'app/views/onboarding/wizardNew';
+import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
 import SentryTypes from 'app/sentryTypes';
