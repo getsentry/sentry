@@ -2,10 +2,15 @@ from __future__ import absolute_import
 
 import responses
 import six
+from datetime import timedelta
+import copy
+
+from django.utils import timezone
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue
 from sentry.utils.http import absolute_uri
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from .testutils import GitLabTestCase
 
 
@@ -13,8 +18,17 @@ class GitlabIssuesTest(GitLabTestCase):
 
     def setUp(self):
         super(GitlabIssuesTest, self).setUp()
-        self.group = self.create_group()
-        self.create_event(group=self.group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id,
+        )
+        self.group = event.group
 
     def test_make_external_key(self):
         project_name = 'getsentry/sentry'
@@ -35,7 +49,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_get_create_issue_config(self):
         group_description = (
             u'Sentry Issue: [%s](%s)\n\n'
-            '```\nStacktrace (most recent call last):\n\n'
+            '```\nStacktrace (most recent call first):\n\n'
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
@@ -190,7 +204,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_create_issue_default_project_in_group_api_call(self):
         group_description = (
             u'Sentry Issue: [%s](%s)\n\n'
-            '```\nStacktrace (most recent call last):\n\n'
+            '```\nStacktrace (most recent call first):\n\n'
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
@@ -254,7 +268,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_create_issue_default_project_not_in_api_call(self):
         group_description = (
             u'Sentry Issue: [%s](%s)\n\n'
-            '```\nStacktrace (most recent call last):\n\n'
+            '```\nStacktrace (most recent call first):\n\n'
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
@@ -317,7 +331,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_create_issue_no_projects(self):
         group_description = (
             u'Sentry Issue: [%s](%s)\n\n'
-            '```\nStacktrace (most recent call last):\n\n'
+            '```\nStacktrace (most recent call first):\n\n'
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (

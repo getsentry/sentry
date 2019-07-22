@@ -5,6 +5,8 @@ import mock
 import responses
 import six
 import pytest
+import copy
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -17,6 +19,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 
 
 SAMPLE_CREATE_META_RESPONSE = """
@@ -435,11 +438,23 @@ class JiraIntegrationTest(APITestCase):
             self.user)
         return integration
 
+    def setUp(self):
+        super(JiraIntegrationTest, self).setUp()
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
     def test_get_create_issue_config(self):
         org = self.organization
         self.login_as(self.user)
-        group = self.create_group()
-        self.create_event(group=group)
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': self.min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
 
         installation = self.integration.get_installation(org.id)
 
@@ -462,7 +477,7 @@ class JiraIntegrationTest(APITestCase):
                 'required': True,
             }, {
                 'default': ('Sentry Issue: [%s|%s]\n\n{code}\n'
-                            'Stacktrace (most recent call last):\n\n  '
+                            'Stacktrace (most recent call first):\n\n  '
                             'File "sentry/models/foo.py", line 29, in build_msg\n    '
                             'string_max_length=self.string_max_length)\n\nmessage\n{code}'
                             ) % (
@@ -510,9 +525,16 @@ class JiraIntegrationTest(APITestCase):
     def test_get_create_issue_config_with_default_and_param(self):
         org = self.organization
         self.login_as(self.user)
-        group = self.create_group()
-        self.create_event(group=group)
-
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': self.min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
         installation = self.integration.get_installation(org.id)
         installation.org_integration.config = {
             'project_issue_defaults': {
@@ -540,9 +562,16 @@ class JiraIntegrationTest(APITestCase):
     def test_get_create_issue_config_with_default(self):
         org = self.organization
         self.login_as(self.user)
-        group = self.create_group()
-        self.create_event(group=group)
-
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': self.min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
         installation = self.integration.get_installation(org.id)
         installation.org_integration.config = {
             'project_issue_defaults': {
@@ -570,9 +599,16 @@ class JiraIntegrationTest(APITestCase):
     def test_get_create_issue_config_with_label_default(self):
         org = self.organization
         self.login_as(self.user)
-        group = self.create_group()
-        self.create_event(group=group)
-
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': self.min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
         label_default = 'hi'
 
         installation = self.integration.get_installation(org.id)
@@ -606,7 +642,7 @@ class JiraIntegrationTest(APITestCase):
         event = self.store_event(
             data={
                 'message': 'oh no',
-                'timestamp': timezone.now().isoformat()
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id
         )
@@ -632,7 +668,7 @@ class JiraIntegrationTest(APITestCase):
         event = self.store_event(
             data={
                 'message': 'oh no',
-                'timestamp': timezone.now().isoformat()
+                'timestamp': self.min_ago,
             },
             project_id=self.project.id
         )
