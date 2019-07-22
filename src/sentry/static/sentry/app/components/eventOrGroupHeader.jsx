@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
-import {Metadata} from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
@@ -17,23 +17,7 @@ class EventOrGroupHeader extends React.Component {
   static propTypes = {
     params: PropTypes.object,
     /** Either an issue or event **/
-    data: PropTypes.shape({
-      id: PropTypes.string,
-      level: PropTypes.string,
-      type: PropTypes.oneOf([
-        'error',
-        'csp',
-        'hpkp',
-        'expectct',
-        'expectstaple',
-        'default',
-        'transaction',
-      ]).isRequired,
-      title: PropTypes.string,
-      metadata: Metadata,
-      groupID: PropTypes.string,
-      culprit: PropTypes.string,
-    }),
+    data: PropTypes.oneOfType([SentryTypes.Event, SentryTypes.Group]),
     includeLink: PropTypes.bool,
     hideIcons: PropTypes.bool,
     hideLevel: PropTypes.bool,
