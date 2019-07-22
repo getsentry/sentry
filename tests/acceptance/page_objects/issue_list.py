@@ -26,5 +26,5 @@ class IssueListPage(BasePage):
         self.browser.wait_until('[data-test-id="resolved-issue"]')
 
     def find_resolved_issues(self):
-        self.browser.find_elements_by_css_selector(
+        return self.browser.find_elements_by_css_selector(
             '[data-test-id="resolved-issue"]')
