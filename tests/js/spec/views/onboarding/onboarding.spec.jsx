@@ -3,7 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import OnboardingWizard, {stepPropTypes} from 'app/views/onboarding/wizardNew';
+import Onboarding, {stepPropTypes} from 'app/views/onboarding/onboarding';
 import ProjectsStore from 'app/stores/projectsStore';
 
 const MockStep = ({
@@ -11,9 +11,7 @@ const MockStep = ({
   data,
   scrollTargetId,
   active,
-  orgId,
   project,
-  platform,
   onReturnToStep,
   onComplete,
   onUpadte,
@@ -24,9 +22,9 @@ const MockStep = ({
       {name}
     </div>
     <div id="project_slug">{project && project.slug}</div>
-    <a id="complete" href="#" onClick={e => onComplete(data)} />
-    <a id="update" href="#" onClick={e => onUpadte(data)} />
-    <a id="return" href="#" onClick={e => onReturnToStep(data)} />
+    <a id="complete" href="#" onClick={() => onComplete(data)} />
+    <a id="update" href="#" onClick={() => onUpadte(data)} />
+    <a id="return" href="#" onClick={() => onReturnToStep(data)} />
   </div>
 );
 
@@ -52,7 +50,7 @@ const MOCKED_STEPS = [
   },
 ];
 
-describe('OnboardingWizard', function() {
+describe('Onboarding', function() {
   it('redirects to first step if invalid step ID present', function() {
     browserHistory.replace = jest.fn();
 
@@ -61,10 +59,7 @@ describe('OnboardingWizard', function() {
       orgId: 'org-bar',
     };
 
-    mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
-      TestStubs.routerContext()
-    );
+    mount(<Onboarding steps={MOCKED_STEPS} params={params} />, TestStubs.routerContext());
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -76,7 +71,7 @@ describe('OnboardingWizard', function() {
     };
 
     const wrapper = mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
 
@@ -106,7 +101,7 @@ describe('OnboardingWizard', function() {
     };
 
     const wrapper = mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
 
@@ -121,7 +116,7 @@ describe('OnboardingWizard', function() {
     };
 
     const wrapper = mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
 
@@ -163,7 +158,7 @@ describe('OnboardingWizard', function() {
     };
 
     const wrapper = mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
 
@@ -192,7 +187,7 @@ describe('OnboardingWizard', function() {
     };
 
     const wrapper = mount(
-      <OnboardingWizard steps={MOCKED_STEPS} params={params} />,
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
       routerContext
     );
 
