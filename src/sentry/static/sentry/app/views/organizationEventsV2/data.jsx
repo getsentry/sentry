@@ -12,6 +12,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
 import pinIcon from 'app/../images/location-pin.png';
 
+import {t} from 'app/locale';
 import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug'];
@@ -20,7 +21,7 @@ export const PIN_ICON = `image://${pinIcon}`;
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
-    name: 'All Events',
+    name: t('All Events'),
     data: {
       fields: ['event', 'type', 'project', 'user', 'time'],
       sort: ['-timestamp', '-id'],
@@ -37,7 +38,7 @@ export const ALL_VIEWS = deepFreeze([
   },
   {
     id: 'errors',
-    name: 'Errors',
+    name: t('Errors'),
     data: {
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
@@ -49,7 +50,7 @@ export const ALL_VIEWS = deepFreeze([
   },
   {
     id: 'csp',
-    name: 'CSP',
+    name: t('CSP'),
     data: {
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
@@ -67,7 +68,7 @@ export const ALL_VIEWS = deepFreeze([
   },
   {
     id: 'transactions',
-    name: 'Transactions',
+    name: t('Transactions'),
     data: {
       fields: ['transaction', 'project'],
       groupby: ['transaction', 'project.id'],
@@ -92,13 +93,6 @@ export const ALL_VIEWS = deepFreeze([
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS = {
-  '% query': {
-    fields: [],
-    sortField: false,
-    renderFunc: () => {
-      return <Container>% query</Container>;
-    },
-  },
   transaction: {
     fields: ['project.name', 'transaction'],
     sortField: 'transaction',
@@ -112,7 +106,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.transaction}>
             {data.transaction}
           </Link>
         </Container>
@@ -129,7 +123,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.title}>
             {data.title}
           </Link>
         </Container>
@@ -218,7 +212,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
             {data.issue_title}
           </Link>
         </Container>
@@ -238,7 +232,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
             {data.issue_title}
           </Link>
         </Container>
