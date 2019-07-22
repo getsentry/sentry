@@ -122,16 +122,20 @@ export const SPECIAL_FIELDS = {
     },
   },
   user: {
-    fields: ['user', 'user.name', 'user.email', 'user.ip'],
+    fields: ['user', 'user.name', 'user.username', 'user.email', 'user.ip', 'user.id'],
     sortField: 'user',
     renderFunc: (data, {organization, location}) => {
       const userObj = {
+        id: data['user.id'],
         name: data['user.name'],
         email: data['user.email'],
-        ip: data['user.ip'],
+        username: data['user.username'],
+        ip_address: data['user.ip'],
       };
 
-      const badge = <UserBadge user={userObj} hideEmail={true} avatarSize={16} />;
+      const badge = (
+        <UserBadge useLink={false} user={userObj} hideEmail={true} avatarSize={16} />
+      );
 
       if (!data.user) {
         return <Container>{badge}</Container>;
