@@ -22,5 +22,9 @@ class IssueListPage(BasePage):
         self.browser.click('[aria-label="Resolve"]')
         self.browser.click('[data-test-id="confirm-modal"]')
 
-    def wait_until_loaded(self):
-        self.browser.wait_until_not('.loading-indicator')
+    def wait_for_resolved_issue(self):
+        self.browser.wait_until('[data-test-id="resolved-issue"]')
+
+    def find_resolved_issues(self):
+        self.browser.find_elements_by_css_selector(
+            '[data-test-id="resolved-issue"]')

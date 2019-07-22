@@ -91,10 +91,9 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page.select_issue(1)
         self.page.select_issue(2)
         self.page.resolve_issues()
+        self.page.wait_for_resolved_issue()
+        resolved_groups = self.page.find_resolved_issues()
 
-        self.browser.wait_until('[data-test-id="resolved-issue"]')
-        resolved_groups = self.browser.find_elements_by_css_selector(
-            '[data-test-id="resolved-issue"]')
         assert len(resolved_groups) == 2
 
     @patch('django.utils.timezone.now')
@@ -109,8 +108,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             self.page.select_issue(1)
             self.page.select_issue(2)
             self.page.resolve_issues()
+            self.page.wait_for_resolved_issue()
+            resolved_groups = self.page.find_resolved_issues()
 
-            self.browser.wait_until('[data-test-id="resolved-issue"]')
-            resolved_groups = self.browser.find_elements_by_css_selector(
-                '[data-test-id="resolved-issue"]')
             assert len(resolved_groups) == 2
