@@ -3,10 +3,11 @@ import React from 'react';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
+
+import ProjectPlugins from './projectPlugins';
 
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {

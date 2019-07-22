@@ -12,11 +12,11 @@ import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';
 import SentryTypes from 'app/sentryTypes';
 
 import {DEPRECATED_PLUGINS} from './constants';
+import ProjectPluginRow from './projectPluginRow';
 
 class ProjectPlugins extends Component {
   static propTypes = {

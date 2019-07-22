@@ -1,6 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
-import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
+import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function() {
   let wrapper;

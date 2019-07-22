@@ -10,7 +10,7 @@ import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 
-import {DEPRECATED_PLUGINS} from 'app/views/projectPlugins/constants';
+import {DEPRECATED_PLUGINS} from './constants';
 
 /**
  * There are currently two sources of truths for plugin details:

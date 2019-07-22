@@ -138,24 +138,24 @@ exports[`ProjectPluginRow renders 1`] = `
             >
               <PluginInfo>
                 <div
-                  className="css-sm2hu2-PluginInfo ectqpp0"
+                  className="css-sm2hu2-PluginInfo e1y7j6vq0"
                 >
                   <StyledPluginIcon
                     pluginId="amazon-sqs"
                     size={48}
                   >
                     <PluginIcon
-                      className="css-228l0j-StyledPluginIcon ectqpp2"
+                      className="css-228l0j-StyledPluginIcon e1y7j6vq2"
                       pluginId="amazon-sqs"
                       size={48}
                     >
                       <IntegrationIcon
-                        className="css-228l0j-StyledPluginIcon ectqpp2"
+                        className="css-228l0j-StyledPluginIcon e1y7j6vq2"
                         image={Object {}}
                         size={48}
                       >
                         <div
-                          className="ectqpp2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e1bhjds90"
+                          className="e1y7j6vq2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e1bhjds90"
                           size={48}
                         />
                       </IntegrationIcon>
@@ -176,7 +176,7 @@ exports[`ProjectPluginRow renders 1`] = `
                       >
                         <PluginName>
                           <div
-                            className="css-36lssg-PluginName ectqpp1"
+                            className="css-36lssg-PluginName e1y7j6vq1"
                           >
                             Amazon SQS 
                             <DynamicWrapper
@@ -194,7 +194,7 @@ exports[`ProjectPluginRow renders 1`] = `
                               <span>
                                 <Version>
                                   <span
-                                    className="css-1det7j8-Version ectqpp3"
+                                    className="css-1det7j8-Version e1y7j6vq3"
                                   >
                                     v8.23.0.dev0
                                   </span>

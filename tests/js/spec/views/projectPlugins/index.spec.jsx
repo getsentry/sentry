@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ProjectPlugins from 'app/views/projectPlugins';
+import ProjectPlugins from 'app/views/settings/projectPlugins';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 
 jest.mock('app/actionCreators/plugins');
