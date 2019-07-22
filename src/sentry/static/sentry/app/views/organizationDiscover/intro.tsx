@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {tct, t} from 'app/locale';
@@ -9,11 +8,11 @@ import Button from 'app/components/button';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 
-export default class Intro extends React.Component {
-  static propTypes = {
-    updateQuery: PropTypes.func.isRequired,
-  };
+type IntroProps = {
+  updateQuery: (query: any) => void;
+};
 
+export default class Intro extends React.Component<IntroProps> {
   getExampleQueries() {
     return [
       {
@@ -71,7 +70,12 @@ export default class Intro extends React.Component {
                   <ExampleQueryDescription>{description}</ExampleQueryDescription>
                 </div>
                 <div>
-                  <Button size="small" onClick={() => this.props.updateQuery(query)}>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      this.props.updateQuery(query);
+                    }}
+                  >
                     {t('Run')}
                   </Button>
                 </div>

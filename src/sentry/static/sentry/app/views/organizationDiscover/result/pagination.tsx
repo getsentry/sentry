@@ -1,17 +1,16 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import Button from 'app/components/button';
 
-export default class Pagination extends React.Component {
-  static propTypes = {
-    getNextPage: PropTypes.func.isRequired,
-    getPreviousPage: PropTypes.func.isRequired,
-    previous: PropTypes.string,
-    next: PropTypes.string,
-  };
+type PaginationProps = {
+  getNextPage: () => void;
+  getPreviousPage: () => void;
+  previous?: string | null;
+  next?: string | null;
+};
 
+export default class Pagination extends React.Component<PaginationProps> {
   render() {
     const {getPreviousPage, getNextPage, previous, next} = this.props;
 

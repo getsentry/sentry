@@ -4,8 +4,8 @@
  */
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
-export default function createResultManager(queryBuilder) {
-  let data = getDefault();
+export default function createResultManager(queryBuilder: any): any {
+  let data: any = getDefault();
 
   return {
     getAll,
@@ -20,14 +20,14 @@ export default function createResultManager(queryBuilder) {
    * @param {String} pageToFetch
    * @returns {Promise<Object>}
    */
-  function fetchPage(pageToFetch) {
+  function fetchPage(pageToFetch: string): Promise<object> {
     const query = queryBuilder.getExternal();
     const baseQuery = queryBuilder.getQueryByType(query, 'baseQuery');
 
     const cursor = data.baseQuery[pageToFetch];
 
     if (cursor) {
-      return queryBuilder.fetch(baseQuery, cursor).then(resp => {
+      return queryBuilder.fetch(baseQuery, cursor).then((resp: any) => {
         data.baseQuery.current = cursor;
         data.baseQuery.query = query;
         data.baseQuery.data = resp;
@@ -93,11 +93,11 @@ export default function createResultManager(queryBuilder) {
    * @param {Object} pageLinks
    * @returns {Void}
    */
-  function updatePageLinks(pageLinks) {
+  function updatePageLinks(pageLinks: any): void {
     if (!pageLinks) {
       return;
     }
-    const links = parseLinkHeader(pageLinks);
+    const links: any = parseLinkHeader(pageLinks);
     data.baseQuery.next = links.next.results ? links.next.cursor : null;
     data.baseQuery.previous = links.previous.results ? links.previous.cursor : null;
   }
@@ -107,7 +107,7 @@ export default function createResultManager(queryBuilder) {
    *
    * @returns {Void}
    */
-  function reset() {
+  function reset(): void {
     data = getDefault();
   }
 
@@ -116,7 +116,7 @@ export default function createResultManager(queryBuilder) {
    *
    * @returns {Object}
    */
-  function getDefault() {
+  function getDefault(): any {
     return {
       baseQuery: {query: null, data: null, next: null, previous: null, current: null},
       byDayQuery: {query: null, data: null},
@@ -129,7 +129,7 @@ export default function createResultManager(queryBuilder) {
    *
    * @returns {Boolean}
    */
-  function shouldDisplayResult() {
+  function shouldDisplayResult(): boolean {
     return data.baseQuery.data !== null;
   }
 }

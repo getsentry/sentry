@@ -38,8 +38,9 @@ describe('OrganizationDiscoverContainer', function() {
           location={{query: {}, search: ''}}
           params={{}}
           selection={{projects: [], environments: [], datetime: {}}}
+          organization={organization}
         />,
-        TestStubs.routerContext([{organization}])
+        TestStubs.routerContext()
       );
       await tick();
     });
@@ -64,8 +65,9 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainerWithStore
           location={{query: {}, search: ''}}
           params={{}}
+          organization={organization}
         />,
-        TestStubs.routerContext([{organization}])
+        TestStubs.routerContext()
       );
       expect(wrapper.find('MultipleProjectSelector').text()).toBe('test-project');
     });
@@ -86,10 +88,11 @@ describe('OrganizationDiscoverContainer', function() {
         <Component
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
+          organization={organization}
           {...(withStore ? {} : {selection: {datetime: {}}})}
           {...props}
         />,
-        TestStubs.routerContext([{organization}])
+        TestStubs.routerContext()
       );
       await tick();
       wrap.update();
@@ -280,8 +283,9 @@ describe('OrganizationDiscoverContainer', function() {
           location={{query: {}, search: ''}}
           params={{}}
           selection={{datetime: {}}}
+          organization={organization}
         />,
-        TestStubs.routerContext([{organization}])
+        TestStubs.routerContext()
       );
       expect(wrapper.text()).toBe("You don't have access to this feature");
     });

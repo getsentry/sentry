@@ -201,7 +201,7 @@ describe('Discover', function() {
       await tick();
       wrapper.update();
       wrapper
-        .find('PaginationButtons')
+        .find('Pagination')
         .find('Button')
         .at(1)
         .simulate('click');
@@ -215,13 +215,13 @@ describe('Discover', function() {
       wrapper.update();
       expect(
         wrapper
-          .find('PaginationButtons')
+          .find('Pagination')
           .find('Button')
           .at(0)
           .prop('disabled')
       ).toBe(true);
       wrapper
-        .find('PaginationButtons')
+        .find('Pagination')
         .find('Button')
         .at(0)
         .simulate('click');

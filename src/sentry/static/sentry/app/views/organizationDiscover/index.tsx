@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
@@ -7,9 +6,9 @@ import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
 import {t} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import SentryTypes from 'app/sentryTypes';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -22,18 +21,28 @@ import {
 } from './utils';
 
 import {DiscoverWrapper} from './styles';
+import {GlobalSelection, Organization, SavedQuery} from './types';
 
-class OrganizationDiscoverContainer extends React.Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+const AlertAsAny: any = Alert;
 
-  static propTypes = {
-    selection: PropTypes.object.isRequired,
-  };
+type Props = {
+  organization: Organization;
+  selection: GlobalSelection;
+  params: any;
+  location: any;
+};
 
-  constructor(props, context) {
-    super(props, context);
+type State = {
+  isLoading: boolean;
+  savedQuery: SavedQuery | null;
+  view: string;
+};
+
+class OrganizationDiscoverContainer extends React.Component<Props, State> {
+  private queryBuilder: any;
+
+  constructor(props: Props) {
+    super(props);
 
     this.state = {
       isLoading: true,
@@ -42,7 +51,7 @@ class OrganizationDiscoverContainer extends React.Component {
     };
 
     const {search} = props.location;
-    const {organization} = context;
+    const {organization} = props;
 
     const query = getQueryFromQueryString(search);
 
@@ -91,7 +100,7 @@ class OrganizationDiscoverContainer extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (!nextProps.params.savedQueryId) {
       this.setState({savedQuery: null});
       // Reset querybuilder if we're switching from a saved query
@@ -125,11 +134,11 @@ class OrganizationDiscoverContainer extends React.Component {
     this.setState({isLoading: false});
   };
 
-  fetchSavedQuery = savedQueryId => {
-    const {organization} = this.context;
+  fetchSavedQuery = (savedQueryId: string) => {
+    const {organization} = this.props;
 
     return fetchSavedQuery(organization, savedQueryId)
-      .then(resp => {
+      .then((resp: any) => {
         if (this.queryBuilder) {
           this.queryBuilder.reset(parseSavedQuery(resp));
         } else {
@@ -147,12 +156,12 @@ class OrganizationDiscoverContainer extends React.Component {
       });
   };
 
-  updateSavedQuery = savedQuery => {
+  updateSavedQuery = (savedQuery: SavedQuery) => {
     this.setState({savedQuery});
   };
 
   toggleEditMode = () => {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const {savedQuery} = this.state;
     const isEditingSavedQuery = this.props.location.query.editing === 'true';
 
@@ -164,21 +173,21 @@ class OrganizationDiscoverContainer extends React.Component {
     }
 
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
+      pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery!.id}/`,
       query: newQuery,
     });
   };
 
   renderNoAccess() {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <AlertAsAny type="warning">{t("You don't have access to this feature")}</AlertAsAny>
+    );
   }
 
   render() {
     const {isLoading, savedQuery, view} = this.state;
 
-    const {location, params, selection} = this.props;
-
-    const {organization} = this.context;
+    const {location, organization, params, selection} = this.props;
 
     return (
       <DocumentTitle title={`Discover - ${organization.slug} - Sentry`}>
@@ -209,5 +218,5 @@ class OrganizationDiscoverContainer extends React.Component {
   }
 }
 
-export default withGlobalSelection(OrganizationDiscoverContainer);
+export default withGlobalSelection(withOrganization(OrganizationDiscoverContainer));
 export {OrganizationDiscoverContainer};
