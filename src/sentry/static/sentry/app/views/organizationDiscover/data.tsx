@@ -26,10 +26,9 @@ export const PROMOTED_TAGS = [
 ];
 
 // All tags are assumed to be strings, except the following
-export const SPECIAL_TAGS = {
-  os_rooted: TYPES.BOOLEAN,
+export const SPECIAL_TAGS: any = {
+  os_rooted: TYPES.DATETIME,
 };
-
 // Hide the following tags if they are returned from Snuba since these are
 // already mapped to user and release attributes
 export const HIDDEN_TAGS = ['sentry:user', 'sentry:release'];

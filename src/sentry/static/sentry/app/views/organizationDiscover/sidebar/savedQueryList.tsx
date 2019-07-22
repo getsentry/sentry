@@ -1,7 +1,6 @@
 import React from 'react';
 import moment from 'moment';
 
-import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -16,24 +15,37 @@ import {
   SavedQueryLink,
   SavedQueryUpdated,
 } from '../styles';
+import {Organization, SavedQuery} from '../types';
 
-export default class SavedQueries extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    // provided if it's a saved query
-    savedQuery: SentryTypes.DiscoverSavedQuery,
-  };
+type SavedQueriesProps = {
+  organization: Organization;
+  savedQuery: SavedQuery | null;
+};
 
-  constructor(props) {
+type SavedQueriesState = {
+  isLoading: boolean;
+  data: SavedQuery[];
+  topSavedQuery: SavedQuery | null;
+};
+
+export default class SavedQueries extends React.Component<
+  SavedQueriesProps,
+  SavedQueriesState
+> {
+  constructor(props: SavedQueriesProps) {
     super(props);
-    this.state = {isLoading: true, data: [], topSavedQuery: props.savedQuery};
+    this.state = {
+      isLoading: true,
+      data: [],
+      topSavedQuery: props.savedQuery,
+    };
   }
 
   componentDidMount() {
     this.fetchAll();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: SavedQueriesProps) {
     // Refetch on deletion
     if (!nextProps.savedQuery && this.props.savedQuery !== nextProps.savedQuery) {
       this.fetchAll();
@@ -42,7 +54,7 @@ export default class SavedQueries extends React.Component {
     // Update query in the list with new data
     if (nextProps.savedQuery && nextProps.savedQuery !== this.props.savedQuery) {
       const data = this.state.data.map(savedQuery =>
-        savedQuery.id === nextProps.savedQuery.id ? nextProps.savedQuery : savedQuery
+        savedQuery.id === nextProps.savedQuery!.id ? nextProps.savedQuery! : savedQuery
       );
       this.setState({data});
     }
@@ -61,7 +73,7 @@ export default class SavedQueries extends React.Component {
 
   fetchAll() {
     fetchSavedQueries(this.props.organization)
-      .then(data => {
+      .then((data: SavedQuery[]) => {
         this.setState({isLoading: false, data});
       })
       .catch(() => {
@@ -83,7 +95,7 @@ export default class SavedQueries extends React.Component {
     return <Fieldset>{t('No saved queries')}</Fieldset>;
   }
 
-  renderListItem(query) {
+  renderListItem(query: SavedQuery) {
     const {savedQuery} = this.props;
 
     const {id, name, dateUpdated} = query;

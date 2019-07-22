@@ -1,4 +1,4 @@
-const space = size => {
+const space = (size: number): string => {
   switch (size) {
     //Our spacing scale is based on a base unit of 8
     //We use a case switch to prevent odd numbers, decimals, and big numbers.

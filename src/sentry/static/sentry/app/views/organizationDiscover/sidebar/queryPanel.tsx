@@ -1,16 +1,16 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
 
 import {QueryPanelContainer, QueryPanelTitle, QueryPanelCloseLink} from '../styles';
 
-export default class QueryPanel extends React.Component {
-  static propTypes = {
-    title: PropTypes.node.isRequired,
-    onClose: PropTypes.func.isRequired,
-  };
+type QueryPanelProps = {
+  title: any;
+  onClose: () => void;
+};
+
+export default class QueryPanel extends React.Component<QueryPanelProps> {
   render() {
     const {title, onClose} = this.props;
     return (

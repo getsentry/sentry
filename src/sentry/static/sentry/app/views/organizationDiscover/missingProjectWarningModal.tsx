@@ -1,19 +1,20 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 import Button from 'app/components/button';
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import {Organization} from './types';
 
-export default class MissingProjectWarningModal extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    validProjects: PropTypes.arrayOf(PropTypes.number).isRequired,
-    invalidProjects: PropTypes.arrayOf(PropTypes.number).isRequired,
-    closeModal: PropTypes.func,
-  };
+type MissingProjectWarningModalProps = {
+  organization: Organization;
+  validProjects: number[];
+  invalidProjects: number[];
+  closeModal: () => void;
+};
 
-  renderProject(id) {
+export default class MissingProjectWarningModal extends React.Component<
+  MissingProjectWarningModalProps
+> {
+  renderProject(id: number) {
     const project = this.props.organization.projects.find(p => p.id === id.toString());
     return <li key={id}>{project ? project.slug : t(`Unknown project ${id}`)}</li>;
   }
@@ -29,7 +30,7 @@ export default class MissingProjectWarningModal extends React.Component {
            have access to.`);
 
     return (
-      <Modal show={true}>
+      <Modal show={true} onHide={() => {}}>
         <Header>{t('Project access')}</Header>
         <Body>
           <p>{text}</p>

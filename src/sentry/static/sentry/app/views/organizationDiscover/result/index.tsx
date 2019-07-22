@@ -1,9 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import {throttle} from 'lodash';
 
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
@@ -37,18 +35,28 @@ import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
 } from '../utils';
+import {SavedQuery} from '../types';
 
-class Result extends React.Component {
-  static propTypes = {
-    data: PropTypes.object.isRequired,
-    location: PropTypes.object.isRequired,
-    savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
-    onFetchPage: PropTypes.func.isRequired,
-    onToggleEdit: PropTypes.func,
-    utc: PropTypes.bool,
-  };
+type ResultProps = {
+  data: any;
+  location: any;
+  savedQuery: SavedQuery | null; // Provided if it's a saved search
+  onFetchPage: (nextOrPrev: string) => void;
+  onToggleEdit: () => void;
+  utc: boolean;
+};
 
-  constructor(props) {
+type ResultState = {
+  view: string;
+  height: number | null;
+  width: number | null;
+};
+
+class Result extends React.Component<ResultProps, ResultState> {
+  // This is the ref of the table container component
+  private container: any;
+
+  constructor(props: ResultProps) {
     super(props);
     this.state = {
       view: getVisualization(props.data, props.location.query.visualization),
@@ -61,7 +69,7 @@ class Result extends React.Component {
     window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: ResultProps) {
     const {data, location} = nextProps;
     const visualization = getVisualization(data, location.query.visualization);
 
@@ -82,7 +90,7 @@ class Result extends React.Component {
     window.removeEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  setDimensions = ref => {
+  setDimensions = (ref: any) => {
     this.container = ref;
     if (ref && this.state.height === null) {
       this.updateDimensions();
@@ -102,7 +110,7 @@ class Result extends React.Component {
 
   throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
 
-  handleToggleVisualizations = opt => {
+  handleToggleVisualizations = (opt: string) => {
     const {location} = this.props;
     this.setState({
       view: opt,
@@ -177,7 +185,7 @@ class Result extends React.Component {
     return (
       <React.Fragment>
         <PageHeading>
-          {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
+          {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
@@ -206,11 +214,11 @@ class Result extends React.Component {
       byDayQuery.data && getChartDataByDay(byDayQuery.data.data, byDayQuery.query);
 
     const legendData = byDayChartData
-      ? {data: byDayChartData.map(entry => entry.seriesName), truncate: 80}
+      ? {data: byDayChartData.map((entry: any) => entry.seriesName), truncate: 80}
       : null;
 
     const tooltipOptions = {
-      filter: value => value !== null,
+      filter: (value: any) => value !== null,
       truncate: 80,
     };
 
@@ -292,8 +300,12 @@ class Result extends React.Component {
               <Pagination
                 previous={baseQuery.previous}
                 next={baseQuery.next}
-                getNextPage={() => onFetchPage('next')}
-                getPreviousPage={() => onFetchPage('previous')}
+                getNextPage={() => {
+                  onFetchPage('next');
+                }}
+                getPreviousPage={() => {
+                  onFetchPage('previous');
+                }}
               />
             )}
           </ResultSummaryAndButtons>
