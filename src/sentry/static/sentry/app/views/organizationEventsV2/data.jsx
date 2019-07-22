@@ -69,8 +69,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'transactions',
     name: 'Transactions',
     data: {
-      fields: ['transaction', 'project', 'rpm', 'avg', '75th', '95th', '% total'],
-      sort: ['-timestamp', '-id'],
+      fields: ['transaction', 'project'],
+      groupby: ['transaction', 'project.id'],
+      sort: ['-transaction'],
       query: 'event.type:transaction',
     },
     tags: [
@@ -80,10 +81,6 @@ export const ALL_VIEWS = deepFreeze([
       'user.email',
       'user.ip',
       'environment',
-      'trace',
-      'trace.ctx',
-      'trace.span',
-      'transaction',
     ],
     columnWidths: ['3fr', '1fr', '1fr', '1fr', '1fr', '1fr', '1fr'],
   },
@@ -95,20 +92,23 @@ export const ALL_VIEWS = deepFreeze([
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS = {
-  '% total': {
+  '% query': {
     fields: [],
     sortField: false,
     renderFunc: () => {
-      return <Container>% total</Container>;
+      return <Container>% query</Container>;
     },
   },
   transaction: {
-    fields: ['title', 'id', 'project.name', 'transaction'],
+    fields: ['project.name', 'transaction'],
     sortField: 'transaction',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
-        query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
+        query: {
+          ...location.query,
+          transactionSlug: `${data['project.name']}:${data.transaction}`,
+        },
       };
       return (
         <Container>
