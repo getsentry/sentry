@@ -1,3 +1,35 @@
+Version 9.1.2
+-------------
+
+- de95702691      Matt Robenolt   Wed Apr 10 13:35:52 2019 -0700  build: Switch to psycopg2-binary (#12717)
+- fff834413f      Sasha Case      Tue Jul 16 21:36:47 2019 +1000  fix: Docs not built in fresh bdist_wheel (#12220)
+- d44a6d7860      Jan Michael Auer        Wed May 22 12:17:18 2019 +0200  fix: Renormalize snuba events (#13329)
+- 08ac2c6efc      Markus Unterwaditzer    Tue Apr 30 15:00:36 2019 +0200  fix: Renormalize once (#12991)
+- 0a9d43d50b      Jan Michael Auer        Thu Apr 25 01:02:10 2019 +0200  fix(assemble): Update outdated test, change status (#12928)
+- ca155eadb6      Jan Michael Auer        Thu Apr 25 00:14:18 2019 +0200  fix(assemble): Avoid increasing backlogs in assemble (#12923)
+- 896d4c33e7      Jan Michael Auer        Wed Apr 17 14:15:30 2019 +0200  fix(unreal): Extract better portable callstacks (#12812)
+- daa5ccbd94      Markus Unterwaditzer    Thu Apr 4 10:06:46 2019 +0200   fix: Fix a bunch of null references (#12637)
+- ba0d389bac      ganzevoort      Thu Jul 11 16:40:32 2019 +0200  fix issue 13968: silent cleanup honors is_filtered (#13969)
+- b5b4b9089a      Burak Yigit Kaya        Thu Jun 20 19:01:32 2019 +0300  fix(packaging): Include all of `src/sentry` (#13743)
+- 00dc2d34e9      Burak Yigit Kaya        Wed Jun 19 22:48:54 2019 +0300  test(installWizard): Remove obsolete test case and rename the remaining (#13736)
+- 7822ea389d      Sam Hausmann    Wed Jun 19 13:55:34 2019 -0400  ref(slack): Remove message title limit (#13687)
+- c762e3a60d      Burak Yigit Kaya        Wed Jun 19 00:22:12 2019 +0300  fix(installWizard): Fix client default values not set  (#13726)
+- ceffe91379      Burak Yigit Kaya        Mon Jun 17 16:51:17 2019 +0300  feat(upgrade): Default to superuser for first user  (#13706)
+- c8d139d18c      Mark Story      Mon Jun 3 15:55:48 2019 -0400   fix(api) Update serializer max length to match database (#13499)
+- ae5eb0344b      Evan Purkhiser  Tue May 21 11:42:08 2019 -0700  fix(slack): use oauth.token over oauth.access for legacy WST app
+- e9570f068e      Evan Purkhiser  Mon May 20 15:13:02 2019 -0700  ref(slack): Implement bot app switch (#13184)
+- 3cd4d5ca03      Roach   Mon May 13 10:37:58 2019 -0700  Updated Slack integration logo (#13174)
+- 3626966f5f      Mark Story      Mon Apr 29 10:08:40 2019 -0400  chore: Bump moment-timezone (#12966)
+- b604a2deb1      Mark Story      Wed Apr 24 09:41:21 2019 -0400  fix(ui) Fix zindex woes in hovercards. (#12887)
+- 0f6675a46c      Mark Story      Tue Apr 23 18:10:38 2019 -0400  fix(jira) Don't 500 when request token requests timeout (#12884)
+- a9cb023208      Dan Fuller      Tue Apr 23 12:57:55 2019 -0700  fix(api): Fix bug where serialization fails for a pull request that is related to a removed repo (SEN-516)
+- 6146169ba4      Mark Story      Tue Apr 23 16:00:27 2019 -0400  fix(jira) Don't 500 when oauth tokens are revoked (#12886)
+- 15bf6bd777      Evan Purkhiser  Tue Apr 23 09:48:11 2019 -0700  fix(slack): Use event message /type when available (#12881)
+- fcaadcbc86      Billy Vong      Tue Apr 23 08:57:44 2019 -0700  fix(sidebar): Fix using wrong pathname (#12870)
+- 46bbe21130      Billy Vong      Tue Apr 23 08:57:21 2019 -0700  fix(js): Fix cleanup API client (#12872)
+- 0c8553133b      Lauryn Brown    Mon Apr 15 12:26:36 2019 -0700  ref(releases): Refactored Releases Serializers (#12535)
+- db41bf89b0      Dena Mwangi     Fri Apr 5 10:41:48 2019 -0700   fix field name to match serializer (#12532)
+
 Version 9.1.1
 -------------
 
