@@ -160,6 +160,12 @@ class SentryAppPermission(SentryPermission):
             if sentry_app.owner not in request.user.get_orgs():
                 raise Http404
 
+        # TODO(meredith): make a better way to allow for public
+        # endpoints. we can't use ensure_scoped_permission now
+        # that the public endpoint isn't denoted by '()'
+        if sentry_app.is_published and request.method == 'GET':
+            return True
+
         return ensure_scoped_permission(
             request,
             self._scopes_for_sentry_app(sentry_app).get(request.method),
