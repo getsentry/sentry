@@ -15,6 +15,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore
+from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, Model, sane_repr
