@@ -148,6 +148,16 @@ export const Member = PropTypes.shape({
   user: User,
 });
 
+const EventOrGroupType = PropTypes.oneOf([
+  'error',
+  'csp',
+  'hpkp',
+  'expectct',
+  'expectstaple',
+  'default',
+  'transaction',
+]);
+
 export const Group = PropTypes.shape({
   id: PropTypes.string.isRequired,
   annotations: PropTypes.array,
@@ -174,7 +184,7 @@ export const Group = PropTypes.shape({
   status: PropTypes.string,
   statusDetails: PropTypes.object,
   title: PropTypes.string,
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: EventOrGroupType,
   userCount: PropTypes.number,
 });
 
@@ -186,7 +196,7 @@ export const Event = PropTypes.shape({
   dateReceived: PropTypes.string,
   entries: PropTypes.arrayOf(
     PropTypes.shape({
-      data: PropTypes.object,
+      data: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
       type: PropTypes.string,
     })
   ),
@@ -212,7 +222,7 @@ export const Event = PropTypes.shape({
       value: PropTypes.string,
     })
   ),
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: EventOrGroupType,
   user: PropTypes.object,
 });
 
