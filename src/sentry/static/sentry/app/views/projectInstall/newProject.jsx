@@ -3,28 +3,18 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import CreateProject from 'app/components/createProject';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 
-const NewProject = ({organization}) => (
+const NewProject = () => (
   <Container>
     <div className="container">
       <Content>
         <DocumentTitle title="Sentry" />
-        <CreateProject
-          nextStepUrl={({slug, projectSlug, platform}) =>
-            `/${slug}/${projectSlug}/getting-started/${platform}/`
-          }
-        />
+        <CreateProject />
       </Content>
     </div>
   </Container>
 );
-
-NewProject.propTypes = {
-  organization: SentryTypes.Organization.isRequired,
-};
 
 const Container = styled('div')`
   flex: 1;
@@ -36,4 +26,4 @@ const Content = styled('div')`
   margin-top: ${space(3)};
 `;
 
-export default withOrganization(NewProject);
+export default NewProject;

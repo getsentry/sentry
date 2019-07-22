@@ -98,7 +98,6 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       "query": Object {},
     }
   }
-  nextStepUrl={[Function]}
   organization={
     Object {
       "access": Array [
@@ -1679,7 +1678,6 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       "query": Object {},
     }
   }
-  nextStepUrl={[Function]}
   organization={
     Object {
       "access": Array [
@@ -2669,7 +2667,6 @@ exports[`CreateProject should fill in project name if its empty when platform is
       "query": Object {},
     }
   }
-  nextStepUrl={[Function]}
   organization={
     Object {
       "access": Array [

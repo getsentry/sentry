@@ -13,6 +13,7 @@ const SetupChoices = ({choices, selectedChoice, onSelect}) => (
       <li key={id} className={id === selectedChoice ? 'active' : null}>
         <a
           href="#"
+          data-test-id={`onboarding-getting-started-${id}`}
           onClick={e => {
             onSelect(id);
             e.preventDefault();

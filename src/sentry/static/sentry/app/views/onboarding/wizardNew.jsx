@@ -155,6 +155,7 @@ class OnboardingWizard extends React.Component {
     return visibleSteps.map((step, index) => (
       <OnboardingStep
         key={step.id}
+        data-test-id={`onboarding-step-${step.id}`}
         onPoseComplete={this.scrollToActiveStep}
         active={activeStepIndex === index}
       >

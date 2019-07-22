@@ -20,7 +20,7 @@ class OnboardingWelcome extends React.Component {
     config: SentryTypes.Config.isRequired,
   };
 
-  skipOnboarding = e => {
+  skipOnboarding = () => {
     const {organization} = this.props;
     recordAnalyticsOnboardingSkipped({organization});
   };
@@ -53,7 +53,12 @@ class OnboardingWelcome extends React.Component {
           </li>
         </ul>
         <ActionGroup>
-          <Button disabled={!active} priority="primary" onClick={e => onComplete()}>
+          <Button
+            data-test-id="welcome-next"
+            disabled={!active}
+            priority="primary"
+            onClick={() => onComplete()}
+          >
             {t("I'm Ready!")}
           </Button>
           <SecondaryAction>
