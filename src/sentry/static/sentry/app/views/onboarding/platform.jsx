@@ -46,7 +46,7 @@ class OnboardingPlatform extends React.Component {
     progressing: false,
   };
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (prevProps.active && !this.props.active) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({progressing: false});
@@ -144,6 +144,7 @@ class OnboardingPlatform extends React.Component {
           setPlatform={this.handleSetPlatform}
         />
         <Button
+          data-test-id="platform-select-next"
           priority="primary"
           disabled={continueDisabled}
           onClick={this.handleContinue}
