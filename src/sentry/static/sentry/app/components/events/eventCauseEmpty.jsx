@@ -31,7 +31,7 @@ const DUMMY_COMMIT = {
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
-  message: t('This commit accidentally broke something'),
+  message: t('This example commit broke something'),
 };
 
 class EventCauseEmpty extends React.Component {
