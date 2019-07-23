@@ -133,7 +133,10 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             },
         } for r in range(0, 14400, 600)])  # Every 10 min for 4 hours
 
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
+        assert requests.post(
+            settings.SENTRY_SNUBA +
+            '/tests/events/insert',
+            data=data).status_code == 200
 
         # snuba trims query windows based on first_seen/last_seen, so these need to be correct-ish
         self.proj1group1.first_seen = self.now
