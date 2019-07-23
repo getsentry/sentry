@@ -157,7 +157,6 @@ globals.SentryApp = {
   ConfigStore: require('app/stores/configStore').default,
   Alerts: require('app/components/alerts').default,
   Indicators: require('app/components/indicators').default,
-  ProjectSelector: require('app/components/projectHeader/projectSelector').default,
   Sidebar: require('app/components/sidebar').default,
   SetupWizard: require('app/components/setupWizard').default,
   OrganizationsLoader: require('app/components/organizations/organizationsLoader')

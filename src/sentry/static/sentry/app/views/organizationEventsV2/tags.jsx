@@ -56,7 +56,7 @@ class Tags extends React.Component {
           api,
           organization.slug,
           tag,
-          location.query
+          getQuery(view, location)
         );
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));

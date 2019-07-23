@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
+import ProjectPlugins from 'app/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function() {
   let wrapper;

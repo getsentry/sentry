@@ -1,10 +1,3 @@
-"""
-sentry.models.group
-~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
@@ -22,9 +15,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore
-from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
-)
+from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, Model, sane_repr
@@ -208,18 +199,22 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.models import EventMapping, Event
-        group_ids = set()
-        # see above for explanation as to why we're
-        # looking at both Event and EventMapping
-        for model in Event, EventMapping:
-            group_ids.update(
-                model.objects.filter(
-                    project_id__in=project_ids,
-                    event_id=event_id,
-                    group_id__isnull=False,
-                ).values_list('group_id', flat=True)
-            )
+        from sentry.utils import snuba
+
+        data = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=['issue'],
+            conditions=[['issue', 'IS NOT NULL', None]],
+            filter_keys={
+                'event_id': [event_id],
+                'project_id': project_ids,
+            },
+            limit=len(project_ids),
+            referrer="Group.filter_by_event_id",
+        )['data']
+
+        group_ids = set([evt['issue'] for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
 
@@ -407,20 +402,9 @@ class Group(Model):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
-        from sentry.models import Event
-
         if not hasattr(self, '_latest_event'):
-            latest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('-datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-                reverse=True,
-            )
-            try:
-                self._latest_event = latest_events[0]
-            except IndexError:
-                self._latest_event = None
+            self._latest_event = self.get_latest_event_for_environments()
+
         return self._latest_event
 
     def get_latest_event_for_environments(self, environments=()):

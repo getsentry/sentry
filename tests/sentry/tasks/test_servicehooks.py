@@ -66,3 +66,18 @@ class TestServiceHooks(TestCase):
             'X-ServiceHook-GUID',
             'X-ServiceHook-Signature',
         ))
+
+    def test_v0_payload(self):
+        event = self.create_event(project=self.project)
+
+        process_service_hook(self.hook.id, event)
+        body = get_payload_v0(event)
+        assert body['group']['url'] == 'http://testserver/organizations/{}/issues/{}/'.format(
+            self.organization.slug,
+            event.group.id,
+        )
+        assert body['event']['url'] == 'http://testserver/organizations/{}/issues/{}/events/{}/'.format(
+            self.organization.slug,
+            event.group.id,
+            event.event_id,
+        )
