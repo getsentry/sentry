@@ -6,6 +6,7 @@ import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
+import {omit} from 'lodash';
 
 const UserBadge = ({
   displayName,
@@ -31,6 +32,7 @@ const UserBadge = ({
           {displayName ||
             userFromPropsOrMember.name ||
             userFromPropsOrMember.email ||
+            userFromPropsOrMember.username ||
             userFromPropsOrMember.ipAddress ||
             /**
              * Because this can be used to render EventUser models, or User *interface*
@@ -87,9 +89,10 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledName = styled(({useLink, hideEmail, to, ...props}) =>
-  useLink ? <Link to={to} {...props} /> : <span {...props} />
-)`
+const StyledName = styled(({useLink, to, ...props}) => {
+  const forwardProps = omit(props, 'hideEmail');
+  return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
+})`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};

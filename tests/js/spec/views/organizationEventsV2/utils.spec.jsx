@@ -35,8 +35,10 @@ describe('getQuery()', function() {
       'project.name',
       'user',
       'user.name',
+      'user.username',
       'user.email',
       'user.ip',
+      'user.id',
       'issue.id',
     ]);
   });
