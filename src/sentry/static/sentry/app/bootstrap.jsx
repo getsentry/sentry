@@ -44,12 +44,6 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
-  scope.setSpan(
-    Sentry.getCurrentHub().startSpan({
-      op: 'pageload',
-      sampled: true,
-    })
-  );
 });
 
 // Used for operational metrics to determine that the application js
@@ -78,6 +72,14 @@ if (
     (config.urlPrefix &&
       (config.urlPrefix.includes('localhost') || config.urlPrefix.includes('127.0.0.1'))))
 ) {
+  Sentry.configureScope(scope => {
+    scope.setSpan(
+      Sentry.getCurrentHub().startSpan({
+        op: 'pageload',
+        sampled: true,
+      })
+    );
+  });
   startApm();
 }
 // -----------------------------------------------------------------
