@@ -11,7 +11,7 @@ from sentry import roles
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import DetailedOrganizationSerializer
+from sentry.api.serializers.models.organization import DetailedOrganizationSerializerWithProjectsAndTeams
 from sentry.utils.signing import unsign
 from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, Organization, OrganizationStatus, Team, Project
@@ -70,7 +70,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             'organizations': serialize(
                 list(organizations),
                 request.user,
-                DetailedOrganizationSerializer(),
+                DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access
             ),
             'project': {
