@@ -21,6 +21,7 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
+import {startApm} from 'app/utils/apm';
 
 // SDK INIT  --------------------------------------------------------
 Sentry.init({
@@ -32,7 +33,6 @@ Sentry.init({
     }),
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
-      autoStartOnDomReady: false,
     }),
   ],
 });
@@ -44,9 +44,13 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
+  scope.setSpan(
+    Sentry.getCurrentHub().startSpan({
+      op: 'pageload',
+      sampled: true,
+    })
+  );
 });
-
-// -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -62,6 +66,21 @@ jQuery.ajaxSetup({
 if (window.__initialData) {
   ConfigStore.loadInitialData(window.__initialData);
 }
+
+// APM -------------------------------------------------------------
+const config = ConfigStore.getConfig();
+// This is just a simple gatekeeper to not enable apm for whole sentry.io at first
+if (
+  config &&
+  ((config.userIdentity &&
+    config.userIdentity.email &&
+    config.userIdentity.email.includes('sentry')) ||
+    (config.urlPrefix &&
+      (config.urlPrefix.includes('localhost') || config.urlPrefix.includes('127.0.0.1'))))
+) {
+  startApm();
+}
+// -----------------------------------------------------------------
 
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
