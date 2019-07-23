@@ -735,11 +735,9 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration(**kwargs):
-        app = sentry_apps.InternalCreator.run(
+        return sentry_apps.InternalCreator.run(
             **Factories._sentry_app_kwargs(**kwargs)
         )
-        app.update(verify_install=False)
-        return app
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):

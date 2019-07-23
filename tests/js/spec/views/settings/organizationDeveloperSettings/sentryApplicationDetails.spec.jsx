@@ -43,6 +43,16 @@ describe('Sentry Application Details', function() {
       ).toBeDefined();
     });
 
+    it('disables verifyInstall if isInternal is enabled', function() {
+      const verifyInstallToggle = 'Switch[name="verifyInstall"]';
+
+      wrapper.find(verifyInstallToggle).simulate('click');
+      wrapper.find('Switch[name="isInternal"]').simulate('click');
+
+      expect(wrapper.find(verifyInstallToggle).prop('isDisabled')).toBe(true);
+      expect(wrapper.find(verifyInstallToggle).prop('isActive')).toBe(false);
+    });
+
     it('saves', function() {
       wrapper
         .find('Input[name="name"]')
@@ -83,6 +93,7 @@ describe('Sentry Application Details', function() {
         scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
         events: observable(['issue']),
         isInternal: false,
+        verifyInstall: false,
         isAlertable: true,
         schema: {},
       };

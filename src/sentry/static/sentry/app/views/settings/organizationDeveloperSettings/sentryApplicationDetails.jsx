@@ -120,6 +120,7 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: app && app.status === 'internal' ? true : false,
+            verifyInstall: (app && app.verifyInstall) || false,
             schema: {},
             scopes: [],
             ...app,
