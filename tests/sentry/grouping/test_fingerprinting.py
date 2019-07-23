@@ -6,6 +6,7 @@ import os
 import json
 import pytest
 
+from sentry.models import Event
 from sentry.event_manager import EventManager
 from sentry.grouping.api import apply_server_fingerprinting
 from sentry.grouping.fingerprinting import FingerprintingRules
@@ -17,6 +18,7 @@ def test_basic_parsing(insta_snapshot):
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
 app:true                                        -> aha
+app:true                                        -> {{ default }}
 ''')
     assert rules._to_config_structure() == {
         'rules': [
@@ -27,6 +29,8 @@ app:true                                        -> aha
              'fingerprint': ['AssertionFailed', 'foo']},
             {'matchers': [['app', 'true']],
              'fingerprint': ['aha']},
+            {'matchers': [['app', 'true']],
+             'fingerprint': ['{{ default }}']},
         ],
         'version': 1
     }
@@ -66,7 +70,17 @@ def test_event_hash_variant(insta_snapshot, testcase):
     data.setdefault('fingerprint', ['{{ default }}'])
     apply_server_fingerprinting(data, config)
 
+    evt = Event(data=data, platform=data['platform'])
+
+    def dump_variant(v):
+        rv = v.as_dict()
+        for key in 'component', 'description', 'hash', 'config':
+            rv.pop(key, None)
+        return rv
+
     insta_snapshot({
         'config': config.to_json(),
         'fingerprint': data['fingerprint'],
+        'variants': {k: dump_variant(v)
+                     for (k, v) in evt.get_grouping_variants().items()},
     })

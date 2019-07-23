@@ -5,6 +5,7 @@ from hashlib import md5
 from django.utils.encoding import force_bytes
 
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
+TRANSACTION_FINGERPRINT_VALUES = frozenset(['{{ transaction }}', '{{transaction}}'])
 
 
 def hash_from_values(values):
@@ -21,3 +22,11 @@ def get_rule_bool(value):
             return True
         elif value in ('0', 'no', 'false'):
             return False
+
+
+def resolve_fingerprint_values(values, event):
+    def get_fingerprint_value(value):
+        if value in TRANSACTION_FINGERPRINT_VALUES:
+            return event.data.get('transaction') or '<unknown>'
+        return value
+    return [get_fingerprint_value(x) for x in values]
