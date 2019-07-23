@@ -108,7 +108,7 @@ class BaseChart extends React.Component {
     onFinished: PropTypes.func,
 
     // Forwarded Ref
-    forwardedRef: PropTypes.object,
+    forwardedRef: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
 
     // Custom chart props that are implemented by us (and not a feature of eCharts)
     /**

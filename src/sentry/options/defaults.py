@@ -1,10 +1,3 @@
-"""
-sentry.options.defaults
-~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 from sentry.logging import LoggingFormat
@@ -191,3 +184,7 @@ register('store.disable-trim-in-renormalization', default=0.0)  # unused
 register('post-process.use-error-hook-sampling', default=False)  # unused
 # From 0.0 to 1.0: Randomly enqueue process_resource_change task
 register('post-process.error-hook-sample-rate', default=0.0)  # unused
+
+# Transaction events
+# True => kill switch to disable ingestion of transaction events for internal project.
+register('transaction-events.force-disable-internal-project', default=False)

@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import six
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry.testutils import APITestCase
 from sentry.models import GroupShare
@@ -10,8 +12,14 @@ class SharedGroupDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        event = self.create_event(group=group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'timestamp': min_ago,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
 
         share_id = group.get_share_id()
         assert share_id is None
@@ -29,7 +37,7 @@ class SharedGroupDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(group.id)
-        assert response.data['latestEvent']['id'] == six.text_type(event.id)
+        assert response.data['latestEvent']['id'] == six.text_type(event.event_id)
         assert response.data['project']['slug'] == group.project.slug
         assert response.data['project']['organization']['slug'] == group.organization.slug
 

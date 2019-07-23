@@ -18,7 +18,7 @@ describe('Tags', function() {
         },
       },
       {
-        predicate: (url, options) => {
+        predicate: (_, options) => {
           return options.query.key === 'release';
         },
       }
@@ -35,8 +35,11 @@ describe('Tags', function() {
         },
       },
       {
-        predicate: (url, options) => {
-          return options.query.key === 'environment';
+        predicate: (_, options) => {
+          return (
+            options.query.key === 'environment' &&
+            options.query.query === 'event.type:csp'
+          );
         },
       }
     );
@@ -58,7 +61,9 @@ describe('Tags', function() {
     const view = {
       id: 'test',
       name: 'Test',
-      data: {},
+      data: {
+        query: 'event.type:csp',
+      },
       tags: ['release', 'environment'],
     };
     const wrapper = mount(

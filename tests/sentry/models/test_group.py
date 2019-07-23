@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-import six
-
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.db.models import ProtectedError
@@ -16,6 +14,12 @@ from sentry.testutils import TestCase
 
 
 class GroupTest(TestCase):
+    def setUp(self):
+        super(GroupTest, self).setUp()
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.just_over_one_min_ago = (timezone.now() - timedelta(seconds=61)).isoformat()[:19]
+
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.is_resolved()
@@ -36,56 +40,53 @@ class GroupTest(TestCase):
 
         assert group.is_resolved()
 
-    def test_get_oldest_latest_event_no_events(self):
-        group = self.create_group()
+    def test_get_latest_event_no_events(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
         assert group.get_latest_event() is None
-        assert group.get_oldest_event() is None
 
-    def test_get_oldest_latest_events(self):
-        group = self.create_group()
-        for i in range(0, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, i),
-            )
-
-        assert group.get_latest_event().event_id == '2'
-        assert group.get_oldest_event().event_id == '0'
-
-    def test_get_oldest_latest_identical_timestamps(self):
-        group = self.create_group()
-        for i in range(0, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, 50),
-            )
-
-        assert group.get_latest_event().event_id == '2'
-        assert group.get_oldest_event().event_id == '0'
-
-    def test_get_oldest_latest_almost_identical_timestamps(self):
-        group = self.create_group()
-        self.create_event(
-            event_id='0',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 0),  # earliest
+    def test_get_latest_event(self):
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': self.two_min_ago,
+            },
+            project_id=self.project.id,
         )
-        for i in range(1, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, 30),  # all in the middle
-            )
-        self.create_event(
-            event_id='3',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 59),  # latest
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': self.min_ago,
+            },
+            project_id=self.project.id,
         )
 
-        assert group.get_latest_event().event_id == '3'
-        assert group.get_oldest_event().event_id == '0'
+        group = Group.objects.first()
+
+        assert group.get_latest_event().event_id == 'b' * 32
+
+    def test_get_latest_almost_identical_timestamps(self):
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': self.just_over_one_min_ago,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': self.min_ago,
+            },
+            project_id=self.project.id,
+        )
+        group = Group.objects.first()
+
+        assert group.get_latest_event().event_id == 'b' * 32
 
     def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
@@ -150,6 +151,25 @@ class GroupTest(TestCase):
 
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect(duplicate_id)
+
+    def test_get_group_with_redirect_from_qualified_short_id(self):
+        group = self.create_group()
+        assert group.qualified_short_id
+        assert get_group_with_redirect(group.qualified_short_id) == (group, False)
+
+        duplicate_group = self.create_group()
+        duplicate_id = duplicate_group.id
+        GroupRedirect.create_for_group(duplicate_group, group)
+        Group.objects.filter(id=duplicate_id).delete()
+
+        assert get_group_with_redirect(duplicate_group.qualified_short_id) == (group, True)
+
+        # We shouldn't end up in a case where the redirect points to a bad
+        # reference, but testing this path for completeness.
+        group.delete()
+
+        with pytest.raises(Group.DoesNotExist):
+            get_group_with_redirect(duplicate_group.qualified_short_id)
 
     def test_invalid_shared_id(self):
         with pytest.raises(Group.DoesNotExist):

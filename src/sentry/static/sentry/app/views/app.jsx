@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
-import {Tracing} from '@sentry/integrations';
 import {browserHistory} from 'react-router';
 import {get, isEqual} from 'lodash';
 import {getCurrentHub} from '@sentry/browser';
@@ -158,7 +157,6 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.updateTracing();
     fetchGuides();
   }
 
@@ -167,7 +165,6 @@ class App extends React.Component {
     if (!isEqual(config, prevProps.config)) {
       this.handleConfigStoreChange(config);
     }
-
     this.updateTracing();
   }
 
@@ -177,7 +174,14 @@ class App extends React.Component {
 
   updateTracing() {
     const route = getRouteStringFromRoutes(this.props.routes);
-    Tracing.startTrace(getCurrentHub(), route);
+    const scope = getCurrentHub().getScope();
+    if (scope) {
+      const transactionSpan = scope.getSpan();
+      // If there is a transaction we set the name to the route
+      if (transactionSpan) {
+        transactionSpan.transaction = route;
+      }
+    }
   }
 
   handleConfigStoreChange(config) {
@@ -200,16 +204,13 @@ class App extends React.Component {
     e.stopPropagation();
   }
 
-  onConfigured() {
-    this.setState({needsUpgrade: false});
-  }
+  onConfigured = () => this.setState({needsUpgrade: false});
 
-  handleNewsletterConsent = () => {
-    // this is somewhat hackish
+  // this is somewhat hackish
+  handleNewsletterConsent = () =>
     this.setState({
       newsletterConsentPrompt: false,
     });
-  };
 
   handleGlobalModalClose = () => {
     if (!this.mainContainerRef) {

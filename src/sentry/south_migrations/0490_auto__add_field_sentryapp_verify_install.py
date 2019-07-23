@@ -692,6 +692,15 @@ class Migration(SchemaMigration):
             'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'db_index': 'False'})
         },
+        'sentry.incidentsnapshot': {
+            'Meta': {'unique_together': '()', 'object_name': 'IncidentSnapshot', 'index_together': '()'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'event_stats_snapshot': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.TimeSeriesSnapshot']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'incident': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['sentry.Incident']", 'unique': 'True'}),
+            'total_events': ('django.db.models.fields.IntegerField', [], {}),
+            'unique_users': ('django.db.models.fields.IntegerField', [], {})
+        },
         'sentry.incidentsubscription': {
             'Meta': {'unique_together': "(('incident', 'user'),)", 'object_name': 'IncidentSubscription', 'index_together': '()'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
@@ -1244,6 +1253,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "u'sentry_app_installations'", 'to': "orm['sentry.Organization']"}),
             'sentry_app': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "u'installations'", 'to': "orm['sentry.SentryApp']"}),
+            'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'uuid': ('django.db.models.fields.CharField', [], {'default': "'42b104ca-379c-4c46-87ad-7ba244a8fe97'", 'max_length': '64'})
         },
         'sentry.servicehook': {

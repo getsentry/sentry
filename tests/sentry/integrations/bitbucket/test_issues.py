@@ -1,8 +1,14 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+import copy
+
+from django.utils import timezone
+
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 
 import json
 import responses
@@ -24,8 +30,18 @@ class BitbucketIssueTest(APITestCase):
                 'subject': self.subject,
             }
         )
-        self.group = self.create_group()
-        self.create_event(group=self.group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+
+            },
+            project_id=self.project.id,
+        )
+        self.group = event.group
         self.repo_choices = [('myaccount/repo1', 'myaccount/repo1'),
                              ('myaccount/repo2', 'myaccount/repo2')]
         self.org_integration = self.integration.add_organization(self.organization)
@@ -203,7 +219,7 @@ class BitbucketIssueTest(APITestCase):
             }, {
                 'name': 'description',
                 'label': 'Description',
-                'default': u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
+                'default': u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call first):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
                 'type': 'textarea',
                 'autosize': True,
                 'maxRows': 10,

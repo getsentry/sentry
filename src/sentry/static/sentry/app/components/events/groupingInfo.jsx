@@ -248,7 +248,6 @@ class EventGroupingInfo extends AsyncComponent {
   static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
-    group: SentryTypes.Group.isRequired,
     projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
   };
