@@ -4,13 +4,14 @@ import {mount} from 'enzyme';
 import OrganizationEventsV2 from 'app/views/organizationEventsV2';
 
 describe('OrganizationEventsV2', function() {
+  const eventTitle = 'Oh no something bad';
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [
         {
           id: 'deadbeef',
-          title: 'Oh no something bad',
+          title: eventTitle,
           'project.name': 'project-slug',
           timestamp: '2019-05-23T22:12:48+00:00',
         },
@@ -108,7 +109,7 @@ describe('OrganizationEventsV2', function() {
       TestStubs.routerContext()
     );
 
-    const link = wrapper.find('Table Link[data-test-id="event-title"]').first();
+    const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
     expect(link.props().to.query).toEqual({eventSlug: 'project-slug:deadbeef'});
   });
 
