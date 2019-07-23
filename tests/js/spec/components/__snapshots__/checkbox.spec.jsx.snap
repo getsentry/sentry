@@ -3,7 +3,6 @@
 exports[`Checkbox renders 1`] = `
 <input
   checked={false}
-  className="chk-select"
   type="checkbox"
 />
 `;

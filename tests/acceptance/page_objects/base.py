@@ -11,6 +11,9 @@ class BasePage(object):
     def driver(self):
         return self.browser.driver
 
+    def wait_until_loaded(self):
+        self.browser.wait_until_not('.loading-indicator')
+
 
 class BaseElement(object):
     def __init__(self, element):
