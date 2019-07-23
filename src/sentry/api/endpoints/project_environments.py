@@ -45,6 +45,8 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
 
         queryset = EnvironmentProject.objects.filter(
             project=project,
+            # Including the organization_id is necessary for postgres to use indexes efficiently.
+            environment__organization_id=project.organization_id
         ).exclude(
             # HACK(mattrobenolt): We don't want to surface the
             # "No Environment" environment to the UI since it
