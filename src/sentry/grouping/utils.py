@@ -27,6 +27,6 @@ def get_rule_bool(value):
 def resolve_fingerprint_values(values, event):
     def get_fingerprint_value(value):
         if value in TRANSACTION_FINGERPRINT_VALUES:
-            return event.data.get('transaction') or '<unknown>'
+            return event.data.get('transaction') or '<no-transaction>'
         return value
     return [get_fingerprint_value(x) for x in values]
