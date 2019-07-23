@@ -23,7 +23,6 @@ from .endpoints.debug_files import (
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
-from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
@@ -1399,13 +1398,6 @@ urlpatterns = patterns(
         r'^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
         name='sentry-api-0-shared-group-details'
-    ),
-
-    # Events
-    url(
-        r'^events/(?P<event_id>[^\/]+)/$',
-        EventDetailsEndpoint.as_view(),
-        name='sentry-api-0-event-details'
     ),
 
     # Sentry Apps
