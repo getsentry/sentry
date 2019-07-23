@@ -38,7 +38,6 @@ type SpanTreeProps = {
 class SpanTree extends React.Component<SpanTreeProps> {
   renderSpan = ({
     treeDepth,
-    numberOfChildrenOfParent,
     numOfHiddenSpansAbove,
     spanID,
     traceID,
@@ -48,7 +47,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
     pickSpanBarColour,
   }: {
     treeDepth: number;
-    numberOfChildrenOfParent: Array<number>;
     numOfHiddenSpansAbove: number;
     spanID: string;
     traceID: string;
@@ -60,8 +58,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
     const spanBarColour: string = pickSpanBarColour();
 
     const spanChildren: SpanType[] = _.get(lookup, spanID, []);
-
-    const numOfSpanChildren = spanChildren.length;
 
     const start_timestamp: number = span.start_timestamp;
     const end_timestamp: number = span.timestamp;
@@ -84,7 +80,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
         const results = this.renderSpan({
           treeDepth: treeDepth + 1,
-          numberOfChildrenOfParent: [...numberOfChildrenOfParent, numOfSpanChildren],
           numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
           span: spanChild,
           spanID: spanChild.span_id,
@@ -128,7 +123,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
             numOfSpanChildren={spanChildren.length}
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
-            numberOfChildrenOfParent={numberOfChildrenOfParent}
           />
         </React.Fragment>
       ),
@@ -186,7 +180,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
     return this.renderSpan({
       treeDepth: 0,
-      numberOfChildrenOfParent: [],
       numOfHiddenSpansAbove: 0,
       span: rootSpan,
       spanID: trace.span_id,
@@ -304,7 +297,6 @@ type SpanPropTypes = {
   numOfSpanChildren: number;
   renderedSpanChildren: Array<JSX.Element>;
   spanBarColour: string;
-  numberOfChildrenOfParent: Array<number>;
 };
 
 type SpanState = {
@@ -357,33 +349,17 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren, numberOfChildrenOfParent} = this.props;
+    const {numOfSpanChildren} = this.props;
 
     const chevron = this.state.showSpanTree ? <ChevronOpen /> : <ChevronClosed />;
 
-    const hiddenTreasure = numberOfChildrenOfParent.map((num, index) => {
-      return (
-        <SpanTreeToggler style={{left: `${left}px`, visibility: 'hidden'}} key={index}>
-          <span style={{marginRight: '2px', textAlign: 'center'}}>
-            <Count value={num} />
-          </span>
-          <div style={{marginRight: '2px'}}>{chevron}</div>
-        </SpanTreeToggler>
-      );
-    });
-
     if (numOfSpanChildren <= 0) {
-      if (hiddenTreasure.length > 0) {
-        return hiddenTreasure;
-      }
       return null;
     }
 
     return (
-      <React.Fragment>
-        {hiddenTreasure}
+      <SpanTreeTogglerContainer style={{left: `${left}px`}}>
         <SpanTreeToggler
-          style={{left: `${left}px`}}
           onClick={event => {
             event.stopPropagation();
 
@@ -397,7 +373,7 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
             {chevron}
           </div>
         </SpanTreeToggler>
-      </React.Fragment>
+      </SpanTreeTogglerContainer>
     );
   };
 
@@ -408,7 +384,11 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
     const description = _.get(span, 'description', span.span_id);
 
     const MARGIN_LEFT = 8;
-    const left = treeDepth * (8 * 0) + MARGIN_LEFT;
+    const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
+    const TOGGLE_BUTTON_MAX_WIDTH = 40;
+
+    const left =
+      treeDepth * (TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT) + MARGIN_LEFT;
 
     return (
       <SpanBarTitleContainer>
@@ -559,6 +539,26 @@ const SpanBarTitle = styled('div')`
   white-space: nowrap;
 `;
 
+const SpanTreeTogglerContainer = styled('div')`
+  position: relative;
+  top: 0;
+
+  height: 15px;
+
+  max-width: 40px;
+  width: 40px;
+  min-width: 40px;
+
+  margin-right: 8px;
+
+  z-index: 999999;
+
+  user-select: none;
+
+  display: flex;
+  justify-content: flex-end;
+`;
+
 const SpanTreeToggler = styled('div')`
   position: relative;
 
@@ -569,12 +569,6 @@ const SpanTreeToggler = styled('div')`
 
   padding-left: 4px;
   padding-right: 4px;
-
-  margin-right: 8px;
-
-  z-index: 999999;
-
-  user-select: none;
 
   display: flex;
   flex-wrap: nowrap;
