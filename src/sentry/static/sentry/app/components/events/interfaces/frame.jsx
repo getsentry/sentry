@@ -93,6 +93,19 @@ const Frame = createReactClass({
     };
   },
 
+  componentDidMount() {
+    //Need to update if the SentryAppComponentsStore changes
+    this.unlistenSentryComponentStore = SentryAppComponentsStore.listen(() =>
+      this.forceUpdate()
+    );
+  },
+
+  componentWillUnmount() {
+    if (this.unlistenSentryComponentStore) {
+      this.unlistenSentryComponentStore();
+    }
+  },
+
   toggleContext(evt) {
     evt && evt.preventDefault();
 
