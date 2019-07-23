@@ -603,6 +603,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
+
       <Route name="Developer Settings" path="developer-settings/">
         <IndexRoute
           componentPromise={() =>
@@ -623,6 +624,38 @@ function routes() {
           path=":appSlug/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
+      <Route
+        name="Incident Rules"
+        path="incident-rules/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "OrganizationIncidentRules" */ 'app/views/settings/organizationIncidentRules')
+        }
+        component={errorHandler(LazyLoad)}
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/organizationIncidentRules/list')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Incident Rule"
+          path="new/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesCreate" */ 'app/views/settings/organizationIncidentRules/create')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="Edit Incident Rule"
+          path=":incidentRuleId/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesDetails" */ 'app/views/settings/organizationIncidentRules/details')
           }
           component={errorHandler(LazyLoad)}
         />
