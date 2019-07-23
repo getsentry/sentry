@@ -1,28 +1,9 @@
-.. raw:: html
-
-   <p align="center">
-     <p align="center">
-       <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72"
-     </p>
-     <p align="center">
-       Users and logs provide clues. Sentry provides answers.
-     </p>
-   </p>
-
 What's Sentry?
 --------------
 
 Sentry fundamentally is a service that helps you monitor and fix crashes in realtime.
 The server is in Python, but it contains a full API for sending events from any
 language, in any application.
-
-.. raw:: html
-
-   <p align="center">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-1.png" height="180">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-2.png" height="180">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-3.png" height="180">
-   </p>
 
 Official Sentry SDKs
 ~~~~~~~~~~~~~~~~~~~~
