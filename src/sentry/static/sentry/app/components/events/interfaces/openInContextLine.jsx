@@ -31,7 +31,7 @@ class OpenInContextLine extends React.Component {
     return addQueryParamsToExistingUrl(component.schema.url, queryParams);
   }
 
-  renderOneComponent = component => {
+  renderOpenInLink = component => {
     const url = this.getUrl(component);
     const {slug} = component.sentryApp;
     return (
@@ -51,7 +51,7 @@ class OpenInContextLine extends React.Component {
     return (
       <OpenInContainer>
         <span>{t('Open this line in:')}</span>
-        {components.map(this.renderOneComponent)}
+        {components.map(this.renderOpenInLink)}
       </OpenInContainer>
     );
   }
