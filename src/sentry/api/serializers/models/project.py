@@ -272,10 +272,12 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         project_envs = EnvironmentProject.objects.filter(
             project_id__in=[i.id for i in item_list],
+            # Including the organization_id is necessary for postgres to use indexes efficiently.
+            environment__organization_id=item_list[0].organization_id
         ).exclude(
-            is_hidden=True
-        ).exclude(
+            is_hidden=True,
             # HACK(lb): avoiding the no environment value
+        ).exclude(
             environment__name=''
         ).values('project_id', 'environment__name')
 
