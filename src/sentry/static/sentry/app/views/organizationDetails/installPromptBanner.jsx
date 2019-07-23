@@ -32,21 +32,18 @@ class InstallPromptBanner extends React.Component {
     return !!projects.find(p => p.firstEvent) || !!config.sentFirstEvent;
   }
 
-  getUrl() {
+  get url() {
     const {organization} = this.props;
-    // if no projects - redirect back to onboarding flow
-    let url = `/onboarding/${organization.slug}`;
 
     // if project with a valid platform then go straight to instructions
     const projects = organization.projects;
     const projectCount = projects.length;
     if (projectCount > 0 && getPlatformName(projects[projectCount - 1].platform)) {
-      const project = projects[projectCount - 1];
-      url = `/onboarding/${organization.slug}/${project.slug}/configure/${
-        project.platform
-      }`;
+      return `/onboarding/${organization.slug}/get-started/`;
     }
-    return url;
+
+    // if no projects - redirect back to onboarding flow
+    return `/onboarding/${organization.slug}/`;
   }
 
   recordAnalytics() {
@@ -77,7 +74,7 @@ class InstallPromptBanner extends React.Component {
       <React.Fragment>
         {!hideBanner && (
           <StyledAlert type="warning" icon="icon-circle-exclamation" system="system">
-            <a onClick={() => this.recordAnalytics()} href={this.getUrl()}>
+            <a onClick={() => this.recordAnalytics()} href={this.url}>
               {t(
                 "You're almost there! Start capturing errors with just a few lines of code."
               )}
