@@ -530,7 +530,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == 'Invalid groupby value requested. Allowed values are project.id, issue.id'
+        assert response.data['detail'] == 'Invalid groupby value requested. Allowed values are transaction, project.id, issue.id'
 
     def test_non_aggregated_fields_with_groupby(self):
         self.login_as(user=self.user)

@@ -127,7 +127,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the modal
-            self.browser.element('[data-test-id="event-title"]').click()
+            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="modal-dialog"] h2')
@@ -169,7 +169,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the modal
-            self.browser.element('[data-test-id="event-title"]').click()
+            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
             self.browser.snapshot('events-v2 - grouped error modal')
