@@ -101,7 +101,10 @@ class TagStorageTest(TestCase, SnubaTestCase):
             },
         }])
 
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
+        assert requests.post(
+            settings.SENTRY_SNUBA +
+            '/tests/events/insert',
+            data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(self.ts.get_group_tag_keys_and_top_values(

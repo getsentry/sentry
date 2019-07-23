@@ -249,7 +249,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         try:
             resp = snuba._snuba_pool.urlopen(
-                'POST', '/tests/eventstream',
+                'POST', '/tests/events/eventstream',
                 body=json.dumps(data),
             )
             if resp.status != 200:
