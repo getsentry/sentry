@@ -393,11 +393,13 @@ class VstsIntegrationProvider(IntegrationProvider):
             subscription, shared_secret = webhook.create_subscription(
                 instance, oauth_data, self.oauth_redirect_url)
         except ApiError as e:
-            if e.code != 400 or 'permission' not in e.message:
-                raise e
-            raise IntegrationError(
-                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this Azure DevOps account.'
-            )
+            if e.code == 400 or e.code == 403 or 'permission' in e.message:
+                raise IntegrationError(
+                    'You do not have sufficient account access to create webhooks '
+                    'on the selected Azure DevOps organization.\n'
+                    'Please check with the owner of this Azure DevOps account.'
+                )
+            raise e
 
         subscription_id = subscription['id']
         return subscription_id, shared_secret
