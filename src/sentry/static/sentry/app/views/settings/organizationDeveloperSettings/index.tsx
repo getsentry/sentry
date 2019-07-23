@@ -11,8 +11,31 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import {type} from 'os';
 
-class OrganizationDeveloperSettings extends AsyncView {
+type SentryApp = {
+  name: string;
+  slug: string;
+  author: string;
+  events: string[];
+  status: string;
+  schema: object;
+  uuid: string;
+  webhookUrl: string;
+  redirectUrl?: string;
+  isAlertable: boolean;
+  overview?: string;
+};
+
+type State = {
+  applications: SentryApp[];
+};
+
+type Props = {
+  organization: Organization;
+};
+class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -23,8 +46,8 @@ class OrganizationDeveloperSettings extends AsyncView {
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];
   }
 
-  removeApp = app => {
-    const apps = this.state.applications.filter(a => a.slug !== app.slug);
+  removeApp = (app: SentryApp) => {
+    const apps = this.state.applications.filter((a: SentryApp) => a.slug !== app.slug);
     removeSentryApp(this.api, app).then(
       () => {
         this.setState({applications: apps});
@@ -33,7 +56,7 @@ class OrganizationDeveloperSettings extends AsyncView {
     );
   };
 
-  publishRequest = app => {
+  publishRequest = (app: SentryApp) => {
     // TODO(scefali) May want to do some state change after the request to show that the publish request has been made
     publishRequestSentryApp(this.api, app);
   };
@@ -82,7 +105,7 @@ class OrganizationDeveloperSettings extends AsyncView {
           <PanelHeader>{t('Integrations')}</PanelHeader>
           <PanelBody>
             {!isEmpty ? (
-              this.state.applications.map(app => {
+              this.state.applications.map((app: SentryApp) => {
                 return (
                   <SentryApplicationRow
                     key={app.uuid}
