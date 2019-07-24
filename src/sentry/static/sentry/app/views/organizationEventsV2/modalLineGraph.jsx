@@ -27,7 +27,9 @@ import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
  */
 const getCurrentEventMarker = currentEvent => {
   const title = t('Current Event');
-  const eventTime = +new Date(currentEvent.dateCreated);
+  const eventTime = +new Date(
+    currentEvent.dateCreated || currentEvent.endTimestamp * 1000
+  );
 
   return {
     type: 'line',
@@ -42,7 +44,7 @@ const getCurrentEventMarker = currentEvent => {
         },
       },
       tooltip: {
-        formatter: ({data}) => {
+        formatter: () => {
           return `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`;
         },
       },
