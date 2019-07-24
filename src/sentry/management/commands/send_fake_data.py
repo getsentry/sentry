@@ -37,19 +37,19 @@ def funcs():
         timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=six.next(timestamps))
         try:
             raise six.next(exceptions)
-        except Exception:
+        except Exception as exc:
             email = six.next(emails)
-            return client.captureException(
-                data={
-                    'logger': six.next(loggers),
-                    'site': 'web',
-                    'user': {
-                        'id': email,
-                        'email': email,
-                    }
-                },
-                date=timestamp
-            )
+            args = {'extra': {
+                'logger': six.next(loggers),
+                'site': 'web',
+                'date': timestamp,
+                'user': {
+                    'id': email,
+                    'email': email,
+                }
+            }
+            }
+            return client.captureException(exc_info=exc, **args)
 
     return [exception]
 
@@ -65,7 +65,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
-        from raven.contrib.django.models import client
+        from sentry.app import client
         from sentry.models import Project
 
         if not options['project']:
