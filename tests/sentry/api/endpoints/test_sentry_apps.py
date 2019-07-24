@@ -75,6 +75,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
             'isAlertable': self.published_app.is_alertable,
+            'verifyInstall': self.published_app.verify_install,
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
@@ -102,6 +103,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'webhookUrl': self.internal_app.webhook_url,
             'redirectUrl': self.internal_app.redirect_url,
             'isAlertable': self.internal_app.is_alertable,
+            'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
             'schema': {},
             'installation': {
@@ -140,6 +142,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'webhookUrl': self.internal_app.webhook_url,
             'redirectUrl': self.internal_app.redirect_url,
             'isAlertable': self.internal_app.is_alertable,
+            'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
             'schema': {},
             'installation': {
@@ -171,6 +174,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
             'isAlertable': self.published_app.is_alertable,
+            'verifyInstall': self.published_app.verify_install,
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
@@ -213,6 +217,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'webhookUrl': self.unpublished_app.webhook_url,
             'redirectUrl': self.unpublished_app.redirect_url,
             'isAlertable': self.unpublished_app.is_alertable,
+            'verifyInstall': self.unpublished_app.verify_install,
             'clientId': self.unpublished_app.application.client_id,
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
@@ -433,6 +438,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         assert re.match(r'myapp\-[0-9a-zA-Z]+', response.data['slug'])
         assert response.data['status'] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
+        assert not response.data['verifyInstall']
 
     def _post(self, **kwargs):
         body = {
@@ -445,6 +451,7 @@ class PostSentryAppsTest(SentryAppsTest):
             'webhookUrl': 'https://example.com',
             'redirectUrl': '',
             'isAlertable': False,
+            'verifyInstall': True,
         }
 
         body.update(**kwargs)
