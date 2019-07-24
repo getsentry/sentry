@@ -4,7 +4,6 @@ import {Link} from 'react-router';
 import {omit} from 'lodash';
 
 import Access from 'app/components/acl/access';
-import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
@@ -192,7 +191,6 @@ export default class SentryApplicationRow extends React.PureComponent {
               ) : (
                 app.name
               )}
-              <BetaTag />
             </SentryAppName>
             <SentryAppDetails>{this.renderStatus()}</SentryAppDetails>
           </SentryAppBox>
