@@ -16,10 +16,10 @@ type PropTypes = {
 const SpanDetail = (props: PropTypes) => {
   const {span} = props;
 
-  const start_timestamp: number = span.start_timestamp;
-  const end_timestamp: number = span.timestamp;
+  const startTimestamp: number = span.start_timestamp;
+  const endTimestamp: number = span.timestamp;
 
-  const duration = (end_timestamp - start_timestamp) * 1000;
+  const duration = (endTimestamp - startTimestamp) * 1000;
   const durationString = `${duration.toFixed(3)} ms`;
 
   return (
@@ -38,14 +38,14 @@ const SpanDetail = (props: PropTypes) => {
           <Row title="Description">{_.get(span, 'description', '')}</Row>
           <Row title="Start Date">
             <React.Fragment>
-              <DateTime date={start_timestamp * 1000} />
-              {` (${start_timestamp})`}
+              <DateTime date={startTimestamp * 1000} />
+              {` (${startTimestamp})`}
             </React.Fragment>
           </Row>
           <Row title="End Date">
             <React.Fragment>
-              <DateTime date={end_timestamp * 1000} />
-              {` (${end_timestamp})`}
+              <DateTime date={endTimestamp * 1000} />
+              {` (${endTimestamp})`}
             </React.Fragment>
           </Row>
           <Row title="Duration">{durationString}</Row>
