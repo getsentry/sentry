@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import Aggregation from 'app/views/organizationDiscover/aggregations/aggregation';
+import Aggregation from 'app/views/discover/aggregations/aggregation';
 
 describe('Aggregation', function() {
   describe('render()', function() {

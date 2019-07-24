@@ -2,9 +2,9 @@ import {
   getInternal,
   getExternal,
   isValidAggregation,
-} from 'app/views/organizationDiscover/aggregations/utils';
+} from 'app/views/discover/aggregations/utils';
 
-import {COLUMNS} from 'app/views/organizationDiscover/data';
+import {COLUMNS} from 'app/views/discover/data';
 
 const aggregationList = [
   {

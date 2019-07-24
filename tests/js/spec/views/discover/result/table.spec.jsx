@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, render} from 'enzyme';
 
-import {ResultTable} from 'app/views/organizationDiscover/result/table';
+import {ResultTable} from 'app/views/discover/result/table';
 
 describe('ResultTable', function() {
   let wrapper;

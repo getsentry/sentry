@@ -7,7 +7,7 @@ import {getInterval} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
 import {parsePeriodToHours} from 'app/utils/dates';
 import SentryTypes from 'app/sentryTypes';
-import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 // Note: Limit max releases so that chart is still a bit readable
 const MAX_RECENT_RELEASES = 20;

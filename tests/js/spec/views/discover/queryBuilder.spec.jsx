@@ -1,4 +1,4 @@
-import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import Condition from 'app/views/organizationDiscover/conditions/condition';
+import Condition from 'app/views/discover/conditions/condition';
 
 describe('Condition', function() {
   afterEach(function() {

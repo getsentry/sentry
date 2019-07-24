@@ -1,8 +1,5 @@
-import {
-  getExternal,
-  getInternal,
-} from 'app/views/organizationDiscover/aggregations/utils';
-import {getQueryStringFromQuery} from 'app/views/organizationDiscover/utils';
+import {getExternal, getInternal} from 'app/views/discover/aggregations/utils';
+import {getQueryStringFromQuery} from 'app/views/discover/utils';
 
 export function getDiscoverUrlPathFromDiscoverQuery({organization, selection, query}) {
   const {

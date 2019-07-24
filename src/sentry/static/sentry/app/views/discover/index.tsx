@@ -38,7 +38,7 @@ type State = {
   view: string;
 };
 
-class OrganizationDiscoverContainer extends React.Component<Props, State> {
+class DiscoverContainer extends React.Component<Props, State> {
   private queryBuilder: any;
 
   constructor(props: Props) {
@@ -218,5 +218,5 @@ class OrganizationDiscoverContainer extends React.Component<Props, State> {
   }
 }
 
-export default withGlobalSelection(withOrganization(OrganizationDiscoverContainer));
-export {OrganizationDiscoverContainer};
+export default withGlobalSelection(withOrganization(DiscoverContainer));
+export {DiscoverContainer};
