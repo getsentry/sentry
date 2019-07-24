@@ -257,10 +257,8 @@ class EventSerializer(Serializer):
             'message': message,
             'title': obj.title,
             'location': obj.location,
-            'culprit': obj.culprit,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
-            'crashFile': attrs['crash_file'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
             'context': context,
@@ -269,11 +267,8 @@ class EventSerializer(Serializer):
             'metadata': obj.get_event_metadata(),
             'tags': tags,
             'platform': obj.platform,
-            'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
-            'fingerprints': obj.get_hashes(),
-            'groupingConfig': obj.get_grouping_config(),
             '_meta': {
                 'entries': attrs['_meta']['entries'],
                 'message': message_meta,
@@ -285,12 +280,33 @@ class EventSerializer(Serializer):
                 'tags': tags_meta,
             },
         }
-        # transaction events have start and end-times that are
-        # timestamp floats.
+        # Serialize attributes that are specific to different types of events.
         if obj.get_event_type() == 'transaction':
-            d['startTimestamp'] = obj.data.get('start_timestamp')
-            d['timestamp'] = obj.data.get('timestamp')
+            d.update(self.serialize_transaction_attrs(attrs, obj))
+        else:
+            d.update(self.serialize_error_attrs(attrs, obj))
         return d
+
+    def serialize_transaction_attrs(self, attrs, obj):
+        """
+        Add attributes that are only present on transaction events.
+        """
+        return {
+            'startTimestamp': obj.data.get('start_timestamp'),
+            'endTimestamp': obj.data.get('timestamp'),
+        }
+
+    def serialize_error_attrs(self, attrs, obj):
+        """
+        Add attributes that are present on error and default event types
+        """
+        return {
+            'crashFile': attrs['crash_file'],
+            'culprit': obj.culprit,
+            'dateCreated': obj.datetime,
+            'fingerprints': obj.get_hashes(),
+            'groupingConfig': obj.get_grouping_config(),
+        }
 
 
 class DetailedEventSerializer(EventSerializer):
