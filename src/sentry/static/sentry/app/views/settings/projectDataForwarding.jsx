@@ -115,10 +115,7 @@ class ProjectDataForwarding extends AsyncComponent {
 
     return (
       <div data-test-id="data-forwarding-settings">
-        <Feature
-          features={['projects:data-forwarding']}
-          renderDisabled={p => p.children(p)}
-        >
+        <Feature features={['projects:data-forwarding']} hookName="data-forwarding">
           {({hasFeature, features}) => (
             <React.Fragment>
               <SettingsPageHeader title={t('Data Forwarding')} />

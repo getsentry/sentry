@@ -4,13 +4,14 @@ import {mount} from 'enzyme';
 import OrganizationEventsV2 from 'app/views/organizationEventsV2';
 
 describe('OrganizationEventsV2', function() {
+  const eventTitle = 'Oh no something bad';
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [
         {
           id: 'deadbeef',
-          title: 'Oh no something bad',
+          title: eventTitle,
           'project.name': 'project-slug',
           timestamp: '2019-05-23T22:12:48+00:00',
         },
@@ -65,6 +66,39 @@ describe('OrganizationEventsV2', function() {
     expect(content.text()).toContain('You need at least one project to use this view');
   });
 
+  it('generates an active sort link based on default sort', function() {
+    const wrapper = mount(
+      <OrganizationEventsV2
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        location={{query: {}}}
+        router={{}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const findLink = sortKey =>
+      wrapper
+        .find('Table SortLink')
+        .find({sortKey})
+        .find('StyledLink');
+
+    const timestamp = findLink('timestamp');
+    // Sort should be active
+    expect(
+      timestamp
+        .find('InlineSvg')
+        .first()
+        .props().src
+    ).toEqual('icon-chevron-down');
+
+    // Sort link should reverse.
+    expect(timestamp.props().to.query).toEqual({sort: 'timestamp'});
+
+    const userlink = findLink('user');
+    // User link should be descending.
+    expect(userlink.props().to.query).toEqual({sort: '-user'});
+  });
+
   it('generates links to modals', async function() {
     const wrapper = mount(
       <OrganizationEventsV2
@@ -75,7 +109,7 @@ describe('OrganizationEventsV2', function() {
       TestStubs.routerContext()
     );
 
-    const link = wrapper.find('Table Link[data-test-id="event-title"]').first();
+    const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
     expect(link.props().to.query).toEqual({eventSlug: 'project-slug:deadbeef'});
   });
 

@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from exam import patcher
+from exam import (
+    fixture,
+    patcher,
+)
 from freezegun import freeze_time
 
 from uuid import uuid4
@@ -19,7 +22,12 @@ from sentry.incidents.logic import (
     create_event_stat_snapshot,
     create_incident,
     create_incident_activity,
+    create_incident_snapshot,
     create_initial_event_stats_snapshot,
+    bulk_build_incident_query_params,
+    bulk_get_incident_aggregates,
+    bulk_get_incident_event_stats,
+    bulk_get_incident_stats,
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
@@ -35,6 +43,7 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentGroup,
     IncidentProject,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentSubscription,
     IncidentSuspectCommit,
@@ -149,15 +158,37 @@ class UpdateIncidentStatus(TestCase):
         }
 
     def test_closed(self):
-        incident = self.create_incident()
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+        incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Test',
+            '',
+            timezone.now(),
+            projects=[self.project],
+        )
+        with self.assertChanges(
+            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=False,
+            after=True,
+        ):
+            self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
 
     def test_reopened(self):
-        incident = self.create_incident(
-            status=IncidentStatus.CLOSED.value,
-            date_closed=timezone.now()
+        incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Test',
+            '',
+            timezone.now(),
+            projects=[self.project],
         )
-        self.run_test(incident, IncidentStatus.OPEN, None)
+        update_incident_status(incident, IncidentStatus.CLOSED)
+        with self.assertChanges(
+            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=True,
+            after=False,
+        ):
+            self.run_test(incident, IncidentStatus.OPEN, None)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -190,7 +221,33 @@ class BaseIncidentsTest(SnubaTestCase):
         return timezone.now()
 
 
-class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
+class BaseIncidentEventStatsTest(BaseIncidentsTest):
+    @fixture
+    def project_incident(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[self.project]
+        )
+
+    @fixture
+    def group_incident(self):
+        fingerprint = 'group-1'
+        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
+        self.create_event(self.now - timedelta(minutes=2), fingerprint='other-group')
+        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
+        return self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[],
+            groups=[event.group],
+        )
+
+
+class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
     def run_test(self, incident, expected_results, start=None, end=None):
         kwargs = {}
@@ -207,36 +264,53 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
         assert [r['count'] for r in result.data['data']] == expected_results
 
     def test_project(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query='',
-            projects=[self.project]
-        )
-        self.run_test(incident, [2, 1])
-        self.run_test(incident, [1], start=self.now - timedelta(minutes=1))
-        self.run_test(incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
+        self.run_test(self.project_incident, [2, 1])
+        self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
+        self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
 
     def test_groups(self):
-        fingerprint = 'group-1'
-        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
-        self.create_event(self.now - timedelta(minutes=2), fingerprint='other-group')
-        self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
+        self.run_test(self.group_incident, [1, 1])
 
-        incident = self.create_incident(
+
+class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
+    def run_test(self, incidents, expected_results_list, start=None, end=None):
+        query_params_list = bulk_build_incident_query_params(incidents, start=start, end=end)
+        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        for incident, result, expected_results in zip(incidents, results, expected_results_list):
+            # Duration of 300s / 20 data points
+            assert result.rollup == 15
+            assert result.start == start if start else incident.date_started
+            assert result.end == end if end else incident.current_end_date
+            assert [r['count'] for r in result.data['data']] == expected_results
+
+    def test_project(self):
+        other_project = self.create_project()
+        other_incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[other_project],
+            groups=[],
+        )
+        incidents = [self.project_incident, other_incident]
+        self.run_test(incidents, [[2, 1], []])
+        self.run_test(incidents, [[1], []], start=self.now - timedelta(minutes=1))
+        self.run_test(incidents, [[2], []], end=self.now - timedelta(minutes=1, seconds=59))
+
+    def test_groups(self):
+        other_group = self.create_group()
+        other_incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
             query='',
             projects=[],
-            groups=[event.group],
+            groups=[other_group],
         )
-        self.run_test(incident, [1, 1])
+
+        self.run_test([self.group_incident, other_incident], [[1, 1], []])
 
 
-class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
-    def test_projects(self):
+class BaseIncidentAggregatesTest(BaseIncidentsTest):
+    @property
+    def project_incident(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
             query='',
@@ -246,9 +320,10 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={'id': 123})
         self.create_event(self.now - timedelta(minutes=2), user={'id': 123})
         self.create_event(self.now - timedelta(minutes=2), user={'id': 124})
-        assert get_incident_aggregates(incident) == {'count': 4, 'unique_users': 2}
+        return incident
 
-    def test_groups(self):
+    @property
+    def group_incident(self):
         fp = 'group'
         group = self.create_event(self.now - timedelta(minutes=1), fingerprint=fp).group
         self.create_event(self.now - timedelta(minutes=2), user={'id': 123}, fingerprint=fp)
@@ -256,14 +331,53 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={'id': 123}, fingerprint='other')
         self.create_event(self.now - timedelta(minutes=2), user={'id': 124}, fingerprint=fp)
         self.create_event(self.now - timedelta(minutes=2), user={'id': 124}, fingerprint='other')
-
-        incident = self.create_incident(
+        return self.create_incident(
             date_started=self.now - timedelta(minutes=5),
             query='',
             projects=[],
             groups=[group],
         )
-        assert get_incident_aggregates(incident) == {'count': 4, 'unique_users': 2}
+
+
+class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
+
+    def test_projects(self):
+        assert get_incident_aggregates(self.project_incident) == {'count': 4, 'unique_users': 2}
+
+    def test_groups(self):
+        assert get_incident_aggregates(self.group_incident) == {'count': 4, 'unique_users': 2}
+
+
+class BulkGetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
+    def test_projects(self):
+        other_project = self.create_project()
+        other_incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[other_project],
+            groups=[],
+        )
+        params = bulk_build_incident_query_params([self.project_incident, other_incident])
+
+        assert bulk_get_incident_aggregates(params) == [
+            {'count': 4, 'unique_users': 2},
+            {'count': 0, 'unique_users': 0},
+        ]
+
+    def test_groups(self):
+        other_group = self.create_group()
+        other_incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[],
+            groups=[other_group],
+        )
+
+        params = bulk_build_incident_query_params([self.group_incident, other_incident])
+        assert bulk_get_incident_aggregates(params) == [
+            {'count': 4, 'unique_users': 2},
+            {'count': 0, 'unique_users': 0},
+        ]
 
 
 @freeze_time()
@@ -594,3 +708,59 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
             groups=[group, group_2],
         )
         assert set(get_incident_suspect_commits(incident)) == set(commit_ids)
+
+
+@freeze_time()
+class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
+    def test(self):
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value)
+        snapshot = create_incident_snapshot(incident)
+        expected_snapshot = create_event_stat_snapshot(
+            incident,
+            incident.date_started,
+            incident.date_closed,
+        )
+
+        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
+        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
+        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
+        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
+        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
+        aggregates = get_incident_aggregates(incident)
+        assert snapshot.unique_users == aggregates['unique_users']
+        assert snapshot.total_events == aggregates['count']
+
+
+@freeze_time()
+class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
+    def test(self):
+        closed_incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Closed',
+            '',
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        update_incident_status(closed_incident, IncidentStatus.CLOSED)
+        open_incident = create_incident(
+            self.organization,
+            IncidentType.CREATED,
+            'Open',
+            '',
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        incidents = [closed_incident, open_incident]
+
+        for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
+            event_stats = get_incident_event_stats(incident)
+            assert incident_stats['event_stats'].data['data'] == event_stats.data['data']
+            assert incident_stats['event_stats'].start == event_stats.start
+            assert incident_stats['event_stats'].end == event_stats.end
+            assert incident_stats['event_stats'].rollup == event_stats.rollup
+
+            aggregates = get_incident_aggregates(incident)
+            assert incident_stats['total_events'] == aggregates['count']
+            assert incident_stats['unique_users'] == aggregates['unique_users']

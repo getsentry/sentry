@@ -4,11 +4,11 @@ import $ from 'jquery';
 import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {sortProjects} from 'app/utils';
 import theme from 'app/utils/theme';
-import {TASKS} from 'app/components/onboardingWizard/todos';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
@@ -28,26 +28,28 @@ class ProjectChooser extends React.Component {
     $(document.body).removeClass('narrow');
   }
 
+  get onboardingTask() {
+    const {organization} = this.props;
+    const tasks = getOnboardingTasks(organization);
+    return tasks.find(task => task.task === parseInt(this.props.location.query.task, 10));
+  }
+
   redirectNoMultipleProjects() {
     const {organization} = this.props;
     const projects = organization.projects;
-    const tasks = TASKS.filter(
-      task_inst => task_inst.task === this.props.location.query.task
-    );
+    const task = this.onboardingTask;
 
     if (projects.length === 0) {
       browserHistory.push(`/organizations/${organization.slug}/projects/new/`);
-    } else if (projects.length === 1 && tasks && tasks.length === 1) {
+    } else if (projects.length === 1 && task) {
       const project = projects[0];
-      browserHistory.push(`/${organization.slug}/${project.slug}/${tasks[0].location}`);
+      browserHistory.push(`/${organization.slug}/${project.slug}/${task.location}`);
     }
   }
 
   render() {
     const {organization} = this.props;
-    const task = TASKS.filter(
-      task_inst => task_inst.task === parseInt(this.props.location.query.task, 10)
-    )[0];
+    const task = this.onboardingTask;
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation === 'project'
     // TODO throw up report dialog if not true
@@ -60,7 +62,7 @@ class ProjectChooser extends React.Component {
         <Panel>
           <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
-            {sortProjects(organization.projects).map((project, i) => (
+            {sortProjects(organization.projects).map(project => (
               <PanelItem p={0} key={project.slug} align="center">
                 <Box p={2} flex="1">
                   <Link

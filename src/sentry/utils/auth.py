@@ -1,10 +1,3 @@
-"""
-sentry.utils.auth
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import six
@@ -101,6 +94,17 @@ def initiate_login(request, next_url=None):
 
     if next_url:
         request.session['_next'] = next_url
+
+
+def get_org_redirect_url(request, active_organization):
+    from sentry import features
+
+    # TODO(dcramer): deal with case when the user cannot create orgs
+    if active_organization:
+        return active_organization.get_url()
+    if not features.has('organizations:create'):
+        return '/auth/login/'
+    return '/organizations/new/'
 
 
 def get_login_redirect(request, default=None):

@@ -68,7 +68,7 @@ const MergedItem = createReactClass({
     e.preventDefault();
   },
 
-  handleToggle(e) {
+  handleToggle() {
     const {disabled, fingerprint, event} = this.props;
 
     if (disabled || this.state.busy) {
@@ -149,7 +149,7 @@ const ActionColumn = styled(Flex)`
   }
 `;
 
-const Controls = styled(({expanded, ...props}) => (
+const Controls = styled(({expanded: _expanded, ...props}) => (
   <Flex justify="space-between" {...props} />
 ))`
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -191,10 +191,6 @@ const EventDetails = styled(Flex)`
 
   .event-list & {
     padding: 10px;
-  }
-
-  .event-message {
-    margin-bottom: 0;
   }
 `;
 

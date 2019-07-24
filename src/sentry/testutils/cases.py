@@ -1,11 +1,3 @@
-"""
-sentry.testutils.cases
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 __all__ = (
@@ -880,7 +872,7 @@ class SnubaTestCase(BaseTestCase):
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaCompatibilityTagStorage()
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/events/drop').status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
@@ -959,7 +951,7 @@ class SnubaTestCase(BaseTestCase):
             events = [events]
 
         assert requests.post(
-            settings.SENTRY_SNUBA + '/tests/insert',
+            settings.SENTRY_SNUBA + '/tests/events/insert',
             data=json.dumps(events)
         ).status_code == 200
 

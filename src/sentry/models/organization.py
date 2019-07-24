@@ -1,10 +1,3 @@
-"""
-sentry.models.organization
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
@@ -159,6 +152,10 @@ class Organization(Model):
         """
         Return the organization used in single organization mode.
         """
+
+        if settings.SENTRY_ORGANIZATION is not None:
+            return cls.objects.get(id=settings.SENTRY_ORGANIZATION)
+
         return cls.objects.filter(
             status=OrganizationStatus.ACTIVE,
         )[0]

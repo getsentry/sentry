@@ -9,29 +9,19 @@ from sentry.http import safe_urlopen
 from sentry.models import ServiceHook
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
 
 def get_payload_v0(event):
     group = event.group
     project = group.project
 
-    project_url_base = absolute_uri(u'/{}/{}'.format(
-        project.organization.slug,
-        project.slug,
-    ))
-
     group_context = serialize(group)
-    group_context['url'] = u'{}/issues/{}/'.format(
-        project_url_base,
-        group.id,
-    )
+    group_context['url'] = group.get_absolute_url()
 
     event_context = serialize(event)
-    event_context['url'] = u'{}/issues/{}/events/{}/'.format(
-        project_url_base,
-        group.id,
-        event.id,
+    event_context['url'] = u'{}events/{}/'.format(
+        group.get_absolute_url(),
+        event.event_id,
     )
     data = {
         'project': {

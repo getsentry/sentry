@@ -38,6 +38,31 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe('Other Display Email');
   });
 
+  it('can coalesce using username', function() {
+    const username = TestStubs.User({
+      name: null,
+      email: null,
+      username: 'the-batman',
+    });
+    const wrapper = shallow(<UserBadge user={username} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe(username.username);
+    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+  });
+
+  it('can coalesce using ipaddress', function() {
+    const ipUser = TestStubs.User({
+      name: null,
+      email: null,
+      username: null,
+      ipAddress: '127.0.0.1',
+    });
+    const wrapper = shallow(<UserBadge user={ipUser} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe(ipUser.ipAddress);
+    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+  });
+
   it('does not use a link for member name', function() {
     const wrapper = mount(<UserBadge user={user} useLink={false} />);
 

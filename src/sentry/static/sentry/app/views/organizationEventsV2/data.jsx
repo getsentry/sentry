@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {deepFreeze} from 'app/utils';
+import Count from 'app/components/count';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -11,6 +12,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
 import pinIcon from 'app/../images/location-pin.png';
 
+import {t} from 'app/locale';
 import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug'];
@@ -19,7 +21,7 @@ export const PIN_ICON = `image://${pinIcon}`;
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
-    name: 'All Events',
+    name: t('All Events'),
     data: {
       fields: ['event', 'type', 'project', 'user', 'time'],
       sort: ['-timestamp', '-id'],
@@ -36,7 +38,7 @@ export const ALL_VIEWS = deepFreeze([
   },
   {
     id: 'errors',
-    name: 'Errors',
+    name: t('Errors'),
     data: {
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
@@ -48,7 +50,7 @@ export const ALL_VIEWS = deepFreeze([
   },
   {
     id: 'csp',
-    name: 'CSP',
+    name: t('CSP'),
     data: {
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
@@ -64,6 +66,25 @@ export const ALL_VIEWS = deepFreeze([
     ],
     columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
+  {
+    id: 'transactions',
+    name: t('Transactions'),
+    data: {
+      fields: ['transaction', 'project'],
+      groupby: ['transaction', 'project.id'],
+      sort: ['-transaction'],
+      query: 'event.type:transaction',
+    },
+    tags: [
+      'event.type',
+      'release',
+      'project.name',
+      'user.email',
+      'user.ip',
+      'environment',
+    ],
+    columnWidths: ['3fr', '1fr', '1fr', '1fr', '1fr', '1fr', '1fr'],
+  },
 ]);
 
 /**
@@ -72,6 +93,26 @@ export const ALL_VIEWS = deepFreeze([
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS = {
+  transaction: {
+    fields: ['project.name', 'transaction'],
+    sortField: 'transaction',
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          transactionSlug: `${data['project.name']}:${data.transaction}`,
+        },
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} aria-label={data.transaction}>
+            {data.transaction}
+          </Link>
+        </Container>
+      );
+    },
+  },
   event: {
     fields: ['title', 'id', 'project.name'],
     sortField: 'title',
@@ -82,7 +123,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.title}>
             {data.title}
           </Link>
         </Container>
@@ -121,16 +162,20 @@ export const SPECIAL_FIELDS = {
     },
   },
   user: {
-    fields: ['user', 'user.name', 'user.email', 'user.ip'],
+    fields: ['user', 'user.name', 'user.username', 'user.email', 'user.ip', 'user.id'],
     sortField: 'user',
     renderFunc: (data, {organization, location}) => {
       const userObj = {
+        id: data['user.id'],
         name: data['user.name'],
         email: data['user.email'],
-        ip: data['user.ip'],
+        username: data['user.username'],
+        ip_address: data['user.ip'],
       };
 
-      const badge = <UserBadge user={userObj} hideEmail={true} avatarSize={16} />;
+      const badge = (
+        <UserBadge useLink={false} user={userObj} hideEmail={true} avatarSize={16} />
+      );
 
       if (!data.user) {
         return <Container>{badge}</Container>;
@@ -171,7 +216,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
             {data.issue_title}
           </Link>
         </Container>
@@ -191,7 +236,7 @@ export const SPECIAL_FIELDS = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
             {data.issue_title}
           </Link>
         </Container>
@@ -203,9 +248,9 @@ export const SPECIAL_FIELDS = {
     fields: ['event_count'],
     sortField: 'event_count',
     renderFunc: data => (
-      <Container>
-        {typeof data.event_count === 'number' ? data.event_count.toLocaleString() : null}
-      </Container>
+      <NumberContainer>
+        {typeof data.event_count === 'number' ? <Count value={data.event_count} /> : null}
+      </NumberContainer>
     ),
   },
   user_count: {
@@ -213,9 +258,9 @@ export const SPECIAL_FIELDS = {
     fields: ['user_count'],
     sortField: 'user_count',
     renderFunc: data => (
-      <Container>
-        {typeof data.user_count === 'number' ? data.user_count.toLocaleString() : null}
-      </Container>
+      <NumberContainer>
+        {typeof data.user_count === 'number' ? <Count value={data.user_count} /> : null}
+      </NumberContainer>
     ),
   },
   last_seen: {
@@ -240,8 +285,13 @@ export const SPECIAL_FIELDS = {
 };
 
 const Container = styled('div')`
-  display: flex;
   padding: ${space(1)};
+  ${overflowEllipsis};
+`;
+
+const NumberContainer = styled('div')`
+  padding: ${space(1)};
+  text-align: right;
   ${overflowEllipsis};
 `;
 

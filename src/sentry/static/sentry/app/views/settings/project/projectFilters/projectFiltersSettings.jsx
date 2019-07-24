@@ -179,7 +179,7 @@ class ProjectFiltersSettings extends AsyncComponent {
     ];
   }
 
-  handleLegacyChange = (onChange, onBlur, filter, subfilters, e) => {
+  handleLegacyChange = (onChange, onBlur, _filter, subfilters, e) => {
     onChange(subfilters, e);
     onBlur(subfilters, e);
   };
@@ -198,6 +198,7 @@ class ProjectFiltersSettings extends AsyncComponent {
   renderCustomFilters = disabled => () => (
     <Feature
       features={['projects:custom-inbound-filters']}
+      hookName="custom-inbound-filters"
       renderDisabled={({children, ...props}) =>
         children({...props, renderDisabled: this.renderDisabledCustomFilters})
       }
@@ -236,7 +237,7 @@ class ProjectFiltersSettings extends AsyncComponent {
             <Panel>
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
-                {this.state.filterList.map((filter, idx) => {
+                {this.state.filterList.map(filter => {
                   const fieldProps = {
                     name: filter.id,
                     label: filter.name,

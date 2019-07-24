@@ -18,7 +18,7 @@ from sentry.utils.snuba import (
 from sentry import features
 from sentry.models.project import Project
 
-ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id', 'transaction'))
 logger = logging.getLogger(__name__)
 
 

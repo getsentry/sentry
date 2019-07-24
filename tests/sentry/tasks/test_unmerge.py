@@ -435,8 +435,6 @@ class UnmergeTestCase(TestCase):
             events.values()[0],
         )
 
-        assert source.event_set.count() == 10
-
         assert set(
             EventMapping.objects.filter(
                 group_id=source.id,
@@ -496,8 +494,6 @@ class UnmergeTestCase(TestCase):
             lambda event: event.event_id,
             events.values()[1],
         )
-
-        assert destination.event_set.count() == 7
 
         assert set(
             EventMapping.objects.filter(

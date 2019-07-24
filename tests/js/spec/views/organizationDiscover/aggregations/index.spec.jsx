@@ -17,7 +17,7 @@ describe('Aggregations', function() {
   describe('render()', function() {
     it('renders aggregations', function() {
       wrapper.setProps({value: aggregations});
-      expect(wrapper.find('Aggregation')).toHaveLength(2);
+      expect(wrapper.find('AggregationRow')).toHaveLength(2);
     });
 
     it('renders empty text if no conditions', function() {

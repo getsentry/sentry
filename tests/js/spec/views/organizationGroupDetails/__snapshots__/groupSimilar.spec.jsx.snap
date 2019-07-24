@@ -658,7 +658,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <input
                               checked={false}
-                              className="chk-select"
                               id="271"
                               onChange={[Function]}
                               type="checkbox"
@@ -667,7 +666,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           </Checkbox>
                         </div>
                         <div
-                          className="event-details level-error"
+                          className="event-details"
                           style={
                             Object {
                               "flex": 1,
@@ -845,6 +844,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     size="normal"
                                   >
                                     <Link
+                                      data-test-id="resolved-issue"
                                       onlyActiveOnIndex={false}
                                       style={
                                         Object {
@@ -859,6 +859,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       }
                                     >
                                       <a
+                                        data-test-id="resolved-issue"
                                         onClick={[Function]}
                                         style={
                                           Object {
@@ -1508,40 +1509,31 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                           className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
                                           is={null}
                                         >
-                                          <Box
-                                            className="event-annotation"
-                                            mr={2}
-                                          >
-                                            <Base
-                                              className="event-annotation css-6htue9"
-                                              mr={2}
+                                          <LoggerAnnotation>
+                                            <span
+                                              className="css-8pmnzs-EventAnnotation-LoggerAnnotation eec9orn5"
                                             >
-                                              <div
-                                                className="event-annotation css-6htue9"
-                                                is={null}
-                                              >
-                                                <Link
-                                                  onlyActiveOnIndex={false}
-                                                  style={Object {}}
-                                                  to={
-                                                    Object {
-                                                      "pathname": "/organizations/org-slug/issues/",
-                                                      "query": Object {
-                                                        "query": "logger:javascript",
-                                                      },
-                                                    }
+                                              <Link
+                                                onlyActiveOnIndex={false}
+                                                style={Object {}}
+                                                to={
+                                                  Object {
+                                                    "pathname": "/organizations/org-slug/issues/",
+                                                    "query": Object {
+                                                      "query": "logger:javascript",
+                                                    },
                                                   }
+                                                }
+                                              >
+                                                <a
+                                                  onClick={[Function]}
+                                                  style={Object {}}
                                                 >
-                                                  <a
-                                                    onClick={[Function]}
-                                                    style={Object {}}
-                                                  >
-                                                    javascript
-                                                  </a>
-                                                </Link>
-                                              </div>
-                                            </Base>
-                                          </Box>
+                                                  javascript
+                                                </a>
+                                              </Link>
+                                            </span>
+                                          </LoggerAnnotation>
                                         </div>
                                       </Base>
                                     </GroupExtraCommentsAndLogger>

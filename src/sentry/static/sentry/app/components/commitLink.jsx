@@ -50,10 +50,12 @@ function CommitLink({inline, commitId, repository}) {
     return <span>{shortId}</span>;
   }
 
-  const commitUrl = providerData.commitUrl({
-    commitId,
-    baseUrl: repository.url,
-  });
+  const commitUrl =
+    repository.url &&
+    providerData.commitUrl({
+      commitId,
+      baseUrl: repository.url,
+    });
 
   return !inline ? (
     <Button external href={commitUrl} size="small" icon={providerData.icon}>

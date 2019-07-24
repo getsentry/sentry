@@ -4,10 +4,9 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from mock import Mock, patch
+from mock import Mock, patch, ANY
 
 from sentry import tagstore
-from sentry import options
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
@@ -17,6 +16,32 @@ from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
 class PostProcessGroupTest(TestCase):
+    @patch('sentry.rules.processor.RuleProcessor')
+    @patch('sentry.tasks.servicehooks.process_service_hook')
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    @patch('sentry.signals.event_processed.send_robust')
+    def test_issueless(self, mock_signal, mock_process_resource_change_bound,
+                       mock_process_service_hook, mock_processor):
+        event = self.create_issueless_event(project=self.project)
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=True,
+        )
+
+        mock_processor.assert_not_called()  # NOQA
+        mock_process_service_hook.assert_not_called()  # NOQA
+        mock_process_resource_change_bound.assert_not_called()  # NOQA
+
+        mock_signal.assert_called_once_with(
+            sender=ANY,
+            project=self.project,
+            event=event,
+            primary_hash=None,
+        )
+
     @patch('sentry.rules.processor.RuleProcessor')
     def test_rule_processor(self, mock_processor):
         group = self.create_group(project=self.project)
@@ -513,47 +538,6 @@ class PostProcessGroupTest(TestCase):
         )
 
         assert not delay.called
-
-    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
-    def test_processes_resource_change_task_uses_sampling_option(self, delay):
-        options.set('post-process.use-error-hook-sampling', True)
-        options.set('post-process.error-hook-sample-rate', 1)
-        event = self.store_event(
-            data={
-                'message': 'Foo bar',
-                'level': 'error',
-                'exception': {"type": "Foo", "value": "shits on fiah yo"},
-                'timestamp': timezone.now().isoformat()[:19]
-            },
-            project_id=self.project.id,
-            assert_no_errors=False
-        )
-
-        self.create_service_hook(
-            project=self.project,
-            organization=self.project.organization,
-            actor=self.user,
-            events=['error.created'],
-        )
-
-        post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
-        )
-
-        kwargs = {
-            'instance': event,
-        }
-
-        delay.assert_called_once_with(
-            action='created',
-            sender='Error',
-            instance_id=event.event_id,
-            **kwargs
-        )
 
 
 class IndexEventTagsTest(TestCase):

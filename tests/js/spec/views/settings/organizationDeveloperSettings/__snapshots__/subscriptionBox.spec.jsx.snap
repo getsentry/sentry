@@ -89,7 +89,6 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
             >
               <input
                 checked={false}
-                className="chk-select"
                 disabled={false}
                 id="issue"
                 onChange={[Function]}

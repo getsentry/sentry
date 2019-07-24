@@ -2,10 +2,11 @@ import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 
 import {analytics} from 'app/utils/analytics';
-import {stepPropTypes} from 'app/views/onboarding/wizardNew';
+import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
 import SentryTypes from 'app/sentryTypes';
+import testablePose from 'app/utils/testablePose';
 import withOrganization from 'app/utils/withOrganization';
 
 import InviteMembers from './inviteMembers';
@@ -92,10 +93,12 @@ class OnboardingProjectSetup extends React.Component {
   }
 }
 
-const PosedChoice = posed.div({
-  choiceInit: {opacity: 0, x: -20},
-  choiceEnter: {opacity: 1, x: 0},
-  choiceExit: {opacity: 0, x: 20},
-});
+const PosedChoice = posed.div(
+  testablePose({
+    choiceInit: {opacity: 0, x: -20},
+    choiceEnter: {opacity: 1, x: 0},
+    choiceExit: {opacity: 0, x: 20},
+  })
+);
 
 export default withOrganization(OnboardingProjectSetup);

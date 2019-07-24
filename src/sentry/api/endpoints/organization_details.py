@@ -318,12 +318,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
+        :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
+        is_detailed = request.GET.get('detailed', '1') != '0'
+        serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams if is_detailed else org_serializers.DetailedOrganizationSerializer
         context = serialize(
             organization,
             request.user,
-            org_serializers.DetailedOrganizationSerializer(),
+            serializer(),
             access=request.access,
         )
         return self.respond(context)
@@ -391,7 +394,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 serialize(
                     organization,
                     request.user,
-                    org_serializers.DetailedOrganizationSerializer(),
+                    org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                     access=request.access,
                 )
             )
@@ -462,7 +465,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            org_serializers.DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
             access=request.access,
         )
         return self.respond(context, status=202)

@@ -31,7 +31,7 @@ describe('IssueListActions', function() {
             query=""
             queryCount={1500}
             orgId="1337"
-            projectId="1"
+            projectId="project-slug"
             selection={{
               projects: [1],
               environments: [],
@@ -89,6 +89,9 @@ describe('IssueListActions', function() {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
+            query: {
+              project: [1],
+            },
             data: {status: 'resolved'},
           })
         );
@@ -151,12 +154,69 @@ describe('IssueListActions', function() {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
+            query: {
+              project: [1],
+            },
             data: {status: 'resolved'},
           })
         );
 
         await tick();
         wrapper.update();
+      });
+    });
+
+    describe('Selected on page', function() {
+      beforeAll(function() {
+        SelectedGroupStore.records = {};
+        SelectedGroupStore.add([1, 2, 3]);
+        wrapper = mount(
+          <IssueListActions
+            api={new MockApiClient()}
+            allResultsVisible={true}
+            query=""
+            queryCount={15}
+            orgId="1337"
+            projectId="1"
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
+            groupIds={[1, 2, 3, 6, 9]}
+            onRealtimeChange={function() {}}
+            onSelectStatsPeriod={function() {}}
+            realtimeActive={false}
+            statsPeriod="24h"
+          />,
+          TestStubs.routerContext()
+        );
+      });
+
+      it('resolves selected items', function() {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/1337/issues/',
+          method: 'PUT',
+        });
+        jest
+          .spyOn(SelectedGroupStore, 'getSelectedIds')
+          .mockImplementation(() => new Set([3, 6, 9]));
+
+        wrapper.setState({allInQuerySelected: false, anySelected: true});
+        wrapper
+          .find('ResolveActions ActionLink')
+          .first()
+          .simulate('click');
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: [3, 6, 9],
+              project: [1],
+            },
+            data: {status: 'resolved'},
+          })
+        );
       });
     });
   });

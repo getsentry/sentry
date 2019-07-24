@@ -1,11 +1,5 @@
 """
-sentry.conf.server
-~~~~~~~~~~~~~~~~~~
-
 These settings act as the default (base) settings for the Sentry-provided web-server
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
 
@@ -923,6 +917,10 @@ SENTRY_LOGIN_URL = None
 SENTRY_PROJECT = 1
 SENTRY_PROJECT_KEY = None
 
+# Default organization to represent the Internal Sentry project.
+# Used as a default when in SINGLE_ORGANIZATION mode.
+SENTRY_ORGANIZATION = None
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
@@ -978,6 +976,7 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
+    'spans': 'sentry.interfaces.spans.Spans',
 }
 PREFER_CANONICAL_LEGACY_KEYS = False
 

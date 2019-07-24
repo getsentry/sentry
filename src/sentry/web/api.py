@@ -64,6 +64,7 @@ from sentry.utils.http import (
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
+from sentry.utils.sdk import configure_scope
 from sentry.web.helpers import render_to_response
 from sentry.web.client_config import get_client_config
 from sentry.relay.config import get_project_config
@@ -128,6 +129,17 @@ def allow_cors_options(func):
         return response
 
     return allow_cors_options_wrapper
+
+
+def disable_transaction_events():
+    """
+    Do not send a transaction event for the current transaction.
+
+    This is used in StoreView to prevent infinite recursion.
+    """
+    with configure_scope() as scope:
+        if scope.span:
+            scope.span.sampled = False
 
 
 def api(func):
@@ -568,6 +580,7 @@ class StoreView(APIView):
 
     def process(self, request, project, key, auth, helper, data,
                 project_config, attachments=None, **kwargs):
+        disable_transaction_events()
         metrics.incr('events.total', skip_internal=False)
 
         project_id = project_config.project_id

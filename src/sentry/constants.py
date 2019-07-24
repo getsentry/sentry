@@ -1,12 +1,6 @@
 """
-sentry.constants
-~~~~~~~~~~~~~~~~
-
 These settings act as the default (base) settings for the Sentry-provided
 web-server
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
 
@@ -397,6 +391,27 @@ class SentryAppStatus(object):
             return 'published'
         elif status == cls.INTERNAL:
             return 'internal'
+
+
+class SentryAppInstallationStatus(object):
+    PENDING = 0
+    INSTALLED = 1
+    PENDING_STR = 'pending'
+    INSTALLED_STR = 'installed'
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.PENDING, cls.PENDING_STR),
+            (cls.INSTALLED, cls.INSTALLED_STR),
+        )
+
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.PENDING:
+            return cls.PENDING_STR
+        elif status == cls.INSTALLED:
+            return cls.INSTALLED_STR
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))

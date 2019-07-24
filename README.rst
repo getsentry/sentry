@@ -2,7 +2,9 @@
 
    <p align="center">
      <p align="center">
-       <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72"
+       <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+         <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72">
+       </a>
      </p>
      <p align="center">
        Users and logs provide clues. Sentry provides answers.

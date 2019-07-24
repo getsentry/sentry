@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 const GroupCheckBox = createReactClass({
   displayName: 'GroupCheckBox',
@@ -29,7 +30,7 @@ const GroupCheckBox = createReactClass({
     }
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, nextState) {
     return nextState.isSelected !== this.state.isSelected;
   },
 
@@ -50,6 +51,7 @@ const GroupCheckBox = createReactClass({
   render() {
     return (
       <Checkbox
+        aria-label={t('Select Issue')}
         value={this.props.id}
         checked={this.state.isSelected}
         onChange={this.onSelect}

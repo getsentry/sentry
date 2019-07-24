@@ -13,6 +13,7 @@ from sentry.models import (
     ExternalIssue, Integration, OrganizationIntegration, Release, ReleaseCommit, ReleaseEnvironment,
     ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
+from sentry.signals import release_commits_updated
 
 from sentry.testutils import TestCase, SetRefsTestCase
 
@@ -565,6 +566,38 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+    def test_release_commits_updated(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        release = self.create_release(user=self.user, project=project)
+        repo = Repository.objects.get(organization_id=org.id)
+        removed_commit = ReleaseCommit.objects.get(release=release).commit
+        added_commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='Something',
+            key='alksdflskdfjsldkfajsflkslk',
+        )
+
+        release_result = []
+        added = set()
+        removed = set()
+
+        def dummy_signal_handler(release, added_commit_ids, removed_commit_ids, **kwargs):
+            release_result.append(release)
+            added.update(added_commit_ids)
+            removed.update(removed_commit_ids)
+
+        release_commits_updated.connect(dummy_signal_handler)
+        release.set_commits([{'id': added_commit.key, 'repository': repo.name}])
+        assert ReleaseCommit.objects.filter(commit=added_commit, release=release).exists()
+        assert not ReleaseCommit.objects.filter(commit=removed_commit, release=release).exists()
+        assert release_result[0] == release
+        assert added == set([added_commit.id])
+        assert removed == set([removed_commit.id])
+
+        release_commits_updated.disconnect(dummy_signal_handler)
 
 
 class SetRefsTest(SetRefsTestCase):

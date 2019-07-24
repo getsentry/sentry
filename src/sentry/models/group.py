@@ -1,16 +1,10 @@
-"""
-sentry.models.group
-~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
 import math
 import re
 import warnings
+from collections import namedtuple
 from enum import Enum
 
 from datetime import datetime, timedelta
@@ -20,10 +14,8 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes, tagstore, options
-from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
-)
+from sentry import eventtypes, tagstore
+from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, Model, sane_repr
@@ -36,9 +28,71 @@ logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
+ShortId = namedtuple('ShortId', ['project_slug', 'short_id'])
+
+
+def parse_short_id(short_id):
+    match = _short_id_re.match(short_id.strip())
+    if match is None:
+        return None
+    slug, id = match.groups()
+    slug = slug.lower()
+    try:
+        short_id = base32_decode(id)
+        # We need to make sure the short id is not overflowing the
+        # field's max or the lookup will fail with an assertion error.
+        max_id = Group._meta.get_field_by_name('short_id')[0].MAX_VALUE
+        if short_id > max_id:
+            return None
+    except ValueError:
+        return None
+    return ShortId(slug, short_id)
+
 
 def looks_like_short_id(value):
     return _short_id_re.match((value or '').strip()) is not None
+
+
+def get_group_with_redirect(id_or_qualified_short_id, queryset=None):
+    """
+    Retrieve a group by ID, checking the redirect table if the requested group
+    does not exist. Returns a two-tuple of ``(object, redirected)``.
+    """
+    if queryset is None:
+        queryset = Group.objects.all()
+        # When not passing a queryset, we want to read from cache
+        getter = Group.objects.get_from_cache
+    else:
+        getter = queryset.get
+
+    if not (isinstance(id_or_qualified_short_id, (long, int)) or id_or_qualified_short_id.isdigit()):  # NOQA
+        short_id = parse_short_id(id_or_qualified_short_id)
+        if not short_id:
+            raise Group.DoesNotExist()
+        params = {'project__slug': short_id.project_slug, 'short_id': short_id.short_id}
+    else:
+        short_id = None
+        params = {'id': id_or_qualified_short_id}
+
+    try:
+        return getter(**params), False
+    except Group.DoesNotExist as error:
+        from sentry.models import GroupRedirect
+        if short_id:
+            params = {
+                'id': GroupRedirect.objects.filter(
+                    previous_short_id=short_id.short_id,
+                    previous_project_slug=short_id.project_slug
+                ).values_list('group_id', flat=True),
+            }
+        else:
+            params['id'] = GroupRedirect.objects.filter(
+                previous_group_id=params['id'],
+            ).values_list('group_id', flat=True)
+        try:
+            return queryset.get(**params), True
+        except Group.DoesNotExist:
+            raise error  # raise original `DoesNotExist`
 
 
 # TODO(dcramer): pull in enum library
@@ -52,29 +106,6 @@ class GroupStatus(object):
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
-
-
-def get_group_with_redirect(id, queryset=None):
-    """
-    Retrieve a group by ID, checking the redirect table if the requested group
-    does not exist. Returns a two-tuple of ``(object, redirected)``.
-    """
-    if queryset is None:
-        queryset = Group.objects.all()
-        # When not passing a queryset, we want to read from cache
-        getter = Group.objects.get_from_cache
-    else:
-        getter = queryset.get
-
-    try:
-        return getter(id=id), False
-    except Group.DoesNotExist as error:
-        from sentry.models import GroupRedirect
-        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list('group_id', flat=True)
-        try:
-            return queryset.get(id=qs), True
-        except Group.DoesNotExist:
-            raise error  # raise original `DoesNotExist`
 
 
 class EventOrdering(Enum):
@@ -116,24 +147,17 @@ class GroupManager(BaseManager):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id, short_id):
-        match = _short_id_re.match(short_id.strip())
-        if match is None:
+        short_id = parse_short_id(short_id)
+        if not short_id:
             raise Group.DoesNotExist()
-        slug, id = match.groups()
-        slug = slug.lower()
-        try:
-            short_id = base32_decode(id)
-            # We need to make sure the short id is not overflowing the
-            # field's max or the lookup will fail with an assertion error.
-            max_id = Group._meta.get_field_by_name('short_id')[0].MAX_VALUE
-            if short_id > max_id:
-                raise ValueError()
-        except ValueError:
-            raise Group.DoesNotExist()
-        return Group.objects.get(
+        return Group.objects.exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ]).get(
             project__organization=organization_id,
-            project__slug=slug,
-            short_id=short_id,
+            project__slug=short_id.project_slug,
+            short_id=short_id.short_id,
         )
 
     def from_kwargs(self, project, **kwargs):
@@ -158,24 +182,13 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry.models import EventMapping, Event
+        from sentry.models import SnubaEvent
         group_id = None
 
-        # Look up event_id in both Event and EventMapping,
-        # and bail when it matches one of them, prioritizing
-        # Event since it contains more history.
-        for model in Event, EventMapping:
-            try:
-                group_id = model.objects.filter(
-                    project_id=project.id,
-                    event_id=event_id,
-                ).values_list('group_id', flat=True)[0]
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
 
-                # It's possible that group_id is NULL
-                if group_id is not None:
-                    break
-            except IndexError:
-                pass
+        if event:
+            group_id = event.group_id
 
         if group_id is None:
             # Raise a Group.DoesNotExist here since it makes
@@ -186,18 +199,22 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.models import EventMapping, Event
-        group_ids = set()
-        # see above for explanation as to why we're
-        # looking at both Event and EventMapping
-        for model in Event, EventMapping:
-            group_ids.update(
-                model.objects.filter(
-                    project_id__in=project_ids,
-                    event_id=event_id,
-                    group_id__isnull=False,
-                ).values_list('group_id', flat=True)
-            )
+        from sentry.utils import snuba
+
+        data = snuba.raw_query(
+            start=datetime.utcfromtimestamp(0),
+            end=datetime.utcnow(),
+            selected_columns=['issue'],
+            conditions=[['issue', 'IS NOT NULL', None]],
+            filter_keys={
+                'event_id': [event_id],
+                'project_id': project_ids,
+            },
+            limit=len(project_ids),
+            referrer="Group.filter_by_event_id",
+        )['data']
+
+        group_ids = set([evt['issue'] for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
 
@@ -325,11 +342,6 @@ class Group(Model):
         if self.short_id is not None:
             return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
 
-    @property
-    def event_set(self):
-        from sentry.models import Event
-        return Event.objects.filter(group_id=self.id)
-
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
@@ -390,58 +402,19 @@ class Group(Model):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
-        from sentry.models import Event
-
         if not hasattr(self, '_latest_event'):
-            latest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('-datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-                reverse=True,
-            )
-            try:
-                self._latest_event = latest_events[0]
-            except IndexError:
-                self._latest_event = None
+            self._latest_event = self.get_latest_event_for_environments()
+
         return self._latest_event
 
     def get_latest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        # Fetch without environment if Snuba is not enabled
-        if not use_snuba:
-            return self.get_latest_event()
-
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.LATEST,
             environments=environments,
             issue_id=self.id,
             project_id=self.project_id)
 
-    def get_oldest_event(self):
-        from sentry.models import Event
-
-        if not hasattr(self, '_oldest_event'):
-            oldest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('datetime')[0:5],
-                key=EVENT_ORDERING_KEY,
-            )
-            try:
-                self._oldest_event = oldest_events[0]
-            except IndexError:
-                self._oldest_event = None
-        return self._oldest_event
-
     def get_oldest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        # Fetch without environment if Snuba is not enabled
-        if not use_snuba:
-            return self.get_oldest_event()
-
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.OLDEST,
             environments=environments,

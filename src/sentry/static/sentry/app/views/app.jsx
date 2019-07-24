@@ -1,16 +1,18 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
-import {Tracing} from '@sentry/integrations';
+import {browserHistory} from 'react-router';
+import {get, isEqual} from 'lodash';
 import {getCurrentHub} from '@sentry/browser';
 import {injectGlobal} from 'emotion';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
-import {get, isEqual} from 'lodash';
 
-import {openCommandPalette} from 'app/actionCreators/modal';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
+import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import Alerts from 'app/components/alerts';
@@ -19,7 +21,6 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
 import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
-import InstallWizard from 'app/views/installWizard';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -27,6 +28,9 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+
+// TODO: Need better way of identifying anonymous pages that don't trigger redirect
+const ALLOWED_ANON_PAGES = [/^\/share\//, /^\/auth\/login\//];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -107,10 +111,14 @@ class App extends React.Component {
       });
     });
 
-    $(document).ajaxError(function(evt, jqXHR) {
-      // TODO: Need better way of identifying anonymous pages
-      //       that don't trigger redirect
-      const pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+    if (DEPLOY_PREVIEW_CONFIG) {
+      displayDeployPreviewAlert();
+    }
+
+    $(document).ajaxError(function(_evt, jqXHR) {
+      const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
+        regex.test(window.location.pathname)
+      );
 
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
@@ -132,10 +140,14 @@ class App extends React.Component {
         return;
       }
 
-      // Otherwise, user has become unauthenticated; reload URL, and let Django
-      // redirect to login page
+      // Otherwise, the user has become unauthenticated. Send them to auth
       Cookies.set('session_expired', 1);
-      window.location.reload();
+
+      if (EXPERIMENTAL_SPA) {
+        browserHistory.replace('/auth/login/');
+      } else {
+        window.location.reload();
+      }
     });
 
     const user = ConfigStore.get('user');
@@ -145,7 +157,6 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.updateTracing();
     fetchGuides();
   }
 
@@ -154,7 +165,6 @@ class App extends React.Component {
     if (!isEqual(config, prevProps.config)) {
       this.handleConfigStoreChange(config);
     }
-
     this.updateTracing();
   }
 
@@ -164,7 +174,14 @@ class App extends React.Component {
 
   updateTracing() {
     const route = getRouteStringFromRoutes(this.props.routes);
-    Tracing.startTrace(getCurrentHub(), route);
+    const scope = getCurrentHub().getScope();
+    if (scope) {
+      const transactionSpan = scope.getSpan();
+      // If there is a transaction we set the name to the route
+      if (transactionSpan) {
+        transactionSpan.transaction = route;
+      }
+    }
   }
 
   handleConfigStoreChange(config) {
@@ -187,16 +204,13 @@ class App extends React.Component {
     e.stopPropagation();
   }
 
-  onConfigured() {
-    this.setState({needsUpgrade: false});
-  }
+  onConfigured = () => this.setState({needsUpgrade: false});
 
-  handleNewsletterConsent = () => {
-    // this is somewhat hackish
+  // this is somewhat hackish
+  handleNewsletterConsent = () =>
     this.setState({
       newsletterConsentPrompt: false,
     });
-  };
 
   handleGlobalModalClose = () => {
     if (!this.mainContainerRef) {
@@ -212,8 +226,17 @@ class App extends React.Component {
 
   renderBody() {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
+
     if (needsUpgrade) {
-      return <InstallWizard onConfigured={this.onConfigured} />;
+      const InstallWizard = React.lazy(() =>
+        import(/* webpackChunkName: "InstallWizard" */ 'app/views/installWizard')
+      );
+
+      return (
+        <React.Suspense fallback={null}>
+          <InstallWizard onConfigured={this.onConfigured} />;
+        </React.Suspense>
+      );
     }
 
     if (newsletterConsentPrompt) {
