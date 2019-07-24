@@ -481,11 +481,6 @@ const SpanRow = styled('div')`
     }
   }
 
-  & > [data-span='true'] {
-    transition: border-color 0.15s ease-in-out;
-    border: 1px solid rgba(0, 0, 0, 0);
-  }
-
   &:hover {
     background-color: rgba(189, 180, 199, 0.1);
 
@@ -630,6 +625,9 @@ const SpanBar = styled('div')`
   user-select: none;
 
   padding: 4px;
+
+  transition: border-color 0.15s ease-in-out;
+  border: 1px solid rgba(0, 0, 0, 0);
 `;
 
 const ChevronOpen = props => (
