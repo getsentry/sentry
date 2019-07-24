@@ -25,7 +25,7 @@ from sentry.models import (
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
-from sentry.web.relay_config import get_full_relay_config
+from sentry.relay.config import get_project_config
 
 
 def make_event(**kwargs):
@@ -1348,15 +1348,15 @@ class EventManagerTest(TestCase):
             },
         }
 
-        relay_config = get_full_relay_config(self.project.id)
-        manager = EventManager(data, project=self.project, relay_config=relay_config)
+        project_config = get_project_config(self.project.id)
+        manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
 
         assert manager.should_filter() == (True, FilterStatKeys.ERROR_MESSAGE)
 
         assert mock_is_valid_error_message.call_args_list == [
-            mock.call(relay_config, item.formatted) for item in items]
+            mock.call(project_config, item.formatted) for item in items]
 
     def test_legacy_attributes_moved(self):
         event = make_event(
