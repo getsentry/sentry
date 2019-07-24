@@ -282,12 +282,12 @@ class EventSerializer(Serializer):
         }
         # Serialize attributes that are specific to different types of events.
         if obj.get_event_type() == 'transaction':
-            d.update(self.serialize_transaction_attrs(attrs, obj))
+            d.update(self.__serialize_transaction_attrs(attrs, obj))
         else:
-            d.update(self.serialize_error_attrs(attrs, obj))
+            d.update(self.__serialize_error_attrs(attrs, obj))
         return d
 
-    def serialize_transaction_attrs(self, attrs, obj):
+    def __serialize_transaction_attrs(self, attrs, obj):
         """
         Add attributes that are only present on transaction events.
         """
@@ -296,7 +296,7 @@ class EventSerializer(Serializer):
             'endTimestamp': obj.data.get('timestamp'),
         }
 
-    def serialize_error_attrs(self, attrs, obj):
+    def __serialize_error_attrs(self, attrs, obj):
         """
         Add attributes that are present on error and default event types
         """
