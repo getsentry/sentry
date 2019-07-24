@@ -186,7 +186,6 @@ export default class SentryApplicationRow extends React.PureComponent {
               {showPublishStatus ? (
                 <SentryAppLink
                   to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
-                  data-test-id={app.slug}
                 >
                   {app.name}
                 </SentryAppLink>
