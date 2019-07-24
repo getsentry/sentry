@@ -18,17 +18,17 @@ from sentry.signals import inbound_filter_toggled
 EventFilteredRet = namedtuple('EventFilteredRet', 'should_filter reason')
 
 
-def should_filter_event(relay_config, data):
+def should_filter_event(project_config, data):
     """
     Checks if an event should be filtered
 
-    :param relay_config: relay config for the request (for the project really)
+    :param project_config: relay config for the request (for the project really)
     :param data: the event data
     :return: an EventFilteredRet explaining if the event should be filtered and, if it should the reason
         for filtering
     """
     for event_filter in get_all_filters():
-        if _is_filter_enabled(relay_config, event_filter) and event_filter(relay_config, data):
+        if _is_filter_enabled(project_config, event_filter) and event_filter(project_config, data):
             return EventFilteredRet(should_filter=True, reason=event_filter.spec.id)
 
     return EventFilteredRet(should_filter=False, reason=None)
@@ -38,7 +38,7 @@ def get_all_filters():
     """
     Returns a list of the existing event filters
 
-    An event filter is a function that receives a relay_config and an event data payload and returns a tuple
+    An event filter is a function that receives a project_config and an event data payload and returns a tuple
     (should_filter:bool, filter_reason: string | None) representing
 
     :return: list of registered event filters
@@ -107,7 +107,10 @@ def get_filter_state(filter_id, project):
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
-    filter_state = ProjectOption.objects.get_value(project=project, key=u'filters:{}'.format(flt.spec.id))
+    filter_state = ProjectOption.objects.get_value(
+        project=project,
+        key=u'filters:{}'.format(flt.spec.id),
+    )
 
     if filter_state is None:
         raise ValueError("Could not find filter state for filter {0}."
@@ -126,11 +129,6 @@ def get_filter_state(filter_id, project):
 
 class FilterNotRegistered(Exception):
     pass
-
-
-# ########################################################################################################
-# ########################################### Implementation #############################################
-# ########################################################################################################
 
 
 def _filter_from_filter_id(filter_id):
@@ -163,21 +161,21 @@ class _FilterSpec(object):
             self.serializer_cls = serializer_cls
 
 
-def _get_filter_settings(relay_config, flt):
+def _get_filter_settings(project_config, flt):
     """
     Gets the filter options from the relay config or the default option if not specified in the relay config
 
-    :param relay_config: the relay config for the request
+    :param project_config: the relay config for the request
     :param flt: the filter
     :return: the options for the filter
     """
-    filter_settings = relay_config.config.get('filter_settings', {})
+    filter_settings = project_config.config.get('filter_settings', {})
     filter_key = flt.spec.id
     return filter_settings.get(filter_key, None)
 
 
-def _is_filter_enabled(relay_config, flt):
-    filter_options = _get_filter_settings(relay_config, flt)
+def _is_filter_enabled(project_config, flt):
+    filter_options = _get_filter_settings(project_config, flt)
 
     if filter_options is None:
         raise ValueError("unknown filter", flt.spec.id)
@@ -190,7 +188,7 @@ _LOCAL_IPS = frozenset(['127.0.0.1', '::1'])
 _LOCAL_DOMAINS = frozenset(['127.0.0.1', 'localhost'])
 
 
-def _localhost_filter(relay_config, data):
+def _localhost_filter(project_config, data):
     ip_address = get_path(data, 'user', 'ip_address') or ''
     url = get_path(data, 'request', 'url') or ''
     domain = urlparse(url).hostname
@@ -264,7 +262,7 @@ _EXTENSION_EXC_SOURCES = re.compile(
 )
 
 
-def _browser_extensions_filter(relay_config, data):
+def _browser_extensions_filter(project_config, data):
     if data.get('platform') != 'javascript':
         return False
 
@@ -308,7 +306,7 @@ MIN_VERSIONS = {
 }
 
 
-def _legacy_browsers_filter(relay_config, data):
+def _legacy_browsers_filter(project_config, data):
     def get_user_agent(data):
         try:
             for key, value in get_path(data, 'request', 'headers', filter=True) or ():
@@ -337,10 +335,10 @@ def _legacy_browsers_filter(relay_config, data):
     if browser['family'] == "IE Mobile":
         browser['family'] = "IE"
 
-    filter_settings = _get_filter_settings(relay_config, _legacy_browsers_filter)
+    filter_settings = _get_filter_settings(project_config, _legacy_browsers_filter)
 
     # handle old style config
-    if filter_settings is None or filter_settings.get('default_filter', False):
+    if filter_settings is None:
         return _filter_default(browser)
 
     enabled_sub_filters = filter_settings.get('options')
@@ -482,7 +480,7 @@ def _filter_ie_internal(browser, compare_version):
 
 # list all browser specific sub filters that should be called
 _legacy_browsers_sub_filters = {
-    'all': _filter_default,
+    'default': _filter_default,
     'opera_pre_15': _filter_opera_pre_15,
     'safari_pre_6': _filter_safari_pre_6,
     'android_pre_4': _filter_android_pre_4,
@@ -537,7 +535,7 @@ _CRAWLERS = re.compile(
 )
 
 
-def _web_crawlers_filter(relay_config, data):
+def _web_crawlers_filter(project_config, data):
     try:
         for key, value in get_path(data, 'request', 'headers', filter=True) or ():
             if key.lower() == 'user-agent':
