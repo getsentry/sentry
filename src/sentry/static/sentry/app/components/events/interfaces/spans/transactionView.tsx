@@ -1,7 +1,7 @@
 import React from 'react';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
-import SpanTree from './span_tree';
+import SpanTree from './spanTree';
 import {SentryEvent} from './types';
 
 import TraceViewMinimap from './minimap';
