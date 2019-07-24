@@ -1,6 +1,7 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Location} from 'history';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
@@ -14,7 +15,7 @@ import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 type Props = {
-  location?: any;
+  location?: Location;
   router?: any;
   params?: any;
 };
