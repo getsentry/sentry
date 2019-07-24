@@ -12,7 +12,7 @@ import space from 'app/styles/space';
 const LEARN_MORE_VIDEO = 'https://player.vimeo.com/video/319554213';
 
 const learnMoveVideo = getDynamicText({
-  fixed: null,
+  fixed: 'Video Demo Placeholder',
   value: (
     <iframe
       src={LEARN_MORE_VIDEO}
@@ -51,6 +51,8 @@ LearnMore.propTypes = {
 };
 
 const DemoVideo = styled(Panel)`
+  display: flex;
+  justify-content: center;
   overflow: hidden;
   margin-bottom: ${space(2)};
 
