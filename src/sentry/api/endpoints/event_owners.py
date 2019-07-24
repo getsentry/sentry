@@ -24,15 +24,15 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
+        # populate event data
+        Event.objects.bind_nodes([event], 'data')
+
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
         # For sake of the API, we don't differentiate between
         # the implicit "everyone" and no owners
         if owners == ProjectOwnership.Everyone:
             owners = []
-
-        # populate event data
-        Event.objects.bind_nodes([event], 'data')
 
         return Response({
             'owners': serialize(
