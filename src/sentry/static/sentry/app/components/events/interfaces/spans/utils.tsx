@@ -1,8 +1,11 @@
 import {isString, isNumber} from 'lodash';
 
-const Rect = (x: number, y: number, width: number, height: number) => {
+type Rect = {
   // x and y are left/top coords respectively
-  return {x, y, width, height};
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 // get position of element relative to top/left of document
@@ -17,7 +20,7 @@ const getOffsetOfElement = (element: HTMLElement) => {
   return {x: left + scrollLeft, y: top + scrollTop};
 };
 
-export const rectOfContent = (element: HTMLElement) => {
+export const rectOfContent = (element: HTMLElement): Rect => {
   const {x, y} = getOffsetOfElement(element);
 
   // offsets for the border and any scrollbars (clientLeft and clientTop),
@@ -27,24 +30,31 @@ export const rectOfContent = (element: HTMLElement) => {
   const contentOffsetLeft = element.clientLeft - element.scrollLeft;
   const contentOffsetTop = element.clientTop - element.scrollTop;
 
-  return Rect(
-    x + contentOffsetLeft,
-    y + contentOffsetTop,
-    element.scrollWidth,
-    element.scrollHeight
-  );
+  return {
+    x: x + contentOffsetLeft,
+    y: y + contentOffsetTop,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+  };
 };
 
-export const rectRelativeTo = (
-  rect: {x: number; y: number; width: number; height: number},
-  pos = {x: 0, y: 0}
-) => {
-  return Rect(rect.x - pos.x, rect.y - pos.y, rect.width, rect.height);
+export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => {
+  return {
+    x: rect.x - pos.x,
+    y: rect.y - pos.y,
+    width: rect.width,
+    height: rect.height,
+  };
 };
 
-export const rectOfElement = (element: HTMLElement) => {
+export const rectOfElement = (element: HTMLElement): Rect => {
   const {x, y} = getOffsetOfElement(element);
-  return Rect(x, y, element.offsetWidth, element.offsetHeight);
+  return {
+    x,
+    y,
+    width: element.offsetWidth,
+    height: element.offsetHeight,
+  };
 };
 
 export const clamp = (value: number, min: number, max: number): number => {
