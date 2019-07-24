@@ -114,6 +114,7 @@ jest.mock('@sentry/browser', () => {
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
     withScope: jest.spyOn(SentryBrowser, 'withScope'),
+    Severity: SentryBrowser.Severity,
   };
 });
 
