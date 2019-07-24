@@ -59,12 +59,9 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
     const spanChildren: SpanType[] = get(lookup, spanID, []);
 
-    const start_timestamp: number = span.start_timestamp;
-    const end_timestamp: number = span.timestamp;
-
     const bounds = generateBounds({
-      startTimestamp: start_timestamp,
-      endTimestamp: end_timestamp,
+      startTimestamp: span.start_timestamp,
+      endTimestamp: span.timestamp,
     });
 
     const isCurrentSpanHidden = bounds.end <= 0;
@@ -163,13 +160,6 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
       return next_colour;
     };
-
-    // TODO: remove later
-    // const traceEndTimestamp = _.isNumber(parsedTrace.traceEndTimestamp)
-    //   ? parsedTrace.traceStartTimestamp == parsedTrace.traceEndTimestamp
-    //     ? parsedTrace.traceStartTimestamp + 0.05
-    //     : parsedTrace.traceEndTimestamp
-    //   : parsedTrace.traceStartTimestamp + 0.05;
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: parsedTrace.traceStartTimestamp,
@@ -339,12 +329,9 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
   getBounds = () => {
     const {span, generateBounds} = this.props;
 
-    const start_timestamp: number = span.start_timestamp;
-    const end_timestamp: number = span.timestamp;
-
     return generateBounds({
-      startTimestamp: start_timestamp,
-      endTimestamp: end_timestamp,
+      startTimestamp: span.start_timestamp,
+      endTimestamp: span.timestamp,
     });
   };
 
@@ -420,10 +407,10 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
   render() {
     const {span, spanBarColour} = this.props;
 
-    const start_timestamp: number = span.start_timestamp;
-    const end_timestamp: number = span.timestamp;
+    const startTimestamp: number = span.start_timestamp;
+    const endTimestamp: number = span.timestamp;
 
-    const duration = (end_timestamp - start_timestamp) * 1000;
+    const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${duration.toFixed(3)} ms`;
 
     const bounds = this.getBounds();
