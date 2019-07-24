@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import pytest
+import six
+import responses
 from mock import patch, Mock
 
 from sentry.identity.vsts import VSTSIdentityProvider
@@ -164,6 +167,43 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             self.vsts_account_id
         assert integration_dict['user_identity']['scopes'] == sorted(
             VSTSIdentityProvider.oauth_scopes)
+
+    def test_build_integration__create_subscription_error(self):
+        responses.replace(
+            responses.POST,
+            u'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
+                self.vsts_account_name.lower(),
+            ),
+            status=403,
+            json={
+                '$id': 1,
+                'message': 'The user bob is not authorized to access this resource',
+                'typeKey': 'UnauthorizedRequestException',
+                'errorCode': 0,
+                'eventId': 3000
+            }
+        )
+        state = {
+            'account': {
+                'accountName': self.vsts_account_name,
+                'accountId': self.vsts_account_id,
+            },
+            'base_url': self.vsts_base_url,
+            'identity': {
+                'data': {
+                    'access_token': self.access_token,
+                    'expires_in': '3600',
+                    'refresh_token': self.refresh_token,
+                    'token_type': 'jwt-bearer',
+                },
+            },
+        }
+
+        integration = VstsIntegrationProvider()
+
+        with pytest.raises(IntegrationError) as err:
+            integration.build_integration(state)
+        assert 'sufficient account access to create webhooks' in six.text_type(err)
 
     def test_webhook_subscription_created_once(self):
         self.assert_installation()
