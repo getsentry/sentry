@@ -124,17 +124,15 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     );
 
     return (
-      <React.Fragment>
-        <line
-          x1={`${mouseLeft}%`}
-          x2={`${mouseLeft}%`}
-          y1="0"
-          y2={MINIMAP_HEIGHT}
-          strokeWidth="1"
-          strokeOpacity="0.7"
-          style={{stroke: '#E03E2F'}}
-        />
-      </React.Fragment>
+      <line
+        x1={`${mouseLeft}%`}
+        x2={`${mouseLeft}%`}
+        y1="0"
+        y2={MINIMAP_HEIGHT}
+        strokeWidth="1"
+        strokeOpacity="0.7"
+        style={{stroke: '#E03E2F'}}
+      />
     );
   };
 
