@@ -45,10 +45,10 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
       return;
     }
 
-    const root_rect = rectOfContent(traceViewDOM);
+    const rootRect = rectOfContent(traceViewDOM);
 
-    const scaleX = canvas.clientWidth / root_rect.width;
-    const scaleY = canvas.clientHeight / root_rect.height;
+    const scaleX = canvas.clientWidth / rootRect.width;
+    const scaleY = canvas.clientHeight / rootRect.height;
 
     // https://www.html5rocks.com/en/tutorials/canvas/hidpi/
     // we consider the devicePixelRatio (dpr) factor so that the canvas looks decent on hidpi screens
@@ -65,7 +65,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
       canvas.style.height = `${height}px`;
     };
 
-    resize_canvas(root_rect.width * scaleX, root_rect.height * scaleY);
+    resize_canvas(rootRect.width * scaleX, rootRect.height * scaleY);
 
     canvasContext.setTransform(1, 0, 0, 1, 0, 0);
     canvasContext.clearRect(0, 0, canvas.width, canvas.height);
@@ -91,14 +91,14 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
 
     // draw background
 
-    drawRect(rectRelativeTo(root_rect, root_rect), back);
+    drawRect(rectRelativeTo(rootRect, rootRect), back);
 
     // draw the spans
 
     Array.from(traceViewDOM.querySelectorAll<HTMLElement>('[data-span="true"]')).forEach(
       el => {
         const backgroundColor = window.getComputedStyle(el).backgroundColor || black(10);
-        drawRect(rectRelativeTo(rectOfElement(el), root_rect), backgroundColor);
+        drawRect(rectRelativeTo(rectOfElement(el), rootRect), backgroundColor);
       }
     );
   };
