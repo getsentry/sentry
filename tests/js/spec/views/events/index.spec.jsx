@@ -5,10 +5,10 @@ import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import OrganizationEventsContainer from 'app/views/organizationEvents';
+import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('OrganizationEvents', function() {
+describe('EventsContainer', function() {
   let wrapper;
   const environments = ['production', 'staging'];
   const {organization, router, routerContext} = initializeOrg({
@@ -47,13 +47,13 @@ describe('OrganizationEvents', function() {
         query: {},
       };
       wrapper = mount(
-        <OrganizationEventsContainer
+        <EventsContainer
           router={router}
           organization={organization}
           location={router.location}
         >
           <div />
-        </OrganizationEventsContainer>,
+        </EventsContainer>,
         routerContext
       );
 

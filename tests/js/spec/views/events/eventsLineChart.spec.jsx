@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {EventsChart} from 'app/views/organizationEvents/eventsChart';
+import {EventsChart} from 'app/views/events/eventsChart';
 import {mockZoomRange} from 'app-test/helpers/charts';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
