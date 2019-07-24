@@ -4,7 +4,7 @@ import logging
 import six
 
 from sentry.utils.compat import implements_to_string
-from sentry.lang.native.utils import image_name
+from sentry.lang.native.utils import image_name, is_minidump_event
 from sentry.models import EventError
 from sentry.reprocessing import report_processing_issue
 
@@ -91,8 +91,9 @@ class SymbolicationFailed(Exception):
 
 def write_error(e, data, errors=None):
     # User fixable but fatal errors are reported as processing
-    # issues
-    if e.is_user_fixable and e.is_fatal:
+    # issues. We skip this for minidumps, as reprocessing is not
+    # possible without persisting minidumps.
+    if e.is_user_fixable and e.is_fatal and not is_minidump_event(data):
         report_processing_issue(
             data,
             scope='native',

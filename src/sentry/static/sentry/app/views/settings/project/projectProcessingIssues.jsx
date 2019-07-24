@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel} from 'app/components/panels';
+import {Panel, PanelAlert} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -70,7 +70,7 @@ class ProjectProcessingIssues extends React.Component {
       expected: this.state.expected + 2,
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/`, {
-      success: (data, _, jqXHR) => {
+      success: data => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -121,7 +121,7 @@ class ProjectProcessingIssues extends React.Component {
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
-      success: (data, _, jqXHR) => {
+      success: () => {
         this.fetchData();
         this.setState({
           reprocessing: false,
@@ -145,7 +145,7 @@ class ProjectProcessingIssues extends React.Component {
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -174,7 +174,7 @@ class ProjectProcessingIssues extends React.Component {
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -417,7 +417,19 @@ class ProjectProcessingIssues extends React.Component {
         apiMethod="PUT"
         initialData={formData}
       >
-        <JsonForm access={access} forms={formGroups} />
+        <JsonForm
+          access={access}
+          forms={formGroups}
+          renderHeader={() => (
+            <PanelAlert type="warning">
+              <TextBlock noMargin>
+                {t(`Reprocessing does not apply to Minidumps. Even when enabled,
+                    Minidump events with processing issues will show up in the
+                    issues stream immediately and cannot be reprocessed.`)}
+              </TextBlock>
+            </PanelAlert>
+          )}
+        />
       </Form>
     );
   };
