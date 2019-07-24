@@ -70,7 +70,9 @@ if (
     config.userIdentity.email &&
     config.userIdentity.email.includes('sentry')) ||
     (config.urlPrefix &&
-      (config.urlPrefix.includes('localhost') || config.urlPrefix.includes('127.0.0.1'))))
+      (config.urlPrefix.includes('localhost') ||
+        config.urlPrefix.includes('127.0.0.1') ||
+        config.urlPrefix.includes('dev.getsentry.net'))))
 ) {
   Sentry.configureScope(scope => {
     scope.setSpan(

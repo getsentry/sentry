@@ -311,6 +311,22 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert should_resolve is False
 
     @responses.activate
+    def test_should_resolve_done_status_failure(self):
+        responses.reset()
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            status=403,
+            json={'error': 'The requested operation is not allowed. Your account is pending deletion.'}
+        )
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Active',
+            'new_state': 'Resolved',
+        })
+        assert should_resolve is False
+
+    @responses.activate
     def test_should_unresolve_active_to_resolved(self):
         should_unresolve = self.integration.should_unresolve({
             'project': self.project_id_with_states,

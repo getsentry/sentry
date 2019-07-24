@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {LoadingMask} from 'app/views/organizationEvents/loadingPanel';
+import {LoadingMask} from 'app/views/events/loadingPanel';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';

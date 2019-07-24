@@ -41,12 +41,12 @@ class FilterTypes(object):
     RELEASES = 'releases'
 
 
-def is_valid_ip(relay_config, ip_address):
+def is_valid_ip(project_config, ip_address):
     """
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = relay_config.config.get('blacklisted_ips')
+    blacklist = project_config.config.get('blacklisted_ips')
     if not blacklist:
         return True
 
@@ -70,12 +70,12 @@ def is_valid_ip(relay_config, ip_address):
     return True
 
 
-def is_valid_release(relay_config, release):
+def is_valid_release(project_config, release):
     """
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = relay_config.config.get(FilterTypes.RELEASES)
+    invalid_versions = project_config.config.get(FilterTypes.RELEASES)
     if not invalid_versions:
         return True
 
@@ -88,12 +88,12 @@ def is_valid_release(relay_config, release):
     return True
 
 
-def is_valid_error_message(relay_config, message):
+def is_valid_error_message(project_config, message):
     """
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = relay_config.config.get(FilterTypes.ERROR_MESSAGES)
+    filtered_errors = project_config.config.get(FilterTypes.ERROR_MESSAGES)
     if not filtered_errors:
         return True
 

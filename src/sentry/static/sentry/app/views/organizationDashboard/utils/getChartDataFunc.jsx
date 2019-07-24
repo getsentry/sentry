@@ -1,8 +1,5 @@
 import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
-import {
-  getChartDataForWidget,
-  getChartDataByDay,
-} from 'app/views/organizationDiscover/result/utils';
+import {getChartDataForWidget, getChartDataByDay} from 'app/views/discover/result/utils';
 import {isTimeSeries} from 'app/views/organizationDashboard/utils/isTimeSeries';
 
 /**

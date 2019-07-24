@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
+import six
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import Model
-from sentry.relay import config
 from django.utils.functional import cached_property
 
 import semaphore
@@ -28,4 +28,9 @@ class Relay(Model):
         return semaphore.PublicKey.parse(self.public_key)
 
     def has_org_access(self, org):
-        return config.relay_has_org_access(self, org)
+        # Internal relays always have access
+        if self.is_internal:
+            return True
+        # Use the normalized form of the public key for the check
+        return six.text_type(self.public_key_object) \
+            in org.get_option('sentry:trusted-relays', [])

@@ -22,6 +22,9 @@ class ProjectEventRedirect(ProjectView):
         if event is None:
             raise Http404
 
+        if not event.group_id:
+            raise Http404
+
         return HttpResponseRedirect(
             reverse(
                 'sentry-organization-event-detail',
