@@ -3,9 +3,9 @@ import {
   getExternal,
   isValidCondition,
   ignoreCase,
-} from 'app/views/organizationDiscover/conditions/utils';
+} from 'app/views/discover/conditions/utils';
 
-import {COLUMNS} from 'app/views/organizationDiscover/data';
+import {COLUMNS} from 'app/views/discover/data';
 
 const conditionList = [
   {

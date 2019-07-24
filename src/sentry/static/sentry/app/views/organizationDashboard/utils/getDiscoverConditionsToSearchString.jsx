@@ -2,7 +2,7 @@ import {
   NEGATION_OPERATORS,
   NULL_OPERATORS,
   WILDCARD_OPERATORS,
-} from 'app/views/organizationDiscover/data';
+} from 'app/views/discover/data';
 import {defined} from 'app/utils';
 
 const checkIsNegation = operator => NEGATION_OPERATORS.includes(operator);

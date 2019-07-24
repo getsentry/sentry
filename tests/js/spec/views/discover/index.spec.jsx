@@ -3,12 +3,10 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import OrganizationDiscoverContainerWithStore, {
-  OrganizationDiscoverContainer,
-} from 'app/views/organizationDiscover';
+import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('OrganizationDiscoverContainer', function() {
+describe('DiscoverContainer', function() {
   beforeEach(function() {
     browserHistory.push = jest.fn();
   });
@@ -34,7 +32,7 @@ describe('OrganizationDiscoverContainer', function() {
         },
       });
       wrapper = mount(
-        <OrganizationDiscoverContainer
+        <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
           selection={{projects: [], environments: [], datetime: {}}}
@@ -62,7 +60,7 @@ describe('OrganizationDiscoverContainer', function() {
       });
 
       wrapper = mount(
-        <OrganizationDiscoverContainerWithStore
+        <DiscoverContainerWithStore
           location={{query: {}, search: ''}}
           params={{}}
           organization={organization}
@@ -81,9 +79,7 @@ describe('OrganizationDiscoverContainer', function() {
     });
 
     const createWrapper = async (props, withStore) => {
-      const Component = withStore
-        ? OrganizationDiscoverContainerWithStore
-        : OrganizationDiscoverContainer;
+      const Component = withStore ? DiscoverContainerWithStore : DiscoverContainer;
       const wrap = mount(
         <Component
           location={{query: {}, search: ''}}
@@ -279,7 +275,7 @@ describe('OrganizationDiscoverContainer', function() {
     it('display no access message', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const wrapper = mount(
-        <OrganizationDiscoverContainer
+        <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
           selection={{datetime: {}}}

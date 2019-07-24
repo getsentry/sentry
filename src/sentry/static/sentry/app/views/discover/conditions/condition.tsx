@@ -30,10 +30,10 @@ export default class ConditionRow extends React.Component<
   ConditionProps,
   ConditionState
 > {
+  state = initalState;
+
   // This is the ref of the inner react-select component
   private select: any;
-
-  state = initalState;
 
   focus() {
     this.select.focus();

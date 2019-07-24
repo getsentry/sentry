@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import SavedQueryList from 'app/views/organizationDiscover/sidebar/savedQueryList';
+import SavedQueryList from 'app/views/discover/sidebar/savedQueryList';
 
 describe('savedQueryList', function() {
   let organization, mockResponse;

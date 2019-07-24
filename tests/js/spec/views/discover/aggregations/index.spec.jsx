@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import Aggregations from 'app/views/organizationDiscover/aggregations';
+import Aggregations from 'app/views/discover/aggregations';
 
 describe('Aggregations', function() {
   let wrapper, onChangeMock, aggregations;
