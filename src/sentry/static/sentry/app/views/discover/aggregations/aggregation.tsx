@@ -94,6 +94,7 @@ export default class AggregationRow extends React.Component<
   inputRenderer = (props: AggregationProps) => {
     const onChange = (evt: any) => {
       if (evt && evt.target && evt.target.value === '') {
+        evt.persist();
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
         this.setState({inputValue: evt.target.value}, () => {
