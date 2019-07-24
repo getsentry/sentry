@@ -747,6 +747,7 @@ class Factories(object):
             'organization': kwargs.get('organization', Factories.create_organization()),
             'author': kwargs.get('author', 'A Company'),
             'scopes': kwargs.get('scopes', ()),
+            'verify_install': kwargs.get('verify_install', True),
             'webhook_url': kwargs.get('webhook_url', 'https://example.com/webhook'),
             'events': [],
             'schema': {},

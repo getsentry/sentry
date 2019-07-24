@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry import analytics
+from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.models import (
     AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
@@ -27,10 +28,15 @@ class Creator(Mediator):
         return self.install
 
     def _create_install(self):
+        status = SentryAppInstallationStatus.PENDING
+        if not self.sentry_app.verify_install:
+            status = SentryAppInstallationStatus.INSTALLED
+
         self.install = SentryAppInstallation.objects.create(
             organization_id=self.organization.id,
             sentry_app_id=self.sentry_app.id,
             api_grant_id=self.api_grant.id,
+            status=status,
         )
 
     def _create_api_grant(self):

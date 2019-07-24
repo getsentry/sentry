@@ -152,6 +152,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             'webhookUrl': 'https://newurl.com',
             'redirectUrl': 'https://newredirecturl.com',
             'isAlertable': True,
+            'verifyInstall': self.published_app.verify_install,
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,

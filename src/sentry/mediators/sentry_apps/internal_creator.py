@@ -31,6 +31,7 @@ class InternalCreator(Mediator):
     def call(self):
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.status = SentryAppStatus.INTERNAL
+        self.sentry_app.verify_install = False
         self.sentry_app.save()
 
         self._create_access_token()

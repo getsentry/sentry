@@ -86,12 +86,26 @@ export default class SentryApplicationDetails extends AsyncView {
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
   };
 
+  onFieldChange = (name, value) => {
+    if (name === 'isInternal') {
+      if (value === true) {
+        //cannot have verifyInstall=true for internal apps
+        this.form.setValue('verifyInstall', false);
+      }
+      //trigger an update so we can change if verifyInstall is disabled or not
+      this.forceUpdate();
+    }
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
     const statusDisabled = app && app.status === 'internal' ? true : false;
+    // if the app is created and it is internal, don't need to check the form value
+    const changeVerifyDisabled =
+      statusDisabled || this.form.getValue('isInternal') ? true : false;
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
@@ -106,15 +120,17 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: app && app.status === 'internal' ? true : false,
+            verifyInstall: (app && app.verifyInstall) || false,
             schema: {},
             scopes: [],
             ...app,
           }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
+          onFieldChange={this.onFieldChange}
         >
           <JsonForm
-            additionalFieldProps={{statusDisabled}}
+            additionalFieldProps={{statusDisabled, changeVerifyDisabled}}
             location={this.props.location}
             forms={sentryApplicationForm}
           />

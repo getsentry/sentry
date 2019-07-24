@@ -26,6 +26,7 @@ class Creator(Mediator):
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
+    verify_install = Param(bool, default=True)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
     request = Param('rest_framework.request.Request', required=False)
@@ -65,6 +66,7 @@ class Creator(Mediator):
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
             is_alertable=self.is_alertable,
+            verify_install=self.verify_install,
             overview=self.overview,
         )
 
