@@ -25,7 +25,7 @@ type TraceContextType = {
 type LookupType = {[span_id: string]: SpanType[]};
 
 type RenderedSpanTree = {
-  spanTree: JSX.Element;
+  spanTree: JSX.Element | null;
   numOfHiddenSpansAbove: number;
 };
 
@@ -64,7 +64,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
       endTimestamp: span.timestamp,
     });
 
-    const isCurrentSpanHidden = bounds.end <= 0;
+    const isCurrentSpanHidden = bounds.end <= 0 || bounds.start >= 1;
 
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
@@ -126,13 +126,16 @@ class SpanTree extends React.Component<SpanTreeProps> {
     };
   };
 
-  renderRootSpan = (): JSX.Element | null => {
+  renderRootSpan = (): RenderedSpanTree => {
     const {event, dragProps} = this.props;
 
     const trace: TraceContextType | undefined = get(event, 'contexts.trace');
 
     if (!trace) {
-      return null;
+      return {
+        spanTree: null,
+        numOfHiddenSpansAbove: 0,
+      };
     }
 
     const parsedTrace = this.parseTrace();
@@ -177,7 +180,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
       lookup: parsedTrace.lookup,
       generateBounds,
       pickSpanBarColour,
-    }).spanTree;
+    });
   };
 
   parseTrace = () => {
@@ -272,9 +275,19 @@ class SpanTree extends React.Component<SpanTreeProps> {
   };
 
   render() {
+    const {spanTree, numOfHiddenSpansAbove} = this.renderRootSpan();
+
+    const hiddenSpansMessage =
+      numOfHiddenSpansAbove > 0 ? (
+        <SpanRowMessage>
+          <span>Number of hidden spans: {numOfHiddenSpansAbove}</span>
+        </SpanRowMessage>
+      ) : null;
+
     return (
       <TraceViewContainer innerRef={this.props.traceViewRef}>
-        {this.renderRootSpan()}
+        {spanTree}
+        {hiddenSpansMessage}
       </TraceViewContainer>
     );
   }
