@@ -10,15 +10,6 @@ from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
-    """
-    This is more or less an exact copy of the tests under:
-
-        /tests/sentry/api/endpoints/test_group_events.py
-
-    with the removal of any explicit tagstore key/value creation calls, and
-    comparing the resulting events by `eventID`, instead of `id`.
-    """
-
     def setUp(self):
         super(GroupEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
