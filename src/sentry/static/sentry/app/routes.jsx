@@ -961,7 +961,7 @@ function routes() {
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "Events" */ 'app/views/Events/events')
+                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
               }
               component={errorHandler(LazyLoad)}
             />
