@@ -65,7 +65,8 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         return json.loads(resp.content), resp.status_code
 
-    def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(self):
+    def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
+            self):
         self._setup_relay(internal=True, add_org_key=False)
         result, status_code = self._call_endpoint(full_config=False)
 
@@ -95,8 +96,6 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert safe.get_path(cfg, 'rev') is not None
 
         assert safe.get_path(cfg, 'config', 'trustedRelays') == []
-        assert safe.get_path(cfg, 'config', 'kafkaMaxEventSize') is not None
-        assert safe.get_path(cfg, 'config', 'kafkaRawEventSampleRate') is not None
         assert safe.get_path(cfg, 'config', 'filterSettings') is not None
         assert safe.get_path(cfg, 'config', 'groupingConfig', 'enhancements') is not None
         assert safe.get_path(cfg, 'config', 'groupingConfig', 'id') is not None
@@ -113,7 +112,8 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         assert status_code == 403
 
-    def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(self):
+    def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
+            self):
         self._setup_relay(internal=True, add_org_key=False)
         result, status_code = self._call_endpoint(full_config=None)
 
@@ -123,7 +123,8 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert safe.get_path(cfg, 'config', 'filterSettings') is None
         assert safe.get_path(cfg, 'config', 'groupingConfig') is None
 
-    def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(self):
+    def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
+            self):
         self._setup_relay(internal=False, add_org_key=True)
         result, status_code = self._call_endpoint(full_config=None)
 
@@ -147,14 +148,12 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert self._date_regex.match(last_change) is not None
         last_fetch = safe.get_path(cfg, 'lastFetch')
         assert self._date_regex.match(last_fetch) is not None
-        assert safe.get_path(cfg, 'organizationId') == self.project.organization.id
         assert safe.get_path(cfg, 'projectId') == self.project.id
         assert safe.get_path(cfg, 'slug') == self.project.slug
         assert safe.get_path(cfg, 'rev') is not None
 
+        assert safe.get_path(cfg, 'organizationId') is None
         assert safe.get_path(cfg, 'config', 'trustedRelays') == [self.relay.public_key]
-        assert safe.get_path(cfg, 'config', 'kafkaMaxEventSize') is None
-        assert safe.get_path(cfg, 'config', 'kafkaRawEventSampleRate') is None
         assert safe.get_path(cfg, 'config', 'filterSettings') is None
         assert safe.get_path(cfg, 'config', 'groupingConfig', ) is None
         assert safe.get_path(cfg, 'config', 'piiConfig', 'applications') is not None
