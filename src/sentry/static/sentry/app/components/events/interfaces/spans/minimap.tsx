@@ -55,7 +55,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     // such as retina macbooks
     const devicePixelRatio = window.devicePixelRatio || 1;
 
-    const resize_canvas = (width: number, height: number) => {
+    const resizeCanvas = (width: number, height: number) => {
       // scale the canvas up by the dpr factor
       canvas.width = width * devicePixelRatio;
       canvas.height = height * devicePixelRatio;
@@ -65,7 +65,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
       canvas.style.height = `${height}px`;
     };
 
-    resize_canvas(rootRect.width * scaleX, rootRect.height * scaleY);
+    resizeCanvas(rootRect.width * scaleX, rootRect.height * scaleY);
 
     canvasContext.setTransform(1, 0, 0, 1, 0, 0);
     canvasContext.clearRect(0, 0, canvas.width, canvas.height);
