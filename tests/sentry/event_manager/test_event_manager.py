@@ -1348,7 +1348,7 @@ class EventManagerTest(TestCase):
             },
         }
 
-        project_config = get_project_config(self.project.id)
+        project_config = get_project_config(self.project.id, for_store=True)
         manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
