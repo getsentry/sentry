@@ -132,7 +132,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
         break;
       }
       default: {
-        // this should never occur
+        throw Error('this.state.currentDraggingHandle is undefined');
       }
     }
   };
@@ -184,7 +184,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
         break;
       }
       default: {
-        // unreachable
+        throw Error('this.state.currentDraggingHandle is undefined');
       }
     }
 
