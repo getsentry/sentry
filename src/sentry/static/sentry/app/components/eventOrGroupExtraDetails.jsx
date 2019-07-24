@@ -62,13 +62,17 @@ class EventOrGroupExtraDetails extends React.Component {
           />
         )}
         <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />
-        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-          <GroupExtraIcon
-            src="icon-comment-sm"
-            mentioned={subscriptionDetails && subscriptionDetails.reason === 'mentioned'}
-          />
-          <span>{numComments}</span>
-        </CommentsLink>
+        {numComments > 0 && (
+          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+            <GroupExtraIcon
+              src="icon-comment-sm"
+              mentioned={
+                subscriptionDetails && subscriptionDetails.reason === 'mentioned'
+              }
+            />
+            <span>{numComments}</span>
+          </CommentsLink>
+        )}
         {logger && (
           <LoggerAnnotation>
             <Link
