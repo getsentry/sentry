@@ -143,18 +143,16 @@ class BaseChart extends React.Component {
     shouldXAxisRenderTimeOnly: false,
   };
 
-  getEventsMap = () => {
-    return {
-      click: (...args) => {
-        this.handleClick(...args);
-        callIfFunction(this.props.onClick, ...args);
-      },
-      highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
-      mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
-      datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
-      restore: (...args) => callIfFunction(this.props.onRestore, ...args),
-      finished: (...args) => callIfFunction(this.props.onFinished, ...args),
-    };
+  getEventsMap = {
+    click: (...args) => {
+      this.handleClick(...args);
+      callIfFunction(this.props.onClick, ...args);
+    },
+    highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
+    mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
+    datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
+    restore: (...args) => callIfFunction(this.props.onRestore, ...args),
+    finished: (...args) => callIfFunction(this.props.onFinished, ...args),
   };
 
   handleChartReady = (...args) => {
@@ -230,7 +228,7 @@ class BaseChart extends React.Component {
         silent={silent}
         theme={this.props.theme}
         onChartReady={this.handleChartReady}
-        onEvents={this.getEventsMap()}
+        onEvents={this.getEventsMap}
         opts={{
           height,
           width,
