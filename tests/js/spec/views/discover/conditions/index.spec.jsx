@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import Conditions from 'app/views/organizationDiscover/conditions';
+import Conditions from 'app/views/discover/conditions';
 
 describe('Conditions', function() {
   let wrapper, onChangeMock, conditions;

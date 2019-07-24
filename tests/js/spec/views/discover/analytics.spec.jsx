@@ -1,4 +1,4 @@
-import {trackQuery} from 'app/views/organizationDiscover/analytics';
+import {trackQuery} from 'app/views/discover/analytics';
 import {analytics} from 'app/utils/analytics';
 
 jest.mock('app/utils/analytics');

@@ -63,7 +63,7 @@ type State = {
   view: string;
 };
 
-export default class OrganizationDiscover extends React.Component<Props, State> {
+export default class Discover extends React.Component<Props, State> {
   static defaultProps = {
     utc: true,
   };

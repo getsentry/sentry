@@ -3,9 +3,9 @@ import React from 'react';
 
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
-import Discover from 'app/views/organizationDiscover/discover';
+import Discover from 'app/views/discover/discover';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 describe('Discover', function() {
   let organization, project, queryBuilder;

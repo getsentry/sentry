@@ -9,7 +9,7 @@
  */
 import {zipWith} from 'lodash';
 
-import {OPERATOR} from 'app/views/organizationDiscover/data';
+import {OPERATOR} from 'app/views/discover/data';
 import {escapeQuotes} from 'app/components/events/interfaces/utils';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
 

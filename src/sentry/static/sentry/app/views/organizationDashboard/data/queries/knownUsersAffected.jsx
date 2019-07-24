@@ -1,7 +1,7 @@
 /**
  * Known affected users
  */
-import {OPERATOR} from 'app/views/organizationDiscover/data';
+import {OPERATOR} from 'app/views/discover/data';
 import {t} from 'app/locale';
 
 const knownUsersAffectedQuery = {

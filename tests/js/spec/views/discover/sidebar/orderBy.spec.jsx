@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import Orderby from 'app/views/organizationDiscover/sidebar/orderby';
+import Orderby from 'app/views/discover/sidebar/orderby';
 
 describe('orderBy', function() {
   let organization, project, wrapper, onChangeMock, columns;

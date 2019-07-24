@@ -1,8 +1,8 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import Result from 'app/views/organizationDiscover/result';
-import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
+import Result from 'app/views/discover/result';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 describe('Result', function() {
   describe('New query', function() {
