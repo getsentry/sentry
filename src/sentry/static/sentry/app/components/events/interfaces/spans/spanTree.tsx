@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
+import {get, set, isNumber, forEach} from 'lodash';
 
 import space from 'app/styles/space';
 import Count from 'app/components/count';
@@ -57,7 +57,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
   }): RenderedSpanTree => {
     const spanBarColour: string = pickSpanBarColour();
 
-    const spanChildren: SpanType[] = _.get(lookup, spanID, []);
+    const spanChildren: SpanType[] = get(lookup, spanID, []);
 
     const start_timestamp: number = span.start_timestamp;
     const end_timestamp: number = span.timestamp;
@@ -132,7 +132,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
   renderRootSpan = (): JSX.Element | null => {
     const {event, dragProps} = this.props;
 
-    const trace: TraceContextType | undefined = _.get(event, 'contexts.trace');
+    const trace: TraceContextType | undefined = get(event, 'contexts.trace');
 
     if (!trace) {
       return null;
@@ -197,7 +197,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
       (entry: {type: string}) => entry.type === 'spans'
     );
 
-    const spans: SpanType[] = _.get(spanEntry, 'data', []);
+    const spans: SpanType[] = get(spanEntry, 'data', []);
 
     if (!spanEntry || spans.length <= 0) {
       return {
@@ -226,11 +226,11 @@ class SpanTree extends React.Component<SpanTreeProps> {
         return acc;
       }
 
-      const spanChildren: SpanType[] = _.get(acc.lookup, span.parent_span_id!, []);
+      const spanChildren: SpanType[] = get(acc.lookup, span.parent_span_id!, []);
 
       spanChildren.push(span);
 
-      _.set(acc.lookup, span.parent_span_id!, spanChildren);
+      set(acc.lookup, span.parent_span_id!, spanChildren);
 
       if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
         acc.traceStartTimestamp = span.start_timestamp;
@@ -238,7 +238,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
       // establish trace end timestamp
 
-      const hasEndTimestamp = _.isNumber(span.timestamp);
+      const hasEndTimestamp = isNumber(span.timestamp);
 
       if (!acc.traceEndTimestamp) {
         if (hasEndTimestamp) {
@@ -264,7 +264,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
 
     // sort span children by their start timestamps in ascending order
 
-    _.forEach(reduced.lookup, spanChildren => {
+    forEach(reduced.lookup, spanChildren => {
       spanChildren.sort((firstSpan, secondSpan) => {
         if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
           return -1;
@@ -381,7 +381,7 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
     const {span, treeDepth} = this.props;
 
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
-    const description = _.get(span, 'description', span.span_id);
+    const description = get(span, 'description', span.span_id);
 
     const MARGIN_LEFT = 8;
     const TOGGLE_BUTTON_MARGIN_RIGHT = 8;

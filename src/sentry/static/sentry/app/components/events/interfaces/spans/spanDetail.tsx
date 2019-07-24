@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
+import {get, map} from 'lodash';
 
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
@@ -35,7 +35,7 @@ const SpanDetail = (props: PropTypes) => {
           <Row title="Span ID">{span.span_id}</Row>
           <Row title="Trace ID">{span.trace_id}</Row>
           <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-          <Row title="Description">{_.get(span, 'description', '')}</Row>
+          <Row title="Description">{get(span, 'description', '')}</Row>
           <Row title="Start Date">
             <React.Fragment>
               <DateTime date={startTimestamp * 1000} />
@@ -54,7 +54,7 @@ const SpanDetail = (props: PropTypes) => {
             {String(!!span.same_process_as_parent)}
           </Row>
           <Tags span={span} />
-          {_.map(_.get(span, 'data', {}), (value, key) => {
+          {map(get(span, 'data', {}), (value, key) => {
             return (
               <Row title={key} key={key}>
                 {JSON.stringify(value, null, 4) || ''}
@@ -102,7 +102,7 @@ const Row = ({
 };
 
 const Tags = ({span}: {span: SpanType}) => {
-  const tags: {[tag_name: string]: string} | undefined = _.get(span, 'tags');
+  const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
 
   if (!tags) {
     return null;
