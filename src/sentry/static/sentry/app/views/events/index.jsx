@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {getParams} from 'app/views/organizationEvents/utils/getParams';
+import {getParams} from 'app/views/events/utils/getParams';
 import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
@@ -17,7 +17,7 @@ import LazyLoad from 'app/components/lazyLoad';
 
 import SearchBar from './searchBar';
 
-class OrganizationEventsContainer extends React.Component {
+class EventsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     router: PropTypes.object,
@@ -49,7 +49,7 @@ class OrganizationEventsContainer extends React.Component {
       return (
         <LazyLoad
           component={() =>
-            import(/* webpackChunkName: "organizationEventsV2" */ 'app/views/organizationEventsV2').then(
+            import(/* webpackChunkName: "OrganizationEventsV2" */ 'app/views/organizationEventsV2').then(
               mod => mod.default
             )
           }
@@ -88,8 +88,8 @@ class OrganizationEventsContainer extends React.Component {
     );
   }
 }
-export default withOrganization(withGlobalSelection(OrganizationEventsContainer));
-export {OrganizationEventsContainer};
+export default withOrganization(withGlobalSelection(EventsContainer));
+export {EventsContainer};
 
 const Body = styled('div')`
   background-color: ${p => p.theme.whiteDark};

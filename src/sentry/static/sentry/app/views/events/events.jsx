@@ -58,11 +58,11 @@ class TotalEventCount extends AsyncComponent {
     ];
   }
 
-  onRequestError(error) {
+  onRequestError() {
     Sentry.captureException(new Error('Unable to fetch "total event count"'));
   }
 
-  renderError(error, disableLog = false, disableReport = false) {
+  renderError() {
     // Don't show an error message, handle it in `onRequestError`
     return null;
   }
@@ -75,7 +75,7 @@ class TotalEventCount extends AsyncComponent {
   }
 }
 
-class OrganizationEvents extends AsyncView {
+class Events extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -137,7 +137,7 @@ class OrganizationEvents extends AsyncView {
     }
   }
 
-  onRequestError(resp, args) {
+  onRequestError(resp) {
     // Allow children to implement this
     if (resp && resp.responseJSON && resp.responseJSON.detail) {
       addErrorMessage(resp.responseJSON.detail);
@@ -228,5 +228,5 @@ const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-export default withOrganization(OrganizationEvents);
-export {OrganizationEvents, parseRowFromLinks};
+export default withOrganization(Events);
+export {Events, parseRowFromLinks};
