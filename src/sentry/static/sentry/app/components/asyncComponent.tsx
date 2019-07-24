@@ -1,6 +1,7 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Location} from 'history';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
@@ -13,7 +14,25 @@ import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-export default class AsyncComponent extends React.Component {
+type Props = {
+  location?: Location;
+  router?: any;
+  params?: any;
+};
+
+export type AsyncComponentState = {
+  loading: boolean;
+  reloading: boolean;
+  error: boolean;
+  errors: object;
+  remainingRequests?: number;
+  [key: string]: any;
+};
+
+export default class AsyncComponent<
+  P extends Props = Props,
+  S extends AsyncComponentState = AsyncComponentState
+> extends React.Component<P, S> {
   static propTypes = {
     location: PropTypes.object,
     router: PropTypes.object,
@@ -68,7 +87,7 @@ export default class AsyncComponent extends React.Component {
     this.fetchData = AsyncComponent.errorHandler(this, this.fetchData.bind(this));
     this.render = AsyncComponent.errorHandler(this, this.render.bind(this));
 
-    this.state = this.getDefaultState();
+    this.state = this.getDefaultState() as Readonly<S>;
 
     this._measurement = {
       hasMeasured: false,
@@ -88,7 +107,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   // Compatiblity shim for child classes that call super on this hook.
-  componentWillReceiveProps(newProps, newContext) {}
+  componentWillReceiveProps(_newProps, _newContext) {}
 
   componentDidUpdate(prevProps, prevContext) {
     const isRouterInContext = !!prevContext.router;
@@ -144,8 +163,11 @@ export default class AsyncComponent extends React.Component {
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
+  api: any;
+  private _measurement: any;
+
   // XXX: cant call this getInitialState as React whines
-  getDefaultState() {
+  getDefaultState(): AsyncComponentState {
     const endpoints = this.getEndpoints();
     const state = {
       // has all data finished requesting?
@@ -156,14 +178,17 @@ export default class AsyncComponent extends React.Component {
       error: false,
       errors: {},
     };
-    endpoints.forEach(([stateKey, endpoint]) => {
+    endpoints.forEach(([stateKey, _endpoint]) => {
       state[stateKey] = null;
     });
     return state;
   }
 
   // Check if we should measure render time for this component
-  markShouldMeasure = ({remainingRequests, error} = {}) => {
+  markShouldMeasure = ({
+    remainingRequests,
+    error,
+  }: {remainingRequests?: number; error?: any} = {}) => {
     if (!this._measurement.hasMeasured) {
       this._measurement.finished = remainingRequests === 0;
       this._measurement.error = error || this._measurement.error;
@@ -191,7 +216,7 @@ export default class AsyncComponent extends React.Component {
 
   reloadData = () => this.fetchData({reloading: true});
 
-  fetchData = extraState => {
+  fetchData = (extraState?: object) => {
     const endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
@@ -209,7 +234,7 @@ export default class AsyncComponent extends React.Component {
       ...extraState,
     });
 
-    endpoints.forEach(([stateKey, endpoint, params, options]) => {
+    endpoints.forEach(([stateKey, endpoint, params, options]: any) => {
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location
@@ -240,15 +265,15 @@ export default class AsyncComponent extends React.Component {
     });
   };
 
-  onRequestSuccess({stateKey, data, jqXHR}) {
+  onRequestSuccess(_resp /*{stateKey, data, jqXHR}*/) {
     // Allow children to implement this
   }
 
-  onRequestError(resp, args) {
+  onRequestError(_resp, _args) {
     // Allow children to implement this
   }
 
-  handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest) => {
+  handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest?: boolean) => {
     this.setState(prevState => {
       const state = {
         [stateKey]: data,
@@ -257,8 +282,8 @@ export default class AsyncComponent extends React.Component {
       };
 
       if (initialRequest) {
-        state.remainingRequests = prevState.remainingRequests - 1;
-        state.loading = prevState.remainingRequests > 1;
+        state.remainingRequests = prevState.remainingRequests! - 1;
+        state.loading = prevState.remainingRequests! > 1;
         state.reloading = prevState.reloading && state.loading;
         this.markShouldMeasure({remainingRequests: state.remainingRequests});
       }
@@ -274,22 +299,22 @@ export default class AsyncComponent extends React.Component {
       Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
-        level: 'error',
+        level: Sentry.Severity.Error,
       });
     }
     this.setState(prevState => {
-      const state = {
+      const loading = prevState.remainingRequests! > 1;
+      const state: AsyncComponentState = {
         [stateKey]: null,
         errors: {
           ...prevState.errors,
           [stateKey]: error,
         },
         error: prevState.error || !!error,
+        remainingRequests: prevState.remainingRequests! - 1,
+        loading,
+        reloading: prevState.reloading && loading,
       };
-
-      state.remainingRequests = prevState.remainingRequests - 1;
-      state.loading = prevState.remainingRequests > 1;
-      state.reloading = prevState.reloading && state.loading;
       this.markShouldMeasure({remainingRequests: state.remainingRequests, error: true});
 
       return state;
@@ -318,7 +343,8 @@ export default class AsyncComponent extends React.Component {
    *   ['stateKeyName', '/endpoint/', {optional: 'query params'}]
    * ]
    */
-  getEndpoints() {
+
+  getEndpoints(): ([string, string, any] | [string, string])[] {
     const endpoint = this.getEndpoint();
     if (!endpoint) {
       return [];
@@ -327,7 +353,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
-    const [firstEndpoint] = this.getEndpoints() || [];
+    const [firstEndpoint]: any = this.getEndpoints() || [];
     const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
@@ -409,6 +435,11 @@ export default class AsyncComponent extends React.Component {
       : this.state.error
       ? this.renderError(new Error('Unable to load all required endpoints'))
       : this.renderBody();
+  }
+
+  renderBody(): React.ReactElement {
+    // Allow children to implement this
+    throw new Error('Not implemented');
   }
 
   render() {
