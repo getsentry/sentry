@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {EventsChart} from 'app/views/organizationEvents/eventsChart';
+import {EventsChart} from 'app/views/events/eventsChart';
 import {chart, doZoom, mockZoomRange} from 'app-test/helpers/charts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
 import {updateParams} from 'app/actionCreators/globalSelection';
 
-jest.mock('app/views/organizationEvents/utils/eventsRequest', () => jest.fn(() => null));
+jest.mock('app/views/events/utils/eventsRequest', () => jest.fn(() => null));
 
 jest.mock('app/actionCreators/globalSelection', () => ({
   updateParams: jest.fn(),

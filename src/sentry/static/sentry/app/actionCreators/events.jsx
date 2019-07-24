@@ -1,4 +1,4 @@
-import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
+import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 
 const BASE_URL = org => `/organizations/${org.slug}/events-stats/`;
@@ -28,7 +28,6 @@ export const doEventsRequest = (
     end,
     interval,
     includePrevious,
-    limit,
     query,
     yAxis,
     groupId,

@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import SearchBar from 'app/views/organizationEvents/searchBar';
+import SearchBar from 'app/views/events/searchBar';
 import TagStore from 'app/stores/tagStore';
 
 const focusInput = el => el.find('input[name="query"]').simulate('focus');

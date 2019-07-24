@@ -7,7 +7,7 @@ import {Box} from 'grid-emotion';
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
-import {getParams} from 'app/views/organizationEvents/utils/getParams';
+import {getParams} from 'app/views/events/utils/getParams';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';

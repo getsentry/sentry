@@ -4,14 +4,14 @@ import styled from 'react-emotion';
 import {omit, isEqual} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import SearchBar from 'app/views/organizationEvents/searchBar';
+import SearchBar from 'app/views/events/searchBar';
 import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
+import EventsChart from 'app/views/events/eventsChart';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {getParams} from 'app/views/organizationEvents/utils/getParams';
+import {getParams} from 'app/views/events/utils/getParams';
 
 import Table from './table';
 import Tags from './tags';

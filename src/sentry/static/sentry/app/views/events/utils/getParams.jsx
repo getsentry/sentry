@@ -35,7 +35,7 @@ export function getParams(params = {}) {
     utc: getUtcValue(utc),
     ...otherParams,
   })
-    .filter(([key, value]) => defined(value))
+    .filter(([_key, value]) => defined(value))
     .reduce(
       (acc, [key, value]) => ({
         ...acc,

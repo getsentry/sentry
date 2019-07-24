@@ -1,4 +1,4 @@
-import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
+import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 
 describe('canIncludePreviousPeriod', function() {
   it('does not include if `includePrevious` is false', function() {

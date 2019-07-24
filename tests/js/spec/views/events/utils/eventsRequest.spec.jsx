@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {doEventsRequest} from 'app/actionCreators/events';
-import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
+import EventsRequest from 'app/views/events/utils/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,

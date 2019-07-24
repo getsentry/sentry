@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
+import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -12,7 +12,7 @@ import LoadingPanel from '../loadingPanel';
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = props =>
-  omitBy(props, (value, key) => propNamesToIgnore.includes(key));
+  omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 class EventsRequest extends React.PureComponent {
   static propTypes = {
@@ -221,7 +221,7 @@ class EventsRequest extends React.PureComponent {
       seriesName: 'Previous Period',
       data: this.calculateTotalsPerTimestamp(
         previous,
-        (timestamp, countArray, i) => current[i][0] * 1000
+        (_timestamp, _countArray, i) => current[i][0] * 1000
       ),
     };
   };

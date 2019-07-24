@@ -7,7 +7,7 @@ import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
-import LoadingPanel, {LoadingMask} from 'app/views/organizationEvents/loadingPanel';
+import LoadingPanel, {LoadingMask} from 'app/views/events/loadingPanel';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
@@ -138,7 +138,7 @@ class EventsChart extends React.Component {
         environments={environments}
         {...props}
       >
-        {({interval, ...zoomRenderProps}) => (
+        {({zoomRenderProps}) => (
           <EventsRequest
             {...props}
             api={api}

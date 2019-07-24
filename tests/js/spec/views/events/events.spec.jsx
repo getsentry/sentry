@@ -1,13 +1,13 @@
 import {withRouter, browserHistory} from 'react-router';
 import React from 'react';
 
-import OrganizationEvents, {parseRowFromLinks} from 'app/views/organizationEvents/events';
+import Events, {parseRowFromLinks} from 'app/views/events/events';
 import {chart, doZoom} from 'app-test/helpers/charts';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
-import OrganizationEventsContainer from 'app/views/organizationEvents';
+import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
@@ -20,9 +20,9 @@ const pageTwoLinks =
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
 
-const OrganizationEventsWithRouter = withRouter(OrganizationEvents);
+const EventsWithRouter = withRouter(Events);
 
-describe('OrganizationEventsErrors', function() {
+describe('EventsErrors', function() {
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
@@ -55,12 +55,12 @@ describe('OrganizationEventsErrors', function() {
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: (url, opts) => [TestStubs.OrganizationEvent(opts.query)],
+      body: (_url, opts) => [TestStubs.OrganizationEvent(opts.query)],
       headers: {Link: pageOneLinks},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: (url, opts) => {
+      body: (_url, opts) => {
         return TestStubs.EventsStats(opts.query);
       },
     });
@@ -82,7 +82,7 @@ describe('OrganizationEventsErrors', function() {
       body: {details: 'Error'},
     });
     const wrapper = mount(
-      <OrganizationEvents organization={organization} location={{query: {}}} />,
+      <Events organization={organization} location={{query: {}}} />,
       routerContext
     );
     await tick();
@@ -95,7 +95,7 @@ describe('OrganizationEventsErrors', function() {
 
   it('renders events table', async function() {
     const wrapper = mount(
-      <OrganizationEvents organization={organization} location={{query: {}}} />,
+      <Events organization={organization} location={{query: {}}} />,
       routerContext
     );
     await tick();
@@ -111,10 +111,10 @@ describe('OrganizationEventsErrors', function() {
       ...organization,
       features: [...organization.features, 'internal-catchall'],
     });
-    const wrapper = mount(
-      <OrganizationEvents organization={newOrg} location={{query: {}}} />,
-      {...routerContext, context: {...routerContext.context, organization: newOrg}}
-    );
+    const wrapper = mount(<Events organization={newOrg} location={{query: {}}} />, {
+      ...routerContext,
+      context: {...routerContext.context, organization: newOrg},
+    });
     await tick();
     wrapper.update();
     expect(eventsMetaMock).toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('OrganizationEventsErrors', function() {
   // Use `search` to compare instead of `query` because that's what we check in `AsyncComponent`
   it('location.query changes updates events table', async function() {
     const wrapper = mount(
-      <OrganizationEventsWithRouter
+      <EventsWithRouter
         organization={organization}
         location={{
           search: '?statsPeriod=14d',
@@ -204,16 +204,13 @@ describe('OrganizationEventsErrors', function() {
       };
 
       wrapper = mount(
-        <OrganizationEventsContainer
+        <EventsContainer
           router={newRouter}
           organization={organization}
           location={newRouter.location}
         >
-          <OrganizationEventsWithRouter
-            location={newRouter.location}
-            organization={organization}
-          />
-        </OrganizationEventsContainer>,
+          <EventsWithRouter location={newRouter.location} organization={organization} />
+        </EventsContainer>,
         newRouterContext
       );
       mockRouterPush(wrapper, router);
@@ -269,7 +266,7 @@ describe('OrganizationEventsErrors', function() {
   });
 });
 
-describe('OrganizationEventsContainer', function() {
+describe('EventsContainer', function() {
   let wrapper;
   let eventsMock;
   let eventsStatsMock;
@@ -306,12 +303,12 @@ describe('OrganizationEventsContainer', function() {
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: (url, opts) => [TestStubs.OrganizationEvent(opts.query)],
+      body: (_url, opts) => [TestStubs.OrganizationEvent(opts.query)],
       headers: {Link: pageOneLinks},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: (url, opts) => {
+      body: (_url, opts) => {
         return TestStubs.EventsStats(opts.query);
       },
     });
@@ -321,16 +318,13 @@ describe('OrganizationEventsContainer', function() {
     });
 
     wrapper = mount(
-      <OrganizationEventsContainer
+      <EventsContainer
         router={router}
         organization={organization}
         location={router.location}
       >
-        <OrganizationEventsWithRouter
-          location={router.location}
-          organization={organization}
-        />
-      </OrganizationEventsContainer>,
+        <EventsWithRouter location={router.location} organization={organization} />
+      </EventsContainer>,
       routerContext
     );
 
@@ -410,14 +404,14 @@ describe('OrganizationEventsContainer', function() {
     browserHistory.replace = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: (url, opts) => [
+      body: (_url, opts) => [
         TestStubs.OrganizationEvent({...opts.query, eventID: eventId}),
       ],
       headers: {'X-Sentry-Direct-Hit': '1'},
     });
 
     wrapper = mount(
-      <OrganizationEvents organization={organization} location={{query: eventId}} />,
+      <Events organization={organization} location={{query: eventId}} />,
       routerContext
     );
 

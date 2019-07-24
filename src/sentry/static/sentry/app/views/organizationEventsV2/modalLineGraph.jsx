@@ -11,7 +11,7 @@ import {
   getUtcDateString,
   intervalToMilliseconds,
 } from 'app/utils/dates';
-import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
+import EventsRequest from 'app/views/events/utils/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import MarkLine from 'app/components/charts/components/markLine';
 import {Panel} from 'app/components/panels';
@@ -42,7 +42,7 @@ const getCurrentEventMarker = currentEvent => {
         },
       },
       tooltip: {
-        formatter: ({data}) => {
+        formatter: () => {
           return `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`;
         },
       },
