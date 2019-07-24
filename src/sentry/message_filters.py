@@ -107,7 +107,10 @@ def get_filter_state(filter_id, project):
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
-    filter_state = ProjectOption.objects.get_value(project=project, key=u'filters:{}'.format(flt.spec.id))
+    filter_state = ProjectOption.objects.get_value(
+        project=project,
+        key=u'filters:{}'.format(flt.spec.id),
+    )
 
     if filter_state is None:
         raise ValueError("Could not find filter state for filter {0}."
@@ -126,11 +129,6 @@ def get_filter_state(filter_id, project):
 
 class FilterNotRegistered(Exception):
     pass
-
-
-# ########################################################################################################
-# ########################################### Implementation #############################################
-# ########################################################################################################
 
 
 def _filter_from_filter_id(filter_id):
@@ -482,7 +480,7 @@ def _filter_ie_internal(browser, compare_version):
 
 # list all browser specific sub filters that should be called
 _legacy_browsers_sub_filters = {
-    'all': _filter_default,
+    'default': _filter_default,
     'opera_pre_15': _filter_opera_pre_15,
     'safari_pre_6': _filter_safari_pre_6,
     'android_pre_4': _filter_android_pre_4,

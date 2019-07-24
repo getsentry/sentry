@@ -457,7 +457,7 @@ def _filter_option_to_config_setting(flt, setting):
     if flt.spec.id == FilterStatKeys.LEGACY_BROWSER:
         if is_enabled:
             if setting == '1':
-                ret_val['options'] = ['all']
+                ret_val['options'] = ['default']
             else:
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')
