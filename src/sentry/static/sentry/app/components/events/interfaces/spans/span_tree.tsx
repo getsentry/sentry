@@ -16,7 +16,7 @@ import {
 import {DragManagerChildrenProps} from './dragManager';
 import SpanDetail from './spanDetail';
 
-type TraceType = {
+type TraceContextType = {
   type: 'trace';
   span_id: string;
   trace_id: string;
@@ -132,7 +132,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
   renderRootSpan = (): JSX.Element | null => {
     const {event, dragProps} = this.props;
 
-    const trace: TraceType | undefined = _.get(event, 'contexts.trace');
+    const trace: TraceContextType | undefined = _.get(event, 'contexts.trace');
 
     if (!trace) {
       return null;
