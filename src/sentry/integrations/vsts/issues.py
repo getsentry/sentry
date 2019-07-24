@@ -246,7 +246,15 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_done_states(self, project):
         client = self.get_client()
-        all_states = client.get_work_item_states(self.instance, project)['value']
+        try:
+            all_states = client.get_work_item_states(self.instance, project)['value']
+        except ApiError as err:
+            self.logger.info('vsts.get-done-states.failed', extra={
+                'integration_id': self.model.id,
+                'exception': err
+            })
+            return []
+
         done_states = [
             state['name'] for state in all_states if state['category'] in self.done_categories
         ]
