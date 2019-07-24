@@ -400,7 +400,7 @@ class APIView(BaseView):
             project_id = _get_project_id_from_request(
                 project_id, request, self.auth_helper_cls, helper)
 
-            project_config = get_project_config(project_id)
+            project_config = get_project_config(project_id, for_store=True)
 
             helper.context.bind_project(project_config.project)
 

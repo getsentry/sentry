@@ -30,7 +30,7 @@ def get_project_key_config(project_key):
     }
 
 
-def get_project_config(project_id, full_config=True):
+def get_project_config(project_id, full_config=True, for_store=False):
     """
     Constructs the ProjectConfig information.
 
@@ -38,6 +38,11 @@ def get_project_config(project_id, full_config=True):
     :param full_config: True if only the full config is required, False
         if only the restricted (for external relays) is required
         (default True, i.e. full configuration)
+    :param for_store: If set to true, this omits all parameters that are not
+        needed for store normalization. This is a temporary flag that should
+        be removed once store has been moved to Relay. Most importantly, this
+        avoids database accesses.
+
     :return: a ProjectConfig object for the given project
     """
     project = _get_project_from_id(six.text_type(project_id))
@@ -48,12 +53,15 @@ def get_project_config(project_id, full_config=True):
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
-    project_keys = ProjectKey.objects.filter(
-        project=project,
-    ).all()
+    if for_store:
+        project_keys = []
+    else:
+        project_keys = ProjectKey.objects \
+            .filter(project=project) \
+            .all()
 
     public_keys = {}
-    for project_key in list(project_keys):
+    for project_key in project_keys:
         public_keys[project_key.public_key] = project_key.status == 0
 
     now = datetime.utcnow().replace(tzinfo=utc)
