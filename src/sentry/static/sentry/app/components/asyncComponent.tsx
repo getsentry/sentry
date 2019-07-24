@@ -29,8 +29,8 @@ export type AsyncComponentState = {
 };
 
 export default class AsyncComponent<
-  P extends Props,
-  S extends AsyncComponentState
+  P extends Props = Props,
+  S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
   static propTypes = {
     location: PropTypes.object,
@@ -86,7 +86,7 @@ export default class AsyncComponent<
     this.fetchData = AsyncComponent.errorHandler(this, this.fetchData.bind(this));
     this.render = AsyncComponent.errorHandler(this, this.render.bind(this));
 
-    this.state = this.getDefaultState() as any;
+    this.state = this.getDefaultState() as Readonly<S>;
 
     this._measurement = {
       hasMeasured: false,
