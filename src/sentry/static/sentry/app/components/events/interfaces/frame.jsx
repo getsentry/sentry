@@ -557,4 +557,4 @@ const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
 `;
 
-export default withSentryAppComponents('stacktrace-link')(Frame);
+export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

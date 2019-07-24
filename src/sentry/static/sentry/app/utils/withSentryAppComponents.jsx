@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import getDisplayName from 'app/utils/getDisplayName';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 
-const withSentryAppComponents = type => WrappedComponent =>
+const withSentryAppComponents = (WrappedComponent, {componentType} = {}) =>
   createReactClass({
     displayName: `withSentryAppComponents(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.connect(SentryAppComponentsStore, 'components')],
@@ -13,7 +13,7 @@ const withSentryAppComponents = type => WrappedComponent =>
     render() {
       return (
         <WrappedComponent
-          components={SentryAppComponentsStore.getComponentByType(type)}
+          components={SentryAppComponentsStore.getComponentByType(componentType)}
           {...this.props}
         />
       );
