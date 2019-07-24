@@ -11,7 +11,7 @@ except ImportError:
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import SnubaEvent
+from sentry.models import Event, SnubaEvent
 from sentry.lang.native.applecrashreport import AppleCrashReport
 from sentry.utils.safe import get_path
 
@@ -29,6 +29,8 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         event = SnubaEvent.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
+
+        Event.objects.bind_nodes([event], 'data')
 
         if event.platform not in ('cocoa', 'native'):
             return HttpResponse(

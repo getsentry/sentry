@@ -6,7 +6,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import SnubaEvent, ProjectOwnership
+from sentry.models import Event, SnubaEvent, ProjectOwnership
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -30,6 +30,9 @@ class EventOwnersEndpoint(ProjectEndpoint):
         # the implicit "everyone" and no owners
         if owners == ProjectOwnership.Everyone:
             owners = []
+
+        # populate event data
+        Event.objects.bind_nodes([event], 'data')
 
         return Response({
             'owners': serialize(

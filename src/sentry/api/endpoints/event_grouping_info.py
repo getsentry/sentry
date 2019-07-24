@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
-from sentry.models import SnubaEvent
+from sentry.models import Event, SnubaEvent
 from sentry.utils import json
 
 
@@ -23,6 +23,8 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         event = SnubaEvent.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
+
+        Event.objects.bind_nodes([event], 'data')
 
         rv = {}
         config_name = request.GET.get('config') or None
