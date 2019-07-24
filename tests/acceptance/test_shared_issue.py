@@ -47,5 +47,6 @@ class SharedIssueTest(AcceptanceTestCase):
         )
 
         self.browser.get(u'/share/issue/{}/'.format(group.get_share_id()))
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.entries')
         self.browser.snapshot('shared issue cocoa')
