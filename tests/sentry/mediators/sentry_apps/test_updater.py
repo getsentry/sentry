@@ -59,6 +59,17 @@ class TestUpdater(TestCase):
         with self.assertRaises(APIError):
             updater.call()
 
+    def test_doesnt_update_verify_install_if_internal(self):
+        self.create_project(organization=self.org)
+        sentry_app = self.create_internal_integration(
+            name='Internal',
+            organization=self.org,
+        )
+        updater = Updater(sentry_app=sentry_app, user=self.user)
+        updater.verify_install = True
+        with self.assertRaises(APIError):
+            updater.call()
+
     def test_updates_service_hook_events(self):
         sentry_app = self.create_sentry_app(
             name='sentry',
