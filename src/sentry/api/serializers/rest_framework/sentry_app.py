@@ -38,8 +38,11 @@ class EventListField(serializers.Field):
 
 class SchemaField(serializers.Field):
     def to_internal_value(self, data):
-        if not data:
+        if data is None:
             return
+
+        if data == '' or data == {}:
+            return {}
 
         try:
             validate_schema(data)
