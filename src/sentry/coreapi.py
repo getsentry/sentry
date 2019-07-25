@@ -10,20 +10,18 @@ import re
 import six
 import zlib
 
-from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
-from sentry import features
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
-from sentry.utils import kafka, json
+from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
@@ -176,25 +174,10 @@ class ClientApiHelper(object):
         if attachments is not None:
             attachment_cache.set(cache_key, attachments, cache_timeout)
 
-        # NOTE: Project is bound to the context in most cases in production, which
-        # is enough for us to do `projects:kafka-ingest` testing.
-        project = self.context and self.context.project
-
-        if project and features.has('projects:kafka-ingest', project=project):
-            kafka.produce_sync(
-                settings.KAFKA_PREPROCESS,
-                value=json.dumps({
-                    'cache_key': cache_key,
-                    'start_time': start_time,
-                    'from_reprocessing': from_reprocessing,
-                    'data': data,
-                }),
-            )
-        else:
-            task = from_reprocessing and \
-                preprocess_event_from_reprocessing or preprocess_event
-            task.delay(cache_key=cache_key, start_time=start_time,
-                       event_id=data['event_id'])
+        task = from_reprocessing and \
+            preprocess_event_from_reprocessing or preprocess_event
+        task.delay(cache_key=cache_key, start_time=start_time,
+                   event_id=data['event_id'])
 
 
 @six.add_metaclass(abc.ABCMeta)
