@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import space from 'app/styles/space';
+
 import {
   rectOfContent,
   clamp,
@@ -113,7 +115,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     );
   };
 
-  renderCursorGuide = () => {
+  renderMinimapCursorGuide = () => {
     if (!this.state.showCursorGuide || !this.state.mousePageX) {
       return null;
     }
@@ -264,7 +266,108 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
 
     const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
 
-    return <TimeAxis>hello: {getHumanDuration(duration)}</TimeAxis>;
+    const firstTick = (
+      <TickLabel
+        align={TickAlignment.Left}
+        hideTickMarker={true}
+        duration={0}
+        style={{
+          left: space(1),
+        }}
+      />
+    );
+
+    const secondTick = (
+      <TickLabel
+        duration={duration * 0.25}
+        style={{
+          left: '25%',
+        }}
+      />
+    );
+
+    const thirdTick = (
+      <TickLabel
+        duration={duration * 0.5}
+        style={{
+          left: '50%',
+        }}
+      />
+    );
+
+    const fourthTick = (
+      <TickLabel
+        duration={duration * 0.75}
+        style={{
+          left: '75%',
+        }}
+      />
+    );
+
+    const lastTick = (
+      <TickLabel
+        duration={duration}
+        align={TickAlignment.Right}
+        hideTickMarker={true}
+        style={{
+          right: space(1),
+        }}
+      />
+    );
+
+    return (
+      <TimeAxis>
+        {firstTick}
+        {secondTick}
+        {thirdTick}
+        {fourthTick}
+        {lastTick}
+        <svg
+          style={{
+            position: 'relative',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: `${TIME_AXIS_HEIGHT}px`,
+          }}
+        >
+          {this.renderTimeAxisCursorGuide()}
+        </svg>
+      </TimeAxis>
+    );
+  };
+
+  renderTimeAxisCursorGuide = () => {
+    if (!this.state.showCursorGuide || !this.state.mousePageX) {
+      return null;
+    }
+
+    const minimapCanvas = this.props.minimapInteractiveRef.current;
+
+    if (!minimapCanvas) {
+      return null;
+    }
+
+    const rect = rectOfContent(minimapCanvas);
+
+    // clamp mouseLeft to be within [0, 100]
+    const mouseLeft = clamp(
+      ((this.state.mousePageX - rect.x) / rect.width) * 100,
+      0,
+      100
+    );
+
+    return (
+      <line
+        x1={`${mouseLeft}%`}
+        x2={`${mouseLeft}%`}
+        y1="0"
+        y2={TIME_AXIS_HEIGHT}
+        strokeWidth="1"
+        strokeOpacity="0.7"
+        style={{stroke: '#E03E2F'}}
+      />
+    );
   };
 
   render() {
@@ -299,7 +402,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
           >
             <InteractiveLayer style={{overflow: 'visible'}}>
               {this.renderFog(this.props.dragProps)}
-              {this.renderCursorGuide()}
+              {this.renderMinimapCursorGuide()}
               {this.renderViewHandles(this.props.dragProps)}
             </InteractiveLayer>
             {this.renderTimeAxis()}
@@ -320,7 +423,75 @@ const TimeAxis = styled('div')`
 
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: #faf9fb;
+
+  color: #9585a3;
+  font-size: 10px;
+  font-weight: 500;
 `;
+
+const TickLabelContainer = styled('div')`
+  height: ${TIME_AXIS_HEIGHT}px;
+
+  position: absolute;
+  top: 0;
+
+  user-select: none;
+`;
+
+const TickText = styled('span')`
+  ${({align}: {align: TickAlignment}) => {
+    switch (align) {
+      case TickAlignment.Center: {
+        return 'transform: translateX(-50%)';
+      }
+      case TickAlignment.Left: {
+        return null;
+      }
+
+      case TickAlignment.Right: {
+        return 'transform: translateX(-100%)';
+      }
+    }
+  }};
+`;
+
+enum TickAlignment {
+  Left,
+  Right,
+  Center,
+}
+
+const TickMarker = styled('div')`
+  width: 1px;
+  height: 5px;
+
+  background-color: #d1cad8;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+`;
+
+const TickLabel = (props: {
+  style: React.CSSProperties;
+  hideTickMarker?: boolean;
+  align?: TickAlignment;
+  duration: number;
+}) => {
+  const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
+
+  return (
+    <TickLabelContainer style={style}>
+      {hideTickMarker ? null : <TickMarker />}
+      <TickText
+        align={align}
+        style={{position: 'absolute', bottom: 0, whiteSpace: 'nowrap'}}
+      >
+        {getHumanDuration(duration)}
+      </TickText>
+    </TickLabelContainer>
+  );
+};
 
 const MinimapContainer = styled('div')`
   width: 100%;
