@@ -47,14 +47,14 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 'id', 'slug'))
 
         try:
-            event = Event.objects.filter(event_id=event_id,
-                                         project_id__in=project_slugs_by_id.keys())[0]
-        except IndexError:
+            event = Event.objects.get(event_id=event_id,
+                                      project_id__in=project_slugs_by_id.keys())
+        except Event.DoesNotExist:
             try:
-                event_mapping = EventMapping.objects.filter(event_id=event_id,
-                                                            project_id__in=project_slugs_by_id.keys())[0]
+                event_mapping = EventMapping.objects.get(event_id=event_id,
+                                                         project_id__in=project_slugs_by_id.keys())
 
-            except IndexError:
+            except EventMapping.DoesNotExist:
                 raise ResourceDoesNotExist()
 
             return Response(
