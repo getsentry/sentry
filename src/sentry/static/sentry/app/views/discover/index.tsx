@@ -9,6 +9,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import {Organization} from 'app/types';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -21,7 +22,7 @@ import {
 } from './utils';
 
 import {DiscoverWrapper} from './styles';
-import {GlobalSelection, Organization, SavedQuery} from './types';
+import {GlobalSelection, SavedQuery} from './types';
 
 const AlertAsAny: any = Alert;
 

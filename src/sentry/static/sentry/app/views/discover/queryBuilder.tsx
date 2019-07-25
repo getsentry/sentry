@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+import {Project, Organization} from 'app/types';
 
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
@@ -12,7 +13,7 @@ import ConfigStore from 'app/stores/configStore';
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
-import {Aggregation, Column, Query, Project, Organization, SnubaResult} from './types';
+import {Aggregation, Column, Query, SnubaResult} from './types';
 
 const API_LIMIT = 10000;
 

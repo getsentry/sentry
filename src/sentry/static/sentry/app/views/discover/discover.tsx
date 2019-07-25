@@ -7,6 +7,7 @@ import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import PageHeading from 'app/components/pageHeading';
+import {Organization} from 'app/types';
 
 import {
   DiscoverContainer,
@@ -37,7 +38,7 @@ import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
 import createResultManager from './resultManager';
 
-import {Organization, SavedQuery} from './types';
+import {SavedQuery} from './types';
 
 type Props = {
   organization: Organization;

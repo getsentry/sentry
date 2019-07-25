@@ -5,6 +5,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
+import {Organization} from 'app/types';
 
 import {fetchSavedQueries} from '../utils';
 import {
@@ -15,7 +16,7 @@ import {
   SavedQueryLink,
   SavedQueryUpdated,
 } from '../styles';
-import {Organization, SavedQuery} from '../types';
+import {SavedQuery} from '../types';
 
 type SavedQueriesProps = {
   organization: Organization;
