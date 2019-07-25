@@ -261,6 +261,38 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     );
   };
 
+  renderDurationGuide = () => {
+    if (!this.state.showCursorGuide || !this.state.mousePageX) {
+      return null;
+    }
+
+    const minimapCanvas = this.props.minimapInteractiveRef.current;
+
+    if (!minimapCanvas) {
+      return null;
+    }
+
+    const rect = rectOfContent(minimapCanvas);
+
+    // clamp mouseLeft to be within [0, 1]
+    const mouseLeft = clamp((this.state.mousePageX - rect.x) / rect.width, 0, 1);
+
+    const {trace} = this.props;
+
+    const duration =
+      mouseLeft * Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
+
+    const style = {top: 0, left: `calc(${mouseLeft * 100}% + 4px)`};
+
+    const alignLeft = (1 - mouseLeft) * rect.width <= 100;
+
+    return (
+      <DurationGuideBox style={style} alignLeft={alignLeft}>
+        <span>{getHumanDuration(duration)}</span>
+      </DurationGuideBox>
+    );
+  };
+
   renderTimeAxis = () => {
     const {trace} = this.props;
 
@@ -333,6 +365,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
         >
           {this.renderTimeAxisCursorGuide()}
         </svg>
+        {this.renderDurationGuide()}
       </TimeAxis>
     );
   };
@@ -439,6 +472,12 @@ const TickLabelContainer = styled('div')`
 `;
 
 const TickText = styled('span')`
+  line-height: 1;
+
+  position: absolute;
+  bottom: 8px;
+  white-space: nowrap;
+
   ${({align}: {align: TickAlignment}) => {
     switch (align) {
       case TickAlignment.Center: {
@@ -470,6 +509,8 @@ const TickMarker = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
+
+  transform: translateX(-50%);
 `;
 
 const TickLabel = (props: {
@@ -483,15 +524,37 @@ const TickLabel = (props: {
   return (
     <TickLabelContainer style={style}>
       {hideTickMarker ? null : <TickMarker />}
-      <TickText
-        align={align}
-        style={{position: 'absolute', bottom: 0, whiteSpace: 'nowrap'}}
-      >
-        {getHumanDuration(duration)}
-      </TickText>
+      <TickText align={align}>{getHumanDuration(duration)}</TickText>
     </TickLabelContainer>
   );
 };
+
+const DurationGuideBox = styled('div')`
+  position: absolute;
+
+  background-color: rgba(255, 255, 255, 1);
+  padding: 4px;
+
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+
+  height: 16px;
+
+  line-height: 1;
+  vertical-align: middle;
+
+  transform: translateY(50%);
+
+  white-space: nowrap;
+
+  ${({alignLeft}: {alignLeft: boolean}) => {
+    if (!alignLeft) {
+      return null;
+    }
+
+    return `transform: translateY(50%) translateX(-100%) translateX(-8px);`;
+  }};
+`;
 
 const MinimapContainer = styled('div')`
   width: 100%;
