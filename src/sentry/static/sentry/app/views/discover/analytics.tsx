@@ -1,5 +1,6 @@
+import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import {Organization, Query} from './types';
+import {Query} from './types';
 
 /**
  * Takes an organization and query and tracks in Redash as discover.query.

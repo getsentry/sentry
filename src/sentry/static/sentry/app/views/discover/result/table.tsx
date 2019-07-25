@@ -1,6 +1,7 @@
 import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import styled from 'react-emotion';
+import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
@@ -9,7 +10,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withOrganization from 'app/utils/withOrganization';
 
 import {getDisplayValue, getDisplayText} from './utils';
-import {Organization, Query, SnubaResult} from '../types';
+import {Query, SnubaResult} from '../types';
 
 const TABLE_ROW_HEIGHT = 30;
 const TABLE_ROW_BORDER = 1;
