@@ -11,6 +11,7 @@ import {
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  getHumanDuration,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanDetail from './spanDetail';
@@ -312,8 +313,8 @@ class Span extends React.Component<SpanPropTypes, SpanState> {
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
 
-    const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${duration.toFixed(3)} ms`;
+    const duration = Math.abs(endTimestamp - startTimestamp);
+    const durationString = getHumanDuration(duration);
 
     const bounds = this.getBounds();
 

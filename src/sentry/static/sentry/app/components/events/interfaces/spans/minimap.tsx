@@ -1,8 +1,16 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {rectOfContent, clamp, rectRelativeTo, rectOfElement, toPercent} from './utils';
+import {
+  rectOfContent,
+  clamp,
+  rectRelativeTo,
+  rectOfElement,
+  toPercent,
+  getHumanDuration,
+} from './utils';
 import {DragManagerChildrenProps} from './dragManager';
+import {ParsedTraceType} from './types';
 
 const MINIMAP_HEIGHT = 75;
 const TIME_AXIS_HEIGHT = 30;
@@ -11,6 +19,7 @@ type MinimapProps = {
   traceViewRef: React.RefObject<HTMLDivElement>;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
+  trace: ParsedTraceType;
 };
 
 type MinimapState = {
@@ -250,6 +259,14 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     );
   };
 
+  renderTimeAxis = () => {
+    const {trace} = this.props;
+
+    const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
+
+    return <TimeAxis>hello: {getHumanDuration(duration)}</TimeAxis>;
+  };
+
   render() {
     return (
       <React.Fragment>
@@ -285,7 +302,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
               {this.renderCursorGuide()}
               {this.renderViewHandles(this.props.dragProps)}
             </InteractiveLayer>
-            <TimeAxis>hello</TimeAxis>
+            {this.renderTimeAxis()}
           </div>
         </MinimapContainer>
       </React.Fragment>

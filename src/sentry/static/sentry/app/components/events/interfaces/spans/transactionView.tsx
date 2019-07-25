@@ -44,7 +44,7 @@ class TransactionView extends React.Component<
     }
   }
 
-  renderMinimap = (dragProps: DragManagerChildrenProps) => {
+  renderMinimap = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
     if (!this.state.renderMinimap) {
       return null;
     }
@@ -54,6 +54,7 @@ class TransactionView extends React.Component<
         traceViewRef={this.traceViewRef}
         minimapInteractiveRef={this.minimapInteractiveRef}
         dragProps={dragProps}
+        trace={parsedTrace}
       />
     );
   };
@@ -68,8 +69,6 @@ class TransactionView extends React.Component<
 
   parseTrace = (): ParsedTraceType => {
     const {event} = this.props;
-
-    console.log('event', event);
 
     const spanEntry: SpanEntry | undefined = event.entries.find(
       (entry: {type: string}) => entry.type === 'spans'
@@ -177,7 +176,7 @@ class TransactionView extends React.Component<
         {(dragProps: DragManagerChildrenProps) => {
           return (
             <React.Fragment>
-              {this.renderMinimap(dragProps)}
+              {this.renderMinimap(dragProps, parsedTrace)}
               <SpanTree
                 traceViewRef={this.traceViewRef}
                 trace={parsedTrace}
