@@ -49,7 +49,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
   }): RenderedSpanTree => {
     const spanBarColour: string = pickSpanBarColour();
 
-    const spanChildren: SpanType[] = get(lookup, spanID, []);
+    const spanChildren: Array<SpanType> = get(lookup, spanID, []);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
