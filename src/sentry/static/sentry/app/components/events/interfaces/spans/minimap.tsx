@@ -5,6 +5,7 @@ import {rectOfContent, clamp, rectRelativeTo, rectOfElement, toPercent} from './
 import {DragManagerChildrenProps} from './dragManager';
 
 const MINIMAP_HEIGHT = 75;
+const TIME_AXIS_HEIGHT = 30;
 
 type MinimapProps = {
   traceViewRef: React.RefObject<HTMLDivElement>;
@@ -251,48 +252,66 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
 
   render() {
     return (
-      <Container>
-        <MinimapBackground innerRef={this.minimapRef} />
-        <div
-          ref={this.props.minimapInteractiveRef}
-          style={{
-            width: '100%',
-            height: `${MINIMAP_HEIGHT}px`,
-            position: 'relative',
-            left: 0,
-          }}
-          onMouseEnter={event => {
-            this.setState({
-              showCursorGuide: true,
-              mousePageX: event.pageX,
-            });
-          }}
-          onMouseLeave={() => {
-            this.setState({showCursorGuide: false, mousePageX: void 0});
-          }}
-          onMouseMove={event => {
-            this.setState({
-              showCursorGuide: true,
-              mousePageX: event.pageX,
-            });
-          }}
-        >
-          <InteractiveLayer style={{overflow: 'visible'}}>
-            {this.renderFog(this.props.dragProps)}
-            {this.renderCursorGuide()}
-            {this.renderViewHandles(this.props.dragProps)}
-          </InteractiveLayer>
-        </div>
-      </Container>
+      <React.Fragment>
+        <MinimapContainer>
+          <MinimapBackground innerRef={this.minimapRef} />
+          <div
+            ref={this.props.minimapInteractiveRef}
+            style={{
+              width: '100%',
+              height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+              position: 'absolute',
+              left: 0,
+              top: 0,
+            }}
+            onMouseEnter={event => {
+              this.setState({
+                showCursorGuide: true,
+                mousePageX: event.pageX,
+              });
+            }}
+            onMouseLeave={() => {
+              this.setState({showCursorGuide: false, mousePageX: void 0});
+            }}
+            onMouseMove={event => {
+              this.setState({
+                showCursorGuide: true,
+                mousePageX: event.pageX,
+              });
+            }}
+          >
+            <InteractiveLayer style={{overflow: 'visible'}}>
+              {this.renderFog(this.props.dragProps)}
+              {this.renderCursorGuide()}
+              {this.renderViewHandles(this.props.dragProps)}
+            </InteractiveLayer>
+            <TimeAxis>hello</TimeAxis>
+          </div>
+        </MinimapContainer>
+      </React.Fragment>
     );
   }
 }
 
-const Container = styled('div')`
+const TimeAxis = styled('div')`
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: ${MINIMAP_HEIGHT}px;
+
+  border-top: 1px solid #d1cad8;
+
+  height: ${TIME_AXIS_HEIGHT}px;
+  background-color: #faf9fb;
+`;
+
+const MinimapContainer = styled('div')`
   width: 100%;
   position: relative;
   left: 0;
   border-bottom: 1px solid #d1cad8;
+
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
 
 const MinimapBackground = styled('canvas')`
