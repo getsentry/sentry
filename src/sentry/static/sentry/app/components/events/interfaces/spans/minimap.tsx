@@ -12,7 +12,7 @@ import {
   getHumanDuration,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
-import {ParsedTraceType} from './types';
+import {ParsedTraceType, TickAlignment} from './types';
 
 const MINIMAP_HEIGHT = 75;
 const TIME_AXIS_HEIGHT = 30;
@@ -491,15 +491,13 @@ const TickText = styled('span')`
       case TickAlignment.Right: {
         return 'transform: translateX(-100%)';
       }
+
+      default: {
+        throw Error(`Invalid tick alignment: ${align}`);
+      }
     }
   }};
 `;
-
-enum TickAlignment {
-  Left,
-  Right,
-  Center,
-}
 
 const TickMarker = styled('div')`
   width: 1px;
@@ -553,7 +551,7 @@ const DurationGuideBox = styled('div')`
       return null;
     }
 
-    return `transform: translateY(50%) translateX(-100%) translateX(-8px);`;
+    return 'transform: translateY(50%) translateX(-100%) translateX(-8px);';
   }};
 `;
 

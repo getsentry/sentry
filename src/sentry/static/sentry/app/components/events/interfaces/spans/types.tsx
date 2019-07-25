@@ -30,3 +30,9 @@ export type ParsedTraceType = {
   traceStartTimestamp: number;
   traceEndTimestamp: number;
 };
+
+export enum TickAlignment {
+  Left,
+  Right,
+  Center,
+}
