@@ -17,6 +17,8 @@ export type SpanEntry = {
 
 export type SentryEvent = {
   entries: Array<SpanEntry>;
+  startTimestamp: number;
+  endTimestamp: number;
 };
 
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};

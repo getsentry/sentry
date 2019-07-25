@@ -17,7 +17,7 @@ type TraceContextType = {
 };
 
 type TransactionViewProps = {
-  event: SentryEvent;
+  event: Readonly<SentryEvent>;
 };
 
 type TransactionViewState = {
@@ -83,8 +83,8 @@ class TransactionView extends React.Component<
     if (!spanEntry || spans.length <= 0) {
       return {
         lookup: {},
-        traceStartTimestamp: 0,
-        traceEndTimestamp: 0,
+        traceStartTimestamp: event.startTimestamp,
+        traceEndTimestamp: event.endTimestamp,
         traceID,
         rootSpanID,
       };
@@ -94,8 +94,8 @@ class TransactionView extends React.Component<
 
     const init: ParsedTraceType = {
       lookup: {},
-      traceStartTimestamp: spans[0].start_timestamp,
-      traceEndTimestamp: 0,
+      traceStartTimestamp: event.startTimestamp,
+      traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
     };
