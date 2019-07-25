@@ -11,6 +11,7 @@ from sentry.api.serializers.models.event import (
 )
 from sentry.models import EventError
 from sentry.testutils import TestCase
+from sentry.utils.samples import load_data
 
 
 class EventSerializerTest(TestCase):
@@ -36,6 +37,8 @@ class EventSerializerTest(TestCase):
         assert 'data' in result['errors'][0]
         assert result['errors'][0]['type'] == EventError.INVALID_DATA
         assert result['errors'][0]['data'] == {'name': u'ü'}
+        assert 'startTimestamp' not in result
+        assert 'timestamp' not in result
 
     def test_hidden_eventerror(self):
         event = self.create_event(
@@ -180,6 +183,22 @@ class EventSerializerTest(TestCase):
         assert result['user'] is None
         assert result['sdk'] is None
         assert result['contexts'] == {}
+        assert 'startTimestamp' not in result
+
+    def test_transaction_event(self):
+        event_data = load_data('transaction')
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id
+        )
+        result = serialize(event)
+        assert isinstance(result['endTimestamp'], float)
+        assert result['endTimestamp'] == event.data.get('timestamp')
+        assert isinstance(result['startTimestamp'], float)
+        assert result['startTimestamp'] == event.data.get('start_timestamp')
+        assert 'dateCreated' not in result
+        assert 'crashFile' not in result
+        assert 'fingerprints' not in result
 
 
 class SharedEventSerializerTest(TestCase):
@@ -199,7 +218,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry['type'] != 'breadcrumbs'
 
 
-class SnubaEventSerializerTest(TestCase):
+class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
         Use the SimpleEventSerializer to serialize an event
