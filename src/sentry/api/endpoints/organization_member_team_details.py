@@ -45,7 +45,16 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_access(self, request, member, organization):
+    def _can_access(self, request, member, organization, team_slug):
+        """
+        Conditions where user can modify the requested resource:
+
+        * If they are an active superuser
+        * If they are modifying their own membership
+        * If the user's role is higher than the targeted user's role (e.g. "admin" can't modify "owner")
+        * If the user is an "admin" and they are modifying a team they are a member of
+        """
+
         if is_active_superuser(request):
             return True
 
@@ -68,35 +77,16 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         return False
 
     def _can_admin_team(self, request, organization, team_slug):
-        acting_member = OrganizationMember.objects.get(
-            organization=organization,
-            user__id=request.user.id,
-            user__is_active=True,
-        )
-
-        # This only applies to admins, otherwise, should defer to `_can_access()`
-        # and its role management logic
-        if acting_member.role != 'admin':
-            return False
-
         try:
-            team = Team.objects.get(
+            OrganizationMember.objects.get(
                 organization=organization,
-                slug=team_slug,
+                user__id=request.user.id,
+                user__is_active=True,
+                role="admin",
+                organizationmemberteam__team__slug=team_slug,
             )
-        except Team.DoesNotExist:
-            return False
-
-        try:
-            # if acting member is in an admin role and is on the team
-            # then they can manage members of that team
-            OrganizationMemberTeam.objects.get(
-                team=team,
-                organizationmember=acting_member,
-            )
-
             return True
-        except OrganizationMemberTeam.DoesNotExist:
+        except OrganizationMember.DoesNotExist:
             return False
 
         return False
