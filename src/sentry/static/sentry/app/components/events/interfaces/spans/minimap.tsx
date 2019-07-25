@@ -361,6 +361,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
             top: 0,
             width: '100%',
             height: `${TIME_AXIS_HEIGHT}px`,
+            overflow: 'visible',
           }}
         >
           {this.renderTimeAxisCursorGuide()}
