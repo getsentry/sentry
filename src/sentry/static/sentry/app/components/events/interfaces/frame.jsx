@@ -15,9 +15,9 @@ import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
-import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
+import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -62,7 +62,7 @@ class FunctionName extends React.Component {
   }
 }
 
-const Frame = createReactClass({
+export const Frame = createReactClass({
   displayName: 'Frame',
 
   propTypes: {
@@ -75,6 +75,7 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
+    components: PropTypes.array.isRequired,
   },
 
   getDefaultProps() {
@@ -157,7 +158,7 @@ const Frame = createReactClass({
   },
 
   getSentryAppComponents() {
-    return SentryAppComponentsStore.getComponentByType('stacktrace-link');
+    return this.props.components;
   },
 
   renderDefaultTitle() {
@@ -556,4 +557,4 @@ const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
 `;
 
-export default Frame;
+export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
