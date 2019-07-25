@@ -12,9 +12,19 @@ export type SpanType = {
 
 export type SpanEntry = {
   type: 'spans';
-  data: SpanType[];
+  data: Array<SpanType>;
 };
 
 export type SentryEvent = {
-  entries: SpanEntry[];
+  entries: Array<SpanEntry>;
+};
+
+export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+
+export type ParsedTraceType = {
+  lookup: SpanChildrenLookupType;
+  traceID: string;
+  rootSpanID: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
 };

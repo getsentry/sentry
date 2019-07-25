@@ -1,13 +1,12 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {get, set, isNumber, forEach} from 'lodash';
+import {get} from 'lodash';
 
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 
-import {SpanType, SpanEntry, SentryEvent} from './types';
+import {SpanType, SpanChildrenLookupType, ParsedTraceType} from './types';
 import {
-  isValidSpanID,
   toPercent,
   boundsGenerator,
   SpanBoundsType,
@@ -16,14 +15,6 @@ import {
 import {DragManagerChildrenProps} from './dragManager';
 import SpanDetail from './spanDetail';
 
-type TraceContextType = {
-  type: 'trace';
-  span_id: string;
-  trace_id: string;
-};
-
-type LookupType = {[span_id: string]: SpanType[]};
-
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
   numOfHiddenSpansAbove: number;
@@ -31,7 +22,7 @@ type RenderedSpanTree = {
 
 type SpanTreeProps = {
   traceViewRef: React.RefObject<HTMLDivElement>;
-  event: SentryEvent;
+  trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
 };
 
@@ -51,7 +42,7 @@ class SpanTree extends React.Component<SpanTreeProps> {
     spanID: string;
     traceID: string;
     span: Readonly<SpanType>;
-    lookup: Readonly<LookupType>;
+    lookup: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     pickSpanBarColour: () => string;
   }): RenderedSpanTree => {
@@ -127,26 +118,15 @@ class SpanTree extends React.Component<SpanTreeProps> {
   };
 
   renderRootSpan = (): RenderedSpanTree => {
-    const {event, dragProps} = this.props;
-
-    const trace: TraceContextType | undefined = get(event, 'contexts.trace');
-
-    if (!trace) {
-      return {
-        spanTree: null,
-        numOfHiddenSpansAbove: 0,
-      };
-    }
-
-    const parsedTrace = this.parseTrace();
+    const {dragProps, trace} = this.props;
 
     // TODO: ideally this should be provided
     const rootSpan: SpanType = {
-      trace_id: trace.trace_id,
+      trace_id: trace.traceID,
       parent_span_id: void 0,
-      span_id: trace.span_id,
-      start_timestamp: parsedTrace.traceStartTimestamp,
-      timestamp: parsedTrace.traceEndTimestamp,
+      span_id: trace.rootSpanID,
+      start_timestamp: trace.traceStartTimestamp,
+      timestamp: trace.traceEndTimestamp,
       same_process_as_parent: true,
       op: 'transaction',
       data: {},
@@ -165,8 +145,8 @@ class SpanTree extends React.Component<SpanTreeProps> {
     };
 
     const generateBounds = boundsGenerator({
-      traceStartTimestamp: parsedTrace.traceStartTimestamp,
-      traceEndTimestamp: parsedTrace.traceEndTimestamp,
+      traceStartTimestamp: trace.traceStartTimestamp,
+      traceEndTimestamp: trace.traceEndTimestamp,
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
     });
@@ -175,103 +155,12 @@ class SpanTree extends React.Component<SpanTreeProps> {
       treeDepth: 0,
       numOfHiddenSpansAbove: 0,
       span: rootSpan,
-      spanID: trace.span_id,
-      traceID: trace.trace_id,
-      lookup: parsedTrace.lookup,
+      spanID: rootSpan.span_id,
+      traceID: rootSpan.trace_id,
+      lookup: trace.lookup,
       generateBounds,
       pickSpanBarColour,
     });
-  };
-
-  parseTrace = () => {
-    const {event} = this.props;
-
-    const spanEntry: SpanEntry | undefined = event.entries.find(
-      (entry: {type: string}) => entry.type === 'spans'
-    );
-
-    const spans: SpanType[] = get(spanEntry, 'data', []);
-
-    if (!spanEntry || spans.length <= 0) {
-      return {
-        lookup: {},
-        traceStartTimestamp: 0,
-        traceEndTimestamp: 0,
-      };
-    }
-
-    // we reduce spans to become an object mapping span ids to their children
-
-    type ReducedType = {
-      lookup: LookupType;
-      traceStartTimestamp: number;
-      traceEndTimestamp: number;
-    };
-
-    const init: ReducedType = {
-      lookup: {},
-      traceStartTimestamp: spans[0].start_timestamp,
-      traceEndTimestamp: 0,
-    };
-
-    const reduced: ReducedType = spans.reduce((acc, span) => {
-      if (!isValidSpanID(span.parent_span_id)) {
-        return acc;
-      }
-
-      const spanChildren: SpanType[] = get(acc.lookup, span.parent_span_id!, []);
-
-      spanChildren.push(span);
-
-      set(acc.lookup, span.parent_span_id!, spanChildren);
-
-      if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
-        acc.traceStartTimestamp = span.start_timestamp;
-      }
-
-      // establish trace end timestamp
-
-      const hasEndTimestamp = isNumber(span.timestamp);
-
-      if (!acc.traceEndTimestamp) {
-        if (hasEndTimestamp) {
-          acc.traceEndTimestamp = span.timestamp;
-          return acc;
-        }
-
-        acc.traceEndTimestamp = span.start_timestamp;
-        return acc;
-      }
-
-      if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
-        acc.traceEndTimestamp = span.timestamp;
-        return acc;
-      }
-
-      if (span.start_timestamp > acc.traceEndTimestamp) {
-        acc.traceEndTimestamp = span.start_timestamp;
-      }
-
-      return acc;
-    }, init);
-
-    // sort span children by their start timestamps in ascending order
-
-    forEach(reduced.lookup, spanChildren => {
-      spanChildren.sort((firstSpan, secondSpan) => {
-        if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
-          return -1;
-        }
-
-        if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
-          return 0;
-        }
-
-        return 1;
-      });
-    });
-
-    return reduced;
   };
 
   render() {
