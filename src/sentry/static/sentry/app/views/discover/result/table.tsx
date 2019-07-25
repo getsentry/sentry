@@ -101,7 +101,7 @@ class ResultTable extends React.Component<Props> {
 
   getEventLink = (event: {'project.id': string; id: string}) => {
     const {slug, projects} = this.props.organization;
-    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
+    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)!
       .slug;
 
     const basePath = `/organizations/${slug}/projects/${projectSlug}/`;

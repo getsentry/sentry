@@ -1,10 +1,12 @@
 export type Organization = {
   id: string;
   slug: string;
-  projects: any[];
+  projects: Project[];
   access: string[];
 };
 
 export type Project = {
   id: string;
+  slug: string;
+  isMember: boolean;
 };
