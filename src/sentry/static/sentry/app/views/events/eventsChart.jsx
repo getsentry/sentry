@@ -138,7 +138,7 @@ class EventsChart extends React.Component {
         environments={environments}
         {...props}
       >
-        {({zoomRenderProps}) => (
+        {zoomRenderProps => (
           <EventsRequest
             {...props}
             api={api}
