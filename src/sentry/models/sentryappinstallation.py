@@ -27,7 +27,7 @@ class SentryAppInstallationToken(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_sentryappinstallation'
+        db_table = 'sentry_sentryappinstallationtoken'
         unique_together = (('sentry_app_installation', 'api_token'), )
 
 
