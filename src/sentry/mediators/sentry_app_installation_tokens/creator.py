@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.utils.audit import create_audit_entry
 from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.models import (
@@ -16,7 +17,6 @@ class Creator(Mediator):
     def call(self):
         self.sentry_app = self.sentry_app_installation.sentry_app
         self.organization = self.sentry_app_installation.organization
-        self.slug = self.organization.slug
         self._create_api_token()
         self._create_sentry_app_installation_token()
         return self.sentry_app_installation_token
@@ -36,7 +36,6 @@ class Creator(Mediator):
         )
 
     def audit(self):
-        from sentry.utils.audit import create_audit_entry
         if self.request:
             create_audit_entry(
                 request=self.request,
@@ -45,6 +44,7 @@ class Creator(Mediator):
                 event=AuditLogEntryEvent.SENTRY_APP_INSTALLATION_TOKEN_CREATED,
                 data={
                     'sentry_app': self.sentry_app.name,
+                    'sentry_app_installation_id': self.sentry_app_installation.id,
                 },
             )
 
