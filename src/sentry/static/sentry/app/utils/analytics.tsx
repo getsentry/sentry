@@ -48,22 +48,24 @@ export const trackAnalyticsEvent = options =>
  * @param {String} options.eventKey The string key of the event to track
  * @param {...Object} options.data The parameters of the event to track
  */
-export const trackAdhocEvent = options =>
+export const trackAdhocEvent = (options: {[key: string]: any}) =>
   HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));
 
 /**
  * @param {String} name The name of the event
  * @param {Object} data Additional event data to record
  */
-export const analytics = (name, data) =>
-  HookStore.get('analytics:event').forEach(cb => cb(name, data));
+export const analytics = (
+  name: string,
+  data: {[key: string]: number | string | boolean}
+): void => HookStore.get('analytics:event').forEach(cb => cb(name, data));
 
 /**
  * @param {String} name Metric name
  * @param {Number} value Value to record for this metric
  * @param {Object} tags An additional tags object
  */
-export const metric = (name, value, tags) =>
+export const metric = (name: string, value: number, tags?: object): void =>
   HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
 
 // JSDOM implements window.performance but not window.performance.mark
@@ -74,7 +76,7 @@ const CAN_MARK =
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
 
-metric.mark = function metricMark(name) {
+metric.mark = function metricMark(name: string): void {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
@@ -94,7 +96,19 @@ metric.mark = function metricMark(name) {
  * @param {Boolean} options.noCleanup Do not clean up marks and measurements when completed
  * @param {Object} options.data (optional) Additional data to send with metric event
  */
-metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}) {
+metric.measure = function metricMeasure({
+  name,
+  start,
+  end,
+  data,
+  noCleanup,
+}: {
+  name?: string;
+  start?: string;
+  end?: string;
+  data?: object;
+  noCleanup?: boolean;
+} = {}): void {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
