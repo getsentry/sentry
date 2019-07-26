@@ -18,6 +18,7 @@ from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
+from django.conf import settings
 
 GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
 FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')
@@ -225,7 +226,7 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
+            'endpoint': settings.SENTRY_OPTIONS['system.url-prefix'],
             'template': mark_safe('*/' + json.dumps(template) + ';/*'),
             'strings': json.dumps_htmlsafe({
                 'generic_error': six.text_type(options['errorGeneric']),
