@@ -104,7 +104,13 @@ class EventEntries extends React.Component {
   renderEntries() {
     const {event, project, isShare} = this.props;
 
-    return event.entries.map((entry, entryIdx) => {
+    const entries = event && event.entries;
+
+    if (!Array.isArray(entries)) {
+      return null;
+    }
+
+    return entries.map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {
