@@ -15,7 +15,7 @@ import pinIcon from 'app/../images/location-pin.png';
 import {t} from 'app/locale';
 import {QueryLink} from './styles';
 
-export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug'];
+export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug', 'transactionSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
 
 export const ALL_VIEWS = deepFreeze([
@@ -83,7 +83,7 @@ export const ALL_VIEWS = deepFreeze([
       'user.ip',
       'environment',
     ],
-    columnWidths: ['3fr', '1fr', '1fr', '1fr', '1fr', '1fr', '1fr'],
+    columnWidths: ['3fr', '2fr'],
   },
 ]);
 
@@ -101,7 +101,7 @@ export const SPECIAL_FIELDS = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          transactionSlug: `${data['project.name']}:${data.transaction}`,
+          transactionSlug: `${data['project.name']}:${data.transaction}:latest`,
         },
       };
       return (
