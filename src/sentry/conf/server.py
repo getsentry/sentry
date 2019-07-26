@@ -1086,6 +1086,10 @@ SENTRY_TAGSTORE_OPTIONS = (
     else {}
 )
 
+# Event storage backend
+SENTRY_EVENTSTORE = 'sentry.eventstore.snuba.SnubaEventStorage'
+SENTRY_EVENTSTORE_OPTIONS = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.snuba.SnubaSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
