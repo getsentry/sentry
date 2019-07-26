@@ -14,7 +14,7 @@ import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type Props = {
+export type AsyncComponentProps = {
   location?: Location;
   router?: any;
   params?: any;
@@ -30,7 +30,7 @@ export type AsyncComponentState = {
 };
 
 export default class AsyncComponent<
-  P extends Props = Props,
+  P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
   static propTypes = {
