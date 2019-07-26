@@ -87,6 +87,9 @@ class AuditLogEntryEvent(object):
 
     INTERNAL_INTEGRATION_ADD = 130
 
+    SENTRY_APP_INSTALLATION_TOKEN_CREATED = 135
+    SENTRY_APP_INSTALLATION_TOKEN_DELETED = 136
+
 
 class AuditLogEntry(Model):
     __core__ = False
