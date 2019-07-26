@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 import * as Sentry from '@sentry/browser';
 
-const validHookNames = new Set([
+const validHookNames: Set<string> = new Set([
   // Additional routes
   'routes',
   'routes:admin',
@@ -62,6 +62,17 @@ const validHookNames = new Set([
   'feature-disabled:project-selector-checkbox',
 ]);
 
+type Callback = (...args: any[]) => any;
+type HooksMap = {[key: string]: Array<Callback>};
+
+interface HookStoreInterface extends Reflux.Store {
+  add(hookName: string, callback: Callback): void;
+
+  remove(hookName: string, callback: Callback): void;
+
+  get(hookName: string): Array<Callback>;
+}
+
 /**
  * HookStore is used to allow extensibility into Sentry's frontend via
  * registration of 'hook functions'.
@@ -73,7 +84,9 @@ const HookStore = Reflux.createStore({
     this.hooks = {};
   },
 
-  add(hookName, callback) {
+  add(hookName: string, callback: Callback): void {
+    const hooks = this.hooks as HooksMap;
+
     // Gracefully error on invalid hooks, but maintain registration
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
@@ -84,25 +97,29 @@ const HookStore = Reflux.createStore({
       });
     }
     if (_.isUndefined(this.hooks[hookName])) {
-      this.hooks[hookName] = [];
+      hooks[hookName] = [];
     }
-    this.hooks[hookName].push(callback);
+    hooks[hookName].push(callback);
     this.trigger(hookName, this.hooks[hookName]);
   },
 
-  remove(hookName, callback) {
-    if (_.isUndefined(this.hooks[hookName])) {
+  remove(hookName: string, callback: Callback): void {
+    const hooks = this.hooks as HooksMap;
+
+    if (_.isUndefined(hooks[hookName])) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName].filter(cb => {
+    hooks[hookName] = hooks[hookName].filter(cb => {
       return cb !== callback;
     });
-    this.trigger(hookName, this.hooks[hookName]);
+    this.trigger(hookName, hooks[hookName]);
   },
 
-  get(hookName) {
-    return this.hooks[hookName] || [];
+  get(hookName: string): Array<Callback> {
+    const hooks = this.hooks as HooksMap;
+
+    return hooks[hookName] || [];
   },
-});
+}) as HookStoreInterface;
 
 export default HookStore;
