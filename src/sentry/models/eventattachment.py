@@ -10,6 +10,7 @@ class EventAttachment(Model):
     __core__ = False
 
     project_id = BoundedBigIntegerField()
+    # TODO(lyn): group_id is now deprecated, drop this
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
     file = FlexibleForeignKey('sentry.File')
