@@ -45,7 +45,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_access(self, request, member, organization, team_slug):
+    def _can_access(self, request, member, organization):
         """
         Conditions where user can modify the requested resource:
 
