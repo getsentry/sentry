@@ -41,7 +41,7 @@ class Creator(Mediator):
             create_audit_entry(
                 request=self.request,
                 organization=self.organization,
-                target_object=self.organization.id,
+                target_object=self.sentry_app_installation_token.id,
                 event=AuditLogEntryEvent.SENTRY_APP_INSTALLATION_TOKEN_CREATED,
                 data={
                     'sentry_app': self.sentry_app.name,
