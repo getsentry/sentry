@@ -800,7 +800,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.subscription_id is not None
         assert alert_rule.threshold_type == threshold_type.value
-        assert alert_rule.dataset == SnubaDatasets.EVENTS
+        assert alert_rule.dataset == SnubaDatasets.EVENTS.value
         assert alert_rule.query == query
         assert alert_rule.aggregations == [agg.value for agg in aggregations]
         assert alert_rule.time_window == time_window

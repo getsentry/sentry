@@ -281,6 +281,9 @@ class AlertRuleManager(BaseManager):
             )
         )
 
+    def fetch_for_project(self, project):
+        return self.filter(project=project)
+
 
 class AlertRule(Model):
     __core__ = True

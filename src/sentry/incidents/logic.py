@@ -522,7 +522,7 @@ def create_alert_rule(
             name=name,
             subscription_id=subscription_id,
             threshold_type=threshold_type.value,
-            dataset=SnubaDatasets.EVENTS,
+            dataset=SnubaDatasets.EVENTS.value,
             query=query,
             aggregations=[agg.value for agg in aggregations],
             time_window=time_window,
