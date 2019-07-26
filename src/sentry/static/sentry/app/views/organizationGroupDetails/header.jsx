@@ -19,6 +19,7 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
@@ -109,7 +110,7 @@ class GroupHeader extends React.Component {
               annotations={
                 <React.Fragment>
                   {group.logger && (
-                    <EventAnnotation>
+                    <EventAnnotationWithSpace>
                       <Link
                         to={{
                           pathname: baseUrl,
@@ -118,10 +119,10 @@ class GroupHeader extends React.Component {
                       >
                         {group.logger}
                       </Link>
-                    </EventAnnotation>
+                    </EventAnnotationWithSpace>
                   )}
                   {group.annotations.map((annotation, i) => (
-                    <EventAnnotation
+                    <EventAnnotationWithSpace
                       key={i}
                       dangerouslySetInnerHTML={{__html: annotation}}
                     />
@@ -250,6 +251,9 @@ const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
 `;
 
+const EventAnnotationWithSpace = styled(EventAnnotation)`
+  margin-left: ${space(1)};
+`;
 export {GroupHeader};
 
 export default withApi(GroupHeader);
