@@ -171,6 +171,27 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     });
   });
 
+  it('removes transactionSlug when close button is clicked', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        transactionSlug="project-slug:/users/login:latest"
+        location={{
+          pathname: '/organizations/org-slug/events/',
+          query: {groupSlug: 'project-slug:/users/login:latest'},
+        }}
+        view={allEventsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const button = wrapper.find('DismissButton');
+    button.simulate('click');
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {},
+    });
+  });
+
   it('navigates when tag values are clicked', async function() {
     const {organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
