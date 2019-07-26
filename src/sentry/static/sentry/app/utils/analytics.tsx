@@ -55,8 +55,10 @@ export const trackAdhocEvent = (options: {[key: string]: any}) =>
  * @param {String} name The name of the event
  * @param {Object} data Additional event data to record
  */
-export const analytics = (name: string, data: {[key: string]: any}): void =>
-  HookStore.get('analytics:event').forEach(cb => cb(name, data));
+export const analytics = (
+  name: string,
+  data: {[key: string]: number | string | boolean}
+): void => HookStore.get('analytics:event').forEach(cb => cb(name, data));
 
 /**
  * @param {String} name Metric name
