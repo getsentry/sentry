@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 import * as Sentry from '@sentry/browser';
 
-const validHookNames: Set<string> = new Set([
+const __HookNames = [
   // Additional routes
   'routes',
   'routes:admin',
@@ -60,17 +60,21 @@ const validHookNames: Set<string> = new Set([
   'feature-disabled:discover-page',
   'feature-disabled:discover-sidebar-item',
   'feature-disabled:project-selector-checkbox',
-]);
+] as const;
+
+type ValidHookNames = typeof __HookNames[number];
+
+const validHookNames: Set<ValidHookNames> = new Set(__HookNames);
 
 type Callback = (...args: any[]) => any;
-type HooksMap = {[key: string]: Array<Callback>};
+type HooksMap = {[key in ValidHookNames]: Array<Callback>};
 
 interface HookStoreInterface extends Reflux.Store {
-  add(hookName: string, callback: Callback): void;
+  add(hookName: ValidHookNames, callback: Callback): void;
 
-  remove(hookName: string, callback: Callback): void;
+  remove(hookName: ValidHookNames, callback: Callback): void;
 
-  get(hookName: string): Array<Callback>;
+  get(hookName: ValidHookNames): Array<Callback>;
 }
 
 /**
@@ -84,7 +88,7 @@ const HookStore = Reflux.createStore({
     this.hooks = {};
   },
 
-  add(hookName: string, callback: Callback): void {
+  add(hookName: ValidHookNames, callback: Callback): void {
     const hooks = this.hooks as HooksMap;
 
     // Gracefully error on invalid hooks, but maintain registration
@@ -103,7 +107,7 @@ const HookStore = Reflux.createStore({
     this.trigger(hookName, this.hooks[hookName]);
   },
 
-  remove(hookName: string, callback: Callback): void {
+  remove(hookName: ValidHookNames, callback: Callback): void {
     const hooks = this.hooks as HooksMap;
 
     if (_.isUndefined(hooks[hookName])) {
@@ -115,7 +119,7 @@ const HookStore = Reflux.createStore({
     this.trigger(hookName, hooks[hookName]);
   },
 
-  get(hookName: string): Array<Callback> {
+  get(hookName: ValidHookNames): Array<Callback> {
     const hooks = this.hooks as HooksMap;
 
     return hooks[hookName] || [];
