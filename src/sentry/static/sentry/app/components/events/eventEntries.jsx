@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {isArray} from 'lodash';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -104,7 +105,13 @@ class EventEntries extends React.Component {
   renderEntries() {
     const {event, project, isShare} = this.props;
 
-    return event.entries.map((entry, entryIdx) => {
+    const entries = event && event.entries;
+
+    if (!isArray(entries)) {
+      return null;
+    }
+
+    return entries.map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {
