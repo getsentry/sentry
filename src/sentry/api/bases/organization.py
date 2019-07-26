@@ -174,7 +174,10 @@ class OrganizationEndpoint(Endpoint):
         standardize how this is used and remove this parameter.
         :return: A list of Project objects, or raises PermissionDenied.
         """
-        project_ids = set(map(int, request.GET.getlist('project')))
+        try:
+            project_ids = set(map(int, request.GET.getlist('project')))
+        except ValueError:
+            raise ResourceDoesNotExist(detail='Invalid project parameter. Values must be numbers.')
 
         requested_projects = project_ids.copy()
 
