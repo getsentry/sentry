@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from sentry import analytics
 
 
-class SentryAppInstallationTokencreated(analytics.Event):
+class SentryAppInstallationTokenCreated(analytics.Event):
     type = 'sentry_app_installation_token.created'
 
     attributes = (
@@ -14,4 +14,4 @@ class SentryAppInstallationTokencreated(analytics.Event):
     )
 
 
-analytics.register(SentryAppInstallationTokencreated)
+analytics.register(SentryAppInstallationTokenCreated)
