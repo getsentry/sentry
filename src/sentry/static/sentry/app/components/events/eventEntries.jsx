@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {isArray} from 'lodash';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -107,7 +106,7 @@ class EventEntries extends React.Component {
 
     const entries = event && event.entries;
 
-    if (!isArray(entries)) {
+    if (!Array.isArray(entries)) {
       return null;
     }
 
