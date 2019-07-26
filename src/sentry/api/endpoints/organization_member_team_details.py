@@ -77,19 +77,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         return False
 
     def _can_admin_team(self, request, organization, team_slug):
-        try:
-            OrganizationMember.objects.get(
-                organization=organization,
-                user__id=request.user.id,
-                user__is_active=True,
-                role="admin",
-                organizationmemberteam__team__slug=team_slug,
-            )
-            return True
-        except OrganizationMember.DoesNotExist:
-            return False
-
-        return False
+        return OrganizationMember.objects.filter(
+            organization=organization,
+            user__id=request.user.id,
+            user__is_active=True,
+            role="admin",
+            organizationmemberteam__team__slug=team_slug,
+        ).exists()
 
     def _get_member(self, request, organization, member_id):
         if member_id == 'me':
