@@ -7,7 +7,7 @@ export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 
-function getParser(local = false) {
+function getParser(local: boolean = false): Function {
   return local ? moment : moment.utc;
 }
 
@@ -19,7 +19,7 @@ function getParser(local = false) {
  *
  * Safari does not do any validation so you could get a value of > 24 hours
  */
-export function isValidTime(str) {
+export function isValidTime(str: string): boolean {
   return moment(str, 'HH:mm', true).isValid();
 }
 
@@ -28,18 +28,22 @@ export function isValidTime(str) {
  * given: Tue Oct 09 2018 00:00:00 GMT-0700 (Pacific Daylight Time)
  * returns: "2018-10-09T07:00:00.000"
  */
-export function getUtcDateString(dateObj) {
+export function getUtcDateString(dateObj: moment.MomentInput): string {
   return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
 }
 
-export function getFormattedDate(dateObj, format, {local} = {}) {
+export function getFormattedDate(
+  dateObj: moment.MomentInput,
+  format: string,
+  {local}: {local?: boolean} = {}
+): string {
   return getParser(local)(dateObj).format(format);
 }
 
 /**
  * Returns user timezone from their account preferences
  */
-export function getUserTimezone() {
+export function getUserTimezone(): string {
   const user = ConfigStore.get('user');
   return user && user.options && user.options.timezone;
 }
@@ -49,7 +53,7 @@ export function getUserTimezone() {
 /**
  * Given a UTC date, return a Date object in local time
  */
-export function getUtcToLocalDateObject(date) {
+export function getUtcToLocalDateObject(date: moment.MomentInput): Date {
   return moment
     .utc(date)
     .local()
@@ -61,8 +65,12 @@ export function getUtcToLocalDateObject(date) {
  *
  * @param {String} timeStr Time in 24hr format (HH:mm)
  */
-export function setDateToTime(dateObj, timeStr, {local} = {}) {
-  const [hours, minutes, seconds] = timeStr.split(':');
+export function setDateToTime(
+  dateObj: string | Date,
+  timeStr: string,
+  {local}: {local?: boolean} = {}
+): Date {
+  const [hours, minutes, seconds] = timeStr.split(':').map(t => parseInt(t, 10));
 
   const date = new Date(+dateObj);
 
@@ -84,7 +92,7 @@ export function setDateToTime(dateObj, timeStr, {local} = {}) {
  * e.g. given: system is -0700 (PST),
  * 1/1/2001 @ 22:00 UTC, return:  1/1/2001 @ 22:00 -0700 (PST)
  */
-export function getUtcToSystem(dateObj) {
+export function getUtcToSystem(dateObj: moment.MomentInput): Date {
   // This is required because if your system timezone !== user configured timezone
   // then there will be a mismatch of dates with `react-date-picker`
   //
@@ -100,7 +108,7 @@ export function getUtcToSystem(dateObj) {
  * 1/1/2001 @ 22:00 UTC --> 1/1/2001 @ 18:00 -0400 (EST) -->
  * return:  1/1/2001 @ 18:00 -0700 (PST)
  */
-export function getLocalToSystem(dateObj) {
+export function getLocalToSystem(dateObj: moment.MomentInput): Date {
   // This is required because if your system timezone !== user configured timezone
   // then there will be a mismatch of dates with `react-date-picker`
   //
@@ -109,7 +117,7 @@ export function getLocalToSystem(dateObj) {
 }
 
 // Get the beginning of day (e.g. midnight)
-export function getStartOfDay(date) {
+export function getStartOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .startOf('day')
     .startOf('hour')
@@ -121,7 +129,7 @@ export function getStartOfDay(date) {
 
 // Get tomorrow at midnight so that default endtime
 // is inclusive of today
-export function getEndOfDay(date) {
+export function getEndOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .add(1, 'day')
     .startOf('hour')
@@ -132,7 +140,10 @@ export function getEndOfDay(date) {
     .toDate();
 }
 
-export function getPeriodAgo(period, unit) {
+export function getPeriodAgo(
+  period: moment.unitOfTime.DurationConstructor,
+  unit: string
+): object {
   return moment()
     .local()
     .subtract(period, unit);
@@ -141,8 +152,11 @@ export function getPeriodAgo(period, unit) {
 // Get the start of the day (midnight) for a period ago
 //
 // e.g. 2 weeks ago at midnight
-export function getStartOfPeriodAgo(period, unit, options) {
-  return getStartOfDay(getPeriodAgo(period, unit), options);
+export function getStartOfPeriodAgo(
+  period: moment.unitOfTime.DurationConstructor,
+  unit: string
+): Date {
+  return getStartOfDay(getPeriodAgo(period, unit));
 }
 
 /**
@@ -153,13 +167,13 @@ export function getStartOfPeriodAgo(period, unit, options) {
  * @param {String} interval The interval to convert.
  * @return {Integer}
  */
-export function intervalToMilliseconds(interval) {
+export function intervalToMilliseconds(interval: string): number {
   const pattern = /^(\d+)(h|m)$/;
   const matches = pattern.exec(interval);
   if (!matches) {
     return 0;
   }
-  const [_, value, unit] = matches;
+  const [, value, unit] = matches;
   const multipliers = {
     h: 60 * 60,
     m: 60,
@@ -171,8 +185,9 @@ export function intervalToMilliseconds(interval) {
  * This parses our period shorthand strings (e.g. <int><unit>)
  * and converts it into hours
  */
-export function parsePeriodToHours(str) {
-  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
+export function parsePeriodToHours(str: string): number {
+  const [, period, periodLength] = str.match(/([0-9]+)([smhdw])/);
+  const periodNumber = parseInt(period, 10);
 
   switch (periodLength) {
     case 's':
@@ -180,7 +195,7 @@ export function parsePeriodToHours(str) {
     case 'm':
       return periodNumber / 60;
     case 'h':
-      return parseInt(periodNumber, 10);
+      return periodNumber;
     case 'd':
       return periodNumber * 24;
     case 'w':
