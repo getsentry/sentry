@@ -1,4 +1,4 @@
-function domId(prefix) {
+function domId(prefix: string): string {
   return (
     prefix +
     Math.random()
