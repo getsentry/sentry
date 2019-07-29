@@ -271,6 +271,7 @@ from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEnd
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
@@ -1049,6 +1050,11 @@ urlpatterns = patterns(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
             ProjectDetailsEndpoint.as_view(),
             name='sentry-api-0-project-details'
+        ),
+        url(
+            r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$',
+            ProjectAlertRuleDetailsEndpoint.as_view(),
+            name='sentry-api-0-project-alert-rule-details'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$',
