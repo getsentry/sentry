@@ -434,5 +434,3 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
     max_secs_in_past=MAX_SECS_IN_PAST,
     enable_trimming=True,
 )
-
-INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20

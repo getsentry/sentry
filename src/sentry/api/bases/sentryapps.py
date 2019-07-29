@@ -321,24 +321,3 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
     authentication_classes = (ClientIdSecretAuthentication, )
     permission_classes = (SentryAppAuthorizationsPermission, )
-
-
-class SentryInternalAppTokenPermission(SentryPermission):
-    scope_map = {
-        'POST': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-        'DELETE': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-    }
-
-    def has_object_permission(self, request, view, sentry_app):
-        if not hasattr(request, 'user') or not request.user:
-            return False
-
-        self.determine_access(request, sentry_app.owner)
-
-        if is_active_superuser(request):
-            return True
-
-        return ensure_scoped_permission(
-            request,
-            self._scopes_for_sentry_app(sentry_app).get(request.method),
-        )
