@@ -25,7 +25,6 @@ class Updater(Mediator):
             self.sentry_app_installation.status = SentryAppInstallationStatus.INSTALLED
 
     def record_analytics(self):
-        # TODO: Add analytics
         analytics.record(
             'sentry_app_installation.updated',
             sentry_app_installation_id=self.sentry_app_installation.id,
