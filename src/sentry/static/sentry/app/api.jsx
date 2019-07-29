@@ -170,15 +170,6 @@ export class Client {
       data = JSON.stringify(data);
     }
 
-    const hub = Sentry.getCurrentHub();
-    const requestSpan = hub.startSpan({
-      data: {
-        request_data: data,
-      },
-      op: 'http',
-      description: `${method} ${path}`,
-    });
-
     let query;
     try {
       query = $.param(options.query || [], true);
@@ -207,6 +198,14 @@ export class Client {
         fullUrl += '?' + query;
       }
     }
+
+    const requestSpan = Sentry.startSpan({
+      data: {
+        request_data: data,
+      },
+      op: 'http',
+      description: `${method} ${fullUrl}`,
+    });
 
     const errorObject = new Error();
 
@@ -271,7 +270,7 @@ export class Client {
           );
         },
         complete: (...args) => {
-          hub.finishSpan(requestSpan);
+          Sentry.finishSpan(requestSpan);
           return this.wrapCallback(id, options.complete, true)(...args);
         },
       })

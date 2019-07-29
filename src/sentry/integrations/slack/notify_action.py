@@ -115,7 +115,7 @@ class SlackNotifyServiceAction(EventAction):
             }
 
             session = http.build_session()
-            resp = session.post('https://slack.com/api/chat.postMessage', data=payload)
+            resp = session.post('https://slack.com/api/chat.postMessage', data=payload, timeout=5)
             resp.raise_for_status()
             resp = resp.json()
             if not resp.get('ok'):

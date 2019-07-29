@@ -669,7 +669,6 @@ class Factories(object):
 
         return EventAttachment.objects.create(
             project_id=event.project_id,
-            group_id=event.group_id,
             event_id=event.event_id,
             file=file,
             **kwargs
@@ -747,6 +746,7 @@ class Factories(object):
             'organization': kwargs.get('organization', Factories.create_organization()),
             'author': kwargs.get('author', 'A Company'),
             'scopes': kwargs.get('scopes', ()),
+            'verify_install': kwargs.get('verify_install', True),
             'webhook_url': kwargs.get('webhook_url', 'https://example.com/webhook'),
             'events': [],
             'schema': {},

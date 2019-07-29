@@ -1246,7 +1246,7 @@ SENTRY_ROLES = (
     }, {
         'id': 'admin',
         'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on). Additionally, they can manage memberships of teams that they are members of.',
         'scopes': set(
             [
                 'event:read',
@@ -1419,8 +1419,9 @@ SENTRY_DEVSERVICES = {
             'PYTHONUNBUFFERED': '1',
             'SNUBA_SETTINGS': 'docker',
             'DEBUG': '1',
-            'CLICKHOUSE_TABLE': 'dev',
-            'CLICKHOUSE_SERVER': '{containers[clickhouse][name]}:9000',
+            'CLICKHOUSE_HOST': '{containers[clickhouse][name]}',
+            'CLICKHOUSE_PORT': '9000',
+            'CLICKHOUSE_HTTP_PORT': '8123',
             'DEFAULT_BROKERS': '{containers[kafka][name]}:9093',
             'REDIS_HOST': '{containers[redis][name]}',
             'REDIS_PORT': '6379',

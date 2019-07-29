@@ -94,6 +94,7 @@ class IncidentManager(BaseManager):
 class IncidentType(Enum):
     DETECTED = 0
     CREATED = 1
+    ALERT_TRIGGERED = 2
 
 
 class IncidentStatus(Enum):
@@ -116,6 +117,11 @@ class Incident(Model):
         'sentry.Group',
         related_name='incidents',
         through=IncidentGroup,
+    )
+    alert_rule = models.ForeignKey(
+        'sentry.AlertRule',
+        null=True,
+        on_delete=models.SET_NULL,
     )
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()
@@ -238,3 +244,69 @@ class IncidentSuspectCommit(Model):
         app_label = 'sentry'
         db_table = 'sentry_incidentsuspectcommit'
         unique_together = (('incident', 'commit'), )
+
+
+class AlertRuleStatus(Enum):
+    PENDING = 0
+    TRIGGERED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+
+class AlertRuleThresholdType(Enum):
+    ABOVE = 0
+    BELOW = 1
+
+
+class AlertRuleAggregations(Enum):
+    TOTAL = 0
+    UNIQUE_USERS = 1
+
+
+# TODO: This should probably live in the snuba app.
+class SnubaDatasets(Enum):
+    EVENTS = 'events'
+
+
+class AlertRuleManager(BaseManager):
+    """
+    A manager that excludes all rows that are pending deletion.
+    """
+
+    def get_queryset(self):
+        return super(AlertRuleManager, self).get_queryset().exclude(
+            status__in=(
+                AlertRuleStatus.PENDING_DELETION.value,
+                AlertRuleStatus.DELETION_IN_PROGRESS.value,
+            )
+        )
+
+    def fetch_for_project(self, project):
+        return self.filter(project=project)
+
+
+class AlertRule(Model):
+    __core__ = True
+
+    objects = AlertRuleManager()
+
+    project = FlexibleForeignKey('sentry.Project', db_index=False, db_constraint=False)
+    name = models.TextField()
+    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    subscription_id = models.UUIDField(db_index=True)
+    threshold_type = models.SmallIntegerField()
+    dataset = models.TextField()
+    query = models.TextField()
+    aggregations = ArrayField(of=models.IntegerField)
+    time_window = models.IntegerField()
+    resolution = models.IntegerField()
+    alert_threshold = models.IntegerField()
+    resolve_threshold = models.IntegerField()
+    threshold_period = models.IntegerField()
+    date_modified = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_alertrule'
+        unique_together = (('project', 'name'), )

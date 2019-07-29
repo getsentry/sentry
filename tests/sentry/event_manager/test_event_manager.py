@@ -20,12 +20,12 @@ from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport, EventAttachment, File
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
-from sentry.web.relay_config import get_full_relay_config
+from sentry.relay.config import get_project_config
 
 
 def make_event(**kwargs):
@@ -1000,28 +1000,6 @@ class EventManagerTest(TestCase):
 
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
-    def test_event_attachment_gets_group_id(self):
-        project = self.create_project()
-        event_id = 'a' * 32
-        uploaded_file_name = 'attachment.zip'
-        EventAttachment.objects.create(
-            project_id=project.id,
-            event_id=event_id,
-            name=uploaded_file_name,
-            file=File.objects.create(
-                name=uploaded_file_name,
-            ),
-        )
-
-        event = self.store_event(
-            data=make_event(
-                event_id=event_id
-            ),
-            project_id=project.id
-        )
-
-        assert EventAttachment.objects.get(event_id=event_id).group_id == event.group_id
-
     def test_default_event_type(self):
         manager = EventManager(make_event(message='foo bar'))
         manager.normalize()
@@ -1348,15 +1326,15 @@ class EventManagerTest(TestCase):
             },
         }
 
-        relay_config = get_full_relay_config(self.project.id)
-        manager = EventManager(data, project=self.project, relay_config=relay_config)
+        project_config = get_project_config(self.project.id, for_store=True)
+        manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
 
         assert manager.should_filter() == (True, FilterStatKeys.ERROR_MESSAGE)
 
         assert mock_is_valid_error_message.call_args_list == [
-            mock.call(relay_config, item.formatted) for item in items]
+            mock.call(project_config, item.formatted) for item in items]
 
     def test_legacy_attributes_moved(self):
         event = make_event(

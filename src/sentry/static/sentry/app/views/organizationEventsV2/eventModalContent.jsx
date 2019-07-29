@@ -95,7 +95,10 @@ const EventMetadata = props => {
       <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
-          date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
+          date={getDynamicText({
+            value: event.dateCreated || event.endTimestamp * 1000,
+            fixed: 'Dummy timestamp',
+          })}
         />
         <ExternalLink href={eventJsonUrl} className="json-link">
           JSON (<FileSize bytes={event.size} />)

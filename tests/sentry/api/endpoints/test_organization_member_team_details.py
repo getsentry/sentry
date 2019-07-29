@@ -294,6 +294,90 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             organizationmember__user=owner,
         ).exists()
 
+    def test_admin_not_in_team_cannot_add_member(self):
+        owner = self.create_user()
+        admin = self.create_user()
+        organization = self.create_organization(name='foo', owner=owner)
+        organization.flags.allow_joinleave = False
+        organization.save()
+        team = self.create_team(name='foo', organization=organization)
+        self.create_member(
+            organization=organization,
+            user=admin,
+            role="admin",
+            teams=[],
+        )
+
+        user = self.create_user('dummy@example.com')
+        member_om = self.create_member(
+            organization=organization,
+            user=user,
+            role='member',
+            teams=[],
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
+
+        self.login_as(admin)
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 400
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=team,
+            organizationmember=member_om,
+        ).exists()
+
+    def test_admin_in_team_can_add_member(self):
+        owner = self.create_user()
+        admin = self.create_user()
+        organization = self.create_organization(name='foo', owner=owner)
+        organization.flags.allow_joinleave = False
+        organization.save()
+        team = self.create_team(name='foo', organization=organization)
+        self.create_member(
+            organization=organization,
+            user=admin,
+            role="admin",
+            teams=[team],
+        )
+
+        user = self.create_user('dummy@example.com')
+        member_om = self.create_member(
+            organization=organization,
+            user=user,
+            role='member',
+            teams=[],
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
+
+        self.login_as(admin)
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 201
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=team,
+            organizationmember=member_om,
+        ).exists()
+
 
 class DeleteOrganizationMemberTeamTest(APITestCase):
     def test_can_leave_as_member(self):
@@ -569,4 +653,84 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
         assert OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=owner_om,
+        ).exists()
+
+    def test_admin_in_team_can_remove_member(self):
+        admin = self.create_user()
+        organization = self.create_organization(name='foo')
+        team = self.create_team(name='foo', organization=organization)
+        self.create_member(
+            organization=organization,
+            user=admin,
+            role='admin',
+            teams=[team],
+        )
+        organization.flags.allow_joinleave = False
+        organization.save()
+        user = self.create_user('dummy@example.com')
+        member_om = self.create_member(
+            organization=organization,
+            user=user,
+            role='member',
+            teams=[team],
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
+
+        self.login_as(admin)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 200
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=team,
+            organizationmember=member_om,
+        ).exists()
+
+    def test_admin_not_in_team_cannot_remove_member(self):
+        admin = self.create_user()
+        organization = self.create_organization(name='foo')
+        organization.flags.allow_joinleave = False
+        organization.save()
+        team = self.create_team(name='foo', organization=organization)
+        self.create_member(
+            organization=organization,
+            user=admin,
+            role='admin',
+            teams=[],
+        )
+        user = self.create_user()
+        member_om = self.create_member(
+            organization=organization,
+            user=user,
+            role='member',
+            teams=[team],
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-team-details',
+            args=[
+                organization.slug,
+                member_om.id,
+                team.slug,
+            ]
+        )
+
+        self.login_as(admin)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 400
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=team,
+            organizationmember=member_om,
         ).exists()
