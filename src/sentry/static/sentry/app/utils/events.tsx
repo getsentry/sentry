@@ -1,9 +1,10 @@
 import {isNativePlatform} from 'app/utils/platform';
+import {Event} from 'app/types';
 
 /**
  * Extract the display message from an event.
  */
-export function getMessage(event) {
+export function getMessage(event: Event): string | undefined {
   const {metadata, type, culprit} = event;
 
   switch (type) {
@@ -23,35 +24,41 @@ export function getMessage(event) {
 /**
  * Get the location from an event.
  */
-export function getLocation(event) {
+export function getLocation(event: Event): string | null {
   if (event.type === 'error' && isNativePlatform(event.platform)) {
-    const {metadata} = event || {};
-    return metadata.filename || null;
+    return event.metadata.filename || null;
   }
   return null;
 }
 
-export function getTitle(event) {
+type EventTitle = {
+  title: string;
+  subtitle: string;
+};
+
+export function getTitle(event: Event): EventTitle {
   const {metadata, type, culprit} = event;
-  let {title} = event;
-  let subtitle = null;
+  const result: EventTitle = {
+    title: event.title,
+    subtitle: '',
+  };
 
   if (type === 'error') {
-    subtitle = culprit;
+    result.subtitle = culprit;
     if (metadata.type) {
-      title = metadata.type;
+      result.title = metadata.type;
     } else {
-      title = metadata.function || '<unknown>';
+      result.title = metadata.function || '<unknown>';
     }
   } else if (type === 'csp') {
-    title = metadata.directive;
-    subtitle = metadata.uri;
+    result.title = metadata.directive || '';
+    result.subtitle = metadata.uri || '';
   } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-    title = metadata.message;
-    subtitle = metadata.origin;
+    result.title = metadata.message || '';
+    result.subtitle = metadata.origin || '';
   } else if (type === 'default') {
-    title = metadata.title;
+    result.title = metadata.title || '';
   }
 
-  return {title, subtitle};
+  return result;
 }
