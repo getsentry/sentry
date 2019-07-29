@@ -436,7 +436,6 @@ def save_attachment(event, attachment):
 
     EventAttachment.objects.create(
         event_id=event.event_id,
-        group_id=event.group_id,
         project_id=event.project_id,
         name=attachment.name,
         file=file,

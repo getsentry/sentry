@@ -597,7 +597,6 @@ def main(num_events=1, extra_events=False):
 
                 EventAttachment.objects.create(
                     project_id=project.id,
-                    group_id=event1.group_id,
                     event_id=event1.event_id,
                     name='example-logfile.txt',
                     file=File.objects.get_or_create(

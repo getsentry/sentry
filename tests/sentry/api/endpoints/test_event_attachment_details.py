@@ -32,7 +32,6 @@ class CreateAttachmentMixin(object):
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
-            group_id=self.event.group_id,
             project_id=self.event.project_id,
             file=self.file,
             name='hello.png',
