@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ParseError
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -174,7 +174,10 @@ class OrganizationEndpoint(Endpoint):
         standardize how this is used and remove this parameter.
         :return: A list of Project objects, or raises PermissionDenied.
         """
-        project_ids = set(map(int, request.GET.getlist('project')))
+        try:
+            project_ids = set(map(int, request.GET.getlist('project')))
+        except ValueError:
+            raise ParseError(detail='Invalid project parameter. Values must be numbers.')
 
         requested_projects = project_ids.copy()
 
