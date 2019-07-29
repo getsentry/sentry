@@ -48,7 +48,7 @@ class TestCreator(TestCase):
         assert len(sentry_app_installation_tokens) == 2
 
         log = AuditLogEntry.objects.get(organization=self.org)
-        assert log.get_note() == 'created a token for integration nulldb'
+        assert log.get_note() == 'created a token for internal integration nulldb'
         assert log.organization == self.org
         assert log.target_object == sentry_app_installation_token.id
 

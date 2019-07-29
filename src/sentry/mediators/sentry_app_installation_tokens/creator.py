@@ -44,9 +44,8 @@ class Creator(Mediator):
                 request=self.request,
                 organization=self.organization,
                 target_object=self.sentry_app_installation_token.id,
-                event=AuditLogEntryEvent.INTEGRATION_ADD_TOKEN,
-                data={
-                    'sentry_app': self.sentry_app.name},
+                event=AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN,
+                data={'sentry_app': self.sentry_app.name},
             )
 
     def record_analytics(self):
