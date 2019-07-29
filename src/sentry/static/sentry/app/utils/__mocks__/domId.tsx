@@ -1,4 +1,4 @@
-function domId(prefix) {
+function domId(prefix: string): string {
   return prefix + '123456';
 }
 

@@ -1,4 +1,4 @@
-export function isNativePlatform(platform) {
+export function isNativePlatform(platform: string | undefined): boolean {
   switch (platform) {
     case 'cocoa':
     case 'objc':
