@@ -13,7 +13,7 @@ from django.db.models import Q
 
 from itertools import izip
 from collections import defaultdict
-from six.moves import reduce
+from functools import reduce
 
 PATH_SEPERATORS = frozenset(['/', '\\'])
 
@@ -31,7 +31,7 @@ def tokenize_path(path):
 def score_path_match_length(path_a, path_b):
     score = 0
     for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
-        if a != b:
+        if a.lower() != b.lower():
             break
         score += 1
     return score
@@ -64,7 +64,7 @@ def _get_commit_file_changes(commits, path_name_set):
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(
         operator.or_,
-        (Q(filename__endswith=path) for path in filenames)
+        (Q(filename__iendswith=path) for path in filenames)
     )
 
     commit_file_change_matches = CommitFileChange.objects.filter(
