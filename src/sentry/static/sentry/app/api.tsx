@@ -106,7 +106,7 @@ export class Client {
   baseUrl: string;
   activeRequests: {[ids: string]: Request};
 
-  constructor(options) {
+  constructor(options: {baseUrl?: string} = {}) {
     if (isUndefined(options)) {
       options = {};
     }
