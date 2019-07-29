@@ -3,10 +3,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {fetchTeamDetails} from 'app/actionCreators/teams';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {fetchTeamDetails, joinTeam} from 'app/actionCreators/teams';
+import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
@@ -58,6 +61,49 @@ const TeamDetails = createReactClass({
     });
   },
 
+  handleRequestAccess() {
+    const {api, params} = this.props;
+    const {team} = this.state;
+
+    if (!team) {
+      return;
+    }
+
+    this.setState({
+      requesting: true,
+    });
+
+    joinTeam(
+      api,
+      {
+        orgId: params.orgId,
+        teamId: team.slug,
+      },
+      {
+        success: () => {
+          addSuccessMessage(
+            tct('You have requested access to [team]', {
+              team: `#${team.slug}`,
+            })
+          );
+          this.setState({
+            requesting: false,
+          });
+        },
+        error: () => {
+          addErrorMessage(
+            tct('Unable to request access to [team]', {
+              team: `#${team.slug}`,
+            })
+          );
+          this.setState({
+            requesting: false,
+          });
+        },
+      }
+    );
+  },
+
   fetchData() {
     this.setState({
       loading: true,
@@ -89,8 +135,21 @@ const TeamDetails = createReactClass({
       return <LoadingIndicator />;
     } else if (!team || !team.hasAccess) {
       return (
-        <Alert type="error">
-          {t('This team does not exist or you do not have access to this team')}
+        <Alert type="warning">
+          <h4>{t('You do not have access to this team')}</h4>
+
+          {team && (
+            <RequestAccessWrapper>
+              {tct('You may try to request access to [team]', {team: `#${team.slug}`})}
+              <Button
+                disabled={this.state.requesting || team.isPending}
+                size="small"
+                onClick={this.handleRequestAccess}
+              >
+                {team.isPending ? t('Request Pending') : t('Request Access')}
+              </Button>
+            </RequestAccessWrapper>
+          )}
         </Alert>
       );
     } else if (this.state.error) {
@@ -121,6 +180,10 @@ const TeamDetails = createReactClass({
   },
 });
 
-export {TeamDetails};
-
 export default withApi(TeamDetails);
+
+const RequestAccessWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
