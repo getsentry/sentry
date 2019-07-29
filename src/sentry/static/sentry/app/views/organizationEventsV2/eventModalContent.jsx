@@ -32,7 +32,9 @@ const EventModalContent = props => {
     <ColumnGrid>
       <HeaderBox>
         <EventHeader event={event} />
-        {isGroupedView && <ModalPagination event={event} location={location} />}
+        {isGroupedView && (
+          <ModalPagination view={view} event={event} location={location} />
+        )}
         {isGroupedView &&
           getDynamicText({
             value: (
@@ -40,6 +42,7 @@ const EventModalContent = props => {
                 organization={organization}
                 currentEvent={event}
                 location={location}
+                view={view}
               />
             ),
             fixed: 'events chart',
