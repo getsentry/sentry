@@ -342,13 +342,19 @@ export class Client {
     return this.activeRequests[id];
   }
 
-  requestPromise(
+  // Promise<[any, string | undefined, JQueryXHR | undefined]>
+
+  requestPromise<IncludeAllArgsType extends boolean>(
     path: string,
     {
       includeAllArgs,
       ...options
-    }: {includeAllArgs?: boolean} & Readonly<RequestOptions> = {}
-  ) {
+    }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
+  ): Promise<
+    IncludeAllArgsType extends true
+      ? [any, string | undefined, JQueryXHR | undefined]
+      : any
+  > {
     // Create an error object here before we make any async calls so
     // that we have a helpful stacktrace if it errors
     //
@@ -361,8 +367,8 @@ export class Client {
       this.request(path, {
         ...options,
         preservedError,
-        success: (data, ...args) => {
-          includeAllArgs ? resolve([data, ...args]) : resolve(data);
+        success: (data, textStatus, xhr) => {
+          includeAllArgs ? resolve([data, textStatus, xhr] as any) : resolve(data);
         },
         error: (resp: JQueryXHR) => {
           const errorObjectToUse = createRequestError(
