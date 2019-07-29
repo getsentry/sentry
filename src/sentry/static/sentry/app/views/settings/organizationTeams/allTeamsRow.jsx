@@ -1,38 +1,32 @@
-import {Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
+import {PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {t, tct, tn} from 'app/locale';
-import withApi from 'app/utils/withApi';
-import {PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-// TODO(dcramer): this isnt great UX
-
-const AllTeamsRow = createReactClass({
-  displayName: 'AllTeamsRow',
-
-  propTypes: {
+class AllTeamsRow extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     urlPrefix: PropTypes.string.isRequired,
-    access: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
     team: PropTypes.object.isRequired,
     openMembership: PropTypes.bool.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-    };
-  },
+  state = {
+    loading: false,
+    error: false,
+  };
 
-  joinTeam() {
+  joinTeam = () => {
     const {organization, team} = this.props;
 
     this.setState({
@@ -70,9 +64,9 @@ const AllTeamsRow = createReactClass({
         },
       }
     );
-  },
+  };
 
-  leaveTeam() {
+  leaveTeam = () => {
     const {organization, team} = this.props;
 
     this.setState({
@@ -110,10 +104,10 @@ const AllTeamsRow = createReactClass({
         },
       }
     );
-  },
+  };
 
   render() {
-    const {access, team, urlPrefix, openMembership} = this.props;
+    const {team, urlPrefix, openMembership} = this.props;
     const display = (
       <IdBadge
         team={team}
@@ -122,39 +116,58 @@ const AllTeamsRow = createReactClass({
       />
     );
 
+    // You can only view team details if you have access to team -- this should account
+    // for your role + org open memberhsip
+    const canViewTeam = team.hasAccess;
+
     return (
-      <PanelItem p={0} align="center">
-        <Box flex="1" p={2}>
-          {access.has('team:read') ? (
+      <TeamPanelItem>
+        <TeamNameWrapper>
+          {canViewTeam ? (
             <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>
           ) : (
             display
           )}
-        </Box>
-        <Box p={2}>
+        </TeamNameWrapper>
+        <Spacer>
           {this.state.loading ? (
-            <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
+            <Button size="small" disabled>
+              ...
+            </Button>
           ) : team.isMember ? (
-            <a className="leave-team btn btn-default btn-sm" onClick={this.leaveTeam}>
+            <Button size="small" onClick={this.leaveTeam}>
               {t('Leave Team')}
-            </a>
+            </Button>
           ) : team.isPending ? (
-            <a className="btn btn-default btn-sm btn-disabled">{t('Request Pending')}</a>
+            <Button size="small" disabled>
+              {t('Request Pending')}
+            </Button>
           ) : openMembership ? (
-            <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.joinTeam}>
               {t('Join Team')}
-            </a>
+            </Button>
           ) : (
-            <a className="btn btn-default btn-sm" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.joinTeam}>
               {t('Request Access')}
-            </a>
+            </Button>
           )}
-        </Box>
-      </PanelItem>
+        </Spacer>
+      </TeamPanelItem>
     );
-  },
-});
-
-export {AllTeamsRow};
+  }
+}
 
 export default withApi(AllTeamsRow);
+
+const TeamPanelItem = styled(PanelItem)`
+  padding: 0;
+  align-items: center;
+`;
+
+const Spacer = styled('div')`
+  padding: ${space(2)};
+`;
+
+const TeamNameWrapper = styled(Spacer)`
+  flex: 1;
+`;
