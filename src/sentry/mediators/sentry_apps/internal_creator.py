@@ -4,7 +4,6 @@ import six
 
 from collections import Iterable
 
-from sentry import analytics
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.models import (
@@ -71,6 +70,7 @@ class InternalCreator(Mediator):
             )
 
     def record_analytics(self):
+        from sentry import analytics
         analytics.record(
             'internal_integration.created',
             user_id=self.user.id,

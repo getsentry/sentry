@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils.audit import create_audit_entry
-from sentry import analytics
 from sentry.mediators import Mediator, Param
 from sentry.models import (
     AuditLogEntryEvent, ApiToken, SentryAppInstallationToken
@@ -36,6 +34,7 @@ class Creator(Mediator):
         )
 
     def audit(self):
+        from sentry.utils.audit import create_audit_entry
         if self.request:
             create_audit_entry(
                 request=self.request,
@@ -49,6 +48,7 @@ class Creator(Mediator):
             )
 
     def record_analytics(self):
+        from sentry import analytics
         analytics.record(
             'sentry_app_installation_token.created',
             user_id=self.user.id,
