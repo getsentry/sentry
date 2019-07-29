@@ -52,7 +52,7 @@ clean:
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ src/sentry/assets.json
+	rm -rf build/ dist/
 	@echo ""
 
 setup-git:

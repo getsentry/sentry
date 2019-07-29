@@ -15,10 +15,6 @@ from .base import BaseBuildCommand
 class BuildAssetsCommand(BaseBuildCommand):
     user_options = BaseBuildCommand.user_options + [
         (
-            'asset-json-path=', None,
-            'Relative path for JSON manifest. Defaults to {dist_name}/assets.json'
-        ),
-        (
             'inplace', 'i', "ignore build-lib and put compiled javascript files into the source " +
             "directory alongside your pure Python modules"
         ),
@@ -31,18 +27,12 @@ class BuildAssetsCommand(BaseBuildCommand):
     description = 'build static media assets'
 
     def initialize_options(self):
-        self.asset_json_path = u'{}/assets.json'.format(
-            self.distribution.get_name(),
-        )
         BaseBuildCommand.initialize_options(self)
 
     def get_dist_paths(self):
         return [
             'src/sentry/static/sentry/dist',
         ]
-
-    def get_manifest_additions(self):
-        return ('src/' + self.asset_json_path, )
 
     def _get_package_version(self):
         """
@@ -63,42 +53,13 @@ class BuildAssetsCommand(BaseBuildCommand):
         finally:
             sys.path.pop(0)
 
-        if not (version and build):
-            json_path = self.get_asset_json_path()
-            try:
-                with open(json_path) as fp:
-                    data = json.loads(fp.read())
-            except Exception:
-                pass
-            else:
-                log.info(u'pulled version information from \'{}\''.format(
-                    json_path,
-                ))
-                version, build = data['version'], data['build']
-
         return {
             'version': version,
             'build': build,
         }
 
-    def _needs_static(self, version_info):
-        json_path = self.get_asset_json_path()
-        if not os.path.exists(json_path):
-            return True
-
-        with open(json_path) as fp:
-            data = json.load(fp)
-        if data.get('version') != version_info.get('version'):
-            return True
-        if data.get('build') != version_info.get('build'):
-            return True
-        return False
-
     def _needs_built(self):
-        if BaseBuildCommand._needs_built(self):
-            return True
-        version_info = self._get_package_version()
-        return self._needs_static(version_info)
+        return BaseBuildCommand._needs_built(self)
 
     def _build(self):
         version_info = self._get_package_version()
@@ -122,12 +83,6 @@ class BuildAssetsCommand(BaseBuildCommand):
             )
             sys.exit(1)
 
-        log.info('writing version manifest')
-        manifest = self._write_version_file(version_info)
-        log.info(u'recorded manifest\n{}'.format(
-            json.dumps(manifest, indent=2),
-        ))
-
     def _build_static(self):
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
@@ -137,19 +92,6 @@ class BuildAssetsCommand(BaseBuildCommand):
         env['NODE_ENV'] = 'production'
         self._run_yarn_command(['webpack', '--bail'], env=env)
 
-    def _write_version_file(self, version_info):
-        manifest = {
-            'createdAt': datetime.datetime.utcnow().isoformat() + 'Z',
-            'version': version_info['version'],
-            'build': version_info['build'],
-        }
-        with open(self.get_asset_json_path(), 'w') as fp:
-            json.dump(manifest, fp)
-        return manifest
-
     @property
     def sentry_static_dist_path(self):
         return os.path.abspath(os.path.join(self.build_lib, 'sentry/static/sentry/dist'))
-
-    def get_asset_json_path(self):
-        return os.path.abspath(os.path.join(self.build_lib, self.asset_json_path))

@@ -161,8 +161,7 @@ class BaseBuildCommand(Command):
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
         # which files we just generated.  Otherwise they will be missing
-        # in the manifest.  This adds the files for what webpack generates
-        # plus our own assets.json file.
+        # in the manifest.  This adds the files for what webpack generates.
         sdist = self.distribution.get_command_obj('sdist')
         if not sdist.finalized:
             return
