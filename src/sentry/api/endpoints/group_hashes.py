@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
-import six
 import logging
-from datetime import timedelta
-from django.utils import timezone
+from datetime import datetime
 from functools import partial
 
 from rest_framework.response import Response
@@ -15,10 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Group, GroupHash, Event
 from sentry.tasks.unmerge import unmerge
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.snuba import (
-    raw_query,
-    SnubaError
-)
+from sentry.utils.snuba import raw_query
 
 
 @scenario('ListAvailableHashes')
@@ -46,7 +41,6 @@ class GroupHashesEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        now = timezone.now()
         aggregations = [
             ('argMax(event_id, timestamp)', None, 'event_id')
         ]
@@ -58,8 +52,8 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         data_fn = partial(
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=now - timedelta(days=90),
-            end=now,
+            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
+            end=datetime.utcnow(),  # will be clamped to project retention
             aggregations=aggregations,
             filter_keys=filter_keys,
             selected_columns=['primary_hash'],
@@ -67,24 +61,11 @@ class GroupHashesEndpoint(GroupEndpoint):
             referrer='api.group-hashes',
         )
 
-        try:
-            return self.paginate(
-                request=request,
-                on_results=lambda results: self.handle_results(results, group.project_id),
-                paginator=GenericOffsetPaginator(data_fn=data_fn)
-            )
-        except SnubaError as error:
-            logger.info(
-                'group-hashes.snuba-error',
-                extra={
-                    'group_id': group.id,
-                    'user_id': request.user.id,
-                    'error': six.text_type(error),
-                }
-            )
-            return Response({
-                'detail': 'Invalid query.'
-            }, status=400)
+        return self.paginate(
+            request=request,
+            on_results=lambda results: self.handle_results(results, group.project_id),
+            paginator=GenericOffsetPaginator(data_fn=data_fn)
+        )
 
     def delete(self, request, group):
         id_list = request.GET.getlist('id')

@@ -1,28 +1,53 @@
 from __future__ import absolute_import
 
+import copy
+from datetime import timedelta
+from django.utils import timezone
+
 from six.moves.urllib.parse import urlencode
 
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 
 
 class GroupHashesTest(APITestCase):
-    def test_simple(self):
+    def test_only_return_latest_event(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        GroupHash.objects.create(group=group, hash='a' * 32)
-        GroupHash.objects.create(group=group, hash='b' * 32)
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
 
-        url = u'/api/0/issues/{}/hashes/'.format(group.id)
+        event_old = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'message',
+                'timestamp': self.two_min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+                'fingerprint': ['group-1']
+            },
+            project_id=self.project.id,
+        )
+
+        event_new = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'message': 'message',
+                'timestamp': self.min_ago,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+                'fingerprint': ['group-1']
+            },
+            project_id=self.project.id,
+        )
+
+        assert event_new.group_id == event_old.group_id
+
+        url = u'/api/0/issues/{}/hashes/'.format(event_new.group_id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            'a' * 32,
-            'b' * 32,
-        ])
+        assert len(response.data) == 1
+        assert response.data[0]['latestEvent']['eventID'] == 'b' * 32
 
     def test_unmerge(self):
         self.login_as(user=self.user)
