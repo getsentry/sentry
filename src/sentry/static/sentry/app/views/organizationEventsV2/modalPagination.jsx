@@ -35,7 +35,7 @@ function buildTargets(event, location) {
   };
 
   const links = {};
-  for (const [key, value] of Object.entries(urlMap)) {
+  Object.entries(urlMap).forEach(([key, value]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
     if (!value) {
       links[key] = null;
@@ -48,7 +48,7 @@ function buildTargets(event, location) {
         },
       };
     }
-  }
+  });
 
   return links;
 }
