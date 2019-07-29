@@ -87,7 +87,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
 // TODO: move this somewhere
 type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
-type FunctionCallback = (...args: any[]) => void;
+type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 type RequestCallbacks = {
   success?: (data: any, textStatus?: string, xhr?: JQueryXHR) => void;
@@ -133,8 +133,12 @@ export class Client {
     return true;
   }
 
-  wrapCallback(id: string, func: FunctionCallback | undefined, cleanup: boolean = false) {
-    return (...args) => {
+  wrapCallback<T extends any[]>(
+    id: string,
+    func: FunctionCallback<T> | undefined,
+    cleanup: boolean = false
+  ) {
+    return (...args: T) => {
       const req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
@@ -211,8 +215,10 @@ export class Client {
       return;
     }
 
+    type ErrorCallbackArgs = [JQueryXHR, string, string];
+
     // Call normal error callback
-    const errorCb = this.wrapCallback(id, requestOptions.error);
+    const errorCb = this.wrapCallback<ErrorCallbackArgs>(id, requestOptions.error);
     if (typeof errorCb !== 'function') {
       return;
     }
