@@ -19,6 +19,7 @@ module.exports = {
   setupFiles: [
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
+    'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
   testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
