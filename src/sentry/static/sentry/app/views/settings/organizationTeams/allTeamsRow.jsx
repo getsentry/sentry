@@ -26,55 +26,84 @@ class AllTeamsRow extends React.Component {
     error: false,
   };
 
-  joinTeam = () => {
-    const {organization, team} = this.props;
+  handleRequestAccess = async () => {
+    const {team} = this.props;
+
+    try {
+      this.joinTeam({
+        successMessage: tct('You have requested access to [team]', {
+          team: `#${team.slug}`,
+        }),
+
+        errorMessage: tct('Unable to request access to [team]', {
+          team: `#${team.slug}`,
+        }),
+      });
+
+      // TODO: Ideally we would update team so that `isPending` is true
+    } catch (_err) {
+      // No need to do anything
+    }
+  };
+
+  handleJoinTeam = () => {
+    const {team} = this.props;
+
+    this.joinTeam({
+      successMessage: tct('You have joined [team]', {
+        team: `#${team.slug}`,
+      }),
+      errorMessage: tct('Unable to join [team]', {
+        team: `#${team.slug}`,
+      }),
+    });
+  };
+
+  joinTeam = ({successMessage, errorMessage}) => {
+    const {api, organization, team} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    joinTeam(
-      this.props.api,
-      {
-        orgId: organization.slug,
-        teamId: team.slug,
-      },
-      {
-        success: () => {
-          this.setState({
-            loading: false,
-            error: false,
-          });
-          addSuccessMessage(
-            tct('You have joined [team]', {
-              team: `#${team.slug}`,
-            })
-          );
+    return new Promise((resolve, reject) =>
+      joinTeam(
+        api,
+        {
+          orgId: organization.slug,
+          teamId: team.slug,
         },
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-          });
-          addErrorMessage(
-            tct('Unable to join [team]', {
-              team: `#${team.slug}`,
-            })
-          );
-        },
-      }
+        {
+          success: () => {
+            this.setState({
+              loading: false,
+              error: false,
+            });
+            addSuccessMessage(successMessage);
+            resolve();
+          },
+          error: () => {
+            this.setState({
+              loading: false,
+              error: true,
+            });
+            addErrorMessage(errorMessage);
+            reject(new Error('Unable to join team'));
+          },
+        }
+      )
     );
   };
 
-  leaveTeam = () => {
-    const {organization, team} = this.props;
+  handleLeaveTeam = () => {
+    const {api, organization, team} = this.props;
 
     this.setState({
       loading: true,
     });
 
     leaveTeam(
-      this.props.api,
+      api,
       {
         orgId: organization.slug,
         teamId: team.slug,
@@ -135,7 +164,7 @@ class AllTeamsRow extends React.Component {
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="small" onClick={this.leaveTeam}>
+            <Button size="small" onClick={this.handleLeaveTeam}>
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
@@ -143,11 +172,11 @@ class AllTeamsRow extends React.Component {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="small" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.handleJoinTeam}>
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="small" onClick={this.joinTeam}>
+            <Button size="small" onClick={this.handleRequestAccess}>
               {t('Request Access')}
             </Button>
           )}
