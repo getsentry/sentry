@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from sentry import options
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 
 
 class GroupTestSnuba(TestCase, SnubaTestCase):
     def test_get_oldest_latest_for_environments(self):
-        options.set('snuba.events-queries.enabled', True)
         project = self.create_project()
 
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]

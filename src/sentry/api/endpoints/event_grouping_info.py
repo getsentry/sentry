@@ -4,7 +4,6 @@ import six
 
 from django.http import HttpResponse
 
-from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
@@ -21,12 +20,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        event_cls = event_cls = SnubaEvent if use_snuba else Event
-
-        event = event_cls.objects.from_event_id(event_id, project_id=project.id)
+        event = SnubaEvent.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
 
