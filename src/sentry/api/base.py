@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.exceptions import ParseError
 from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -239,11 +240,13 @@ class Endpoint(APIView):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
         per_page = int(request.GET.get('per_page', default_per_page))
-        input_cursor = request.GET.get('cursor')
-        if input_cursor:
-            input_cursor = Cursor.from_string(input_cursor)
-        else:
-            input_cursor = None
+
+        input_cursor = None
+        if request.GET.get('cursor'):
+            try:
+                input_cursor = Cursor.from_string(request.GET.get('cursor'))
+            except ValueError:
+                raise ParseError(detail='Invalid cursor parameter.')
 
         assert per_page <= max(max_per_page, default_per_page)
 
