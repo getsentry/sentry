@@ -46,6 +46,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
     def _can_access(self, request, member, organization):
+        """
+        Conditions where user can modify the requested resource:
+
+        * If they are an active superuser
+        * If they are modifying their own membership
+        * If the user's role is higher than the targeted user's role (e.g. "admin" can't modify "owner")
+        * If the user is an "admin" and they are modifying a team they are a member of
+        """
+
         if is_active_superuser(request):
             return True
 
@@ -66,6 +75,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             return True
 
         return False
+
+    def _can_admin_team(self, request, organization, team_slug):
+        return OrganizationMember.objects.filter(
+            organization=organization,
+            user__id=request.user.id,
+            user__is_active=True,
+            role="admin",
+            organizationmemberteam__team__slug=team_slug,
+        ).exists()
 
     def _get_member(self, request, organization, member_id):
         if member_id == 'me':
@@ -99,7 +117,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_access(request, om, organization):
+        can_admin_team = self._can_admin_team(request, organization, team_slug)
+
+        if not self._can_access(request, om, organization) and not can_admin_team:
             return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
@@ -116,7 +136,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 organizationmember=om,
             )
         except OrganizationMemberTeam.DoesNotExist:
-            if not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
+            if not (request.access.has_scope('org:write')
+                    or organization.flags.allow_joinleave or can_admin_team):
                 omt, created = OrganizationAccessRequest.objects.get_or_create(
                     team=team,
                     member=om,
@@ -152,7 +173,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_access(request, om, organization):
+        can_admin_team = self._can_admin_team(request, organization, team_slug)
+
+        if not self._can_access(request, om, organization) and not can_admin_team:
             return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
