@@ -87,7 +87,7 @@ class AuditLogEntryEvent(object):
 
     INTERNAL_INTEGRATION_ADD = 130
 
-    SENTRY_APP_INSTALLATION_TOKEN_CREATED = 135
+    INTEGRATION_ADD_TOKEN = 135
 
 
 class AuditLogEntry(Model):
@@ -162,10 +162,14 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
             (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, 'internal-integration.create'),
 
+            (AuditLogEntryEvent.INTEGRATION_ADD_TOKEN, 'integration.add-token'),
+
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
             (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
             (AuditLogEntryEvent.PLAN_CANCELLED, 'plan.cancelled'),
+
+
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -349,5 +353,8 @@ class AuditLogEntry(Model):
             return 'installed sentry app %s' % (self.data['sentry_app'])
         elif self.event == AuditLogEntryEvent.SENTRY_APP_UNINSTALL:
             return 'uninstalled sentry app %s' % (self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.INTEGRATION_ADD_TOKEN:
+            return 'created a token for integration %s' % (
+                self.data['sentry_app'])
 
         return ''
