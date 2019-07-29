@@ -175,11 +175,21 @@ export const Frame = createReactClass({
         ? data.module || data.filename
         : data.filename || data.module;
 
-      title.push(
-        <code key="filename" className="filename">
-          <Truncate value={pathName} maxLength={100} leftTrim={true} />
-        </code>
-      );
+      if (defined(data.absPath)) {
+        title.push(
+          <Tooltip title={data.absPath || ''}>
+            <code key="filename" className="filename">
+              <Truncate value={pathName} maxLength={100} leftTrim={true} />
+            </code>
+          </Tooltip>
+        );
+      } else {
+        title.push(
+          <code key="filename" className="filename">
+            <Truncate value={pathName} maxLength={100} leftTrim={true} />
+          </code>
+        );
+      }
 
       // in case we prioritized the module name but we also have a filename info
       // we want to show a litle (?) icon that on hover shows the actual filename
