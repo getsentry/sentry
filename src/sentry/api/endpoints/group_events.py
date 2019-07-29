@@ -3,13 +3,12 @@ from __future__ import absolute_import
 import six
 
 from datetime import timedelta
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import features, options, quotas, tagstore
+from sentry import features
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.event_search import get_snuba_query_args
@@ -17,15 +16,14 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Event, Group, SnubaEvent
+from sentry.models import Group, SnubaEvent
 from sentry.search.utils import (
     InvalidQuery,
     parse_query,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.validators import normalize_event_id
 from sentry.utils.snuba import raw_query
 
 
@@ -70,16 +68,10 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        use_snuba = (
-            request.GET.get('enable_snuba') == '1'
-            or options.get('snuba.events-queries.enabled')
-        )
-
-        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
         start, end = get_date_range_from_params(request.GET, optional=True)
 
         try:
-            return backend(request, group, environments, query, tags, start, end)
+            return self._get_events_snuba(request, group, environments, query, tags, start, end)
         except GroupEventsError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 
@@ -130,63 +122,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             on_results=lambda results: serialize(
                 [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
-        )
-
-    def _get_events_legacy(
-        self,
-        request,
-        group,
-        environments,
-        query,
-        tags,
-        start,
-        end,
-    ):
-        events = Event.objects.filter(group_id=group.id)
-
-        if query:
-            q = Q(message__icontains=query)
-
-            event_id = normalize_event_id(query)
-            if event_id:
-                q |= Q(event_id__exact=event_id)
-
-            events = events.filter(q)
-
-        if tags:
-            event_filter = tagstore.get_group_event_filter(
-                group.project_id,
-                group.id,
-                [env.id for env in environments],
-                tags,
-                start,
-                end,
-            )
-
-            if not event_filter:
-                return Response([])
-
-            events = events.filter(**event_filter)
-
-        # Filter start/end here in case we didn't filter by tags at all
-        if start:
-            events = events.filter(datetime__gte=start)
-        if end:
-            events = events.filter(datetime__lte=end)
-
-        # filter out events which are beyond the retention period
-        retention = quotas.get_event_retention(organization=group.project.organization)
-        if retention:
-            events = events.filter(
-                datetime__gte=timezone.now() - timedelta(days=retention)
-            )
-
-        return self.paginate(
-            request=request,
-            queryset=events,
-            order_by='-datetime',
-            on_results=lambda x: serialize(x, request.user),
-            paginator_cls=DateTimePaginator,
         )
 
     def _get_search_query_and_tags(self, request, group, environments=None):
