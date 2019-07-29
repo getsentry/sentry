@@ -1,5 +1,9 @@
 export default class RequestError extends Error {
-  constructor(method, path) {
+  responseJSON?: any;
+  status?: number;
+  statusText?: string;
+
+  constructor(method: string | undefined, path: string) {
     super(`${method || 'GET'} ${path}`);
     this.name = 'RequestError';
     Object.setPrototypeOf(this, new.target.prototype);
@@ -8,10 +12,10 @@ export default class RequestError extends Error {
   /**
    * Updates Error with XHR response
    */
-  setResponse(resp) {
+  setResponse(resp: JQueryXHR) {
     if (resp) {
       this.setMessage(
-        `${this.message} ${resp.status !== 'undefined' ? resp.status : 'n/a'}`
+        `${this.message} ${typeof resp.status === 'number' ? resp.status : 'n/a'}`
       );
 
       // Some callback handlers expect these properties on the error object
@@ -24,15 +28,15 @@ export default class RequestError extends Error {
     }
   }
 
-  setMessage(message) {
+  setMessage(message: string) {
     this.message = message;
   }
 
-  setStack(newStack) {
+  setStack(newStack: string) {
     this.stack = newStack;
   }
 
-  setName(name) {
+  setName(name: string) {
     this.name = name;
   }
 

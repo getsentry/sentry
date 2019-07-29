@@ -21,8 +21,13 @@ const ERROR_MAP = {
  * @param {Object} resp A XHR response object
  * @param {String} stack The stacktrace to use. Helpful for async calls and we want to preserve a different stack.
  */
-export default function createRequestError(resp, stack, ...args) {
-  const err = new RequestError(...args);
+export default function createRequestError(
+  resp: JQueryXHR,
+  stack: string | undefined,
+  method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
+  path: string
+) {
+  const err = new RequestError(method, path);
 
   if (resp) {
     const errorName = ERROR_MAP[resp.status];
