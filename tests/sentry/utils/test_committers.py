@@ -95,11 +95,14 @@ class ScorePathMatchLengthTest(unittest.TestCase):
         assert score_path_match_length('foo/bar/baz', 'bar/baz') == 2
         assert score_path_match_length('foo/bar/baz', 'baz') == 1
 
-    def test_why_is_this_zero(self):
+    def test_prefix_no_score(self):
         assert score_path_match_length('foo/bar/baz', 'foo') == 0
 
     def test_path_with_empty_path_segment(self):
         assert score_path_match_length('./foo/bar/baz', 'foo/bar/baz') == 3
+
+    def test_case_insensitive_comparison(self):
+        assert score_path_match_length('./Foo/Bar/BAZ', 'foo/bar/baz') == 3
 
 
 class GetFramePathsTestCase(unittest.TestCase):
@@ -323,6 +326,46 @@ class GetEventFileCommitters(CommitTestCase):
                 'patch_set': [
                     {
                         'path': 'src/sentry/models/release.py',
+                        'type': 'M',
+                    },
+                ]
+            }
+        ])
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert 'commits' in result[0]
+        assert len(result[0]['commits']) == 1
+        assert result[0]['commits'][0]['id'] == 'a' * 40
+
+    def test_matching_case_insensitive(self):
+        event = self.create_event(
+            group=self.group,
+            message='Kaboom!',
+            platform='cpp',
+            stacktrace={
+                'frames': [
+                    {
+                        "function": "roar",
+                        "abs_path": "/usr/src/app/TigerMachine.cpp",
+                        "module": "",
+                        "in_app": True,
+                        "lineno": 30,
+                        "filename": "app/TigerMachine.cpp",
+                    }
+                ]
+            }
+        )
+        self.release.set_commits([
+            {
+                'id': 'a' * 40,
+                'repository': self.repo.name,
+                'author_email': 'bob@example.com',
+                'author_name': 'Bob',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'app/tigermachine.cpp',
                         'type': 'M',
                     },
                 ]
