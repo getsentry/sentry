@@ -47,7 +47,7 @@ from sentry.lang.native.minidump import (
     merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
     MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, File, EventAttachment, Event
+from sentry.models import Project, File, EventAttachment
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received,
 )
@@ -654,31 +654,12 @@ class EventAttachmentStoreView(StoreView):
             )
             file.putfile(uploaded_file)
 
-            # To avoid a race with EventManager which tries to set the group_id on attachments received before
-            # the event, first insert the attachment, then lookup for the event for its group.
-            event_attachment = EventAttachment.objects.create(
+            EventAttachment.objects.create(
                 project_id=project_id,
                 event_id=event_id,
                 name=uploaded_file.name,
                 file=file,
             )
-
-            try:
-                event = Event.objects.get(
-                    project_id=project_id,
-                    event_id=event_id,
-                )
-            except Event.DoesNotExist:
-                pass
-            else:
-                # If event was created but the group not defined, EventManager will take care of setting the
-                # group to all dangling attachments
-                if event.group_id is not None:
-                    EventAttachment.objects.filter(
-                        id=event_attachment.id,
-                    ).update(
-                        group_id=event.group_id,
-                    )
 
         return HttpResponse(status=201)
 
