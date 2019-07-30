@@ -1,59 +1,55 @@
 from __future__ import absolute_import
 
 from mock import patch
-from datetime import date
 
-from sentry.mediators.sentry_app_installation_tokens import Creator
+from sentry.mediators.sentry_app_installation_tokens import Destroyer
 from sentry.models import (
     AuditLogEntry,
+    ApiToken,
     SentryAppInstallationToken,
     SentryAppInstallation
 )
 from sentry.testutils import TestCase
 
 
-class TestCreator(TestCase):
+class TestDestroyer(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.create_project(organization=self.org)
 
-        # will create the installation and the first token
         self.sentry_app = self.create_internal_integration(
             name='nulldb',
             organization=self.org
         )
 
         self.sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
+        self.api_token = self.create_internal_integration_token(
+            install=self.sentry_app_installation,
+            user=self.user,
+        )
 
     @patch('sentry.analytics.record')
-    def test_create_token_with_audit(self, record):
-        today = date.today()
-        request = self.make_request(user=self.user, method='GET')
-        sentry_app_installation_token = Creator.run(
+    def test_delete_token_with_audit(self, record):
+        request = self.make_request(user=self.user, method='DELETE')
+        api_token = Destroyer.run(
             sentry_app_installation=self.sentry_app_installation,
-            expires_at=today,
+            api_token=self.api_token,
             user=self.user,
             generate_audit=True,
             request=request
         )
 
-        # verify token was created properly
-        assert sentry_app_installation_token.api_token.expires_at == today
-
-        # check we have two tokens
-        sentry_app_installation_tokens = SentryAppInstallationToken.objects.filter(
-            sentry_app_installation=self.sentry_app_installation)
-
-        assert len(sentry_app_installation_tokens) == 2
+        assert not ApiToken.objects.filter(id=api_token.id).exists()
+        assert not SentryAppInstallationToken.objects.filter(api_token_id=api_token.id).exists()
 
         log = AuditLogEntry.objects.get(organization=self.org)
-        assert log.get_note() == 'created a token for internal integration nulldb'
+        assert log.get_note() == 'revoked a token for internal integration nulldb'
         assert log.organization == self.org
-        assert log.target_object == sentry_app_installation_token.api_token.id
+        assert log.target_object == api_token.id
 
         record.assert_called_with(
-            'sentry_app_installation_token.created',
+            'sentry_app_installation_token.deleted',
             user_id=self.user.id,
             organization_id=self.org.id,
             sentry_app_installation_id=self.sentry_app_installation.id,
@@ -62,27 +58,22 @@ class TestCreator(TestCase):
 
     @patch('sentry.utils.audit.create_audit_entry')
     @patch('sentry.analytics.record')
-    def test_create_token_without_audit_or_date(self, record, create_audit_entry):
-        request = self.make_request(user=self.user, method='GET')
-        sentry_app_installation_token = Creator.run(
+    def test_delete_token_without_audit(self, record, create_audit_entry):
+        request = self.make_request(user=self.user, method='DELETE')
+        api_token = Destroyer.run(
             sentry_app_installation=self.sentry_app_installation,
+            api_token=self.api_token,
             user=self.user,
             request=request
         )
 
-        # verify token was created properly
-        assert sentry_app_installation_token.api_token.expires_at is None
-
-        # check we have two tokens
-        sentry_app_installation_tokens = SentryAppInstallationToken.objects.filter(
-            sentry_app_installation=self.sentry_app_installation)
-
-        assert len(sentry_app_installation_tokens) == 2
+        assert not ApiToken.objects.filter(id=api_token.id).exists()
+        assert not SentryAppInstallationToken.objects.filter(api_token_id=api_token.id).exists()
 
         assert not create_audit_entry.called
 
         record.assert_called_with(
-            'sentry_app_installation_token.created',
+            'sentry_app_installation_token.deleted',
             user_id=self.user.id,
             organization_id=self.org.id,
             sentry_app_installation_id=self.sentry_app_installation.id,
