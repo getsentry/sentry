@@ -3,13 +3,8 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import backwall from 'app/../images/congrats-robots/backwall.png';
-import banner from 'app/../images/congrats-robots/banner.png';
-import confetti_1 from 'app/../images/congrats-robots/confetti_1.json';
-import confetti_2 from 'app/../images/congrats-robots/confetti_2.json';
-import confetti_bg from 'app/../images/congrats-robots/confetti_bg.json';
+import background from 'app/../images/congrats-robots/background.png';
 import main from 'app/../images/congrats-robots/main.json';
-import rug from 'app/../images/congrats-robots/rug.png';
 
 const Lottie = React.lazy(() =>
   import(/* webpackChunkName: "ReactLottie" */ 'react-lottie')
@@ -20,33 +15,10 @@ const CongratsRobots = () => {
     <React.Suspense fallback={null}>
       <CongratsRobotsWrapper>
         <AnimatedScene>
-          <StyledImage src={backwall} />
-          <StyledImage src={banner} />
-          <StyledImage src={rug} />
+          <StyledImage src={background} />
           <StyledLottie>
             <Lottie
               options={{animationData: main}}
-              ariaRole={null}
-              isClickToPauseDisabled
-            />
-          </StyledLottie>
-          <StyledLottie>
-            <Lottie
-              options={{animationData: confetti_1}}
-              ariaRole={null}
-              isClickToPauseDisabled
-            />
-          </StyledLottie>
-          <StyledLottie>
-            <Lottie
-              options={{animationData: confetti_2}}
-              ariaRole={null}
-              isClickToPauseDisabled
-            />
-          </StyledLottie>
-          <StyledLottie>
-            <Lottie
-              options={{animationData: confetti_bg}}
               ariaRole={null}
               isClickToPauseDisabled
             />
