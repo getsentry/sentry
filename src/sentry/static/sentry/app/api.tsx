@@ -91,7 +91,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 type RequestCallbacks = {
   success?: (data: any, textStatus?: string, xhr?: JQueryXHR) => void;
-  complete?: FunctionCallback;
+  complete?: (jqXHR: JQueryXHR, textStatus: string) => void;
   error?: FunctionCallback;
 };
 
@@ -190,7 +190,7 @@ export class Client {
         sudo: code === SUDO_REQUIRED,
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
-            .then((data: any) => {
+            .then(data => {
               if (typeof requestOptions.success !== 'function') {
                 return;
               }
@@ -290,7 +290,11 @@ export class Client {
             },
           });
           if (!isUndefined(options.success)) {
-            this.wrapCallback(id, options.success)(responseData, textStatus, xhr);
+            this.wrapCallback<[any, string, JQueryXHR]>(id, options.success)(
+              responseData,
+              textStatus,
+              xhr
+            );
           }
         },
         error: (resp: JQueryXHR, textStatus: string, errorThrown: string) => {
@@ -334,7 +338,10 @@ export class Client {
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
           Sentry.finishSpan(requestSpan);
-          return this.wrapCallback(id, options.complete, true)(jqXHR, textStatus);
+          return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
+            jqXHR,
+            textStatus
+          );
         },
       })
     );
@@ -387,13 +394,13 @@ export class Client {
     });
   }
 
-  _chain(...funcs: Array<((...args: any[]) => any) | undefined>) {
+  _chain<Args extends any[]>(...funcs: Array<((...args: Args) => any) | undefined>) {
     const filteredFuncs = funcs.filter(
-      (f): f is (...args: any[]) => any => {
+      (f): f is (...args: Args) => any => {
         return isFunction(f);
       }
     );
-    return (...args) => {
+    return (...args: Args) => {
       filteredFuncs.forEach(func => {
         func.apply(funcs, args);
       });
