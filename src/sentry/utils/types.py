@@ -157,7 +157,7 @@ Sequence = SequenceType()
 _type_mapping = {
     bool: Bool,
     int: Int,
-    long: Int,
+    long: Int,  # noqa: B311
     float: Float,
     six.binary_type: String,
     six.text_type: String,
