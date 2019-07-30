@@ -1,4 +1,4 @@
-import {isUndefined, isNil, get, isFunction} from 'lodash';
+import {isUndefined, isNil, get} from 'lodash';
 import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
 
@@ -398,7 +398,7 @@ export class Client {
   _chain<Args extends any[]>(...funcs: Array<((...args: Args) => any) | undefined>) {
     const filteredFuncs = funcs.filter(
       (f): f is (...args: Args) => any => {
-        return isFunction(f);
+        return typeof f === 'function';
       }
     );
     return (...args: Args): void => {
