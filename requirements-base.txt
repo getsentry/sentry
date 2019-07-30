@@ -36,7 +36,7 @@ msgpack>=0.6.1,<0.7.0
 oauth2>=1.5.167
 parsimonious==0.8.0
 percy>=1.1.2
-petname>=2.0,<2.1
+petname>=2.6,<2.7
 Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
 psycopg2-binary>=2.6.0,<2.8.0
