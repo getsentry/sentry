@@ -21,6 +21,7 @@ addons:
     packages:
       - libxmlsec1-dev
       - libgeoip-dev
+      - chromium-chromedriver
   chrome: stable
 
 env:
@@ -101,12 +102,10 @@ base_acceptance: &acceptance_default
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
-    - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_74)/chromedriver_linux64.zip" -P ~/
-    - unzip ~/chromedriver_linux64.zip -d ~/
-    - rm ~/chromedriver_linux64.zip
-    - sudo install -m755 ~/chromedriver /usr/local/bin/
   before_script:
+    - ln --symbolic /usr/lib/chromium-browser/chromedriver "${HOME}/bin/chromedriver"
     - psql -c 'create database sentry;' -U postgres
+
 
 
 # each job in the matrix inherits `env/global` and uses everything above,
