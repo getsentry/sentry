@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 from datetime import datetime
 from functools import partial
 
@@ -22,9 +21,6 @@ def list_available_hashes_scenario(runner):
     runner.request(method='GET', path='/issues/%s/hashes/' % group.id)
 
 
-logger = logging.getLogger(__name__)
-
-
 class GroupHashesEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
@@ -41,29 +37,29 @@ class GroupHashesEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        aggregations = [
-            ('argMax(event_id, timestamp)', None, 'event_id')
-        ]
-
-        filter_keys = {
-            'project_id': [group.project_id],
-            'group_id': [group.id]
-        }
-
         data_fn = partial(
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
             start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
             end=datetime.utcnow(),  # will be clamped to project retention
-            aggregations=aggregations,
-            filter_keys=filter_keys,
+            aggregations=[
+                ('argMax(event_id, timestamp)', None, 'event_id'),
+                ('max', 'timestamp', 'latest_event_timestamp')
+            ],
+            filter_keys={
+                'project_id': [group.project_id],
+                'group_id': [group.id]
+            },
             selected_columns=['primary_hash'],
             groupby=['primary_hash'],
             referrer='api.group-hashes',
+            orderby=['-latest_event_timestamp'],
         )
+
+        handle_results = partial(self.handle_results, group.project_id)
 
         return self.paginate(
             request=request,
-            on_results=lambda results: self.handle_results(results, group.project_id),
+            on_results=lambda results: handle_results(results),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
@@ -94,8 +90,8 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         return Response(status=202)
 
-    def handle_results(self, results, project_id):
-        event_ids = map(lambda result: result['event_id'], results)
+    def handle_results(self, project_id, results):
+        event_ids = [row['event_id'] for row in results]
         event_by_event_id = {
             event.event_id: event
             for event in Event.objects.filter(
