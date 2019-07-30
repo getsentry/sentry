@@ -1340,7 +1340,50 @@ describe('IssueList,', function() {
       expect(error.props().message).toEqual('Things broke');
     });
 
-    it('displays an empty resultset', function() {
+    it('displays congrats animation with empty resultset and only `is:unresolved` query', function() {
+      wrapper.setState({
+        savedSearchLoading: false,
+        issuesLoading: false,
+        error: false,
+        groupIds: [],
+      });
+
+      expect(wrapper.find('CongratsRobots')).toHaveLength(1);
+    });
+
+    it('displays an empty resultset with `is:unresolved` query and additional parameters', function() {
+      const errorsOnlyQuery = {
+        ...props,
+        location: {
+          query: {query: 'is:unresolved level:error'},
+        },
+      };
+
+      wrapper = shallow(<IssueList {...errorsOnlyQuery} />, {
+        disableLifecycleMethods: false,
+      });
+
+      wrapper.setState({
+        savedSearchLoading: false,
+        issuesLoading: false,
+        error: false,
+        groupIds: [],
+      });
+      expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+    });
+
+    it('displays an empty resultset without `is:unresolved` query', function() {
+      const hasBrowserQuery = {
+        ...props,
+        location: {
+          query: {query: 'has:browser'},
+        },
+      };
+
+      wrapper = shallow(<IssueList {...hasBrowserQuery} />, {
+        disableLifecycleMethods: false,
+      });
+
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,

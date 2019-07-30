@@ -1,4 +1,3 @@
-import Lottie from 'react-lottie';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -12,48 +11,54 @@ import confetti_bg from 'app/../images/congrats-robots/confetti_bg.json';
 import main from 'app/../images/congrats-robots/main.json';
 import rug from 'app/../images/congrats-robots/rug.png';
 
+const Lottie = React.lazy(() =>
+  import(/* webpackChunkName: "ReactLottie" */ 'react-lottie')
+);
+
 const CongratsRobots = () => {
   return (
-    <CongratsRobotsWrapper>
-      <AnimatedScene>
-        <StyledImage src={backwall} />
-        <StyledImage src={banner} />
-        <StyledImage src={rug} />
-        <StyledLottie>
-          <Lottie
-            options={{animationData: main}}
-            ariaRole={null}
-            isClickToPauseDisabled
-          />
-        </StyledLottie>
-        <StyledLottie>
-          <Lottie
-            options={{animationData: confetti_1}}
-            ariaRole={null}
-            isClickToPauseDisabled
-          />
-        </StyledLottie>
-        <StyledLottie>
-          <Lottie
-            options={{animationData: confetti_2}}
-            ariaRole={null}
-            isClickToPauseDisabled
-          />
-        </StyledLottie>
-        <StyledLottie>
-          <Lottie
-            options={{animationData: confetti_bg}}
-            ariaRole={null}
-            isClickToPauseDisabled
-          />
-        </StyledLottie>
-      </AnimatedScene>
-      <Description>
-        {t(
-          "Congrats, we couldn't find any errors that matched your filters. Get out there and write some broken code!"
-        )}
-      </Description>
-    </CongratsRobotsWrapper>
+    <React.Suspense fallback={null}>
+      <CongratsRobotsWrapper>
+        <AnimatedScene>
+          <StyledImage src={backwall} />
+          <StyledImage src={banner} />
+          <StyledImage src={rug} />
+          <StyledLottie>
+            <Lottie
+              options={{animationData: main}}
+              ariaRole={null}
+              isClickToPauseDisabled
+            />
+          </StyledLottie>
+          <StyledLottie>
+            <Lottie
+              options={{animationData: confetti_1}}
+              ariaRole={null}
+              isClickToPauseDisabled
+            />
+          </StyledLottie>
+          <StyledLottie>
+            <Lottie
+              options={{animationData: confetti_2}}
+              ariaRole={null}
+              isClickToPauseDisabled
+            />
+          </StyledLottie>
+          <StyledLottie>
+            <Lottie
+              options={{animationData: confetti_bg}}
+              ariaRole={null}
+              isClickToPauseDisabled
+            />
+          </StyledLottie>
+        </AnimatedScene>
+        <Description>
+          {t(
+            "Congrats, we couldn't find any errors that matched your filters. Get out there and write some broken code!"
+          )}
+        </Description>
+      </CongratsRobotsWrapper>
+    </React.Suspense>
   );
 };
 
