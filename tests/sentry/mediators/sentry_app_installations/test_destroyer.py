@@ -7,7 +7,14 @@ from mock import patch
 from requests.exceptions import RequestException
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, SentryAppInstallation, ServiceHook
+from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    ApiGrant,
+    ApiToken,
+    SentryAppInstallation,
+    ServiceHook,
+)
 from sentry.testutils import TestCase
 
 
@@ -68,6 +75,25 @@ class TestDestroyer(TestCase):
         self.destroyer.call()
 
         assert not ServiceHook.objects.filter(pk=hook.id).exists()
+
+    @responses.activate
+    def test_deletes_api_tokens(self):
+        internal_app = self.create_internal_integration(
+            organization=self.org,
+            slug='internal',
+        )
+        install = SentryAppInstallation.objects.get(sentry_app_id=internal_app.id)
+        api_token = install.api_token
+
+        destroyer = Destroyer(
+            install=install,
+            user=self.user,
+        )
+
+        responses.add(responses.POST, 'https://example.com/webhook')
+        destroyer.call()
+
+        assert not ApiToken.objects.filter(pk=api_token.id).exists()
 
     @responses.activate
     @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
