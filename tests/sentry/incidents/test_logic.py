@@ -39,6 +39,7 @@ from sentry.incidents.logic import (
     get_incident_suspects,
     subscribe_to_incident,
     StatusAlreadyChangedError,
+    update_alert_rule,
     update_incident_status,
 )
 from sentry.incidents.models import (
@@ -848,3 +849,78 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
                 1,
             )
+
+
+class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return create_alert_rule(
+            self.project,
+            'hello',
+            AlertRuleThresholdType.ABOVE,
+            'level:error',
+            [AlertRuleAggregations.TOTAL],
+            10,
+            1000,
+            400,
+            1,
+        )
+
+    def test(self):
+        name = 'uh oh'
+        threshold_type = AlertRuleThresholdType.BELOW
+        query = 'level:warning'
+        aggregations = [AlertRuleAggregations.UNIQUE_USERS]
+        time_window = 50
+        alert_threshold = 2000
+        resolve_threshold = 800
+        threshold_period = 2
+
+        update_alert_rule(
+            self.alert_rule,
+            name=name,
+            threshold_type=threshold_type,
+            query=query,
+            aggregations=aggregations,
+            time_window=time_window,
+            alert_threshold=alert_threshold,
+            resolve_threshold=resolve_threshold,
+            threshold_period=threshold_period,
+        )
+        assert self.alert_rule.name == name
+        assert self.alert_rule.threshold_type == threshold_type.value
+        assert self.alert_rule.query == query
+        assert self.alert_rule.aggregations == [a.value for a in aggregations]
+        assert self.alert_rule.time_window == time_window
+        assert self.alert_rule.alert_threshold == alert_threshold
+        assert self.alert_rule.resolve_threshold == resolve_threshold
+        assert self.alert_rule.threshold_period == threshold_period
+
+    def test_update_subscription(self):
+        old_subscription_id = self.alert_rule.subscription_id
+        alert_rule = update_alert_rule(self.alert_rule, query='some new query')
+        assert old_subscription_id != alert_rule.subscription_id
+
+    def test_empty_query(self):
+        alert_rule = update_alert_rule(self.alert_rule, query='')
+        assert alert_rule.query == ''
+
+    def test_name_used(self):
+        used_name = 'uh oh'
+        create_alert_rule(
+            self.project,
+            used_name,
+            AlertRuleThresholdType.ABOVE,
+            'level:error',
+            [AlertRuleAggregations.TOTAL],
+            10,
+            1000,
+            400,
+            1,
+        )
+        with self.assertRaises(AlertRuleNameAlreadyUsedError):
+            update_alert_rule(self.alert_rule, name=used_name)
+
+    def test_invalid_query(self):
+        with self.assertRaises(InvalidSearchQuery):
+            update_alert_rule(self.alert_rule, query='has:')
