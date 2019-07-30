@@ -92,6 +92,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 type RequestCallbacks = {
   success?: (data: any, textStatus?: string, xhr?: JQueryXHR) => void;
   complete?: (jqXHR: JQueryXHR, textStatus: string) => void;
+  // TODO: refine this type later
   error?: FunctionCallback;
 };
 
@@ -118,6 +119,7 @@ export class Client {
    * Check if the API response says project has been renamed.
    * If so, redirect user to new project slug
    */
+  // TODO: refine this type later
   hasProjectBeenRenamed(response: JQueryXHR) {
     const code = get(response, 'responseJSON.detail.code');
 
