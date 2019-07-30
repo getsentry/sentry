@@ -55,13 +55,13 @@ after_script:
         codecov -e TEST_SUITE
       fi
   - ./bin/yarn global add @zeus-ci/cli
-  - ./bin/yarn zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - ./bin/yarn zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - ./bin/yarn zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - ./bin/yarn zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - ./bin/yarn zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - ./bin/yarn zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - ./bin/yarn zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  - $(yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - $(yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - $(yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - $(yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - $(yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
   # Trigger a build for the `git` image on docker-sentry
   - >
       if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
