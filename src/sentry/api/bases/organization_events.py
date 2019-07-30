@@ -40,6 +40,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         group_ids = request.GET.getlist('group')
         if group_ids:
+            # TODO(mark) This parameter should be removed in the long term.
+            # Instead of using this parameter clients should use `issue.id`
+            # in their query string.
             try:
                 group_ids = set(map(int, filter(None, group_ids)))
             except ValueError:
@@ -116,6 +119,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         group_ids = request.GET.getlist('group')
         if group_ids:
+            # TODO(mark) This parameter should be removed in the long term.
+            # Instead of using this parameter clients should use `issue.id`
+            # in their query string.
             try:
                 group_ids = set(map(int, filter(None, group_ids)))
             except ValueError:

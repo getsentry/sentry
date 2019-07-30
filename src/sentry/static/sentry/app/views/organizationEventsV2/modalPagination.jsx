@@ -15,12 +15,12 @@ import {MODAL_QUERY_KEYS} from './data';
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event, location) {
-  // Remove the groupSlug and eventSlug keys as we need to create new ones
+function buildTargets(event, location, view) {
+  // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
   let queryKey, aggregateValue;
-  if (event.type === 'transaction') {
+  if (view.id === 'transactions') {
     queryKey = 'transactionSlug';
     aggregateValue = event.location;
   } else {
@@ -54,8 +54,8 @@ function buildTargets(event, location) {
 }
 
 const ModalPagination = props => {
-  const {event, location} = props;
-  const links = buildTargets(event, location);
+  const {event, location, view} = props;
+  const links = buildTargets(event, location, view);
 
   return (
     <Wrapper>
@@ -87,6 +87,7 @@ const ModalPagination = props => {
 ModalPagination.propTypes = {
   location: PropTypes.object.isRequired,
   event: SentryTypes.Event.isRequired,
+  view: PropTypes.object.isRequired,
 };
 
 const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
