@@ -33,7 +33,6 @@ class TestDestroyer(TestCase):
     def test_delete_token_with_audit(self, record):
         request = self.make_request(user=self.user, method='DELETE')
         api_token = Destroyer.run(
-            sentry_app_installation=self.sentry_app_installation,
             api_token=self.api_token,
             user=self.user,
             generate_audit=True,
@@ -61,7 +60,6 @@ class TestDestroyer(TestCase):
     def test_delete_token_without_audit(self, record, create_audit_entry):
         request = self.make_request(user=self.user, method='DELETE')
         api_token = Destroyer.run(
-            sentry_app_installation=self.sentry_app_installation,
             api_token=self.api_token,
             user=self.user,
             request=request

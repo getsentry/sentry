@@ -31,6 +31,7 @@ class Destroyer(Mediator):
     def call(self):
         self._destroy_grant()
         self._destroy_service_hooks()
+        self._destroy_api_tokens()
         self._destroy_installation()
         return self.install
 
@@ -48,14 +49,13 @@ class Destroyer(Mediator):
 
     def _destroy_api_tokens(self):
         tokens = ApiToken.objects.filter(
-            id__in=SentryAppInstallationToken.object.filter(
+            id__in=SentryAppInstallationToken.objects.filter(
                 sentry_app_installation_id=self.install.id,
             ).values_list('api_token_id', flat=True),
         )
 
         for token in tokens:
             sentry_app_installation_tokens.Destroyer.run(
-                sentry_app_installation=self.install,
                 api_token=token,
                 user=self.user,
                 request=self.request,

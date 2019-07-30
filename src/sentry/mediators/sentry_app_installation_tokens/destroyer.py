@@ -8,7 +8,6 @@ from sentry.models import (
 
 
 class Destroyer(Mediator):
-    sentry_app_installation = Param('sentry.models.SentryAppInstallation')
     api_token = Param('sentry.models.ApiToken')
     generate_audit = Param(bool, default=False)
     user = Param('sentry.models.User')
@@ -23,10 +22,11 @@ class Destroyer(Mediator):
         self.api_token.delete()
 
     def _destroy_sentry_app_installation_token(self):
-        SentryAppInstallationToken.objects.get(
+        install_token = SentryAppInstallationToken.objects.get(
             api_token=self.api_token,
-            sentry_app_installation=self.sentry_app_installation,
-        ).delete()
+        )
+        self.sentry_app_installation = install_token.sentry_app_installation
+        install_token.delete()
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry
