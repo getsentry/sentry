@@ -20,24 +20,6 @@ class EventsTableRow extends React.Component {
     tagList: PropTypes.arrayOf(SentryTypes.Tag),
   };
 
-  getEventTitle = event => {
-    // XXX(mitsuhiko): event.title did not exist originally.  At one point
-    // all events will have this and most of this logic could go
-    switch (event.type) {
-      case 'error':
-        if (event.metadata.type && event.metadata.value) {
-          return `${event.metadata.type}: ${event.metadata.value}`;
-        }
-        return event.metadata.type || event.metadata.value || event.metadata.title;
-      case 'csp':
-        return event.metadata.message;
-      case 'default':
-        return event.metadata.title;
-      default:
-        return event.title || event.message.split('\n')[0];
-    }
-  };
-
   renderCrashFileLink() {
     const {event, projectId} = this.props;
     if (!event.crashFile) {
@@ -76,7 +58,7 @@ class EventsTableRow extends React.Component {
             <GlobalSelectionLink to={link}>
               <DateTime date={event.dateCreated} />
             </GlobalSelectionLink>
-            <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+            <small>{event.title.substr(0, 100)}</small>
             {this.renderCrashFileLink()}
           </h5>
         </td>
