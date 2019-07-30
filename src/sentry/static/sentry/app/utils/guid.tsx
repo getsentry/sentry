@@ -1,5 +1,5 @@
-export function uniqueId() {
-  const s4 = () => {
+export function uniqueId(): string {
+  const s4 = (): string => {
     return Math.floor((1 + Math.random()) * 0x10000)
       .toString(16)
       .substring(1);

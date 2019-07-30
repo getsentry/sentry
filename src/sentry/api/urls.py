@@ -273,6 +273,7 @@ from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEnd
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 
 urlpatterns = patterns(
     '',
@@ -968,6 +969,11 @@ urlpatterns = patterns(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
             ProjectDetailsEndpoint.as_view(),
             name='sentry-api-0-project-details'
+        ),
+        url(
+            r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$',
+            ProjectAlertRuleIndexEndpoint.as_view(),
+            name='sentry-api-0-project-alert-rules'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$',

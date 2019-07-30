@@ -50,7 +50,6 @@ export function getQuery(view, location) {
     'utc',
     'statsPeriod',
     'cursor',
-    'query',
     'sort',
   ]);
 
@@ -60,15 +59,36 @@ export function getQuery(view, location) {
     data.sort = view.data.sort;
   }
   data.per_page = DEFAULT_PER_PAGE;
+  data.query = getQueryString(view, location);
 
-  if (view.data.query) {
-    if (data.query) {
-      data.query = `${data.query} ${view.data.query}`;
-    } else {
-      data.query = view.data.query;
-    }
-  }
   return data;
+}
+
+/**
+ * Generate a querystring based on the view defaults, current
+ * location and any additional parameters
+ *
+ * @param {Object} view defaults containing `.data.query`
+ * @param {Location} browser location
+ * @param {Object} additional parameters to merge into the query string.
+ */
+export function getQueryString(view, location, additional) {
+  const queryParts = [];
+  if (view.data.query) {
+    queryParts.push(view.data.query);
+  }
+  if (location.query && location.query.query) {
+    queryParts.push(location.query.query);
+  }
+  if (additional) {
+    Object.entries(additional).forEach(([key, value]) => {
+      if (value) {
+        queryParts.push(`${key}:${value}`);
+      }
+    });
+  }
+
+  return queryParts.join(' ');
 }
 
 /**

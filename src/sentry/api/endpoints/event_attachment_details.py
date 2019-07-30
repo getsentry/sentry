@@ -8,12 +8,12 @@ try:
 except ImportError:
     from django.http import StreamingHttpResponse
 
-from sentry import features, options, roles
+from sentry import features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
+from sentry.models import SnubaEvent, EventAttachment, OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -80,11 +80,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                             project.organization, actor=request.user):
             return self.respond(status=404)
 
-        use_snuba = options.get('snuba.events-queries.enabled')
-
-        event_cls = event_cls = SnubaEvent if use_snuba else Event
-
-        event = event_cls.objects.from_event_id(event_id, project.id)
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
         if event is None:
             return self.respond({'detail': 'Event not found'}, status=404)
 
