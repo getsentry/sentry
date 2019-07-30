@@ -142,6 +142,18 @@ class GroupDetailsTest(APITestCase):
         assert response.data['annotations'] == \
             [u'<a href="https://example.com/issues/2">Issue#2</a>']
 
+    def test_permalink_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        group = self.create_group(title='Oh no')
+        url = u'/api/0/issues/{}/'.format(group.id)
+        response = self.client.get(url, format='json')
+
+        result = response.data['permalink']
+        assert 'http://' in result
+        assert '{}/issues/{}'.format(group.organization.slug, group.id) in result
+
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
