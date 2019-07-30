@@ -72,8 +72,8 @@ class EventStorage(Service):
         Gets a single event given a project_id and event_id.
 
         Keyword arguments:
-        project_id (int): Project ID - default None
-        event_id (str): Event ID - default None
+        project_id (int): Project ID
+        event_id (str): Event ID
         cols: (List[str]) - List of columns to fetch - default minimal_columns
         """
         raise NotImplementedError
