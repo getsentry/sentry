@@ -27,6 +27,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             'resolve_threshold', 'threshold_period', 'aggregations',
         ]
         extra_kwargs = {
+            'query': {
+                'allow_blank': True,
+            },
             'threshold_period': {'default': 1, 'min_value': 1, 'max_value': 20},
             'time_window': {
                 'min_value': 1,
