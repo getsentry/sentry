@@ -6,8 +6,8 @@ export default function getDynamicText({
   value,
   fixed,
 }: {
-  value: string;
+  value: React.ReactNode;
   fixed: string;
-}): string {
+}): React.ReactNode {
   return process.env.IS_PERCY ? fixed : value;
 }

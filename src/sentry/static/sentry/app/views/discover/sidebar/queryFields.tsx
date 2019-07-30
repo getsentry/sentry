@@ -92,7 +92,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
               </SidebarLabel>
               <TextField
                 name="name"
-                value={getDynamicText({value: savedQueryName!, fixed: 'query name'})}
+                value={getDynamicText({value: savedQueryName, fixed: 'query name'})}
                 placeholder={t('Saved search name')}
                 onChange={(val: string) => onUpdateName && onUpdateName(val)}
               />
