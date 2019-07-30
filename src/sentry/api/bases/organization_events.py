@@ -187,8 +187,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions.extend(time_condition)
 
         result = snuba.raw_query(
-            start=start,
-            end=end,
+            query_strategy=snuba.CustomQueryStrategy(start, end),
             selected_columns=['event_id'],
             conditions=conditions,
             filter_keys=snuba_args['filter_keys'],

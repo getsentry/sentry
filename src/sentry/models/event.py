@@ -465,8 +465,6 @@ class SnubaEvent(EventCommon):
     def get_event(cls, project_id, event_id, snuba_cols=selected_columns):
         from sentry.utils import snuba
         result = snuba.raw_query(
-            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
-            end=datetime.utcnow(),  # will be clamped to project retention
             selected_columns=snuba_cols,
             filter_keys={
                 'event_id': [event_id],

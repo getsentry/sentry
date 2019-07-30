@@ -17,6 +17,7 @@ import urllib3
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import quotas
 from sentry.models import (
@@ -522,11 +523,6 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
 
 
 def _prepare_query_params(query_params):
-    # convert to naive UTC datetimes, as Snuba only deals in UTC
-    # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(query_params.start)
-    end = naiveify_datetime(query_params.end)
-
     with timer('get_snuba_map'):
         forward, reverse = get_snuba_translators(
             query_params.filter_keys,
@@ -559,14 +555,7 @@ def _prepare_query_params(query_params):
             "No project_id filter, or none could be inferred from other filters.")
 
     # any project will do, as they should all be from the same organization
-    project = Project.objects.get(pk=project_ids[0])
-    retention = quotas.get_event_retention(
-        organization=Organization(project.organization_id)
-    )
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
-        if start > end:
-            raise QueryOutsideRetentionError
+    start, end = query_params.query_strategy.execute(project_ids[0])
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -603,7 +592,7 @@ class SnubaQueryParams(object):
     """
     Represents the information needed to make a query to Snuba.
 
-    `start` and `end`: The beginning and end of the query time window (required)
+    `query_strategy`: Sets the start time and end time for the query
 
     `groupby`: A list of column names to group by.
 
@@ -627,12 +616,11 @@ class SnubaQueryParams(object):
     """
 
     def __init__(
-        self, start, end, groupby=None, conditions=None, filter_keys=None,
+        self, query_strategy=None, groupby=None, conditions=None, filter_keys=None,
         aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
         **kwargs
     ):
-        self.start = start
-        self.end = end
+        self.query_strategy = query_strategy or DefaultRetentionQueryStrategy()
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
@@ -643,16 +631,60 @@ class SnubaQueryParams(object):
         self.kwargs = kwargs
 
 
-def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
+class DefaultRetentionQueryStrategy(object):
+    """
+    When querying Snuba, apply start and end times depending on the user's
+    project's retention settings
+    """
+
+    def __init__(self):
+        self.__current_time = timezone.now()
+
+    def execute(self, project_id):
+        end = timezone.now()
+
+        project = Project.objects.get(pk=project_id)
+        retention = quotas.get_event_retention(
+            organization=Organization(project.organization_id)
+        )
+        if retention:
+            start = max(self.__current_time, datetime.utcnow() - timedelta(days=retention))
+        else:
+            start = datetime.utcnow() - timedelta(days=90)
+
+        # TODO(manu): can just record times in utc and then we dont need to naiveify
+        return naiveify_datetime(start), naiveify_datetime(end)
+
+
+class CustomQueryStrategy(object):
+    """
+    Apply custom start and end times, without checking retention settings
+    """
+
+    def __init__(self, start, end):
+        self.__start = start
+        self.__end = end
+
+    def execute(self, project_id):
+        # TODO(manu): maybe also just check with default retention
+        # OR: create a new strategy that does check - can be used when
+        # we directly send params from the UI to Snuba.
+
+        # convert to naive UTC datetimes, as Snuba only deals in UTC
+        # and this avoids offset-naive and offset-aware issues
+        return naiveify_datetime(self.__start), naiveify_datetime(self.__end)
+
+
+def raw_query(query_strategy=None, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, referrer=None,
               is_grouprelease=False, **kwargs):
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
+
     snuba_params = SnubaQueryParams(
-        start=start,
-        end=end,
+        query_strategy=query_strategy,
         groupby=groupby,
         conditions=conditions,
         filter_keys=filter_keys,
@@ -728,7 +760,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     return results
 
 
-def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=None,
+def query(query_strategy=None, groupby=None, conditions=None, filter_keys=None, aggregations=None,
           selected_columns=None, totals=None, **kwargs):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
@@ -737,7 +769,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=N
 
     try:
         body = raw_query(
-            start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
+            query_strategy=query_strategy, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             aggregations=aggregations, selected_columns=selected_columns, totals=totals,
             **kwargs
         )
