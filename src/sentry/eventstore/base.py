@@ -101,18 +101,15 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def bind_nodes(self, object_list, *node_names):
+    def bind_nodes(self, object_list, node_name='data'):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
-        object_node_list = []
-        for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
-            )
+        object_node_list = [(i, getattr(i, node_name))
+                            for i in object_list if getattr(i, node_name).id]
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:
