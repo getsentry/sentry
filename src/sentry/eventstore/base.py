@@ -47,15 +47,58 @@ class EventStorage(Service):
     ]
 
     def get_event_by_id(self, project_id, event_id, cols):
+        """
+        Gets a single event given a project_id and event_id.
+
+        Keyword arguments:
+        project_id (int): Project ID - default None
+        event_id (str): Event ID - default None
+        cols: (List[str]) - List of columns to fetch - default minimal_columns
+        """
         raise NotImplementedError
 
     def get_events(self, start, end, cols, conditions, filter_keys, orderby, limit, offset):
+        """
+        Fetches a list of events given a set of criteria.
+
+        Keyword arguments:
+        start (DateTime): Start datetime - default datetime.utcfromtimestamp(0)
+        end (DateTime): End datetime - default datetime.utcnow()
+        cols (List[str]): List of columns to fetch - default minimal_columns
+        conditions (List[Condition]): List of conditions to fetch - default None
+        filter_keys (List[FilterKey]): List of filter keys - default None
+        orderby (List[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        """
         raise NotImplementedError
 
     def get_next_event_id(self, event, conditions, filter_keys):
+        """
+        Gets the next event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+
+        Keyword arguments:
+        conditions (List[Condition]): List of conditions - default None
+        filter_keys (List[FilterKey]): List of filter keys - default None
+        """
         raise NotImplementedError
 
     def get_prev_event_id(self, event, conditions, filter_keys):
+        """
+        Gets the previous event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+
+        Keyword arguments:
+        conditions (List[Condition]): List of conditions - default None
+        filter_keys (List[FilterKey]): List of filter keys - default None
+        """
         raise NotImplementedError
 
     def bind_nodes(self, object_list, *node_names):
