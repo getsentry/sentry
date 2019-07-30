@@ -25,9 +25,10 @@ const CongratsRobots = () => {
           </StyledLottie>
         </AnimatedScene>
         <Description>
-          {t(
-            "Congrats, we couldn't find any errors that matched your filters. Get out there and write some broken code!"
-          )}
+          <SearchResults>
+            {t("We can't find any issues that match your filters.")}
+          </SearchResults>
+          <MoreIssues>{t('Get out there and write some broken code!')}</MoreIssues>
         </Description>
       </CongratsRobotsWrapper>
     </React.Suspense>
@@ -58,6 +59,16 @@ const StyledLottie = styled('div')`
 `;
 
 const Description = styled('div')`
+  display: grid;
+  color: ${p => p.theme.gray3};
+`;
+
+const SearchResults = styled('div')`
+  font-size: 18px;
+  justify-self: center;
+`;
+
+const MoreIssues = styled('div')`
   justify-self: center;
 `;
 
