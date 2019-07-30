@@ -1,7 +1,28 @@
 from __future__ import absolute_import
 
+from enum import Enum
+
 from sentry import nodestore
 from sentry.utils.services import Service
+
+
+class Columns(Enum):
+    event_id = 'event_id'
+    group_id = 'group_id'
+    project_id = 'project_id'
+    timestamp = 'timestamp'
+    culprit = 'culprit'
+    location = 'location'
+    message = 'message'
+    platform = 'platform'
+    title = 'title'
+    type = 'type'
+    tags_key = 'tags.key'
+    tags_value = 'tags.value'
+    email = 'email'
+    ip_address = 'ip_address'
+    user_id = 'user_id'
+    username = 'username'
 
 
 class EventStorage(Service):
@@ -20,30 +41,30 @@ class EventStorage(Service):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = [
-        'event_id',
-        'group_id',
-        'project_id',
-        'timestamp',
+        Columns.event_id,
+        Columns.group_id,
+        Columns.project_id,
+        Columns.timestamp,
     ]
 
     # A list of all useful columns we can get from snuba.
     full_columns = minimal_columns + [
-        'culprit',
-        'location',
-        'message',
-        'platform',
-        'title',
-        'type',
+        Columns.culprit,
+        Columns.location,
+        Columns.message,
+        Columns.platform,
+        Columns.title,
+        Columns.type,
 
         # Required to provide snuba-only tags
-        'tags.key',
-        'tags.value',
+        Columns.tags_key,
+        Columns.tags_value,
 
         # Required to provide snuba-only 'user' interface
-        'email',
-        'ip_address',
-        'user_id',
-        'username',
+        Columns.email,
+        Columns.ip_address,
+        Columns.user_id,
+        Columns.username,
     ]
 
     def get_event_by_id(self, project_id, event_id, cols):
