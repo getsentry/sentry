@@ -354,16 +354,20 @@ class APIView(BaseView):
         Sends raw event data to Kafka for later offline processing.
         """
         try:
+            raw_event_sample_rate = options.get('kafka-publisher.raw-event-sample-rate')
+
+            # Early return if sampling is disabled
+            if raw_event_sample_rate == 0:
+                return
+
             # This may fail when we e.g. send a multipart form. We ignore those errors for now.
             data = request.body
 
-            max_event_size = options.get('kafka-publisher.raw-event-sample-rate')
-            if not data or max_event_size is None or len(data) > max_event_size:
+            if not data or len(data) > options.get('kafka-publisher.max-event-size'):
                 return
 
             # Sampling
-            raw_event_sample_rate = options.get('kafka-publisher.max-event-size')
-            if raw_event_sample_rate is None or random.random() >= raw_event_sample_rate:
+            if random.random() >= raw_event_sample_rate:
                 return
 
             # We want to send only serializable items from request.META
