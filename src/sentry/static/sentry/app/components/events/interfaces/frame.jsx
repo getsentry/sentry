@@ -462,13 +462,15 @@ export const Frame = createReactClass({
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span
-                  className="filename"
-                  title={data.absPath !== data.filename ? data.absPath : null}
-                >
-                  {data.filename}
-                  {data.lineNo ? ':' + data.lineNo : ''}
-                </span>
+                <Tooltip title={data.absPath} disabled={!defined(data.absPath)}>
+                  <span
+                    className="filename"
+                    title={data.absPath !== data.filename ? data.absPath : null}
+                  >
+                    {data.filename}
+                    {data.lineNo ? ':' + data.lineNo : ''}
+                  </span>
+                </Tooltip>
               )}
               {hint !== null ? (
                 <Tooltip title={hint}>
