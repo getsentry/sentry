@@ -1718,25 +1718,10 @@ KAFKA_CLUSTERS = {
     }
 }
 
-KAFKA_PREPROCESS = 'events-preprocess'
-KAFKA_PROCESS = 'events-process'
-KAFKA_SAVE = 'events-save'
 KAFKA_EVENTS = 'events'
 KAFKA_OUTCOMES = 'outcomes'
 
 KAFKA_TOPICS = {
-    KAFKA_PREPROCESS: {
-        'cluster': 'default',
-        'topic': KAFKA_PREPROCESS,
-    },
-    KAFKA_PROCESS: {
-        'cluster': 'default',
-        'topic': KAFKA_PROCESS,
-    },
-    KAFKA_SAVE: {
-        'cluster': 'default',
-        'topic': KAFKA_SAVE,
-    },
     KAFKA_EVENTS: {
         'cluster': 'default',
         'topic': KAFKA_EVENTS,
