@@ -74,7 +74,7 @@ class EventStorage(Service):
         Keyword arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        cols: (List[str]) - List of columns to fetch - default minimal_columns
+        cols: (List[Column]) - List of columns to fetch - default minimal_columns
         """
         raise NotImplementedError
 
@@ -85,9 +85,9 @@ class EventStorage(Service):
         Keyword arguments:
         start (DateTime): Start datetime - default datetime.utcfromtimestamp(0)
         end (DateTime): End datetime - default datetime.utcnow()
-        cols (List[str]): List of columns to fetch - default minimal_columns
-        conditions (List[Condition]): List of conditions to fetch - default None
-        filter_keys (List[FilterKey]): List of filter keys - default None
+        cols (List[Column]): List of columns to fetch - default minimal_columns
+        conditions (List[List[str, str, Any]]): List of conditions to fetch - default None
+        filter_keys (Dict[str, Any]): List of filter keys - default None
         orderby (List[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
@@ -103,8 +103,8 @@ class EventStorage(Service):
         event (Event): Event object
 
         Keyword arguments:
-        conditions (List[Condition]): List of conditions - default None
-        filter_keys (List[FilterKey]): List of filter keys - default None
+        conditions (List[List[str, str, Any]]): List of conditions - default None
+        filter_keys (Dict[str, Any]): List of filter keys - default None
         """
         raise NotImplementedError
 
@@ -117,8 +117,8 @@ class EventStorage(Service):
         event (Event): Event object
 
         Keyword arguments:
-        conditions (List[Condition]): List of conditions - default None
-        filter_keys (List[FilterKey]): List of filter keys - default None
+        conditions (List[List[str, str, Any]]): List of conditions - default None
+        filter_keys (Dict[str, Any]): List of filter keys - default None
         """
         raise NotImplementedError
 
