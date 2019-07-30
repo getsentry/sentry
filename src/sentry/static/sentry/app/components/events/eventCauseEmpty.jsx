@@ -175,13 +175,14 @@ class EventCauseEmpty extends React.Component {
               </div>
             </ButtonList>
           </BoxHeader>
-          <Panel>
+          <ExampleCommitPanel>
+            <ExampleRibbon />
             <CommitRow
               key={DUMMY_COMMIT.id}
               commit={DUMMY_COMMIT}
               customAvatar={<CustomAvatar src={codesworth} />}
             />
-          </Panel>
+          </ExampleCommitPanel>
         </StyledPanel>
       </div>
     );
@@ -240,6 +241,33 @@ const SnoozeButton = styled(Button)`
 const DismissButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+`;
+
+const ExampleCommitPanel = styled(Panel)`
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+  padding-right: ${space(3)};
+
+  &:after {
+    display: block;
+    content: 'Example';
+    position: absolute;
+    top: ${space(2)};
+    right: -24px;
+    text-transform: uppercase;
+    background: #e46187;
+    padding: 4px 26px;
+    line-height: 11px;
+    font-size: 11px;
+    color: ${p => p.theme.white};
+    transform: rotate(45deg);
+  }
+`;
+
+const ExampleRibbon = styled('div')`
+  position: absolute;
+  right: 0;
 `;
 
 const CustomAvatar = styled('img')`
