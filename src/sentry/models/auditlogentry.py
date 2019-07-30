@@ -88,6 +88,7 @@ class AuditLogEntryEvent(object):
     INTERNAL_INTEGRATION_ADD = 130
 
     INTERNAL_INTEGRATION_ADD_TOKEN = 135
+    INTERNAL_INTEGRATION_REMOVE_TOKEN = 136
 
 
 class AuditLogEntry(Model):
@@ -162,6 +163,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
             (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, 'internal-integration.create'),
             (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN, 'internal-integration.add-token'),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN, 'internal-integration.remove-token'),
 
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
@@ -354,6 +356,9 @@ class AuditLogEntry(Model):
             return 'uninstalled sentry app %s' % (self.data['sentry_app'])
         elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN:
             return 'created a token for internal integration %s' % (
+                self.data['sentry_app'])
+        elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN:
+            return 'revoked a token for internal integration %s' % (
                 self.data['sentry_app'])
 
         return ''
