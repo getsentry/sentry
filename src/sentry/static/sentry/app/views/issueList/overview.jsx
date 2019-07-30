@@ -42,7 +42,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
 
-import CongratsRobots from './congratsRobots';
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import IssueListSidebar from './sidebar';
@@ -566,7 +565,15 @@ const IssueList = createReactClass({
   },
 
   renderNoUnresolvedIssues() {
-    return <CongratsRobots />;
+    const CongratsRobots = React.lazy(() =>
+      import(/* webpackChunkName: "CongratsRobots" */ './congratsRobots')
+    );
+
+    return (
+      <React.Suspense fallback={this.renderLoading()}>
+        <CongratsRobots />
+      </React.Suspense>
+    );
   },
 
   renderStreamBody() {

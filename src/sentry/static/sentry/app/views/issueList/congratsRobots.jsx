@@ -1,3 +1,4 @@
+import Lottie from 'react-lottie';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -6,32 +7,26 @@ import space from 'app/styles/space';
 import background from 'app/../images/congrats-robots/background.png';
 import main from 'app/../images/congrats-robots/main.json';
 
-const Lottie = React.lazy(() =>
-  import(/* webpackChunkName: "ReactLottie" */ 'react-lottie')
-);
-
 const CongratsRobots = () => {
   return (
-    <React.Suspense fallback={null}>
-      <CongratsRobotsWrapper>
-        <AnimatedScene>
-          <StyledImage src={background} />
-          <StyledLottie>
-            <Lottie
-              options={{animationData: main}}
-              ariaRole={null}
-              isClickToPauseDisabled
-            />
-          </StyledLottie>
-        </AnimatedScene>
-        <Description>
-          <SearchResults>
-            {t("We can't find any issues that match your filters.")}
-          </SearchResults>
-          <MoreIssues>{t('Get out there and write some broken code!')}</MoreIssues>
-        </Description>
-      </CongratsRobotsWrapper>
-    </React.Suspense>
+    <CongratsRobotsWrapper>
+      <AnimatedScene>
+        <StyledImage src={background} />
+        <StyledLottie>
+          <Lottie
+            options={{animationData: main}}
+            ariaRole={null}
+            isClickToPauseDisabled
+          />
+        </StyledLottie>
+      </AnimatedScene>
+      <Description>
+        <SearchResults>
+          {t("We can't find any issues that match your filters.")}
+        </SearchResults>
+        <MoreIssues>{t('Get out there and write some broken code!')}</MoreIssues>
+      </Description>
+    </CongratsRobotsWrapper>
   );
 };
 
