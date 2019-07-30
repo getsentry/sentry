@@ -4,6 +4,7 @@ from exam import fixture
 
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import (
+    AlertRule,
     AlertRuleAggregations,
     AlertRuleThresholdType,
 )
@@ -21,6 +22,7 @@ class TestAlertRuleSerializer(TestCase):
             'resolve_threshold': 1,
             'alert_threshold': 0,
             'aggregations': [0],
+            'threshold_period': 1,
         }
 
     def run_fail_validation_test(self, params, errors):
@@ -82,4 +84,34 @@ class TestAlertRuleSerializer(TestCase):
         self.run_fail_validation_test(
             {'aggregations': [50]},
             {'aggregations': invalid_values},
+        )
+
+    def _run_changed_fields_test(self, alert_rule, params, expected):
+        serializer = AlertRuleSerializer(
+            context={'project': self.project},
+            instance=alert_rule,
+            data=params,
+            partial=True,
+        )
+        serializer.is_valid()
+        assert serializer._remove_unchanged_fields(
+            alert_rule,
+            serializer.validated_data,
+        ) == expected
+
+    def test_remove_unchanged_fields(self):
+        alert_rule = AlertRule(**self.valid_params)
+        self._run_changed_fields_test(alert_rule, self.valid_params, {})
+        self._run_changed_fields_test(alert_rule, {'name': 'a name'}, {'name': 'a name'})
+        self._run_changed_fields_test(alert_rule, {'aggregations': [0]}, {})
+        self._run_changed_fields_test(
+            alert_rule,
+            {'aggregations': [1]},
+            {'aggregations': [AlertRuleAggregations.UNIQUE_USERS]},
+        )
+        self._run_changed_fields_test(alert_rule, {'threshold_type': 0}, {})
+        self._run_changed_fields_test(
+            alert_rule,
+            {'threshold_type': 1},
+            {'threshold_type': AlertRuleThresholdType.BELOW},
         )

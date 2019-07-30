@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
+import six
+from enum import Enum
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -13,6 +15,7 @@ from sentry.incidents.models import (
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     create_alert_rule,
+    update_alert_rule,
 )
 
 
@@ -61,3 +64,18 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             return create_alert_rule(project=self.context['project'], **validated_data)
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError('This name is already in use for this project')
+
+    def _remove_unchanged_fields(self, instance, validated_data):
+        for field_name, value in list(six.iteritems(validated_data)):
+            # Remove any fields that haven't actually changed
+            if isinstance(value, Enum):
+                value = value.value
+            elif field_name == 'aggregations':
+                value = [item.value for item in value]
+            if getattr(instance, field_name) == value:
+                validated_data.pop(field_name)
+        return validated_data
+
+    def update(self, instance, validated_data):
+        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        return update_alert_rule(instance, **validated_data)

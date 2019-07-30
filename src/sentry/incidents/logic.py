@@ -540,6 +540,91 @@ def create_alert_rule(
     return alert_rule
 
 
+def update_alert_rule(
+    alert_rule,
+    name=None,
+    threshold_type=None,
+    query=None,
+    aggregations=None,
+    time_window=None,
+    alert_threshold=None,
+    resolve_threshold=None,
+    threshold_period=None,
+):
+    """
+    Updates an alert rule.
+
+    :param alert_rule: The alert rule to update
+    :param name: Name for the alert rule. This will be used as part of the
+    incident name, and must be unique per project.
+    :param threshold_type: An AlertRuleThresholdType
+    :param query: An event search query to subscribe to and monitor for alerts
+    :param aggregations: A list of AlertRuleAggregations that we want to fetch
+    for this alert rule
+    :param time_window: Time period to aggregate over, in minutes.
+    :param alert_threshold: Value that the subscription needs to reach to
+    trigger the alert
+    :param resolve_threshold: Value that the subscription needs to reach to
+    resolve the alert
+    :param threshold_period: How many update periods the value of the
+    subscription needs to exceed the threshold before triggering
+    :return: The updated `AlertRule`
+    """
+    if name and alert_rule.name != name and AlertRule.objects.filter(
+        project=alert_rule.project,
+        name=name,
+    ).exists():
+        raise AlertRuleNameAlreadyUsedError()
+
+    old_subscription_id = None
+    subscription_id = None
+    updated_fields = {}
+    if name:
+        updated_fields['name'] = name
+    if threshold_type:
+        updated_fields['threshold_type'] = threshold_type.value
+    if query is not None:
+        validate_alert_rule_query(query)
+        updated_fields['query'] = query
+    if aggregations:
+        updated_fields['aggregations'] = [a.value for a in aggregations]
+    if time_window:
+        updated_fields['time_window'] = time_window
+    if alert_threshold:
+        updated_fields['alert_threshold'] = alert_threshold
+    if resolve_threshold:
+        updated_fields['resolve_threshold'] = resolve_threshold
+    if threshold_period:
+        updated_fields['threshold_period'] = threshold_period
+
+    if query or aggregations or time_window:
+        old_subscription_id = alert_rule.subscription_id
+        # If updating any details of the query, create a new subscription
+        subscription_id = create_snuba_subscription(
+            alert_rule.dataset,
+            query,
+            aggregations,
+            time_window,
+            DEFAULT_ALERT_RULE_RESOLUTION,
+        )
+        updated_fields['subscription_id'] = subscription_id
+
+    try:
+        alert_rule.update(**updated_fields)
+    except Exception:
+        # If we error for some reason and have a valid subscription_id then
+        # attempt to delete from snuba to avoid orphaned subscriptions.
+        if subscription_id:
+            delete_snuba_subscription(subscription_id)
+        raise
+    finally:
+        if old_subscription_id:
+            # Once we're set up correctly, remove the previous subscription id.
+            delete_snuba_subscription(old_subscription_id)
+
+    return alert_rule
+
+
 def validate_alert_rule_query(query):
     # TODO: We should add more validation here to reject queries that include
     # fields that are invalid in alert rules. For now this will just make sure
