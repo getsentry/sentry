@@ -215,17 +215,18 @@ export class Client {
       return;
     }
 
-    type ErrorCallbackArgs = [JQueryXHR, string, string];
-
     // Call normal error callback
-    const errorCb = this.wrapCallback<ErrorCallbackArgs>(id, requestOptions.error);
+    const errorCb = this.wrapCallback<[JQueryXHR, string, string]>(
+      id,
+      requestOptions.error
+    );
     if (typeof errorCb !== 'function') {
       return;
     }
     errorCb(response, textStatus, errorThrown);
   }
 
-  request(path: string, options: Readonly<RequestOptions> = {}) {
+  request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
 
@@ -233,7 +234,7 @@ export class Client {
       data = JSON.stringify(data);
     }
 
-    let query;
+    let query: string;
     try {
       query = $.param(options.query || [], true);
     } catch (err) {
@@ -349,8 +350,6 @@ export class Client {
     return this.activeRequests[id];
   }
 
-  // Promise<[any, string | undefined, JQueryXHR | undefined]>
-
   requestPromise<IncludeAllArgsType extends boolean>(
     path: string,
     {
@@ -400,14 +399,18 @@ export class Client {
         return isFunction(f);
       }
     );
-    return (...args: Args) => {
+    return (...args: Args): void => {
       filteredFuncs.forEach(func => {
         func.apply(funcs, args);
       });
     };
   }
 
-  _wrapRequest(path: string, options: RequestOptions, extraParams: RequestCallbacks) {
+  _wrapRequest(
+    path: string,
+    options: RequestOptions,
+    extraParams: RequestCallbacks
+  ): Request {
     if (isUndefined(extraParams)) {
       extraParams = {};
     }
@@ -422,13 +425,13 @@ export class Client {
   bulkDelete(
     params: ParamsType & {orgId: string; projectId?: string},
     options: RequestCallbacks
-  ) {
-    const path = params.projectId
+  ): Request {
+    const path: string = params.projectId
       ? `/projects/${params.orgId}/${params.projectId}/issues/`
       : `/organizations/${params.orgId}/issues/`;
 
-    const query = paramsToQueryArgs(params);
-    const id = uniqueId();
+    const query: QueryArgs = paramsToQueryArgs(params);
+    const id: string = uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
@@ -456,13 +459,13 @@ export class Client {
       data?: any;
     },
     options: RequestCallbacks
-  ) {
-    const path = params.projectId
+  ): Request {
+    const path: string = params.projectId
       ? `/projects/${params.orgId}/${params.projectId}/issues/`
       : `/organizations/${params.orgId}/issues/`;
 
-    const query = paramsToQueryArgs(params);
-    const id = uniqueId();
+    const query: QueryArgs = paramsToQueryArgs(params);
+    const id: string = uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
@@ -489,13 +492,13 @@ export class Client {
       projectId?: string;
     },
     options: RequestCallbacks
-  ) {
-    const path = params.projectId
+  ): Request {
+    const path: string = params.projectId
       ? `/projects/${params.orgId}/${params.projectId}/issues/`
       : `/organizations/${params.orgId}/issues/`;
 
-    const query = paramsToQueryArgs(params);
-    const id = uniqueId();
+    const query: QueryArgs = paramsToQueryArgs(params);
+    const id: string = uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 
