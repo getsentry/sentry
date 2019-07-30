@@ -21,7 +21,6 @@ addons:
     packages:
       - libxmlsec1-dev
       - libgeoip-dev
-      - chromium-chromedriver
   chrome: stable
 
 env:
@@ -98,6 +97,8 @@ base_acceptance: &acceptance_default
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
+    - sudo apt-get update -q
+    - sudo apt-get install chromium-chromedriver -y
   install:
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
