@@ -7,22 +7,22 @@ from sentry.utils.services import Service
 
 
 class Columns(Enum):
-    event_id = 'event_id'
-    group_id = 'group_id'
-    project_id = 'project_id'
-    timestamp = 'timestamp'
-    culprit = 'culprit'
-    location = 'location'
-    message = 'message'
-    platform = 'platform'
-    title = 'title'
-    type = 'type'
-    tags_key = 'tags.key'
-    tags_value = 'tags.value'
-    email = 'email'
-    ip_address = 'ip_address'
-    user_id = 'user_id'
-    username = 'username'
+    EVENT_ID = 'event_id'
+    GROUP_ID = 'group_id'
+    PROJECT_ID = 'project_id'
+    TIMESTAMP = 'timestamp'
+    CULPRIT = 'culprit'
+    LOCATION = 'location'
+    MESSAGE = 'message'
+    PLATFORM = 'platform'
+    TITLE = 'title'
+    TYPE = 'type'
+    TAGS_KEY = 'tags.key'
+    TAGS_VALUE = 'tags.value'
+    EMAIL = 'email'
+    IP_ADDRESS = 'ip_address'
+    USER_ID = 'user_id'
+    USERNAME = 'username'
 
 
 class EventStorage(Service):
@@ -41,30 +41,30 @@ class EventStorage(Service):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = [
-        Columns.event_id,
-        Columns.group_id,
-        Columns.project_id,
-        Columns.timestamp,
+        Columns.EVENT_ID,
+        Columns.GROUP_ID,
+        Columns.PROJECT_ID,
+        Columns.TIMESTAMP,
     ]
 
     # A list of all useful columns we can get from snuba.
     full_columns = minimal_columns + [
-        Columns.culprit,
-        Columns.location,
-        Columns.message,
-        Columns.platform,
-        Columns.title,
-        Columns.type,
+        Columns.CULPRIT,
+        Columns.LOCATION,
+        Columns.MESSAGE,
+        Columns.PLATFORM,
+        Columns.TITLE,
+        Columns.TYPE,
 
         # Required to provide snuba-only tags
-        Columns.tags_key,
-        Columns.tags_value,
+        Columns.TAGS_KEY,
+        Columns.TAGS_VALUE,
 
         # Required to provide snuba-only 'user' interface
-        Columns.email,
-        Columns.ip_address,
-        Columns.user_id,
-        Columns.username,
+        Columns.EMAIL,
+        Columns.IP_ADDRESS,
+        Columns.USER_ID,
+        Columns.USERNAME,
     ]
 
     def get_event_by_id(self, project_id, event_id, cols):
