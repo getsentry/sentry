@@ -87,17 +87,6 @@ class IntType(Type):
         except ValueError:
             return
 
-class LongType(Type):
-    """Coerce a long from a string"""
-    name = 'long'
-    default = 0L
-    expected_types = six.integer_types
-
-    def convert(self, value):
-        try:
-            return long(value)
-        except ValueError:
-            return
 
 class FloatType(Type):
     """Coerce a float from a string or integer"""
@@ -159,7 +148,6 @@ class SequenceType(Type):
 Any = AnyType()
 Bool = BoolType()
 Int = IntType()
-Long = LongType()
 Float = FloatType()
 String = StringType()
 Dict = DictType()
@@ -169,7 +157,6 @@ Sequence = SequenceType()
 _type_mapping = {
     bool: Bool,
     int: Int,
-    long: Long,
     float: Float,
     six.binary_type: String,
     six.text_type: String,
