@@ -53,6 +53,11 @@ class TestSentryAppAuthorizations(APITestCase):
         })
 
     def test_exchanges_for_token_successfully(self):
+        expected_expires_at = (datetime.now() + timedelta(hours=8)).replace(
+            second=0,
+            microsecond=0,
+        )
+
         response = self._run_request()
 
         token = ApiToken.objects.get(
@@ -69,10 +74,6 @@ class TestSentryAppAuthorizations(APITestCase):
             microsecond=0,
         )
 
-        expected_expires_at = (datetime.now() + timedelta(hours=8)).replace(
-            second=0,
-            microsecond=0,
-        )
         assert expires_at == expected_expires_at
 
     def test_incorrect_grant_type(self):
