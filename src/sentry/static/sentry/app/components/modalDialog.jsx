@@ -80,9 +80,7 @@ class ModalDialog extends React.Component {
     document.removeEventListener('keydown', this.handleKeyDown);
 
     // Restore body scrolling.
-    if (this.previousOverflow) {
-      document.body.style.overflow = this.previousOverflow;
-    }
+    document.body.style.overflow = this.previousOverflow;
   }
 
   handleClose = event => {
