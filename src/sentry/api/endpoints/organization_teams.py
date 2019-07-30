@@ -12,7 +12,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.api.serializers.models import team as team_serializers
 from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
@@ -87,6 +87,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
+        :param string detailed: Specify "0" to return team details that do not include projects
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
@@ -100,6 +101,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         ).order_by('slug')
 
         query = request.GET.get('query')
+
         if query:
             tokens = tokenize_query(query)
             for key, value in six.iteritems(tokens):
@@ -109,11 +111,14 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        is_detailed = request.GET.get('detailed', '1') != '0'
+        serializer = team_serializers.TeamWithProjectsSerializer if is_detailed else team_serializers.TeamSerializer
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by='slug',
-            on_results=lambda x: serialize(x, request.user, TeamWithProjectsSerializer()),
+            on_results=lambda x: serialize(x, request.user, serializer()),
             paginator_cls=OffsetPaginator,
         )
 
