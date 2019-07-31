@@ -46,7 +46,6 @@ from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -362,6 +361,7 @@ class EventManager(object):
             protocol_version=six.text_type(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
+            normalize_user_agent=True,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
@@ -369,7 +369,7 @@ class EventManager(object):
             rust_normalizer.normalize_event(dict(self._data))
         )
 
-        normalize_user_agent(self._data)
+        # normalize_user_agent(self._data)
 
     def should_filter(self):
         '''
