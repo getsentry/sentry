@@ -3,6 +3,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Input from 'app/views/settings/components/forms/controls/input';
+import space from 'app/styles/space';
 
 class RangeSlider extends React.Component {
   static propTypes = {
@@ -38,6 +40,11 @@ class RangeSlider extends React.Component {
      * THIS NEEDS TO BE SORTED
      */
     allowedValues: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * Show custom input
+     */
+    showCustomInput: PropTypes.bool,
 
     /**
      * This is called when *any* MouseUp or KeyUp event happens.
@@ -92,17 +99,22 @@ class RangeSlider extends React.Component {
     return value;
   };
 
+  setValue = value => {
+    this.setState({
+      sliderValue: value,
+    });
+  };
+
+  changeValue = (value, e) => {
+    if (this.props.onChange) {
+      this.props.onChange(this.getActualValue(value), e);
+    }
+  };
+
   handleInput = e => {
     const sliderValue = parseInt(e.target.value, 10);
-
-    this.setState({
-      sliderValue,
-    });
-
-    if (this.props.onChange) {
-      const value = this.getActualValue(sliderValue);
-      this.props.onChange(value, e);
-    }
+    this.setValue(sliderValue);
+    this.changeValue(sliderValue, e);
   };
 
   handleBlur = e => {
@@ -114,9 +126,18 @@ class RangeSlider extends React.Component {
     onBlur(e);
   };
 
+  handleCustomInputChange = e => {
+    const value = parseInt(e.target.value, 10);
+    this.setValue(isNaN(value) ? 0 : value);
+  };
+
+  handleCustomInputBlur = e => {
+    this.handleInput(e);
+  };
+
   render() {
     let {min, max, step} = this.props;
-    const {name, disabled, allowedValues, formatLabel} = this.props;
+    const {name, disabled, allowedValues, formatLabel, showCustomInput} = this.props;
     const {sliderValue} = this.state;
     let actualValue = sliderValue;
     let displayValue = actualValue;
@@ -135,20 +156,30 @@ class RangeSlider extends React.Component {
 
     return (
       <div>
-        <Label htmlFor={name}>{displayValue}</Label>
-        <Slider
-          type="range"
-          name={name}
-          min={min}
-          max={max}
-          step={step}
-          disabled={disabled}
-          onInput={this.handleInput}
-          onChange={() => {}}
-          onMouseUp={this.handleBlur}
-          onKeyUp={this.handleBlur}
-          value={sliderValue}
-        />
+        {!showCustomInput && <Label htmlFor={name}>{displayValue}</Label>}
+        <SliderAndInputWrapper>
+          <Slider
+            type="range"
+            name={name}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            onInput={this.handleInput}
+            onChange={() => {}}
+            onMouseUp={this.handleBlur}
+            onKeyUp={this.handleBlur}
+            value={sliderValue}
+            hasLabel={!showCustomInput}
+          />
+          {showCustomInput && (
+            <Input
+              value={sliderValue}
+              onChange={this.handleCustomInputChange}
+              onBlur={this.handleCustomInputBlur}
+            />
+          )}
+        </SliderAndInputWrapper>
       </div>
     );
   }
@@ -160,7 +191,7 @@ const Slider = styled('input')`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
-  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * 2}px;
+  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * (p.hasLabel ? 2 : 1)}px;
 
   &::-webkit-slider-runnable-track {
     width: 100%;
@@ -290,4 +321,12 @@ const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
   color: ${p => p.theme.gray3};
+`;
+
+const SliderAndInputWrapper = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-template-columns: 4fr 1fr;
+  grid-gap: ${space(1)};
 `;
