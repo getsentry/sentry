@@ -5,12 +5,12 @@ import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import ExternalLink from 'app/components/links/externalLink';
 import Access from 'app/components/acl/access';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
+import getDynamicText from 'app/utils/getDynamicText';
 import recreateRoute from 'app/utils/recreateRoute';
 
 const grayText = css`
@@ -53,12 +53,12 @@ class ProjectPluginRow extends React.PureComponent {
                 <Flex justify="center" direction="column">
                   <PluginName>
                     {`${name} `}
-                    <DynamicWrapper
-                      value={
+                    {getDynamicText({
+                      value: (
                         <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
-                      }
-                      fixed={<Version>v10</Version>}
-                    />
+                      ),
+                      fixed: <Version>v10</Version>,
+                    })}
                   </PluginName>
                   <div>
                     {author && (

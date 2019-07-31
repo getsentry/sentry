@@ -2,10 +2,10 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import DynamicWrapper from 'app/components/dynamicWrapper';
+import getDynamicText from 'app/utils/getDynamicText';
 
-storiesOf('Utility|DynamicWrapper', module).add(
-  'DynamicWrapper',
+storiesOf('Utility|getDynamicText', module).add(
+  'getDynamicText',
   withInfo(
     `
     Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.
@@ -14,7 +14,12 @@ storiesOf('Utility|DynamicWrapper', module).add(
     `
   )(() => {
     return (
-      <DynamicWrapper fixed="Fixed Content" value="Pretend this is a dynamic value" />
+      <React.Fragment>
+        {getDynamicText({
+          fixed: 'Fixed Content',
+          value: 'Pretend this is a dynamic value',
+        })}
+      </React.Fragment>
     );
   })
 );
