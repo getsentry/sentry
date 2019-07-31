@@ -5,7 +5,16 @@ import _ from 'lodash';
 
 import ConfigStore from 'app/stores/configStore';
 
-class DateTime extends React.Component {
+type Props = {
+  date: any;
+  dateOnly?: boolean;
+  timeOnly?: boolean;
+  shortDate?: boolean;
+  seconds?: boolean;
+  utc?: boolean;
+};
+
+class DateTime extends React.Component<Props> {
   static propTypes = {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,
@@ -19,7 +28,7 @@ class DateTime extends React.Component {
     seconds: true,
   };
 
-  getFormat = ({clock24Hours}) => {
+  getFormat = ({clock24Hours}: {clock24Hours: boolean}): string => {
     const {dateOnly, timeOnly, seconds, shortDate} = this.props;
 
     // October 26, 2017
