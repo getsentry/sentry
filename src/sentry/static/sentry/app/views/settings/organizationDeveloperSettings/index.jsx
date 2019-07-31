@@ -103,44 +103,7 @@ class OrganizationDeveloperSettings extends AsyncView {
       </Button>
     );
 
-    return (
-      <Panel>
-        <PanelHeader hasButtons={true}>
-          {t('Public Integrations')}
-          {action}
-        </PanelHeader>
-        <PanelBody>
-          {!isEmpty ? (
-            integrations.map(this.renderApplicationRow)
-          ) : (
-            <EmptyMessage>
-              {t('No public integrations have been created yet.')}
-            </EmptyMessage>
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  }
-
-  renderBody() {
-    const {organization} = this.props;
-
-    if (!organization.features.includes('sentry-apps')) {
-      return (
-        <div>
-          <SettingsPageHeader title={t('Developer Settings')} />
-          <Panel>
-            <PanelBody>
-              <EmptyMessage>
-                {t(
-                  "Want to build on top of the Sentry Integration Platform? We're working closely with early adopters. Please reach out to us by contacting partners@sentry.io"
-                )}
-              </EmptyMessage>
-            </PanelBody>
-          </Panel>
-        </div>
-      );
-    }
+    const isEmpty = this.state.applications.length === 0;
 
     return (
       <div>
