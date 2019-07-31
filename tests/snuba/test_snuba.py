@@ -97,36 +97,6 @@ class SnubaTest(TestCase, SnubaTestCase):
                 },
             ) == {}
 
-    def test_use_group_id(self):
-        base_time = datetime.utcnow()
-        group = self.create_group()
-        self._insert_event_for_time(base_time, group_id=group.id)
-
-        # verify filter_keys and aggregation
-        assert snuba.query(
-            start=base_time - timedelta(days=1),
-            end=base_time + timedelta(days=1),
-            groupby=['group_id'],
-            filter_keys={
-                'project_id': [self.project.id],
-                'group_id': [group.id]
-            },
-        ) == {group.id: 1}
-
-        # verify raw_query selecting issue row
-        assert snuba.raw_query(
-            start=base_time - timedelta(days=1),
-            end=base_time + timedelta(days=1),
-            selected_columns=['group_id', 'timestamp'],
-            filter_keys={
-                'project_id': [self.project.id],
-                'group_id': [group.id]
-            },
-        )['data'] == [{
-            'group_id': group.id,
-            'timestamp': base_time.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
-        }]
-
 
 class BulkRawQueryTest(TestCase, SnubaTestCase):
     def test_simple(self):
