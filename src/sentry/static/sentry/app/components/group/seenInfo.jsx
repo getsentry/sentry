@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -9,10 +8,8 @@ import Tooltip from 'app/components/tooltip';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
 
-const SeenInfo = createReactClass({
-  displayName: 'SeenInfo',
-
-  propTypes: {
+class SeenInfo extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     date: PropTypes.any,
@@ -23,24 +20,24 @@ const SeenInfo = createReactClass({
     environment: PropTypes.string,
     hasRelease: PropTypes.bool.isRequired,
     title: PropTypes.string.isRequired,
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     organization: PropTypes.object,
-  },
+  };
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps, _nextState) {
     return (
       (this.props.release || {}).version !== (nextProps.release || {}).version ||
       this.props.date !== nextProps.date
     );
-  },
+  }
 
   getReleaseTrackingUrl() {
     const {orgId, projectId} = this.props;
 
     return `/settings/${orgId}/projects/${projectId}/release-tracking/`;
-  },
+  }
 
   getTooltipTitle() {
     const {date, dateGlobal, title, environment} = this.props;
@@ -64,7 +61,7 @@ const SeenInfo = createReactClass({
         </dl>
       </div>
     );
-  },
+  }
 
   render() {
     const {date, dateGlobal, environment, release, orgId, projectId} = this.props;
@@ -121,7 +118,7 @@ const SeenInfo = createReactClass({
         )}
       </dl>
     );
-  },
-});
+  }
+}
 
 export default SeenInfo;
