@@ -5,39 +5,43 @@ from rest_framework import status
 from django.http import Http404
 
 from sentry.api.bases import (
-    SentryInternalAppTokenPermission, IntegrationPlatformEndpoint,
+    SentryInternalAppTokenPermission, SentryAppBaseEndpoint,
 )
-from sentry.models import SentryApp, ApiToken
+from sentry.models import ApiToken
 from sentry.features.helpers import requires_feature
-# from sentry.mediators.sentry_app_installation_tokens import Creator
+from sentry.mediators.sentry_app_installation_tokens import Destroyer
 
 
-class SentryInternalAppTokenDetailEndpoint(IntegrationPlatformEndpoint):
+class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission, )
 
     def convert_args(self, request, sentry_app_slug, token, *args, **kwargs):
+        # get the sentry_app from the SentryInternalAppTokenDetailsEndpoint class
+        (args, kwargs) = super(SentryInternalAppTokenDetailsEndpoint,
+                               self).convert_args(request, sentry_app_slug, *args, **kwargs)
+
         try:
-            sentry_app = SentryApp.objects.get(
-                slug=sentry_app_slug,
-            )
-        except SentryApp.DoesNotExist:
+            kwargs['api_token'] = ApiToken.objects.get(token=token)
+        except ApiToken.DoesNotExist:
             raise Http404
-
-        self.check_object_permissions(request, sentry_app)
-
-        kwargs['sentry_app'] = sentry_app
-
-        kwargs['api_token'] = ApiToken.objects.get(token=token)
 
         return (args, kwargs)
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def delete(self, request, sentry_app, api_token):
         if not sentry_app.is_internal:
-            return Response('Token generation on this route is limited to internal integrations only',
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response('This route is limited to internal integrations only',
+                            status=status.HTTP_403_FORBIDDEN
+                            )
 
-        # TODO: Call destroyer
+        # Validate the token is associated with the application
+        if api_token.application != sentry_app.application:
+            raise Http404
+
+        Destroyer.run(
+            api_token=api_token,
+            user=request.user,
+            request=request,
+        )
 
         return Response(status=204)

@@ -340,5 +340,5 @@ class SentryInternalAppTokenPermission(SentryPermission):
 
         return ensure_scoped_permission(
             request,
-            self._scopes_for_sentry_app(sentry_app).get(request.method),
+            self.scope_map.get(request.method),
         )

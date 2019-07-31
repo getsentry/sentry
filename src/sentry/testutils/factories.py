@@ -723,9 +723,7 @@ class Factories(object):
 
     @staticmethod
     def create_sentry_app(**kwargs):
-        creator = sentry_apps.InternalCreator if kwargs.get('internal') else sentry_apps.Creator
-
-        app = creator.run(
+        app = sentry_apps.Creator.run(
             **Factories._sentry_app_kwargs(**kwargs)
         )
 

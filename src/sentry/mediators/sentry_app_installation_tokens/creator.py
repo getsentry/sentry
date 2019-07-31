@@ -21,7 +21,7 @@ class Creator(Mediator):
     def call(self):
         self._create_api_token()
         self._create_sentry_app_installation_token()
-        return self.sentry_app_installation_token
+        return self.api_token
 
     def _create_api_token(self):
         self.api_token = ApiToken.objects.create(
