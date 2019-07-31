@@ -15,6 +15,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
+import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 
 /**
@@ -54,6 +55,9 @@ const EventModalContent = props => {
       <SidebarColumn>
         {event.groupID && (
           <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+        )}
+        {event.type === 'transaction' && (
+          <RelatedEvents organization={organization} event={event} location={location} />
         )}
         <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
         <SidebarBlock>
