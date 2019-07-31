@@ -4,27 +4,17 @@ import six
 
 from rest_framework.response import Response
 
+from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Project, Event, EventMapping
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario('ResolveEventId')
-def resolve_event_id_scenario(runner):
-    event = Event.objects.filter(project_id=runner.default_project.id).first()
-    runner.request(
-        method='GET',
-        path='/organizations/%s/eventids/%s/' % (runner.org.slug, event.event_id, )
-    )
+from sentry.models import Project
 
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
-    @attach_scenarios([resolve_event_id_scenario])
     def get(self, request, organization, event_id):
         """
         Resolve a Event ID
@@ -47,33 +37,22 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 'id', 'slug'))
 
         try:
-            event = Event.objects.filter(event_id=event_id,
-                                         project_id__in=project_slugs_by_id.keys())[0]
+            event = eventstore.get_events(filter_keys={
+                'project_id': project_slugs_by_id.keys(),
+                'event_id': event_id,
+            }, limit=1)[0]
         except IndexError:
-            try:
-                event_mapping = EventMapping.objects.filter(event_id=event_id,
-                                                            project_id__in=project_slugs_by_id.keys())[0]
-
-            except IndexError:
-                raise ResourceDoesNotExist()
-
+            raise ResourceDoesNotExist()
+        else:
             return Response(
                 {
                     'organizationSlug': organization.slug,
-                    'projectSlug': project_slugs_by_id[event_mapping.project_id],
-                    'groupId': six.text_type(event_mapping.group_id),
+                    'projectSlug': project_slugs_by_id[event.project_id],
+                    'groupId': six.text_type(event.group_id),
+                    'eventId': six.text_type(event.id),
+                    'event': serialize(
+                        event,
+                        request.user,
+                    ),
                 }
             )
-
-        return Response(
-            {
-                'organizationSlug': organization.slug,
-                'projectSlug': project_slugs_by_id[event.project_id],
-                'groupId': six.text_type(event.group_id),
-                'eventId': six.text_type(event.id),
-                'event': serialize(
-                    event,
-                    request.user,
-                ),
-            }
-        )
