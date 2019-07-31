@@ -1340,7 +1340,7 @@ describe('IssueList,', function() {
       expect(error.props().message).toEqual('Things broke');
     });
 
-    it('displays congrats animation with empty resultset and only `is:unresolved` query', function() {
+    it('displays congrats robots animation with only is:unresolved query', function() {
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,
@@ -1348,10 +1348,10 @@ describe('IssueList,', function() {
         groupIds: [],
       });
 
-      expect(wrapper.find('CongratsRobots')).toHaveLength(1);
+      expect(wrapper.find('lazy[data-test-id="congrats-robots"]').exists()).toBe(true);
     });
 
-    it('displays an empty resultset with `is:unresolved` query and additional parameters', function() {
+    it('displays an empty resultset with is:unresolved and level:error query', function() {
       const errorsOnlyQuery = {
         ...props,
         location: {
@@ -1369,10 +1369,10 @@ describe('IssueList,', function() {
         error: false,
         groupIds: [],
       });
-      expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+      expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
 
-    it('displays an empty resultset without `is:unresolved` query', function() {
+    it('displays an empty resultset with has:browser query', function() {
       const hasBrowserQuery = {
         ...props,
         location: {
@@ -1390,11 +1390,11 @@ describe('IssueList,', function() {
         error: false,
         groupIds: [],
       });
-      expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+      expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
   });
 
-  describe('Empty State', function() {
+  describe('Error Robot', function() {
     const createWrapper = moreProps => {
       const defaultProps = {
         savedSearchLoading: false,

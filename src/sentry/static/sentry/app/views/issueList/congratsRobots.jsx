@@ -22,7 +22,7 @@ const CongratsRobots = () => {
       </AnimatedScene>
       <Description>
         <SearchResults>
-          {t("We can't find any issues that match your filters.")}
+          {t("We couldn't find any issues that matched your filters.")}
         </SearchResults>
         <MoreIssues>{t('Get out there and write some broken code!')}</MoreIssues>
       </Description>

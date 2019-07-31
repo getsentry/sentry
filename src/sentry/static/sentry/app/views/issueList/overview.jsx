@@ -54,6 +54,10 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
 
+const CongratsRobots = React.lazy(() =>
+  import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
+);
+
 const IssueList = createReactClass({
   displayName: 'IssueList',
 
@@ -565,13 +569,9 @@ const IssueList = createReactClass({
   },
 
   renderNoUnresolvedIssues() {
-    const CongratsRobots = React.lazy(() =>
-      import(/* webpackChunkName: "CongratsRobots" */ './congratsRobots')
-    );
-
     return (
       <React.Suspense fallback={this.renderLoading()}>
-        <CongratsRobots />
+        <CongratsRobots data-test-id="congrats-robots" />
       </React.Suspense>
     );
   },
