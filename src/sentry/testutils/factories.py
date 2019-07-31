@@ -27,7 +27,7 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentActivity,
 )
-from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
+from sentry.mediators import sentry_apps, sentry_app_installations, sentry_app_installation_tokens, service_hooks
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -739,6 +739,14 @@ class Factories(object):
         return sentry_apps.InternalCreator.run(
             **Factories._sentry_app_kwargs(**kwargs)
         )
+
+    @staticmethod
+    def create_internal_integration_token(install, **kwargs):
+        installation_token = sentry_app_installation_tokens.Creator.run(
+            sentry_app_installation=install,
+            **kwargs
+        )
+        return installation_token.api_token
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):

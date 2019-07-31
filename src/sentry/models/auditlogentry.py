@@ -358,7 +358,7 @@ class AuditLogEntry(Model):
             return 'created a token for internal integration %s' % (
                 self.data['sentry_app'])
         elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN:
-            return 'removed a token for internal integration %s' % (
+            return 'revoked a token for internal integration %s' % (
                 self.data['sentry_app'])
 
         return ''
