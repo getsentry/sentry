@@ -176,7 +176,6 @@ class EventCauseEmpty extends React.Component {
             </ButtonList>
           </BoxHeader>
           <ExampleCommitPanel>
-            <ExampleRibbon />
             <CommitRow
               key={DUMMY_COMMIT.id}
               commit={DUMMY_COMMIT}
@@ -253,7 +252,7 @@ const ExampleCommitPanel = styled(Panel)`
     display: block;
     content: 'Example';
     position: absolute;
-    top: ${space(2)};
+    top: 16px;
     right: -24px;
     text-transform: uppercase;
     background: #e46187;
@@ -263,11 +262,6 @@ const ExampleCommitPanel = styled(Panel)`
     color: ${p => p.theme.white};
     transform: rotate(45deg);
   }
-`;
-
-const ExampleRibbon = styled('div')`
-  position: absolute;
-  right: 0;
 `;
 
 const CustomAvatar = styled('img')`
