@@ -38,7 +38,7 @@ class OrganizationTeams extends React.Component {
       return null;
     }
 
-    const canCreateTeams = new Set(organization.access).has('project:admin');
+    const canCreateTeams = access.has('project:admin');
 
     const action = (
       <Button
@@ -66,7 +66,7 @@ class OrganizationTeams extends React.Component {
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
 
     return (
-      <div data-test-id="team-list" className="team-list">
+      <div data-test-id="team-list">
         <SettingsPageHeader title={t('Teams')} action={action} />
         <Panel>
           <PanelHeader>{t('Your Teams')}</PanelHeader>

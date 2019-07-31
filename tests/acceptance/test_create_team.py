@@ -29,7 +29,7 @@ class CreateTeamTest(AcceptanceTestCase):
 
     def test_create(self):
         self.browser.get(self.path)
-        self.browser.wait_until('.team-list')
+        self.browser.wait_until_test_id('team-list')
 
         # Open the modal
         self.browser.click('button[aria-label="Create Team"]')
