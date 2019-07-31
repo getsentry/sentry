@@ -15,31 +15,11 @@ describe('Organization Developer Settings', function() {
     Client.clearMockResponses();
   });
 
-  describe('when not flagged in to sentry-apps', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [],
-    });
-
-    const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
-    );
-
-    it('displays contact us info', () => {
-      expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('[icon="icon-circle-add"]').exists()).toBe(false);
-      expect(wrapper.exists('EmptyMessage')).toBe(true);
-    });
-  });
-
   describe('when no Apps exist', () => {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [],
     });
-
-    org.features = ['sentry-apps'];
 
     const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
@@ -61,7 +41,6 @@ describe('Organization Developer Settings', function() {
         body: [sentryApp],
       });
 
-      org.features = ['sentry-apps'];
       wrapper = mount(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
@@ -115,8 +94,6 @@ describe('Organization Developer Settings', function() {
       body: [publishedSentryApp],
     });
 
-    org.features = ['sentry-apps'];
-
     const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
@@ -163,8 +140,6 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${newOrg.slug}/sentry-apps/`,
       body: [sentryApp],
     });
-
-    newOrg.features = ['sentry-apps'];
 
     const wrapper = mount(
       <OrganizationDeveloperSettings
