@@ -67,25 +67,26 @@ class EventStorage(Service):
         Columns.USERNAME,
     ]
 
-    def get_event_by_id(self, project_id, event_id, cols):
+    def get_event_by_id(self, project_id, event_id, additional_columns):
         """
         Gets a single event given a project_id and event_id.
 
         Keyword arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        cols: (List[Column]) - List of columns to fetch - default minimal_columns
+        additional_columns: (List[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
-    def get_events(self, start, end, cols, conditions, filter_keys, orderby, limit, offset):
+    def get_events(self, start, end, additional_columns,
+                   conditions, filter_keys, orderby, limit, offset):
         """
         Fetches a list of events given a set of criteria.
 
         Keyword arguments:
         start (DateTime): Start datetime - default datetime.utcfromtimestamp(0)
         end (DateTime): End datetime - default datetime.utcnow()
-        cols (List[Column]): List of columns to fetch - default minimal_columns
+        additional_columns (List[Column]): List of additional columns to fetch - default None
         conditions (List[List[str, str, Any]]): List of conditions to fetch - default None
         filter_keys (Dict[str, Any]): List of filter keys - default None
         orderby (List[str]): List of fields to order by - default ['-time', '-event_id']
