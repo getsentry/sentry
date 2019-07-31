@@ -26,6 +26,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         self.day_ago = timezone.now() - timedelta(days=1)
         self.week_ago = timezone.now() - timedelta(days=7)
 
+    def test_permalink(self):
+        group = self.create_group(title='Oh no')
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+        assert 'http://' in result['permalink']
+        assert '{}/issues/{}'.format(group.organization.slug, group.id) in result['permalink']
+
+    def test_permalink_outside_org(self):
+        outside_user = self.create_user()
+        group = self.create_group(title='Oh no')
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result['permalink'] is None
+
     def test_is_ignored_with_expired_snooze(self):
         now = timezone.now()
 

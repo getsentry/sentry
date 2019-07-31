@@ -10,9 +10,11 @@ from django.db.models import Min, Q
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
+from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupLink, GroupMeta,
@@ -340,7 +342,10 @@ class GroupSerializerBase(Serializer):
 
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
-        if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
+        request = env.request
+        is_superuser = (request and is_active_superuser(request) and request.user == user)
+        if is_superuser or (user.is_authenticated() and
+                            user.get_orgs().filter(id=obj.organization.id).exists()):
             permalink = obj.get_absolute_url()
         else:
             permalink = None
