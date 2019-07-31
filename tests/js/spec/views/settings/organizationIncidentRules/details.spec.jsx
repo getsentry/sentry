@@ -6,13 +6,24 @@ import IncidentRulesDetails from 'app/views/settings/projectIncidentRules/detail
 
 describe('Incident Rules Details', function() {
   it('renders', function() {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, project, routerContext} = initializeOrg();
+    const rule = TestStubs.IncidentRule();
+    const req = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/`,
+      body: rule,
+    });
     mount(
       <IncidentRulesDetails
-        params={{orgId: organization.slug}}
+        params={{
+          orgId: organization.slug,
+          projectId: project.slug,
+          incidentRuleId: rule.id,
+        }}
         organization={organization}
       />,
       routerContext
     );
+
+    expect(req).toHaveBeenCalled();
   });
 });
