@@ -8,7 +8,6 @@ from sentry.eventstore.base import EventStorage
 
 DEFAULT_START = datetime.utcfromtimestamp(0)  # will be clamped to project retention
 DEFAULT_END = datetime.utcnow()  # will be clamped to project retention
-DEFAULT_COLUMNS = EventStorage.minimal_columns
 DEFAULT_ORDERBY = ['-timestamp', '-event_id']
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
