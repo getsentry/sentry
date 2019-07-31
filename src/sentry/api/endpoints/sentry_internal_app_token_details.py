@@ -35,7 +35,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                             )
 
         # Validate the token is associated with the application
-        if api_token.application != sentry_app.application:
+        if api_token.application_id != sentry_app.application_id:
             raise Http404
 
         Destroyer.run(
