@@ -77,13 +77,6 @@ const organizationNavigation = [
         id: 'repos',
       },
       {
-        path: `${pathPrefix}/incident-rules/`,
-        title: t('Incident Rules'),
-        show: ({features}) => features.has('incidents'),
-        description: t('Manage Incident Rules'),
-        id: 'incident-rules',
-      },
-      {
         path: `${pathPrefix}/integrations/`,
         title: t('Integrations'),
         description: t(

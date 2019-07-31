@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import IncidentRulesList from 'app/views/settings/organizationIncidentRules/list';
+import IncidentRulesList from 'app/views/settings/projectIncidentRules/list';
 
 describe('Incident Rules List', function() {
   it('renders', function() {
