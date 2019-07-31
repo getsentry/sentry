@@ -79,3 +79,16 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data == 'This route is limited to internal integrations only'
+
+    @with_feature('organizations:sentry-apps')
+    def test_sentry_app_not_found(self):
+
+        url = reverse(
+            'sentry-api-0-sentry-internal-app-token-details',
+            args=['not_a_slug', self.api_token.token],
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(url, format='json')
+
+        assert response.status_code == 404
