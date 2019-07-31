@@ -45,19 +45,10 @@ export function getTitle(event: Event): EventTitle {
 
   if (type === 'error') {
     result.subtitle = culprit;
-    if (metadata.type) {
-      result.title = metadata.type;
-    } else {
-      result.title = metadata.function || '<unknown>';
-    }
   } else if (type === 'csp') {
-    result.title = metadata.directive || '';
     result.subtitle = metadata.uri || '';
   } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-    result.title = metadata.message || '';
     result.subtitle = metadata.origin || '';
-  } else if (type === 'default') {
-    result.title = metadata.title || '';
   }
 
   return result;

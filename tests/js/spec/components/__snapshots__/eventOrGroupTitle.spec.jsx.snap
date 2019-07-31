@@ -1,10 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] = `
-<span>
-  metadata title
-</span>
-`;
+exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] = `<span />`;
 
 exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
 <span>
@@ -14,9 +10,7 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
         "marginRight": 10,
       }
     }
-  >
-    metadata directive
-  </span>
+  />
   <em
     title="metadata uri"
   >
@@ -34,9 +28,7 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
         "marginRight": 10,
       }
     }
-  >
-    metadata type
-  </span>
+  />
   <em
     title="culprit"
   >

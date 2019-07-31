@@ -202,7 +202,9 @@ describe('IncidentDetails', function() {
         .find('RelatedItem Title')
         .at(0)
         .text()
-    ).toBe('RequestErrorfetchData(app/components/group/suggestedOwners)');
+    ).toBe(
+      'RequestError: GET /issues/ 404fetchData(app/components/group/suggestedOwners)'
+    );
 
     expect(
       wrapper
