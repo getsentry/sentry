@@ -10,6 +10,7 @@ exports[`CrashContent renders with meta data 1`] = `
       "id": "1",
       "message": "ApiException",
       "tags": Array [],
+      "title": "ApiException",
     }
   }
   exception={
