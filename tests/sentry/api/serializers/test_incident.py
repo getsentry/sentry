@@ -10,8 +10,15 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.incidents.logic import subscribe_to_incident
-from sentry.incidents.models import IncidentGroup
+from sentry.incidents.logic import (
+    create_alert_rule,
+    subscribe_to_incident,
+)
+from sentry.incidents.models import (
+    AlertRuleAggregations,
+    AlertRuleThresholdType,
+    IncidentGroup,
+)
 from sentry.testutils import TestCase
 
 
@@ -57,3 +64,28 @@ class DetailedIncidentSerializerTest(TestCase):
         IncidentGroup.objects.create(incident=incident, group=self.group)
         result = serialize(incident, serializer=serializer)
         assert result['groups'] == [six.text_type(self.group.id)]
+
+    def test_no_alert_rule(self):
+        incident = self.create_incident()
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result['alertRule'] is None
+
+    def test_alert_rule(self):
+        incident = self.create_incident()
+        alert_rule = create_alert_rule(
+            self.project,
+            'hi',
+            AlertRuleThresholdType.ABOVE,
+            'test query',
+            [AlertRuleAggregations.TOTAL],
+            10,
+            1000,
+            400,
+            1,
+        )
+        incident.update(alert_rule=alert_rule)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result['alertRule'] == serialize(alert_rule)

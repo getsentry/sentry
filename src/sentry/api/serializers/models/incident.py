@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentSubscription,
 )
+from sentry.utils.db import attach_foreignkey
 
 
 @register(Incident)
@@ -67,6 +68,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
             user=user,
             **kwargs
         )
+        attach_foreignkey(item_list, Incident.alert_rule)
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(IncidentSubscription.objects.filter(
@@ -111,5 +113,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context['seenBy'] = seen_list['seen_by']
         context['hasSeen'] = seen_list['has_seen']
         context['groups'] = attrs['groups']
+        context['alertRule'] = serialize(obj.alert_rule, user)
 
         return context
