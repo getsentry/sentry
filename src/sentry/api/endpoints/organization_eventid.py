@@ -10,11 +10,21 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Project
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('ResolveEventId')
+def resolve_event_id_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/%s/eventids/%s/' % (runner.org.slug, runner.default_event.event_id, )
+    )
 
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
+    @attach_scenarios([resolve_event_id_scenario])
     def get(self, request, organization, event_id):
         """
         Resolve a Event ID
