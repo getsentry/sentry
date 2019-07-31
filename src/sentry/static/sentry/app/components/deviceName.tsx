@@ -1,11 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {isString} from 'lodash';
 
-export function deviceNameMapper(model, iOSDeviceList) {
-  if (!model || !isString(model)) {
-    return null;
-  }
+export function deviceNameMapper(model: string, iOSDeviceList): string {
   const modelIdentifier = model.split(' ')[0];
   const modelId = model
     .split(' ')
@@ -19,28 +15,31 @@ export async function loadDeviceListModule() {
   return import(/* webpackChunkName: "iOSDeviceList" */ 'ios-device-list');
 }
 
-export async function getDeviceName(model) {
-  const {default: iOSDeviceList} = await loadDeviceListModule();
+type Props = {
+  children?: string;
+};
 
-  return deviceNameMapper(model, iOSDeviceList);
-}
-
+type State = {
+  iOSDeviceList: any;
+};
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size
  */
-export default class DeviceName extends React.Component {
+export default class DeviceName extends React.Component<Props, State> {
   static propTypes = {
     children: PropTypes.string,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
 
     this.state = {
       iOSDeviceList: null,
     };
   }
+
+  private _isMounted?: boolean;
 
   componentDidMount() {
     // This is to handle react's warning on calling setState for unmounted components
