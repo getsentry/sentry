@@ -11,21 +11,9 @@ from sentry.mediators.sentry_apps import Updater, Destroyer
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def get(self, request, sentry_app):
-        if not features.has('organizations:sentry-apps',
-                            sentry_app.owner,
-                            actor=request.user):
-
-            return Response(status=404)
-
         return Response(serialize(sentry_app, request.user))
 
     def put(self, request, sentry_app):
-        if not features.has('organizations:sentry-apps',
-                            sentry_app.owner,
-                            actor=request.user):
-
-            return Response(status=404)
-
         if self._has_hook_events(request) and not features.has('organizations:integrations-event-hooks',
                                                                sentry_app.owner,
                                                                actor=request.user):
@@ -63,11 +51,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, sentry_app):
-        if not features.has('organizations:sentry-apps',
-                            sentry_app.owner,
-                            actor=request.user):
-            return Response(status=404)
-
         if sentry_app.is_unpublished or sentry_app.is_internal:
             Destroyer.run(
                 user=request.user,

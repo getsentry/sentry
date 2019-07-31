@@ -281,7 +281,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
 
 class PostSentryAppsTest(SentryAppsTest):
-    @with_feature('organizations:sentry-apps')
+
     def test_creates_sentry_app(self):
         self.login_as(user=self.user)
 
@@ -296,7 +296,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    @with_feature('organizations:sentry-apps')
     def test_non_unique_app_slug(self):
         from sentry.mediators import sentry_apps
         self.login_as(user=self.user)
@@ -310,7 +309,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {"name": ["Name Foo Bar is already taken, please use another."]}
 
-    @with_feature('organizations:sentry-apps')
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)
         kwargs = {'webhookUrl': 'example.com'}
@@ -320,7 +318,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'webhookUrl': ['URL must start with http[s]://']}
 
-    @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):
         self.login_as(user=self.user)
         kwargs = {'scopes': ('project:read',)}
@@ -330,7 +327,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'events': ['issue webhooks require the event:read permission.']}
 
-    @with_feature('organizations:sentry-apps')
     def test_wrong_schema_format(self):
         self.login_as(user=self.user)
         kwargs = {'schema': {
@@ -357,7 +353,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data == \
             {'schema': ["['#general'] is too short"]}
 
-    @with_feature(['organizations:sentry-apps', 'organizations:integrations-event-hooks'])
+    @with_feature('organizations:integrations-event-hooks')
     def test_can_create_with_error_created_hook_with_flag(self):
         self.login_as(user=self.user)
 
@@ -373,7 +369,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    @with_feature('organizations:sentry-apps')
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
 
@@ -383,14 +378,12 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 403, response.content
         assert response.content == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
 
-    @with_feature('organizations:sentry-apps')
     def test_allows_empty_schema(self):
         self.login_as(self.user)
         response = self._post(schema={})
 
         assert response.status_code == 201, response.content
 
-    @with_feature('organizations:sentry-apps')
     def test_missing_name(self):
         self.login_as(self.user)
         response = self._post(name=None)
@@ -398,7 +391,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400, response.content
         assert 'name' in response.data
 
-    @with_feature('organizations:sentry-apps')
     def test_invalid_events(self):
         self.login_as(self.user)
         response = self._post(events=['project'])
@@ -406,7 +398,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400, response.content
         assert 'events' in response.data
 
-    @with_feature('organizations:sentry-apps')
     def test_invalid_scope(self):
         self.login_as(self.user)
         response = self._post(scopes=('not:ascope', ))
@@ -414,7 +405,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400, response.content
         assert 'scopes' in response.data
 
-    @with_feature('organizations:sentry-apps')
     def test_missing_webhook_url(self):
         self.login_as(self.user)
         response = self._post(webhookUrl=None)
@@ -422,7 +412,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400, response.content
         assert 'webhookUrl' in response.data
 
-    @with_feature('organizations:sentry-apps')
     def test_allows_empty_permissions(self):
         self.login_as(self.user)
         response = self._post(scopes=None)
@@ -430,7 +419,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert response.data['scopes'] == []
 
-    @with_feature('organizations:sentry-apps')
     def test_creates_internal_integration(self):
         self.create_project(organization=self.org)
         self.login_as(self.user)

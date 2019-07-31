@@ -4,11 +4,9 @@ import six
 
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class GroupExternalIssuesEndpointTest(APITestCase):
-    @with_feature('organizations:sentry-apps')
     def test_simple(self):
         self.login_as(user=self.user)
 
