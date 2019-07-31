@@ -94,7 +94,6 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/developer-settings/`,
         title: t('Developer Settings'),
-        show: ({features}) => features.has('sentry-apps'),
         description: t('Manage developer applications'),
         id: 'developer-settings',
       },
