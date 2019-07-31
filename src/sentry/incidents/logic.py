@@ -12,6 +12,7 @@ from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -29,10 +30,7 @@ from sentry.models import (
     Commit,
     Release,
 )
-from sentry.incidents.tasks import (
-    calculate_incident_suspects,
-    send_subscriber_notifications,
-)
+from sentry.incidents import tasks
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     bulk_raw_query,
@@ -44,6 +42,10 @@ MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
 
 class StatusAlreadyChangedError(Exception):
+    pass
+
+
+class AlreadyDeletedError(Exception):
     pass
 
 
@@ -107,7 +109,7 @@ def create_incident(
             incident_type=type.value,
         )
 
-    calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
+    tasks.calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
     return incident
 
 
@@ -226,7 +228,7 @@ def create_incident_activity(
                 IncidentSubscription(incident=incident, user_id=mentioned_user_id)
                 for mentioned_user_id in user_ids_to_subscribe
             ])
-    send_subscriber_notifications.apply_async(
+    tasks.send_subscriber_notifications.apply_async(
         kwargs={'activity_id': activity.id},
         countdown=10,
     )
@@ -623,6 +625,27 @@ def update_alert_rule(
             delete_snuba_subscription(old_subscription_id)
 
     return alert_rule
+
+
+def delete_alert_rule(alert_rule):
+    """
+    Marks an alert rule as deleted and fires off a task to actually delete it.
+    :param alert_rule:
+    """
+    if alert_rule.status in (
+        AlertRuleStatus.PENDING_DELETION.value,
+        AlertRuleStatus.DELETION_IN_PROGRESS.value,
+    ):
+        raise AlreadyDeletedError()
+
+    alert_rule.update(
+        # Randomize the name here so that we don't get unique constraint issues
+        # while waiting for the deletion to process
+        name=uuid4().get_hex(),
+        status=AlertRuleStatus.PENDING_DELETION.value,
+    )
+    tasks.delete_alert_rule.apply_async(kwargs={'alert_rule_id': alert_rule.id})
+    delete_snuba_subscription(alert_rule.subscription_id)
 
 
 def validate_alert_rule_query(query):

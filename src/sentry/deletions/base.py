@@ -135,6 +135,7 @@ class BaseDeletionTask(object):
 
 class ModelDeletionTask(BaseDeletionTask):
     DEFAULT_QUERY_LIMIT = None
+    manager_name = 'objects'
 
     def __init__(self, manager, model, query, query_limit=None, order_by=None, **kwargs):
         super(ModelDeletionTask, self).__init__(manager, **kwargs)
@@ -167,7 +168,7 @@ class ModelDeletionTask(BaseDeletionTask):
         query_limit = self.query_limit
         remaining = self.chunk_size
         while remaining > 0:
-            queryset = self.model.objects.filter(**self.query)
+            queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 

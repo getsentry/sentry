@@ -289,6 +289,7 @@ class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
+    objects_with_deleted = BaseManager()
 
     project = FlexibleForeignKey('sentry.Project', db_index=False, db_constraint=False)
     name = models.TextField()

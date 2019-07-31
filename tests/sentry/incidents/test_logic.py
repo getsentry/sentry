@@ -31,6 +31,7 @@ from sentry.incidents.logic import (
     create_incident_activity,
     create_incident_snapshot,
     create_initial_event_stats_snapshot,
+    delete_alert_rule,
     DEFAULT_ALERT_RULE_RESOLUTION,
     get_incident_aggregates,
     get_incident_event_stats,
@@ -43,6 +44,7 @@ from sentry.incidents.logic import (
     update_incident_status,
 )
 from sentry.incidents.models import (
+    AlertRule,
     AlertRuleAggregations,
     AlertRuleStatus,
     AlertRuleThresholdType,
@@ -68,7 +70,7 @@ from sentry.testutils import (
 
 class CreateIncidentTest(TestCase):
     record_event = patcher('sentry.analytics.base.Analytics.record_event')
-    calculate_incident_suspects = patcher('sentry.incidents.logic.calculate_incident_suspects')
+    calculate_incident_suspects = patcher('sentry.incidents.tasks.calculate_incident_suspects')
 
     def test_simple(self):
         incident_type = IncidentType.CREATED
@@ -413,7 +415,7 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    send_subscriber_notifications = patcher('sentry.incidents.logic.send_subscriber_notifications')
+    send_subscriber_notifications = patcher('sentry.incidents.tasks.send_subscriber_notifications')
     record_event = patcher('sentry.analytics.base.Analytics.record_event')
 
     def assert_notifications_sent(self, activity):
@@ -924,3 +926,37 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
             update_alert_rule(self.alert_rule, query='has:')
+
+
+class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return create_alert_rule(
+            self.project,
+            'hello',
+            AlertRuleThresholdType.ABOVE,
+            'level:error',
+            [AlertRuleAggregations.TOTAL],
+            10,
+            1000,
+            400,
+            1,
+        )
+
+    def test(self):
+        alert_rule_id = self.alert_rule.id
+        with self.tasks():
+            delete_alert_rule(self.alert_rule)
+
+        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+
+    def test_with_incident(self):
+        incident = self.create_incident()
+        incident.update(alert_rule=self.alert_rule)
+        alert_rule_id = self.alert_rule.id
+        with self.tasks():
+            delete_alert_rule(self.alert_rule)
+
+        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        incident = Incident.objects.get(id=incident.id)
+        assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
