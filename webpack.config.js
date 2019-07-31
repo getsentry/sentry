@@ -431,4 +431,4 @@ if (IS_PRODUCTION) {
   });
 }
 
-module.exports = [appConfig];
+module.exports = appConfig;
