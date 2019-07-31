@@ -210,8 +210,8 @@ class ProjectReleaseTracking extends AsyncView {
               fixed: (
                 <pre>
                   {`curl __WEBHOOK_URL__ \\
-                  -X POST \\
-                  -H 'Content-Type: application/json' \\
+  -X POST \\
+  -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
                 </pre>
               ),
