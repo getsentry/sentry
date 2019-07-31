@@ -74,7 +74,7 @@ class EventStorage(Service):
         Keyword arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        additional_columns: (List[Column]) - List of addition columns to fetch - default None
+        additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
@@ -86,10 +86,10 @@ class EventStorage(Service):
         Keyword arguments:
         start (DateTime): Start datetime - default datetime.utcfromtimestamp(0)
         end (DateTime): End datetime - default datetime.utcnow()
-        additional_columns (List[Column]): List of additional columns to fetch - default None
-        conditions (List[List[str, str, Any]]): List of conditions to fetch - default None
-        filter_keys (Dict[str, Any]): List of filter keys - default None
-        orderby (List[str]): List of fields to order by - default ['-time', '-event_id']
+        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
+        conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+        filter_keys (Mapping[str, Any]): Filter keys - default None
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         """
@@ -104,8 +104,8 @@ class EventStorage(Service):
         event (Event): Event object
 
         Keyword arguments:
-        conditions (List[List[str, str, Any]]): List of conditions - default None
-        filter_keys (Dict[str, Any]): List of filter keys - default None
+        conditions (Sequence[Sequence[str, str, Any]]): List of conditions - default None
+        filter_keys (Mapping[str, Any]): Filter keys - default None
         """
         raise NotImplementedError
 
@@ -118,8 +118,8 @@ class EventStorage(Service):
         event (Event): Event object
 
         Keyword arguments:
-        conditions (List[List[str, str, Any]]): List of conditions - default None
-        filter_keys (Dict[str, Any]): List of filter keys - default None
+        conditions (Sequence[Sequence[str, str, Any]]): List of conditions - default None
+        filter_keys (Mapping[str, Any]): Filter keys - default None
         """
         raise NotImplementedError
 
