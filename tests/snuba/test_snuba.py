@@ -102,31 +102,30 @@ class SnubaTest(TestCase, SnubaTestCase):
         group = self.create_group()
         self._insert_event_for_time(base_time, group_id=group.id)
 
-        with self.options({'snuba.use_group_id_column': True}):
-            # verify filter_keys and aggregation
-            assert snuba.query(
-                start=base_time - timedelta(days=1),
-                end=base_time + timedelta(days=1),
-                groupby=['issue'],
-                filter_keys={
-                    'project_id': [self.project.id],
-                    'issue': [group.id]
-                },
-            ) == {group.id: 1}
+        # verify filter_keys and aggregation
+        assert snuba.query(
+            start=base_time - timedelta(days=1),
+            end=base_time + timedelta(days=1),
+            groupby=['group_id'],
+            filter_keys={
+                'project_id': [self.project.id],
+                'group_id': [group.id]
+            },
+        ) == {group.id: 1}
 
-            # verify raw_query selecting issue row
-            assert snuba.raw_query(
-                start=base_time - timedelta(days=1),
-                end=base_time + timedelta(days=1),
-                selected_columns=['issue', 'timestamp'],
-                filter_keys={
-                    'project_id': [self.project.id],
-                    'issue': [group.id]
-                },
-            )['data'] == [{
-                'issue': group.id,
-                'timestamp': base_time.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
-            }]
+        # verify raw_query selecting issue row
+        assert snuba.raw_query(
+            start=base_time - timedelta(days=1),
+            end=base_time + timedelta(days=1),
+            selected_columns=['group_id', 'timestamp'],
+            filter_keys={
+                'project_id': [self.project.id],
+                'group_id': [group.id]
+            },
+        )['data'] == [{
+            'group_id': group.id,
+            'timestamp': base_time.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
+        }]
 
 
 class BulkRawQueryTest(TestCase, SnubaTestCase):
