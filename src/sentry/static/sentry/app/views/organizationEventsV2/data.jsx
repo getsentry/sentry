@@ -2,17 +2,17 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {deepFreeze} from 'app/utils';
+import {t} from 'app/locale';
 import Count from 'app/components/count';
-import DynamicWrapper from 'app/components/dynamicWrapper';
+import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
-import DateTime from 'app/components/dateTime';
+import getDynamicText from 'app/utils/getDynamicText';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
+import space from 'app/styles/space';
 
-import {t} from 'app/locale';
 import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug', 'transactionSlug'];
@@ -197,9 +197,12 @@ export const SPECIAL_FIELDS = {
     sortField: 'timestamp',
     renderFunc: data => (
       <Container>
-        {data.timestamp ? (
-          <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
-        ) : null}
+        {data.timestamp
+          ? getDynamicText({
+              value: <StyledDateTime date={data.timestamp} />,
+              fixed: 'time',
+            })
+          : null}
       </Container>
     ),
   },
@@ -271,10 +274,10 @@ export const SPECIAL_FIELDS = {
       return (
         <Container>
           {data.last_seen ? (
-            <DynamicWrapper
-              value={<StyledDateTime date={data.last_seen} />}
-              fixed="time"
-            />
+            getDynamicText({
+              value: <StyledDateTime date={data.last_seen} />,
+              fixed: 'time',
+            })
           ) : (
             <span>n/a</span>
           )}
