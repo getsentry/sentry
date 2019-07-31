@@ -46,7 +46,7 @@ class RelatedEvents extends AsyncComponent {
           'timestamp',
         ],
         sort: ['-timestamp'],
-        query: `trace:${trace.value}`,
+        query: `trace:${trace.value} !id:${event.id}`,
       },
     };
 
@@ -58,7 +58,7 @@ class RelatedEvents extends AsyncComponent {
   }
 
   renderBody() {
-    const {event, location} = this.props;
+    const {location} = this.props;
     const {events} = this.state;
     if (!events) {
       return null;
@@ -69,35 +69,31 @@ class RelatedEvents extends AsyncComponent {
         <Title>
           <InlineSvg src="icon-link" size="12px" /> {t('Related Events')}
         </Title>
-        {events.length <= 1 ? (
+        {events.length < 1 ? (
           <Card>{t('No related events found.')}</Card>
         ) : (
-          events
-            // Don't show the current event. We don't have negation conditions
-            // in our API so we have to do this here.
-            .filter(item => item.id !== event.id)
-            .map(item => {
-              const eventUrl = {
-                pathname: location.pathname,
-                query: {
-                  ...omit(location.query, MODAL_QUERY_KEYS),
-                  eventSlug: `${item['project.name']}:${item.id}`,
-                },
-              };
-              const project = {slug: item['project.name']};
-              return (
-                <Card key={item.id}>
-                  <EventLink to={eventUrl} data-test-id="linked-event">
-                    {item.title ? item.title : item.transaction}
-                  </EventLink>
-                  <StyledProjectBadge project={project} avatarSize={14} />
-                  <div>
-                    <StyledDateTime date={item.timestamp} />
-                    <Badge text={item['event.type']} />
-                  </div>
-                </Card>
-              );
-            })
+          events.map(item => {
+            const eventUrl = {
+              pathname: location.pathname,
+              query: {
+                ...omit(location.query, MODAL_QUERY_KEYS),
+                eventSlug: `${item['project.name']}:${item.id}`,
+              },
+            };
+            const project = {slug: item['project.name']};
+            return (
+              <Card key={item.id}>
+                <EventLink to={eventUrl} data-test-id="linked-event">
+                  {item.title ? item.title : item.transaction}
+                </EventLink>
+                <StyledProjectBadge project={project} avatarSize={14} />
+                <div>
+                  <StyledDateTime date={item.timestamp} />
+                  <Badge text={item['event.type']} />
+                </div>
+              </Card>
+            );
+          })
         )}
       </Container>
     );
