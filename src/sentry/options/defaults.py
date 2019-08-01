@@ -142,7 +142,6 @@ register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
 
 # Snuba
-register('snuba.use_group_id_column', default=True)
 register('snuba.search.pre-snuba-candidates-optimizer', type=Bool, default=False)
 register('snuba.search.pre-snuba-candidates-percentage', default=0.2)
 register('snuba.search.project-group-count-cache-time', default=24 * 60 * 60)
