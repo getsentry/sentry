@@ -9,7 +9,7 @@
     "allowJs": false,
     "noImplicitAny": false,
     "esModuleInterop": true,
-    "module": "es2015",
+    "module": "esnext",
     "moduleResolution": "node",
     "jsx": "react",
     "baseUrl": ".",
