@@ -15,13 +15,13 @@ from sentry.mediators.sentry_app_installation_tokens import Destroyer
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission, )
 
-    def convert_args(self, request, sentry_app_slug, token, *args, **kwargs):
+    def convert_args(self, request, sentry_app_slug, api_token, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super(SentryInternalAppTokenDetailsEndpoint,
                                self).convert_args(request, sentry_app_slug, *args, **kwargs)
 
         try:
-            kwargs['api_token'] = ApiToken.objects.get(token=token)
+            kwargs['api_token'] = ApiToken.objects.get(token=api_token)
         except ApiToken.DoesNotExist:
             raise Http404
 

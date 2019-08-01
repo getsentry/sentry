@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.models import ApiToken
+from sentry.mediators.token_exchange import GrantExchanger
 
 
 class SentryInternalAppTokenCreationTest(APITestCase):
@@ -66,12 +67,28 @@ class SentryInternalAppTokenCreationTest(APITestCase):
     def test_non_internal_app(self):
         sentry_app = self.create_sentry_app(
             name='My External App',
-            organization=self.org
+            organization=self.org,
+        )
+
+        install = self.create_sentry_app_installation(
+            slug=sentry_app.slug,
+            organization=self.org,
+            user=self.user
+        )
+
+        client_id = install.sentry_app.application.client_id
+        user = install.sentry_app.proxy_user
+
+        api_token = GrantExchanger.run(
+            install=install,
+            code=install.api_grant.code,
+            client_id=client_id,
+            user=user,
         )
 
         url = reverse(
             'sentry-api-0-sentry-internal-app-token-details',
-            args=[sentry_app.slug, self.api_token.token],
+            args=[install.sentry_app.slug, api_token.token],
         )
 
         self.login_as(user=self.user)
