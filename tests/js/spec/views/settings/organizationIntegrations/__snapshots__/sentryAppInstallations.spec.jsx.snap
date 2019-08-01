@@ -76,6 +76,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "webhookUrl": "https://example.com/webhook",
       }
     }
+    hideButtons={false}
     isInternal={false}
     key="123456123456123456123456"
     onInstall={[Function]}
