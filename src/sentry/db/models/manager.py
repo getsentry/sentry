@@ -337,7 +337,7 @@ class SnubaEventManager:
 
 
 class EventManager(BaseManager):
-
+    # TODO: Remove method in favour of eventstore.bind_nodes
     def bind_nodes(self, object_list, *node_names):
         """
         For a list of Event objects, and a property name where we might find an
