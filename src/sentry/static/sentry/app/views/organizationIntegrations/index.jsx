@@ -177,6 +177,7 @@ class OrganizationIntegrations extends AsyncComponent {
         api={this.api}
         showPublishStatus
         isInternal
+        hideButtons
         onRemoveApp={() => this.onRemoveInternalApp(app)}
         organization={organization}
         app={app}
