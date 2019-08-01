@@ -229,6 +229,8 @@ from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint, SentryAppComponentsEndpoint
 )
+from .endpoints.sentry_internal_app_tokens import SentryInternalAppTokensEndpoint
+from .endpoints.sentry_internal_app_token_details import SentryInternalAppTokenDetailsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
@@ -1422,6 +1424,16 @@ urlpatterns = patterns(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',
         SentryAppComponentsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-components'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/$',
+        SentryInternalAppTokensEndpoint.as_view(),
+        name='sentry-api-0-sentry-internal-app-tokens'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)$',
+        SentryInternalAppTokenDetailsEndpoint.as_view(),
+        name='sentry-api-0-sentry-internal-app-token-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$',

@@ -740,11 +740,10 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration_token(install, **kwargs):
-        installation_token = sentry_app_installation_tokens.Creator.run(
+        return sentry_app_installation_tokens.Creator.run(
             sentry_app_installation=install,
             **kwargs
         )
-        return installation_token.api_token
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):
