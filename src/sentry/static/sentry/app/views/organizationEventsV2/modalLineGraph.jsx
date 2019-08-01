@@ -20,6 +20,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
+import {getQueryString} from './utils';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -27,7 +28,9 @@ import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
  */
 const getCurrentEventMarker = currentEvent => {
   const title = t('Current Event');
-  const eventTime = +new Date(currentEvent.dateCreated);
+  const eventTime = +new Date(
+    currentEvent.dateCreated || currentEvent.endTimestamp * 1000
+  );
 
   return {
     type: 'line',
@@ -69,24 +72,16 @@ const getCurrentEventMarker = currentEvent => {
  */
 const handleClick = async function(
   series,
-  {api, organization, groupId, interval, selection, location}
+  {api, organization, queryString, interval, selection, location}
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
-
-  // Apply the issue.id condition to the request.
-  let search = location.query.query;
-  if (search && search.length) {
-    search += ` issue.id:${groupId}`;
-  } else {
-    search = `issue.id:${groupId}`;
-  }
 
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
   const query = {
     environment: selection.environments,
-    query: search,
+    query: queryString,
     start: getUtcDateString(value),
     end: getUtcDateString(value + intervalToMilliseconds(interval)),
   };
@@ -116,7 +111,7 @@ const handleClick = async function(
  * Render a graph of event volumes for the current group + event.
  */
 const ModalLineGraph = props => {
-  const {api, organization, location, selection, currentEvent} = props;
+  const {api, organization, location, selection, currentEvent, view} = props;
 
   const isUtc = selection.datetime.utc;
   const dateFormat = 'lll';
@@ -140,7 +135,16 @@ const ModalLineGraph = props => {
       return getFormattedDate(value, 'lll', {local: !isUtc});
     },
   };
-  const groupId = currentEvent.groupID;
+
+  // Generate a query string that finds events similar to our
+  // current event based on the type of view being used.
+  const eventConditions = {};
+  if (view.id === 'transactions') {
+    eventConditions.transaction = currentEvent.location;
+  } else {
+    eventConditions['issue.id'] = currentEvent.groupID;
+  }
+  const queryString = getQueryString(view, location, eventConditions);
 
   return (
     <Panel>
@@ -154,9 +158,8 @@ const ModalLineGraph = props => {
         end={selection.datetime.end}
         interval={interval}
         showLoading={true}
-        query={location.query.query}
+        query={queryString}
         includePrevious={false}
-        groupId={groupId}
       >
         {({loading, reloading, timeseriesData}) => (
           <LineChart
@@ -170,7 +173,7 @@ const ModalLineGraph = props => {
               handleClick(series, {
                 api,
                 organization,
-                groupId,
+                queryString,
                 interval,
                 selection,
                 location,
@@ -194,6 +197,7 @@ ModalLineGraph.propTypes = {
   location: PropTypes.object.isRequired,
   organization: SentryTypes.Organization.isRequired,
   selection: PropTypes.object.isRequired,
+  view: PropTypes.object.isRequired,
 };
 
 export default withGlobalSelection(withApi(ModalLineGraph));

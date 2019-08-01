@@ -6,7 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.utils.sdk import configure_scope
-from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect
+from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect, Organization
 from sentry.tasks.integrations import create_comment, update_comment
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class GroupPermission(ProjectPermission):
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission, )
 
-    def convert_args(self, request, issue_id, *args, **kwargs):
+    def convert_args(self, request, issue_id, organization_slug=None, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
@@ -42,10 +42,26 @@ class GroupEndpoint(Endpoint):
         # string replacement, or making the endpoint aware of the URL pattern
         # that caused it to be dispatched, and reversing it with the correct
         # `issue_id` keyword argument.
+        if organization_slug:
+            try:
+                organization = Organization.objects.get_from_cache(
+                    slug=organization_slug,
+                )
+            except Organization.DoesNotExist:
+                raise ResourceDoesNotExist
+
+            with configure_scope() as scope:
+                scope.set_tag("organization", organization.id)
+
+            request._request.organization = organization
+        else:
+            organization = None
+
         try:
             group, _ = get_group_with_redirect(
                 issue_id,
                 queryset=Group.objects.select_related('project', 'project__organization'),
+                organization=organization,
             )
         except Group.DoesNotExist:
             raise ResourceDoesNotExist

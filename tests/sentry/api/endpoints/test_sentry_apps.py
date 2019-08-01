@@ -9,6 +9,7 @@ from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation
 
 
 class SentryAppsTest(APITestCase):
@@ -439,6 +440,16 @@ class PostSentryAppsTest(SentryAppsTest):
         assert re.match(r'myapp\-[0-9a-zA-Z]+', response.data['slug'])
         assert response.data['status'] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
         assert not response.data['verifyInstall']
+
+        # verify tokens are created properly
+        sentry_app = SentryApp.objects.get(slug=response.data['slug'])
+        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+
+        sentry_app_installation_token = SentryAppInstallationToken.objects.get(
+            sentry_app_installation=sentry_app_installation)
+
+        # Below line will fail once we stop assigning api_token on the sentry_app_installation
+        assert sentry_app_installation_token.api_token == sentry_app_installation.api_token
 
     def _post(self, **kwargs):
         body = {

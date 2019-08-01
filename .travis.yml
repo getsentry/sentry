@@ -55,13 +55,13 @@ after_script:
         codecov -e TEST_SUITE
       fi
   - ./bin/yarn global add @zeus-ci/cli
-  - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  - $(./bin/yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - $(./bin/yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - $(./bin/yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
   # Trigger a build for the `git` image on docker-sentry
   - >
       if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
@@ -101,7 +101,7 @@ base_acceptance: &acceptance_default
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
-    - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_74)/chromedriver_linux64.zip" -P ~/
+    - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_75)/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/

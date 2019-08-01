@@ -10,65 +10,74 @@ import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
-const ModalPagination = props => {
-  const {location, event} = props;
+import {MODAL_QUERY_KEYS} from './data';
 
-  // Remove the groupSlug and eventSlug keys as we need to create new ones
-  const query = omit(location.query, ['groupSlug', 'eventSlug']);
-  const previousEventUrl = event.previousEventID
-    ? {
+/**
+ * Generate a mapping of link names => link targets for pagination
+ */
+function buildTargets(event, location, view) {
+  // Remove slug related keys as we need to create new ones
+  const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
+
+  let queryKey, aggregateValue;
+  if (view.id === 'transactions') {
+    queryKey = 'transactionSlug';
+    aggregateValue = event.location;
+  } else {
+    queryKey = 'groupSlug';
+    aggregateValue = event.groupID;
+  }
+  const urlMap = {
+    previous: event.previousEventID,
+    next: event.nextEventID,
+    latest: 'latest',
+    oldest: 'oldest',
+  };
+
+  const links = {};
+  Object.entries(urlMap).forEach(([key, value]) => {
+    // If the urlMap has no value we want to skip this link as it is 'disabled';
+    if (!value) {
+      links[key] = null;
+    } else {
+      links[key] = {
         pathname: location.pathname,
         query: {
-          ...query,
-          groupSlug: `${event.projectSlug}:${event.groupID}:${event.previousEventID}`,
+          ...baseQuery,
+          [queryKey]: `${event.projectSlug}:${aggregateValue}:${value}`,
         },
-      }
-    : null;
-  const nextEventUrl = event.nextEventID
-    ? {
-        pathname: location.pathname,
-        query: {
-          ...query,
-          groupSlug: `${event.projectSlug}:${event.groupID}:${event.nextEventID}`,
-        },
-      }
-    : null;
-  const newestUrl = {
-    pathname: location.pathname,
-    query: {
-      ...query,
-      groupSlug: `${event.projectSlug}:${event.groupID}:latest`,
-    },
-  };
-  const oldestUrl = {
-    pathname: location.pathname,
-    query: {
-      ...query,
-      groupSlug: `${event.projectSlug}:${event.groupID}:oldest`,
-    },
-  };
+      };
+    }
+  });
+
+  return links;
+}
+
+const ModalPagination = props => {
+  const {event, location, view} = props;
+  const links = buildTargets(event, location, view);
 
   return (
     <Wrapper>
       <ShadowBox>
-        <StyledLink to={oldestUrl} disabled={previousEventUrl === null}>
+        <StyledLink to={links.oldest} disabled={links.previous === null}>
           <InlineSvg src="icon-prev" size="14px" />
         </StyledLink>
         <StyledLink
           data-test-id="older-event"
-          to={previousEventUrl}
-          disabled={previousEventUrl === null}
+          to={links.previous}
+          disabled={links.previous === null}
         >
           {t('Older Event')}
         </StyledLink>
         <StyledLink
           data-test-id="newer-event"
-          to={nextEventUrl}
-          disabled={nextEventUrl === null}
+          to={links.next}
+          disabled={links.next === null}
         >
           {t('Newer Event')}
         </StyledLink>
-        <StyledLink to={newestUrl} disabled={nextEventUrl === null} isLast>
+        <StyledLink to={links.latest} disabled={links.next === null} isLast>
           <InlineSvg src="icon-next" size="14px" />
         </StyledLink>
       </ShadowBox>
@@ -78,6 +87,7 @@ const ModalPagination = props => {
 ModalPagination.propTypes = {
   location: PropTypes.object.isRequired,
   event: SentryTypes.Event.isRequired,
+  view: PropTypes.object.isRequired,
 };
 
 const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`

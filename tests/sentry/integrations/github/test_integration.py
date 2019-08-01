@@ -300,7 +300,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         Identity.objects.get().update(user=user2)
         resp = self.assert_setup_flow()
         assert '"success":false' in resp.content
-        assert 'The provided GitHub account is linked to a different user' in resp.content
+        assert 'The provided GitHub account is linked to a different Sentry user' in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):

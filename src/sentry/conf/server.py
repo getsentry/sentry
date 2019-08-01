@@ -1242,7 +1242,7 @@ SENTRY_ROLES = (
     }, {
         'id': 'admin',
         'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on). Additionally, they can manage memberships of teams that they are members of.',
         'scopes': set(
             [
                 'event:read',
@@ -1718,25 +1718,10 @@ KAFKA_CLUSTERS = {
     }
 }
 
-KAFKA_PREPROCESS = 'events-preprocess'
-KAFKA_PROCESS = 'events-process'
-KAFKA_SAVE = 'events-save'
 KAFKA_EVENTS = 'events'
 KAFKA_OUTCOMES = 'outcomes'
 
 KAFKA_TOPICS = {
-    KAFKA_PREPROCESS: {
-        'cluster': 'default',
-        'topic': KAFKA_PREPROCESS,
-    },
-    KAFKA_PROCESS: {
-        'cluster': 'default',
-        'topic': KAFKA_PROCESS,
-    },
-    KAFKA_SAVE: {
-        'cluster': 'default',
-        'topic': KAFKA_SAVE,
-    },
     KAFKA_EVENTS: {
         'cluster': 'default',
         'topic': KAFKA_EVENTS,

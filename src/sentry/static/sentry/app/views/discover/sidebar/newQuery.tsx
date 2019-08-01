@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
+import {Organization} from 'app/types';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
@@ -13,7 +14,7 @@ import {
   QueryActionsGroup,
   QueryFieldsContainer,
 } from '../styles';
-import {Organization, SavedQuery} from '../types';
+import {SavedQuery} from '../types';
 import {QueryBuilder} from '../queryBuilder';
 
 type NewQueryProps = {

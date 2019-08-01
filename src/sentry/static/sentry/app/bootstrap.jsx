@@ -74,14 +74,6 @@ if (
         config.urlPrefix.includes('127.0.0.1') ||
         config.urlPrefix.includes('dev.getsentry.net'))))
 ) {
-  Sentry.configureScope(scope => {
-    scope.setSpan(
-      Sentry.getCurrentHub().startSpan({
-        op: 'pageload',
-        sampled: true,
-      })
-    );
-  });
   startApm();
 }
 // -----------------------------------------------------------------

@@ -47,7 +47,7 @@ from sentry.lang.native.minidump import (
     merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
     MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, File, EventAttachment, Event
+from sentry.models import Project, File, EventAttachment
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received,
 )
@@ -354,16 +354,20 @@ class APIView(BaseView):
         Sends raw event data to Kafka for later offline processing.
         """
         try:
+            raw_event_sample_rate = options.get('kafka-publisher.raw-event-sample-rate')
+
+            # Early return if sampling is disabled
+            if raw_event_sample_rate == 0:
+                return
+
             # This may fail when we e.g. send a multipart form. We ignore those errors for now.
             data = request.body
 
-            max_event_size = options.get('kafka-publisher.raw-event-sample-rate')
-            if not data or max_event_size is None or len(data) > max_event_size:
+            if not data or len(data) > options.get('kafka-publisher.max-event-size'):
                 return
 
             # Sampling
-            raw_event_sample_rate = options.get('kafka-publisher.max-event-size')
-            if raw_event_sample_rate is None or random.random() >= raw_event_sample_rate:
+            if random.random() >= raw_event_sample_rate:
                 return
 
             # We want to send only serializable items from request.META
@@ -654,31 +658,12 @@ class EventAttachmentStoreView(StoreView):
             )
             file.putfile(uploaded_file)
 
-            # To avoid a race with EventManager which tries to set the group_id on attachments received before
-            # the event, first insert the attachment, then lookup for the event for its group.
-            event_attachment = EventAttachment.objects.create(
+            EventAttachment.objects.create(
                 project_id=project_id,
                 event_id=event_id,
                 name=uploaded_file.name,
                 file=file,
             )
-
-            try:
-                event = Event.objects.get(
-                    project_id=project_id,
-                    event_id=event_id,
-                )
-            except Event.DoesNotExist:
-                pass
-            else:
-                # If event was created but the group not defined, EventManager will take care of setting the
-                # group to all dangling attachments
-                if event.group_id is not None:
-                    EventAttachment.objects.filter(
-                        id=event_attachment.id,
-                    ).update(
-                        group_id=event.group_id,
-                    )
 
         return HttpResponse(status=201)
 

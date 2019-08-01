@@ -54,17 +54,6 @@ export type DiscoverBaseProps = {
   disabled: boolean;
 };
 
-export type Organization = {
-  id: string;
-  slug: string;
-  projects: any[];
-  access: string[];
-};
-
-export type Project = {
-  id: string;
-};
-
 export type GlobalSelection = {
   projects: number[];
   environments: string[];

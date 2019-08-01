@@ -9,6 +9,7 @@ import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
 describe('OrganizationEventsV2 > EventDetails', function() {
   const allEventsView = ALL_VIEWS.find(view => view.id === 'all');
   const errorsView = ALL_VIEWS.find(view => view.id === 'errors');
+  const transactionView = ALL_VIEWS.find(view => view.id === 'transactions');
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -28,10 +29,11 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       body: {
         id: '1234',
         size: 1200,
-        projectSlug: 'org-slug',
+        projectSlug: 'project-slug',
         eventID: 'deadbeef',
         groupID: '123',
         title: 'Oh no something bad',
+        location: '/users/login',
         message: 'It was not good',
         dateCreated: '2019-05-23T22:12:48+00:00',
         entries: [
@@ -57,28 +59,77 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/latest/',
-      method: 'GET',
-      body: {
-        id: '1234',
-        size: 1200,
-        projectSlug: 'org-slug',
-        eventID: 'deadbeef',
-        groupID: '123',
-        title: 'Oh no something bad',
-        message: 'It was not good',
-        dateCreated: '2019-05-23T22:12:48+00:00',
-        entries: [
-          {
-            type: 'message',
-            message: 'bad stuff',
-            data: {},
+    // Error event
+    MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/events/latest/',
+        method: 'GET',
+        body: {
+          id: '5678',
+          size: 1200,
+          projectSlug: 'project-slug',
+          eventID: 'deadbeef',
+          groupID: '123',
+          type: 'error',
+          title: 'Oh no something bad',
+          message: 'It was not good',
+          dateCreated: '2019-05-23T22:12:48+00:00',
+          previousEventID: 'beefbeef',
+          metadata: {
+            type: 'Oh no something bad',
           },
-        ],
-        tags: [{key: 'browser', value: 'Firefox'}],
+          entries: [
+            {
+              type: 'message',
+              message: 'bad stuff',
+              data: {},
+            },
+          ],
+          tags: [{key: 'browser', value: 'Firefox'}],
+        },
       },
-    });
+      {
+        predicate: (_, options) => {
+          const query = options.query.query;
+          return (
+            query && (query.includes('event.type:error') || query.includes('issue.id'))
+          );
+        },
+      }
+    );
+
+    // Transaction event
+    MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/events/latest/',
+        method: 'GET',
+        body: {
+          id: '5678',
+          size: 1200,
+          projectSlug: 'project-slug',
+          eventID: 'deadbeef',
+          type: 'transaction',
+          title: 'Oh no something bad',
+          location: '/users/login',
+          message: 'It was not good',
+          startTimestamp: 1564153693.2419,
+          endTimestamp: 1564153694.4191,
+          previousEventID: 'beefbeef',
+          entries: [
+            {
+              type: 'spans',
+              data: [],
+            },
+          ],
+          tags: [{key: 'browser', value: 'Firefox'}],
+        },
+      },
+      {
+        predicate: (_, options) => {
+          return options.query.query && options.query.query.includes('transaction');
+        },
+      }
+    );
   });
 
   it('renders', function() {
@@ -120,13 +171,47 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         groupSlug="project-slug:123:latest"
-        location={{query: {groupSlug: 'project-slug:999:latest'}}}
+        location={{query: {groupSlug: 'project-slug:123:latest'}}}
         view={errorsView}
       />,
       TestStubs.routerContext()
     );
+
     const content = wrapper.find('ModalPagination');
     expect(content).toHaveLength(1);
+
+    const prevLink = content.find('StyledLink[data-test-id="older-event"]').first();
+    const target = prevLink.props().to;
+    expect(target.query.groupSlug).toEqual('project-slug:123:beefbeef');
+    expect(target.query.transactionSlug).toBeUndefined();
+    expect(target.query.eventSlug).toBeUndefined();
+
+    const nextLink = content.find('StyledLink[data-test-id="newer-event"]').first();
+    expect(nextLink.props().to).toBeNull();
+  });
+
+  it('renders pagination buttons in transaction view', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        transactionSlug="project-slug:/users/login:latest"
+        location={{query: {transactionSlug: 'project-slug:/users/login:latest'}}}
+        view={transactionView}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const content = wrapper.find('ModalPagination');
+    expect(content).toHaveLength(1);
+
+    const prevLink = content.find('StyledLink[data-test-id="older-event"]').first();
+    const target = prevLink.props().to;
+    expect(target.query.transactionSlug).toEqual('project-slug:/users/login:beefbeef');
+    expect(target.query.groupSlug).toBeUndefined();
+    expect(target.query.eventSlug).toBeUndefined();
+
+    const nextLink = content.find('StyledLink[data-test-id="newer-event"]').first();
+    expect(nextLink.props().to).toBeNull();
   });
 
   it('removes eventSlug when close button is clicked', function() {
@@ -158,6 +243,27 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         location={{
           pathname: '/organizations/org-slug/events/',
           query: {groupSlug: 'project-slug:123:latest'},
+        }}
+        view={allEventsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const button = wrapper.find('DismissButton');
+    button.simulate('click');
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {},
+    });
+  });
+
+  it('removes transactionSlug when close button is clicked', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        transactionSlug="project-slug:/users/login:latest"
+        location={{
+          pathname: '/organizations/org-slug/events/',
+          query: {transactionSlug: 'project-slug:/users/login:latest'},
         }}
         view={allEventsView}
       />,

@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import TimeSince from 'app/components/timeSince';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 /**
@@ -39,7 +38,6 @@ Times.propTypes = {
 };
 
 const Container = styled('div')`
-  margin-right: ${space(2)};
   flex-shrink: 1;
   min-width: 0; /* flex-hack for overflow-ellipsised children */
 `;
@@ -49,7 +47,6 @@ const GroupTimeIcon = styled(InlineSvg)`
   with a number, and numbers do not have descenders */
   font-size: 11px;
   margin-right: 4px;
-  transform: translateY(-1px);
 `;
 
 export default Times;

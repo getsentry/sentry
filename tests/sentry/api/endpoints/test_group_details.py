@@ -17,7 +17,7 @@ from sentry.testutils import APITestCase
 
 
 class GroupDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_with_numerical_id(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -27,7 +27,12 @@ class GroupDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(group.id)
-        assert response.data['firstRelease'] is None
+
+        url = u'/api/0/organizations/{}/issues/{}/'.format(group.organization.slug, group.id)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(group.id)
 
     def test_with_qualified_short_id(self):
         self.login_as(user=self.user)
@@ -35,11 +40,17 @@ class GroupDetailsTest(APITestCase):
         group = self.create_group()
         assert group.qualified_short_id
 
-        url = u'/api/0/issues/{}/'.format(group.qualified_short_id)
+        url = u'/api/0/organizations/{}/issues/{}/'.format(
+            group.organization.slug, group.qualified_short_id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(group.id)
+
+        url = u'/api/0/issues/{}/'.format(group.qualified_short_id)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 404, response.content
 
     def test_with_first_release(self):
         self.login_as(user=self.user)
@@ -130,6 +141,18 @@ class GroupDetailsTest(APITestCase):
 
         assert response.data['annotations'] == \
             [u'<a href="https://example.com/issues/2">Issue#2</a>']
+
+    def test_permalink_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        group = self.create_group(title='Oh no')
+        url = u'/api/0/issues/{}/'.format(group.id)
+        response = self.client.get(url, format='json')
+
+        result = response.data['permalink']
+        assert 'http://' in result
+        assert '{}/issues/{}'.format(group.organization.slug, group.id) in result
 
 
 class GroupUpdateTest(APITestCase):

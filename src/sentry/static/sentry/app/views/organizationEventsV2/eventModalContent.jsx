@@ -15,6 +15,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
+import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 
 /**
@@ -32,7 +33,9 @@ const EventModalContent = props => {
     <ColumnGrid>
       <HeaderBox>
         <EventHeader event={event} />
-        {isGroupedView && <ModalPagination event={event} location={location} />}
+        {isGroupedView && (
+          <ModalPagination view={view} event={event} location={location} />
+        )}
         {isGroupedView &&
           getDynamicText({
             value: (
@@ -40,6 +43,7 @@ const EventModalContent = props => {
                 organization={organization}
                 currentEvent={event}
                 location={location}
+                view={view}
               />
             ),
             fixed: 'events chart',
@@ -51,6 +55,9 @@ const EventModalContent = props => {
       <SidebarColumn>
         {event.groupID && (
           <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+        )}
+        {event.type === 'transaction' && (
+          <RelatedEvents organization={organization} event={event} location={location} />
         )}
         <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
         <SidebarBlock>
@@ -95,7 +102,10 @@ const EventMetadata = props => {
       <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
-          date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
+          date={getDynamicText({
+            value: event.dateCreated || event.endTimestamp * 1000,
+            fixed: 'Dummy timestamp',
+          })}
         />
         <ExternalLink href={eventJsonUrl} className="json-link">
           JSON (<FileSize bytes={event.size} />)

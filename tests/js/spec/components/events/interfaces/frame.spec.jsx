@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import Frame from 'app/components/events/interfaces/frame';
+import {Frame} from 'app/components/events/interfaces/frame';
 
 describe('Frame', function() {
   let data;
@@ -20,7 +20,7 @@ describe('Frame', function() {
     });
 
     it('should render the source map information as a HTML string', function() {
-      const frame = shallow(<Frame data={data} />);
+      const frame = shallow(<Frame data={data} components={[]} />);
 
       expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
     });
@@ -36,7 +36,7 @@ describe('Frame', function() {
         ],
       };
 
-      const frame = shallow(<Frame data={data} isExpanded />);
+      const frame = shallow(<Frame data={data} components={[]} isExpanded />);
       expect(frame.find('ContextLine')).toMatchSnapshot();
     });
 
@@ -62,7 +62,9 @@ describe('Frame', function() {
         rsp: '0x00007ffedfdff7c0',
       };
 
-      const frame = shallow(<Frame data={data} registers={registers} isExpanded />);
+      const frame = shallow(
+        <Frame data={data} registers={registers} components={[]} isExpanded />
+      );
       expect(frame.find('FrameRegisters').prop('data')).toEqual(registers);
     });
 
@@ -70,7 +72,9 @@ describe('Frame', function() {
       data = {};
       const registers = {};
 
-      const frame = shallow(<Frame data={data} registers={registers} isExpanded />);
+      const frame = shallow(
+        <Frame data={data} registers={registers} components={[]} isExpanded />
+      );
       expect(frame.find('FrameRegisters')).toHaveLength(0);
     });
 
@@ -88,7 +92,7 @@ describe('Frame', function() {
         },
       };
 
-      const frame = shallow(<Frame data={data} isExpanded />);
+      const frame = shallow(<Frame data={data} components={[]} isExpanded />);
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });
   });
