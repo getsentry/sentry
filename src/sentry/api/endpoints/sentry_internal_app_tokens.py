@@ -6,11 +6,11 @@ from rest_framework import status
 from sentry.api.bases import (
     SentryInternalAppTokenPermission, SentryAppBaseEndpoint,
 )
-from sentry.models import SentryAppInstallation, SentryAppInstallationToken
+from sentry.models import SentryAppInstallation
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installation_tokens import Creator
-from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
+from sentry.exceptions import ApiTokenLimitError
 
 
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
@@ -24,19 +24,14 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                             )
 
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
-        curr_count = len(SentryAppInstallationToken.objects.filter(
-            sentry_app_installation=sentry_app_installation))
-
-        # make sure we don't go over the limit
-        if curr_count >= INTERNAL_INTEGRATION_TOKEN_COUNT_MAX:
-            return Response('Cannot generate more than %d tokens for a single integration' % INTERNAL_INTEGRATION_TOKEN_COUNT_MAX,
-                            status=status.HTTP_403_FORBIDDEN)
-
-        data = {
-            'sentry_app_installation': sentry_app_installation,
-            'user': request.user
-        }
-        api_token = Creator.run(request=request, **data)
+        try:
+            api_token = Creator.run(
+                request=request,
+                sentry_app_installation=sentry_app_installation,
+                user=request.user,
+            )
+        except ApiTokenLimitError as e:
+            return Response(e.message, status=status.HTTP_403_FORBIDDEN)
 
         # hack so the token is included in the response
         attrs = {
