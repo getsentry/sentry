@@ -6,7 +6,7 @@ import _ from 'lodash';
 import ConfigStore from 'app/stores/configStore';
 
 type Props = {
-  date: any;
+  date: moment.MomentInput;
   dateOnly?: boolean;
   timeOnly?: boolean;
   shortDate?: boolean;
