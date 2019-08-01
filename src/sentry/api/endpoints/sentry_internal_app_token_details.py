@@ -16,7 +16,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission, )
 
     def convert_args(self, request, sentry_app_slug, token, *args, **kwargs):
-        # get the sentry_app from the SentryInternalAppTokenDetailsEndpoint class
+        # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super(SentryInternalAppTokenDetailsEndpoint,
                                self).convert_args(request, sentry_app_slug, *args, **kwargs)
 

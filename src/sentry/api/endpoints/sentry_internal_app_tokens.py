@@ -32,7 +32,6 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
             return Response('Cannot generate more than %d tokens for a single integration' % INTERNAL_INTEGRATION_TOKEN_COUNT_MAX,
                             status=status.HTTP_403_FORBIDDEN)
 
-        # create api token
         data = {
             'sentry_app_installation': sentry_app_installation,
             'user': request.user
