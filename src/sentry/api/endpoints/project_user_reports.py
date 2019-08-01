@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from uuid import uuid4
 
+from sentry import eventstore
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
@@ -139,7 +140,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         report['event_id'] = report['event_id'].lower()
         report['project'] = project
 
-        event = SnubaEvent.objects.from_event_id(report['event_id'], project.id)
+        event = eventstore.get_event_by_id(project.id, report['event_id'])
 
         # TODO(dcramer): we should probably create the user if they dont
         # exist, and ideally we'd also associate that with the event
