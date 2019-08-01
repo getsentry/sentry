@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize
-from sentry.models import Group, GroupHash, Event
+from sentry.api.serializers import EventSerializer, serialize
+from sentry.models import Group, GroupHash, SnubaEvent
 from sentry.tasks.unmerge import unmerge
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.snuba import raw_query
@@ -55,7 +55,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             orderby=['-latest_event_timestamp'],
         )
 
-        handle_results = partial(self.handle_results, group.project_id)
+        handle_results = partial(self.__handle_results, group.project_id, group.id, request.user)
 
         return self.paginate(
             request=request,
@@ -90,22 +90,18 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         return Response(status=202)
 
-    def handle_results(self, project_id, results):
-        event_ids = [row['event_id'] for row in results]
-        event_by_event_id = {
-            event.event_id: event
-            for event in Event.objects.filter(
-                project_id=project_id,
-                event_id__in=filter(None, event_ids),
-            )
+    def __handle_results(self, project_id, group_id, user, results):
+        return [self.__handle_result(user, project_id, group_id, result) for result in results]
+
+    def __handle_result(self, user, project_id, group_id, result):
+        event = {
+            'timestamp': result['latest_event_timestamp'],
+            'event_id': result['event_id'],
+            'group_id': group_id,
+            'project_id': project_id
         }
 
-        response = [self.handle_result(result['primary_hash'],
-                                       event_by_event_id[result['event_id']]) for result in results]
-        return response
-
-    def handle_result(self, primary_hash, event):
         return {
-            'id': primary_hash,
-            'latestEvent': serialize(event)
+            'id': result['primary_hash'],
+            'latestEvent': serialize(SnubaEvent(event), user, EventSerializer())
         }
