@@ -996,6 +996,13 @@ export const EChartsToolBox = PropTypes.shape({
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 });
 
+export const EchartsGraphic = PropTypes.shape({
+  id: PropTypes.string,
+
+  // These are a bit complex to add typing for
+  elements: PropTypes.arrayOf(PropTypes.object),
+});
+
 export const SeriesUnit = PropTypes.shape({
   seriesName: PropTypes.string,
   data: PropTypes.arrayOf(
@@ -1070,6 +1077,7 @@ const SentryTypes = {
   EChartsLegend,
   EChartsDataZoom,
   EChartsToolBox,
+  EchartsGraphic,
 };
 
 export default SentryTypes;
