@@ -369,8 +369,6 @@ class EventManager(object):
             rust_normalizer.normalize_event(dict(self._data))
         )
 
-        # normalize_user_agent(self._data)
-
     def should_filter(self):
         '''
         returns (result: bool, reason: string or None)
