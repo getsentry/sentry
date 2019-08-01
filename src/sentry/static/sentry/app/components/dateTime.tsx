@@ -72,13 +72,11 @@ class DateTime extends React.Component<Props> {
     const options = user ? user.options : {};
     const format = this.getFormat(options);
 
-    const coercedDate = _.isString(date) || _.isNumber(date) ? new Date(date) : date;
-
     return (
       <time {...carriedProps}>
         {utc
-          ? moment.utc(coercedDate).format(format)
-          : moment.tz(coercedDate, options.timezone).format(format)}
+          ? moment.utc(date).format(format)
+          : moment.tz(date, options.timezone).format(format)}
       </time>
     );
   }
