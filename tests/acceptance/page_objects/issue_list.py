@@ -8,8 +8,8 @@ class IssueListPage(BasePage):
         super(IssueListPage, self).__init__(browser)
         self.client = client
 
-    def visit_issue_list(self, org):
-        self.browser.get(u'/organizations/{}/issues/'.format(org))
+    def visit_issue_list(self, org, query=''):
+        self.browser.get(u'/organizations/{}/issues/{}'.format(org, query))
         self.wait_until_loaded()
 
     def wait_for_stream(self):
