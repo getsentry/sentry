@@ -29,14 +29,13 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def delete(self, request, sentry_app, api_token):
-        if not sentry_app.is_internal:
-            return Response('This route is limited to internal integrations only',
-                            status=status.HTTP_403_FORBIDDEN
-                            )
-
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
             raise Http404
+
+        if not sentry_app.is_internal:
+            return Response('This route is limited to internal integrations only',
+                            status=status.HTTP_403_FORBIDDEN)
 
         Destroyer.run(
             api_token=api_token,
