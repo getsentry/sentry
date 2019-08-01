@@ -2,8 +2,8 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import Hook from 'app/components/hook';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const Footer = () => {
   const config = ConfigStore.getConfig();
@@ -31,7 +31,10 @@ const Footer = () => {
         {config.isOnPremise && (
           <div className="version pull-left">
             {'Sentry '}
-            <DynamicWrapper fixed="Acceptance Test" value={config.version.current} />
+            {getDynamicText({
+              fixed: 'Acceptance Test',
+              value: config.version.current,
+            })}
           </div>
         )}
         <a href="/" className="icon-sentry-logo" />

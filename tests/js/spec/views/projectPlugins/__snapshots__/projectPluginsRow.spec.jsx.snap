@@ -179,28 +179,13 @@ exports[`ProjectPluginRow renders 1`] = `
                             className="css-36lssg-PluginName e1y7j6vq1"
                           >
                             Amazon SQS 
-                            <DynamicWrapper
-                              fixed={
-                                <Version>
-                                  v10
-                                </Version>
-                              }
-                              value={
-                                <Version>
-                                  v8.23.0.dev0
-                                </Version>
-                              }
-                            >
-                              <span>
-                                <Version>
-                                  <span
-                                    className="css-1det7j8-Version e1y7j6vq3"
-                                  >
-                                    v8.23.0.dev0
-                                  </span>
-                                </Version>
+                            <Version>
+                              <span
+                                className="css-1det7j8-Version e1y7j6vq3"
+                              >
+                                v8.23.0.dev0
                               </span>
-                            </DynamicWrapper>
+                            </Version>
                           </div>
                         </PluginName>
                         <div>
