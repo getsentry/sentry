@@ -1691,6 +1691,13 @@
     "@svgr/plugin-svgo" "^4.0.3"
     loader-utils "^1.1.0"
 
+"@types/echarts@^4.1.10":
+  version "4.1.10"
+  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.1.10.tgz#ee71911eb8b1717c7c12c0bd81fc83db872f4d3b"
+  integrity sha512-AadUmn1mHp0RGNFwcDnNdVbz5LNZZla7V9B+3ptyEp31qiyRK0Hfr2yQLD26/4ojcLDSmUzyGfVrHrEXxgUmuA==
+  dependencies:
+    "@types/zrender" "*"
+
 "@types/eslint-visitor-keys@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@types/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz#1ee30d79544ca84d68d4b3cdb0af4f205663dd2d"
@@ -1824,6 +1831,11 @@
     "@types/node" "*"
     "@types/unist" "*"
     "@types/vfile-message" "*"
+
+"@types/zrender@*":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@types/zrender/-/zrender-4.0.0.tgz#a6806f12ec4eccaaebd9b0d816f049aca6188fbd"
+  integrity sha512-s89GOIeKFiod2KSqHkfd2rzx+T2DVu7ihZCBEBnhFrzvQPUmzvDSBot9Fi1DfMQm9Odg+rTqoMGC38RvrwJK2w==
 
 "@typescript-eslint/eslint-plugin@^1.11.0":
   version "1.11.0"

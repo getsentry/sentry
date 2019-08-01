@@ -2,6 +2,9 @@ import {isEqual, omitBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Organization, EventsStats, EventsStatsData} from 'app/types';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -10,11 +13,53 @@ import SentryTypes from 'app/sentryTypes';
 
 import LoadingPanel from '../loadingPanel';
 
+type RenderProps = {
+  loading: boolean;
+  reloading: boolean;
+
+  // timeseries data
+  timeseriesData?: Series[];
+  allTimeseriesData?: EventsStatsData;
+  originalTimeseriesData?: EventsStatsData;
+  timeseriesTotals?: object;
+  originalPreviousTimeseriesData?: EventsStatsData | null;
+  previousTimeseriesData?: Series | null;
+  timeAggregatedData?: Series | {};
+};
+
+type EventsRequestProps = {
+  api: object;
+  organization: Organization;
+  timeAggregationSeriesName: string;
+
+  project?: number[];
+  environment?: string[];
+  period?: string;
+  start?: any;
+  end?: any;
+  interval?: string;
+
+  limit?: number;
+  query?: string;
+  includePrevious?: boolean;
+  includeTransformedData?: boolean;
+  includeTimeAggregation?: boolean;
+  loading?: boolean;
+  showLoading?: boolean;
+  yAxis?: 'event_count' | 'user_count';
+  children: (renderProps: RenderProps) => React.ReactNode;
+};
+
+type EventsRequestState = {
+  reloading: boolean;
+  timeseriesData: null | EventsStats;
+};
+
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
-const omitIgnoredProps = props =>
+const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends React.PureComponent {
+class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
     /**
      * API client instance
@@ -112,45 +157,38 @@ class EventsRequest extends React.PureComponent {
     end: null,
     interval: '1d',
     limit: 15,
-    getCategory: i => i,
     query: '',
 
     includePrevious: true,
     includeTransformedData: true,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      reloading: false || props.loading,
-      timeseriesData: null,
-    };
-  }
+  state = {
+    reloading: false || !!this.props.loading,
+    timeseriesData: null,
+  };
 
   componentDidMount() {
     this.fetchData();
   }
-
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: EventsRequestProps) {
     if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
       return;
     }
-
     this.fetchData();
   }
-
   componentWillUnmount() {
     this.unmounting = true;
   }
 
+  unmounting: boolean = false;
+
   fetchData = async () => {
     const {api, ...props} = this.props;
-    let timeseriesData;
-
+    let timeseriesData: EventsStats | null;
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
     }));
-
     try {
       timeseriesData = await doEventsRequest(api, props);
     } catch (resp) {
@@ -161,55 +199,55 @@ class EventsRequest extends React.PureComponent {
       }
       timeseriesData = null;
     }
-
     if (this.unmounting) {
       return;
     }
-
     this.setState({
       reloading: false,
       timeseriesData,
     });
   };
-
   /**
    * Retrieves data set for the current period (since data can potentially contain previous period's data), as
    * well as the previous period if possible.
    *
    * Returns `null` if data does not exist
    */
-  getData = data => {
+  getData = (
+    data: EventsStatsData
+  ): {previous: EventsStatsData | null; current: EventsStatsData} => {
     const {period, includePrevious} = this.props;
-
-    if (!data) {
-      return {
-        previous: null,
-        current: null,
-      };
-    }
 
     const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
-
     return {
-      previous: hasPreviousPeriod ? data.slice(0, dataMiddleIndex) : null,
       current: hasPreviousPeriod ? data.slice(dataMiddleIndex) : data,
+      previous: hasPreviousPeriod ? data.slice(0, dataMiddleIndex) : null,
     };
   };
 
   // This aggregates all values per `timestamp`
-  calculateTotalsPerTimestamp = (data, getName = timestamp => timestamp * 1000) => {
-    return data.map(([timestamp, countArray], i) => ({
+  calculateTotalsPerTimestamp = (
+    data: EventsStatsData,
+    getName: (
+      timestamp: number,
+      countArray: {count: number}[],
+      i: number
+    ) => string | number = timestamp => timestamp * 1000
+  ): SeriesDataUnit[] =>
+    data.map(([timestamp, countArray], i) => ({
       name: getName(timestamp, countArray, i),
       value: countArray.reduce((acc, {count}) => acc + count, 0),
     }));
-  };
 
   /**
    * Get previous period data, but transform timestampts so that data fits unto the current period's data axis
    */
-  transformPreviousPeriodData = (current, previous) => {
+  transformPreviousPeriodData = (
+    current: EventsStatsData,
+    previous: EventsStatsData | null
+  ): Series | null => {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
     if (!previous) {
@@ -224,25 +262,19 @@ class EventsRequest extends React.PureComponent {
       ),
     };
   };
-
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries = (data, seriesName) => {
-    if (!data) {
-      return null;
-    }
-
+  transformAggregatedTimeseries = (data: EventsStatsData, seriesName: string): Series => {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),
     };
   };
-
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData = data => {
+  transformTimeseriesData = (data: EventsStatsData): Series[] => {
     return [
       {
         seriesName: 'Current Period',
@@ -254,31 +286,27 @@ class EventsRequest extends React.PureComponent {
     ];
   };
 
-  transformData = data => {
-    if (!data) {
-      return null;
+  transformData = (data: EventsStatsData): Series[] => this.transformTimeseriesData(data);
+
+  processData(response: EventsStats | null) {
+    if (!response) {
+      return {};
     }
 
-    return this.transformTimeseriesData(data);
-  };
-
-  processData({data, totals} = {}) {
+    const {data, totals} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
       timeAggregationSeriesName,
     } = this.props;
     const {current, previous} = this.getData(data);
-    const transformedData = includeTransformedData ? this.transformData(current) : null;
-
+    const transformedData = includeTransformedData ? this.transformData(current) : [];
     const previousData = includeTransformedData
       ? this.transformPreviousPeriodData(current, previous)
       : null;
-
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName)
-      : null;
-
+      : {};
     return {
       data: transformedData,
       allData: data,
@@ -289,12 +317,9 @@ class EventsRequest extends React.PureComponent {
       timeAggregatedData,
     };
   }
-
   render() {
     const {children, showLoading, ...props} = this.props;
-
     const {timeseriesData, reloading} = this.state;
-
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
 
@@ -310,12 +335,11 @@ class EventsRequest extends React.PureComponent {
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
-    } = (timeseriesData && this.processData(timeseriesData, true)) || {};
+    } = this.processData(timeseriesData);
 
     return children({
       loading,
       reloading,
-
       // timeseries data
       timeseriesData: transformedTimeseriesData,
       allTimeseriesData,
@@ -324,11 +348,9 @@ class EventsRequest extends React.PureComponent {
       originalPreviousTimeseriesData,
       previousTimeseriesData,
       timeAggregatedData,
-
       // sometimes we want to reference props that were given to EventsRequest
       ...props,
     });
   }
 }
-
 export default EventsRequest;

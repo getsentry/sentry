@@ -36,3 +36,10 @@ export type Event = {
   message: string;
   platform?: string;
 };
+
+export type EventsStatsData = [number, {count: number}[]][];
+
+export type EventsStats = {
+  data: EventsStatsData;
+  totals?: any;
+};
