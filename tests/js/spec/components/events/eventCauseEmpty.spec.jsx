@@ -40,7 +40,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('CommitRow').exists()).toBe(true);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(true);
 
     expect(trackAdhocEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.viewed',
@@ -77,7 +77,7 @@ describe('EventCauseEmpty', function() {
       })
     );
 
-    expect(wrapper.find('CommitRow').exists()).toBe(false);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.snoozed',
@@ -107,7 +107,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('CommitRow').exists()).toBe(false);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
   });
 
   it('renders when snoozed more than 7 days ago', async function() {
@@ -129,7 +129,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('CommitRow').exists()).toBe(true);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(true);
   });
 
   it('can be dismissed', async function() {
@@ -159,7 +159,7 @@ describe('EventCauseEmpty', function() {
       })
     );
 
-    expect(wrapper.find('CommitRow').exists()).toBe(false);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'event_cause.dismissed',
@@ -185,7 +185,7 @@ describe('EventCauseEmpty', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('CommitRow').exists()).toBe(false);
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
   });
 
   it('can capture analytics on docs click', async function() {
