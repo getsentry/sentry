@@ -8,6 +8,8 @@ from sentry.mediators import Mediator, Param
 from sentry.models import (
     AuditLogEntryEvent, ApiToken, SentryAppInstallationToken
 )
+from sentry.exceptions import ApiTokenLimitError
+from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX
 
 
 class Creator(Mediator):
@@ -19,9 +21,18 @@ class Creator(Mediator):
     request = Param('rest_framework.request.Request', required=False)
 
     def call(self):
+        self._check_token_limit()
         self._create_api_token()
         self._create_sentry_app_installation_token()
-        return self.sentry_app_installation_token
+        return self.api_token
+
+    def _check_token_limit(self):
+        curr_count = SentryAppInstallationToken.objects.filter(
+            sentry_app_installation=self.sentry_app_installation).count()
+        if curr_count >= INTERNAL_INTEGRATION_TOKEN_COUNT_MAX:
+            raise ApiTokenLimitError(
+                'Cannot generate more than %d tokens for a single integration' %
+                INTERNAL_INTEGRATION_TOKEN_COUNT_MAX)
 
     def _create_api_token(self):
         self.api_token = ApiToken.objects.create(

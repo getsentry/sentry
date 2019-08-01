@@ -45,9 +45,7 @@ class InternalCreator(Mediator):
             'user': self.user
         }
 
-        sentry_app_installation_token = SentryAppInstallationTokenCreator.run(
-            request=self.request, **data)
-        self.install.api_token = sentry_app_installation_token.api_token
+        self.install.api_token = SentryAppInstallationTokenCreator.run(request=self.request, **data)
         self.install.save()
 
     def _install(self):

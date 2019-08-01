@@ -59,3 +59,7 @@ class HookValidationError(Exception):
 
 class NotRegistered(Exception):
     pass
+
+
+class ApiTokenLimitError(Exception):
+    pass
