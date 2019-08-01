@@ -446,6 +446,9 @@ export const Frame = createReactClass({
   renderNativeLine() {
     const data = this.props.data;
     const hint = this.getFrameHint();
+
+    const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
@@ -462,11 +465,8 @@ export const Frame = createReactClass({
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
-                <Tooltip title={data.absPath} disabled={!defined(data.absPath)}>
-                  <span
-                    className="filename"
-                    title={data.absPath !== data.filename ? data.absPath : null}
-                  >
+                <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
+                  <span className="filename">
                     {data.filename}
                     {data.lineNo ? ':' + data.lineNo : ''}
                   </span>
