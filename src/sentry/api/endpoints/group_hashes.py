@@ -49,7 +49,6 @@ class GroupHashesEndpoint(GroupEndpoint):
                 'project_id': [group.project_id],
                 'group_id': [group.id]
             },
-            selected_columns=['primary_hash'],
             groupby=['primary_hash'],
             referrer='api.group-hashes',
             orderby=['-latest_event_timestamp'],
