@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
 export function deviceNameMapper(model: string, iOSDeviceList): string {
   const modelIdentifier = model.split(' ')[0];
@@ -20,7 +21,7 @@ type Props = {
 };
 
 type State = {
-  iOSDeviceList: any;
+  iOSDeviceList: IOSDeviceList | null;
 };
 /**
  * This is used to map iOS Device Names to model name.
