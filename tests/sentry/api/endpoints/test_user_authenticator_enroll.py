@@ -187,9 +187,10 @@ class AcceptOrganizationInviteTest(APITestCase):
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
 
-        resp = self.client.post(reverse("sentry-accept-invite", args=[om.id, om.token]))
+        resp = self.client.get(
+            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+        )
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/accept-organization-invite.html")
         self.assert_2fa_cookie_set(resp, om)
 
         return om

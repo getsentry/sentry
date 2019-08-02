@@ -675,6 +675,13 @@ function routes() {
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route
+        path="/accept/:memberId/:token/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptOrganizationInvite" */ 'app/views/acceptOrganizationInvite')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="/accept-transfer/"
         componentPromise={() =>
           import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/acceptProjectTransfer')
