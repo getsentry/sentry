@@ -819,5 +819,8 @@ def delete_snuba_subscription(subscription_id):
     :param subscription_id: The uuid of the subscription to delete
     :return:
     """
-    # TODO: Implement
-    pass
+    resp = safe_urlopen(
+        settings.SENTRY_SNUBA + '/subscriptions/%s' % subscription_id,
+        'DELETE',
+    )
+    resp.raise_for_status()
