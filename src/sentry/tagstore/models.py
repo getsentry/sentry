@@ -35,9 +35,15 @@ for i, backend in enumerate(backends):
                 # the import statement itself, as defined in the refrence docs:
                 # https://docs.python.org/2.7/reference/simple_stmts.html#import
                 if getattr(models, "__all__", None) is not None:
-                    def predicate(name): return name in models.__all__
+
+                    def predicate(name):
+                        return name in models.__all__
+
                 else:
-                    def predicate(name): return not name.startswith("_")
+
+                    def predicate(name):
+                        return not name.startswith("_")
+
                 locals().update({k: v for k, v in vars(models).items() if predicate(k)})
             break
     else:
