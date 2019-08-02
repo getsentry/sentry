@@ -106,7 +106,8 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 # make sure user is in org
                 if org_id not in org_ids:
                     return Response({
-                        'detail': 'User does not belong to at least one requested org (org_id: %s).' % org_id
+                        'detail': 'User does not belong to at least one of the \
+                            requested orgs (org_id: %s).' % org_id
                     }, status=status.HTTP_403_FORBIDDEN)
 
                 # list contains org ids that should have reports DISABLED
@@ -139,7 +140,9 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if not ids_to_update.issubset(parent_ids):
             bad_ids = ids_to_update - parent_ids
             return Response({
-                'detail': 'User does not belong to at least one requested project (ids: %s).' % bad_ids
+                'detail': 'At least one of the requested projects is not \
+                    available to this user, because the user does not belong \
+                    to the necessary teams. (ids of unavailable projects: %s)' % bad_ids
             }, status=status.HTTP_403_FORBIDDEN)
 
         if notification_type == 'email':
@@ -154,7 +157,8 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             # Is there a better way to check this?
             if len(emails) != len(emails_to_check):
                 return Response({
-                    'detail': 'Invalid email value(s) provided. Email values must be verified emails for the given user.'
+                    'detail': 'Invalid email value(s) provided. Email values \
+                        must be verified emails for the given user.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
