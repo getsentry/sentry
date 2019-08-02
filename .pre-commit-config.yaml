@@ -20,11 +20,12 @@ repos:
       language: python
       types: [python]
       log_file: '.artifacts/flake8.pycodestyle.log'
-# -   repo: https://github.com/ambv/black
-#     rev: 18.6b2
-#     hooks:
-#     - id: black
-#       python_version: python3.6
+-   repo: https://github.com/ambv/black
+    rev: 19.3b0
+    hooks:
+    - id: black
+      python_version: python3
+      files: \.py$
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v1.3.0
     hooks:
