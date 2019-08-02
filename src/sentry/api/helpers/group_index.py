@@ -118,7 +118,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     sender=validate_search_filter_permissions,
                 )
                 raise ValidationError(
-                    u'You need access to the advanced search feature to use {}'.format(
+                    u'The {} feature is available for organizations on the new Developer, Team, and Business plans.'.format(
                         feature_name),
                 )
 
