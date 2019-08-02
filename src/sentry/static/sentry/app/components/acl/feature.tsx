@@ -167,7 +167,7 @@ class Feature extends React.Component<FeatureProps> {
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
     if (hookName) {
-      const hooks: [Function] = HookStore.get(`feature-disabled:${hookName}`);
+      const hooks: Function[] = HookStore.get(`feature-disabled:${hookName}`);
 
       if (hooks.length > 0) {
         customDisabledRender = hooks[0];
@@ -202,26 +202,12 @@ class FeatureContainer extends React.Component<FeatureContainerProps> {
     config: SentryTypes.Config.isRequired,
   };
 
-  // TODO(billy): We can derive org/project from latestContextStore if needed,
-  // but let's keep it simple for now and use org/project from context
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   render() {
     const features = this.props.config.features
       ? Array.from(this.props.config.features)
       : [];
 
-    return (
-      <Feature
-        configFeatures={features}
-        organization={this.context.organization}
-        project={this.context.project}
-        {...this.props}
-      />
-    );
+    return <Feature configFeatures={features} {...this.props} />;
   }
 }
 
