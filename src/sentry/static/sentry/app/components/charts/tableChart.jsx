@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -111,10 +110,10 @@ export const TableChart = styled(
       // Default renderer for ALL rows (including header + body so that both can share the same DOM structure + styles)
       const defaultRenderRow = ({
         dataStartIndex,
-        css,
+        css: _css,
         items,
-        rowHeaders,
-        rowData,
+        rowHeaders: _rowHeaders,
+        rowData: _rowData,
         isTableHeader,
         rowIndex,
         renderCell,
@@ -197,12 +196,12 @@ export const TableChart = styled(
       };
 
       const defaultRenderDataCell = ({
-        isTableHeader,
-        justify,
+        isTableHeader: _isTableHeader,
+        justify: _justify,
         value,
-        width,
-        rowIndex,
-        columnIndex,
+        width: _width,
+        rowIndex: _rowIndex,
+        columnIndex: _columnIndex,
       }) => value;
       const defaultRenderHeaderCell = defaultRenderDataCell;
       const defaultRenderTableHeaderCell = defaultRenderHeaderCell;
@@ -232,13 +231,11 @@ export const TableChart = styled(
       const {getValue, dataStartIndex} = this.props;
 
       const reduceSum = (sum, val) => (sum += getValue(val));
-      const rowTotals = rows.map((row, rowIndex) =>
-        row.slice(dataStartIndex).reduce(reduceSum, 0)
-      );
+      const rowTotals = rows.map(row => row.slice(dataStartIndex).reduce(reduceSum, 0));
       const columnTotals = rows.length
         ? rows[0]
             .slice(dataStartIndex)
-            .map((r, currentColumn) =>
+            .map((_r, currentColumn) =>
               rows.reduce(
                 (sum, row) => (sum += getValue(row[currentColumn + dataStartIndex])),
                 0
@@ -389,7 +386,7 @@ export const TableChartRow = styled(
 /**
  * Shows relative percentage as width of bar inside of a table's row
  */
-export const TableChartRowBar = styled(({width, ...props}) => <div {...props} />)`
+export const TableChartRowBar = styled(({width: _width, ...props}) => <div {...props} />)`
   position: absolute;
   top: 0;
   bottom: 0;
@@ -407,6 +404,10 @@ export const Cell = styled('div')`
   text-overflow: ellipsis;
   ${p => (!p.width ? 'flex: 1' : '')};
   ${p => (p.justify === 'right' ? 'text-align: right' : '')};
+`;
+
+const Flex = styled('div')`
+  display: flex;
 `;
 
 const DataGroup = styled(Flex)`
