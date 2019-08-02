@@ -26,6 +26,7 @@ repos:
     - id: black
       python_version: python3
       files: \.py$
+      exclude: (.eggs|.git|.venv|build|dist|south_migrations|node_modules)
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v1.3.0
     hooks:
