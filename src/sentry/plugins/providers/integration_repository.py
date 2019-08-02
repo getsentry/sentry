@@ -18,6 +18,7 @@ class IntegrationRepositoryProvider(object):
     Repository Provider for Integrations in the Sentry Repository.
     Does not include plugins.
     """
+
     name = None
     logger = None
     repo_provider = None
@@ -28,10 +29,7 @@ class IntegrationRepositoryProvider(object):
     def dispatch(self, request, organization, **kwargs):
         try:
             config = self.get_repository_data(organization, request.data)
-            result = self.build_repository_config(
-                organization=organization,
-                data=config,
-            )
+            result = self.build_repository_config(organization=organization, data=config)
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -39,73 +37,57 @@ class IntegrationRepositoryProvider(object):
             with transaction.atomic():
                 repo = Repository.objects.create(
                     organization_id=organization.id,
-                    name=result['name'],
-                    external_id=result.get('external_id'),
-                    url=result.get('url'),
-                    config=result.get('config') or {},
+                    name=result["name"],
+                    external_id=result.get("external_id"),
+                    url=result.get("url"),
+                    config=result.get("config") or {},
                     provider=self.id,
-                    integration_id=result.get('integration_id'),
+                    integration_id=result.get("integration_id"),
                 )
         except IntegrityError:
             # Try to delete webhook we just created
             try:
                 repo = Repository(
                     organization_id=organization.id,
-                    name=result['name'],
-                    external_id=result.get('external_id'),
-                    url=result.get('url'),
-                    config=result.get('config') or {},
+                    name=result["name"],
+                    external_id=result.get("external_id"),
+                    url=result.get("url"),
+                    config=result.get("config") or {},
                     provider=self.id,
-                    integration_id=result.get('integration_id'),
+                    integration_id=result.get("integration_id"),
                 )
                 self.on_delete_repository(repo)
             except IntegrationError:
                 pass
             return Response(
-                {'errors': {'__all__': 'A repository with that name already exists'}},
-                status=400,
+                {"errors": {"__all__": "A repository with that name already exists"}}, status=400
             )
         else:
             repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
-            'integration.repo.added',
+            "integration.repo.added",
             provider=self.id,
-            id=result.get('integration_id'),
+            id=result.get("integration_id"),
             organization_id=organization.id,
         )
         return Response(serialize(repo, request.user), status=201)
 
     def handle_api_error(self, error):
-        context = {
-            'error_type': 'unknown',
-        }
+        context = {"error_type": "unknown"}
 
         if isinstance(error, IntegrationError):
-            if '503' in error.message:
-                context.update({
-                    'error_type': 'service unavailable',
-                    'errors': {
-                        '__all__': error.message
-                    },
-                })
+            if "503" in error.message:
+                context.update(
+                    {"error_type": "service unavailable", "errors": {"__all__": error.message}}
+                )
                 status = 503
             else:
                 # TODO(dcramer): we should have a proper validation error
-                context.update({
-                    'error_type': 'validation',
-                    'errors': {
-                        '__all__': error.message
-                    },
-                })
+                context.update({"error_type": "validation", "errors": {"__all__": error.message}})
                 status = 400
         elif isinstance(error, Integration.DoesNotExist):
-            context.update({
-                'error_type': 'not found',
-                'errors': {
-                    '__all__': error.message
-                },
-            })
+            context.update({"error_type": "not found", "errors": {"__all__": error.message}})
             status = 404
         else:
             if self.logger:
@@ -178,4 +160,4 @@ class IntegrationRepositoryProvider(object):
 
     @staticmethod
     def should_ignore_commit(message):
-        return '#skipsentry' in message
+        return "#skipsentry" in message

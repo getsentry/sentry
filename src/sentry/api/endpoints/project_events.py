@@ -10,11 +10,11 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ListProjectAvailableSamples')
+@scenario("ListProjectAvailableSamples")
 def list_project_available_samples_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/events/' % (runner.org.slug, runner.default_project.slug)
+        method="GET",
+        path="/projects/%s/%s/events/" % (runner.org.slug, runner.default_project.slug),
     )
 
 
@@ -40,31 +40,33 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         from sentry.models import SnubaEvent
         from sentry.utils.snuba import raw_query
 
-        query = request.GET.get('query')
+        query = request.GET.get("query")
         conditions = []
         if query:
             conditions.append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
+                [["positionCaseInsensitive", ["message", "'%s'" % (query,)]], "!=", 0]
+            )
 
-        full = request.GET.get('full', False)
+        full = request.GET.get("full", False)
         snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
         now = timezone.now()
         data_fn = partial(
             # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+            lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
             start=now - timedelta(days=90),
             end=now,
             conditions=conditions,
-            filter_keys={'project_id': [project.id]},
+            filter_keys={"project_id": [project.id]},
             selected_columns=snuba_cols,
-            orderby='-timestamp',
-            referrer='api.project-events',
+            orderby="-timestamp",
+            referrer="api.project-events",
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+                [SnubaEvent(row) for row in results], request.user, serializer
+            ),
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )

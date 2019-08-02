@@ -6,13 +6,15 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import (
-    get_date_range_from_params,
-    InvalidParams,
-)
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Organization, Project, ProjectStatus, ReleaseProject,
+    ApiKey,
+    Authenticator,
+    Organization,
+    Project,
+    ProjectStatus,
+    ReleaseProject,
 )
 from sentry.utils import auth
 from sentry.utils.sdk import configure_scope
@@ -28,15 +30,18 @@ class NoProjects(Exception):
 
 class OrganizationPermission(SentryPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin'],
-        'POST': ['org:write', 'org:admin'],
-        'PUT': ['org:write', 'org:admin'],
-        'DELETE': ['org:admin'],
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:admin"],
     }
 
     def is_not_2fa_compliant(self, request, organization):
-        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(
-            request.user) and not is_active_superuser(request)
+        return (
+            organization.flags.require_2fa
+            and not Authenticator.objects.user_has_2fa(request.user)
+            and not is_active_superuser(request)
+        )
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -57,10 +62,10 @@ class OrganizationPermission(SentryPermission):
 
 class OrganizationEventPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:admin'],
-        'POST': ['event:write', 'event:admin'],
-        'PUT': ['event:write', 'event:admin'],
-        'DELETE': ['event:admin'],
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
+        "PUT": ["event:write", "event:admin"],
+        "DELETE": ["event:admin"],
     }
 
 
@@ -69,90 +74,84 @@ class OrganizationEventPermission(OrganizationPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],
-        'POST': ['project:write', 'project:admin', 'project:releases'],
-        'PUT': ['project:write', 'project:admin', 'project:releases'],
-        'DELETE': ['project:admin', 'project:releases'],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
+        "POST": ["project:write", "project:admin", "project:releases"],
+        "PUT": ["project:write", "project:admin", "project:releases"],
+        "DELETE": ["project:admin", "project:releases"],
     }
 
 
 class OrganizationIntegrationsPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin', 'org:integrations'],
-        'POST': ['org:write', 'org:admin', 'org:integrations'],
-        'PUT': ['org:write', 'org:admin', 'org:integrations'],
-        'DELETE': ['org:admin', 'org:integrations'],
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "POST": ["org:write", "org:admin", "org:integrations"],
+        "PUT": ["org:write", "org:admin", "org:integrations"],
+        "DELETE": ["org:admin", "org:integrations"],
     }
 
 
 class OrganizationRepositoryPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin', 'org:integrations'],
-        'POST': ['org:write', 'org:admin', 'org:integrations'],
-        'PUT': ['org:write', 'org:admin'],
-        'DELETE': ['org:admin'],
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "POST": ["org:write", "org:admin", "org:integrations"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:admin"],
     }
 
 
 class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:admin'],
-        'POST': ['org:admin'],
-        'PUT': ['org:admin'],
-        'DELETE': ['org:admin'],
+        "GET": ["org:admin"],
+        "POST": ["org:admin"],
+        "PUT": ["org:admin"],
+        "DELETE": ["org:admin"],
     }
 
 
 class OrganizationAuthProviderPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read'],
-        'POST': ['org:admin'],
-        'PUT': ['org:admin'],
-        'DELETE': ['org:admin'],
+        "GET": ["org:read"],
+        "POST": ["org:admin"],
+        "PUT": ["org:admin"],
+        "DELETE": ["org:admin"],
     }
 
 
 class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
     # Relaxed permissions for saved queries in Discover
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin'],
-        'POST': ['org:read', 'org:write', 'org:admin'],
-        'PUT': ['org:read', 'org:write', 'org:admin'],
-        'DELETE': ['org:read', 'org:write', 'org:admin'],
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
 
 class OrganizationUserReportsPermission(OrganizationPermission):
-    scope_map = {
-        'GET': ['project:read', 'project:write', 'project:admin'],
-    }
+    scope_map = {"GET": ["project:read", "project:write", "project:admin"]}
 
 
 class OrganizationPinnedSearchPermission(OrganizationPermission):
     scope_map = {
-        'PUT': ['org:read', 'org:write', 'org:admin'],
-        'DELETE': ['org:read', 'org:write', 'org:admin'],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
 
 class OrganizationSearchPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin'],
-        'POST': ['org:write', 'org:admin'],
-        'PUT': ['org:write', 'org:admin'],
-        'DELETE': ['org:write', 'org:admin'],
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
 class OrganizationEndpoint(Endpoint):
-    permission_classes = (OrganizationPermission, )
+    permission_classes = (OrganizationPermission,)
 
     def get_projects(
-        self,
-        request,
-        organization,
-        force_global_perms=False,
-        include_all_accessible=False,
+        self, request, organization, force_global_perms=False, include_all_accessible=False
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -175,18 +174,15 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied.
         """
         try:
-            project_ids = set(map(int, request.GET.getlist('project')))
+            project_ids = set(map(int, request.GET.getlist("project")))
         except ValueError:
-            raise ParseError(detail='Invalid project parameter. Values must be numbers.')
+            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
         requested_projects = project_ids.copy()
 
-        user = getattr(request, 'user', None)
+        user = getattr(request, "user", None)
 
-        qs = Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        )
+        qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
 
         if project_ids:
             qs = qs.filter(id__in=project_ids)
@@ -195,9 +191,10 @@ class OrganizationEndpoint(Endpoint):
             projects = list(qs)
         else:
             if (
-                user and is_active_superuser(request) or
-                requested_projects or
-                include_all_accessible
+                user
+                and is_active_superuser(request)
+                or requested_projects
+                or include_all_accessible
             ):
                 func = request.access.has_project_access
             else:
@@ -233,37 +230,28 @@ class OrganizationEndpoint(Endpoint):
         # get the top level params -- projects, time range, and environment
         # from the request
         try:
-            start, end = get_date_range_from_params(
-                request.GET,
-                optional=date_filter_optional,
-            )
+            start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as exc:
             raise OrganizationEventsError(exc.message)
 
         try:
             projects = self.get_projects(request, organization)
         except ValueError:
-            raise OrganizationEventsError('Invalid project ids')
+            raise OrganizationEventsError("Invalid project ids")
 
         if not projects:
             raise NoProjects
 
         environments = [e.name for e in self.get_environments(request, organization)]
-        params = {
-            'start': start,
-            'end': end,
-            'project_id': [p.id for p in projects],
-        }
+        params = {"start": start, "end": end, "project_id": [p.id for p in projects]}
         if environments:
-            params['environment'] = environments
+            params["environment"] = environments
 
         return params
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
         try:
-            organization = Organization.objects.get_from_cache(
-                slug=organization_slug,
-            )
+            organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -279,14 +267,14 @@ class OrganizationEndpoint(Endpoint):
         # Never track any org (regardless of whether the user does or doesn't have
         # membership in that org) when the user is in active superuser mode
         if request.auth is None and request.user and not is_active_superuser(request):
-            request.session['activeorg'] = organization.slug
+            request.session["activeorg"] = organization.slug
 
-        kwargs['organization'] = organization
+        kwargs["organization"] = organization
         return (args, kwargs)
 
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationReleasePermission, )
+    permission_classes = (OrganizationReleasePermission,)
 
     def get_projects(self, request, organization):
         """
@@ -297,20 +285,18 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope('project:releases') or \
-                request.auth.has_scope('project:write')
+            has_valid_api_key = request.auth.has_scope(
+                "project:releases"
+            ) or request.auth.has_scope("project:write")
 
         if not (
             has_valid_api_key
-            or (getattr(request, 'user', None) and request.user.is_authenticated())
+            or (getattr(request, "user", None) and request.user.is_authenticated())
         ):
             return []
 
         return super(OrganizationReleasesBaseEndpoint, self).get_projects(
-            request,
-            organization,
-            force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
+            request, organization, force_global_perms=has_valid_api_key, include_all_accessible=True
         )
 
     def has_release_permission(self, request, organization, release):
@@ -319,6 +305,5 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
         """
         return ReleaseProject.objects.filter(
-            release=release,
-            project__in=self.get_projects(request, organization),
+            release=release, project__in=self.get_projects(request, organization)
         ).exists()

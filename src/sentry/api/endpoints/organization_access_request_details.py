@@ -4,35 +4,35 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam)
+from sentry.models import AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam
 
 
 class AccessRequestPermission(OrganizationPermission):
     scope_map = {
-        'GET': [
-            'org:read',
-            'org:write',
-            'org:admin',
-            'team:read',
-            'team:write',
-            'team:admin',
-            'member:read',
-            'member:write',
-            'member:admin',
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "member:read",
+            "member:write",
+            "member:admin",
         ],
-        'POST': [],
-        'PUT': [
-            'org:write',
-            'org:admin',
-            'team:write',
-            'team:admin',
-            'member:write',
-            'member:admin',
+        "POST": [],
+        "PUT": [
+            "org:write",
+            "org:admin",
+            "team:write",
+            "team:admin",
+            "member:write",
+            "member:admin",
         ],
-        'DELETE': [],
+        "DELETE": [],
     }
 
 
@@ -45,17 +45,17 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
     # TODO(dcramer): this should go onto AccessRequestPermission
     def _can_access(self, request, access_request):
-        if request.access.has_scope('org:admin'):
+        if request.access.has_scope("org:admin"):
             return True
-        if request.access.has_scope('org:write'):
+        if request.access.has_scope("org:write"):
             return True
-        if request.access.has_scope('member:admin'):
+        if request.access.has_scope("member:admin"):
             return True
-        if request.access.has_scope('member:write'):
+        if request.access.has_scope("member:write"):
             return True
-        if request.access.has_team_scope(access_request.team, 'team:admin'):
+        if request.access.has_team_scope(access_request.team, "team:admin"):
             return True
-        if request.access.has_team_scope(access_request.team, 'team:write'):
+        if request.access.has_team_scope(access_request.team, "team:write"):
             return True
         return False
 
@@ -64,19 +64,17 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         Get list of requests to join org/team
 
         """
-        if request.access.has_scope('org:write'):
+        if request.access.has_scope("org:write"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    team__organization=organization,
-                    member__user__is_active=True,
-                ).select_related('team', 'member__user')
+                    team__organization=organization, member__user__is_active=True
+                ).select_related("team", "member__user")
             )
-        elif request.access.has_scope('team:write') and request.access.teams:
+        elif request.access.has_scope("team:write") and request.access.teams:
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    member__user__is_active=True,
-                    team__in=request.access.teams,
-                ).select_related('team', 'member__user')
+                    member__user__is_active=True, team__in=request.access.teams
+                ).select_related("team", "member__user")
             )
         else:
             # Return empty response if user does not have access
@@ -95,8 +93,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         """
         try:
             access_request = OrganizationAccessRequest.objects.get(
-                id=request_id,
-                team__organization=organization,
+                id=request_id, team__organization=organization
             )
         except OrganizationAccessRequest.DoesNotExist:
             raise ResourceDoesNotExist
@@ -108,7 +105,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        is_approved = serializer.validated_data.get('isApproved')
+        is_approved = serializer.validated_data.get("isApproved")
         if is_approved is None:
             return Response(status=400)
 
@@ -116,8 +113,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             try:
                 with transaction.atomic():
                     omt = OrganizationMemberTeam.objects.create(
-                        organizationmember=access_request.member,
-                        team=access_request.team,
+                        organizationmember=access_request.member, team=access_request.team
                     )
             except IntegrityError:
                 pass

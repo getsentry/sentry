@@ -16,44 +16,41 @@ class GroupHash(Model):
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
-    group = FlexibleForeignKey('sentry.Group', null=True)
+    group = FlexibleForeignKey("sentry.Group", null=True)
     group_tombstone_id = BoundedPositiveIntegerField(db_index=True, null=True)
     state = BoundedPositiveIntegerField(
-        choices=[
-            (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
-        ],
-        null=True,
+        choices=[(State.LOCKED_IN_MIGRATION, _("Locked (Migration in Progress)"))], null=True
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_grouphash'
-        unique_together = (('project', 'hash'), )
+        app_label = "sentry"
+        db_table = "sentry_grouphash"
+        unique_together = (("project", "hash"),)
 
     @classmethod
     def __get_last_processed_event_id_cluster(cls):
-        cluster_name = getattr(settings, 'GROUP_HASH_LAST_PROCESSED_EVENT_CLUSTER_NAME', 'default')
+        cluster_name = getattr(settings, "GROUP_HASH_LAST_PROCESSED_EVENT_CLUSTER_NAME", "default")
         return redis.clusters.get(cluster_name)
 
     @classmethod
     def fetch_last_processed_event_id(cls, group_hash_ids):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            results = [client.get(u'gh:lp:{}'.format(id)) for id in group_hash_ids]
+            results = [client.get(u"gh:lp:{}".format(id)) for id in group_hash_ids]
         return [result.value for result in results]
 
     @classmethod
     def record_last_processed_event_id(cls, group_hash_id, event_id):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            key = u'gh:lp:{}'.format(group_hash_id)
-            client.set(key, u'{}'.format(event_id))
+            key = u"gh:lp:{}".format(group_hash_id)
+            client.set(key, u"{}".format(event_id))
             client.expire(key, 7776000)  # 90d
 
     @classmethod
     def delete_last_processed_event_id(cls, group_hash_id):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            client.delete(u'gh:lp:{}'.format(group_hash_id))
+            client.delete(u"gh:lp:{}".format(group_hash_id))
 
 
 post_delete.connect(

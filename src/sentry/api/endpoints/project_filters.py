@@ -21,14 +21,14 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
             filter_spec = flt.spec
             results.append(
                 {
-                    'id': filter_spec.id,
+                    "id": filter_spec.id,
                     # 'active' will be either a boolean or list for the legacy browser filters
                     # all other filters will be boolean
-                    'active': message_filters.get_filter_state(filter_spec.id, project),
-                    'description': filter_spec.description,
-                    'name': filter_spec.name,
-                    'hello': filter_spec.id + " - " + filter_spec.name
+                    "active": message_filters.get_filter_state(filter_spec.id, project),
+                    "description": filter_spec.description,
+                    "name": filter_spec.name,
+                    "hello": filter_spec.id + " - " + filter_spec.name,
                 }
             )
-        results.sort(key=lambda x: x['name'])
+        results.sort(key=lambda x: x["name"])
         return Response(results)

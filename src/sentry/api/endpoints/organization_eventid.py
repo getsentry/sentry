@@ -12,12 +12,11 @@ from sentry.models import Project, Event, EventMapping
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ResolveEventId')
+@scenario("ResolveEventId")
 def resolve_event_id_scenario(runner):
     event = Event.objects.filter(project_id=runner.default_project.id).first()
     runner.request(
-        method='GET',
-        path='/organizations/%s/eventids/%s/' % (runner.org.slug, event.event_id, )
+        method="GET", path="/organizations/%s/eventids/%s/" % (runner.org.slug, event.event_id)
     )
 
 
@@ -39,41 +38,39 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         """
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
-            return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
+            return Response({"detail": "Event ID must be 32 characters."}, status=400)
 
         project_slugs_by_id = dict(
-            Project.objects.filter(
-                organization=organization).values_list(
-                'id', 'slug'))
+            Project.objects.filter(organization=organization).values_list("id", "slug")
+        )
 
         try:
-            event = Event.objects.filter(event_id=event_id,
-                                         project_id__in=project_slugs_by_id.keys())[0]
+            event = Event.objects.filter(
+                event_id=event_id, project_id__in=project_slugs_by_id.keys()
+            )[0]
         except IndexError:
             try:
-                event_mapping = EventMapping.objects.filter(event_id=event_id,
-                                                            project_id__in=project_slugs_by_id.keys())[0]
+                event_mapping = EventMapping.objects.filter(
+                    event_id=event_id, project_id__in=project_slugs_by_id.keys()
+                )[0]
 
             except IndexError:
                 raise ResourceDoesNotExist()
 
             return Response(
                 {
-                    'organizationSlug': organization.slug,
-                    'projectSlug': project_slugs_by_id[event_mapping.project_id],
-                    'groupId': six.text_type(event_mapping.group_id),
+                    "organizationSlug": organization.slug,
+                    "projectSlug": project_slugs_by_id[event_mapping.project_id],
+                    "groupId": six.text_type(event_mapping.group_id),
                 }
             )
 
         return Response(
             {
-                'organizationSlug': organization.slug,
-                'projectSlug': project_slugs_by_id[event.project_id],
-                'groupId': six.text_type(event.group_id),
-                'eventId': six.text_type(event.id),
-                'event': serialize(
-                    event,
-                    request.user,
-                ),
+                "organizationSlug": organization.slug,
+                "projectSlug": project_slugs_by_id[event.project_id],
+                "groupId": six.text_type(event.group_id),
+                "eventId": six.text_type(event.id),
+                "event": serialize(event, request.user),
             }
         )

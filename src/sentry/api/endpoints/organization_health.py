@@ -11,42 +11,38 @@ from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Project, ProjectStatus, OrganizationMemberTeam,
-    Environment,
-)
+from sentry.models import Project, ProjectStatus, OrganizationMemberTeam, Environment
 from sentry.api.serializers.snuba import (
-    SnubaResultSerializer, SnubaTSResultSerializer, value_from_row,
+    SnubaResultSerializer,
+    SnubaTSResultSerializer,
+    value_from_row,
     SnubaLookup,
 )
 from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
 
 
-SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
-SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
+SnubaResultSet = namedtuple("SnubaResultSet", ("current", "previous"))
+SnubaTSResult = namedtuple("SnubaTSResult", ("data", "start", "end", "rollup"))
 
 
 def query(**kwargs):
-    kwargs['referrer'] = 'health'
-    kwargs['totals'] = True
+    kwargs["referrer"] = "health"
+    kwargs["totals"] = True
     return snuba.raw_query(**kwargs)
 
 
 class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
-        return Response({'data': []})
+        return Response({"data": []})
 
     def get_project_ids(self, request, organization):
-        project_ids = set(map(int, request.GET.getlist('project')))
+        project_ids = set(map(int, request.GET.getlist("project")))
 
         before = project_ids.copy()
         if is_active_superuser(request):
             # Superusers can query any projects within the organization
-            qs = Project.objects.filter(
-                organization=organization,
-                status=ProjectStatus.VISIBLE,
-            )
+            qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         else:
             # Anyone else needs membership of the project
             qs = Project.objects.filter(
@@ -54,7 +50,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
                 teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=request.user,
                     organizationmember__organization=organization,
-                ).values_list('team'),
+                ).values_list("team"),
                 status=ProjectStatus.VISIBLE,
             )
 
@@ -63,7 +59,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
-        project_ids = set(qs.values_list('id', flat=True))
+        project_ids = set(qs.values_list("id", flat=True))
 
         if before and project_ids != before:
             raise PermissionDenied
@@ -77,28 +73,25 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
 
     def get_environment(self, request, organization):
         try:
-            environment = self._get_environment_from_request(
-                request,
-                organization.id,
-            )
+            environment = self._get_environment_from_request(request, organization.id)
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
         if environment is None:
             return []
-        if environment.name == '':
-            return [['tags[environment]', 'IS NULL', None]]
-        return [['tags[environment]', '=', environment.name]]
+        if environment.name == "":
+            return [["tags[environment]", "IS NULL", None]]
+        return [["tags[environment]", "=", environment.name]]
 
     def get_query_condition(self, request, organization):
-        qs = request.GET.getlist('q')
+        qs = request.GET.getlist("q")
         if not qs:
             return [[]]
 
         conditions = defaultdict(list)
         for q in qs:
             try:
-                tag, value = q.split(':', 1)
+                tag, value = q.split(":", 1)
             except ValueError:
                 # Malformed query
                 continue
@@ -111,7 +104,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
 
             conditions[lookup.filter_key].append(value)
 
-        return [[k, 'IN', v] for k, v in conditions.items()]
+        return [[k, "IN", v] for k, v in conditions.items()]
 
 
 class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
@@ -125,46 +118,50 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         period.
         """
         try:
-            lookup = SnubaLookup.get(request.GET['tag'])
+            lookup = SnubaLookup.get(request.GET["tag"])
         except KeyError:
             raise ResourceDoesNotExist
 
-        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
-        if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
-            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+        stats_period = parse_stats_period(request.GET.get("statsPeriod", "24h"))
+        if (
+            stats_period is None
+            or stats_period < self.MIN_STATS_PERIOD
+            or stats_period >= self.MAX_STATS_PERIOD
+        ):
+            return Response({"detail": "Invalid statsPeriod"}, status=400)
 
         try:
-            limit = int(request.GET.get('limit', '5'))
+            limit = int(request.GET.get("limit", "5"))
         except ValueError:
-            return Response({'detail': 'Invalid limit'}, status=400)
+            return Response({"detail": "Invalid limit"}, status=400)
 
         if limit > self.MAX_LIMIT:
-            return Response({'detail': 'Invalid limit: max %d' % self.MAX_LIMIT}, status=400)
+            return Response({"detail": "Invalid limit: max %d" % self.MAX_LIMIT}, status=400)
         if limit <= 0:
             return self.empty()
 
         try:
             project_ids = self.get_project_ids(request, organization)
         except ValueError:
-            return Response({'detail': 'Invalid project ids'}, status=400)
+            return Response({"detail": "Invalid project ids"}, status=400)
         if not project_ids:
             return self.empty()
 
         environment = self.get_environment(request, organization)
         query_condition = self.get_query_condition(request, organization)
 
-        aggregations = [('count()', '', 'count')]
+        aggregations = [("count()", "", "count")]
 
         # If we pass `?topk` this means we also are
         # layering on top_projects and total_projects for each value.
-        if 'topk' in request.GET:
+        if "topk" in request.GET:
             try:
-                topk = int(request.GET['topk'])
+                topk = int(request.GET["topk"])
             except ValueError:
-                return Response({'detail': 'Invalid topk'}, status=400)
+                return Response({"detail": "Invalid topk"}, status=400)
             aggregations += [
-                ('topK(%d)' % topk, 'project_id', 'top_projects'),
-                ('uniq', 'project_id', 'total_projects'),
+                ("topK(%d)" % topk, "project_id", "top_projects"),
+                ("uniq", "project_id", "total_projects"),
             ]
 
         now = timezone.now()
@@ -174,16 +171,14 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             start=now - stats_period,
             selected_columns=lookup.selected_columns,
             aggregations=aggregations,
-            filter_keys={
-                'project_id': project_ids,
-            },
+            filter_keys={"project_id": project_ids},
             conditions=lookup.conditions + query_condition + environment,
             groupby=lookup.columns,
-            orderby='-count',
+            orderby="-count",
             limit=limit,
         )
 
-        if not data['data']:
+        if not data["data"]:
             return self.empty()
 
         # Convert our results from current period into a condition
@@ -191,7 +186,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         # This way our values overlap to be able to deduce a delta.
         values = []
         is_null = False
-        for row in data['data']:
+        for row in data["data"]:
             value = lookup.encoder(value_from_row(row, lookup.columns))
             if value is None:
                 is_null = True
@@ -202,41 +197,33 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             end=now - stats_period,
             start=now - (stats_period * 2),
             selected_columns=lookup.selected_columns,
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
-            filter_keys={
-                'project_id': project_ids,
-            },
-            conditions=lookup.conditions + query_condition + environment + [
-                [lookup.filter_key, 'IN', values] if values else [],
-                [lookup.tagkey, 'IS NULL', None] if is_null else [],
+            aggregations=[("count()", "", "count")],
+            filter_keys={"project_id": project_ids},
+            conditions=lookup.conditions
+            + query_condition
+            + environment
+            + [
+                [lookup.filter_key, "IN", values] if values else [],
+                [lookup.tagkey, "IS NULL", None] if is_null else [],
             ],
             groupby=lookup.columns,
         )
 
         serializer = SnubaResultSerializer(organization, lookup, request.user)
-        return Response(
-            serializer.serialize(
-                SnubaResultSet(data, previous),
-            ),
-            status=200,
-        )
+        return Response(serializer.serialize(SnubaResultSet(data, previous)), status=200)
 
 
 class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
-
     def get_environments(self, request, organization):
-        requested_environments = set(request.GET.getlist('environment'))
+        requested_environments = set(request.GET.getlist("environment"))
 
         if not requested_environments:
             return []
 
         environments = set(
             Environment.objects.filter(
-                organization_id=organization.id,
-                name__in=requested_environments,
-            ).values_list('name', flat=True),
+                organization_id=organization.id, name__in=requested_environments
+            ).values_list("name", flat=True)
         )
 
         if requested_environments != environments:
@@ -245,12 +232,12 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         conditions = []
 
         # the "no environment" environment is null in snuba
-        if '' in environments:
-            environments.remove('')
-            conditions.append(['tags[environment]', 'IS NULL', None])
+        if "" in environments:
+            environments.remove("")
+            conditions.append(["tags[environment]", "IS NULL", None])
 
         if environments:
-            conditions.append(['tags[environment]', 'IN', list(environments)])
+            conditions.append(["tags[environment]", "IN", list(environments)])
 
         return [conditions]
 
@@ -259,23 +246,23 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         Returns a time series view over statsPeriod over interval.
         """
         try:
-            lookup = SnubaLookup.get(request.GET['tag'])
+            lookup = SnubaLookup.get(request.GET["tag"])
         except KeyError:
             raise ResourceDoesNotExist
 
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({"detail": exc.message}, status=400)
 
-        interval = parse_stats_period(request.GET.get('interval', '1h'))
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
         if interval is None:
             interval = timedelta(hours=1)
 
         try:
             project_ids = self.get_project_ids(request, organization)
         except ValueError:
-            return Response({'detail': 'Invalid project ids'}, status=400)
+            return Response({"detail": "Invalid project ids"}, status=400)
         if not project_ids:
             return self.empty()
 
@@ -289,19 +276,12 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             start=start,
             rollup=rollup,
             selected_columns=lookup.selected_columns,
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
-            filter_keys={'project_id': project_ids},
+            aggregations=[("count()", "", "count")],
+            filter_keys={"project_id": project_ids},
             conditions=lookup.conditions + query_condition + environment_conditions,
-            groupby=['time'] + lookup.columns,
-            orderby='time',
+            groupby=["time"] + lookup.columns,
+            orderby="time",
         )
 
         serializer = SnubaTSResultSerializer(organization, lookup, request.user)
-        return Response(
-            serializer.serialize(
-                SnubaTSResult(data, start, end, rollup),
-            ),
-            status=200,
-        )
+        return Response(serializer.serialize(SnubaTSResult(data, start, end, rollup)), status=200)

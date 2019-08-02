@@ -30,10 +30,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
         return self.respond(serialize(hook, request.user))
@@ -56,10 +53,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=401)
 
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -70,16 +64,16 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         result = validator.validated_data
 
         updates = {}
-        if result.get('events') is not None:
-            updates['events'] = result['events']
-        if result.get('url'):
-            updates['url'] = result['url']
-        if result.get('version') is not None:
-            updates['version'] = result['version']
-        if result.get('isActive') is True:
-            updates['status'] = ObjectStatus.ACTIVE
-        elif result.get('isActive') is False:
-            updates['status'] = ObjectStatus.DISABLED
+        if result.get("events") is not None:
+            updates["events"] = result["events"]
+        if result.get("url"):
+            updates["url"] = result["url"]
+        if result.get("version") is not None:
+            updates["version"] = result["version"]
+        if result.get("isActive") is True:
+            updates["status"] = ObjectStatus.ACTIVE
+        elif result.get("isActive") is False:
+            updates["status"] = ObjectStatus.DISABLED
 
         with transaction.atomic():
             hook.update(**updates)
@@ -110,10 +104,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=401)
 
         try:
-            hook = ServiceHook.objects.get(
-                project_id=project.id,
-                guid=hook_id,
-            )
+            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 

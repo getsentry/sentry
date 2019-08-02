@@ -11,12 +11,12 @@ from sentry.models import SnubaEvent
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('RetrieveEventForProject')
+@scenario("RetrieveEventForProject")
 def retrieve_event_for_project_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/events/%s/' %
-        (runner.org.slug, runner.default_project.slug, runner.default_event.event_id)
+        method="GET",
+        path="/projects/%s/%s/events/%s/"
+        % (runner.org.slug, runner.default_project.slug, runner.default_event.event_id),
     )
 
 
@@ -44,30 +44,29 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         snuba_event = SnubaEvent.objects.from_event_id(event_id, project.id)
 
         if snuba_event is None:
-            return Response({'detail': 'Event not found'}, status=404)
+            return Response({"detail": "Event not found"}, status=404)
 
         data = serialize(snuba_event, request.user, DetailedEventSerializer())
-        requested_environments = set(request.GET.getlist('environment'))
+        requested_environments = set(request.GET.getlist("environment"))
 
         next_event_id = snuba_event.next_event_id(environments=requested_environments)
         prev_event_id = snuba_event.prev_event_id(environments=requested_environments)
 
-        data['nextEventID'] = next_event_id
-        data['previousEventID'] = prev_event_id
+        data["nextEventID"] = next_event_id
+        data["previousEventID"] = prev_event_id
 
         return Response(data)
 
 
 class EventJsonEndpoint(ProjectEndpoint):
-
     def get(self, request, project, event_id):
         event = SnubaEvent.objects.from_event_id(event_id, project.id)
 
         if not event:
-            return Response({'detail': 'Event not found'}, status=404)
+            return Response({"detail": "Event not found"}, status=404)
 
         event_dict = event.as_dict()
-        if isinstance(event_dict['datetime'], datetime):
-            event_dict['datetime'] = event_dict['datetime'].isoformat()
+        if isinstance(event_dict["datetime"], datetime):
+            event_dict["datetime"] = event_dict["datetime"].isoformat()
 
         return Response(event_dict, status=200)

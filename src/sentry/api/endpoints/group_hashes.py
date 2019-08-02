@@ -10,10 +10,10 @@ from sentry.tasks.unmerge import unmerge
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ListAvailableHashes')
+@scenario("ListAvailableHashes")
 def list_available_hashes_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method='GET', path='/issues/%s/hashes/' % group.id)
+    runner.request(method="GET", path="/issues/%s/hashes/" % group.id)
 
 
 class GroupHashesEndpoint(GroupEndpoint):
@@ -32,40 +32,30 @@ class GroupHashesEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        queryset = GroupHash.objects.filter(
-            group=group.id,
-        )
+        queryset = GroupHash.objects.filter(group=group.id)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='id',
+            order_by="id",
             on_results=lambda x: serialize(x, request.user),
         )
 
     def delete(self, request, group):
-        id_list = request.GET.getlist('id')
+        id_list = request.GET.getlist("id")
         if id_list is None:
             return Response()
 
-        hash_list = GroupHash.objects.filter(
-            project_id=group.project_id,
-            group=group.id,
-            hash__in=id_list,
-        ).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION,
-        ).values_list(
-            'hash', flat=True
+        hash_list = (
+            GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .values_list("hash", flat=True)
         )
         if not hash_list:
             return Response()
 
         unmerge.delay(
-            group.project_id,
-            group.id,
-            None,
-            hash_list,
-            request.user.id if request.user else None,
+            group.project_id, group.id, None, hash_list, request.user.id if request.user else None
         )
 
         return Response(status=202)

@@ -12,7 +12,7 @@ from sentry.mediators.external_requests.util import validate
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
-logger = logging.getLogger('sentry.mediators.external-requests')
+logger = logging.getLogger("sentry.mediators.external-requests")
 
 
 class SelectRequester(Mediator):
@@ -25,8 +25,8 @@ class SelectRequester(Mediator):
     2. Validates and formats the response.
     """
 
-    install = Param('sentry.models.SentryAppInstallation')
-    project = Param('sentry.models.Project', required=False)
+    install = Param("sentry.models.SentryAppInstallation")
+    project = Param("sentry.models.Project", required=False)
     uri = Param(six.string_types)
     query = Param(six.string_types, required=False)
 
@@ -37,37 +37,32 @@ class SelectRequester(Mediator):
         urlparts = list(urlparse(self.sentry_app.webhook_url))
         urlparts[2] = self.uri
 
-        query = {'installationId': self.install.uuid}
+        query = {"installationId": self.install.uuid}
 
         if self.project:
-            query['projectSlug'] = self.project.slug
+            query["projectSlug"] = self.project.slug
 
         if self.query:
-            query['query'] = self.query
+            query["query"] = self.query
 
         urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
 
     def _make_request(self):
         try:
-            body = safe_urlread(
-                safe_urlopen(
-                    url=self._build_url(),
-                    headers=self._build_headers(),
-                )
-            )
+            body = safe_urlread(safe_urlopen(url=self._build_url(), headers=self._build_headers()))
 
             response = json.loads(body)
         except Exception as e:
             logger.info(
-                'select-requester.error',
+                "select-requester.error",
                 extra={
-                    'sentry_app': self.sentry_app.slug,
-                    'install': self.install.uuid,
-                    'project': self.project and self.project.slug,
-                    'uri': self.uri,
-                    'error_message': e.message,
-                }
+                    "sentry_app": self.sentry_app.slug,
+                    "install": self.install.uuid,
+                    "project": self.project and self.project.slug,
+                    "uri": self.uri,
+                    "error_message": e.message,
+                },
             )
             response = {}
 
@@ -77,7 +72,7 @@ class SelectRequester(Mediator):
         return self._format_response(response)
 
     def _validate_response(self, resp):
-        return validate(instance=resp, schema_type='select')
+        return validate(instance=resp, schema_type="select")
 
     def _format_response(self, resp):
         # the UI expects the following form:
@@ -87,20 +82,20 @@ class SelectRequester(Mediator):
         choices = []
 
         for option in resp:
-            choices.append([option['value'], option['label']])
-            if option.get('default'):
-                response['defaultValue'] = option['value']
+            choices.append([option["value"], option["label"]])
+            if option.get("default"):
+                response["defaultValue"] = option["value"]
 
-        response['choices'] = choices
+        response["choices"] = choices
         return response
 
     def _build_headers(self):
         request_uuid = uuid4().hex
 
         return {
-            'Content-Type': 'application/json',
-            'Request-ID': request_uuid,
-            'Sentry-App-Signature': self.sentry_app.build_signature('')
+            "Content-Type": "application/json",
+            "Request-ID": request_uuid,
+            "Sentry-App-Signature": self.sentry_app.build_signature(""),
         }
 
     @memoize

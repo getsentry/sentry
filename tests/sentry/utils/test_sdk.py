@@ -16,27 +16,24 @@ class SentryInternalClientTest(TestCase):
         Hub.current.bind_client(Hub.main.client)
 
         with self.tasks():
-            event_id = raven.captureMessage('internal client test')
+            event_id = raven.captureMessage("internal client test")
 
         event = Event.objects.get()
         assert event.project_id == settings.SENTRY_PROJECT
         assert event.event_id == event_id
-        assert event.data['logentry']['formatted'] == \
-            'internal client test'
+        assert event.data["logentry"]["formatted"] == "internal client test"
 
     def test_encoding(self):
         configure_sdk()
         Hub.current.bind_client(Hub.main.client)
 
-        class NotJSONSerializable():
+        class NotJSONSerializable:
             pass
 
         with self.tasks():
-            raven.captureMessage('check the req', extra={
-                'request': NotJSONSerializable()
-            })
+            raven.captureMessage("check the req", extra={"request": NotJSONSerializable()})
 
         event = Event.objects.get()
         assert event.project_id == settings.SENTRY_PROJECT
-        assert event.data['logentry']['formatted'] == 'check the req'
-        assert 'NotJSONSerializable' in event.data['extra']['request']
+        assert event.data["logentry"]["formatted"] == "check the req"
+        assert "NotJSONSerializable" in event.data["extra"]["request"]

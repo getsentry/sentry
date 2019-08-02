@@ -9,14 +9,10 @@ from .mail import MailPreview
 
 
 def get_context(request):
-    org = Organization(name='My Company')
-    provider = DummyProvider('dummy')
+    org = Organization(name="My Company")
+    provider = DummyProvider("dummy")
 
-    return {
-        'organization': org,
-        'actor': request.user,
-        'provider': provider,
-    }
+    return {"organization": org, "actor": request.user, "provider": provider}
 
 
 class DebugSsoLinkedEmailView(View):
@@ -24,8 +20,8 @@ class DebugSsoLinkedEmailView(View):
         context = get_context(request)
 
         return MailPreview(
-            text_template='sentry/emails/auth-link-identity.txt',
-            html_template='sentry/emails/auth-link-identity.html',
+            text_template="sentry/emails/auth-link-identity.txt",
+            html_template="sentry/emails/auth-link-identity.html",
             context=context,
         ).render(request)
 
@@ -33,11 +29,11 @@ class DebugSsoLinkedEmailView(View):
 class DebugSsoUnlinkedEmailView(View):
     def get(self, request):
         context = get_context(request)
-        context['has_password'] = True
+        context["has_password"] = True
 
         return MailPreview(
-            text_template='sentry/emails/auth-sso-disabled.txt',
-            html_template='sentry/emails/auth-sso-disabled.html',
+            text_template="sentry/emails/auth-sso-disabled.txt",
+            html_template="sentry/emails/auth-sso-disabled.html",
             context=context,
         ).render(request)
 
@@ -45,10 +41,10 @@ class DebugSsoUnlinkedEmailView(View):
 class DebugSsoUnlinkedNoPasswordEmailView(View):
     def get(self, request):
         context = get_context(request)
-        context['has_password'] = False
+        context["has_password"] = False
 
         return MailPreview(
-            text_template='sentry/emails/auth-sso-disabled.txt',
-            html_template='sentry/emails/auth-sso-disabled.html',
+            text_template="sentry/emails/auth-sso-disabled.txt",
+            html_template="sentry/emails/auth-sso-disabled.html",
             context=context,
         ).render(request)

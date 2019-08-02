@@ -20,23 +20,23 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        if not features.has('organizations:event-attachments',
-                            project.organization, actor=request.user):
+        if not features.has(
+            "organizations:event-attachments", project.organization, actor=request.user
+        ):
             return self.respond(status=404)
 
         event = SnubaEvent.objects.from_event_id(event_id, project.id)
         if event is None:
-            return self.respond({'detail': 'Event not found'}, status=404)
+            return self.respond({"detail": "Event not found"}, status=404)
 
         queryset = EventAttachment.objects.filter(
-            project_id=project.id,
-            event_id=event.event_id,
-        ).select_related('file')
+            project_id=project.id, event_id=event.event_id
+        ).select_related("file")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='name',
+            order_by="name",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

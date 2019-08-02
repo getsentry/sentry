@@ -27,12 +27,11 @@ try:
 
     class BitQueryLookupWrapper(Lookup):  # NOQA
         def process_lhs(self, qn, connection, lhs=None):
-            lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(
-                qn, connection, lhs)
+            lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(qn, connection, lhs)
             if self.rhs:
-                lhs_sql = lhs_sql + ' & %s'
+                lhs_sql = lhs_sql + " & %s"
             else:
-                lhs_sql = lhs_sql + ' | %s'
+                lhs_sql = lhs_sql + " | %s"
             params.extend(self.process_rhs(qn, connection)[1])
             return lhs_sql, params
 
@@ -42,6 +41,7 @@ try:
 
         def get_prep_lookup(self):
             return self.rhs
+
 
 except ImportError:
     pass

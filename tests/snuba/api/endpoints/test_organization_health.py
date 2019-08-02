@@ -22,38 +22,54 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        self.create_event(event_id='a' * 32, group=group, datetime=self.min_ago,
-                          tags=[('sentry:user', 'id:%s' % (self.user.id,))])
-        self.create_event(event_id='b' * 32, group=group2, datetime=self.day_ago,
-                          tags=[('sentry:user', 'id:%s' % (self.user.id,))])
+        self.create_event(
+            event_id="a" * 32,
+            group=group,
+            datetime=self.min_ago,
+            tags=[("sentry:user", "id:%s" % (self.user.id,))],
+        )
+        self.create_event(
+            event_id="b" * 32,
+            group=group2,
+            datetime=self.day_ago,
+            tags=[("sentry:user", "id:%s" % (self.user.id,))],
+        )
 
         now = timezone.now()
 
         base_url = reverse(
-            'sentry-api-0-organization-health-graph',
-            kwargs={
-                'organization_slug': project.organization.slug,
-            }
+            "sentry-api-0-organization-health-graph",
+            kwargs={"organization_slug": project.organization.slug},
         )
 
         # test swapped order of start/end
-        url = '%s?%s' % (base_url, urlencode({
-            'end': (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
-            'start': now.strftime('%Y-%m-%dT%H:%M:%S'),
-            'tag': 'user',
-        }))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (
+            base_url,
+            urlencode(
+                {
+                    "end": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": now.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "tag": "user",
+                }
+            ),
+        )
+        response = self.client.get(url, format="json")
         assert response.status_code == 400
 
-        url = '%s?%s' % (base_url, urlencode({
-            'start': (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
-            'end': now.strftime('%Y-%m-%dT%H:%M:%S'),
-            'tag': 'user',
-        }))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (
+            base_url,
+            urlencode(
+                {
+                    "start": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": now.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "tag": "user",
+                }
+            ),
+        )
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['totals']['count'] == 1
+        assert response.data["totals"]["count"] == 1
 
     def test_environments(self):
         user = self.create_user()
@@ -64,76 +80,88 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         project = self.create_project(organization=org, teams=[team])
-        environment = self.create_environment(project=project, name='production')
+        environment = self.create_environment(project=project, name="production")
         environment2 = self.create_environment(project=project)
         environment3 = self.create_environment(project=project)
-        no_env = self.create_environment(project=project, name='')
+        no_env = self.create_environment(project=project, name="")
 
         for event_id, env in [
-            ('a' * 32, environment),
-            ('b' * 32, environment2),
-            ('c' * 32, environment3),
-            ('d' * 32, no_env),
+            ("a" * 32, environment),
+            ("b" * 32, environment2),
+            ("c" * 32, environment3),
+            ("d" * 32, no_env),
         ]:
             self.store_event(
                 data={
-                    'event_id': event_id,
-                    'timestamp': self.min_ago.isoformat()[:19],
-                    'fingerprint': ['put-me-in-group1'],
-                    'environment': env.name or None,
-                    'user': {'id': self.user.id},
+                    "event_id": event_id,
+                    "timestamp": self.min_ago.isoformat()[:19],
+                    "fingerprint": ["put-me-in-group1"],
+                    "environment": env.name or None,
+                    "user": {"id": self.user.id},
                 },
-                project_id=project.id
+                project_id=project.id,
             )
 
         base_url = reverse(
-            'sentry-api-0-organization-health-graph',
-            kwargs={
-                'organization_slug': org.slug,
-            }
+            "sentry-api-0-organization-health-graph", kwargs={"organization_slug": org.slug}
         )
 
         now = timezone.now()
 
         # test multiple environments
-        url = '%s?%s' % (base_url, urlencode((
-            ('start', (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S')),
-            ('end', now.strftime('%Y-%m-%dT%H:%M:%S')),
-            ('tag', 'user'),
-            ('environment', environment2.name),
-            ('environment', environment.name),
-        )))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (
+            base_url,
+            urlencode(
+                (
+                    ("start", (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("end", now.strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("tag", "user"),
+                    ("environment", environment2.name),
+                    ("environment", environment.name),
+                )
+            ),
+        )
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['totals']['count'] == 2, response.data
+        assert response.data["totals"]["count"] == 2, response.data
 
         # test 'no environment' environment
-        url = '%s?%s' % (base_url, urlencode((
-            ('start', (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S')),
-            ('end', now.strftime('%Y-%m-%dT%H:%M:%S')),
-            ('tag', 'user'),
-            ('environment', no_env.name),
-        )))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (
+            base_url,
+            urlencode(
+                (
+                    ("start", (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("end", now.strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("tag", "user"),
+                    ("environment", no_env.name),
+                )
+            ),
+        )
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['totals']['count'] == 1
+        assert response.data["totals"]["count"] == 1
 
         # test 'no environment' environment with named envs
-        url = '%s?%s' % (base_url, urlencode((
-            ('start', (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S')),
-            ('end', now.strftime('%Y-%m-%dT%H:%M:%S')),
-            ('tag', 'user'),
-            ('environment', no_env.name),
-            ('environment', environment.name),
-        )))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (
+            base_url,
+            urlencode(
+                (
+                    ("start", (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("end", now.strftime("%Y-%m-%dT%H:%M:%S")),
+                    ("tag", "user"),
+                    ("environment", no_env.name),
+                    ("environment", environment.name),
+                )
+            ),
+        )
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['totals']['count'] == 2
+        assert response.data["totals"]["count"] == 2
 
         # test nonexistent environment
-        url = '%s?environment=notanenvironment&tag=user' % (base_url,)
-        response = self.client.get(url, format='json')
+        url = "%s?environment=notanenvironment&tag=user" % (base_url,)
+        response = self.client.get(url, format="json")
         assert response.status_code == 404

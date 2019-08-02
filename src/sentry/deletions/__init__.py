@@ -66,8 +66,8 @@ def load_defaults():
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
     default_manager.register(
-        models.OrganizationIntegration,
-        defaults.OrganizationIntegrationDeletionTask)
+        models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
+    )
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)

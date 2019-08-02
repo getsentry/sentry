@@ -11,21 +11,17 @@ from sentry.utils.samples import create_sample_event
 class SharedIssueTest(AcceptanceTestCase):
     def setUp(self):
         super(SharedIssueTest, self).setUp()
-        self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
-        self.team = self.create_team(organization=self.org, name='Mariachi Band')
-        self.project = self.create_project(
-            organization=self.org,
-            teams=[self.team],
-            name='Bengal',
-        )
+        self.user = self.create_user("foo@example.com")
+        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
     def create_sample_event(self, platform):
         event = create_sample_event(
             project=self.project,
             platform=platform,
-            event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
+            event_id="d964fdbd649a4cf8bfc35d18082b6b0e",
             timestamp=1452683305,
         )
         event.group.update(
@@ -35,18 +31,13 @@ class SharedIssueTest(AcceptanceTestCase):
         return event
 
     def test_cocoa_event(self):
-        event = self.create_sample_event(
-            platform='cocoa',
-        )
+        event = self.create_sample_event(platform="cocoa")
 
         group = event.group
 
-        GroupShare.objects.create(
-            project_id=group.project_id,
-            group=group,
-        )
+        GroupShare.objects.create(project_id=group.project_id, group=group)
 
-        self.browser.get(u'/share/issue/{}/'.format(group.get_share_id()))
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.entries')
-        self.browser.snapshot('shared issue cocoa')
+        self.browser.get(u"/share/issue/{}/".format(group.get_share_id()))
+        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until(".entries")
+        self.browser.snapshot("shared issue cocoa")

@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-from collections import (
-    namedtuple,
-    OrderedDict,
-)
+from collections import namedtuple, OrderedDict
 from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -20,8 +17,13 @@ from django.conf import settings
 
 from sentry import quotas
 from sentry.models import (
-    Environment, Group, GroupRelease,
-    Organization, Project, Release, ReleaseProject
+    Environment,
+    Group,
+    GroupRelease,
+    Organization,
+    Project,
+    Release,
+    ReleaseProject,
 )
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
@@ -31,7 +33,7 @@ from sentry.utils.dates import to_timestamp
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
-SAFE_FUNCTION_RE = re.compile(r'-?[a-zA-Z_][a-zA-Z0-9_]*$')
+SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 
 
@@ -39,7 +41,7 @@ QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
 OVERRIDE_OPTIONS = {
-    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+    "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
 # There are several cases here where we support both a top level column name and
@@ -47,73 +49,73 @@ OVERRIDE_OPTIONS = {
 # so we support <real_column_name>.name to refer to the top level column name.
 SENTRY_SNUBA_MAP = {
     # general
-    'id': 'event_id',
-    'project.id': 'project_id',
+    "id": "event_id",
+    "project.id": "project_id",
     # We support platform as both tag and a real column.
-    'platform.name': 'platform',
-    'message': 'message',
-    'title': 'title',
-    'location': 'location',
-    'culprit': 'culprit',
-    'issue.id': 'issue',
-    'timestamp': 'timestamp',
-    'time': 'time',
+    "platform.name": "platform",
+    "message": "message",
+    "title": "title",
+    "location": "location",
+    "culprit": "culprit",
+    "issue.id": "issue",
+    "timestamp": "timestamp",
+    "time": "time",
     # We support type as both tag and a real column
-    'event.type': 'type',
+    "event.type": "type",
     # user
-    'user.id': 'user_id',
-    'user.email': 'email',
-    'user.username': 'username',
-    'user.ip': 'ip_address',
+    "user.id": "user_id",
+    "user.email": "email",
+    "user.username": "username",
+    "user.ip": "ip_address",
     # sdk
-    'sdk.name': 'sdk_name',
-    'sdk.version': 'sdk_version',
+    "sdk.name": "sdk_name",
+    "sdk.version": "sdk_version",
     # http
-    'http.method': 'http_method',
-    'http.url': 'http_referer',
+    "http.method": "http_method",
+    "http.url": "http_referer",
     # os
-    'os.build': 'os_build',
-    'os.kernel_version': 'os_kernel_version',
+    "os.build": "os_build",
+    "os.kernel_version": "os_kernel_version",
     # device
-    'device.name': 'device_name',
-    'device.brand': 'device_brand',
-    'device.locale': 'device_locale',
-    'device.uuid': 'device_uuid',
-    'device.model_id': 'device_model_id',
-    'device.arch': 'device_arch',
-    'device.battery_level': 'device_battery_level',
-    'device.orientation': 'device_orientation',
-    'device.simulator': 'device_simulator',
-    'device.online': 'device_online',
-    'device.charging': 'device_charging',
+    "device.name": "device_name",
+    "device.brand": "device_brand",
+    "device.locale": "device_locale",
+    "device.uuid": "device_uuid",
+    "device.model_id": "device_model_id",
+    "device.arch": "device_arch",
+    "device.battery_level": "device_battery_level",
+    "device.orientation": "device_orientation",
+    "device.simulator": "device_simulator",
+    "device.online": "device_online",
+    "device.charging": "device_charging",
     # geo
-    'geo.country_code': 'geo_country_code',
-    'geo.region': 'geo_region',
-    'geo.city': 'geo_city',
+    "geo.country_code": "geo_country_code",
+    "geo.region": "geo_region",
+    "geo.city": "geo_city",
     # error, stack
-    'error.type': 'exception_stacks.type',
-    'error.value': 'exception_stacks.value',
-    'error.mechanism': 'exception_stacks.mechanism_type',
-    'error.handled': 'exception_stacks.mechanism_handled',
-    'stack.abs_path': 'exception_frames.abs_path',
-    'stack.filename': 'exception_frames.filename',
-    'stack.package': 'exception_frames.package',
-    'stack.module': 'exception_frames.module',
-    'stack.function': 'exception_frames.function',
-    'stack.in_app': 'exception_frames.in_app',
-    'stack.colno': 'exception_frames.colno',
-    'stack.lineno': 'exception_frames.lineno',
-    'stack.stack_level': 'exception_frames.stack_level',
+    "error.type": "exception_stacks.type",
+    "error.value": "exception_stacks.value",
+    "error.mechanism": "exception_stacks.mechanism_type",
+    "error.handled": "exception_stacks.mechanism_handled",
+    "stack.abs_path": "exception_frames.abs_path",
+    "stack.filename": "exception_frames.filename",
+    "stack.package": "exception_frames.package",
+    "stack.module": "exception_frames.module",
+    "stack.function": "exception_frames.function",
+    "stack.in_app": "exception_frames.in_app",
+    "stack.colno": "exception_frames.colno",
+    "stack.lineno": "exception_frames.lineno",
+    "stack.stack_level": "exception_frames.stack_level",
     # tags, contexts
-    'tags.key': 'tags.key',
-    'tags.value': 'tags.value',
-    'tags_key': 'tags_key',
-    'tags_value': 'tags_value',
-    'contexts.key': 'contexts.key',
-    'contexts.value': 'contexts.value',
+    "tags.key": "tags.key",
+    "tags.value": "tags.value",
+    "tags_key": "tags_key",
+    "tags_value": "tags_value",
+    "contexts.key": "contexts.key",
+    "contexts.value": "contexts.value",
     # misc
-    'release': 'tags[sentry:release]',
-    'user': 'tags[sentry:user]',
+    "release": "tags[sentry:release]",
+    "user": "tags[sentry:user]",
 }
 
 
@@ -188,16 +190,16 @@ class QueryOutsideGroupActivityError(Exception):
     pass
 
 
-SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
+SnubaTSResult = namedtuple("SnubaTSResult", ("data", "start", "end", "rollup"))
 
 
 @contextmanager
-def timer(name, prefix='snuba.client'):
+def timer(name, prefix="snuba.client"):
     t = time.time()
     try:
         yield
     finally:
-        metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
+        metrics.timing(u"{}.{}".format(prefix, name), time.time() - t)
 
 
 @contextmanager
@@ -236,7 +238,7 @@ _snuba_pool = connection_from_url(
         # our requests are POST and they don't mutate, so they
         # are safe to retry. Without this, we aren't
         # actually retrying at all.
-        method_whitelist={'GET', 'POST'},
+        method_whitelist={"GET", "POST"},
     ),
     timeout=30,
     maxsize=10,
@@ -257,24 +259,24 @@ def to_naive_timestamp(value):
 
 def zerofill(data, start, end, rollup, orderby):
     rv = []
-    start = (int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup)
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
 
     for obj in data:
-        if obj['time'] in data_by_time:
-            data_by_time[obj['time']].append(obj)
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
         else:
-            data_by_time[obj['time']] = [obj]
+            data_by_time[obj["time"]] = [obj]
 
     for key in six.moves.xrange(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
         else:
-            rv.append({'time': key})
+            rv.append({"time": key})
 
-    if '-time' in orderby:
+    if "-time" in orderby:
         return list(reversed(rv))
 
     return rv
@@ -286,7 +288,7 @@ def get_snuba_column_name(name):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(['project_id', 'start', 'end'])
+    no_conversion = set(["project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -294,7 +296,7 @@ def get_snuba_column_name(name):
     if not name or QUOTED_LITERAL_RE.match(name):
         return name
 
-    return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+    return SENTRY_SNUBA_MAP.get(name, u"tags[{}]".format(name))
 
 
 def get_function_index(column_expr, depth=0):
@@ -321,7 +323,8 @@ def get_function_index(column_expr, depth=0):
             # The assumption here is that a list that follows a string means
             # the string is a function name
             if isinstance(column_expr[i], six.string_types) and isinstance(
-                    column_expr[i + 1], (tuple, list)):
+                column_expr[i + 1], (tuple, list)
+            ):
                 assert SAFE_FUNCTION_RE.match(column_expr[i])
                 index = i
                 break
@@ -376,7 +379,7 @@ def parse_columns_in_functions(col, context=None, index=None):
 
 
 def get_arrayjoin(column):
-    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    match = re.match(r"^(exception_stacks|exception_frames|contexts)\..+$", column)
     if match:
         return match.groups()[0]
 
@@ -391,7 +394,7 @@ def valid_orderby(orderby, custom_fields=None):
         custom_fields = []
     fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     for field in fields:
-        field = field.lstrip('-')
+        field = field.lstrip("-")
         if field not in SENTRY_SNUBA_MAP and field not in custom_fields:
             return False
     return True
@@ -405,23 +408,20 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     results.
     """
 
-    arrayjoin_map = {
-        'error': 'exception_stacks',
-        'stack': 'exception_frames',
-    }
+    arrayjoin_map = {"error": "exception_stacks", "stack": "exception_frames"}
 
     translated_columns = {}
     derived_columns = set()
 
-    selected_columns = kwargs.get('selected_columns')
-    groupby = kwargs.get('groupby')
-    aggregations = kwargs.get('aggregations')
-    conditions = kwargs.get('conditions')
-    filter_keys = kwargs['filter_keys']
-    arrayjoin = kwargs.get('arrayjoin')
-    rollup = kwargs.get('rollup')
-    orderby = kwargs.get('orderby')
-    having = kwargs.get('having', [])
+    selected_columns = kwargs.get("selected_columns")
+    groupby = kwargs.get("groupby")
+    aggregations = kwargs.get("aggregations")
+    conditions = kwargs.get("conditions")
+    filter_keys = kwargs["filter_keys"]
+    arrayjoin = kwargs.get("arrayjoin")
+    rollup = kwargs.get("rollup")
+    orderby = kwargs.get("orderby")
+    having = kwargs.get("having", [])
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -457,7 +457,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):
-            if (isinstance(cond[0], (list, tuple))):
+            if isinstance(cond[0], (list, tuple)):
                 cond[0] = handle_condition(cond[0])
             elif len(cond) == 3:
                 # map column name
@@ -468,18 +468,18 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         return cond
 
     if conditions:
-        kwargs['conditions'] = []
+        kwargs["conditions"] = []
         for condition in conditions:
             field = condition[0]
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
             elif skip_conditions:
-                kwargs['conditions'].append(condition)
+                kwargs["conditions"].append(condition)
             else:
-                kwargs['conditions'].append(handle_condition(condition))
+                kwargs["conditions"].append(handle_condition(condition))
 
     if having:
-        kwargs['having'] = having
+        kwargs["having"] = having
 
     if orderby:
         if orderby is None:
@@ -488,34 +488,32 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         translated_orderby = []
 
         for field_with_order in orderby:
-            field = field_with_order.lstrip('-')
-            translated_orderby.append(u'{}{}'.format(
-                '-' if field_with_order.startswith('-') else '',
-                field if field in derived_columns else get_snuba_column_name(field)
-            ))
+            field = field_with_order.lstrip("-")
+            translated_orderby.append(
+                u"{}{}".format(
+                    "-" if field_with_order.startswith("-") else "",
+                    field if field in derived_columns else get_snuba_column_name(field),
+                )
+            )
 
-        kwargs['orderby'] = translated_orderby
+        kwargs["orderby"] = translated_orderby
 
-    kwargs['arrayjoin'] = arrayjoin_map.get(arrayjoin, arrayjoin)
+    kwargs["arrayjoin"] = arrayjoin_map.get(arrayjoin, arrayjoin)
 
     result = raw_query(**kwargs)
 
     # Translate back columns that were converted to snuba format
-    for col in result['meta']:
-        col['name'] = translated_columns.get(col['name'], col['name'])
+    for col in result["meta"]:
+        col["name"] = translated_columns.get(col["name"], col["name"])
 
     def get_row(row):
         return {translated_columns.get(key, key): value for key, value in row.items()}
 
     if len(translated_columns):
-        result['data'] = [get_row(row) for row in result['data']]
+        result["data"] = [get_row(row) for row in result["data"]]
         if rollup and rollup > 0:
-            result['data'] = zerofill(
-                result['data'],
-                kwargs['start'],
-                kwargs['end'],
-                kwargs['rollup'],
-                kwargs['orderby'],
+            result["data"] = zerofill(
+                result["data"], kwargs["start"], kwargs["end"], kwargs["rollup"], kwargs["orderby"]
             )
 
     return result
@@ -527,18 +525,17 @@ def _prepare_query_params(query_params):
     start = naiveify_datetime(query_params.start)
     end = naiveify_datetime(query_params.end)
 
-    with timer('get_snuba_map'):
+    with timer("get_snuba_map"):
         forward, reverse = get_snuba_translators(
-            query_params.filter_keys,
-            is_grouprelease=query_params.is_grouprelease,
+            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if 'project_id' in query_params.filter_keys:
+    if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
-        project_ids = list(set(query_params.filter_keys['project_id']))
+        project_ids = list(set(query_params.filter_keys["project_id"]))
     elif query_params.filter_keys:
         # Otherwise infer the project_ids from any related models
-        with timer('get_related_project_ids'):
+        with timer("get_related_project_ids"):
             ids = [
                 get_related_project_ids(k, query_params.filter_keys[k])
                 for k in query_params.filter_keys
@@ -550,19 +547,18 @@ def _prepare_query_params(query_params):
     for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
         if keys:
             if len(keys) == 1 and None in keys:
-                query_params.conditions.append((col, 'IS NULL', None))
+                query_params.conditions.append((col, "IS NULL", None))
             else:
-                query_params.conditions.append((col, 'IN', keys))
+                query_params.conditions.append((col, "IN", keys))
 
     if not project_ids:
         raise UnqualifiedQueryError(
-            "No project_id filter, or none could be inferred from other filters.")
+            "No project_id filter, or none could be inferred from other filters."
+        )
 
     # any project will do, as they should all be from the same organization
     project = Project.objects.get(pk=project_ids[0])
-    retention = quotas.get_event_retention(
-        organization=Organization(project.organization_id)
-    )
+    retention = quotas.get_event_retention(organization=Organization(project.organization_id))
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
@@ -571,7 +567,7 @@ def _prepare_query_params(query_params):
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get('issue'), start)
+    new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
 
     # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
@@ -584,15 +580,17 @@ def _prepare_query_params(query_params):
     if start > end:
         raise QueryOutsideGroupActivityError
 
-    query_params.kwargs.update({
-        'from_date': start.isoformat(),
-        'to_date': end.isoformat(),
-        'groupby': query_params.groupby,
-        'conditions': query_params.conditions,
-        'aggregations': query_params.aggregations,
-        'project': project_ids,
-        'granularity': query_params.rollup,  # TODO name these things the same
-    })
+    query_params.kwargs.update(
+        {
+            "from_date": start.isoformat(),
+            "to_date": end.isoformat(),
+            "groupby": query_params.groupby,
+            "conditions": query_params.conditions,
+            "aggregations": query_params.aggregations,
+            "project": project_ids,
+            "granularity": query_params.rollup,  # TODO name these things the same
+        }
+    )
     kwargs = {k: v for k, v in six.iteritems(query_params.kwargs) if v is not None}
 
     kwargs.update(OVERRIDE_OPTIONS)
@@ -627,8 +625,16 @@ class SnubaQueryParams(object):
     """
 
     def __init__(
-        self, start, end, groupby=None, conditions=None, filter_keys=None,
-        aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
+        self,
+        start,
+        end,
+        groupby=None,
+        conditions=None,
+        filter_keys=None,
+        aggregations=None,
+        rollup=None,
+        referrer=None,
+        is_grouprelease=False,
         **kwargs
     ):
         self.start = start
@@ -643,9 +649,18 @@ class SnubaQueryParams(object):
         self.kwargs = kwargs
 
 
-def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, referrer=None,
-              is_grouprelease=False, **kwargs):
+def raw_query(
+    start,
+    end,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    rollup=None,
+    referrer=None,
+    is_grouprelease=False,
+    **kwargs
+):
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
@@ -667,20 +682,17 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 def bulk_raw_query(snuba_param_list, referrer=None):
     headers = {}
     if referrer:
-        headers['referer'] = referrer
+        headers["referer"] = referrer
 
     query_param_list = map(_prepare_query_params, snuba_param_list)
 
     def snuba_query(params):
         query_params, forward, reverse = params
         try:
-            with timer('snuba_query'):
+            with timer("snuba_query"):
                 return (
                     _snuba_pool.urlopen(
-                        'POST',
-                        '/query',
-                        body=json.dumps(query_params),
-                        headers=headers,
+                        "POST", "/query", body=json.dumps(query_params), headers=headers
                     ),
                     forward,
                     reverse,
@@ -701,44 +713,58 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             body = json.loads(response.data)
         except ValueError:
             raise UnexpectedResponseError(
-                u"Could not decode JSON response: {}".format(response.data),
+                u"Could not decode JSON response: {}".format(response.data)
             )
 
         if response.status != 200:
-            if body.get('error'):
-                error = body['error']
+            if body.get("error"):
+                error = body["error"]
                 if response.status == 429:
-                    raise RateLimitExceeded(error['message'])
-                elif error['type'] == 'schema':
-                    raise SchemaValidationError(error['message'])
-                elif error['type'] == 'clickhouse':
-                    raise clickhouse_error_codes_map.get(
-                        error['code'],
-                        QueryExecutionError,
-                    )(error['message'])
+                    raise RateLimitExceeded(error["message"])
+                elif error["type"] == "schema":
+                    raise SchemaValidationError(error["message"])
+                elif error["type"] == "clickhouse":
+                    raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
+                        error["message"]
+                    )
                 else:
-                    raise SnubaError(error['message'])
+                    raise SnubaError(error["message"])
             else:
-                raise SnubaError(u'HTTP {}'.format(response.status))
+                raise SnubaError(u"HTTP {}".format(response.status))
 
         # Forward and reverse translation maps from model ids to snuba keys, per column
-        body['data'] = [reverse(d) for d in body['data']]
+        body["data"] = [reverse(d) for d in body["data"]]
         results.append(body)
 
     return results
 
 
-def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=None,
-          selected_columns=None, totals=None, **kwargs):
+def query(
+    start,
+    end,
+    groupby,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    selected_columns=None,
+    totals=None,
+    **kwargs
+):
 
-    aggregations = aggregations or [['count()', '', 'aggregate']]
+    aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
 
     try:
         body = raw_query(
-            start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
-            aggregations=aggregations, selected_columns=selected_columns, totals=totals,
+            start,
+            end,
+            groupby=groupby,
+            conditions=conditions,
+            filter_keys=filter_keys,
+            aggregations=aggregations,
+            selected_columns=selected_columns,
+            totals=totals,
             **kwargs
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
@@ -751,16 +777,18 @@ def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=N
     aggregate_names = [a[2] for a in aggregations]
     selected_names = [c[2] if isinstance(c, (list, tuple)) else c for c in selected_columns]
     expected_cols = set(groupby + aggregate_names + selected_names)
-    got_cols = set(c['name'] for c in body['meta'])
+    got_cols = set(c["name"] for c in body["meta"])
 
-    assert expected_cols == got_cols, 'expected {}, got {}'.format(expected_cols, got_cols)
+    assert expected_cols == got_cols, "expected {}, got {}".format(expected_cols, got_cols)
 
-    with timer('process_result'):
+    with timer("process_result"):
         if totals:
-            return nest_groups(body['data'], groupby, aggregate_names
-                               + selected_names), body['totals']
+            return (
+                nest_groups(body["data"], groupby, aggregate_names + selected_names),
+                body["totals"],
+            )
         else:
-            return nest_groups(body['data'], groupby, aggregate_names + selected_names)
+            return nest_groups(body["data"], groupby, aggregate_names + selected_names)
 
 
 def nest_groups(data, groups, aggregate_cols):
@@ -814,16 +842,16 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
 
     # Helper lambdas to compose translator functions
-    identity = (lambda x: x)
-    compose = (lambda f, g: lambda x: f(g(x)))
-    replace = (lambda d, key, val: d.update({key: val}) or d)
+    identity = lambda x: x
+    compose = lambda f, g: lambda x: f(g(x))
+    replace = lambda d, key, val: d.update({key: val}) or d
 
     forward = identity
     reverse = identity
 
     map_columns = {
-        'environment': (Environment, 'name', lambda name: None if name == '' else name),
-        'tags[sentry:release]': (Release, 'version', identity),
+        "environment": (Environment, "name", lambda name: None if name == "" else name),
+        "tags[sentry:release]": (Release, "version", identity),
     }
 
     for col, (model, field, fmt) in six.iteritems(map_columns):
@@ -842,9 +870,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
             gr_map = GroupRelease.objects.filter(id__in=ids).values_list(
                 "id", "group_id", "release_id"
             )
-            ver = dict(Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list(
-                "id", "version"
-            ))
+            ver = dict(
+                Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list("id", "version")
+            )
             fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
             rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
             fwd = (
@@ -856,14 +884,15 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 lambda col, trans: lambda row: replace(
                     # The translate map may not have every combination of issue/release
                     # returned by the query.
-                    row, col, trans.get((row["issue"], row[col]))
+                    row,
+                    col,
+                    trans.get((row["issue"], row[col])),
                 )
             )(col, rev_map)
 
         else:
             fwd_map = {
-                k: fmt(v)
-                for k, v in model.objects.filter(id__in=ids).values_list("id", field)
+                k: fmt(v) for k, v in model.objects.filter(id__in=ids).values_list("id", field)
             }
             rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
             fwd = (
@@ -872,8 +901,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 )
             )(col, fwd_map)
             rev = (
-                lambda col, trans: lambda row: replace(
-                    row, col, trans[row[col]]) if col in row else row
+                lambda col, trans: lambda row: replace(row, col, trans[row[col]])
+                if col in row
+                else row
             )(col, rev_map)
 
         if fwd:
@@ -897,18 +927,17 @@ def get_related_project_ids(column, ids):
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        'issue': (Group, 'id', 'project_id'),
-        'tags[sentry:release]': (ReleaseProject, 'release_id', 'project_id'),
+        "issue": (Group, "id", "project_id"),
+        "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
     }
     if ids:
         if column == "project_id":
             return ids
         elif column in mappings:
             model, id_field, project_field = mappings[column]
-            return model.objects.filter(**{
-                id_field + '__in': ids,
-                project_field + '__isnull': False,
-            }).values_list(project_field, flat=True)
+            return model.objects.filter(
+                **{id_field + "__in": ids, project_field + "__isnull": False}
+            ).values_list(project_field, flat=True)
     return []
 
 

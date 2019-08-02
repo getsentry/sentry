@@ -20,37 +20,23 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
 
         event_1 = self.store_event(
-            data={
-                'fingerprint': ['group_1'],
-                'timestamp': min_ago
-            },
-            project_id=project.id,
+            data={"fingerprint": ["group_1"], "timestamp": min_ago}, project_id=project.id
         )
 
         event_2 = self.store_event(
-            data={
-                'fingerprint': ['group_1'],
-                'timestamp': min_ago
-            },
-            project_id=project.id,
+            data={"fingerprint": ["group_1"], "timestamp": min_ago}, project_id=project.id
         )
 
         url = reverse(
-            'sentry-api-0-project-events',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
+            "sentry-api-0-project-events",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_1.event_id),
-                six.text_type(event_2.event_id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_1.event_id), six.text_type(event_2.event_id)]
         )
 
     def test_filters_based_on_retention(self):
@@ -61,35 +47,25 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         two_days_ago = (timezone.now() - timedelta(days=2)).isoformat()[:19]
 
         self.store_event(
-            data={
-                'fingerprint': ['group_2'],
-                'timestamp': two_days_ago
-            },
-            project_id=project.id,
+            data={"fingerprint": ["group_2"], "timestamp": two_days_ago}, project_id=project.id
         )
 
         event_2 = self.store_event(
-            data={
-                'fingerprint': ['group_2'],
-                'timestamp': min_ago
-            },
-            project_id=project.id,
+            data={"fingerprint": ["group_2"], "timestamp": min_ago}, project_id=project.id
         )
 
-        with self.options({'system.event-retention-days': 1}):
+        with self.options({"system.event-retention-days": 1}):
             url = reverse(
-                'sentry-api-0-project-events',
+                "sentry-api-0-project-events",
                 kwargs={
-                    'organization_slug': project.organization.slug,
-                    'project_slug': project.slug,
-                }
+                    "organization_slug": project.organization.slug,
+                    "project_slug": project.slug,
+                },
             )
-            response = self.client.get(url, format='json')
+            response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_2.event_id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_2.event_id)]
         )

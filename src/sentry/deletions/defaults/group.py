@@ -35,7 +35,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.Event,
         )
 
-        relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
+        relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])
 
         return relations
 
@@ -50,10 +50,6 @@ class GroupDeletionTask(ModelDeletionTask):
     def mark_deletion_in_progress(self, instance_list):
         from sentry.models import Group, GroupStatus
 
-        Group.objects.filter(
-            id__in=[i.id for i in instance_list],
-        ).exclude(
-            status=GroupStatus.DELETION_IN_PROGRESS,
-        ).update(
-            status=GroupStatus.DELETION_IN_PROGRESS,
-        )
+        Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
+            status=GroupStatus.DELETION_IN_PROGRESS
+        ).update(status=GroupStatus.DELETION_IN_PROGRESS)

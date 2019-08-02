@@ -43,20 +43,20 @@ class FunctionCall(object):
 
     def background(self):
         r, g, b = hsv_to_rgb(*self.hsv)
-        return 'rgb(%f%%,%f%%,%f%%)' % (r * 100, g * 100, b * 100)
+        return "rgb(%f%%,%f%%,%f%%)" % (r * 100, g * 100, b * 100)
 
     def func_std_string(self):  # match what old profile produced
         func_name = self.func
-        if func_name[:2] == ('~', 0):
+        if func_name[:2] == ("~", 0):
             # special case for built-in functions
             name = func_name[2]
-            if name.startswith('<') and name.endswith('>'):
-                return '{%s}' % name[1:-1]
+            if name.startswith("<") and name.endswith(">"):
+                return "{%s}" % name[1:-1]
             else:
                 return name
         else:
             file_name, line_num, method = self.func
-            idx = file_name.find('/site-packages/')
+            idx = file_name.find("/site-packages/")
             if idx > -1:
                 file_name = file_name[(idx + 14):]
 
@@ -87,9 +87,9 @@ class FunctionCall(object):
                 func,
                 self.depth + 1,
                 stats=stats,
-                id=six.text_type(self.id) + '_' + six.text_type(i),
+                id=six.text_type(self.id) + "_" + six.text_type(i),
                 parent_ids=self.parent_ids + (self.id,),
-                hsv=(h1, s1, 1)
+                hsv=(h1, s1, 1),
             )
 
     def count(self):
@@ -126,13 +126,14 @@ class ProfilingPanel(Panel):
     """
     Panel that displays profiling information.
     """
+
     title = _("Profiling")
 
-    template = 'debug_toolbar/panels/profiling.html'
+    template = "debug_toolbar/panels/profiling.html"
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         self.profiler = cProfile.Profile()
-        args = (request, ) + view_args
+        args = (request,) + view_args
         return self.profiler.runcall(view_func, *args, **view_kwargs)
 
     def add_node(self, func_list, func, max_depth, cum_time=0.1):
@@ -145,7 +146,7 @@ class ProfilingPanel(Panel):
                     self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
 
     def process_response(self, request, response):
-        if not hasattr(self, 'profiler'):
+        if not hasattr(self, "profiler"):
             return None
         # Could be delayed until the panel content is requested (perf. optim.)
         self.profiler.create_stats()
@@ -155,6 +156,6 @@ class ProfilingPanel(Panel):
         root = FunctionCall(self.stats, self.stats.get_root_func(), depth=0)
 
         func_list = []
-        self.add_node(func_list, root, dt_settings.CONFIG['PROFILER_MAX_DEPTH'], root.stats[3] / 8)
+        self.add_node(func_list, root, dt_settings.CONFIG["PROFILER_MAX_DEPTH"], root.stats[3] / 8)
 
-        self.record_stats({'func_list': func_list})
+        self.record_stats({"func_list": func_list})

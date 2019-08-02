@@ -10,23 +10,23 @@ class DiscoverSavedQuerySerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
 
         query_keys = [
-            'fields',
-            'conditions',
-            'aggregations',
-            'range',
-            'start',
-            'end',
-            'orderby',
-            'limit'
+            "fields",
+            "conditions",
+            "aggregations",
+            "range",
+            "start",
+            "end",
+            "orderby",
+            "limit",
         ]
 
         data = {
-            'id': six.text_type(obj.id),
-            'name': obj.name,
-            'projects': [project.id for project in obj.projects.all()],
-            'dateCreated': obj.date_created,
-            'dateUpdated': obj.date_updated,
-            'createdBy': six.text_type(obj.created_by_id) if obj.created_by_id else None,
+            "id": six.text_type(obj.id),
+            "name": obj.name,
+            "projects": [project.id for project in obj.projects.all()],
+            "dateCreated": obj.date_created,
+            "dateUpdated": obj.date_updated,
+            "createdBy": six.text_type(obj.created_by_id) if obj.created_by_id else None,
         }
 
         for key in query_keys:
