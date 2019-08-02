@@ -228,7 +228,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(event.group.id)
-        assert response.data[0]['matchingEventId'] == event.id
+        assert response.data[0]['matchingEventId'] == event.event_id
         assert response.data[0]['matchingEventEnvironment'] == 'test'
 
     def test_lookup_by_event_id_with_whitespace(self):
