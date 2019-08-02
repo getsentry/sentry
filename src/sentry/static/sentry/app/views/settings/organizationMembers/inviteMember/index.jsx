@@ -147,7 +147,6 @@ class InviteMember extends React.Component {
         method: 'POST',
         data: {
           email,
-          user: email,
           teams: Array.from(selectedTeams.keys()),
           role: selectedRole,
           referrer: this.props.location.query.referrer,
