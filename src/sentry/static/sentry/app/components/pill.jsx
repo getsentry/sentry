@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
+import space from 'app/styles/space';
 
 class Pill extends React.Component {
   static propTypes = {
@@ -33,11 +34,11 @@ class Pill extends React.Component {
 
     return (
       <StyledPill {...props}>
-        <StyledPillKey>{name}</StyledPillKey>
-        <StyledPillValue>
+        <PillName>{name}</PillName>
+        <PillValue>
           {renderedValue}
           {children}
-        </StyledPillValue>
+        </PillValue>
       </StyledPill>
     );
   }
@@ -53,7 +54,7 @@ const StyledPill = styled('li')`
   line-height: 1.2;
   max-width: 100%;
   &.true .value {
-    background: #fbfefa;
+    background: #493e54;
     border: 1px solid #c7dbbd;
     margin: -1px;
     color: #6a726c;
@@ -69,14 +70,18 @@ const StyledPill = styled('li')`
   }
 `;
 
-const SharedPillValue = css`
-  padding: 4px 8px;
+const SharedPillSpanStyles = css`
+  padding: ${space(0.5)} ${space(1)};
   min-width: 0;
   white-space: nowrap;
 `;
 
-const StyledPillValue = styled('span')`
-  ${SharedPillValue}
+const PillName = styled('span')`
+  ${SharedPillSpanStyles}
+`;
+
+const PillValue = styled('span')`
+  ${SharedPillSpanStyles}
   background: #fbfbfc;
   border-left: 1px solid #d8d2de;
   border-radius: 0 3px 3px 0;
@@ -98,10 +103,6 @@ const StyledPillValue = styled('span')`
       color: #625471;
     }
   }
-`;
-
-const StyledPillKey = styled('span')`
-  ${SharedPillValue}
 `;
 
 export default Pill;
