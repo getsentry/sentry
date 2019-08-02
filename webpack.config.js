@@ -172,6 +172,8 @@ const cacheGroups = {
   ...localeChunkGroups,
 };
 
+const babelOptions = {...babelConfig, cacheDirectory: true};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -187,14 +189,22 @@ const appConfig = {
         exclude: /(vendor|node_modules|dist)/,
         use: {
           loader: 'babel-loader',
-          options: {...babelConfig, cacheDirectory: true},
+          options: babelOptions,
         },
       },
       {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        loader: 'ts-loader',
+        use: [
+          {
+            loader: 'babel-loader',
+            options: babelOptions,
+          },
+          {
+            loader: 'ts-loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
