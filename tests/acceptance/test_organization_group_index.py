@@ -64,7 +64,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_with_no_results(self):
         self.project.update(first_event=timezone.now())
-        self.page.visit_issue_list(self.org.slug)
+        self.page.visit_issue_list(self.org.slug, query='?query=assigned%3Ame')
         self.browser.wait_until_test_id('empty-state')
         self.browser.snapshot('organization issues no results')
 
