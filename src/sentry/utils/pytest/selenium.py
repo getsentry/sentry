@@ -6,11 +6,17 @@ from __future__ import absolute_import
 import logging
 import os
 import pytest
+import time
 
 from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    ElementNotVisibleException,
+    ElementNotSelectableException,
+    TimeoutException
+)
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
@@ -180,6 +186,31 @@ class Browser(object):
     @property
     def switch_to(self):
         return self.driver.switch_to
+
+    def attempts(self, func, times=5):
+        """
+        Attempt the provided func n times until it succeeds.
+        This is useful when trying to resolve timeouts/flakey tests
+        in travis that are hard to reproduce locally.
+        """
+        retryable_errors = (
+            NoSuchElementException,
+            ElementNotVisibleException,
+            ElementNotSelectableException,
+            TimeoutException
+        )
+        attempt = 0
+        while attempt < times:
+            try:
+                func()
+                break
+            except retryable_errors:
+                if attempt >= times:
+                    raise
+                # Give the browser a bit of breathing room.
+                time.sleep(0.05)
+            except Exception:
+                raise
 
     def implicitly_wait(self, duration):
         """
