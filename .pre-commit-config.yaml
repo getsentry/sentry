@@ -18,7 +18,7 @@ repos:
       name: flake8
       entry: flake8
       language: python
-      types: [python]
+      files: \.py$
       log_file: '.artifacts/flake8.pycodestyle.log'
 -   repo: https://github.com/ambv/black
     rev: 19.3b0
