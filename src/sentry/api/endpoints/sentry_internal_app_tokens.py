@@ -6,7 +6,7 @@ from rest_framework import status
 from sentry.api.bases import (
     SentryInternalAppTokenPermission, SentryAppBaseEndpoint,
 )
-from sentry.models import SentryAppInstallation
+from sentry.models import ApiToken, SentryAppInstallation
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
@@ -15,6 +15,14 @@ from sentry.exceptions import ApiTokenLimitError
 
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission, )
+
+    @requires_feature('organizations:sentry-apps', any_org=True)
+    def get(self, request, sentry_app):
+        tokens = ApiToken.objects.filter(application_id=sentry_app.application_id)
+        attrs = {
+            'application': None,
+        }
+        return Response(ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens)
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, sentry_app):

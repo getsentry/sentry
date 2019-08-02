@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.api.serializers import Serializer, register
-from sentry.models import SentryApp
+from sentry.models import SentryApp, ApiToken, SentryAppInstallationToken
 
 
 @register(SentryApp)
