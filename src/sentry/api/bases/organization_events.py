@@ -121,6 +121,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
+    # TODO(lyn): Deprecate in favour of eventstore.get_next_event_id
     def next_event_id(self, *args):
         """
         Returns the next event ID if there is a subsequent event matching the
@@ -128,6 +129,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         """
         return self._get_next_or_prev_id(Direction.NEXT, *args)
 
+    # TODO(lyn): Deprecate in favour of eventstore.get_prev_event_id
     def prev_event_id(self, *args):
         """
         Returns the previous event ID if there is a previous event matching the

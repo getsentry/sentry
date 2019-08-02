@@ -612,6 +612,7 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
+    # TODO(lyn): Deprecate in favour of eventstore.get_next_event_id
     def next_event_id(self, environments=None):
         from sentry.utils import snuba
 
@@ -647,6 +648,7 @@ class SnubaEvent(EventCommon):
 
         return six.text_type(result['data'][0]['event_id'])
 
+    # TODO(lyn): Deprecate in favour of eventstore.get_prev_event_id
     def prev_event_id(self, environments=None):
         from sentry.utils import snuba
 
