@@ -8,10 +8,10 @@ type Options = {
 type Device = {
   Type: string;
   Generation: string;
-  ANumber: string;
-  Bootrom?: string;
+  ANumber: string[];
+  Bootrom?: string[];
   Variant?: string;
-  FCCID: string;
+  FCCID: string[];
   InternalName: string;
   Identifier: string;
   Color: string;
