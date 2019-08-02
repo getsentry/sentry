@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import uuid
 from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
@@ -7,13 +8,16 @@ from uuid import uuid4
 import pytz
 import six
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
+from sentry.http import safe_urlopen
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleAggregations,
     AlertRuleStatus,
     Incident,
     IncidentActivity,
@@ -43,6 +47,10 @@ from sentry.utils.snuba import (
 )
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+alert_aggregation_to_snuba = {
+    AlertRuleAggregations.TOTAL: ('count()', '', 'count'),
+    AlertRuleAggregations.UNIQUE_USERS: ('uniq', 'tags[sentry:user]', 'unique_users'),
+}
 
 
 class StatusAlreadyChangedError(Exception):
@@ -624,6 +632,7 @@ def create_alert_rule(
         raise AlertRuleNameAlreadyUsedError()
     try:
         subscription_id = create_snuba_subscription(
+            project,
             dataset,
             query,
             aggregations,
@@ -714,10 +723,13 @@ def update_alert_rule(
         old_subscription_id = alert_rule.subscription_id
         # If updating any details of the query, create a new subscription
         subscription_id = create_snuba_subscription(
-            alert_rule.dataset,
-            query,
-            aggregations,
-            time_window,
+            alert_rule.project,
+            SnubaDatasets(alert_rule.dataset),
+            query if query is not None else alert_rule.query,
+            aggregations if aggregations else [
+                AlertRuleAggregations(agg) for agg in alert_rule.aggregations
+            ],
+            time_window if time_window else alert_rule.time_window,
             DEFAULT_ALERT_RULE_RESOLUTION,
         )
         updated_fields['subscription_id'] = subscription_id
@@ -730,10 +742,10 @@ def update_alert_rule(
         if subscription_id:
             delete_snuba_subscription(subscription_id)
         raise
-    finally:
-        if old_subscription_id:
-            # Once we're set up correctly, remove the previous subscription id.
-            delete_snuba_subscription(old_subscription_id)
+
+    if old_subscription_id:
+        # Once we're set up correctly, remove the previous subscription id.
+        delete_snuba_subscription(old_subscription_id)
 
     return alert_rule
 
@@ -766,15 +778,39 @@ def validate_alert_rule_query(query):
     get_snuba_query_args(query)
 
 
-def create_snuba_subscription(dataset, query, aggregations, time_window, resolution):
+def create_snuba_subscription(project, dataset, query, aggregations, time_window, resolution):
     """
     Creates a subscription to a snuba query.
 
-    :param alert_rule: The alert rule to create the subscription for
+    :param project: The project we're applying the query to
+    :param dataset: The snuba dataset to query and aggregate over
+    :param query: An event search query that we can parse and convert into a
+    set of Snuba conditions
+    :param aggregations: A list of aggregations to calculate over the time
+    window
+    :param time_window: The time window to aggregate over
+    :param resolution: How often to receive updates/bucket size
     :return: A uuid representing the subscription id.
     """
-    # TODO: Implement
-    return uuid4()
+    # TODO: Might make sense to move this into snuba if we have wider use for
+    # it.
+    resp = safe_urlopen(
+        settings.SENTRY_SNUBA + '/subscriptions',
+        'POST',
+        json={
+            'project_id': project.id,
+            'dataset': dataset.value,
+            # We only care about conditions here. Filter keys only matter for
+            # filtering to project and groups. Projects are handled with an
+            # explicit param, and groups can't be queried here.
+            'conditions': get_snuba_query_args(query)['conditions'],
+            'aggregates': [alert_aggregation_to_snuba[agg] for agg in aggregations],
+            'time_window': time_window,
+            'resolution': resolution,
+        },
+    )
+    resp.raise_for_status()
+    return uuid.UUID(resp.json()['subscription_id'])
 
 
 def delete_snuba_subscription(subscription_id):
