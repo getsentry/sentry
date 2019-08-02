@@ -8,15 +8,15 @@ type Options = {
 type Device = {
   Type: string;
   Generation: string;
-  ANumber: string | string[];
-  Bootrom?: string | string[];
+  ANumber: string;
+  Bootrom?: string;
   Variant?: string;
-  FCCID: string | string[];
+  FCCID: string;
   InternalName: string;
   Identifier: string;
   Color: string;
   Storage: string;
-  Model: string | string[];
+  Model: string;
 };
 
 export type IOSDeviceList = {
