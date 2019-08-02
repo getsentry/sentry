@@ -175,10 +175,14 @@ export const Frame = createReactClass({
         ? data.module || data.filename
         : data.filename || data.module;
 
+      const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName;
+
       title.push(
-        <code key="filename" className="filename">
-          <Truncate value={pathName} maxLength={100} leftTrim={true} />
-        </code>
+        <Tooltip title={data.absPath} disabled={enablePathTooltip}>
+          <code key="filename" className="filename">
+            <Truncate value={pathName} maxLength={100} leftTrim={true} />
+          </code>
+        </Tooltip>
       );
 
       // in case we prioritized the module name but we also have a filename info
@@ -444,6 +448,9 @@ export const Frame = createReactClass({
   renderNativeLine() {
     const data = this.props.data;
     const hint = this.getFrameHint();
+
+    const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
@@ -460,13 +467,12 @@ export const Frame = createReactClass({
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span
-                  className="filename"
-                  title={data.absPath !== data.filename ? data.absPath : null}
-                >
-                  {data.filename}
-                  {data.lineNo ? ':' + data.lineNo : ''}
-                </span>
+                <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
+                  <span className="filename">
+                    {data.filename}
+                    {data.lineNo ? ':' + data.lineNo : ''}
+                  </span>
+                </Tooltip>
               )}
               {hint !== null ? (
                 <Tooltip title={hint}>
