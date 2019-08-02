@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.models import (
-    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+    OrganizationOption,
 )
 from sentry.signals import (
     event_processed,
@@ -23,11 +26,7 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_no_existing_task(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
-        first_event_received.send(
-            project=project,
-            event=self.event,
-            sender=type(project),
-        )
+        first_event_received.send(project=project, event=self.event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
@@ -43,22 +42,16 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_pending.send(project=project, user=self.user, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT,
+            organization=project.organization, task=OnboardingTask.FIRST_EVENT
         )
 
         assert task.status == OnboardingTaskStatus.PENDING
         assert task.project_id == project.id
 
-        first_event_received.send(
-            project=project,
-            event=self.event,
-            sender=type(project),
-        )
+        first_event_received.send(project=project, event=self.event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT,
+            organization=project.organization, task=OnboardingTask.FIRST_EVENT
         )
 
         assert task.status == OnboardingTaskStatus.COMPLETE
@@ -74,11 +67,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
 
-        first_event_received.send(
-            project=project,
-            event=self.event,
-            sender=type(project),
-        )
+        first_event_received.send(project=project, event=self.event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
@@ -141,13 +130,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         event = self.create_event(
-            project=project, platform='javascript', message='javascript error message'
+            project=project, platform="javascript", message="javascript error message"
         )
-        first_event_received.send(
-            project=project,
-            event=event,
-            sender=type(project),
-        )
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -155,8 +140,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
-        assert 'platform' in task.data
-        assert task.data['platform'] == 'javascript'
+        assert "platform" in task.data
+        assert task.data["platform"] == "javascript"
 
         second_project = self.create_project(first_event=now)
         project_created.send(project=second_project, user=self.user, sender=type(second_project))
@@ -168,12 +153,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert second_task is not None
 
         second_event = self.create_event(
-            project=second_project, platform='python', message='python error message'
+            project=second_project, platform="python", message="python error message"
         )
         first_event_received.send(
-            project=second_project,
-            event=second_event,
-            sender=type(second_project),
+            project=second_project, event=second_event, sender=type(second_project)
         )
         second_task = OrganizationOnboardingTask.objects.get(
             organization=second_project.organization,
@@ -181,12 +164,12 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert second_task is not None
-        assert 'platform' in second_task.data
-        assert second_task.data['platform'] == 'python'
-        assert task.data['platform'] != second_task.data['platform']
+        assert "platform" in second_task.data
+        assert second_task.data["platform"] == "python"
+        assert task.data["platform"] != second_task.data["platform"]
 
     def test_member_invited(self):
-        user = self.create_user(email='test@example.org')
+        user = self.create_user(email="test@example.org")
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
         member_invited.send(member=member, user=user, sender=type(member))
 
@@ -198,7 +181,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_member_joined(self):
-        user = self.create_user(email='test@example.org')
+        user = self.create_user(email="test@example.org")
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
         member_joined.send(member=member, organization=self.organization, sender=type(member))
 
@@ -209,7 +192,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        user2 = self.create_user(email='test@example.com')
+        user2 = self.create_user(email="test@example.com")
         member2 = self.create_member(organization=self.organization, teams=[self.team], user=user2)
         member_joined.send(member=member2, organization=self.organization, sender=type(member2))
 
@@ -218,14 +201,14 @@ class OrganizationOnboardingTaskTest(TestCase):
             task=OnboardingTask.INVITE_MEMBER,
             status=OnboardingTaskStatus.COMPLETE,
         )
-        assert task.data['invited_member_id'] == member.id
+        assert task.data["invited_member_id"] == member.id
 
     def test_issue_tracker_onboarding(self):
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(IssueTrackingPlugin)
+            sender=type(IssueTrackingPlugin),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -238,7 +221,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             plugin=IssueTrackingPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(IssueTrackingPlugin)
+            sender=type(IssueTrackingPlugin),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -252,7 +235,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             plugin=NotificationPlugin(),
             project=self.project,
             user=self.user,
-            sender=type(NotificationPlugin)
+            sender=type(NotificationPlugin),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -263,11 +246,11 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_onboarding_complete(self):
         now = timezone.now()
-        user = self.create_user(email='test@example.org')
+        user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
         second_event = self.create_event(
-            project=second_project, platform='python', message='python error message'
+            project=second_project, platform="python", message="python error message"
         )
         event = self.create_full_event(project=project)
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
@@ -276,36 +259,30 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(project=project, user=user, sender=type(project))
         project_created.send(project=second_project, user=user, sender=type(second_project))
 
+        first_event_received.send(project=project, event=event, sender=type(project))
         first_event_received.send(
-            project=project,
-            event=event,
-            sender=type(project),
-        )
-        first_event_received.send(
-            project=second_project,
-            event=second_event,
-            sender=type(second_project),
+            project=second_project, event=second_event, sender=type(second_project)
         )
         member_joined.send(member=member, organization=self.organization, sender=type(member))
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=project,
             user=user,
-            sender=type(IssueTrackingPlugin)
+            sender=type(IssueTrackingPlugin),
         )
         issue_tracker_used.send(
             plugin=IssueTrackingPlugin(),
             project=project,
             user=user,
-            sender=type(IssueTrackingPlugin)
+            sender=type(IssueTrackingPlugin),
         )
         plugin_enabled.send(
-            plugin=NotificationPlugin(),
-            project=project,
-            user=user,
-            sender=type(NotificationPlugin)
+            plugin=NotificationPlugin(), project=project, user=user, sender=type(NotificationPlugin)
         )
 
-        assert OrganizationOption.objects.filter(
-            organization=self.organization, key="onboarding:complete"
-        ).count() == 1
+        assert (
+            OrganizationOption.objects.filter(
+                organization=self.organization, key="onboarding:complete"
+            ).count()
+            == 1
+        )

@@ -13,19 +13,14 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         self.org = self.create_organization(owner=self.user)
         self.project_ids = [
             self.create_project(organization=self.org).id,
-            self.create_project(organization=self.org).id
+            self.create_project(organization=self.org).id,
         ]
-        self.project_ids_without_access = [
-            self.create_project().id
-        ]
-        query = {
-            'fields': ['test'],
-            'conditions': [],
-            'limit': 10
-        }
+        self.project_ids_without_access = [self.create_project().id]
+        query = {"fields": ["test"], "conditions": [], "limit": 10}
 
         model = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=query)
+            organization=self.org, created_by=self.user, name="Test query", query=query
+        )
 
         model.set_projects(self.project_ids)
 
@@ -36,11 +31,11 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['name'] == 'Test query'
-        assert response.data[0]['projects'] == self.project_ids
-        assert response.data[0]['fields'] == ['test']
-        assert response.data[0]['conditions'] == []
-        assert response.data[0]['limit'] == 10
+        assert response.data[0]["name"] == "Test query"
+        assert response.data[0]["projects"] == self.project_ids
+        assert response.data[0]["fields"] == ["test"]
+        assert response.data[0]["conditions"] == []
+        assert response.data[0]["limit"] == 10
 
     def test_post(self):
         with self.feature('organizations:discover'):
@@ -57,11 +52,11 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 201, response.content
-        assert response.data['name'] == 'New query'
-        assert response.data['projects'] == self.project_ids
-        assert response.data['range'] == '24h'
-        assert not hasattr(response.data, 'start')
-        assert not hasattr(response.data, 'end')
+        assert response.data["name"] == "New query"
+        assert response.data["projects"] == self.project_ids
+        assert response.data["range"] == "24h"
+        assert not hasattr(response.data, "start")
+        assert not hasattr(response.data, "end")
 
     def test_post_invalid_projects(self):
         with self.feature('organizations:discover'):

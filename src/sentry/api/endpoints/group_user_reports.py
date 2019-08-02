@@ -21,10 +21,7 @@ class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
 
         try:
-            environment = self._get_environment_from_request(
-                request,
-                group.organization.id,
-            )
+            environment = self._get_environment_from_request(request, group.organization.id)
         except Environment.DoesNotExist:
             report_list = UserReport.objects.none()
         else:
@@ -34,7 +31,7 @@ class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             queryset=report_list,
-            order_by='-date_added',
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=DateTimePaginator,
         )

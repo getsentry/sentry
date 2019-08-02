@@ -29,23 +29,14 @@ from sentry.utils.linksign import generate_signed_link
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@instrumented_task(
-    name='sentry.incidents.tasks.send_subscriber_notifications',
-    queue='incidents',
-)
+@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
 def send_subscriber_notifications(activity_id):
-    from sentry.incidents.logic import (
-        get_incident_subscribers,
-        unsubscribe_from_incident,
-    )
+    from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
+
     try:
         activity = IncidentActivity.objects.select_related(
-            'incident',
-            'user',
-            'incident__organization',
-        ).get(
-            id=activity_id,
-        )
+            "incident", "user", "incident__organization"
+        ).get(id=activity_id)
     except IncidentActivity.DoesNotExist:
         return
 
@@ -59,7 +50,7 @@ def send_subscriber_notifications(activity_id):
     # Check that the user still has access to at least one of the projects
     # related to the incident. If not then unsubscribe them.
     projects = list(activity.incident.projects.all())
-    for subscriber in get_incident_subscribers(activity.incident).select_related('user'):
+    for subscriber in get_incident_subscribers(activity.incident).select_related("user"):
         user = subscriber.user
         access = from_user(user, activity.incident.organization)
         if not any(project for project in projects if access.has_project_access(project)):
@@ -72,53 +63,52 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject=u'Activity on Incident {} (#{})'.format(incident.title, incident.identifier),
-        template=u'sentry/emails/incidents/activity.txt',
-        html_template=u'sentry/emails/incidents/activity.html',
-        type='incident.activity',
+        subject=u"Activity on Incident {} (#{})".format(incident.title, incident.identifier),
+        template=u"sentry/emails/incidents/activity.txt",
+        html_template=u"sentry/emails/incidents/activity.html",
+        type="incident.activity",
         context=build_activity_context(activity, user),
     )
 
 
 def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
-        action = 'left a comment'
+        action = "left a comment"
     else:
-        action = 'changed status from %s to %s' % (
+        action = "changed status from %s to %s" % (
             IncidentStatus(int(activity.previous_value)).name.lower(),
             IncidentStatus(int(activity.value)).name.lower(),
         )
     incident = activity.incident
 
-    action = '%s on incident %s (#%s)' % (action, incident.title, incident.identifier)
+    action = "%s on incident %s (#%s)" % (action, incident.title, incident.identifier)
 
     return {
-        'user_name': activity.user.name if activity.user else 'Sentry',
-        'action': action,
-        'link': absolute_uri(reverse(
-            'sentry-incident',
-            kwargs={
-                'organization_slug': incident.organization.slug,
-                'incident_id': incident.identifier,
-            },
-        )) + '?' + urlencode({'referrer': 'incident_activity_email'}),
-        'comment': activity.comment,
-        'unsubscribe_link': generate_signed_link(
-            user,
-            'sentry-account-email-unsubscribe-incident',
-            kwargs={'incident_id': incident.id},
+        "user_name": activity.user.name if activity.user else "Sentry",
+        "action": action,
+        "link": absolute_uri(
+            reverse(
+                "sentry-incident",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            )
+        )
+        + "?"
+        + urlencode({"referrer": "incident_activity_email"}),
+        "comment": activity.comment,
+        "unsubscribe_link": generate_signed_link(
+            user, "sentry-account-email-unsubscribe-incident", kwargs={"incident_id": incident.id}
         ),
     }
 
 
-@instrumented_task(
-    name='sentry.incidents.tasks.calculate_incident_suspects',
-    queue='incidents',
-)
+@instrumented_task(name="sentry.incidents.tasks.calculate_incident_suspects", queue="incidents")
 def calculate_incident_suspects(incident_id):
     from sentry.incidents.logic import get_incident_suspect_commits
 
-    lock = locks.get(u'incident:suspects:{}'.format(incident_id), duration=60 * 10)
+    lock = locks.get(u"incident:suspects:{}".format(incident_id), duration=60 * 10)
     with TimedRetryPolicy(60)(lock.acquire):
         incident = Incident.objects.get(id=incident_id)
         suspect_commits = get_incident_suspect_commits(incident)

@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
-
     def get(self, request, organization):
         # Check for a direct hit on event ID
         query = request.GET.get('query', '').strip()
@@ -90,19 +89,18 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 return Response({'detail': 'No fields provided'}, status=400)
 
         except OrganizationEventsError as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({"detail": exc.message}, status=400)
         except NoProjects:
             return Response([])
 
-        filters = snuba_args.get('filter_keys', {})
+        filters = snuba_args.get("filter_keys", {})
         has_global_views = features.has(
-            'organizations:global-views',
-            organization,
-            actor=request.user)
-        if not has_global_views and len(filters.get('project_id', [])) > 1:
-            return Response({
-                'detail': 'You cannot view events from multiple projects.'
-            }, status=400)
+            "organizations:global-views", organization, actor=request.user
+        )
+        if not has_global_views and len(filters.get("project_id", [])) > 1:
+            return Response(
+                {"detail": "You cannot view events from multiple projects."}, status=400
+            )
 
         data_fn = partial(
             lambda **kwargs: snuba.transform_aliases_and_query(skip_conditions=True, **kwargs),
@@ -119,16 +117,14 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             )
         except snuba.SnubaError as error:
             logger.info(
-                'organization.events.snuba-error',
+                "organization.events.snuba-error",
                 extra={
-                    'organization_id': organization.id,
-                    'user_id': request.user.id,
-                    'error': six.text_type(error),
-                }
+                    "organization_id": organization.id,
+                    "user_id": request.user.id,
+                    "error": six.text_type(error),
+                },
             )
-            return Response({
-                'detail': 'Invalid query.'
-            }, status=400)
+            return Response({"detail": "Invalid query."}, status=400)
 
     def handle_results_with_meta(self, request, organization, project_ids, results):
         data = self.handle_data(request, organization, project_ids, results.get('data'))

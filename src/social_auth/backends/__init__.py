@@ -23,36 +23,52 @@ from six.moves.urllib.request import Request
 from six.moves.urllib.parse import urlencode
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
-    setting, model_to_ctype, ctype_to_model, clean_partial_pipeline,
-    url_add_parameters, dsa_urlopen)
+    setting,
+    model_to_ctype,
+    ctype_to_model,
+    clean_partial_pipeline,
+    url_add_parameters,
+    dsa_urlopen,
+)
 from social_auth.exceptions import (
-    StopPipeline, AuthFailed, AuthCanceled, AuthUnknownError,
-    AuthTokenError, AuthMissingParameter, AuthStateMissing, AuthStateForbidden,
-    BackendError)
+    StopPipeline,
+    AuthFailed,
+    AuthCanceled,
+    AuthUnknownError,
+    AuthTokenError,
+    AuthMissingParameter,
+    AuthStateMissing,
+    AuthStateForbidden,
+    BackendError,
+)
 from social_auth.backends.utils import build_consumer_oauth_request
 from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
 
 from sentry.utils import json
 
-PIPELINE = setting('SOCIAL_AUTH_PIPELINE', (
-    'social_auth.backends.pipeline.social.social_auth_user',
-    # Removed by default since it can be a dangerouse behavior that
-    # could lead to accounts take over.
-    # 'social_auth.backends.pipeline.associate.associate_by_email',
-    'social_auth.backends.pipeline.user.get_username',
-    'social_auth.backends.pipeline.user.create_user',
-    'social_auth.backends.pipeline.social.associate_user',
-    'social_auth.backends.pipeline.social.load_extra_data',
-    'social_auth.backends.pipeline.user.update_user_details',
-))
+PIPELINE = setting(
+    "SOCIAL_AUTH_PIPELINE",
+    (
+        "social_auth.backends.pipeline.social.social_auth_user",
+        # Removed by default since it can be a dangerouse behavior that
+        # could lead to accounts take over.
+        # 'social_auth.backends.pipeline.associate.associate_by_email',
+        "social_auth.backends.pipeline.user.get_username",
+        "social_auth.backends.pipeline.user.create_user",
+        "social_auth.backends.pipeline.social.associate_user",
+        "social_auth.backends.pipeline.social.load_extra_data",
+        "social_auth.backends.pipeline.user.update_user_details",
+    ),
+)
 
-logger = logging.getLogger('social_auth')
+logger = logging.getLogger("social_auth")
 
 
 class SocialAuthBackend(object):
     """A django.contrib.auth backend that authenticates the user based on
     a authentication provider response"""
-    name = ''  # provider name, it's stored in database
+
+    name = ""  # provider name, it's stored in database
     supports_inactive_user = False
 
     def authenticate(self, *args, **kwargs):
@@ -66,46 +82,46 @@ class SocialAuthBackend(object):
         # response be passed in as a keyword argument, to make sure we
         # don't match the username/password calling conventions of
         # authenticate.
-        if not (self.name and kwargs.get(self.name) and 'response' in kwargs):
+        if not (self.name and kwargs.get(self.name) and "response" in kwargs):
             return None
 
-        response = kwargs.get('response')
+        response = kwargs.get("response")
         pipeline = PIPELINE
         kwargs = kwargs.copy()
-        kwargs['backend'] = self
+        kwargs["backend"] = self
 
-        if 'pipeline_index' in kwargs:
-            pipeline = pipeline[kwargs['pipeline_index']:]
+        if "pipeline_index" in kwargs:
+            pipeline = pipeline[kwargs["pipeline_index"]:]
         else:
-            kwargs['details'] = self.get_user_details(response)
-            kwargs['uid'] = self.get_user_id(kwargs['details'], response)
-            kwargs['is_new'] = False
+            kwargs["details"] = self.get_user_details(response)
+            kwargs["uid"] = self.get_user_id(kwargs["details"], response)
+            kwargs["is_new"] = False
 
         out = self.pipeline(pipeline, *args, **kwargs)
         if not isinstance(out, dict):
             return out
 
-        social_user = out.get('social_user')
+        social_user = out.get("social_user")
         if social_user:
             # define user.social_user attribute to track current social
             # account
             user = social_user.user
             user.social_user = social_user
-            user.is_new = out.get('is_new')
+            user.is_new = out.get("is_new")
             return user
 
     def pipeline(self, pipeline, *args, **kwargs):
         """Pipeline"""
         out = kwargs.copy()
 
-        if 'pipeline_index' in kwargs:
-            base_index = int(kwargs['pipeline_index'])
+        if "pipeline_index" in kwargs:
+            base_index = int(kwargs["pipeline_index"])
         else:
             base_index = 0
 
         for idx, name in enumerate(pipeline):
-            out['pipeline_index'] = base_index + idx
-            mod_name, func_name = name.rsplit('.', 1)
+            out["pipeline_index"] = base_index + idx
+            mod_name, func_name = name.rsplit(".", 1)
             mod = __import__(mod_name, {}, {}, [func_name])
             func = getattr(mod, func_name, None)
 
@@ -113,8 +129,8 @@ class SocialAuthBackend(object):
                 result = func(*args, **out) or {}
             except StopPipeline:
                 # Clean partial pipeline on stop
-                if 'request' in kwargs:
-                    clean_partial_pipeline(kwargs['request'])
+                if "request" in kwargs:
+                    clean_partial_pipeline(kwargs["request"])
                 break
 
             if isinstance(result, dict):
@@ -123,8 +139,8 @@ class SocialAuthBackend(object):
                 return result
 
         # clean the partial pipeline at the end of the process
-        if 'request' in kwargs:
-            clean_partial_pipeline(kwargs['request'])
+        if "request" in kwargs:
+            clean_partial_pipeline(kwargs["request"])
         return out
 
     def extra_data(self, user, uid, response, details):
@@ -133,7 +149,7 @@ class SocialAuthBackend(object):
 
     def get_user_id(self, details, response):
         """Must return a unique ID from values returned on details"""
-        raise NotImplementedError('Implement in subclass')
+        raise NotImplementedError("Implement in subclass")
 
     def get_user_details(self, response):
         """Must return user details in a know internal struct:
@@ -143,7 +159,7 @@ class SocialAuthBackend(object):
              'first_name': <user first name if any>,
              'last_name': <user last name if any>}
         """
-        raise NotImplementedError('Implement in subclass')
+        raise NotImplementedError("Implement in subclass")
 
     @classmethod
     def tokens(cls, instance):
@@ -153,10 +169,8 @@ class SocialAuthBackend(object):
 
         instance must be a UserSocialAuth instance.
         """
-        if instance.extra_data and 'access_token' in instance.extra_data:
-            return {
-                'access_token': instance.extra_data['access_token']
-            }
+        if instance.extra_data and "access_token" in instance.extra_data:
+            return {"access_token": instance.extra_data["access_token"]}
         else:
             return {}
 
@@ -181,8 +195,9 @@ class OAuthBackend(SocialAuthBackend):
 
     access_token is always stored.
     """
+
     EXTRA_DATA = None
-    ID_KEY = 'id'
+    ID_KEY = "id"
 
     def get_user_id(self, details, response):
         """OAuth providers return an unique user id in response"""
@@ -192,9 +207,9 @@ class OAuthBackend(SocialAuthBackend):
     def extra_data(cls, user, uid, response, details=None):
         """Return access_token and extra defined names to store in
         extra_data field"""
-        data = {'access_token': response.get('access_token', '')}
-        name = cls.name.replace('-', '_').upper()
-        names = (cls.EXTRA_DATA or []) + setting(name + '_EXTRA_DATA', [])
+        data = {"access_token": response.get("access_token", "")}
+        name = cls.name.replace("-", "_").upper()
+        names = (cls.EXTRA_DATA or []) + setting(name + "_EXTRA_DATA", [])
 
         for entry in names:
             if isinstance(entry, six.string_types):
@@ -208,7 +223,7 @@ class OAuthBackend(SocialAuthBackend):
                 elif len(entry) == 1:
                     (name,), (alias,), discard = entry, entry, False
                 else:
-                    raise ValueError('invalid tuple for EXTRA_DATA entry' % entry)
+                    raise ValueError("invalid tuple for EXTRA_DATA entry" % entry)
 
                 value = response.get(name)
                 if discard and not value:
@@ -216,7 +231,7 @@ class OAuthBackend(SocialAuthBackend):
                 data[alias] = value
 
             except (TypeError, ValueError):
-                raise BackendError('invalid entry: %s' % (entry,))
+                raise BackendError("invalid entry: %s" % (entry,))
 
         return data
 
@@ -227,6 +242,7 @@ class BaseAuth(object):
 
         AUTH_BACKEND   Authorization backend related with this service
     """
+
     AUTH_BACKEND = None
 
     def __init__(self, request, redirect):
@@ -238,45 +254,41 @@ class BaseAuth(object):
 
     def auth_url(self):
         """Must return redirect URL to auth provider"""
-        raise NotImplementedError('Implement in subclass')
+        raise NotImplementedError("Implement in subclass")
 
     def auth_html(self):
         """Must return login HTML content returned by provider"""
-        raise NotImplementedError('Implement in subclass')
+        raise NotImplementedError("Implement in subclass")
 
     def auth_complete(self, *args, **kwargs):
         """Completes loging process, must return user instance"""
-        raise NotImplementedError('Implement in subclass')
+        raise NotImplementedError("Implement in subclass")
 
     def to_session_dict(self, next_idx, *args, **kwargs):
         """Returns dict to store on session for partial pipeline."""
         return {
-            'next': next_idx,
-            'backend': self.AUTH_BACKEND.name,
-            'args': tuple(map(model_to_ctype, args)),
-            'kwargs': dict((key, model_to_ctype(val))
-                           for key, val in six.iteritems(kwargs))
+            "next": next_idx,
+            "backend": self.AUTH_BACKEND.name,
+            "args": tuple(map(model_to_ctype, args)),
+            "kwargs": dict((key, model_to_ctype(val)) for key, val in six.iteritems(kwargs)),
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
         """Takes session saved data to continue pipeline and merges with any
         new extra argument needed. Returns tuple with next pipeline index
         entry, arguments and keyword arguments to continue the process."""
-        args = args[:] + tuple(map(ctype_to_model, session_data['args']))
+        args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
-        saved_kwargs = dict((key, ctype_to_model(val))
-                            for key, val in six.iteritems(session_data['kwargs']))
-        saved_kwargs.update((key, val)
-                            for key, val in six.iteritems(kwargs))
-        return (session_data['next'], args, saved_kwargs)
+        saved_kwargs = dict(
+            (key, ctype_to_model(val)) for key, val in six.iteritems(session_data["kwargs"])
+        )
+        saved_kwargs.update((key, val) for key, val in six.iteritems(kwargs))
+        return (session_data["next"], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
         """Continue previous halted pipeline"""
-        kwargs.update({
-            'auth': self,
-            self.AUTH_BACKEND.name: True
-        })
+        kwargs.update({"auth": self, self.AUTH_BACKEND.name: True})
         return authenticate(*args, **kwargs)
 
     def request_token_extra_arguments(self):
@@ -284,8 +296,8 @@ class BaseAuth(object):
         setting is per backend and defined by:
             <backend name in uppercase>_REQUEST_TOKEN_EXTRA_ARGUMENTS.
         """
-        backend_name = self.AUTH_BACKEND.name.upper().replace('-', '_')
-        return setting(backend_name + '_REQUEST_TOKEN_EXTRA_ARGUMENTS', {})
+        backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
+        return setting(backend_name + "_REQUEST_TOKEN_EXTRA_ARGUMENTS", {})
 
     def auth_extra_arguments(self):
         """Return extra arguments needed on auth process, setting is per
@@ -293,8 +305,8 @@ class BaseAuth(object):
             <backend name in uppercase>_AUTH_EXTRA_ARGUMENTS.
         The defaults can be overriden by GET parameters.
         """
-        backend_name = self.AUTH_BACKEND.name.upper().replace('-', '_')
-        extra_arguments = setting(backend_name + '_AUTH_EXTRA_ARGUMENTS', {})
+        backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
+        extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
         for key, value in six.iteritems(extra_arguments):
             if key in self.data:
                 extra_arguments[key] = self.data[key]
@@ -318,15 +330,14 @@ class BaseAuth(object):
         Override if extra operations are needed.
         """
         name = self.AUTH_BACKEND.name
-        do_revoke = setting('SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT')
+        do_revoke = setting("SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT")
         filter_args = {}
 
         if association_id:
-            filter_args['id'] = association_id
+            filter_args["id"] = association_id
         else:
-            filter_args['provider'] = name
-        instances = UserSocialAuth.get_social_auth_for_user(user)\
-                                  .filter(**filter_args)
+            filter_args["provider"] = name
+        instances = UserSocialAuth.get_social_auth_for_user(user).filter(**filter_args)
 
         if do_revoke:
             for instance in instances:
@@ -338,19 +349,20 @@ class BaseAuth(object):
         https:// if SOCIAL_AUTH_REDIRECT_IS_HTTPS is defined.
         """
         uri = self.request.build_absolute_uri(path)
-        if setting('SOCIAL_AUTH_REDIRECT_IS_HTTPS'):
-            uri = uri.replace('http://', 'https://')
+        if setting("SOCIAL_AUTH_REDIRECT_IS_HTTPS"):
+            uri = uri.replace("http://", "https://")
         return uri
 
 
 class BaseOAuth(BaseAuth):
     """OAuth base class"""
-    SETTINGS_KEY_NAME = ''
-    SETTINGS_SECRET_NAME = ''
+
+    SETTINGS_KEY_NAME = ""
+    SETTINGS_SECRET_NAME = ""
     SCOPE_VAR_NAME = None
-    SCOPE_PARAMETER_NAME = 'scope'
+    SCOPE_PARAMETER_NAME = "scope"
     DEFAULT_SCOPE = None
-    SCOPE_SEPARATOR = ' '
+    SCOPE_SEPARATOR = " "
 
     def __init__(self, request, redirect):
         """Init method"""
@@ -362,15 +374,12 @@ class BaseOAuth(BaseAuth):
         """Return tuple with Consumer Key and Consumer Secret for current
         service provider. Must return (key, secret), order *must* be respected.
         """
-        return (setting(cls.SETTINGS_KEY_NAME),
-                setting(cls.SETTINGS_SECRET_NAME))
+        return (setting(cls.SETTINGS_KEY_NAME), setting(cls.SETTINGS_SECRET_NAME))
 
     @classmethod
     def enabled(cls):
         """Return backend enabled status by checking basic settings"""
-        return bool(
-            setting(cls.SETTINGS_KEY_NAME) and setting(cls.SETTINGS_SECRET_NAME)
-        )
+        return bool(setting(cls.SETTINGS_KEY_NAME) and setting(cls.SETTINGS_SECRET_NAME))
 
     def get_scope(self):
         """Return list with needed access scope"""
@@ -399,14 +408,15 @@ class ConsumerBasedOAuth(BaseOAuth):
         REQUEST_TOKEN_URL       Request token URL
         ACCESS_TOKEN_URL        Access token URL
     """
-    AUTHORIZATION_URL = ''
-    REQUEST_TOKEN_URL = ''
-    ACCESS_TOKEN_URL = ''
+
+    AUTHORIZATION_URL = ""
+    REQUEST_TOKEN_URL = ""
+    ACCESS_TOKEN_URL = ""
 
     def auth_url(self):
         """Return redirect url"""
         token = self.unauthorized_token()
-        name = self.AUTH_BACKEND.name + 'unauthorized_token_name'
+        name = self.AUTH_BACKEND.name + "unauthorized_token_name"
         if not isinstance(self.request.session.get(name), list):
             self.request.session[name] = []
         self.request.session[name].append(token.to_string())
@@ -416,21 +426,20 @@ class ConsumerBasedOAuth(BaseOAuth):
     def auth_complete(self, *args, **kwargs):
         """Return user, might be logged in"""
         # Multiple unauthorized tokens are supported (see #521)
-        name = self.AUTH_BACKEND.name + 'unauthorized_token_name'
+        name = self.AUTH_BACKEND.name + "unauthorized_token_name"
         token = None
         unauthed_tokens = self.request.session.get(name) or []
         if not unauthed_tokens:
-            raise AuthTokenError(self, 'Missing unauthorized token')
+            raise AuthTokenError(self, "Missing unauthorized token")
         for unauthed_token in unauthed_tokens:
             token = Token.from_string(unauthed_token)
-            if token.key == self.data.get('oauth_token', 'no-token'):
-                unauthed_tokens = list(set(unauthed_tokens) -
-                                       set([unauthed_token]))
+            if token.key == self.data.get("oauth_token", "no-token"):
+                unauthed_tokens = list(set(unauthed_tokens) - set([unauthed_token]))
                 self.request.session[name] = unauthed_tokens
                 self.request.session.modified = True
                 break
         else:
-            raise AuthTokenError(self, 'Incorrect tokens')
+            raise AuthTokenError(self, "Incorrect tokens")
 
         try:
             access_token = self.access_token(token)
@@ -448,13 +457,9 @@ class ConsumerBasedOAuth(BaseOAuth):
 
         data = self.user_data(access_token)
         if data is not None:
-            data['access_token'] = access_token.to_string()
+            data["access_token"] = access_token.to_string()
 
-        kwargs.update({
-            'auth': self,
-            'response': data,
-            self.AUTH_BACKEND.name: True
-        })
+        kwargs.update({"auth": self, "response": data, self.AUTH_BACKEND.name: True})
         return authenticate(*args, **kwargs)
 
     def unauthorized_token(self):
@@ -462,7 +467,7 @@ class ConsumerBasedOAuth(BaseOAuth):
         request = self.oauth_request(
             token=None,
             url=self.REQUEST_TOKEN_URL,
-            extra_params=self.request_token_extra_arguments()
+            extra_params=self.request_token_extra_arguments(),
         )
         return Token.from_string(self.fetch_response(request))
 
@@ -474,20 +479,19 @@ class ConsumerBasedOAuth(BaseOAuth):
             token=token,
             callback=self.redirect_uri,
             http_url=self.AUTHORIZATION_URL,
-            parameters=params
+            parameters=params,
         )
 
     def oauth_request(self, token, url, extra_params=None):
         """Generate OAuth request, setups callback url"""
-        return build_consumer_oauth_request(self, token, url,
-                                            self.redirect_uri,
-                                            self.data.get('oauth_verifier'),
-                                            extra_params)
+        return build_consumer_oauth_request(
+            self, token, url, self.redirect_uri, self.data.get("oauth_verifier"), extra_params
+        )
 
     def fetch_response(self, request):
         """Executes request and fetchs service response"""
         response = dsa_urlopen(request.to_url())
-        return '\n'.join(response.readlines())
+        return "\n".join(response.readlines())
 
     def access_token(self, token):
         """Return request for access token value"""
@@ -510,12 +514,13 @@ class BaseOAuth2(BaseOAuth):
         AUTHORIZATION_URL       Authorization service url
         ACCESS_TOKEN_URL        Token URL
     """
+
     AUTHORIZATION_URL = None
     ACCESS_TOKEN_URL = None
     REFRESH_TOKEN_URL = None
     REVOKE_TOKEN_URL = None
-    REVOKE_TOKEN_METHOD = 'POST'
-    RESPONSE_TYPE = 'code'
+    REVOKE_TOKEN_METHOD = "POST"
+    RESPONSE_TYPE = "code"
     REDIRECT_STATE = True
     STATE_PARAMETER = True
 
@@ -527,19 +532,16 @@ class BaseOAuth2(BaseOAuth):
         """Build redirect_uri with redirect_state parameter."""
         uri = self.redirect_uri
         if self.REDIRECT_STATE and state:
-            uri = url_add_parameters(uri, {'redirect_state': state})
+            uri = url_add_parameters(uri, {"redirect_state": state})
         return uri
 
     def auth_params(self, state=None):
         client_id, client_secret = self.get_key_and_secret()
-        params = {
-            'client_id': client_id,
-            'redirect_uri': self.get_redirect_uri(state)
-        }
+        params = {"client_id": client_id, "redirect_uri": self.get_redirect_uri(state)}
         if self.STATE_PARAMETER and state:
-            params['state'] = state
+            params["state"] = state
         if self.RESPONSE_TYPE:
-            params['response_type'] = self.RESPONSE_TYPE
+            params["response_type"] = self.RESPONSE_TYPE
         return params
 
     def auth_url(self):
@@ -550,9 +552,9 @@ class BaseOAuth2(BaseOAuth):
             # but also added to redirect_uri, that way we can still verify the
             # request if the provider doesn't implement the state parameter.
             # Reuse token if any.
-            name = self.AUTH_BACKEND.name + '_state'
+            name = self.AUTH_BACKEND.name + "_state"
             state = self.request.session.get(name) or self.state_token()
-            self.request.session[self.AUTH_BACKEND.name + '_state'] = state
+            self.request.session[self.AUTH_BACKEND.name + "_state"] = state
         else:
             state = None
 
@@ -560,89 +562,84 @@ class BaseOAuth2(BaseOAuth):
         params.update(self.get_scope_argument())
         params.update(self.auth_extra_arguments())
 
-        if self.request.META.get('QUERY_STRING'):
-            query_string = '&' + self.request.META['QUERY_STRING']
+        if self.request.META.get("QUERY_STRING"):
+            query_string = "&" + self.request.META["QUERY_STRING"]
         else:
-            query_string = ''
-        return self.AUTHORIZATION_URL + '?' + urlencode(params) + query_string
+            query_string = ""
+        return self.AUTHORIZATION_URL + "?" + urlencode(params) + query_string
 
     def validate_state(self):
         """Validate state value. Raises exception on error, returns state
         value if valid."""
         if not self.STATE_PARAMETER and not self.REDIRECT_STATE:
             return None
-        state = self.request.session.get(self.AUTH_BACKEND.name + '_state')
+        state = self.request.session.get(self.AUTH_BACKEND.name + "_state")
         if state:
-            request_state = (self.data.get('state') or
-                             self.data.get('redirect_state'))
+            request_state = self.data.get("state") or self.data.get("redirect_state")
             if not request_state:
-                raise AuthMissingParameter(self, 'state')
+                raise AuthMissingParameter(self, "state")
             elif not state:
-                raise AuthStateMissing(self, 'state')
+                raise AuthStateMissing(self, "state")
             elif not constant_time_compare(request_state, state):
                 raise AuthStateForbidden(self)
         return state
 
     def process_error(self, data):
-        error = data.get('error_description') or data.get('error')
+        error = data.get("error_description") or data.get("error")
         if error:
             raise AuthFailed(self, error)
 
     def auth_complete_params(self, state=None):
         client_id, client_secret = self.get_key_and_secret()
         return {
-            'grant_type': 'authorization_code',  # request auth code
-            'code': self.data.get('code', ''),  # server response code
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'redirect_uri': self.get_redirect_uri(state)
+            "grant_type": "authorization_code",  # request auth code
+            "code": self.data.get("code", ""),  # server response code
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": self.get_redirect_uri(state),
         }
 
     @classmethod
     def auth_headers(cls):
-        return {'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'}
+        return {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
 
     def auth_complete(self, *args, **kwargs):
         """Completes loging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
-        request = Request(self.ACCESS_TOKEN_URL, data=urlencode(params),
-                          headers=self.auth_headers())
+        request = Request(
+            self.ACCESS_TOKEN_URL, data=urlencode(params), headers=self.auth_headers()
+        )
 
         try:
             response = json.loads(dsa_urlopen(request).read())
         except HTTPError as e:
-            logger.exception('plugins.auth.error', extra={
-                'class': type(self),
-                'status_code': e.code,
-                'response': e.read()[:128],
-            })
+            logger.exception(
+                "plugins.auth.error",
+                extra={"class": type(self), "status_code": e.code, "response": e.read()[:128]},
+            )
             raise AuthUnknownError(self)
         except (ValueError, KeyError):
             raise AuthUnknownError(self)
 
         self.process_error(response)
-        return self.do_auth(response['access_token'], response=response,
-                            *args, **kwargs)
+        return self.do_auth(response["access_token"], response=response, *args, **kwargs)
 
     @classmethod
     def refresh_token_params(cls, token, provider):
         client_id, client_secret = cls.get_key_and_secret()
         return {
-            'refresh_token': token,
-            'grant_type': 'refresh_token',
-            'client_id': client_id,
-            'client_secret': client_secret
+            "refresh_token": token,
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+            "client_secret": client_secret,
         }
 
     @classmethod
     def refresh_token(cls, token, provider):
         params = cls.refresh_token_params(token, provider)
         response = requests.post(
-            cls.REFRESH_TOKEN_URL or cls.ACCESS_TOKEN_URL,
-            data=params,
-            headers=cls.auth_headers(),
+            cls.REFRESH_TOKEN_URL or cls.ACCESS_TOKEN_URL, data=params, headers=cls.auth_headers()
         )
         response.raise_for_status()
         return response.json()
@@ -668,13 +665,13 @@ class BaseOAuth2(BaseOAuth):
         headers = cls.revoke_token_headers(token, uid) or {}
         data = None
 
-        if cls.REVOKE_TOKEN_METHOD == 'GET':
-            url = u'{}?{}'.format(url, urlencode(params))
+        if cls.REVOKE_TOKEN_METHOD == "GET":
+            url = u"{}?{}".format(url, urlencode(params))
         else:
             data = urlencode(params)
 
         request = Request(url, data=data, headers=headers)
-        if cls.REVOKE_TOKEN_URL.lower() not in ('get', 'post'):
+        if cls.REVOKE_TOKEN_URL.lower() not in ("get", "post"):
             # Patch get_method to return the needed method
             request.get_method = lambda: cls.REVOKE_TOKEN_METHOD
         response = dsa_urlopen(request)
@@ -683,13 +680,9 @@ class BaseOAuth2(BaseOAuth):
     def do_auth(self, access_token, *args, **kwargs):
         """Finish the auth process once the access_token was retrieved"""
         data = self.user_data(access_token, *args, **kwargs)
-        response = kwargs.get('response') or {}
+        response = kwargs.get("response") or {}
         response.update(data or {})
-        kwargs.update({
-            'auth': self,
-            'response': response,
-            self.AUTH_BACKEND.name: True
-        })
+        kwargs.update({"auth": self, "response": response, self.AUTH_BACKEND.name: True})
         return authenticate(*args, **kwargs)
 
 
@@ -722,14 +715,14 @@ def get_backends(force_load=False):
 
     if not BACKENDSCACHE or force_load:
         with _import_lock:
-            for auth_backend in setting('SOCIAL_AUTH_AUTHENTICATION_BACKENDS'):
-                mod, cls_name = auth_backend.rsplit('.', 1)
-                module = __import__(mod, {}, {}, ['BACKENDS', cls_name])
+            for auth_backend in setting("SOCIAL_AUTH_AUTHENTICATION_BACKENDS"):
+                mod, cls_name = auth_backend.rsplit(".", 1)
+                module = __import__(mod, {}, {}, ["BACKENDS", cls_name])
                 backend = getattr(module, cls_name)
 
                 if issubclass(backend, SocialAuthBackend):
                     name = backend.name
-                    backends = getattr(module, 'BACKENDS', {})
+                    backends = getattr(module, "BACKENDS", {})
                     if name in backends and backends[name].enabled():
                         BACKENDSCACHE[name] = backends[name]
     return BACKENDSCACHE

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['PluginProjectEndpoint', 'PluginGroupEndpoint']
+__all__ = ["PluginProjectEndpoint", "PluginGroupEndpoint"]
 
 from rest_framework.response import Response
 

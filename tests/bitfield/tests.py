@@ -16,15 +16,15 @@ from .models import BitFieldTestModel
 
 class BitHandlerTest(TestCase):
     def test_comparison(self):
-        bithandler_1 = BitHandler(0, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
-        bithandler_2 = BitHandler(1, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
-        bithandler_3 = BitHandler(0, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler_1 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
+        bithandler_2 = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
+        bithandler_3 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         assert bithandler_1 == bithandler_1
         assert bithandler_1 != bithandler_2
         assert bithandler_1 == bithandler_3
 
     def test_defaults(self):
-        bithandler = BitHandler(0, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         # Default value of 0.
         self.assertEquals(int(bithandler), 0)
         # Test bit numbers.
@@ -41,32 +41,32 @@ class BitHandlerTest(TestCase):
         self.assertEquals(bool(bithandler.FLAG_3), False)
 
     def test_nonzero_default(self):
-        bithandler = BitHandler(1, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEquals(bool(bithandler.FLAG_0), True)
         self.assertEquals(bool(bithandler.FLAG_1), False)
         self.assertEquals(bool(bithandler.FLAG_2), False)
         self.assertEquals(bool(bithandler.FLAG_3), False)
 
-        bithandler = BitHandler(2, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(2, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEquals(bool(bithandler.FLAG_0), False)
         self.assertEquals(bool(bithandler.FLAG_1), True)
         self.assertEquals(bool(bithandler.FLAG_2), False)
         self.assertEquals(bool(bithandler.FLAG_3), False)
 
-        bithandler = BitHandler(3, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(3, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEquals(bool(bithandler.FLAG_0), True)
         self.assertEquals(bool(bithandler.FLAG_1), True)
         self.assertEquals(bool(bithandler.FLAG_2), False)
         self.assertEquals(bool(bithandler.FLAG_3), False)
 
-        bithandler = BitHandler(4, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(4, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEquals(bool(bithandler.FLAG_0), False)
         self.assertEquals(bool(bithandler.FLAG_1), False)
         self.assertEquals(bool(bithandler.FLAG_2), True)
         self.assertEquals(bool(bithandler.FLAG_3), False)
 
     def test_mutation(self):
-        bithandler = BitHandler(0, ('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3'))
+        bithandler = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEquals(bool(bithandler.FLAG_0), False)
         self.assertEquals(bool(bithandler.FLAG_1), False)
         self.assertEquals(bool(bithandler.FLAG_2), False)
@@ -158,7 +158,7 @@ class BitFieldTest(TestCase):
         self.assertTrue(instance.flags.FLAG_3)
 
         cursor = connection.cursor()
-        flags_field = BitFieldTestModel._meta.get_field('flags')
+        flags_field = BitFieldTestModel._meta.get_field("flags")
         flags_db_column = flags_field.db_column or flags_field.name
         cursor.execute(
             "INSERT INTO %s (%s) VALUES (-1)" % (BitFieldTestModel._meta.db_table, flags_db_column)
@@ -194,14 +194,14 @@ class BitFieldTest(TestCase):
         self.assertFalse(instance.flags.FLAG_0)
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
-            flags=bitor(F('flags'), BitFieldTestModel.flags.FLAG_1)
+            flags=bitor(F("flags"), BitFieldTestModel.flags.FLAG_1)
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
         self.assertTrue(instance.flags.FLAG_1)
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
             flags=bitor(
-                F('flags'), ((~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3))
+                F("flags"), ((~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3))
             )
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
@@ -213,7 +213,7 @@ class BitFieldTest(TestCase):
         )
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
-            flags=bitand(F('flags'), ~BitFieldTestModel.flags.FLAG_3)
+            flags=bitand(F("flags"), ~BitFieldTestModel.flags.FLAG_3)
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
         self.assertFalse(instance.flags.FLAG_0)
@@ -227,7 +227,7 @@ class BitFieldTest(TestCase):
         instance.flags.FLAG_1 = True
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
-            flags=bitor(F('flags'), instance.flags)
+            flags=bitor(F("flags"), instance.flags)
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)
         self.assertTrue(instance.flags.FLAG_1)
@@ -257,28 +257,29 @@ class BitFieldTest(TestCase):
     def test_binary_capacity(self):
         import math
         from django.db.models.fields import BigIntegerField
+
         # Local maximum value, slow canonical algorithm
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = ['f' + six.text_type(i) for i in range(100)]
+        flags = ["f" + six.text_type(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])
         except ValueError:
             self.fail("It should work well with these flags")
 
-        self.assertRaises(ValueError, BitField, flags=flags[:(MAX_COUNT + 1)])
+        self.assertRaises(ValueError, BitField, flags=flags[: (MAX_COUNT + 1)])
 
     def test_dictionary_init(self):
         flags = {
-            0: 'zero',
-            1: 'first',
-            10: 'tenth',
-            2: 'second',
-            'wrongkey': 'wrongkey',
-            100: 'bigkey',
-            -100: 'smallkey',
+            0: "zero",
+            1: "first",
+            10: "tenth",
+            2: "second",
+            "wrongkey": "wrongkey",
+            100: "bigkey",
+            -100: "smallkey",
         }
 
         try:
@@ -287,19 +288,19 @@ class BitFieldTest(TestCase):
             self.fail("It should work well with these flags")
 
         self.assertEquals(
-            bf.flags, ['zero', 'first', 'second', '', '', '', '', '', '', '', 'tenth']
+            bf.flags, ["zero", "first", "second", "", "", "", "", "", "", "", "tenth"]
         )
         self.assertRaises(ValueError, BitField, flags={})
-        self.assertRaises(ValueError, BitField, flags={'wrongkey': 'wrongkey'})
-        self.assertRaises(ValueError, BitField, flags={'1': 'non_int_key'})
+        self.assertRaises(ValueError, BitField, flags={"wrongkey": "wrongkey"})
+        self.assertRaises(ValueError, BitField, flags={"1": "non_int_key"})
 
     def test_defaults_as_key_names(self):
         class TestModel(models.Model):
             flags = BitField(
-                flags=('FLAG_0', 'FLAG_1', 'FLAG_2', 'FLAG_3', ), default=('FLAG_1', 'FLAG_2')
+                flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
             )
 
-        field = TestModel._meta.get_field('flags')
+        field = TestModel._meta.get_field("flags")
         self.assertEquals(field.default, TestModel.flags.FLAG_1 | TestModel.flags.FLAG_2)
 
 
@@ -327,31 +328,27 @@ class BitFieldSerializationTest(TestCase):
         bf.flags.FLAG_3 = 0
         data = pickle.dumps(bf)
         inst = pickle.loads(data)
-        self.assertTrue('FLAG_3' in inst.flags.keys())
+        self.assertTrue("FLAG_3" in inst.flags.keys())
 
 
 class BitFormFieldTest(TestCase):
     def test_form_new_invalid(self):
         invalid_data_dicts = [
-            {
-                'flags': ['FLAG_0', 'FLAG_FLAG']
-            }, {
-                'flags': ['FLAG_4']
-            }, {
-                'flags': [1, 2]
-            }
+            {"flags": ["FLAG_0", "FLAG_FLAG"]},
+            {"flags": ["FLAG_4"]},
+            {"flags": [1, 2]},
         ]
         for invalid_data in invalid_data_dicts:
             form = BitFieldTestModelForm(data=invalid_data)
             self.assertFalse(form.is_valid())
 
     def test_form_new(self):
-        data_dicts = [{'flags': ['FLAG_0', 'FLAG_1']}, {'flags': ['FLAG_3']}, {'flags': []}, {}]
+        data_dicts = [{"flags": ["FLAG_0", "FLAG_1"]}, {"flags": ["FLAG_3"]}, {"flags": []}, {}]
         for data in data_dicts:
             form = BitFieldTestModelForm(data=data)
             self.failUnless(form.is_valid())
             instance = form.save()
-            flags = data['flags'] if 'flags' in data else []
+            flags = data["flags"] if "flags" in data else []
             for k in BitFieldTestModel.flags:
                 self.assertEquals(bool(getattr(instance.flags, k)), k in flags)
 
@@ -360,21 +357,21 @@ class BitFormFieldTest(TestCase):
         for k in BitFieldTestModel.flags:
             self.assertFalse(bool(getattr(instance.flags, k)))
 
-        data = {'flags': ['FLAG_0', 'FLAG_1']}
+        data = {"flags": ["FLAG_0", "FLAG_1"]}
         form = BitFieldTestModelForm(data=data, instance=instance)
         self.failUnless(form.is_valid())
         instance = form.save()
         for k in BitFieldTestModel.flags:
-            self.assertEquals(bool(getattr(instance.flags, k)), k in data['flags'])
+            self.assertEquals(bool(getattr(instance.flags, k)), k in data["flags"])
 
-        data = {'flags': ['FLAG_2', 'FLAG_3']}
+        data = {"flags": ["FLAG_2", "FLAG_3"]}
         form = BitFieldTestModelForm(data=data, instance=instance)
         self.failUnless(form.is_valid())
         instance = form.save()
         for k in BitFieldTestModel.flags:
-            self.assertEquals(bool(getattr(instance.flags, k)), k in data['flags'])
+            self.assertEquals(bool(getattr(instance.flags, k)), k in data["flags"])
 
-        data = {'flags': []}
+        data = {"flags": []}
         form = BitFieldTestModelForm(data=data, instance=instance)
         self.failUnless(form.is_valid())
         instance = form.save()

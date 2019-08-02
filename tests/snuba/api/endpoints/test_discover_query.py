@@ -15,14 +15,11 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user, superuser=False)
 
-        self.org = self.create_organization(owner=self.user, name='foo')
+        self.org = self.create_organization(owner=self.user, name="foo")
 
-        self.project = self.create_project(
-            name='bar',
-            organization=self.org,
-        )
+        self.project = self.create_project(name="bar", organization=self.org)
 
-        self.other_project = self.create_project(name='other')
+        self.other_project = self.create_project(name="other")
 
         self.group = self.create_group(project=self.project, short_id=20)
 
@@ -30,32 +27,29 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             group=self.group,
             platform="python",
             datetime=one_second_ago,
-            tags={'environment': 'production', 'sentry:release': 'foo', 'error.custom': 'custom'},
+            tags={"environment": "production", "sentry:release": "foo", "error.custom": "custom"},
             data={
-                'message': 'message!',
-                'exception': {
-                    'values': [
+                "message": "message!",
+                "exception": {
+                    "values": [
                         {
-                            'type': 'ValidationError',
-                            'value': 'Bad request',
-                            'mechanism': {
-                                'type': '1',
-                                'value': '1',
-                            },
-                            'stacktrace': {
-                                'frames': [
+                            "type": "ValidationError",
+                            "value": "Bad request",
+                            "mechanism": {"type": "1", "value": "1"},
+                            "stacktrace": {
+                                "frames": [
                                     {
-                                        'function': '?',
-                                        'filename': 'http://localhost:1337/error.js',
-                                        'lineno': 29,
-                                        'colno': 3,
-                                        'in_app': True
-                                    },
+                                        "function": "?",
+                                        "filename": "http://localhost:1337/error.js",
+                                        "lineno": 29,
+                                        "colno": 3,
+                                        "in_app": True,
+                                    }
                                 ]
                             },
                         }
                     ]
-                }
+                },
             },
         )
 
@@ -72,9 +66,9 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['message'] == 'message!'
-        assert response.data['data'][0]['platform.name'] == 'python'
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "message!"
+        assert response.data["data"][0]["platform.name"] == "python"
 
     def test_relative_dates(self):
         with self.feature('organizations:discover'):
@@ -89,9 +83,9 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['message'] == 'message!'
-        assert response.data['data'][0]['platform.name'] == 'python'
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "message!"
+        assert response.data["data"][0]["platform.name"] == "python"
 
     def test_invalid_date_request(self):
         with self.feature('organizations:discover'):
@@ -122,24 +116,22 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_conditional_fields(self):
-        with self.feature('organizations:discover'):
+        with self.feature("organizations:discover"):
             one_second_ago = self.now - timedelta(seconds=1)
             self.create_event(
                 group=self.group,
                 platform="javascript",
                 datetime=one_second_ago,
-                tags={'environment': 'production', 'sentry:release': 'bar'},
-                data={
-                },
+                tags={"environment": "production", "sentry:release": "bar"},
+                data={},
             )
 
             self.create_event(
                 group=self.group,
                 platform="javascript",
                 datetime=one_second_ago,
-                tags={'environment': 'production', 'sentry:release': 'baz'},
-                data={
-                },
+                tags={"environment": "production", "sentry:release": "baz"},
+                data={},
             )
 
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
@@ -150,41 +142,33 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                     [
                         'if',
                         [
-                            [
-                                'in',
-                                [
-                                    'release',
-                                    'tuple',
-                                    ["'foo'"],
-                                ],
-                            ],
-                            'release',
-                            "'other'",
-                        ],
-                        'release',
+                            "if",
+                            [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
+                            "release",
+                        ]
                     ],
-                ],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'groupby': ['time', 'release'],
-                'rollup': 86400,
-                'limit': 1000,
-                'orderby': '-time',
-                'range': None,
-            })
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "groupby": ["time", "release"],
+                    "rollup": 86400,
+                    "limit": 1000,
+                    "orderby": "-time",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
 
         # rollup is by one day and diff of start/end is 10 seconds, so we only have one day
-        assert len(response.data['data']) == 2
+        assert len(response.data["data"]) == 2
 
-        for data in response.data['data']:
+        for data in response.data["data"]:
             # note this "release" key represents the alias for the column condition
             # and is also used in `groupby`, it is NOT the release tag
-            if data['release'] == 'foo':
-                assert data['count'] == 1
-            elif data['release'] == 'other':
-                assert data['count'] == 2
+            if data["release"] == "foo":
+                assert data["count"] == 1
+            elif data["release"] == "other":
+                assert data["count"] == 2
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):
@@ -229,9 +213,9 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['message'] == 'message!'
-        assert response.data['data'][0]['platform.name'] == 'python'
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "message!"
+        assert response.data["data"][0]["platform.name"] == "python"
 
     def test_strip_double_quotes_in_condition_strings(self):
         with self.feature('organizations:discover'):
@@ -245,8 +229,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['message'] == 'message!'
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "message!"
 
     def test_array_join(self):
         with self.feature('organizations:discover'):
@@ -260,8 +244,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'range': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['error.type'] == 'ValidationError'
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["error.type"] == "ValidationError"
 
     def test_array_condition_equals(self):
         with self.feature('organizations:discover'):
@@ -276,7 +260,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'range': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
+        assert len(response.data["data"]) == 1
 
     def test_array_condition_not_equals(self):
         with self.feature('organizations:discover'):
@@ -292,7 +276,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 0
+        assert len(response.data["data"]) == 0
 
     def test_array_condition_custom_tag(self):
         with self.feature('organizations:discover'):
@@ -308,7 +292,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 0
+        assert len(response.data["data"]) == 0
 
     def test_select_project_name(self):
         with self.feature('organizations:discover'):
@@ -322,8 +306,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert(response.data['data'][0]['project.name']) == 'bar'
+        assert len(response.data["data"]) == 1
+        assert (response.data["data"][0]["project.name"]) == "bar"
 
     def test_groupby_project_name(self):
         with self.feature('organizations:discover'):
@@ -338,9 +322,9 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert(response.data['data'][0]['project.name']) == 'bar'
-        assert(response.data['data'][0]['count']) == 1
+        assert len(response.data["data"]) == 1
+        assert (response.data["data"][0]["project.name"]) == "bar"
+        assert (response.data["data"][0]["count"]) == 1
 
     def test_zerofilled_dates_when_rollup_relative(self):
         with self.feature('organizations:discover'):
@@ -357,10 +341,10 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 6
-        assert(response.data['data'][5]['time']) > response.data['data'][4]['time']
-        assert(response.data['data'][5]['project.name']) == 'bar'
-        assert(response.data['data'][5]['count']) == 1
+        assert len(response.data["data"]) == 6
+        assert (response.data["data"][5]["time"]) > response.data["data"][4]["time"]
+        assert (response.data["data"][5]["project.name"]) == "bar"
+        assert (response.data["data"][5]["count"]) == 1
 
     def test_zerofilled_dates_when_rollup_absolute(self):
         with self.feature('organizations:discover'):
@@ -378,10 +362,10 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 6
-        assert(response.data['data'][0]['time']) > response.data['data'][2]['time']
-        assert(response.data['data'][0]['project.name']) == 'bar'
-        assert(response.data['data'][0]['count']) == 1
+        assert len(response.data["data"]) == 6
+        assert (response.data["data"][0]["time"]) > response.data["data"][2]["time"]
+        assert (response.data["data"][0]["project.name"]) == "bar"
+        assert (response.data["data"][0]["count"]) == 1
 
     def test_uniq_project_name(self):
         with self.feature('organizations:discover'):
@@ -395,8 +379,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert(response.data['data'][0]['uniq_project_name']) == 1
+        assert len(response.data["data"]) == 1
+        assert (response.data["data"][0]["uniq_project_name"]) == 1
 
     def test_meta_types(self):
         with self.feature('organizations:discover'):
@@ -411,10 +395,10 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200, response.content
-        assert response.data['meta'] == [
-            {'name': 'project.id', 'type': 'integer'},
-            {'name': 'project.name', 'type': 'string'},
-            {'name': 'count', 'type': 'integer'}
+        assert response.data["meta"] == [
+            {"name": "project.id", "type": "integer"},
+            {"name": "project.name", "type": "string"},
+            {"name": "count", "type": "integer"},
         ]
 
     def test_no_feature_access(self):
@@ -445,11 +429,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
     def test_superuser(self):
-        self.new_org = self.create_organization(name='foo_new')
-        self.new_project = self.create_project(
-            name='bar_new',
-            organization=self.new_org,
-        )
+        self.new_org = self.create_organization(name="foo_new")
+        self.new_project = self.create_project(name="bar_new", organization=self.new_org)
         self.login_as(user=self.user, superuser=True)
 
         with self.feature('organizations:discover'):

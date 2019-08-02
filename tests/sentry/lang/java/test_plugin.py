@@ -19,63 +19,55 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     67:67:java.lang.Class[] getClassContext() -> a
     69:69:java.lang.Class[] getExtraClassContext() -> a
     65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
-'''
-PROGUARD_BUG_UUID = '071207ac-b491-4a74-957c-2c94fd9594f2'
-PROGUARD_BUG_SOURCE = b'x'
+"""
+PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
+PROGUARD_BUG_SOURCE = b"x"
 
 
 class BasicResolvingIntegrationTest(TestCase):
     @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
-        reason='Queries are completly different when using tagstore'
+        settings.SENTRY_TAGSTORE == "sentry.tagstore.v2.V2TagStorage",
+        reason="Queries are completly different when using tagstore",
     )
     def test_basic_resolving(self):
         url = reverse(
-            'sentry-api-0-dsym-files',
+            "sentry-api-0-dsym-files",
             kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)
 
         out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
-        f.writestr('ignored-file.txt', b'This is just some stuff')
+        f = zipfile.ZipFile(out, "w")
+        f.writestr("proguard/%s.txt" % PROGUARD_UUID, PROGUARD_SOURCE)
+        f.writestr("ignored-file.txt", b"This is just some stuff")
         f.close()
 
         response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile(
-                    'symbols.zip',
-                    out.getvalue(),
-                    content_type='application/zip'),
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
             },
-            format='multipart'
+            format="multipart",
         )
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
         event_data = {
-            "user": {
-                "ip_address": "31.172.207.97"
-            },
+            "user": {"ip_address": "31.172.207.97"},
             "extra": {},
             "project": self.project.id,
             "platform": "java",
-            "debug_meta": {
-                "images": [{
-                    "type": "proguard",
-                    "uuid": PROGUARD_UUID,
-                }]
-            },
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
             "exception": {
                 "values": [
                     {
-                        'stacktrace': {
+                        "stacktrace": {
                             "frames": [
                                 {
                                     "function": "a",
@@ -94,7 +86,7 @@ class BasicResolvingIntegrationTest(TestCase):
                             ]
                         },
                         "type": "RuntimeException",
-                        "value": "Shit broke yo"
+                        "value": "Shit broke yo",
                     }
                 ]
             },
@@ -103,79 +95,74 @@ class BasicResolvingIntegrationTest(TestCase):
         # We do a preflight post, because there are many queries polluting the array
         # before the actual "processing" happens (like, auth_user)
         self._postWithHeader(event_data)
-        with self.assertWriteQueries({
-            'nodestore_node': 2,
-            'sentry_eventtag': 1,
-            'sentry_eventuser': 1,
-            'sentry_filtervalue': 2,
-            'sentry_groupedmessage': 1,
-            'sentry_message': 1,
-            'sentry_messagefiltervalue': 2,
-            'sentry_userip': 1,
-            'sentry_userreport': 1
-        }):
+        with self.assertWriteQueries(
+            {
+                "nodestore_node": 2,
+                "sentry_eventtag": 1,
+                "sentry_eventuser": 1,
+                "sentry_filtervalue": 2,
+                "sentry_groupedmessage": 1,
+                "sentry_message": 1,
+                "sentry_messagefiltervalue": 2,
+                "sentry_userip": 1,
+                "sentry_userreport": 1,
+            }
+        ):
             resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
         event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
 
-        bt = event.interfaces['exception'].values[0].stacktrace
+        bt = event.interfaces["exception"].values[0].stacktrace
         frames = bt.frames
 
-        assert frames[0].function == 'getClassContext'
-        assert frames[0].module == 'org.slf4j.helpers.Util$ClassContextSecurityManager'
-        assert frames[1].function == 'getExtraClassContext'
-        assert frames[1].module == 'org.slf4j.helpers.Util$ClassContextSecurityManager'
+        assert frames[0].function == "getClassContext"
+        assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
+        assert frames[1].function == "getExtraClassContext"
+        assert frames[1].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
 
         assert event.culprit == (
-            'org.slf4j.helpers.Util$ClassContextSecurityManager '
-            'in getExtraClassContext'
+            "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
     def test_error_on_resolving(self):
         url = reverse(
-            'sentry-api-0-dsym-files',
+            "sentry-api-0-dsym-files",
             kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)
 
         out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
+        f = zipfile.ZipFile(out, "w")
+        f.writestr("proguard/%s.txt" % PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         f.close()
 
         response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                   content_type='application/zip'),
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
             },
-            format='multipart'
+            format="multipart",
         )
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
         event_data = {
-            "user": {
-                "ip_address": "31.172.207.97"
-            },
+            "user": {"ip_address": "31.172.207.97"},
             "extra": {},
             "project": self.project.id,
             "platform": "java",
-            "debug_meta": {
-                "images": [{
-                    "type": "proguard",
-                    "uuid": PROGUARD_BUG_UUID,
-                }]
-            },
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_BUG_UUID}]},
             "exception": {
                 "values": [
                     {
-                        'stacktrace': {
+                        "stacktrace": {
                             "frames": [
                                 {
                                     "function": "a",
@@ -194,7 +181,7 @@ class BasicResolvingIntegrationTest(TestCase):
                             ]
                         },
                         "type": "RuntimeException",
-                        "value": "Shit broke yo"
+                        "value": "Shit broke yo",
                     }
                 ]
             },
@@ -205,8 +192,8 @@ class BasicResolvingIntegrationTest(TestCase):
 
         event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
 
-        assert len(event.data['errors']) == 1
-        assert event.data['errors'][0] == {
-            'mapping_uuid': u'071207ac-b491-4a74-957c-2c94fd9594f2',
-            'type': 'proguard_missing_lineno',
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "mapping_uuid": u"071207ac-b491-4a74-957c-2c94fd9594f2",
+            "type": "proguard_missing_lineno",
         }

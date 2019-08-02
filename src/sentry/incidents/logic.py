@@ -97,13 +97,13 @@ def create_incident(
             date_detected=date_detected,
         )
         if projects:
-            IncidentProject.objects.bulk_create([
-                IncidentProject(incident=incident, project=project) for project in projects
-            ])
+            IncidentProject.objects.bulk_create(
+                [IncidentProject(incident=incident, project=project) for project in projects]
+            )
         if groups:
-            IncidentGroup.objects.bulk_create([
-                IncidentGroup(incident=incident, group=group) for group in groups
-            ])
+            IncidentGroup.objects.bulk_create(
+                [IncidentGroup(incident=incident, group=group) for group in groups]
+            )
 
         if type == IncidentType.CREATED:
             activity_status = IncidentActivityType.CREATED
@@ -112,13 +112,10 @@ def create_incident(
 
         event_stats_snapshot = create_initial_event_stats_snapshot(incident)
         create_incident_activity(
-            incident,
-            activity_status,
-            event_stats_snapshot=event_stats_snapshot,
-            user=user,
+            incident, activity_status, event_stats_snapshot=event_stats_snapshot, user=user
         )
         analytics.record(
-            'incident.created',
+            "incident.created",
             incident_id=incident.id,
             organization_id=incident.organization_id,
             incident_type=type.value,
@@ -255,15 +252,13 @@ def update_incident_status(incident, status, user=None, comment=None):
 
         prev_status = incident.status
 
-        kwargs = {
-            'status': status.value,
-        }
+        kwargs = {"status": status.value}
         if status == IncidentStatus.CLOSED:
-            kwargs['date_closed'] = timezone.now()
+            kwargs["date_closed"] = timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
-            kwargs['date_closed'] = None
+            kwargs["date_closed"] = None
             # Remove the snapshot since it's only used after the incident is
             # closed.
             IncidentSnapshot.objects.filter(incident=incident).delete()
@@ -274,7 +269,7 @@ def update_incident_status(incident, status, user=None, comment=None):
             create_incident_snapshot(incident)
 
         analytics.record(
-            'incident.status_change',
+            "incident.status_change",
             incident_id=incident.id,
             organization_id=incident.organization_id,
             incident_type=incident.type,
@@ -289,9 +284,7 @@ def set_incident_seen(incident, user=None):
     Updates the incident to be seen
     """
     incident_seen, created = IncidentSeen.objects.create_or_update(
-        incident=incident,
-        user=user,
-        values={'last_seen': timezone.now()}
+        incident=incident, user=user, values={"last_seen": timezone.now()}
     )
 
     return incident_seen
@@ -303,10 +296,7 @@ def create_initial_event_stats_snapshot(incident):
     an incident. It's intended to capture the history of the events involved in
     the incident, the spike and a short period of time after that.
     """
-    initial_period_length = min(
-        timezone.now() - incident.date_started,
-        MAX_INITIAL_INCIDENT_PERIOD,
-    )
+    initial_period_length = min(timezone.now() - incident.date_started, MAX_INITIAL_INCIDENT_PERIOD)
     end = incident.date_started + initial_period_length
     start = end - (initial_period_length * 4)
     return create_event_stat_snapshot(incident, start, end)
@@ -338,10 +328,11 @@ def create_incident_activity(
     )
 
     if mentioned_user_ids:
-        user_ids_to_subscribe = set(mentioned_user_ids) - set(IncidentSubscription.objects.filter(
-            incident=incident,
-            user_id__in=mentioned_user_ids,
-        ).values_list('user_id', flat=True))
+        user_ids_to_subscribe = set(mentioned_user_ids) - set(
+            IncidentSubscription.objects.filter(
+                incident=incident, user_id__in=mentioned_user_ids
+            ).values_list("user_id", flat=True)
+        )
         if user_ids_to_subscribe:
             IncidentSubscription.objects.bulk_create([
                 IncidentSubscription(incident=incident, user_id=mentioned_user_id)
@@ -353,7 +344,7 @@ def create_incident_activity(
     )
     if activity_type == IncidentActivityType.COMMENT:
         analytics.record(
-            'incident.comment',
+            "incident.comment",
             incident_id=incident.id,
             organization_id=incident.organization_id,
             incident_type=incident.type,
@@ -387,16 +378,14 @@ def create_incident_snapshot(incident):
     """
     assert incident.status == IncidentStatus.CLOSED.value
     event_stats_snapshot = create_event_stat_snapshot(
-        incident,
-        incident.date_started,
-        incident.date_closed,
+        incident, incident.date_started, incident.date_closed
     )
     aggregates = get_incident_aggregates(incident)
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
-        unique_users=aggregates['unique_users'],
-        total_events=aggregates['count'],
+        unique_users=aggregates["unique_users"],
+        total_events=aggregates["count"],
     )
 
 
@@ -408,7 +397,7 @@ def create_event_stat_snapshot(incident, start, end):
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
-        values=[[row['time'], row['count']] for row in event_stats.data['data']],
+        values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
         period=event_stats.rollup,
     )
 
@@ -419,28 +408,28 @@ def build_incident_query_params(incident, start=None, end=None):
 
 def bulk_build_incident_query_params(incidents, start=None, end=None):
     incident_groups = defaultdict(list)
-    for incident_id, group_id in IncidentGroup.objects.filter(
-        incident__in=incidents,
-    ).values_list('incident_id', 'group_id'):
+    for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
+        "incident_id", "group_id"
+    ):
         incident_groups[incident_id].append(group_id)
     incident_projects = defaultdict(list)
     for incident_id, project_id in IncidentProject.objects.filter(
-        incident__in=incidents,
-    ).values_list('incident_id', 'project_id'):
+        incident__in=incidents
+    ).values_list("incident_id", "project_id"):
         incident_projects[incident_id].append(project_id)
 
     query_args_list = []
     for incident in incidents:
         params = {
-            'start': incident.date_started if start is None else start,
-            'end': incident.current_end_date if end is None else end,
+            "start": incident.date_started if start is None else start,
+            "end": incident.current_end_date if end is None else end,
         }
         group_ids = incident_groups[incident.id]
         if group_ids:
-            params['issue.id'] = group_ids
+            params["issue.id"] = group_ids
         project_ids = incident_projects[incident.id]
         if project_ids:
-            params['project_id'] = project_ids
+            params["project_id"] = project_ids
         query_args_list.append(get_snuba_query_args(incident.query, params))
 
     return query_args_list
@@ -458,24 +447,18 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     snuba_params_list = [
         SnubaQueryParams(
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
-            orderby='time',
-            groupby=['time'],
+            aggregations=[("count()", "", "count")],
+            orderby="time",
+            groupby=["time"],
             rollup=max(int(incident.duration.total_seconds() / data_points), 1),
             limit=10000,
             **query_param
-        ) for incident, query_param in zip(incidents, query_params_list)
-    ]
-    results = bulk_raw_query(snuba_params_list, referrer='incidents.get_incident_event_stats')
-    return [
-        SnubaTSResult(
-            result,
-            snuba_params.start,
-            snuba_params.end,
-            snuba_params.rollup,
         )
+        for incident, query_param in zip(incidents, query_params_list)
+    ]
+    results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_event_stats")
+    return [
+        SnubaTSResult(result, snuba_params.start, snuba_params.end, snuba_params.rollup)
         for snuba_params, result in zip(snuba_params_list, results)
     ]
 
@@ -493,16 +476,14 @@ def get_incident_aggregates(incident):
 def bulk_get_incident_aggregates(query_params_list):
     snuba_params_list = [
         SnubaQueryParams(
-            aggregations=[
-                ('count()', '', 'count'),
-                ('uniq', 'tags[sentry:user]', 'unique_users'),
-            ],
+            aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
             limit=10000,
             **query_param
-        ) for query_param in query_params_list
+        )
+        for query_param in query_params_list
     ]
-    results = bulk_raw_query(snuba_params_list, referrer='incidents.get_incident_aggregates')
-    return [result['data'][0] for result in results]
+    results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
+    return [result["data"][0] for result in results]
 
 
 def bulk_get_incident_stats(incidents):
@@ -516,14 +497,11 @@ def bulk_get_incident_stats(incidents):
     for snapshot in snapshots:
         event_stats = snapshot.event_stats_snapshot
         incident_stats[snapshot.incident_id] = {
-            'event_stats': SnubaTSResult(
-                event_stats.snuba_values,
-                event_stats.start,
-                event_stats.end,
-                event_stats.period,
+            "event_stats": SnubaTSResult(
+                event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
             ),
-            'total_events': snapshot.total_events,
-            'unique_users': snapshot.unique_users,
+            "total_events": snapshot.total_events,
+            "unique_users": snapshot.unique_users,
         }
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
@@ -533,9 +511,9 @@ def bulk_get_incident_stats(incidents):
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
             incident_stats[incident.id] = {
-                'event_stats': event_stats,
-                'total_events': aggregates['count'],
-                'unique_users': aggregates['unique_users'],
+                "event_stats": event_stats,
+                "total_events": aggregates["count"],
+                "unique_users": aggregates["unique_users"],
             }
 
     return [incident_stats[incident.id] for incident in incidents]
@@ -554,15 +532,14 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(
-        incident=incident,
-    ).select_related('user', 'event_stats_snapshot', 'incident')
+    return IncidentActivity.objects.filter(incident=incident).select_related(
+        "user", "event_stats_snapshot", "incident"
+    )
 
 
 def get_incident_suspects(incident, projects):
     return Commit.objects.filter(
-        incidentsuspectcommit__incident=incident,
-        releasecommit__release__projects__in=projects,
+        incidentsuspectcommit__incident=incident, releasecommit__release__projects__in=projects
     ).distinct()
 
 
@@ -580,7 +557,7 @@ def get_incident_suspect_commits(incident):
             continue
 
         for committer in committers:
-            for (commit, _) in committer['commits']:
+            for (commit, _) in committer["commits"]:
                 if commit.id in seen:
                     continue
                 seen.add(commit.id)
@@ -692,32 +669,33 @@ def update_alert_rule(
     subscription needs to exceed the threshold before triggering
     :return: The updated `AlertRule`
     """
-    if name and alert_rule.name != name and AlertRule.objects.filter(
-        project=alert_rule.project,
-        name=name,
-    ).exists():
+    if (
+        name
+        and alert_rule.name != name
+        and AlertRule.objects.filter(project=alert_rule.project, name=name).exists()
+    ):
         raise AlertRuleNameAlreadyUsedError()
 
     old_subscription_id = None
     subscription_id = None
     updated_fields = {}
     if name:
-        updated_fields['name'] = name
+        updated_fields["name"] = name
     if threshold_type:
-        updated_fields['threshold_type'] = threshold_type.value
+        updated_fields["threshold_type"] = threshold_type.value
     if query is not None:
         validate_alert_rule_query(query)
-        updated_fields['query'] = query
+        updated_fields["query"] = query
     if aggregations:
-        updated_fields['aggregations'] = [a.value for a in aggregations]
+        updated_fields["aggregations"] = [a.value for a in aggregations]
     if time_window:
-        updated_fields['time_window'] = time_window
+        updated_fields["time_window"] = time_window
     if alert_threshold:
-        updated_fields['alert_threshold'] = alert_threshold
+        updated_fields["alert_threshold"] = alert_threshold
     if resolve_threshold:
-        updated_fields['resolve_threshold'] = resolve_threshold
+        updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
-        updated_fields['threshold_period'] = threshold_period
+        updated_fields["threshold_period"] = threshold_period
 
     if query or aggregations or time_window:
         old_subscription_id = alert_rule.subscription_id
@@ -732,7 +710,7 @@ def update_alert_rule(
             time_window if time_window else alert_rule.time_window,
             DEFAULT_ALERT_RULE_RESOLUTION,
         )
-        updated_fields['subscription_id'] = subscription_id
+        updated_fields["subscription_id"] = subscription_id
 
     try:
         alert_rule.update(**updated_fields)

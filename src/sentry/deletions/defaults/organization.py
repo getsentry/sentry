@@ -14,9 +14,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.discover.models import DiscoverSavedQuery
 
         # Team must come first
-        relations = [
-            ModelRelation(Team, {'organization_id': instance.id}),
-        ]
+        relations = [ModelRelation(Team, {"organization_id": instance.id})]
 
         model_list = (
             OrganizationMember,
@@ -39,7 +37,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
             Incident,
         )
-        relations.extend([ModelRelation(m, {'organization_id': instance.id}) for m in model_list])
+        relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
 
         return relations
 

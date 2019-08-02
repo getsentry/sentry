@@ -33,35 +33,35 @@ stacktrace: stack backtrace:
 
 def get_event(stacktrace):
     return {
-        'event_id': 'fe628bfa48064c9b97ce7e75a19e6197',
-        'level': 'error',
-        'platform': 'python',
-        'logentry': {
-            'formatted': 'invalid debug identifier\n\n%s' % stacktrace,
-        },
-        'exception': {
-            'values': [{
-                'type': 'ParseDebugIdError',
-                'value': 'invalid debug identifier\n\n%s' % stacktrace,
-                'stacktrace': {
-                    'frames': [
-                        {
-                            'abs_path': '/symbolic/py/symbolic/utils.py',
-                            'filename': 'symbolic/utils.py',
-                            'function': 'rustcall',
-                            'in_app': True,
-                            'lineno': 93,
-                            'module': 'symbolic.utils',
-                        }
-                    ]
-                },
-            }]
+        "event_id": "fe628bfa48064c9b97ce7e75a19e6197",
+        "level": "error",
+        "platform": "python",
+        "logentry": {"formatted": "invalid debug identifier\n\n%s" % stacktrace},
+        "exception": {
+            "values": [
+                {
+                    "type": "ParseDebugIdError",
+                    "value": "invalid debug identifier\n\n%s" % stacktrace,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "abs_path": "/symbolic/py/symbolic/utils.py",
+                                "filename": "symbolic/utils.py",
+                                "function": "rustcall",
+                                "in_app": True,
+                                "lineno": 93,
+                                "module": "symbolic.utils",
+                            }
+                        ]
+                    },
+                }
+            ]
         },
     }
 
 
 def get_exc_info(rust_info):
-    exc = ValueError('hello world')
+    exc = ValueError("hello world")
     if rust_info is not None:
         exc.rust_info = rust_info
     return type(exc), exc, None
@@ -71,63 +71,63 @@ def test_merge_rust_info():
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(STACKTRACE)
 
-    merge_rust_info_frames(event, {'exc_info': exc_info})
+    merge_rust_info_frames(event, {"exc_info": exc_info})
 
-    assert event['platform'] == 'native'
-    assert event['logentry']['formatted'] == 'invalid debug identifier'
+    assert event["platform"] == "native"
+    assert event["logentry"]["formatted"] == "invalid debug identifier"
 
-    exception = event['exception']['values'][0]
-    assert exception['value'] == 'invalid debug identifier'
+    exception = event["exception"]["values"][0]
+    assert exception["value"] == "invalid debug identifier"
 
-    frames = exception['stacktrace']['frames']
+    frames = exception["stacktrace"]["frames"]
     assert len(frames) == 8
-    assert frames[0]['platform'] == 'python'
+    assert frames[0]["platform"] == "python"
 
     # Top frame
-    assert frames[7]['instruction_addr'] == '0x11163e27c'
-    assert frames[7]['function'] == '<failure::error::Error as core::convert::From<F>>::from'
-    assert frames[7]['package'] == 'failure'
-    assert frames[7]['in_app'] is False
-    assert frames[7]['filename'] == 'mod.rs'
-    assert frames[7]['lineno'] == 36
+    assert frames[7]["instruction_addr"] == "0x11163e27c"
+    assert frames[7]["function"] == "<failure::error::Error as core::convert::From<F>>::from"
+    assert frames[7]["package"] == "failure"
+    assert frames[7]["in_app"] is False
+    assert frames[7]["filename"] == "mod.rs"
+    assert frames[7]["lineno"] == 36
 
     # Inlined frame, same address
-    assert frames[7]['instruction_addr'] == '0x11163e27c'
-    assert frames[6]['function'] == '<T as core::convert::Into<U>>::into'
-    assert frames[6]['package'] == 'core'
-    assert frames[6]['in_app'] is False
-    assert frames[6]['filename'] == 'convert.rs'
-    assert frames[6]['lineno'] == 456
+    assert frames[7]["instruction_addr"] == "0x11163e27c"
+    assert frames[6]["function"] == "<T as core::convert::Into<U>>::into"
+    assert frames[6]["package"] == "core"
+    assert frames[6]["in_app"] is False
+    assert frames[6]["filename"] == "convert.rs"
+    assert frames[6]["lineno"] == 456
 
 
 def test_without_exc_info():
     event = get_event(STACKTRACE)
     merge_rust_info_frames(event, {})
-    assert event['platform'] == 'python'
+    assert event["platform"] == "python"
 
 
 def test_without_rust_info():
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(None)
 
-    merge_rust_info_frames(event, {'exc_info': exc_info})
-    assert event['platform'] == 'python'
+    merge_rust_info_frames(event, {"exc_info": exc_info})
+    assert event["platform"] == "python"
 
 
 def test_without_stacktrace():
-    stacktrace = 'stacktrace: stack backtrace:\n\n'
+    stacktrace = "stacktrace: stack backtrace:\n\n"
     event = get_event(stacktrace)
     exc_info = get_exc_info(stacktrace)
 
-    merge_rust_info_frames(event, {'exc_info': exc_info})
+    merge_rust_info_frames(event, {"exc_info": exc_info})
 
-    assert event['platform'] == 'native'
-    assert event['logentry']['formatted'] == 'invalid debug identifier'
+    assert event["platform"] == "native"
+    assert event["logentry"]["formatted"] == "invalid debug identifier"
 
-    exception = event['exception']['values'][0]
-    assert exception['value'] == 'invalid debug identifier'
+    exception = event["exception"]["values"][0]
+    assert exception["value"] == "invalid debug identifier"
 
-    frames = exception['stacktrace']['frames']
+    frames = exception["stacktrace"]["frames"]
     assert len(frames) == 1
 
 
@@ -135,37 +135,40 @@ def test_without_exception():
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(STACKTRACE)
 
-    del event['exception']
-    merge_rust_info_frames(event, {'exc_info': exc_info})
-    assert event['platform'] == 'python'
+    del event["exception"]
+    merge_rust_info_frames(event, {"exc_info": exc_info})
+    assert event["platform"] == "python"
 
 
 def test_starts_with():
     # Basic functions
-    assert starts_with('__rust_maybe_catch_panic', '__rust')
-    assert starts_with('futures::task_impl::std::set', 'futures::')
-    assert not starts_with('futures::task_impl::std::set', 'tokio::')
+    assert starts_with("__rust_maybe_catch_panic", "__rust")
+    assert starts_with("futures::task_impl::std::set", "futures::")
+    assert not starts_with("futures::task_impl::std::set", "tokio::")
 
     # Generics
-    assert starts_with('_<futures..task_impl..Spawn<T>>::enter::_{{closure}}', 'futures::')
-    assert not starts_with('_<futures..task_impl..Spawn<T>>::enter::_{{closure}}', 'tokio::')
-    assert starts_with('<futures::task_impl::Spawn<T>>::enter::{{closure}}', 'futures::')
-    assert not starts_with('<futures::task_impl::Spawn<T>>::enter::{{closure}}',
-                           'tokio::')
+    assert starts_with("_<futures..task_impl..Spawn<T>>::enter::_{{closure}}", "futures::")
+    assert not starts_with("_<futures..task_impl..Spawn<T>>::enter::_{{closure}}", "tokio::")
+    assert starts_with("<futures::task_impl::Spawn<T>>::enter::{{closure}}", "futures::")
+    assert not starts_with("<futures::task_impl::Spawn<T>>::enter::{{closure}}", "tokio::")
 
     # Trait implementations
-    assert starts_with('<failure::error::Error as core::convert::From<F>>::from', 'failure::')
-    assert starts_with('_<failure::error::Error as core::convert::From<F>>::from', 'failure::')
+    assert starts_with("<failure::error::Error as core::convert::From<F>>::from", "failure::")
+    assert starts_with("_<failure::error::Error as core::convert::From<F>>::from", "failure::")
 
     # Blanket implementations
-    assert starts_with('<T as core::convert::Into<U>>::into', 'core::')
+    assert starts_with("<T as core::convert::Into<U>>::into", "core::")
 
 
 def test_strip_symbol():
-    assert strip_symbol('') == ''
-    assert strip_symbol('_ffi_call_unix64') == '_ffi_call_unix64'
-    assert strip_symbol(
-        'backtrace::backtrace::trace::h1c213d29ba950696') == 'backtrace::backtrace::trace'
-    assert strip_symbol(
-        '<T as core::convert::Into<U>>::into::h58e05f056150874e') == '<T as core::convert::Into<U>>::into'
-    assert strip_symbol('symbolic_symcache_from_object') == 'symbolic_symcache_from_object'
+    assert strip_symbol("") == ""
+    assert strip_symbol("_ffi_call_unix64") == "_ffi_call_unix64"
+    assert (
+        strip_symbol("backtrace::backtrace::trace::h1c213d29ba950696")
+        == "backtrace::backtrace::trace"
+    )
+    assert (
+        strip_symbol("<T as core::convert::Into<U>>::into::h58e05f056150874e")
+        == "<T as core::convert::Into<U>>::into"
+    )
+    assert strip_symbol("symbolic_symcache_from_object") == "symbolic_symcache_from_object"

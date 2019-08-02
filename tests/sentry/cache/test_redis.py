@@ -11,15 +11,15 @@ class RedisCacheTest(TestCase):
         self.backend = RedisCache()
 
     def test_integration(self):
-        self.backend.set('foo', {'foo': 'bar'}, 50)
+        self.backend.set("foo", {"foo": "bar"}, 50)
 
-        result = self.backend.get('foo')
-        assert result == {'foo': 'bar'}
+        result = self.backend.get("foo")
+        assert result == {"foo": "bar"}
 
-        self.backend.delete('foo')
+        self.backend.delete("foo")
 
-        result = self.backend.get('foo')
+        result = self.backend.get("foo")
         assert result is None
 
         with self.assertRaises(ValueTooLarge):
-            self.backend.set('foo', 'x' * (RedisCache.max_size + 1), 0)
+            self.backend.set("foo", "x" * (RedisCache.max_size + 1), 0)

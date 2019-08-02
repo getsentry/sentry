@@ -16,7 +16,8 @@ VERSION = 1
 
 
 # Grammar is defined in EBNF syntax.
-fingerprinting_grammar = Grammar(r"""
+fingerprinting_grammar = Grammar(
+    r"""
 
 fingerprinting_rules = line+
 
@@ -46,7 +47,8 @@ empty   = ""
 newline = ~r"[\r\n]"
 _       = space*
 
-""")
+"""
+)
 
 
 class InvalidFingerprintingConfig(Exception):
@@ -54,7 +56,6 @@ class InvalidFingerprintingConfig(Exception):
 
 
 class EventAccess(object):
-
     def __init__(self, event):
         self.event = event
         self._exceptions = None
@@ -64,71 +65,77 @@ class EventAccess(object):
     def get_messages(self):
         if self._messages is None:
             self._messages = []
-            message = get_path(self.event, 'logentry', 'formatted', filter=True)
+            message = get_path(self.event, "logentry", "formatted", filter=True)
             if message:
-                self._messages.append({
-                    'message': message,
-                    'family': get_behavior_family_for_platform(self.event.get('platform')),
-                })
+                self._messages.append(
+                    {
+                        "message": message,
+                        "family": get_behavior_family_for_platform(self.event.get("platform")),
+                    }
+                )
         return self._messages
 
     def get_exceptions(self):
         if self._exceptions is None:
             self._exceptions = []
-            for exc in get_path(self.event, 'exception', 'values', filter=True) or ():
-                self._exceptions.append({
-                    'type': exc.get('type'),
-                    'value': exc.get('value'),
-                    'family': get_behavior_family_for_platform(self.event.get('platform')),
-                })
+            for exc in get_path(self.event, "exception", "values", filter=True) or ():
+                self._exceptions.append(
+                    {
+                        "type": exc.get("type"),
+                        "value": exc.get("value"),
+                        "family": get_behavior_family_for_platform(self.event.get("platform")),
+                    }
+                )
         return self._exceptions
 
     def get_frames(self, with_functions=False):
         from sentry.stacktraces.functions import get_function_name_for_frame
+
         if self._frames is None:
             self._frames = []
 
             def _push_frame(frame):
-                platform = frame.get('platform') or self.event.get('platform')
+                platform = frame.get("platform") or self.event.get("platform")
                 func = get_function_name_for_frame(frame, platform)
-                self._frames.append({
-                    'function': func or '<unknown>',
-                    'path': frame.get('abs_path') or frame.get('filename'),
-                    'module': frame.get('module'),
-                    'family': get_behavior_family_for_platform(platform),
-                    'package': frame.get('package'),
-                    'app': frame.get('in_app'),
-                })
+                self._frames.append(
+                    {
+                        "function": func or "<unknown>",
+                        "path": frame.get("abs_path") or frame.get("filename"),
+                        "module": frame.get("module"),
+                        "family": get_behavior_family_for_platform(platform),
+                        "package": frame.get("package"),
+                        "app": frame.get("in_app"),
+                    }
+                )
 
             have_errors = False
-            for exc in get_path(self.event, 'exception', 'values', filter=True) or ():
-                for frame in get_path(exc, 'stacktrace', 'frames', filter=True) or ():
+            for exc in get_path(self.event, "exception", "values", filter=True) or ():
+                for frame in get_path(exc, "stacktrace", "frames", filter=True) or ():
                     _push_frame(frame)
                 have_errors = True
 
             if not have_errors:
-                frames = get_path(self.event, 'stacktrace', 'frames', filter=True)
+                frames = get_path(self.event, "stacktrace", "frames", filter=True)
                 if not frames:
-                    threads = get_path(self.event, 'threads', 'values', filter=True)
+                    threads = get_path(self.event, "threads", "values", filter=True)
                     if threads and len(threads) == 1:
-                        frames = get_path(threads, 0, 'stacktrace', 'frames')
+                        frames = get_path(threads, 0, "stacktrace", "frames")
                 for frame in frames or ():
                     _push_frame(frame)
 
         return self._frames
 
     def get_values(self, interface):
-        if interface == 'message':
+        if interface == "message":
             return self.get_messages()
-        elif interface == 'exception':
+        elif interface == "exception":
             return self.get_exceptions()
-        elif interface == 'frame':
+        elif interface == "frame":
             return self.get_frames()
         return []
 
 
 class FingerprintingRules(object):
-
     def __init__(self, rules, changelog=None, version=None):
         if version is None:
             version = VERSION
@@ -150,19 +157,13 @@ class FingerprintingRules(object):
 
     @classmethod
     def _from_config_structure(cls, data):
-        version = data['version']
+        version = data["version"]
         if version != VERSION:
-            raise ValueError('Unknown version')
-        return cls(
-            rules=[Rule._from_config_structure(x) for x in data['rules']],
-            version=version,
-        )
+            raise ValueError("Unknown version")
+        return cls(rules=[Rule._from_config_structure(x) for x in data["rules"]], version=version)
 
     def _to_config_structure(self):
-        return {
-            'version': self.version,
-            'rules': [x._to_config_structure() for x in self.rules],
-        }
+        return {"version": self.version, "rules": [x._to_config_structure() for x in self.rules]}
 
     def to_json(self):
         return self._to_config_structure()
@@ -172,56 +173,56 @@ class FingerprintingRules(object):
         try:
             return cls._from_config_structure(value)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError('invalid fingerprinting config: %s' % e)
+            raise ValueError("invalid fingerprinting config: %s" % e)
 
     @classmethod
     def from_config_string(self, s):
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
-            context = e.text[e.pos:e.pos + 33]
+            context = e.text[e.pos: e.pos + 33]
             if len(context) == 33:
-                context = context[:-1] + '...'
-            raise InvalidFingerprintingConfig('Invalid syntax near "%s" (line %s, column %s)' % (
-                context, e.line(), e.column(),
-            ))
+                context = context[:-1] + "..."
+            raise InvalidFingerprintingConfig(
+                'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
+            )
         return FingerprintingVisitor().visit(tree)
 
 
 class Match(object):
-
     def __init__(self, key, pattern):
         self.key = key
         self.pattern = pattern
 
     @property
     def interface(self):
-        if self.key == 'message':
-            return 'message'
-        elif self.key in ('type', 'value'):
-            return 'exception'
-        return 'frame'
+        if self.key == "message":
+            return "message"
+        elif self.key in ("type", "value"):
+            return "exception"
+        return "frame"
 
     def matches_value(self, value):
         if value is None:
             return False
-        if self.key in ('path', 'package'):
-            if glob_match(value, self.pattern, ignorecase=True,
-                          doublestar=True, path_normalize=True):
+        if self.key in ("path", "package"):
+            if glob_match(
+                value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
+            ):
                 return True
-            if not value.startswith('/') and glob_match(
-                    '/' + value, self.pattern, ignorecase=True,
-                    doublestar=True, path_normalize=True):
+            if not value.startswith("/") and glob_match(
+                "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
+            ):
                 return True
-        elif self.key == 'family':
-            flags = self.pattern.split(',')
-            if 'all' in flags or value in flags:
+        elif self.key == "family":
+            flags = self.pattern.split(",")
+            if "all" in flags or value in flags:
                 return True
-        elif self.key == 'app':
+        elif self.key == "app":
             ref_val = get_rule_bool(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
-        elif glob_match(value, self.pattern, ignorecase=self.key in ('message', 'value')):
+        elif glob_match(value, self.pattern, ignorecase=self.key in ("message", "value")):
             return True
         return False
 
@@ -234,7 +235,6 @@ class Match(object):
 
 
 class Rule(object):
-
     def __init__(self, matchers, fingerprint):
         self.matchers = matchers
         self.fingerprint = fingerprint
@@ -255,16 +255,13 @@ class Rule(object):
 
     def _to_config_structure(self):
         return {
-            'matchers': [x._to_config_structure() for x in self.matchers],
-            'fingerprint': self.fingerprint,
+            "matchers": [x._to_config_structure() for x in self.matchers],
+            "fingerprint": self.fingerprint,
         }
 
     @classmethod
     def _from_config_structure(cls, obj):
-        return cls(
-            [Match._from_config_structure(x) for x in obj['matchers']],
-            obj['fingerprint']
-        )
+        return cls([Match._from_config_structure(x) for x in obj["matchers"]], obj["fingerprint"])
 
 
 class FingerprintingVisitor(NodeVisitor):
@@ -279,17 +276,14 @@ class FingerprintingVisitor(NodeVisitor):
         in_header = True
         for child in children:
             if isinstance(child, six.string_types):
-                if in_header and child[:2] == '##':
+                if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
             elif child is not None:
                 rules.append(child)
                 in_header = False
-        return FingerprintingRules(
-            rules,
-            inspect.cleandoc('\n'.join(changelog)).rstrip() or None,
-        )
+        return FingerprintingRules(rules, inspect.cleandoc("\n".join(changelog)).rstrip() or None)
 
     def visit_line(self, node, children):
         _, line, _ = children
@@ -310,6 +304,7 @@ class FingerprintingVisitor(NodeVisitor):
 
     def visit_argument(self, node, children):
         return children[0]
+
     visit_fp_argument = visit_argument
 
     def visit_fingerprint(self, node, children):
@@ -320,12 +315,11 @@ class FingerprintingVisitor(NodeVisitor):
         return argument
 
     def visit_quoted(self, node, children):
-        return node.text[1:-1] \
-            .encode('ascii', 'backslashreplace') \
-            .decode('unicode-escape')
+        return node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape")
 
     def visit_unquoted(self, node, children):
         return node.text
+
     visit_unquoted_no_comma = visit_unquoted
 
     def generic_visit(self, node, children):

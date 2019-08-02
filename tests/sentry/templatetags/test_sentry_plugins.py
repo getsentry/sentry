@@ -9,17 +9,12 @@ from sentry.testutils import PluginTestCase
 
 class SamplePlugin(Plugin2):
     def get_actions(self, request, group):
-        return [('Example Action', 'http://example.com?id=%s' % (group.id, ))]
+        return [("Example Action", "http://example.com?id=%s" % (group.id,))]
 
     def get_annotations(self, group):
         return [
-            {
-                'label': 'Example Tag',
-                'url': 'http://example.com?id=%s' % (group.id, )
-            },
-            {
-                'label': 'Example Two'
-            },
+            {"label": "Example Tag", "url": "http://example.com?id=%s" % (group.id,)},
+            {"label": "Example Two"},
         ]
 
     def is_enabled(self, project=None):
@@ -41,12 +36,9 @@ class GetActionsTest(PluginTestCase):
     def test_includes_v2_plugins(self):
         group = self.create_group()
 
-        result = self.TEMPLATE.render(Context({
-            'request': Mock(),
-            'group': group,
-        }))
+        result = self.TEMPLATE.render(Context({"request": Mock(), "group": group}))
 
-        assert '<span>Example Action - http://example.com?id=%s</span>' % (group.id, ) in result
+        assert "<span>Example Action - http://example.com?id=%s</span>" % (group.id,) in result
 
 
 class GetAnnotationsTest(PluginTestCase):
@@ -64,10 +56,7 @@ class GetAnnotationsTest(PluginTestCase):
     def test_includes_v2_plugins(self):
         group = self.create_group()
 
-        result = self.TEMPLATE.render(Context({
-            'request': Mock(),
-            'group': group,
-        }))
+        result = self.TEMPLATE.render(Context({"request": Mock(), "group": group}))
 
-        assert '<span>Example Tag - http://example.com?id=%s</span>' % (group.id, ) in result
-        assert '<span>Example Two - None</span>' in result
+        assert "<span>Example Tag - http://example.com?id=%s</span>" % (group.id,) in result
+        assert "<span>Example Two - None</span>" in result

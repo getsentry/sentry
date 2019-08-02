@@ -15,10 +15,12 @@ def make_csp_snapshot(insta_snapshot):
         mgr = EventManager(data={"expectstaple": data})
         mgr.normalize()
         evt = Event(data=mgr.get_data())
-        insta_snapshot({
-            'errors': evt.data.get('errors'),
-            'to_json': evt.interfaces.get('expectstaple').to_json()
-        })
+        insta_snapshot(
+            {
+                "errors": evt.data.get("errors"),
+                "to_json": evt.interfaces.get("expectstaple").to_json(),
+            }
+        )
 
     return inner
 

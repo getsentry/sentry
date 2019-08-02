@@ -19,16 +19,16 @@ PACKAGE_FINGERPRINT_VALUES = frozenset(['{{ package }}', '{{package}}'])
 def hash_from_values(values):
     result = md5()
     for value in values:
-        result.update(force_bytes(value, errors='replace'))
+        result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
 
 
 def get_rule_bool(value):
     if value:
         value = value.lower()
-        if value in ('1', 'yes', 'true'):
+        if value in ("1", "yes", "true"):
             return True
-        elif value in ('0', 'no', 'false'):
+        elif value in ("0", "no", "false"):
             return False
 
 

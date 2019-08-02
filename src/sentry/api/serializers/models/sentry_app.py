@@ -12,23 +12,23 @@ class SentryAppSerializer(Serializer):
         from sentry.mediators.service_hooks.creator import consolidate_events
 
         data = {
-            'name': obj.name,
-            'slug': obj.slug,
-            'author': obj.author,
-            'scopes': obj.get_scopes(),
-            'events': consolidate_events(obj.events),
-            'status': obj.get_status_display(),
-            'schema': obj.schema,
-            'uuid': obj.uuid,
-            'webhookUrl': obj.webhook_url,
-            'redirectUrl': obj.redirect_url,
-            'isAlertable': obj.is_alertable,
-            'verifyInstall': obj.verify_install,
-            'overview': obj.overview,
+            "name": obj.name,
+            "slug": obj.slug,
+            "author": obj.author,
+            "scopes": obj.get_scopes(),
+            "events": consolidate_events(obj.events),
+            "status": obj.get_status_display(),
+            "schema": obj.schema,
+            "uuid": obj.uuid,
+            "webhookUrl": obj.webhook_url,
+            "redirectUrl": obj.redirect_url,
+            "isAlertable": obj.is_alertable,
+            "verifyInstall": obj.verify_install,
+            "overview": obj.overview,
         }
 
         if is_active_superuser(env.request) or (
-            hasattr(user, 'get_orgs') and obj.owner in user.get_orgs()
+            hasattr(user, "get_orgs") and obj.owner in user.get_orgs()
         ):
             data.update({
                 'clientId': obj.application.client_id,

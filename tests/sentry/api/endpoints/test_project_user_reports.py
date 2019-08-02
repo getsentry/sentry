@@ -57,60 +57,51 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
             project=project,
-            event_id='a' * 32,
-            name='Foo',
-            email='foo@example.com',
-            comments='Hello world',
+            event_id="a" * 32,
+            name="Foo",
+            email="foo@example.com",
+            comments="Hello world",
             group=group,
         )
 
         # should not be included due to missing link
         UserReport.objects.create(
             project=project,
-            event_id='b' * 32,
-            name='Bar',
-            email='bar@example.com',
-            comments='Hello world',
+            event_id="b" * 32,
+            name="Bar",
+            email="bar@example.com",
+            comments="Hello world",
         )
 
         # should not be included due to resolution
         UserReport.objects.create(
             project=project,
-            event_id='c' * 32,
-            name='Baz',
-            email='baz@example.com',
-            comments='Hello world',
+            event_id="c" * 32,
+            name="Baz",
+            email="baz@example.com",
+            comments="Hello world",
             group=group2,
         )
 
-        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
-            project.organization.slug,
-            project.slug,
+        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+            project.organization.slug, project.slug
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(report_1.id),
-            ]
-        )
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
 
     def test_cannot_access_with_dsn_auth(self):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
-            project.organization.slug,
-            project.slug,
+        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+            project.organization.slug, project.slug
         )
 
-        response = self.client.get(
-            url,
-            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
-        )
+        response = self.client.get(url, HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public))
 
         assert response.status_code == 401, response.content
 
@@ -121,27 +112,22 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
             project=project,
-            event_id='a' * 32,
-            name='Foo',
-            email='foo@example.com',
-            comments='Hello world',
+            event_id="a" * 32,
+            name="Foo",
+            email="foo@example.com",
+            comments="Hello world",
             group=group,
         )
 
-        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
-            project.organization.slug,
-            project.slug,
+        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+            project.organization.slug, project.slug
         )
 
-        response = self.client.get(u'{}?status='.format(url), format='json')
+        response = self.client.get(u"{}?status=".format(url), format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(report_1.id),
-            ]
-        )
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
 
     def test_environments(self):
         self.login_as(user=self.user)
@@ -240,7 +226,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
             data={
                 'event_id': self.event.event_id,
                 'email': 'foo@example.com',
@@ -255,20 +241,19 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
-        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
-            project2.organization.slug,
-            project2.slug,
+        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+            project2.organization.slug, project2.slug
         )
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
             data={
-                'event_id': uuid4().hex,
-                'email': 'foo@example.com',
-                'name': 'Foo Bar',
-                'comments': 'It broke!',
-            }
+                "event_id": uuid4().hex,
+                "email": "foo@example.com",
+                "name": "Foo Bar",
+                "comments": "It broke!",
+            },
         )
 
         assert response.status_code == 400, response.content
@@ -356,7 +341,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.event_user_id == euser.id
 
         euser = EventUser.objects.get(id=euser.id)
-        assert euser.name == 'Foo Bar'
+        assert euser.name == "Foo Bar"
 
     def test_already_present_after_deadline(self):
         self.login_as(user=self.user)

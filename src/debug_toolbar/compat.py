@@ -31,11 +31,9 @@ except ImportError:  # python < 2.7
     from django.utils.datastructures import SortedDict as OrderedDict  # NOQA
 
 try:
-    from django.contrib.staticfiles.testing import (StaticLiveServerTestCase)
+    from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 except ImportError:  # Django < 1.7
-    from django.test import (  # NOQA
-        LiveServerTestCase as StaticLiveServerTestCase
-    )
+    from django.test import LiveServerTestCase as StaticLiveServerTestCase  # NOQA
 
 try:
     from django.db.backends import utils as db_backends_util
@@ -46,7 +44,8 @@ try:
     from django.dispatch.dispatcher import WEAKREF_TYPES
 except ImportError:  # Django >= 1.7
     import weakref
-    WEAKREF_TYPES = weakref.ReferenceType,
+
+    WEAKREF_TYPES = (weakref.ReferenceType,)
 
 
 def get_template_dirs():

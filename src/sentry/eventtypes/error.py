@@ -18,10 +18,10 @@ def get_crash_location(data):
 
 
 class ErrorEvent(BaseEvent):
-    key = 'error'
+    key = "error"
 
     def get_metadata(self, data):
-        exception = get_path(data, 'exception', 'values', -1)
+        exception = get_path(data, "exception", "values", -1)
         if not exception:
             return {}
 
@@ -32,29 +32,26 @@ class ErrorEvent(BaseEvent):
 
         # If the exception mechanism indicates a synthetic exception we do not
         # want to record the type and value into the metadata.
-        if not get_path(exception, 'mechanism', 'synthetic'):
-            rv['type'] = trim(get_path(exception, 'type', default='Error'), 128)
+        if not get_path(exception, "mechanism", "synthetic"):
+            rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
 
         # Attach crash location if available
         if loc is not None:
             fn, func = loc
             if fn:
-                rv['filename'] = fn
+                rv["filename"] = fn
             if func:
-                rv['function'] = func
+                rv["function"] = func
 
         return rv
 
     def get_title(self, metadata):
-        ty = metadata.get('type')
+        ty = metadata.get("type")
         if ty is None:
-            return metadata.get('function') or '<unknown>'
-        if not metadata.get('value'):
+            return metadata.get("function") or "<unknown>"
+        if not metadata.get("value"):
             return ty
-        return u'{}: {}'.format(
-            ty,
-            truncatechars(metadata['value'].splitlines()[0], 100),
-        )
+        return u"{}: {}".format(ty, truncatechars(metadata["value"].splitlines()[0], 100))
 
     def get_location(self, metadata):
-        return metadata.get('filename')
+        return metadata.get("filename")

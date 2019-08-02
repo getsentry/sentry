@@ -5,39 +5,30 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.utils.cache import cache
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class ReleaseEnvironment(Model):
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization', db_index=True, db_constraint=False)
+    organization = FlexibleForeignKey("sentry.Organization", db_index=True, db_constraint=False)
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    release = FlexibleForeignKey('sentry.Release', db_index=True, db_constraint=False)
-    environment = FlexibleForeignKey('sentry.Environment', db_index=True, db_constraint=False)
+    release = FlexibleForeignKey("sentry.Release", db_index=True, db_constraint=False)
+    environment = FlexibleForeignKey("sentry.Environment", db_index=True, db_constraint=False)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_environmentrelease'
-        unique_together = (('organization', 'release', 'environment'), )
+        app_label = "sentry"
+        db_table = "sentry_environmentrelease"
+        unique_together = (("organization", "release", "environment"),)
 
-    __repr__ = sane_repr('organization_id', 'release_id', 'environment_id')
+    __repr__ = sane_repr("organization_id", "release_id", "environment_id")
 
     @classmethod
     def get_cache_key(cls, organization_id, release_id, environment_id):
-        return u'releaseenv:2:{}:{}:{}'.format(
-            organization_id,
-            release_id,
-            environment_id,
-        )
+        return u"releaseenv:2:{}:{}:{}".format(organization_id, release_id, environment_id)
 
     @classmethod
     def get_or_create(cls, project, release, environment, datetime, **kwargs):
@@ -49,10 +40,7 @@ class ReleaseEnvironment(Model):
                 release_id=release.id,
                 organization_id=project.organization_id,
                 environment_id=environment.id,
-                defaults={
-                    'first_seen': datetime,
-                    'last_seen': datetime,
-                }
+                defaults={"first_seen": datetime, "last_seen": datetime},
             )
             cache.set(cache_key, instance, 3600)
         else:
@@ -63,11 +51,8 @@ class ReleaseEnvironment(Model):
         # it even if we can't
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             cls.objects.filter(
-                id=instance.id,
-                last_seen__lt=datetime - timedelta(seconds=60),
-            ).update(
-                last_seen=datetime,
-            )
+                id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
+            ).update(last_seen=datetime)
             instance.last_seen = datetime
             cache.set(cache_key, instance, 3600)
         return instance

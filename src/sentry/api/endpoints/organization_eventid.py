@@ -13,7 +13,7 @@ from sentry.models import Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ResolveEventId')
+@scenario("ResolveEventId")
 def resolve_event_id_scenario(runner):
     runner.request(
         method='GET',
@@ -39,12 +39,11 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         """
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
-            return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
+            return Response({"detail": "Event ID must be 32 characters."}, status=400)
 
         project_slugs_by_id = dict(
-            Project.objects.filter(
-                organization=organization).values_list(
-                'id', 'slug'))
+            Project.objects.filter(organization=organization).values_list("id", "slug")
+        )
 
         try:
             event = eventstore.get_events(filter_keys={

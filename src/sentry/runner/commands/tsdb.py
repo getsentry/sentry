@@ -13,7 +13,7 @@ from sentry.utils.iterators import chunked
 
 
 class DateTimeParamType(click.ParamType):
-    name = 'datetime'
+    name = "datetime"
 
     def convert(self, context, option, value):
         if value is None:
@@ -24,11 +24,7 @@ class DateTimeParamType(click.ParamType):
         try:
             result = parse(value)
         except Exception:
-            self.fail(
-                u'{!r} is not a valid datetime'.format(value),
-                option,
-                context,
-            )
+            self.fail(u"{!r} is not a valid datetime".format(value), option, context)
 
         if result.tzinfo is None:
             # TODO: We should probably warn about this? Also note that this
@@ -53,18 +49,18 @@ def query():
 
 @query.command()
 @click.argument(
-    'metrics',
+    "metrics",
     nargs=-1,
     type=click.Choice(
         [
-            'organization_total_received',
-            'organization_total_rejected',
-            'organization_total_blacklisted',
+            "organization_total_received",
+            "organization_total_rejected",
+            "organization_total_blacklisted",
         ]
     ),
 )
-@click.option('--since', callback=DateTimeParamType())
-@click.option('--until', callback=DateTimeParamType())
+@click.option("--since", callback=DateTimeParamType())
+@click.option("--until", callback=DateTimeParamType())
 @configuration
 def organizations(metrics, since, until):
     """
@@ -74,8 +70,8 @@ def organizations(metrics, since, until):
     from sentry.app import tsdb
     from sentry.models import Organization
 
-    stdout = click.get_text_stream('stdout')
-    stderr = click.get_text_stream('stderr')
+    stdout = click.get_text_stream("stdout")
+    stderr = click.get_text_stream("stderr")
 
     def aggregate(series):
         return sum(value for timestamp, value in series)
@@ -91,15 +87,9 @@ def organizations(metrics, since, until):
         since = until - timedelta(minutes=60)
 
     if until < since:
-        raise click.ClickException(u'invalid time range provided: {} to {}'.format(since, until))
+        raise click.ClickException(u"invalid time range provided: {} to {}".format(since, until))
 
-    stderr.write(
-        u'Dumping {} from {} to {}...\n'.format(
-            ', '.join(metrics.keys()),
-            since,
-            until,
-        ),
-    )
+    stderr.write(u"Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
 
     objects = Organization.objects.all()
 
@@ -116,9 +106,7 @@ def organizations(metrics, since, until):
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                u'{} {} {}\n'.format(
-                    instance.id,
-                    instance.slug,
-                    ' '.join(map(six.binary_type, values)),
-                ),
+                u"{} {} {}\n".format(
+                    instance.id, instance.slug, " ".join(map(six.binary_type, values))
+                )
             )

@@ -17,7 +17,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Get a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not features.has("organizations:discover", organization, actor=request.user):
             return self.respond(status=404)
 
         try:
@@ -31,7 +31,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Modify a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not features.has("organizations:discover", organization, actor=request.user):
             return self.respond(status=404)
 
         try:
@@ -39,22 +39,18 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = DiscoverSavedQuerySerializer(data=request.data, context={
-            'organization': organization,
-        })
+        serializer = DiscoverSavedQuerySerializer(
+            data=request.data, context={"organization": organization}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
 
-        model.update(
-            organization=organization,
-            name=data['name'],
-            query=data['query'],
-        )
+        model.update(organization=organization, name=data["name"], query=data["query"])
 
-        model.set_projects(data['project_ids'])
+        model.set_projects(data["project_ids"])
 
         return Response(serialize(model), status=200)
 
@@ -62,7 +58,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Delete a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not features.has("organizations:discover", organization, actor=request.user):
             return self.respond(status=404)
 
         try:

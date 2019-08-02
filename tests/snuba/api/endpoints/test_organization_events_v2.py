@@ -23,8 +23,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_no_projects(self):
         self.login_as(user=self.user)
-        with self.feature('organizations:events-v2'):
-            response = self.client.get(self.url, format='json')
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -37,82 +37,64 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project(organization=self.organization, teams=[team])
 
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group1'],
-            },
-            project_id=project.id
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
         )
         self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group2'],
-            },
-            project_id=project2.id
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
         )
 
-        query = {
-            'field': ['id', 'project.id'],
-            'project': [project.id, project2.id],
-        }
-        with self.feature({'organizations:events-v2': True, 'organizations:global-views': False}):
-            response = self.client.get(self.url, query, format='json')
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        with self.feature({"organizations:events-v2": True, "organizations:global-views": False}):
+            response = self.client.get(self.url, query, format="json")
         assert response.status_code == 400
-        assert 'events from multiple projects' in response.data['detail']
+        assert "events from multiple projects" in response.data["detail"]
 
     def test_invalid_search_terms(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'message': 'how to make fast',
-                'timestamp': self.min_ago,
-            },
-            project_id=project.id
+            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
+            project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
-            response = self.client.get(self.url, {'query': 'hi \n there'}, format='json')
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(self.url, {"query": "hi \n there"}, format="json")
 
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+        assert (
+            response.data["detail"]
+            == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+        )
 
     def test_raw_data(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'environment': 'staging',
-                'timestamp': self.two_min_ago,
-                'user': {
-                    'ip_address': '127.0.0.1',
-                    'email': 'foo@example.com',
-                },
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.two_min_ago,
+                "user": {"ip_address": "127.0.0.1", "email": "foo@example.com"},
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'environment': 'staging',
-                'timestamp': self.min_ago,
-                'user': {
-                    'ip_address': '127.0.0.1',
-                    'email': 'foo@example.com',
-                },
+                "event_id": "b" * 32,
+                "environment": "staging",
+                "timestamp": self.min_ago,
+                "user": {"ip_address": "127.0.0.1", "email": "foo@example.com"},
             },
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
+                format="json",
                 data={
                     'field': ['id', 'project.id', 'user.email', 'user.ip', 'timestamp'],
                     'orderby': '-timestamp',
@@ -136,21 +118,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'environment': 'staging',
-                'timestamp': self.min_ago,
-            },
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'field': ['project.name', 'environment'],
-                },
+                self.url, format="json", data={"field": ["project.name", "environment"]}
             )
 
         assert response.status_code == 200, response.content
@@ -179,18 +153,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-            },
+            data={"event_id": "c" * 32, "timestamp": self.min_ago, "fingerprint": ["group_2"]},
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
+                format="json",
                 data={
                     'field': ['count(id)', 'project.id', 'issue.id'],
                     'orderby': 'issue.id',
@@ -263,27 +233,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': self.two_min_ago,
-            },
-            project_id=project.id,
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago}, project_id=project.id
         )
         self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-            },
-            project_id=project.id,
+            data={"event_id": "b" * 32, "timestamp": self.min_ago}, project_id=project.id
         )
         self.store_event(
-            data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-            },
-            project_id=project.id,
+            data={"event_id": "c" * 32, "timestamp": self.min_ago}, project_id=project.id
         )
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
                 format='json',
@@ -303,30 +261,18 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'message': 'zlast',
-                'timestamp': self.two_min_ago,
-            },
+            data={"event_id": "a" * 32, "message": "zlast", "timestamp": self.two_min_ago},
             project_id=project.id,
         )
         self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'message': 'second',
-                'timestamp': self.min_ago,
-            },
+            data={"event_id": "b" * 32, "message": "second", "timestamp": self.min_ago},
             project_id=project.id,
         )
         self.store_event(
-            data={
-                'event_id': 'c' * 32,
-                'message': 'first',
-                'timestamp': self.min_ago,
-            },
+            data={"event_id": "c" * 32, "message": "first", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
                 format='json',
@@ -346,20 +292,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': self.two_min_ago,
-            },
-            project_id=project.id,
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago}, project_id=project.id
         )
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'field': ['id'],
-                    'sort': 'garbage'
-                },
+                self.url, format="json", data={"field": ["id"], "sort": "garbage"}
             )
         assert response.status_code == 400
         assert 'order by' in response.content
@@ -369,42 +306,36 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event1 = self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"email": "foo@example.com"},
             },
             project_id=project.id,
         )
         event2 = self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'bar@example.com',
-                },
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "bar@example.com"},
             },
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
+                format="json",
                 data={
                     'field': ['issue.id', 'issue_title', 'count(id)', 'count_unique(user)'],
                     'orderby': 'issue.id'
@@ -431,64 +362,54 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"email": "foo@example.com"},
             },
             project_id=project.id,
         )
         event = self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'bar@example.com',
-                },
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "bar@example.com"},
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'd' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_3'],
-                'user': {
-                    'email': 'bar@example.com',
-                },
+                "event_id": "d" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_3"],
+                "user": {"email": "bar@example.com"},
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'e' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_3'],
-                'user': {
-                    'email': 'bar@example.com',
-                },
+                "event_id": "e" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_3"],
+                "user": {"email": "bar@example.com"},
             },
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
+                format="json",
                 data={
                     'field': ['issue_title', 'count(id)', 'count_unique(user)'],
                     'query': 'count_id:>1 count_unique_user:>1',
@@ -510,57 +431,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
-                'environment': 'prod',
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
             },
             project_id=project.id,
         )
         event = self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
-                'environment': 'staging',
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "staging",
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
-                'environment': 'prod',
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
             },
             project_id=project.id,
         )
         self.store_event(
             data={
-                'event_id': 'd' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'foo@example.com',
-                },
-                'environment': 'prod',
+                "event_id": "d" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
             },
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
+                format="json",
                 data={
                     'field': ['issue_title', 'count(id)'],
                     'query': 'count_id:>1 user.email:foo@example.com environment:prod',
@@ -580,22 +493,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'message': 'how to make fast',
-                'timestamp': self.min_ago,
-            },
-            project_id=project.id
+            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
+            project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
-            response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'field': ['issue_world.id'],
-                },
-            )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(self.url, format="json", data={"field": ["issue_world.id"]})
         assert response.status_code == 200, response.content
         assert response.data['data'][0]['issue_world.id'] == ''
 
@@ -604,22 +507,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'message': 'how to make fast',
-                'timestamp': self.min_ago,
-            },
-            project_id=project.id
+            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
+            project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
-            response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'query': 'test'
-                },
-            )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(self.url, format="json", data={"query": "test"})
         assert response.status_code == 400, response.content
         assert response.data['detail'] == 'No fields provided'
 
@@ -628,17 +521,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_2'],
-                'user': {
-                    'email': 'bar@example.com',
-                },
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "bar@example.com"},
             },
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
+        with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
                 format='json',

@@ -42,8 +42,8 @@ FILTER_STAT_KEYS_TO_VALUES = {
 
 
 class FilterTypes(object):
-    ERROR_MESSAGES = 'error_messages'
-    RELEASES = 'releases'
+    ERROR_MESSAGES = "error_messages"
+    RELEASES = "releases"
 
 
 def is_valid_ip(project_config, ip_address):
@@ -62,10 +62,9 @@ def is_valid_ip(project_config, ip_address):
 
         # Check to make sure it's actually a range before
         try:
-            if '/' in addr and (
-                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
-                    six.text_type(addr), strict=False
-                )
+            if "/" in addr and (
+                ipaddress.ip_address(six.text_type(ip_address))
+                in ipaddress.ip_network(six.text_type(addr), strict=False)
             ):
                 return False
         except ValueError:

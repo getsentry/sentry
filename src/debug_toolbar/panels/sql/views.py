@@ -13,23 +13,23 @@ def sql_select(request):
     form = SQLSelectForm(request.POST or None)
 
     if form.is_valid():
-        sql = form.cleaned_data['raw_sql']
-        params = form.cleaned_data['params']
+        sql = form.cleaned_data["raw_sql"]
+        params = form.cleaned_data["params"]
         cursor = form.cursor
         cursor.execute(sql, params)
         headers = [d[0] for d in cursor.description]
         result = cursor.fetchall()
         cursor.close()
         context = {
-            'result': result,
-            'sql': form.reformat_sql(),
-            'duration': form.cleaned_data['duration'],
-            'headers': headers,
-            'alias': form.cleaned_data['alias'],
+            "result": result,
+            "sql": form.reformat_sql(),
+            "duration": form.cleaned_data["duration"],
+            "headers": headers,
+            "alias": form.cleaned_data["alias"],
         }
         # Using render_to_response avoids running global context processors.
-        return render_to_response('debug_toolbar/panels/sql_select.html', context)
-    return HttpResponseBadRequest('Form errors')
+        return render_to_response("debug_toolbar/panels/sql_select.html", context)
+    return HttpResponseBadRequest("Form errors")
 
 
 @csrf_exempt
@@ -38,29 +38,29 @@ def sql_explain(request):
     form = SQLSelectForm(request.POST or None)
 
     if form.is_valid():
-        sql = form.cleaned_data['raw_sql']
-        params = form.cleaned_data['params']
+        sql = form.cleaned_data["raw_sql"]
+        params = form.cleaned_data["params"]
         vendor = form.connection.vendor
         cursor = form.cursor
 
-        if vendor == 'postgresql':
-            cursor.execute("EXPLAIN ANALYZE %s" % (sql, ), params)
+        if vendor == "postgresql":
+            cursor.execute("EXPLAIN ANALYZE %s" % (sql,), params)
         else:
-            cursor.execute("EXPLAIN %s" % (sql, ), params)
+            cursor.execute("EXPLAIN %s" % (sql,), params)
 
         headers = [d[0] for d in cursor.description]
         result = cursor.fetchall()
         cursor.close()
         context = {
-            'result': result,
-            'sql': form.reformat_sql(),
-            'duration': form.cleaned_data['duration'],
-            'headers': headers,
-            'alias': form.cleaned_data['alias'],
+            "result": result,
+            "sql": form.reformat_sql(),
+            "duration": form.cleaned_data["duration"],
+            "headers": headers,
+            "alias": form.cleaned_data["alias"],
         }
         # Using render_to_response avoids running global context processors.
-        return render_to_response('debug_toolbar/panels/sql_explain.html', context)
-    return HttpResponseBadRequest('Form errors')
+        return render_to_response("debug_toolbar/panels/sql_explain.html", context)
+    return HttpResponseBadRequest("Form errors")
 
 
 @csrf_exempt
@@ -69,8 +69,8 @@ def sql_profile(request):
     form = SQLSelectForm(request.POST or None)
 
     if form.is_valid():
-        sql = form.cleaned_data['raw_sql']
-        params = form.cleaned_data['params']
+        sql = form.cleaned_data["raw_sql"]
+        params = form.cleaned_data["params"]
         cursor = form.cursor
         result = None
         headers = None
@@ -99,13 +99,13 @@ def sql_profile(request):
             result_error = "Profiling is either not available or not supported by your database."
         cursor.close()
         context = {
-            'result': result,
-            'result_error': result_error,
-            'sql': form.reformat_sql(),
-            'duration': form.cleaned_data['duration'],
-            'headers': headers,
-            'alias': form.cleaned_data['alias'],
+            "result": result,
+            "result_error": result_error,
+            "sql": form.reformat_sql(),
+            "duration": form.cleaned_data["duration"],
+            "headers": headers,
+            "alias": form.cleaned_data["alias"],
         }
         # Using render_to_response avoids running global context processors.
-        return render_to_response('debug_toolbar/panels/sql_profile.html', context)
-    return HttpResponseBadRequest('Form errors')
+        return render_to_response("debug_toolbar/panels/sql_profile.html", context)
+    return HttpResponseBadRequest("Form errors")

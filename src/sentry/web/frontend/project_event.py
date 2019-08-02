@@ -8,7 +8,7 @@ from sentry.web.frontend.base import ProjectView
 
 
 class ProjectEventRedirect(ProjectView):
-    required_scope = 'event:read'
+    required_scope = "event:read"
 
     def handle(self, request, organization, project, client_event_id):
         """
@@ -24,9 +24,7 @@ class ProjectEventRedirect(ProjectView):
 
         return HttpResponseRedirect(
             reverse(
-                'sentry-organization-event-detail',
-                args=[
-                    organization.slug,
-                    event.group_id,
-                    event.id])
+                "sentry-organization-event-detail",
+                args=[organization.slug, event.group_id, event.id],
+            )
         )

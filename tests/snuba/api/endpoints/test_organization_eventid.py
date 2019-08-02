@@ -32,12 +32,10 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
 
     def test_simple(self):
         url = reverse(
-            'sentry-api-0-event-id-lookup', kwargs={
-                'organization_slug': self.org.slug,
-                'event_id': self.event.event_id,
-            }
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_slug": self.org.slug, "event_id": self.event.event_id},
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data['organizationSlug'] == self.org.slug
@@ -48,11 +46,9 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
 
     def test_missing_eventid(self):
         url = reverse(
-            'sentry-api-0-event-id-lookup', kwargs={
-                'organization_slug': self.org.slug,
-                'event_id': 'c' * 32,
-            }
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_slug": self.org.slug, "event_id": "c" * 32},
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content

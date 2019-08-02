@@ -105,21 +105,16 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         hashes = [
-            GroupHash.objects.create(
-                project=group.project,
-                group=group,
-                hash=hash,
-            ) for hash in ['a' * 32, 'b' * 32]
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
         ]
 
-        url = '?'.join(
+        url = "?".join(
             [
-                u'/api/0/issues/{}/hashes/'.format(group.id),
-                urlencode({
-                    'id': [h.hash for h in hashes],
-                }, True),
+                u"/api/0/issues/{}/hashes/".format(group.id),
+                urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )
 
-        response = self.client.delete(url, format='json')
+        response = self.client.delete(url, format="json")
         assert response.status_code == 202, response.content

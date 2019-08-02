@@ -13,14 +13,12 @@ class SnubaEventTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaEventTest, self).setUp()
 
-        self.event_id = 'f' * 32
+        self.event_id = "f" * 32
         self.now = datetime.utcnow().replace(microsecond=0) - timedelta(seconds=10)
         self.proj1 = self.create_project()
-        self.proj1env1 = self.create_environment(project=self.proj1, name='test')
+        self.proj1env1 = self.create_environment(project=self.proj1, name="test")
         self.proj1group1 = self.create_group(
-            self.proj1,
-            first_seen=self.now,
-            last_seen=self.now + timedelta(seconds=14400)
+            self.proj1, first_seen=self.now, last_seen=self.now + timedelta(seconds=14400)
         )
 
         # Raw event data
@@ -43,6 +41,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
                 'id': u'user1',
                 'email': u'user1@sentry.io',
             },
+            "user": {"id": u"user1", "email": u"user1@sentry.io"},
         }
 
         # Create a regular django Event from the data, which will save the.
@@ -81,7 +80,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         # We should have populated the NodeData
         assert event.data._node_data is not None
         # And the full user should be in there.
-        assert event.data['user']['id'] == u'user1'
+        assert event.data["user"]["id"] == u"user1"
 
     def test_minimal(self):
         """
@@ -104,9 +103,9 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         """
         event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
         assert event.data._node_data is None
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], "data")
         assert event.data._node_data is not None
-        assert event.data['user']['id'] == u'user1'
+        assert event.data["user"]["id"] == u"user1"
 
     def test_event_with_no_body(self):
         # remove the event from nodestore to simulate an event with no body.
@@ -123,9 +122,9 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         assert event.data == {}
 
         # Check that the regular serializer still gives us back tags
-        assert serialized['tags'] == [
-            {'_meta': None, 'key': 'baz', 'value': 'quux'},
-            {'_meta': None, 'key': 'foo', 'value': 'bar'},
-            {'_meta': None, 'key': 'release', 'value': 'release1'},
-            {'_meta': None, 'key': 'user', 'query': 'user.id:user1', 'value': 'id:user1'}
+        assert serialized["tags"] == [
+            {"_meta": None, "key": "baz", "value": "quux"},
+            {"_meta": None, "key": "foo", "value": "bar"},
+            {"_meta": None, "key": "release", "value": "release1"},
+            {"_meta": None, "key": "user", "query": "user.id:user1", "value": "id:user1"},
         ]

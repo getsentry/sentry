@@ -41,8 +41,13 @@ from six.moves.urllib.parse import urlencode
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
-    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID,
-    COOKIE_SECURE as SU_COOKIE_SECURE, COOKIE_DOMAIN as SU_COOKIE_DOMAIN, COOKIE_PATH as SU_COOKIE_PATH
+    Superuser,
+    COOKIE_SALT as SU_COOKIE_SALT,
+    COOKIE_NAME as SU_COOKIE_NAME,
+    ORG_ID as SU_ORG_ID,
+    COOKIE_SECURE as SU_COOKIE_SECURE,
+    COOKIE_DOMAIN as SU_COOKIE_DOMAIN,
+    COOKIE_PATH as SU_COOKIE_PATH,
 )
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
@@ -61,24 +66,29 @@ from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
 from .helpers import (
-    AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
+    AuthProvider,
+    Feature,
+    get_auth_header,
+    TaskRunner,
+    override_options,
+    parse_queries,
 )
 
-DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
 
 class BaseTestCase(Fixtures, Exam):
-    urls = 'sentry.web.urls'
+    urls = "sentry.web.urls"
 
-    def assertRequiresAuthentication(self, path, method='GET'):
+    def assertRequiresAuthentication(self, path, method="GET"):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
-        assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+        assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
     @before
     def setup_dummy_auth_provider(self):
-        auth.register('dummy', DummyProvider)
-        self.addCleanup(auth.unregister, 'dummy', DummyProvider)
+        auth.register("dummy", DummyProvider)
+        self.addCleanup(auth.unregister, "dummy", DummyProvider)
 
     def tasks(self):
         return TaskRunner()
@@ -103,26 +113,23 @@ class BaseTestCase(Fixtures, Exam):
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
             max_age=None,
-            path='/',
+            path="/",
             domain=settings.SESSION_COOKIE_DOMAIN,
             secure=settings.SESSION_COOKIE_SECURE or None,
-            expires=None
+            expires=None,
         )
 
     def save_cookie(self, name, value, **params):
         self.client.cookies[name] = value
-        self.client.cookies[name].update({
-            k.replace('_', '-'): v
-            for k, v in six.iteritems(params)
-        })
+        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in six.iteritems(params)})
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
         if method:
             request.method = method
-        request.META['REMOTE_ADDR'] = '127.0.0.1'
-        request.META['SERVER_NAME'] = 'testserver'
-        request.META['SERVER_PORT'] = 80
+        request.META["REMOTE_ADDR"] = "127.0.0.1"
+        request.META["SERVER_NAME"] = "testserver"
+        request.META["SERVER_PORT"] = 80
         request.REQUEST = {}
 
         # order matters here, session -> user -> other things
@@ -136,8 +143,9 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
-    def login_as(self, user, organization_id=None, organization_ids=None,
-                 superuser=False, superuser_sso=True):
+    def login_as(
+        self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
+    ):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -156,8 +164,7 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[SSO_SESSION_KEY] = ','.join(
-                six.text_type(o) for o in organization_ids)
+            request.session[SSO_SESSION_KEY] = ",".join(six.text_type(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
@@ -171,9 +178,9 @@ class BaseTestCase(Fixtures, Exam):
             # the Superuser object are successful
             self.save_cookie(
                 name=SU_COOKIE_NAME,
-                value=signing.get_cookie_signer(
-                    salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
-                ).sign(request.superuser.token),
+                value=signing.get_cookie_signer(salt=SU_COOKIE_NAME + SU_COOKIE_SALT).sign(
+                    request.superuser.token
+                ),
                 max_age=None,
                 path=SU_COOKIE_PATH,
                 domain=SU_COOKIE_DOMAIN,
@@ -184,15 +191,8 @@ class BaseTestCase(Fixtures, Exam):
         self.save_session()
 
     def load_fixture(self, filepath):
-        filepath = os.path.join(
-            MODULE_ROOT,
-            os.pardir,
-            os.pardir,
-            'tests',
-            'fixtures',
-            filepath,
-        )
-        with open(filepath, 'rb') as fp:
+        filepath = os.path.join(MODULE_ROOT, os.pardir, os.pardir, "tests", "fixtures", filepath)
+        with open(filepath, "rb") as fp:
             return fp.read()
 
     def _pre_setup(self):
@@ -206,7 +206,7 @@ class BaseTestCase(Fixtures, Exam):
         super(BaseTestCase, self)._post_teardown()
 
     def _makeMessage(self, data):
-        return json.dumps(data).encode('utf-8')
+        return json.dumps(data).encode("utf-8")
 
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
@@ -219,74 +219,63 @@ class BaseTestCase(Fixtures, Exam):
         message = self._makePostMessage(data)
         with self.tasks():
             resp = self.client.post(
-                reverse('sentry-api-store'),
+                reverse("sentry-api-store"),
                 message,
-                content_type='application/octet-stream',
-                HTTP_X_SENTRY_AUTH=get_auth_header(
-                    '_postWithHeader/0.0.0',
-                    key,
-                    secret,
-                    protocol,
-                ),
+                content_type="application/octet-stream",
+                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, protocol),
             )
         return resp
 
     def _postCspWithHeader(self, data, key=None, **extra):
         if isinstance(data, dict):
-            body = json.dumps({'csp-report': data})
+            body = json.dumps({"csp-report": data})
         elif isinstance(data, six.string_types):
             body = data
-        path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        path += '?sentry_key=%s' % self.projectkey.public_key
+        path = reverse("sentry-api-csp-report", kwargs={"project_id": self.project.id})
+        path += "?sentry_key=%s" % self.projectkey.public_key
         with self.tasks():
             return self.client.post(
                 path,
                 data=body,
-                content_type='application/csp-report',
+                content_type="application/csp-report",
                 HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
             )
 
-    def _postMinidumpWithHeader(self, upload_file_minidump, data=None,
-                                key=None, raw=False, **extra):
+    def _postMinidumpWithHeader(
+        self, upload_file_minidump, data=None, key=None, raw=False, **extra
+    ):
         if raw:
             data = upload_file_minidump.read()
-            extra.setdefault('content_type', 'application/octet-stream')
+            extra.setdefault("content_type", "application/octet-stream")
         else:
             data = dict(data or {})
-            data['upload_file_minidump'] = upload_file_minidump
+            data["upload_file_minidump"] = upload_file_minidump
 
-        path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
-        path += '?sentry_key=%s' % self.projectkey.public_key
+        path = reverse("sentry-api-minidump", kwargs={"project_id": self.project.id})
+        path += "?sentry_key=%s" % self.projectkey.public_key
         with self.tasks():
-            return self.client.post(
-                path,
-                data=data,
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
+            return self.client.post(path, data=data, HTTP_USER_AGENT=DEFAULT_USER_AGENT, **extra)
 
     def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
         path = reverse(
-            'sentry-api-unreal',
-            kwargs={
-                'project_id': self.project.id,
-                'sentry_key': self.projectkey.public_key})
+            "sentry-api-unreal",
+            kwargs={"project_id": self.project.id, "sentry_key": self.projectkey.public_key},
+        )
         with self.tasks():
             return self.client.post(
                 path,
                 data=upload_unreal_crash,
-                content_type='application/octet-stream',
+                content_type="application/octet-stream",
                 HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
             )
 
     def _postEventAttachmentWithHeader(self, attachment, **extra):
         path = reverse(
-            'sentry-api-event-attachment',
-            kwargs={
-                'project_id': self.project.id,
-                'event_id': self.event.id})
+            "sentry-api-event-attachment",
+            kwargs={"project_id": self.project.id, "event_id": self.event.id},
+        )
 
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
@@ -296,56 +285,47 @@ class BaseTestCase(Fixtures, Exam):
                 path,
                 attachment,
                 # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                HTTP_X_SENTRY_AUTH=get_auth_header(
-                    '_postWithHeader/0.0.0',
-                    key,
-                    secret,
-                    7,
-                ),
+                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, 7),
                 **extra
             )
 
-    def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
+    def _getWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
         if key is None:
             key = self.projectkey.public_key
 
         headers = {}
         if referer is not None:
-            headers['HTTP_REFERER'] = referer
+            headers["HTTP_REFERER"] = referer
 
         message = self._makeMessage(data)
         qs = {
-            'sentry_version': protocol,
-            'sentry_client': 'raven-js/lol',
-            'sentry_key': key,
-            'sentry_data': message,
+            "sentry_version": protocol,
+            "sentry_client": "raven-js/lol",
+            "sentry_key": key,
+            "sentry_data": message,
         }
         with self.tasks():
             resp = self.client.get(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk, )), urlencode(qs)),
+                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
                 **headers
             )
         return resp
 
-    def _postWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
+    def _postWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
         if key is None:
             key = self.projectkey.public_key
 
         headers = {}
         if referer is not None:
-            headers['HTTP_REFERER'] = referer
+            headers["HTTP_REFERER"] = referer
 
         message = self._makeMessage(data)
-        qs = {
-            'sentry_version': protocol,
-            'sentry_client': 'raven-js/lol',
-            'sentry_key': key,
-        }
+        qs = {"sentry_version": protocol, "sentry_client": "raven-js/lol", "sentry_key": key}
         with self.tasks():
             resp = self.client.post(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk, )), urlencode(qs)),
+                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
                 data=message,
-                content_type='application/json',
+                content_type="application/json",
                 **headers
             )
         return resp
@@ -376,7 +356,7 @@ class BaseTestCase(Fixtures, Exam):
         assert deleted_log.date_deleted >= deleted_log.date_created
 
     def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
-        func = kwargs.pop('func', None)
+        func = kwargs.pop("func", None)
         using = kwargs.pop("using", DEFAULT_DB_ALIAS)
         conn = connections[using]
 
@@ -402,8 +382,9 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
         parsed_queries = parse_queries(self.captured_queries)
 
-        if (self.debug):
+        if self.debug:
             import pprint
+
             pprint.pprint("====================== Raw Queries ======================")
             pprint.pprint(self.captured_queries)
             pprint.pprint("====================== Table writes ======================")
@@ -413,22 +394,23 @@ class _AssertQueriesContext(CaptureQueriesContext):
             expected = self.queries.get(table, 0)
             if expected == 0:
                 import pprint
-                pprint.pprint("WARNING: no query against %s emitted, add debug=True to see all the queries" % (
-                    table
-                ))
+
+                pprint.pprint(
+                    "WARNING: no query against %s emitted, add debug=True to see all the queries"
+                    % (table)
+                )
             else:
                 self.test_case.assertTrue(
-                    num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
-                        expected, table, num
-                    )
+                    num == expected,
+                    "%d write queries expected on `%s`, got %d, add debug=True to see all the queries"
+                    % (expected, table, num),
                 )
 
         for table, num in self.queries.items():
             executed = parsed_queries.get(table, None)
             self.test_case.assertFalse(
-                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
-                    table
-                )
+                executed is None,
+                "no query against %s emitted, add debug=True to see all the queries" % (table),
             )
 
 
@@ -442,29 +424,25 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     endpoint = None
-    method = 'get'
+    method = "get"
 
     def get_response(self, *args, **params):
         if self.endpoint is None:
-            raise Exception('Implement self.endpoint to use this method.')
+            raise Exception("Implement self.endpoint to use this method.")
 
         url = reverse(self.endpoint, args=args)
         # In some cases we want to pass querystring params to put/post, handle
         # this here.
-        if 'qs_params' in params:
-            query_string = urlencode(params.pop('qs_params'), doseq=True)
-            url = u'{}?{}'.format(url, query_string)
+        if "qs_params" in params:
+            query_string = urlencode(params.pop("qs_params"), doseq=True)
+            url = u"{}?{}".format(url, query_string)
 
-        method = params.pop('method', self.method)
+        method = params.pop("method", self.method)
 
-        return getattr(self.client, method)(
-            url,
-            format='json',
-            data=params,
-        )
+        return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
-        status_code = params.pop('status_code', 200)
+        status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
         return resp
@@ -473,7 +451,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 class TwoFactorAPITestCase(APITestCase):
     @fixture
     def path_2fa(self):
-        return reverse('sentry-account-settings-security')
+        return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
         organization.flags.require_2fa = True
@@ -481,16 +459,16 @@ class TwoFactorAPITestCase(APITestCase):
 
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': organization.slug
-        })
-        return self.client.put(url, data={'require2FA': True})
+        url = reverse(
+            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+        )
+        return self.client.put(url, data={"require2FA": True})
 
     def api_disable_org_2fa(self, organization, user):
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': organization.slug,
-        })
-        return self.client.put(url, data={'require2FA': False})
+        url = reverse(
+            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+        )
+        return self.client.put(url, data={"require2FA": False})
 
     def assert_can_enable_org_2fa(self, organization, user, status_code=200):
         self.__helper_enable_organization_2fa(organization, user, status_code)
@@ -513,7 +491,7 @@ class TwoFactorAPITestCase(APITestCase):
     def add_2fa_users_to_org(self, organization, num_of_users=10, num_with_2fa=5):
         non_compliant_members = []
         for num in range(0, num_of_users):
-            user = self.create_user('foo_%s@example.com' % num)
+            user = self.create_user("foo_%s@example.com" % num)
             self.create_member(organization=organization, user=user)
             if num_with_2fa:
                 TotpInterface().enroll(user)
@@ -525,12 +503,12 @@ class TwoFactorAPITestCase(APITestCase):
 
 class AuthProviderTestCase(TestCase):
     provider = DummyProvider
-    provider_name = 'dummy'
+    provider_name = "dummy"
 
     def setUp(self):
         super(AuthProviderTestCase, self).setUp()
         # TestCase automatically sets up dummy provider
-        if self.provider_name != 'dummy' or self.provider != DummyProvider:
+        if self.provider_name != "dummy" or self.provider != DummyProvider:
             auth.register(self.provider_name, self.provider)
             self.addCleanup(auth.unregister, self.provider_name, self.provider)
 
@@ -542,15 +520,15 @@ class RuleTestCase(TestCase):
         return self.event
 
     def get_rule(self, **kwargs):
-        kwargs.setdefault('project', self.project)
-        kwargs.setdefault('data', {})
+        kwargs.setdefault("project", self.project)
+        kwargs.setdefault("data", {})
         return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
-        kwargs.setdefault('is_new', True)
-        kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_new_group_environment', True)
-        kwargs.setdefault('has_reappeared', True)
+        kwargs.setdefault("is_new", True)
+        kwargs.setdefault("is_regression", True)
+        kwargs.setdefault("is_new_group_environment", True)
+        kwargs.setdefault("has_reappeared", True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -571,88 +549,67 @@ class PermissionTestCase(TestCase):
         super(PermissionTestCase, self).setUp()
         self.owner = self.create_user(is_superuser=False)
         self.organization = self.create_organization(
-            owner=self.owner,
-            flags=0,  # disable default allow_joinleave access
+            owner=self.owner, flags=0  # disable default allow_joinleave access
         )
         self.team = self.create_team(organization=self.organization)
 
-    def assert_can_access(self, user, path, method='GET', **kwargs):
+    def assert_can_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
 
-    def assert_cannot_access(self, user, path, method='GET', **kwargs):
+    def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
 
     def assert_member_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, 'member', **kwargs)
+        return self.assert_role_can_access(path, "member", **kwargs)
 
     def assert_teamless_member_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role='member',
-            teams=[],
-        )
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
 
         self.assert_can_access(user, path, **kwargs)
 
     def assert_member_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, 'member', **kwargs)
+        return self.assert_role_cannot_access(path, "member", **kwargs)
 
     def assert_manager_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, 'manager', **kwargs)
+        return self.assert_role_cannot_access(path, "manager", **kwargs)
 
     def assert_teamless_member_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role='member',
-            teams=[],
-        )
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
 
         self.assert_cannot_access(user, path, **kwargs)
 
     def assert_team_admin_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, 'admin', **kwargs)
+        return self.assert_role_can_access(path, "admin", **kwargs)
 
     def assert_teamless_admin_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role='admin',
-            teams=[],
-        )
+        self.create_member(user=user, organization=self.organization, role="admin", teams=[])
 
         self.assert_can_access(user, path, **kwargs)
 
     def assert_team_admin_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, 'admin', **kwargs)
+        return self.assert_role_cannot_access(path, "admin", **kwargs)
 
     def assert_teamless_admin_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role='admin',
-            teams=[],
-        )
+        self.create_member(user=user, organization=self.organization, role="admin", teams=[])
 
         self.assert_cannot_access(user, path, **kwargs)
 
     def assert_team_owner_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, 'owner', **kwargs)
+        return self.assert_role_can_access(path, "owner", **kwargs)
 
     def assert_owner_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, 'owner', **kwargs)
+        return self.assert_role_can_access(path, "owner", **kwargs)
 
     def assert_owner_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, 'owner', **kwargs)
+        return self.assert_role_cannot_access(path, "owner", **kwargs)
 
     def assert_non_member_cannot_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
@@ -660,23 +617,13 @@ class PermissionTestCase(TestCase):
 
     def assert_role_can_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role=role,
-            teams=[self.team],
-        )
+        self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
         self.assert_can_access(user, path, **kwargs)
 
     def assert_role_cannot_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role=role,
-            teams=[self.team],
-        )
+        self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
         self.assert_cannot_access(user, path, **kwargs)
 
@@ -694,29 +641,29 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points('sentry.apps'):
+        for ep in iter_entry_points("sentry.apps"):
             if ep.name == name:
                 ep_path = ep.module_name
                 if ep_path == path:
                     return
                 self.fail(
-                    'Found app in entry_points, but wrong class. Got %r, expected %r' %
-                    (ep_path, path)
+                    "Found app in entry_points, but wrong class. Got %r, expected %r"
+                    % (ep_path, path)
                 )
-        self.fail('Missing app from entry_points: %r' % (name, ))
+        self.fail("Missing app from entry_points: %r" % (name,))
 
     def assertPluginInstalled(self, name, plugin):
-        path = type(plugin).__module__ + ':' + type(plugin).__name__
-        for ep in iter_entry_points('sentry.plugins'):
+        path = type(plugin).__module__ + ":" + type(plugin).__name__
+        for ep in iter_entry_points("sentry.plugins"):
             if ep.name == name:
-                ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
+                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
                 if ep_path == path:
                     return
                 self.fail(
-                    'Found plugin in entry_points, but wrong class. Got %r, expected %r' %
-                    (ep_path, path)
+                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
+                    % (ep_path, path)
                 )
-        self.fail('Missing plugin from entry_points: %r' % (name, ))
+        self.fail("Missing plugin from entry_points: %r" % (name,))
 
 
 class CliTestCase(TestCase):
@@ -730,30 +677,23 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
-@pytest.mark.usefixtures('browser')
+@pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
     def setUp(self):
         patcher = patch(
-            'django.utils.timezone.now',
-            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc))
+            "django.utils.timezone.now",
+            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
         )
         patcher.start()
         self.addCleanup(patcher.stop)
         super(AcceptanceTestCase, self).setUp()
 
     def save_cookie(self, name, value, **params):
-        self.browser.save_cookie(
-            name=name,
-            value=value,
-            **params
-        )
+        self.browser.save_cookie(name=name, value=value, **params)
 
     def save_session(self):
         self.session.save()
-        self.save_cookie(
-            name=settings.SESSION_COOKIE_NAME,
-            value=self.session.session_key,
-        )
+        self.save_cookie(name=settings.SESSION_COOKIE_NAME, value=self.session.session_key)
         # Forward session cookie to django client.
         self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
@@ -766,30 +706,28 @@ class IntegrationTestCase(TestCase):
 
         super(IntegrationTestCase, self).setUp()
 
-        self.organization = self.create_organization(name='foo', owner=self.user)
+        self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
-            request=self.request,
-            organization=self.organization,
-            provider_key=self.provider.key,
+            request=self.request, organization=self.organization, provider_key=self.provider.key
         )
 
-        self.init_path = reverse('sentry-organization-integrations-setup', kwargs={
-            'organization_slug': self.organization.slug,
-            'provider_id': self.provider.key,
-        })
+        self.init_path = reverse(
+            "sentry-organization-integrations-setup",
+            kwargs={"organization_slug": self.organization.slug, "provider_id": self.provider.key},
+        )
 
-        self.setup_path = reverse('sentry-extension-setup', kwargs={
-            'provider_id': self.provider.key,
-        })
+        self.setup_path = reverse(
+            "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
+        )
 
         self.pipeline.initialize()
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert 'window.opener.postMessage(' in resp.content
+        assert "window.opener.postMessage(" in resp.content
 
 
 @pytest.mark.snuba
@@ -808,18 +746,22 @@ class SnubaTestCase(BaseTestCase):
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaCompatibilityTagStorage()
-        assert requests.post(settings.SENTRY_SNUBA + '/tests/events/drop').status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
-            mock.patch('sentry.eventstream.insert',
-                       self.snuba_eventstream.insert),
-            mock.patch('sentry.tagstore.delay_index_event_tags',
-                       self.snuba_tagstore.delay_index_event_tags),
-            mock.patch('sentry.tagstore.incr_tag_value_times_seen',
-                       self.snuba_tagstore.incr_tag_value_times_seen),
-            mock.patch('sentry.tagstore.incr_group_tag_value_times_seen',
-                       self.snuba_tagstore.incr_group_tag_value_times_seen),
+            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert),
+            mock.patch(
+                "sentry.tagstore.delay_index_event_tags", self.snuba_tagstore.delay_index_event_tags
+            ),
+            mock.patch(
+                "sentry.tagstore.incr_tag_value_times_seen",
+                self.snuba_tagstore.incr_tag_value_times_seen,
+            ),
+            mock.patch(
+                "sentry.tagstore.incr_group_tag_value_times_seen",
+                self.snuba_tagstore.incr_group_tag_value_times_seen,
+            ),
         ):
             return Factories.store_event(*args, **kwargs)
 
@@ -828,14 +770,14 @@ class SnubaTestCase(BaseTestCase):
         #       getsentry once it is merged, so that we don't alter one
         #       without updating the other.
         return {
-            'group_id': event.group_id,
-            'event_id': event.event_id,
-            'project_id': event.project_id,
-            'message': event.real_message,
-            'platform': event.platform,
-            'datetime': event.datetime,
-            'data': dict(data),
-            'primary_hash': primary_hash,
+            "group_id": event.group_id,
+            "event_id": event.event_id,
+            "project_id": event.project_id,
+            "message": event.real_message,
+            "platform": event.platform,
+            "datetime": event.datetime,
+            "data": dict(data),
+            "primary_hash": primary_hash,
         }
 
     def create_event(self, *args, **kwargs):
@@ -852,28 +794,22 @@ class SnubaTestCase(BaseTestCase):
         event = Factories.create_event(*args, **kwargs)
 
         data = event.data.data
-        tags = dict(data.get('tags', []))
+        tags = dict(data.get("tags", []))
 
-        if not data.get('received'):
-            data['received'] = calendar.timegm(event.datetime.timetuple())
+        if not data.get("received"):
+            data["received"] = calendar.timegm(event.datetime.timetuple())
 
-        if 'environment' in tags:
-            environment = Environment.get_or_create(
-                event.project,
-                tags['environment'],
-            )
+        if "environment" in tags:
+            environment = Environment.get_or_create(event.project, tags["environment"])
 
             GroupEnvironment.objects.get_or_create(
-                environment_id=environment.id,
-                group_id=event.group_id,
+                environment_id=environment.id, group_id=event.group_id
             )
 
         primary_hash = event.get_primary_hash()
 
         grouphash, _ = GroupHash.objects.get_or_create(
-            project=event.project,
-            group=event.group,
-            hash=primary_hash,
+            project=event.project, group=event.group, hash=primary_hash
         )
 
         self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
@@ -886,10 +822,12 @@ class SnubaTestCase(BaseTestCase):
         if not isinstance(events, list):
             events = [events]
 
-        assert requests.post(
-            settings.SENTRY_SNUBA + '/tests/events/insert',
-            data=json.dumps(events)
-        ).status_code == 200
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+            ).status_code
+            == 200
+        )
 
 
 class IntegrationRepositoryTestCase(APITestCase):
@@ -900,34 +838,32 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError
 
-    def create_repository(self, repository_config, integration_id,
-                          organization_slug=None, add_responses=True):
+    def create_repository(
+        self, repository_config, integration_id, organization_slug=None, add_responses=True
+    ):
         if add_responses:
             self.add_create_repository_responses(repository_config)
         if not integration_id:
-            data = {
-                'provider': self.provider_name,
-                'identifier': repository_config['id'],
-            }
+            data = {"provider": self.provider_name, "identifier": repository_config["id"]}
         else:
             data = {
-                'provider': self.provider_name,
-                'installation': integration_id,
-                'identifier': repository_config['id'],
+                "provider": self.provider_name,
+                "installation": integration_id,
+                "identifier": repository_config["id"],
             }
 
         response = self.client.post(
             path=reverse(
-                'sentry-api-0-organization-repositories',
-                args=[organization_slug or self.organization.slug]
+                "sentry-api-0-organization-repositories",
+                args=[organization_slug or self.organization.slug],
             ),
-            data=data
+            data=data,
         )
         return response
 
     def assert_error_message(self, response, error_type, error_message):
-        assert response.data['error_type'] == error_type
-        assert error_message in response.data['errors']['__all__']
+        assert response.data["error_type"] == error_type
+        assert error_message in response.data["errors"]["__all__"]
 
 
 class ReleaseCommitPatchTest(APITestCase):
@@ -937,7 +873,7 @@ class ReleaseCommitPatchTest(APITestCase):
         self.org.save()
 
         team = self.create_team(organization=self.org)
-        self.project = self.create_project(name='foo', organization=self.org, teams=[team])
+        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
 
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
@@ -966,24 +902,21 @@ class SetRefsTestCase(APITestCase):
         self.org = self.create_organization()
 
         self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(name='foo', organization=self.org, teams=[self.team])
+        self.project = self.create_project(name="foo", organization=self.org, teams=[self.team])
         self.create_member(teams=[self.team], user=self.user, organization=self.org)
         self.login_as(user=self.user)
 
         self.group = self.create_group(project=self.project)
-        self.repo = Repository.objects.create(
-            organization_id=self.org.id,
-            name='test/repo',
-        )
+        self.repo = Repository.objects.create(organization_id=self.org.id, name="test/repo")
 
     def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
         assert len(mock_fetch_commit.method_calls) == 1
-        kwargs = mock_fetch_commit.method_calls[0][2]['kwargs']
+        kwargs = mock_fetch_commit.method_calls[0][2]["kwargs"]
         assert kwargs == {
-            'prev_release_id': prev_release_id,
-            'refs': refs,
-            'release_id': release_id,
-            'user_id': self.user.id,
+            "prev_release_id": prev_release_id,
+            "refs": refs,
+            "release_id": release_id,
+            "user_id": self.user.id,
         }
 
     def assert_head_commit(self, head_commit, commit_key, release_id=None):
@@ -1006,57 +939,53 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         super(OrganizationDashboardWidgetTestCase, self).setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
-            title='Dashboard 1',
-            created_by=self.user,
-            organization=self.organization,
+            title="Dashboard 1", created_by=self.user, organization=self.organization
         )
         self.anon_users_query = {
-            'name': 'anonymousUsersAffectedQuery',
-            'fields': [],
-            'conditions': [['user.email', 'IS NULL', None]],
-            'aggregations': [['count()', None, 'Anonymous Users']],
-            'limit': 1000,
-            'orderby': '-time',
-            'groupby': ['time'],
-            'rollup': 86400,
+            "name": "anonymousUsersAffectedQuery",
+            "fields": [],
+            "conditions": [["user.email", "IS NULL", None]],
+            "aggregations": [["count()", None, "Anonymous Users"]],
+            "limit": 1000,
+            "orderby": "-time",
+            "groupby": ["time"],
+            "rollup": 86400,
         }
         self.known_users_query = {
-            'name': 'knownUsersAffectedQuery',
-            'fields': [],
-            'conditions': [['user.email', 'IS NOT NULL', None]],
-            'aggregations': [['uniq', 'user.email', 'Known Users']],
-            'limit': 1000,
-            'orderby': '-time',
-            'groupby': ['time'],
-            'rollup': 86400,
+            "name": "knownUsersAffectedQuery",
+            "fields": [],
+            "conditions": [["user.email", "IS NOT NULL", None]],
+            "aggregations": [["uniq", "user.email", "Known Users"]],
+            "limit": 1000,
+            "orderby": "-time",
+            "groupby": ["time"],
+            "rollup": 86400,
         }
         self.geo_erorrs_query = {
-            'name': 'errorsByGeo',
-            'fields': ['geo.country_code'],
-            'conditions': [['geo.country_code', 'IS NOT NULL', None]],
-            'aggregations': [['count()', None, 'count']],
-            'limit': 10,
-            'orderby': '-count',
-            'groupby': ['geo.country_code'],
+            "name": "errorsByGeo",
+            "fields": ["geo.country_code"],
+            "conditions": [["geo.country_code", "IS NOT NULL", None]],
+            "aggregations": [["count()", None, "count"]],
+            "limit": 10,
+            "orderby": "-count",
+            "groupby": ["geo.country_code"],
         }
 
     def assert_widget_data_sources(self, widget_id, data):
         result_data_sources = sorted(
-            WidgetDataSource.objects.filter(
-                widget_id=widget_id,
-                status=ObjectStatus.VISIBLE
-            ),
-            key=lambda x: x.order
+            WidgetDataSource.objects.filter(widget_id=widget_id, status=ObjectStatus.VISIBLE),
+            key=lambda x: x.order,
         )
-        data.sort(key=lambda x: x['order'])
+        data.sort(key=lambda x: x["order"])
         for ds, expected_ds in zip(result_data_sources, data):
-            assert ds.name == expected_ds['name']
-            assert ds.type == WidgetDataSourceTypes.get_id_for_type_name(expected_ds['type'])
-            assert ds.order == expected_ds['order']
-            assert ds.data == expected_ds['data']
+            assert ds.name == expected_ds["name"]
+            assert ds.type == WidgetDataSourceTypes.get_id_for_type_name(expected_ds["type"])
+            assert ds.order == expected_ds["order"]
+            assert ds.data == expected_ds["data"]
 
-    def assert_widget(self, widget, order, title, display_type,
-                      display_options=None, data_sources=None):
+    def assert_widget(
+        self, widget, order, title, display_type, display_options=None, data_sources=None
+    ):
         assert widget.order == order
         assert widget.display_type == display_type
         if display_options:
@@ -1068,15 +997,16 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
         self.assert_widget_data_sources(widget.id, data_sources)
 
-    def assert_widget_data(self, data, order, title, display_type,
-                           display_options=None, data_sources=None):
-        assert data['order'] == order
-        assert data['displayType'] == display_type
+    def assert_widget_data(
+        self, data, order, title, display_type, display_options=None, data_sources=None
+    ):
+        assert data["order"] == order
+        assert data["displayType"] == display_type
         if display_options:
-            assert data['displayOptions'] == display_options
-        assert data['title'] == title
+            assert data["displayOptions"] == display_options
+        assert data["title"] == title
 
         if not data_sources:
             return
 
-        self.assert_widget_data_sources(data['id'], data_sources)
+        self.assert_widget_data_sources(data["id"], data_sources)

@@ -12,16 +12,18 @@ from sentry.tasks.integrations import create_comment, update_comment
 logger = logging.getLogger(__name__)
 
 EXCLUDED_STATUSES = (
-    GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE
+    GroupStatus.PENDING_DELETION,
+    GroupStatus.DELETION_IN_PROGRESS,
+    GroupStatus.PENDING_MERGE,
 )
 
 
 class GroupPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:admin'],
-        'POST': ['event:write', 'event:admin'],
-        'PUT': ['event:write', 'event:admin'],
-        'DELETE': ['event:admin'],
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
+        "PUT": ["event:write", "event:admin"],
+        "DELETE": ["event:admin"],
     }
 
     def has_object_permission(self, request, view, group):
@@ -29,7 +31,7 @@ class GroupPermission(ProjectPermission):
 
 
 class GroupEndpoint(Endpoint):
-    permission_classes = (GroupPermission, )
+    permission_classes = (GroupPermission,)
 
     def convert_args(self, request, issue_id, organization_slug=None, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
@@ -44,9 +46,7 @@ class GroupEndpoint(Endpoint):
         # `issue_id` keyword argument.
         if organization_slug:
             try:
-                organization = Organization.objects.get_from_cache(
-                    slug=organization_slug,
-                )
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -60,7 +60,7 @@ class GroupEndpoint(Endpoint):
         try:
             group, _ = get_group_with_redirect(
                 issue_id,
-                queryset=Group.objects.select_related('project', 'project__organization'),
+                queryset=Group.objects.select_related("project", "project__organization"),
                 organization=organization,
             )
         except Group.DoesNotExist:
@@ -77,24 +77,22 @@ class GroupEndpoint(Endpoint):
 
         request._request.organization = group.project.organization
 
-        kwargs['group'] = group
+        kwargs["group"] = group
 
         return (args, kwargs)
 
     def get_external_issue_ids(self, group):
         return GroupLink.objects.filter(
-            project_id=group.project_id,
-            group_id=group.id,
-            linked_type=GroupLink.LinkedType.issue,
-        ).values_list('linked_id', flat=True)
+            project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue
+        ).values_list("linked_id", flat=True)
 
     def create_external_comment(self, request, group, group_note):
         for external_issue_id in self.get_external_issue_ids(group):
             create_comment.apply_async(
                 kwargs={
-                    'external_issue_id': external_issue_id,
-                    'group_note_id': group_note.id,
-                    'user_id': request.user.id,
+                    "external_issue_id": external_issue_id,
+                    "group_note_id": group_note.id,
+                    "user_id": request.user.id,
                 }
             )
 
@@ -102,8 +100,8 @@ class GroupEndpoint(Endpoint):
         for external_issue_id in self.get_external_issue_ids(group):
             update_comment.apply_async(
                 kwargs={
-                    'external_issue_id': external_issue_id,
-                    'group_note_id': group_note.id,
-                    'user_id': request.user.id,
+                    "external_issue_id": external_issue_id,
+                    "group_note_id": group_note.id,
+                    "user_id": request.user.id,
                 }
             )

@@ -8,9 +8,9 @@ from sentry.utils.audit import create_audit_entry
 
 
 class Destroyer(Mediator):
-    sentry_app = Param('sentry.models.SentryApp')
-    request = Param('rest_framework.request.Request', required=False)
-    user = Param('sentry.models.User')
+    sentry_app = Param("sentry.models.SentryApp")
+    request = Param("rest_framework.request.Request", required=False)
+    user = Param("sentry.models.User")
 
     def call(self):
         self._destroy_api_application()
@@ -23,9 +23,7 @@ class Destroyer(Mediator):
         for install in self.sentry_app.installations.all():
             notify = False if self.sentry_app.is_internal else True
             sentry_app_installations.Destroyer.run(
-                install=install,
-                user=self.sentry_app.proxy_user,
-                notify=notify,
+                install=install, user=self.sentry_app.proxy_user, notify=notify
             )
 
     def _destroy_api_application(self):
@@ -44,14 +42,12 @@ class Destroyer(Mediator):
                 organization=self.sentry_app.owner,
                 target_object=self.sentry_app.owner.id,
                 event=AuditLogEntryEvent.SENTRY_APP_REMOVE,
-                data={
-                    'sentry_app': self.sentry_app.name,
-                },
+                data={"sentry_app": self.sentry_app.name},
             )
 
     def record_analytics(self):
         analytics.record(
-            'sentry_app.deleted',
+            "sentry_app.deleted",
             user_id=self.user.id,
             organization_id=self.sentry_app.owner.id,
             sentry_app=self.sentry_app.slug,

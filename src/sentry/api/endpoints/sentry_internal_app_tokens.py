@@ -14,7 +14,7 @@ from sentry.exceptions import ApiTokenLimitError
 
 
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
-    permission_classes = (SentryInternalAppTokenPermission, )
+    permission_classes = (SentryInternalAppTokenPermission,)
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def get(self, request, sentry_app):
@@ -31,22 +31,19 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, sentry_app):
         if not sentry_app.is_internal:
-            return Response('This route is limited to internal integrations only',
-                            status=status.HTTP_403_FORBIDDEN
-                            )
+            return Response(
+                "This route is limited to internal integrations only",
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         try:
             api_token = Creator.run(
-                request=request,
-                sentry_app_installation=sentry_app_installation,
-                user=request.user,
+                request=request, sentry_app_installation=sentry_app_installation, user=request.user
             )
         except ApiTokenLimitError as e:
             return Response(e.message, status=status.HTTP_403_FORBIDDEN)
 
         # hack so the token is included in the response
-        attrs = {
-            'application': None,
-        }
+        attrs = {"application": None}
         return Response(ApiTokenSerializer().serialize(api_token, attrs, request.user), status=201)
