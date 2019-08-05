@@ -1,15 +1,15 @@
-import React from 'react';
-import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import React from 'react';
 import moment from 'moment-timezone';
+import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
+import {getShortVersion} from 'app/utils';
+import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
-import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
-import DynamicWrapper from 'app/components/dynamicWrapper';
-import {getShortVersion} from 'app/utils';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
 
@@ -74,10 +74,12 @@ class Deploy extends React.Component {
           </StyledLink>
         </Version>
         <Flex w={90} justify="flex-end">
-          <StyledDynamicWrapper
-            value={moment(deploy.dateFinished).fromNow()}
-            fixed="3 hours ago"
-          />
+          <DeployTimeWrapper>
+            {getDynamicText({
+              value: moment(deploy.dateFinished).fromNow(),
+              fixed: '3 hours ago',
+            })}
+          </DeployTimeWrapper>
         </Flex>
       </DeployRow>
     );
@@ -113,7 +115,7 @@ const StyledLink = styled(Link)`
   white-space: nowrap;
 `;
 
-const StyledDynamicWrapper = styled(DynamicWrapper)`
+const DeployTimeWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

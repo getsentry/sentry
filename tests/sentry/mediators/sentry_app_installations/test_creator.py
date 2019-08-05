@@ -4,6 +4,7 @@ import responses
 
 from mock import patch
 
+from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
@@ -85,6 +86,29 @@ class TestCreator(TestCase):
         install = self.creator.call()
 
         assert install.api_grant is not None
+
+    @responses.activate
+    def test_pending_status(self):
+        responses.add(responses.POST, 'https://example.com/webhook')
+        install = self.creator.call()
+
+        assert install.status == SentryAppInstallationStatus.PENDING
+
+    @responses.activate
+    def test_installed_status(self):
+        responses.add(responses.POST, 'https://example.com/webhook')
+        internal_app = self.create_internal_integration(
+            name='internal',
+            organization=self.org,
+        )
+        creator = Creator(
+            organization=self.org,
+            slug=internal_app.slug,
+            user=self.user,
+        )
+        install = creator.call()
+
+        assert install.status == SentryAppInstallationStatus.INSTALLED
 
     @patch('sentry.analytics.record')
     def test_records_analytics(self, record):

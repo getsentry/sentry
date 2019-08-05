@@ -39,14 +39,13 @@ from sentry.models import (
     Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment,
+    ReleaseProjectEnvironment, UserReport, Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -266,14 +265,14 @@ class EventManager(object):
         content_encoding=None,
         is_renormalize=False,
         remove_other=None,
-        relay_config=None
+        project_config=None
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
-        # if not explicitly specified try to get the grouping from relay_config
-        if grouping_config is None and relay_config is not None:
-            config = relay_config.config
+        # if not explicitly specified try to get the grouping from project_config
+        if grouping_config is None and project_config is not None:
+            config = project_config.config
             grouping_config = config.get('grouping_config')
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
@@ -286,7 +285,7 @@ class EventManager(object):
         self._is_renormalize = is_renormalize
         self._remove_other = remove_other
         self._normalized = False
-        self.relay_config = relay_config
+        self.project_config = project_config
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -362,14 +361,13 @@ class EventManager(object):
             protocol_version=six.text_type(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
+            normalize_user_agent=True,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
         self._data = CanonicalKeyDict(
             rust_normalizer.normalize_event(dict(self._data))
         )
-
-        normalize_user_agent(self._data)
 
     def should_filter(self):
         '''
@@ -384,27 +382,27 @@ class EventManager(object):
                 if interface.to_python(self._data[name]).should_filter(self._project):
                     return (True, FilterStatKeys.INVALID_CSP)
 
-        if self._client_ip and not is_valid_ip(self.relay_config, self._client_ip):
+        if self._client_ip and not is_valid_ip(self.project_config, self._client_ip):
             return (True, FilterStatKeys.IP_ADDRESS)
 
         release = self._data.get('release')
-        if release and not is_valid_release(self.relay_config, release):
+        if release and not is_valid_release(self.project_config, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
         error_message = get_path(self._data, 'logentry', 'formatted') \
             or get_path(self._data, 'logentry', 'message') \
             or ''
-        if error_message and not is_valid_error_message(self.relay_config, error_message):
+        if error_message and not is_valid_error_message(self.project_config, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
                 filter(None, map(exc.get, ['type', 'value']))
             )
-            if message and not is_valid_error_message(self.relay_config, message):
+            if message and not is_valid_error_message(self.project_config, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        return should_filter_event(self.relay_config, self._data)
+        return should_filter_event(self.project_config, self._data)
 
     def get_data(self):
         return self._data
@@ -834,14 +832,6 @@ class EventManager(object):
             ).update(
                 group=group,
                 environment=environment,
-            )
-
-            # Update any event attachment that arrived before the event group was defined.
-            EventAttachment.objects.filter(
-                project_id=project.id,
-                event_id=event_id,
-            ).update(
-                group_id=group.id,
             )
 
         # save the event unless its been sampled

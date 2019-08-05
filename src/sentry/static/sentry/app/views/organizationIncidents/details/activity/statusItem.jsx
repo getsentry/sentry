@@ -62,12 +62,16 @@ class StatusItem extends React.Component {
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
       >
-        {activity.eventStats && (
-          <Chart
-            data={activity.eventStats.data}
-            detected={(isCreated || isDetected) && incident && incident.dateStarted}
-          />
-        )}
+        {activity.eventStats &&
+          getDynamicText({
+            value: (
+              <Chart
+                data={activity.eventStats.data}
+                detected={(isCreated || isDetected) && incident && incident.dateStarted}
+              />
+            ),
+            fixed: 'Chart Placeholder for Percy',
+          })}
       </ActivityItem>
     );
   }

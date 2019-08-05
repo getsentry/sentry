@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 from datetime import timedelta
+from uuid import uuid4
 
 import six
 from django.db import transaction
@@ -10,6 +11,8 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
 from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -20,16 +23,14 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSubscription,
     IncidentType,
+    SnubaDatasets,
     TimeSeriesSnapshot,
 )
 from sentry.models import (
     Commit,
     Release,
 )
-from sentry.incidents.tasks import (
-    calculate_incident_suspects,
-    send_subscriber_notifications,
-)
+from sentry.incidents import tasks
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     bulk_raw_query,
@@ -41,6 +42,10 @@ MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
 
 class StatusAlreadyChangedError(Exception):
+    pass
+
+
+class AlreadyDeletedError(Exception):
     pass
 
 
@@ -104,7 +109,7 @@ def create_incident(
             incident_type=type.value,
         )
 
-    calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
+    tasks.calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
     return incident
 
 
@@ -223,7 +228,7 @@ def create_incident_activity(
                 IncidentSubscription(incident=incident, user_id=mentioned_user_id)
                 for mentioned_user_id in user_ids_to_subscribe
             ])
-    send_subscriber_notifications.apply_async(
+    tasks.send_subscriber_notifications.apply_async(
         kwargs={'activity_id': activity.id},
         countdown=10,
     )
@@ -461,3 +466,211 @@ def get_incident_suspect_commits(incident):
                     continue
                 seen.add(commit.id)
                 yield commit.id
+
+
+class AlertRuleNameAlreadyUsedError(Exception):
+    pass
+
+
+DEFAULT_ALERT_RULE_RESOLUTION = 1
+
+
+def create_alert_rule(
+    project,
+    name,
+    threshold_type,
+    query,
+    aggregations,
+    time_window,
+    alert_threshold,
+    resolve_threshold,
+    threshold_period,
+):
+    """
+    Creates an alert rule for a project.
+
+    :param project:
+    :param name: Name for the alert rule. This will be used as part of the
+    incident name, and must be unique per project.
+    :param threshold_type: An AlertRuleThresholdType
+    :param query: An event search query to subscribe to and monitor for alerts
+    :param aggregations: A list of AlertRuleAggregations that we want to fetch
+    for this alert rule
+    :param time_window: Time period to aggregate over, in minutes.
+    :param alert_threshold: Value that the subscription needs to reach to
+    trigger the alert
+    :param resolve_threshold: Value that the subscription needs to reach to
+    resolve the alert
+    :param threshold_period: How many update periods the value of the
+    subscription needs to exceed the threshold before triggering
+    :return: The created `AlertRule`
+    """
+    subscription_id = None
+    dataset = SnubaDatasets.EVENTS
+    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    validate_alert_rule_query(query)
+    if AlertRule.objects.filter(project=project, name=name).exists():
+        raise AlertRuleNameAlreadyUsedError()
+    try:
+        subscription_id = create_snuba_subscription(
+            dataset,
+            query,
+            aggregations,
+            time_window,
+            resolution,
+        )
+        alert_rule = AlertRule.objects.create(
+            project=project,
+            name=name,
+            subscription_id=subscription_id,
+            threshold_type=threshold_type.value,
+            dataset=SnubaDatasets.EVENTS.value,
+            query=query,
+            aggregations=[agg.value for agg in aggregations],
+            time_window=time_window,
+            resolution=resolution,
+            alert_threshold=alert_threshold,
+            resolve_threshold=resolve_threshold,
+            threshold_period=threshold_period,
+        )
+    except Exception:
+        # If we error for some reason and have a valid subscription_id then
+        # attempt to delete from snuba to avoid orphaned subscriptions.
+        if subscription_id:
+            delete_snuba_subscription(subscription_id)
+        raise
+    return alert_rule
+
+
+def update_alert_rule(
+    alert_rule,
+    name=None,
+    threshold_type=None,
+    query=None,
+    aggregations=None,
+    time_window=None,
+    alert_threshold=None,
+    resolve_threshold=None,
+    threshold_period=None,
+):
+    """
+    Updates an alert rule.
+
+    :param alert_rule: The alert rule to update
+    :param name: Name for the alert rule. This will be used as part of the
+    incident name, and must be unique per project.
+    :param threshold_type: An AlertRuleThresholdType
+    :param query: An event search query to subscribe to and monitor for alerts
+    :param aggregations: A list of AlertRuleAggregations that we want to fetch
+    for this alert rule
+    :param time_window: Time period to aggregate over, in minutes.
+    :param alert_threshold: Value that the subscription needs to reach to
+    trigger the alert
+    :param resolve_threshold: Value that the subscription needs to reach to
+    resolve the alert
+    :param threshold_period: How many update periods the value of the
+    subscription needs to exceed the threshold before triggering
+    :return: The updated `AlertRule`
+    """
+    if name and alert_rule.name != name and AlertRule.objects.filter(
+        project=alert_rule.project,
+        name=name,
+    ).exists():
+        raise AlertRuleNameAlreadyUsedError()
+
+    old_subscription_id = None
+    subscription_id = None
+    updated_fields = {}
+    if name:
+        updated_fields['name'] = name
+    if threshold_type:
+        updated_fields['threshold_type'] = threshold_type.value
+    if query is not None:
+        validate_alert_rule_query(query)
+        updated_fields['query'] = query
+    if aggregations:
+        updated_fields['aggregations'] = [a.value for a in aggregations]
+    if time_window:
+        updated_fields['time_window'] = time_window
+    if alert_threshold:
+        updated_fields['alert_threshold'] = alert_threshold
+    if resolve_threshold:
+        updated_fields['resolve_threshold'] = resolve_threshold
+    if threshold_period:
+        updated_fields['threshold_period'] = threshold_period
+
+    if query or aggregations or time_window:
+        old_subscription_id = alert_rule.subscription_id
+        # If updating any details of the query, create a new subscription
+        subscription_id = create_snuba_subscription(
+            alert_rule.dataset,
+            query,
+            aggregations,
+            time_window,
+            DEFAULT_ALERT_RULE_RESOLUTION,
+        )
+        updated_fields['subscription_id'] = subscription_id
+
+    try:
+        alert_rule.update(**updated_fields)
+    except Exception:
+        # If we error for some reason and have a valid subscription_id then
+        # attempt to delete from snuba to avoid orphaned subscriptions.
+        if subscription_id:
+            delete_snuba_subscription(subscription_id)
+        raise
+    finally:
+        if old_subscription_id:
+            # Once we're set up correctly, remove the previous subscription id.
+            delete_snuba_subscription(old_subscription_id)
+
+    return alert_rule
+
+
+def delete_alert_rule(alert_rule):
+    """
+    Marks an alert rule as deleted and fires off a task to actually delete it.
+    :param alert_rule:
+    """
+    if alert_rule.status in (
+        AlertRuleStatus.PENDING_DELETION.value,
+        AlertRuleStatus.DELETION_IN_PROGRESS.value,
+    ):
+        raise AlreadyDeletedError()
+
+    alert_rule.update(
+        # Randomize the name here so that we don't get unique constraint issues
+        # while waiting for the deletion to process
+        name=uuid4().get_hex(),
+        status=AlertRuleStatus.PENDING_DELETION.value,
+    )
+    tasks.delete_alert_rule.apply_async(kwargs={'alert_rule_id': alert_rule.id})
+    delete_snuba_subscription(alert_rule.subscription_id)
+
+
+def validate_alert_rule_query(query):
+    # TODO: We should add more validation here to reject queries that include
+    # fields that are invalid in alert rules. For now this will just make sure
+    # the query parses correctly.
+    get_snuba_query_args(query)
+
+
+def create_snuba_subscription(dataset, query, aggregations, time_window, resolution):
+    """
+    Creates a subscription to a snuba query.
+
+    :param alert_rule: The alert rule to create the subscription for
+    :return: A uuid representing the subscription id.
+    """
+    # TODO: Implement
+    return uuid4()
+
+
+def delete_snuba_subscription(subscription_id):
+    """
+    Deletes a subscription to a snuba query.
+    :param subscription_id: The uuid of the subscription to delete
+    :return:
+    """
+    # TODO: Implement
+    pass

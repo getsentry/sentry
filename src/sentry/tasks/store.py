@@ -5,7 +5,6 @@ from datetime import datetime
 import six
 
 from time import time
-from django.conf import settings
 from django.utils import timezone
 
 from semaphore.processing import StoreNormalizer
@@ -15,7 +14,7 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, kafka, metrics
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, \
     should_process_for_stacktraces
@@ -68,39 +67,18 @@ def should_process(data):
 
 
 def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
-    if features.has('projects:kafka-ingest', project=project):
-        kafka.produce_sync(
-            settings.KAFKA_PROCESS,
-            value=json.dumps({
-                'cache_key': cache_key,
-                'start_time': start_time,
-                'from_reprocessing': from_reprocessing,
-                'data': data,
-            }),
-        )
-    else:
-        task = process_event_from_reprocessing if from_reprocessing else process_event
-        task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+    task = process_event_from_reprocessing if from_reprocessing else process_event
+    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
 def submit_save_event(project, cache_key, event_id, start_time, data):
-    if features.has('projects:kafka-ingest', project=project):
-        kafka.produce_sync(
-            settings.KAFKA_SAVE,
-            value=json.dumps({
-                'cache_key': cache_key,
-                'start_time': start_time,
-                'data': data,
-            }),
-        )
-    else:
-        if cache_key:
-            data = None
+    if cache_key:
+        data = None
 
-        save_event.delay(
-            cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
-            project_id=project.id
-        )
+    save_event.delay(
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
+        project_id=project.id
+    )
 
 
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
@@ -436,7 +414,6 @@ def save_attachment(event, attachment):
 
     EventAttachment.objects.create(
         event_id=event.event_id,
-        group_id=event.group_id,
         project_id=event.project_id,
         name=attachment.name,
         file=file,

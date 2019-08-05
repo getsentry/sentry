@@ -1,4 +1,4 @@
-import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
+import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 
 const BASE_URL = org => `/organizations/${org.slug}/events-stats/`;
@@ -28,10 +28,8 @@ export const doEventsRequest = (
     end,
     interval,
     includePrevious,
-    limit,
     query,
     yAxis,
-    groupId,
   }
 ) => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -41,7 +39,6 @@ export const doEventsRequest = (
     environment,
     query,
     yAxis,
-    group: groupId,
   };
 
   // Doubling period for absolute dates is not accurate unless starting and

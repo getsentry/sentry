@@ -142,7 +142,6 @@ register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
 
 # Snuba
-register('snuba.use_group_id_column', default=True)
 register('snuba.search.pre-snuba-candidates-optimizer', type=Bool, default=False)
 register('snuba.search.pre-snuba-candidates-percentage', default=0.2)
 register('snuba.search.project-group-count-cache-time', default=24 * 60 * 60)
@@ -152,7 +151,6 @@ register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)
 register('snuba.search.max-total-chunk-time-seconds', default=30.0)
 register('snuba.search.hits-sample-size', default=100)
-register('snuba.events-queries.enabled', type=Bool, default=True)
 register('snuba.track-outcomes-sample-rate', default=0.0)
 
 # Kafka Publisher

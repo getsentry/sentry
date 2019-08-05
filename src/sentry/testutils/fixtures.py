@@ -202,6 +202,9 @@ class Fixtures(object):
     def create_internal_integration(self, *args, **kwargs):
         return Factories.create_internal_integration(*args, **kwargs)
 
+    def create_internal_integration_token(self, *args, **kwargs):
+        return Factories.create_internal_integration_token(*args, **kwargs)
+
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 

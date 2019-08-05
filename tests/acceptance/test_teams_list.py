@@ -33,11 +33,11 @@ class TeamsListTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.team-list')
+        self.browser.wait_until_test_id('team-list')
         self.browser.snapshot('organization teams list')
 
         # team details link
-        self.browser.click('.team-list a[href]:first-child')
+        self.browser.click('[data-test-id="team-list"] a[href]:first-child')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization team - members list')
 

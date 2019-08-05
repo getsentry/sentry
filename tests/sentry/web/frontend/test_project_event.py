@@ -55,3 +55,21 @@ class ProjectEventTest(TestCase):
                     self.project.slug,
                     'event1']))
         assert resp.status_code == 404
+
+    def test_event_not_found__event_no_group(self):
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'type': 'transaction',
+                'timestamp': min_ago,
+                'start_timestamp': min_ago,
+                'spans': [],
+            },
+            project_id=self.project.id,
+        )
+
+        url = reverse(
+            'sentry-project-event-redirect',
+            args=[self.org.slug, self.project.slug, event.id])
+        resp = self.client.get(url)
+        assert resp.status_code == 404

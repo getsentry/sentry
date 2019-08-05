@@ -220,7 +220,6 @@ from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
-from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
@@ -230,6 +229,8 @@ from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint, SentryAppComponentsEndpoint
 )
+from .endpoints.sentry_internal_app_tokens import SentryInternalAppTokensEndpoint
+from .endpoints.sentry_internal_app_token_details import SentryInternalAppTokenDetailsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
@@ -272,6 +273,86 @@ from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEnd
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
+from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
+
+# issues endpoints are available both top level (by numerical ID) as well as coupled
+# to the organization (and queryable via short ID)
+GROUP_URLS = [
+    url(
+        r'^(?P<issue_id>[^\/]+)/$',
+        GroupDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/events/$',
+        GroupEventsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/events/latest/$',
+        GroupEventsLatestEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/events/oldest/$',
+        GroupEventsOldestEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/$',
+        GroupNotesEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$',
+        GroupNotesDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/hashes/$',
+        GroupHashesEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/stats/$',
+        GroupStatsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/tags/$',
+        GroupTagsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$',
+        GroupTagKeyDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
+        GroupTagKeyValuesEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$',
+        GroupUserReportsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/similar/$',
+        GroupSimilarIssuesEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/external-issues/$',
+        GroupExternalIssuesEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$',
+        GroupExternalIssueDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/integrations/$',
+        GroupIntegrationsEndpoint.as_view(),
+    ),
+    url(
+        r'^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$',
+        GroupIntegrationDetailsEndpoint.as_view(),
+    ),
+    # Load plugin group urls
+    url(
+        r'^(?P<issue_id>[^\/]+)/plugins?/',
+        include('sentry.plugins.base.group_api_urls')
+    ),
+]
 
 urlpatterns = patterns(
     '',
@@ -288,11 +369,6 @@ urlpatterns = patterns(
             r'^register/response/$',
             RelayRegisterResponseEndpoint.as_view(),
             name='sentry-api-0-relay-register-response'
-        ),
-        url(
-            r'^heartbeat/$',
-            RelayHeartbeatEndpoint.as_view(),
-            name='sentry-api-0-relay-heartbeat'
         ),
         url(
             r'^projectconfigs/$',
@@ -691,6 +767,10 @@ urlpatterns = patterns(
             name='sentry-api-0-organization-group-index'
         ),
         url(
+            r'^(?P<organization_slug>[^\/]+)/(?:issues|groups)/',
+            include(GROUP_URLS),
+        ),
+        url(
             r'^(?P<organization_slug>[^\/]+)/integrations/$',
             OrganizationIntegrationsEndpoint.as_view(),
             name='sentry-api-0-organization-integrations'
@@ -972,6 +1052,16 @@ urlpatterns = patterns(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
             ProjectDetailsEndpoint.as_view(),
             name='sentry-api-0-project-details'
+        ),
+        url(
+            r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$',
+            ProjectAlertRuleDetailsEndpoint.as_view(),
+            name='sentry-api-0-project-alert-rule-details'
+        ),
+        url(
+            r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$',
+            ProjectAlertRuleIndexEndpoint.as_view(),
+            name='sentry-api-0-project-alert-rules'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$',
@@ -1295,98 +1385,7 @@ urlpatterns = patterns(
     ])),
 
     # Groups
-    url(r'^(?:issues|groups)/', include([
-        url(
-            r'^(?P<issue_id>[^\/]+)/$',
-            GroupDetailsEndpoint.as_view(),
-            name='sentry-api-0-group-details'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/events/$',
-            GroupEventsEndpoint.as_view(),
-            name='sentry-api-0-group-events'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/events/latest/$',
-            GroupEventsLatestEndpoint.as_view(),
-            name='sentry-api-0-group-events-latest'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/events/oldest/$',
-            GroupEventsOldestEndpoint.as_view(),
-            name='sentry-api-0-group-events-oldest'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/$',
-            GroupNotesEndpoint.as_view(),
-            name='sentry-api-0-group-notes'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$',
-            GroupNotesDetailsEndpoint.as_view(),
-            name='sentry-api-0-group-notes-details'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/hashes/$',
-            GroupHashesEndpoint.as_view(),
-            name='sentry-api-0-group-events'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/stats/$',
-            GroupStatsEndpoint.as_view(),
-            name='sentry-api-0-group-stats'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/tags/$',
-            GroupTagsEndpoint.as_view(),
-            name='sentry-api-0-group-tags'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$',
-            GroupTagKeyDetailsEndpoint.as_view(),
-            name='sentry-api-0-group-tagkey-details'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
-            GroupTagKeyValuesEndpoint.as_view(),
-            name='sentry-api-0-group-tagkey-values'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$',
-            GroupUserReportsEndpoint.as_view(),
-            name='sentry-api-0-group-user-reports'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/similar/$',
-            GroupSimilarIssuesEndpoint.as_view(),
-            name='sentry-api-0-group-similar-issues'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/external-issues/$',
-            GroupExternalIssuesEndpoint.as_view(),
-            name='sentry-api-0-group-external-issues'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$',
-            GroupExternalIssueDetailsEndpoint.as_view(),
-            name='sentry-api-0-group-external-issue-details'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/integrations/$',
-            GroupIntegrationsEndpoint.as_view(),
-            name='sentry-api-0-group-integrations'
-        ),
-        url(
-            r'^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$',
-            GroupIntegrationDetailsEndpoint.as_view(),
-            name='sentry-api-0-group-integration-details'
-        ),
-        # Load plugin group urls
-        url(
-            r'^(?P<issue_id>[^\/]+)/plugins?/',
-            include('sentry.plugins.base.group_api_urls')
-        ),
-    ])),
+    url(r'^(?:issues|groups)/', include(GROUP_URLS)),
 
     url(
         r'^issues/(?P<issue_id>[^\/]+)/participants/$',
@@ -1425,6 +1424,16 @@ urlpatterns = patterns(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',
         SentryAppComponentsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-components'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/$',
+        SentryInternalAppTokensEndpoint.as_view(),
+        name='sentry-api-0-sentry-internal-app-tokens'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)$',
+        SentryInternalAppTokenDetailsEndpoint.as_view(),
+        name='sentry-api-0-sentry-internal-app-token-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$',

@@ -7,11 +7,11 @@ from collections import Iterable
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.models import (
-    AuditLogEntryEvent,
-    ApiToken,
+    AuditLogEntryEvent
 )
 from .creator import Creator as SentryAppCreator
 from ..sentry_app_installations import Creator as InstallationCreator
+from sentry.mediators.sentry_app_installation_tokens import Creator as SentryAppInstallationTokenCreator
 
 
 class InternalCreator(Mediator):
@@ -31,31 +31,31 @@ class InternalCreator(Mediator):
     def call(self):
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.status = SentryAppStatus.INTERNAL
+        self.sentry_app.verify_install = False
         self.sentry_app.save()
 
-        self._create_access_token()
         self._install()
+        self._create_access_token()
 
         return self.sentry_app
 
     def _create_access_token(self):
-        self.api_token = ApiToken.objects.create(
-            user=self.sentry_app.proxy_user,
-            application_id=self.sentry_app.application.id,
-            scope_list=self.sentry_app.scope_list,
-            expires_at=None,
-        )
+        data = {
+            'sentry_app_installation': self.install,
+            'user': self.user
+        }
+
+        self.install.api_token = SentryAppInstallationTokenCreator.run(request=self.request, **data)
+        self.install.save()
 
     def _install(self):
-        install = InstallationCreator.run(
+        self.install = InstallationCreator.run(
             organization=self.organization,
             slug=self.sentry_app.slug,
             user=self.user,
             request=self.request,
             notify=False,
         )
-        install.api_token = self.api_token
-        install.save()
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

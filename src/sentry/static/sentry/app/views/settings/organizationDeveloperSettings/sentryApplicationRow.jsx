@@ -4,7 +4,6 @@ import {Link} from 'react-router';
 import {omit} from 'lodash';
 
 import Access from 'app/components/acl/access';
-import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
@@ -30,14 +29,17 @@ export default class SentryApplicationRow extends React.PureComponent {
     onPublishRequest: PropTypes.func,
     showPublishStatus: PropTypes.bool,
     isInternal: PropTypes.bool,
+    hideButtons: PropTypes.bool,
   };
 
   static defaultProps = {
     showPublishStatus: false,
     isInternal: false,
+    hideButtons: false,
   };
 
-  renderUnpublishedAdminButtons(app) {
+  renderUnpublishedAdminButtons() {
+    const {app} = this.props;
     return (
       <ButtonHolder>
         {app.status === 'internal'
@@ -123,7 +125,8 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  renderUninstall(install) {
+  renderUninstallButton() {
+    const install = this.props.installs[0];
     const message = t(
       `Are you sure you want to remove the ${install.app.slug} installation ?`
     );
@@ -173,9 +176,51 @@ export default class SentryApplicationRow extends React.PureComponent {
     });
   };
 
-  render() {
-    const {app, organization, installs, showPublishStatus} = this.props;
+  renderInstallButton() {
+    return (
+      <Button
+        onClick={() => this.openLearnMore()}
+        size="small"
+        icon="icon-circle-add"
+        className="btn btn-default"
+      >
+        {t('Install')}
+      </Button>
+    );
+  }
+
+  renderUnpublishedAppButtons() {
+    return (
+      <Access access={['org:admin']}>
+        {({hasAccess}) => (
+          <React.Fragment>
+            {hasAccess
+              ? this.renderUnpublishedAdminButtons()
+              : this.renderUnpublishedNonAdminButtons()}
+          </React.Fragment>
+        )}
+      </Access>
+    );
+  }
+
+  renderButtons() {
+    const {app, showPublishStatus, hideButtons} = this.props;
     const isInstalled = this.isInstalled;
+
+    if (hideButtons) {
+      return null;
+    }
+    if (showPublishStatus) {
+      return app.status === 'published'
+        ? this.renderPublishedAppButtons()
+        : this.renderUnpublishedAppButtons();
+    }
+    //if installed, render the uninstall button and if installed, render uninstall
+    return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
+  }
+
+  render() {
+    const {app, organization, showPublishStatus} = this.props;
 
     return (
       <SentryAppItem data-test-id={app.slug}>
@@ -192,43 +237,11 @@ export default class SentryApplicationRow extends React.PureComponent {
               ) : (
                 app.name
               )}
-              <BetaTag />
             </SentryAppName>
             <SentryAppDetails>{this.renderStatus()}</SentryAppDetails>
           </SentryAppBox>
 
-          {!showPublishStatus ? (
-            <Box>
-              {!isInstalled ? (
-                <Button
-                  onClick={() => this.openLearnMore()}
-                  size="small"
-                  icon="icon-circle-add"
-                  className="btn btn-default"
-                >
-                  {t('Install')}
-                </Button>
-              ) : (
-                this.renderUninstall(installs[0])
-              )}
-            </Box>
-          ) : (
-            <Box>
-              {app.status !== 'published' ? (
-                <Access access={['org:admin']}>
-                  {({hasAccess}) => (
-                    <React.Fragment>
-                      {hasAccess
-                        ? this.renderUnpublishedAdminButtons(app)
-                        : this.renderUnpublishedNonAdminButtons()}
-                    </React.Fragment>
-                  )}
-                </Access>
-              ) : (
-                this.renderPublishedAppButtons()
-              )}
-            </Box>
-          )}
+          <Box>{this.renderButtons()}</Box>
         </StyledFlex>
       </SentryAppItem>
     );

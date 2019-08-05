@@ -32,6 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
+import SpansInterface from 'app/components/events/interfaces/spans';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -48,6 +49,7 @@ export const INTERFACES = {
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
   debugmeta: DebugMetaInterface,
+  spans: SpansInterface,
 };
 
 class EventEntries extends React.Component {
@@ -102,7 +104,13 @@ class EventEntries extends React.Component {
   renderEntries() {
     const {event, project, isShare} = this.props;
 
-    return event.entries.map((entry, entryIdx) => {
+    const entries = event && event.entries;
+
+    if (!Array.isArray(entries)) {
+      return null;
+    }
+
+    return entries.map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {

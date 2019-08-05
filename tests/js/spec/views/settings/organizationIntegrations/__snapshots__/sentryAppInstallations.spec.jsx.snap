@@ -76,6 +76,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "webhookUrl": "https://example.com/webhook",
       }
     }
+    hideButtons={false}
     isInternal={false}
     key="123456123456123456123456"
     onInstall={[Function]}
@@ -159,78 +160,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           className="css-uiwo8x-SentryAppName eac2pqx4"
                         >
                           Sample App
-                          <BetaTag>
-                            <Tooltip
-                              containerDisplayMode="inline-block"
-                              position="right"
-                              title="This feature is in beta and may change in the future."
-                            >
-                              <Manager>
-                                <Reference>
-                                  <InnerReference
-                                    setReferenceNode={[Function]}
-                                  >
-                                    <Container
-                                      aria-describedby="tooltip-123456"
-                                      containerDisplayMode="inline-block"
-                                      innerRef={[Function]}
-                                      onBlur={[Function]}
-                                      onFocus={[Function]}
-                                      onMouseEnter={[Function]}
-                                      onMouseLeave={[Function]}
-                                    >
-                                      <span
-                                        aria-describedby="tooltip-123456"
-                                        className="css-1m3e0hg-Container erna86q0"
-                                        onBlur={[Function]}
-                                        onFocus={[Function]}
-                                        onMouseEnter={[Function]}
-                                        onMouseLeave={[Function]}
-                                      >
-                                        <StyledTag
-                                          priority="beta"
-                                          size="small"
-                                        >
-                                          <Tag
-                                            className="css-f9iwbc-StyledTag e1xs0x250"
-                                            priority="beta"
-                                            size="small"
-                                          >
-                                            <TagTextStyled
-                                              className="css-f9iwbc-StyledTag e1xs0x250"
-                                              priority="beta"
-                                              size="small"
-                                            >
-                                              <Component
-                                                className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                                priority="beta"
-                                                size="small"
-                                              >
-                                                <Box
-                                                  className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                                >
-                                                  <Base
-                                                    className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                                  >
-                                                    <div
-                                                      className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                                      is={null}
-                                                    >
-                                                      beta
-                                                    </div>
-                                                  </Base>
-                                                </Box>
-                                              </Component>
-                                            </TagTextStyled>
-                                          </Tag>
-                                        </StyledTag>
-                                      </span>
-                                    </Container>
-                                  </InnerReference>
-                                </Reference>
-                              </Manager>
-                            </Tooltip>
-                          </BetaTag>
                         </div>
                       </SentryAppName>
                       <SentryAppDetails>

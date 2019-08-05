@@ -26,7 +26,7 @@ class ApiScopesField(serializers.Field):
 
 class EventListField(serializers.Field):
     def to_internal_value(self, data):
-        if not data:
+        if data is None:
             return
 
         if not set(data).issubset(VALID_EVENT_RESOURCES):
@@ -38,8 +38,11 @@ class EventListField(serializers.Field):
 
 class SchemaField(serializers.Field):
     def to_internal_value(self, data):
-        if not data:
+        if data is None:
             return
+
+        if data == '' or data == {}:
+            return {}
 
         try:
             validate_schema(data)
@@ -69,6 +72,7 @@ class SentryAppSerializer(Serializer):
     redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
     isAlertable = serializers.BooleanField(required=False, default=False)
     overview = serializers.CharField(required=False, allow_null=True)
+    verifyInstall = serializers.BooleanField(required=False, default=True)
 
     def validate_name(self, value):
         if not value:

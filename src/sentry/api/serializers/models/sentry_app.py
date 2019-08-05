@@ -23,6 +23,7 @@ class SentryAppSerializer(Serializer):
             'webhookUrl': obj.webhook_url,
             'redirectUrl': obj.redirect_url,
             'isAlertable': obj.is_alertable,
+            'verifyInstall': obj.verify_install,
             'overview': obj.overview,
         }
 
