@@ -18,6 +18,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import styled from 'react-emotion';
 import {
@@ -110,21 +111,21 @@ export default class SentryApplicationDetails extends AsyncView {
     }
   };
 
-  onAddToken = evt => {
+  onAddToken = async evt => {
     evt.preventDefault();
     const {app, tokens} = this.state;
     const api = this.api;
 
-    addSentryAppToken(api, app).then(
-      data => {
-        tokens.push(data);
-        this.setState({tokens});
-      },
-      () => {}
-    );
+    try {
+      const token = await addSentryAppToken(api, app);
+      const newTokens = tokens.concat(token);
+      this.setState({tokens: newTokens});
+    } catch (err) {
+      this.setState({tokens});
+    }
   };
 
-  onRemoveToken = (token, evt) => {
+  onRemoveToken = async (token, evt) => {
     evt.preventDefault();
     const {app, tokens} = this.state;
     const api = this.api;
@@ -132,41 +133,45 @@ export default class SentryApplicationDetails extends AsyncView {
       return t.token != token.token;
     });
 
-    removeSentryAppToken(api, app, token.token).then(
-      data => {
-        this.setState({tokens: newTokens});
-      },
-      () => {}
-    );
+    try {
+      await removeSentryAppToken(api, app, token.token);
+      this.setState({tokens: newTokens});
+    } catch (err) {
+      this.setState({tokens});
+    }
   };
 
   renderTokens = () => {
     const {tokens} = this.state;
-    return (tokens || []).map(token => {
-      return (
-        <StyledPanelItem>
-          <TokenItem>
-            <TextCopyInput>{token.token}</TextCopyInput>
-          </TokenItem>
-          <CreatedDate>
-            <CreatedTitle>Created:</CreatedTitle>
-            <DateTime
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000),
-              })}
-            />
-          </CreatedDate>
-          <Button
-            onClick={this.onRemoveToken.bind(this, token)}
-            size="small"
-            icon="icon-trash"
-          >
-            Revoke
-          </Button>
-        </StyledPanelItem>
-      );
-    });
+    if (tokens.length > 0) {
+      return tokens.map(token => {
+        return (
+          <StyledPanelItem key={token.token}>
+            <TokenItem>
+              <TextCopyInput>{token.token}</TextCopyInput>
+            </TokenItem>
+            <CreatedDate>
+              <CreatedTitle>Created:</CreatedTitle>
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000),
+                })}
+              />
+            </CreatedDate>
+            <Button
+              onClick={this.onRemoveToken.bind(this, token)}
+              size="small"
+              icon="icon-trash"
+            >
+              {t('Revoke')}
+            </Button>
+          </StyledPanelItem>
+        );
+      });
+    } else {
+      return <EmptyMessage description={t('No tokens created yet.')} />;
+    }
   };
 
   renderBody() {
@@ -209,44 +214,49 @@ export default class SentryApplicationDetails extends AsyncView {
           <PermissionsObserver scopes={scopes} events={events} />
 
           {app && (
-            <Panel>
-              <PanelHeader hasButton={true}>
-                {t('Tokens')}
-                <Button
-                  size="xsmall"
-                  icon="icon-circle-add"
-                  onClick={evt => this.onAddToken(evt)}
-                >
-                  New Token
-                </Button>
-              </PanelHeader>
+            <React.Fragment>
               {app.status === 'internal' ? (
-                <PanelBody>{this.renderTokens()}</PanelBody>
+                <Panel>
+                  <PanelHeader hasButtons>
+                    {t('Tokens')}
+                    <Button
+                      size="xsmall"
+                      icon="icon-circle-add"
+                      onClick={evt => this.onAddToken(evt)}
+                    >
+                      {t('New Token')}
+                    </Button>
+                  </PanelHeader>
+                  <PanelBody>{this.renderTokens()}</PanelBody>
+                </Panel>
               ) : (
-                <PanelBody>
-                  <FormField name="clientId" label="Client ID" overflow>
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                        </TextCopyInput>
-                      );
-                    }}
-                  </FormField>
-                  <FormField overflow name="clientSecret" label="Client Secret">
-                    {({value}) => {
-                      return value ? (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                        </TextCopyInput>
-                      ) : (
-                        <em>hidden</em>
-                      );
-                    }}
-                  </FormField>
-                </PanelBody>
+                <Panel>
+                  <PanelHeader>{t('Credentials')}</PanelHeader>
+                  <PanelBody>
+                    <FormField name="clientId" label="Client ID" overflow>
+                      {({value}) => {
+                        return (
+                          <TextCopyInput>
+                            {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                          </TextCopyInput>
+                        );
+                      }}
+                    </FormField>
+                    <FormField overflow name="clientSecret" label="Client Secret">
+                      {({value}) => {
+                        return value ? (
+                          <TextCopyInput>
+                            {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                          </TextCopyInput>
+                        ) : (
+                          <em>hidden</em>
+                        );
+                      }}
+                    </FormField>
+                  </PanelBody>
+                </Panel>
               )}
-            </Panel>
+            </React.Fragment>
           )}
         </Form>
       </div>

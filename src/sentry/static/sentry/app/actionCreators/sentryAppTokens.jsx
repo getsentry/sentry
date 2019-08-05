@@ -12,17 +12,18 @@ import {t} from 'app/locale';
  * @param {Object} client ApiClient
  * @param {Object} app SentryApp
  */
-export function addSentryAppToken(client, app) {
-  console.log(client);
+export async function addSentryAppToken(client, app) {
   addLoadingMessage();
-  const promise = client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/`, {
-    method: 'POST',
-  });
-  promise.then(
-    () => clearIndicators(),
-    () => addErrorMessage(t(`Unable to create new token`))
-  );
-  return promise;
+  try {
+    const resp = await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/`, {
+      method: 'POST',
+    });
+    clearIndicators();
+    return resp;
+  } catch (err) {
+    addErrorMessage(t('Unable to create token'));
+    throw err;
+  }
 }
 
 /**
@@ -32,16 +33,19 @@ export function addSentryAppToken(client, app) {
  * @param {Object} app SentryApp
  * @param {String} token Token string
  */
-export function removeSentryAppToken(client, app, token) {
+export async function removeSentryAppToken(client, app, token) {
   addLoadingMessage();
-  const promise = client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/${token}/`, {
-    method: 'DELETE',
-  });
-  promise.then(
-    () => {
-      addSuccessMessage(t(`Token successfully uninstalled.`));
-    },
-    () => clearIndicators()
-  );
-  return promise;
+  try {
+    const resp = await client.requestPromise(
+      `/sentry-apps/${app.slug}/api-tokens/${token}/`,
+      {
+        method: 'DELETE',
+      }
+    );
+    addSuccessMessage(t(`Token successfully deleted.`));
+    return resp;
+  } catch (err) {
+    addErrorMessage(t('Unable to delete token'));
+    throw err;
+  }
 }
