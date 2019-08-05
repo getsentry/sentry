@@ -42,11 +42,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const {app} = this.props;
     return (
       <ButtonHolder>
-        {app.status === 'internal'
-          ? this.renderDisabledPublishRequestButton(
-              'Internal integrations cannot be published'
-            )
-          : this.renderPublishRequest(app)}
+        {app.status === 'internal' ? null : this.renderPublishRequest(app)}
         {this.renderRemoveApp(app)}
       </ButtonHolder>
     );

@@ -13,7 +13,10 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import sentryApplicationForm from 'app/data/forms/sentryApplication';
+import {
+  externalIntegrationForms,
+  internalIntegrationForms,
+} from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 
 class SentryAppFormModel extends FormModel {
@@ -86,14 +89,16 @@ export default class SentryApplicationDetails extends AsyncView {
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
   };
 
-  onFieldChange = (name, value) => {
-    if (name === 'isInternal') {
-      if (value === true) {
-        //cannot have verifyInstall=true for internal apps
-        this.form.setValue('verifyInstall', false);
-      }
-      //trigger an update so we can change if verifyInstall is disabled or not
-      this.forceUpdate();
+  isInternal = () => {
+    const {app} = this.state;
+    switch (this.props.route.path) {
+      case 'new-internal/':
+        return true;
+      case 'new-external/':
+        return false;
+      default:
+        // if we are editing an existing app, check the status of the app
+        return app && app.status === 'internal';
     }
   };
 
@@ -109,6 +114,8 @@ export default class SentryApplicationDetails extends AsyncView {
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
+    const forms = this.isInternal() ? internalIntegrationForms : externalIntegrationForms;
+
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -119,7 +126,8 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
-            isInternal: app && app.status === 'internal' ? true : false,
+            isInternal: this.isInternal(),
+            // isInternal: app && app.status === 'internal' ? true : false,
             verifyInstall: (app && app.verifyInstall) || false,
             schema: {},
             scopes: [],
@@ -127,12 +135,11 @@ export default class SentryApplicationDetails extends AsyncView {
           }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
-          onFieldChange={this.onFieldChange}
         >
           <JsonForm
             additionalFieldProps={{statusDisabled, changeVerifyDisabled}}
             location={this.props.location}
-            forms={sentryApplicationForm}
+            forms={forms}
           />
 
           <PermissionsObserver scopes={scopes} events={events} />
