@@ -9,6 +9,13 @@ export type Project = {
   id: string;
   slug: string;
   isMember: boolean;
+  teams: Team[];
+};
+
+export type Team = {
+  id: string;
+  slug: string;
+  isMember: boolean;
 };
 
 // This type is incomplete

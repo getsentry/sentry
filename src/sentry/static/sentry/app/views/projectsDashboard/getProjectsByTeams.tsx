@@ -1,6 +1,12 @@
-export default function getProjectsByTeams(teams, projects, isSuperuser = false) {
+import {Project, Team} from 'app/types';
+
+export default function getProjectsByTeams(
+  teams: Team[],
+  projects: Project[],
+  isSuperuser: boolean = false
+): {projectsByTeam: {[teamSlug: string]: Project[]}; teamlessProjects: Project[]} {
   const projectsByTeam = {};
-  const teamlessProjects = [];
+  const teamlessProjects: Project[] = [];
   let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
 
   if (usersTeams.size === 0 && isSuperuser) {

@@ -1,4 +1,4 @@
-import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import getProjectsByTeams from 'app/views/projectsDashboard/getProjectsByTeams';
 
 describe('getProjectsByTeams', function() {
   let projectsByTeams;
