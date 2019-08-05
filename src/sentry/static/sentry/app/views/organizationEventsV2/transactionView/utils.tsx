@@ -204,3 +204,27 @@ export const parseSpanTimestamps = (span: SpanType): TimestampStatus => {
 
   return TimestampStatus.Reversed;
 };
+
+export type UserSelectValues = {
+  userSelect: string | null;
+  MozUserSelect: string | null;
+  msUserSelect: string | null;
+};
+
+export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
+  const previousValues = {
+    userSelect: document.body.style.userSelect,
+    // MozUserSelect is not typed in TS
+    // @ts-ignore
+    MozUserSelect: document.body.style.MozUserSelect,
+    msUserSelect: document.body.style.msUserSelect,
+  };
+
+  document.body.style.userSelect = nextValues.userSelect;
+  // MozUserSelect is not typed in TS
+  // @ts-ignore
+  document.body.style.MozUserSelect = nextValues.MozUserSelect;
+  document.body.style.msUserSelect = nextValues.msUserSelect;
+
+  return previousValues;
+};
