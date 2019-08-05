@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
@@ -26,6 +25,7 @@ export default class AvatarList extends React.Component {
 
   render() {
     const {
+      className,
       users,
       avatarSize,
       maxVisibleAvatars,
@@ -42,7 +42,7 @@ export default class AvatarList extends React.Component {
     }
 
     return (
-      <Flex direction="row-reverse">
+      <AvatarListWrapper className={className}>
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
             <CollapsedUsers size={avatarSize}>
@@ -63,10 +63,15 @@ export default class AvatarList extends React.Component {
             />
           );
         })}
-      </Flex>
+      </AvatarListWrapper>
     );
   }
 }
+
+const AvatarListWrapper = styled('div')`
+  display: flex;
+  flex-direction: row-reverse;
+`;
 
 const Circle = css`
   border-radius: 50%;
