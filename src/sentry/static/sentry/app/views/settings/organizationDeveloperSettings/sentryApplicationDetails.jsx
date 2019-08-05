@@ -162,6 +162,7 @@ export default class SentryApplicationDetails extends AsyncView {
               onClick={this.onRemoveToken.bind(this, token)}
               size="small"
               icon="icon-trash"
+              data-test-id="token-delete"
             >
               {t('Revoke')}
             </Button>
@@ -222,6 +223,7 @@ export default class SentryApplicationDetails extends AsyncView {
                       size="xsmall"
                       icon="icon-circle-add"
                       onClick={evt => this.onAddToken(evt)}
+                      data-test-id="token-add"
                     >
                       {t('New Token')}
                     </Button>
