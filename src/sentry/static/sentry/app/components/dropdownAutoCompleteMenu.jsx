@@ -1,5 +1,4 @@
 import {AutoSizer, List} from 'react-virtualized';
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
@@ -337,7 +336,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     return (
       <AutoComplete
         resetInputOnClose
-        itemToString={item => ''}
+        itemToString={() => ''}
         onSelect={onSelect}
         inputIsActor={false}
         onOpen={onOpen}
@@ -445,9 +444,9 @@ class DropdownAutoCompleteMenu extends React.Component {
                         </EmptyMessage>
                       )}
                       {busy && (
-                        <Flex justify="center" p={1}>
+                        <BusyMessage>
                           <EmptyMessage>{t('Searching...')}</EmptyMessage>
-                        </Flex>
+                        </BusyMessage>
                       )}
                       {!busy &&
                         this.renderList({
@@ -473,19 +472,21 @@ class DropdownAutoCompleteMenu extends React.Component {
   }
 }
 
-const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
+const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
 `;
 
-const InputLoadingWrapper = styled(Flex)`
+const InputLoadingWrapper = styled('div')`
+  display: flex;
   background: #fff;
   align-items: center;
   flex-shrink: 0;
   width: 30px;
 `;
 
-const StyledInputWrapper = styled(Flex)`
+const StyledInputWrapper = styled('div')`
+  display: flex;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
@@ -569,6 +570,12 @@ const StyledItemList = styled('div')`
   max-height: ${p =>
     typeof p.maxHeight === 'number' ? `${p.maxHeight}px` : p.maxHeight};
   overflow-y: auto;
+`;
+
+const BusyMessage = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(1)};
 `;
 
 const EmptyMessage = styled('div')`
