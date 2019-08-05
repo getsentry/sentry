@@ -734,6 +734,7 @@ def query(start=None, end=None, groupby=None, conditions=None, filter_keys=None,
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
+    groupby = groupby or []
 
     try:
         body = raw_query(
