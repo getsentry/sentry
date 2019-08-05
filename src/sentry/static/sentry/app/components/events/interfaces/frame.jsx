@@ -178,7 +178,7 @@ export const Frame = createReactClass({
       const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName;
 
       title.push(
-        <Tooltip title={data.absPath} disabled={enablePathTooltip}>
+        <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
           <code key="filename" className="filename">
             <Truncate value={pathName} maxLength={100} leftTrim={true} />
           </code>
