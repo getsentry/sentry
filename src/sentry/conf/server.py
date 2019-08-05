@@ -851,11 +851,11 @@ SENTRY_FEATURES = {
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
-    # DEPCREATED: pending removal.
+    # Enable require 2FA across organization
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
     'organizations:sentry10': True,
-    # Enable basic SSO functionality, providing configurable single signon
+    # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
     'organizations:sso-basic': True,
