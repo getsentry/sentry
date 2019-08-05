@@ -6,7 +6,6 @@ python: 2.7
 branches:
   only:
   - master
-  - blacken
 
 cache:
   yarn: true
