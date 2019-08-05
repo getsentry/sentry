@@ -122,6 +122,7 @@ class SnubaEventStorage(EventStorage):
         return [col.value for col in columns]
 
     def __get_next_or_prev_event_id(self, **kwargs):
+
         result = snuba.raw_query(
             selected_columns=['event_id', 'project_id'],
             limit=1,
