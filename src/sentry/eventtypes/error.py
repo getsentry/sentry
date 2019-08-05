@@ -7,18 +7,14 @@ from sentry.utils.strings import truncatechars
 from .base import BaseEvent
 
 
-def get_crash_location(exception, platform=None):
-    default = None
-    for frame in reversed(get_path(exception, 'stacktrace', 'frames', filter=True) or ()):
-        fn = frame.get('filename') or frame.get('abs_path')
-        if fn:
-            from sentry.stacktraces.functions import get_function_name_for_frame
-            func = get_function_name_for_frame(frame, platform)
-            if frame.get('in_app'):
-                return fn, func
-            if default is None:
-                default = fn, func
-    return default
+def get_crash_location(data):
+    from sentry.stacktraces.processing import get_crash_frame_from_event_data
+    frame = get_crash_frame_from_event_data(
+        data, frame_filter=lambda x: x.get('filename') or x.get('abs_path'))
+    if frame is not None:
+        from sentry.stacktraces.functions import get_function_name_for_frame
+        func = get_function_name_for_frame(frame, data.get('platform'))
+        return frame.get('filename') or frame.get('abs_path'), func
 
 
 class ErrorEvent(BaseEvent):
@@ -29,7 +25,7 @@ class ErrorEvent(BaseEvent):
         if not exception:
             return {}
 
-        loc = get_crash_location(exception, data.get('platform'))
+        loc = get_crash_location(data)
         rv = {
             'value': trim(get_path(exception, 'value', default=''), 1024),
         }

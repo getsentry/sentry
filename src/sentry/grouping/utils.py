@@ -4,8 +4,15 @@ from hashlib import md5
 
 from django.utils.encoding import force_bytes
 
+from sentry.utils.safe import get_path
+from sentry.stacktraces.processing import get_crash_frame_from_event_data
+
+
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 TRANSACTION_FINGERPRINT_VALUES = frozenset(['{{ transaction }}', '{{transaction}}'])
+EXCEPTION_TYPE_FINGERPRINT_VALUES = frozenset(['{{ type }}', '{{type}}'])
+FUNCTION_FINGERPRINT_VALUES = frozenset(['{{ function }}', '{{function}}'])
+MODULE_FINGERPRINT_VALUES = frozenset(['{{ module }}', '{{module}}'])
 
 
 def hash_from_values(values):
@@ -28,5 +35,16 @@ def resolve_fingerprint_values(values, event):
     def get_fingerprint_value(value):
         if value in TRANSACTION_FINGERPRINT_VALUES:
             return event.data.get('transaction') or '<no-transaction>'
+        elif value in EXCEPTION_TYPE_FINGERPRINT_VALUES:
+            ty = get_path(event.data, 'exception', 'values', -1, 'type')
+            return ty or '<no-type>'
+        elif value in FUNCTION_FINGERPRINT_VALUES:
+            frame = get_crash_frame_from_event_data(event.data)
+            func = frame.get('function') if frame else None
+            return func or '<no-function>'
+        elif value in MODULE_FINGERPRINT_VALUES:
+            frame = get_crash_frame_from_event_data(event.data)
+            func = frame.get('module') if frame else None
+            return func or '<no-module>'
         return value
     return [get_fingerprint_value(x) for x in values]
