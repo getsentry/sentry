@@ -173,6 +173,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
             viewWindowStart: state.leftHandlePosition,
           };
         });
+        return;
         break;
       }
       case ViewHandleType.Right: {
@@ -185,6 +186,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
             viewWindowEnd: state.rightHandlePosition,
           };
         });
+        return;
         break;
       }
       default: {
