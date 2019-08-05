@@ -129,18 +129,44 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         className="css-xfqgz4-PanelItem eo8n7lk0"
                         is={null}
                       >
-                        <AvatarWrapper
-                          mr={2}
-                        >
-                          <Base
-                            className="css-nt1fnk-AvatarWrapper ez7y0rd0"
-                            mr={2}
+                        <AvatarWrapper>
+                          <div
+                            className="css-wh8qge-AvatarWrapper ez7y0rd0"
                           >
-                            <div
-                              className="css-nt1fnk-AvatarWrapper ez7y0rd0"
-                              is={null}
+                            <Avatar
+                              hasTooltip={false}
+                              size={36}
+                              user={
+                                Object {
+                                  "avatar": Object {
+                                    "avatarType": "letter_avatar",
+                                    "avatarUuid": null,
+                                  },
+                                  "avatarUrl": "https://example.com/avatar.png",
+                                  "dateJoined": "2018-02-26T23:57:43.766Z",
+                                  "email": "example@sentry.io",
+                                  "emails": Array [
+                                    Object {
+                                      "email": "example@sentry.io",
+                                      "id": "231605",
+                                      "is_verified": true,
+                                    },
+                                  ],
+                                  "has2fa": false,
+                                  "hasPasswordAuth": true,
+                                  "id": "224288",
+                                  "isActive": true,
+                                  "isManaged": false,
+                                  "isSuperuser": true,
+                                  "lastActive": "2018-11-30T21:25:15.222Z",
+                                  "lastLogin": "2018-11-30T21:18:09.812Z",
+                                  "name": "Foo Bar",
+                                  "username": "example@sentry.io",
+                                }
+                              }
                             >
-                              <Avatar
+                              <UserAvatar
+                                gravatar={false}
                                 hasTooltip={false}
                                 size={36}
                                 user={
@@ -172,62 +198,38 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   }
                                 }
                               >
-                                <UserAvatar
-                                  gravatar={false}
+                                <BaseAvatar
+                                  gravatarId="example@sentry.io"
                                   hasTooltip={false}
+                                  letterId="example@sentry.io"
+                                  round={true}
                                   size={36}
-                                  user={
-                                    Object {
-                                      "avatar": Object {
-                                        "avatarType": "letter_avatar",
-                                        "avatarUuid": null,
-                                      },
-                                      "avatarUrl": "https://example.com/avatar.png",
-                                      "dateJoined": "2018-02-26T23:57:43.766Z",
-                                      "email": "example@sentry.io",
-                                      "emails": Array [
-                                        Object {
-                                          "email": "example@sentry.io",
-                                          "id": "231605",
-                                          "is_verified": true,
-                                        },
-                                      ],
-                                      "has2fa": false,
-                                      "hasPasswordAuth": true,
-                                      "id": "224288",
-                                      "isActive": true,
-                                      "isManaged": false,
-                                      "isSuperuser": true,
-                                      "lastActive": "2018-11-30T21:25:15.222Z",
-                                      "lastLogin": "2018-11-30T21:18:09.812Z",
-                                      "name": "Foo Bar",
-                                      "username": "example@sentry.io",
-                                    }
-                                  }
+                                  style={Object {}}
+                                  title="Foo Bar"
+                                  tooltip="Foo Bar (example@sentry.io)"
+                                  type="letter_avatar"
+                                  uploadId={null}
+                                  uploadPath="avatar"
                                 >
-                                  <BaseAvatar
-                                    gravatarId="example@sentry.io"
-                                    hasTooltip={false}
-                                    letterId="example@sentry.io"
-                                    round={true}
-                                    size={36}
-                                    style={Object {}}
-                                    title="Foo Bar"
-                                    tooltip="Foo Bar (example@sentry.io)"
-                                    type="letter_avatar"
-                                    uploadId={null}
-                                    uploadPath="avatar"
+                                  <Tooltip
+                                    containerDisplayMode="inline-block"
+                                    disabled={true}
+                                    position="top"
+                                    title="Foo Bar (example@sentry.io)"
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      disabled={true}
-                                      position="top"
-                                      title="Foo Bar (example@sentry.io)"
+                                    <StyledBaseAvatar
+                                      className="avatar"
+                                      loaded={true}
+                                      round={true}
+                                      style={
+                                        Object {
+                                          "height": "36px",
+                                          "width": "36px",
+                                        }
+                                      }
                                     >
-                                      <StyledBaseAvatar
-                                        className="avatar"
-                                        loaded={true}
-                                        round={true}
+                                      <span
+                                        className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                                         style={
                                           Object {
                                             "height": "36px",
@@ -235,163 +237,117 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           }
                                         }
                                       >
-                                        <span
-                                          className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "36px",
-                                              "width": "36px",
-                                            }
-                                          }
+                                        <LetterAvatar
+                                          displayName="Foo Bar"
+                                          identifier="example@sentry.io"
+                                          round={true}
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="example@sentry.io"
+                                          <Svg
                                             round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Svg
-                                              round={true}
+                                            <svg
+                                              className="css-1r4mnb9-Svg e1knxa8x0"
                                               viewBox="0 0 120 120"
                                             >
-                                              <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#847a8c"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
+                                              <rect
+                                                fill="#847a8c"
+                                                height="120"
+                                                rx="15"
+                                                ry="15"
+                                                width="120"
+                                                x="0"
+                                                y="0"
+                                              />
+                                              <text
+                                                fill="#FFFFFF"
+                                                fontSize="65"
+                                                style={
+                                                  Object {
+                                                    "dominantBaseline": "central",
                                                   }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </UserAvatar>
-                              </Avatar>
-                            </div>
-                          </Base>
+                                                }
+                                                textAnchor="middle"
+                                                x="50%"
+                                                y="50%"
+                                              >
+                                                FB
+                                              </text>
+                                            </svg>
+                                          </Svg>
+                                        </LetterAvatar>
+                                      </span>
+                                    </StyledBaseAvatar>
+                                  </Tooltip>
+                                </BaseAvatar>
+                              </UserAvatar>
+                            </Avatar>
+                          </div>
                         </AvatarWrapper>
-                        <Box
-                          direction="column"
-                          flex="1"
-                          mr={2}
-                          style={
-                            Object {
-                              "minWidth": 0,
-                            }
-                          }
-                        >
-                          <Base
-                            className="css-14x8ie5"
-                            direction="column"
-                            flex="1"
-                            mr={2}
-                            style={
-                              Object {
-                                "minWidth": 0,
-                              }
-                            }
+                        <CommitMessage>
+                          <div
+                            className="css-bm0kt8-CommitMessage ez7y0rd1"
                           >
-                            <div
-                              className="css-14x8ie5"
-                              is={null}
-                              style={
-                                Object {
-                                  "minWidth": 0,
-                                }
-                              }
-                            >
-                              <Message>
-                                <div
-                                  className="css-q4dmcs-TextOverflow-Message ez7y0rd1"
-                                >
-                                  (improve) Add Links to Spike-Protection Email (#2408)
-                                </div>
-                              </Message>
-                              <Meta>
-                                <p
-                                  className="css-10csi2f-Meta ez7y0rd2"
-                                >
-                                  <span
-                                    key="4"
-                                  >
-                                    <strong
-                                      key="0"
-                                    >
-                                      Foo Bar
-                                    </strong>
-                                    <span
-                                      key="1"
-                                    >
-                                       committed 
-                                    </span>
-                                    <TimeSince
-                                      date="2018-11-30T18:46:31Z"
-                                      key="2"
-                                      suffix="ago"
-                                    >
-                                      <time
-                                        dateTime="2018-11-30T18:46:31.000Z"
-                                        title="November 30, 2018 6:46 PM UTC"
-                                      >
-                                        in a year
-                                      </time>
-                                    </TimeSince>
-                                  </span>
-                                </p>
-                              </Meta>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box>
-                          <Base
-                            className="css-roynbj"
-                          >
-                            <div
-                              className="css-roynbj"
-                              is={null}
-                            >
-                              <CommitLink
-                                commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
-                                repository={
-                                  Object {
-                                    "externalSlug": "example/repo-name",
-                                    "id": "4",
-                                    "name": "example/repo-name",
-                                    "provider": "github",
-                                    "status": "active",
-                                    "url": "https://github.com/example/repo-name",
-                                  }
-                                }
+                            <Message>
+                              <div
+                                className="css-q4dmcs-TextOverflow-Message ez7y0rd2"
                               >
-                                <span>
-                                  f7f395d
+                                (improve) Add Links to Spike-Protection Email (#2408)
+                              </div>
+                            </Message>
+                            <Meta>
+                              <p
+                                className="css-10csi2f-Meta ez7y0rd3"
+                              >
+                                <span
+                                  key="4"
+                                >
+                                  <strong
+                                    key="0"
+                                  >
+                                    Foo Bar
+                                  </strong>
+                                  <span
+                                    key="1"
+                                  >
+                                     committed 
+                                  </span>
+                                  <TimeSince
+                                    date="2018-11-30T18:46:31Z"
+                                    key="2"
+                                    suffix="ago"
+                                  >
+                                    <time
+                                      dateTime="2018-11-30T18:46:31.000Z"
+                                      title="November 30, 2018 6:46 PM UTC"
+                                    >
+                                      in a year
+                                    </time>
+                                  </TimeSince>
                                 </span>
-                              </CommitLink>
-                            </div>
-                          </Base>
-                        </Box>
+                              </p>
+                            </Meta>
+                          </div>
+                        </CommitMessage>
+                        <div>
+                          <CommitLink
+                            commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
+                            repository={
+                              Object {
+                                "externalSlug": "example/repo-name",
+                                "id": "4",
+                                "name": "example/repo-name",
+                                "provider": "github",
+                                "status": "active",
+                                "url": "https://github.com/example/repo-name",
+                              }
+                            }
+                          >
+                            <span>
+                              f7f395d
+                            </span>
+                          </CommitLink>
+                        </div>
                       </div>
                     </Base>
                   </PanelItem>
@@ -537,18 +493,44 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         className="css-xfqgz4-PanelItem eo8n7lk0"
                         is={null}
                       >
-                        <AvatarWrapper
-                          mr={2}
-                        >
-                          <Base
-                            className="css-nt1fnk-AvatarWrapper ez7y0rd0"
-                            mr={2}
+                        <AvatarWrapper>
+                          <div
+                            className="css-wh8qge-AvatarWrapper ez7y0rd0"
                           >
-                            <div
-                              className="css-nt1fnk-AvatarWrapper ez7y0rd0"
-                              is={null}
+                            <Avatar
+                              hasTooltip={false}
+                              size={36}
+                              user={
+                                Object {
+                                  "avatar": Object {
+                                    "avatarType": "letter_avatar",
+                                    "avatarUuid": null,
+                                  },
+                                  "avatarUrl": "https://example.com/avatar.png",
+                                  "dateJoined": "2018-02-26T23:57:43.766Z",
+                                  "email": "example@sentry.io",
+                                  "emails": Array [
+                                    Object {
+                                      "email": "example@sentry.io",
+                                      "id": "231605",
+                                      "is_verified": true,
+                                    },
+                                  ],
+                                  "has2fa": false,
+                                  "hasPasswordAuth": true,
+                                  "id": "224288",
+                                  "isActive": true,
+                                  "isManaged": false,
+                                  "isSuperuser": true,
+                                  "lastActive": "2018-11-30T21:25:15.222Z",
+                                  "lastLogin": "2018-11-30T21:18:09.812Z",
+                                  "name": "Foo Bar",
+                                  "username": "example@sentry.io",
+                                }
+                              }
                             >
-                              <Avatar
+                              <UserAvatar
+                                gravatar={false}
                                 hasTooltip={false}
                                 size={36}
                                 user={
@@ -580,62 +562,38 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   }
                                 }
                               >
-                                <UserAvatar
-                                  gravatar={false}
+                                <BaseAvatar
+                                  gravatarId="example@sentry.io"
                                   hasTooltip={false}
+                                  letterId="example@sentry.io"
+                                  round={true}
                                   size={36}
-                                  user={
-                                    Object {
-                                      "avatar": Object {
-                                        "avatarType": "letter_avatar",
-                                        "avatarUuid": null,
-                                      },
-                                      "avatarUrl": "https://example.com/avatar.png",
-                                      "dateJoined": "2018-02-26T23:57:43.766Z",
-                                      "email": "example@sentry.io",
-                                      "emails": Array [
-                                        Object {
-                                          "email": "example@sentry.io",
-                                          "id": "231605",
-                                          "is_verified": true,
-                                        },
-                                      ],
-                                      "has2fa": false,
-                                      "hasPasswordAuth": true,
-                                      "id": "224288",
-                                      "isActive": true,
-                                      "isManaged": false,
-                                      "isSuperuser": true,
-                                      "lastActive": "2018-11-30T21:25:15.222Z",
-                                      "lastLogin": "2018-11-30T21:18:09.812Z",
-                                      "name": "Foo Bar",
-                                      "username": "example@sentry.io",
-                                    }
-                                  }
+                                  style={Object {}}
+                                  title="Foo Bar"
+                                  tooltip="Foo Bar (example@sentry.io)"
+                                  type="letter_avatar"
+                                  uploadId={null}
+                                  uploadPath="avatar"
                                 >
-                                  <BaseAvatar
-                                    gravatarId="example@sentry.io"
-                                    hasTooltip={false}
-                                    letterId="example@sentry.io"
-                                    round={true}
-                                    size={36}
-                                    style={Object {}}
-                                    title="Foo Bar"
-                                    tooltip="Foo Bar (example@sentry.io)"
-                                    type="letter_avatar"
-                                    uploadId={null}
-                                    uploadPath="avatar"
+                                  <Tooltip
+                                    containerDisplayMode="inline-block"
+                                    disabled={true}
+                                    position="top"
+                                    title="Foo Bar (example@sentry.io)"
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      disabled={true}
-                                      position="top"
-                                      title="Foo Bar (example@sentry.io)"
+                                    <StyledBaseAvatar
+                                      className="avatar"
+                                      loaded={true}
+                                      round={true}
+                                      style={
+                                        Object {
+                                          "height": "36px",
+                                          "width": "36px",
+                                        }
+                                      }
                                     >
-                                      <StyledBaseAvatar
-                                        className="avatar"
-                                        loaded={true}
-                                        round={true}
+                                      <span
+                                        className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                                         style={
                                           Object {
                                             "height": "36px",
@@ -643,163 +601,117 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           }
                                         }
                                       >
-                                        <span
-                                          className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                                          style={
-                                            Object {
-                                              "height": "36px",
-                                              "width": "36px",
-                                            }
-                                          }
+                                        <LetterAvatar
+                                          displayName="Foo Bar"
+                                          identifier="example@sentry.io"
+                                          round={true}
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="example@sentry.io"
+                                          <Svg
                                             round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Svg
-                                              round={true}
+                                            <svg
+                                              className="css-1r4mnb9-Svg e1knxa8x0"
                                               viewBox="0 0 120 120"
                                             >
-                                              <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#847a8c"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
+                                              <rect
+                                                fill="#847a8c"
+                                                height="120"
+                                                rx="15"
+                                                ry="15"
+                                                width="120"
+                                                x="0"
+                                                y="0"
+                                              />
+                                              <text
+                                                fill="#FFFFFF"
+                                                fontSize="65"
+                                                style={
+                                                  Object {
+                                                    "dominantBaseline": "central",
                                                   }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Svg>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </UserAvatar>
-                              </Avatar>
-                            </div>
-                          </Base>
+                                                }
+                                                textAnchor="middle"
+                                                x="50%"
+                                                y="50%"
+                                              >
+                                                FB
+                                              </text>
+                                            </svg>
+                                          </Svg>
+                                        </LetterAvatar>
+                                      </span>
+                                    </StyledBaseAvatar>
+                                  </Tooltip>
+                                </BaseAvatar>
+                              </UserAvatar>
+                            </Avatar>
+                          </div>
                         </AvatarWrapper>
-                        <Box
-                          direction="column"
-                          flex="1"
-                          mr={2}
-                          style={
-                            Object {
-                              "minWidth": 0,
-                            }
-                          }
-                        >
-                          <Base
-                            className="css-14x8ie5"
-                            direction="column"
-                            flex="1"
-                            mr={2}
-                            style={
-                              Object {
-                                "minWidth": 0,
-                              }
-                            }
+                        <CommitMessage>
+                          <div
+                            className="css-bm0kt8-CommitMessage ez7y0rd1"
                           >
-                            <div
-                              className="css-14x8ie5"
-                              is={null}
-                              style={
-                                Object {
-                                  "minWidth": 0,
-                                }
-                              }
-                            >
-                              <Message>
-                                <div
-                                  className="css-q4dmcs-TextOverflow-Message ez7y0rd1"
-                                >
-                                  (improve) Add Links to Spike-Protection Email (#2408)
-                                </div>
-                              </Message>
-                              <Meta>
-                                <p
-                                  className="css-10csi2f-Meta ez7y0rd2"
-                                >
-                                  <span
-                                    key="4"
-                                  >
-                                    <strong
-                                      key="0"
-                                    >
-                                      Foo Bar
-                                    </strong>
-                                    <span
-                                      key="1"
-                                    >
-                                       committed 
-                                    </span>
-                                    <TimeSince
-                                      date="2018-11-30T18:46:31Z"
-                                      key="2"
-                                      suffix="ago"
-                                    >
-                                      <time
-                                        dateTime="2018-11-30T18:46:31.000Z"
-                                        title="November 30, 2018 6:46 PM UTC"
-                                      >
-                                        in a year
-                                      </time>
-                                    </TimeSince>
-                                  </span>
-                                </p>
-                              </Meta>
-                            </div>
-                          </Base>
-                        </Box>
-                        <Box>
-                          <Base
-                            className="css-roynbj"
-                          >
-                            <div
-                              className="css-roynbj"
-                              is={null}
-                            >
-                              <CommitLink
-                                commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
-                                repository={
-                                  Object {
-                                    "externalSlug": "example/repo-name",
-                                    "id": "4",
-                                    "name": "example/repo-name",
-                                    "provider": "github",
-                                    "status": "active",
-                                    "url": "https://github.com/example/repo-name",
-                                  }
-                                }
+                            <Message>
+                              <div
+                                className="css-q4dmcs-TextOverflow-Message ez7y0rd2"
                               >
-                                <span>
-                                  f7f395d
+                                (improve) Add Links to Spike-Protection Email (#2408)
+                              </div>
+                            </Message>
+                            <Meta>
+                              <p
+                                className="css-10csi2f-Meta ez7y0rd3"
+                              >
+                                <span
+                                  key="4"
+                                >
+                                  <strong
+                                    key="0"
+                                  >
+                                    Foo Bar
+                                  </strong>
+                                  <span
+                                    key="1"
+                                  >
+                                     committed 
+                                  </span>
+                                  <TimeSince
+                                    date="2018-11-30T18:46:31Z"
+                                    key="2"
+                                    suffix="ago"
+                                  >
+                                    <time
+                                      dateTime="2018-11-30T18:46:31.000Z"
+                                      title="November 30, 2018 6:46 PM UTC"
+                                    >
+                                      in a year
+                                    </time>
+                                  </TimeSince>
                                 </span>
-                              </CommitLink>
-                            </div>
-                          </Base>
-                        </Box>
+                              </p>
+                            </Meta>
+                          </div>
+                        </CommitMessage>
+                        <div>
+                          <CommitLink
+                            commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
+                            repository={
+                              Object {
+                                "externalSlug": "example/repo-name",
+                                "id": "4",
+                                "name": "example/repo-name",
+                                "provider": "github",
+                                "status": "active",
+                                "url": "https://github.com/example/repo-name",
+                              }
+                            }
+                          >
+                            <span>
+                              f7f395d
+                            </span>
+                          </CommitLink>
+                        </div>
                       </div>
                     </Base>
                   </PanelItem>
