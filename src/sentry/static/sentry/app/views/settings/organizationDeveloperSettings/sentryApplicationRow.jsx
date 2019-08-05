@@ -27,22 +27,22 @@ export default class SentryApplicationRow extends React.PureComponent {
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
     onPublishRequest: PropTypes.func,
-    showPublishStatus: PropTypes.bool,
-    isInternal: PropTypes.bool,
-    hideButtons: PropTypes.bool,
+    showInstallationStatus: PropTypes.bool,
   };
 
   static defaultProps = {
-    showPublishStatus: false,
-    isInternal: false,
-    hideButtons: false,
+    showInstallationStatus: true,
   };
+
+  get isInternal() {
+    return this.props.app.status === 'internal';
+  }
 
   renderUnpublishedAdminButtons() {
     const {app} = this.props;
     return (
       <ButtonHolder>
-        {app.status === 'internal' ? null : this.renderPublishRequest(app)}
+        {this.isInternal ? null : this.renderPublishRequest(app)}
         {this.renderRemoveApp(app)}
       </ButtonHolder>
     );
@@ -140,20 +140,27 @@ export default class SentryApplicationRow extends React.PureComponent {
   }
 
   renderStatus() {
-    const {app, showPublishStatus, isInternal} = this.props;
+    const {app, showInstallationStatus} = this.props;
+    const isInternal = this.isInternal;
     const isInstalled = this.isInstalled;
+
+    if (showInstallationStatus) {
+      //if internal and we show installation status, we don't show the learn more
+      if (isInternal) {
+        return <Status enabled isInternal={isInternal} />;
+      }
+      return (
+        <React.Fragment>
+          <Status enabled={isInstalled} isInternal={false} />
+          <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
+        </React.Fragment>
+      );
+    }
+    //we never show the publicaiton status for an internal integration
     if (isInternal) {
-      return <Status enabled isInternal={isInternal} />;
+      return null;
     }
-    if (showPublishStatus) {
-      return <PublishStatus status={app.status} />;
-    }
-    return (
-      <React.Fragment>
-        <Status enabled={isInstalled} isInternal={false} />
-        <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
-      </React.Fragment>
-    );
+    return <PublishStatus status={app.status} />;
   }
 
   get isInstalled() {
@@ -199,24 +206,32 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
+  linkToEdit() {
+    const {app, showInstallationStatus} = this.props;
+    // show the link if the app is internal or we are on the developer settings page
+    return app.status === 'internal' || !showInstallationStatus;
+  }
+
   renderButtons() {
-    const {app, showPublishStatus, hideButtons} = this.props;
+    const {app, showInstallationStatus} = this.props;
     const isInstalled = this.isInstalled;
 
-    if (hideButtons) {
-      return null;
+    if (showInstallationStatus) {
+      //no installation buttons to show if internal
+      if (this.isInternal) {
+        return null;
+      }
+      //if installed, render the uninstall button and if installed, render uninstall
+      return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
     }
-    if (showPublishStatus) {
-      return app.status === 'published'
-        ? this.renderPublishedAppButtons()
-        : this.renderUnpublishedAppButtons();
-    }
-    //if installed, render the uninstall button and if installed, render uninstall
-    return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
+
+    return app.status === 'published'
+      ? this.renderPublishedAppButtons()
+      : this.renderUnpublishedAppButtons();
   }
 
   render() {
-    const {app, organization, showPublishStatus} = this.props;
+    const {app, organization} = this.props;
 
     return (
       <SentryAppItem data-test-id={app.slug}>
@@ -224,7 +239,7 @@ export default class SentryApplicationRow extends React.PureComponent {
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
             <SentryAppName>
-              {showPublishStatus ? (
+              {this.linkToEdit() ? (
                 <SentryAppLink
                   to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
                 >

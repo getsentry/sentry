@@ -89,32 +89,24 @@ export default class SentryApplicationDetails extends AsyncView {
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
   };
 
-  isInternal = () => {
+  get isInternal() {
     const {app} = this.state;
-    switch (this.props.route.path) {
-      case 'new-internal/':
-        return true;
-      case 'new-external/':
-        return false;
-      default:
-        // if we are editing an existing app, check the status of the app
-        return app && app.status === 'internal';
+    if (app) {
+      // if we are editing an existing app, check the status of the app
+      return app.status === 'internal';
     }
-  };
+    return this.props.route.path === 'new-internal/';
+  }
 
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
-    const statusDisabled = app && app.status === 'internal' ? true : false;
-    // if the app is created and it is internal, don't need to check the form value
-    const changeVerifyDisabled =
-      statusDisabled || this.form.getValue('isInternal') ? true : false;
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
-    const forms = this.isInternal() ? internalIntegrationForms : externalIntegrationForms;
+    const forms = this.isInternal ? internalIntegrationForms : externalIntegrationForms;
 
     return (
       <div>
@@ -126,8 +118,7 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
-            isInternal: this.isInternal(),
-            // isInternal: app && app.status === 'internal' ? true : false,
+            isInternal: this.isInternal,
             verifyInstall: (app && app.verifyInstall) || false,
             schema: {},
             scopes: [],
@@ -136,11 +127,7 @@ export default class SentryApplicationDetails extends AsyncView {
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
         >
-          <JsonForm
-            additionalFieldProps={{statusDisabled, changeVerifyDisabled}}
-            location={this.props.location}
-            forms={forms}
-          />
+          <JsonForm location={this.props.location} forms={forms} />
 
           <PermissionsObserver scopes={scopes} events={events} />
 
