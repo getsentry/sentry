@@ -25,7 +25,6 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
-import space from 'app/styles/space';
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -129,9 +128,7 @@ export default class SentryApplicationDetails extends AsyncView {
     evt.preventDefault();
     const {app, tokens} = this.state;
     const api = this.api;
-    const newTokens = tokens.filter(t => {
-      return t.token != token.token;
-    });
+    const newTokens = tokens.filter(tok => tok.token !== token.token);
 
     try {
       await removeSentryAppToken(api, app, token.token);
@@ -148,7 +145,9 @@ export default class SentryApplicationDetails extends AsyncView {
         return (
           <StyledPanelItem key={token.token}>
             <TokenItem>
-              <TextCopyInput>{token.token}</TextCopyInput>
+              <TextCopyInput>
+                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
+              </TextCopyInput>
             </TokenItem>
             <CreatedDate>
               <CreatedTitle>Created:</CreatedTitle>
@@ -277,6 +276,7 @@ const CreatedTitle = styled('span')`
   color: ${p => p.theme.gray2};
   margin-bottom: 2px;
 `;
+
 const CreatedDate = styled('div')`
   display: flex;
   flex-direction: column;

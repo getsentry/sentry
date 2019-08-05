@@ -10,6 +10,7 @@ describe('Sentry Application Details', function() {
   let org;
   let orgId;
   let sentryApp;
+  let token;
   let wrapper;
   let createAppRequest;
   let editAppRequest;
@@ -118,6 +119,11 @@ describe('Sentry Application Details', function() {
         body: sentryApp,
       });
 
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
       wrapper = mount(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
@@ -144,11 +150,17 @@ describe('Sentry Application Details', function() {
         installation: {uuid: 'xxxxxx'},
         token: 'xxxx',
       });
+      token = TestStubs.SentryAppToken();
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
       });
 
       wrapper = mount(
@@ -164,9 +176,14 @@ describe('Sentry Application Details', function() {
           .prop('disabled')
       ).toBe(true);
     });
-    it('shows installationId and token', function() {
-      expect(wrapper.find('#installation').exists()).toBe(true);
-      expect(wrapper.find('#token').exists()).toBe(true);
+    it('shows tokens', function() {
+      expect(
+        wrapper
+          .find('PanelHeader')
+          .last()
+          .text()
+      ).toContain('Tokens');
+      expect(wrapper.find('TokenItem').exists()).toBe(true);
     });
   });
 
@@ -184,6 +201,11 @@ describe('Sentry Application Details', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
       });
 
       wrapper = mount(

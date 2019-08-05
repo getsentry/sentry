@@ -18,11 +18,15 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def get(self, request, sentry_app):
+        if not sentry_app.is_internal:
+            return Response([])
+
         tokens = ApiToken.objects.filter(application_id=sentry_app.application_id)
         attrs = {
             'application': None,
         }
-        return Response(ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens)
+        return Response(ApiTokenSerializer().serialize(token, attrs, request.user)
+                        for token in tokens)
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, sentry_app):
