@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {rectOfContent, clamp} from './utils';
+import {rectOfContent, clamp, UserSelectValues, setBodyUserSelect} from './utils';
 
 // we establish the minimum window size so that the window size of 0% is not possible
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size
@@ -52,7 +52,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     viewWindowEnd: 1,
   };
 
-  previousUserSelect: string | null = null;
+  previousUserSelect: UserSelectValues | null = null;
 
   hasInteractiveLayer = (): boolean => {
     return !!this.props.interactiveLayerRef.current;
@@ -72,8 +72,11 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     // prevent the user from selecting things outside the minimap when dragging
     // the mouse cursor outside the minimap
 
-    this.previousUserSelect = document.body.style.userSelect;
-    document.body.style.userSelect = 'none';
+    this.previousUserSelect = setBodyUserSelect({
+      userSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none',
+    });
 
     // attach event listeners so that the mouse cursor can drag outside of the
     // minimap
@@ -152,8 +155,10 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     // restore body styles
 
-    document.body.style.userSelect = this.previousUserSelect;
-    this.previousUserSelect = null;
+    if (this.previousUserSelect) {
+      setBodyUserSelect(this.previousUserSelect);
+      this.previousUserSelect = null;
+    }
 
     // indicate drag has ended
 
