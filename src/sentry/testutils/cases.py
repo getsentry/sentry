@@ -524,6 +524,8 @@ class TwoFactorAPITestCase(APITestCase):
         return non_compliant_members
 
 
+# TODO(lyn): Should be deprecated, we should use `store_event` instead for testing
+# events in Snuba
 class UserReportEnvironmentTestCase(APITestCase):
     def setUp(self):
 
