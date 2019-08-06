@@ -1,19 +1,21 @@
 from __future__ import absolute_import
 
-import re
-from functools import partial
-from copy import deepcopy
-
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Project, ProjectStatus
-from sentry.utils import snuba
 from sentry import features
 
 from .serializers import DiscoverQuerySerializer
+from ..logic import (
+    build_query_v1,
+    build_query_v2,
+    execute_query_v1,
+    execute_query_v2,
+    handle_results
+)
 
 
 class DiscoverQueryPermission(OrganizationPermission):
@@ -25,124 +27,13 @@ class DiscoverQueryPermission(OrganizationPermission):
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission, )
 
-    def get_json_type(self, snuba_type):
-        """
-        Convert Snuba/Clickhouse type to JSON type
-        Default is string
-        """
-
-        # Ignore Nullable part
-        nullable_match = re.search(r'^Nullable\((.+)\)$', snuba_type)
-
-        if nullable_match:
-            snuba_type = nullable_match.group(1)
-        # Check for array
-
-        array_match = re.search(r'^Array\(.+\)$', snuba_type)
-        if array_match:
-            return 'array'
-
-        types = {
-            'UInt8': 'boolean',
-            'UInt16': 'integer',
-            'UInt32': 'integer',
-            'UInt64': 'integer',
-            'Float32': 'number',
-            'Float64': 'number',
-        }
-
-        return types.get(snuba_type, 'string')
-
-    def handle_results(self, snuba_results, requested_query, projects):
-        if 'project.name' in requested_query['selected_columns']:
-            project_name_index = requested_query['selected_columns'].index('project.name')
-            snuba_results['meta'].insert(
-                project_name_index, {
-                    'name': 'project.name', 'type': 'String'})
-            if 'project.id' not in requested_query['selected_columns']:
-                snuba_results['meta'] = [
-                    field for field in snuba_results['meta'] if field['name'] != 'project.id'
-                ]
-
-            for result in snuba_results['data']:
-                if 'project.id' in result:
-                    result['project.name'] = projects[result['project.id']]
-                    if 'project.id' not in requested_query['selected_columns']:
-                        del result['project.id']
-
-        if 'project.name' in requested_query['groupby']:
-            project_name_index = requested_query['groupby'].index('project.name')
-            snuba_results['meta'].insert(
-                project_name_index, {
-                    'name': 'project.name', 'type': 'String'})
-            if 'project.id' not in requested_query['groupby']:
-                snuba_results['meta'] = [
-                    field for field in snuba_results['meta'] if field['name'] != 'project.id'
-                ]
-
-            for result in snuba_results['data']:
-                if 'project.id' in result:
-                    result['project.name'] = projects[result['project.id']]
-                    if 'project.id' not in requested_query['groupby']:
-                        del result['project.id']
-
-        # Convert snuba types to json types
-        for col in snuba_results['meta']:
-            col['type'] = self.get_json_type(col.get('type'))
-
-        return snuba_results
-
-    def do_query(self, projects, request, **kwargs):
-        requested_query = deepcopy(kwargs)
-
-        selected_columns = kwargs['selected_columns']
-        groupby_columns = kwargs['groupby']
-
-        if 'project.name' in requested_query['selected_columns']:
-            selected_columns.remove('project.name')
-            if 'project.id' not in selected_columns:
-                selected_columns.append('project.id')
-
-        if 'project.name' in requested_query['groupby']:
-            groupby_columns.remove('project.name')
-            if 'project.id' not in groupby_columns:
-                groupby_columns.append('project.id')
-
-        for aggregation in kwargs['aggregations']:
-            if aggregation[1] == 'project.name':
-                aggregation[1] = 'project.id'
-
-        if not kwargs['aggregations']:
-
-            data_fn = partial(
-                snuba.transform_aliases_and_query,
-                referrer='discover',
-                **kwargs
-            )
-            return self.paginate(
-                request=request,
-                on_results=lambda results: self.handle_results(results, requested_query, projects),
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                max_per_page=1000
-            )
-        else:
-            snuba_results = snuba.transform_aliases_and_query(
-                referrer='discover',
-                **kwargs
-            )
-            return Response(self.handle_results(
-                snuba_results,
-                requested_query,
-                projects,
-            ), status=200)
-
     def post(self, request, organization):
-
-        if not features.has('organizations:discover', organization, actor=request.user):
+        has_discover = features.has('organizations:discover', organization, actor=request.user)
+        has_events_v2 = features.has('organizations:events-v2', organization, actor=request.user)
+        if not (has_discover or has_events_v2):
             return Response(status=404)
 
         requested_projects = request.data['projects']
-
         projects = list(Project.objects.filter(
             id__in=requested_projects,
             organization=organization,
@@ -150,7 +41,6 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
         ))
 
         has_invalid_projects = len(projects) < len(requested_projects)
-
         if has_invalid_projects or not request.access.has_projects_access(projects):
             return Response("Invalid projects", status=403)
 
@@ -160,38 +50,23 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         serialized = serializer.validated_data
+        if has_discover:
+            query_params = build_query_v1(serialized)
+            data_fn = execute_query_v1(query_params)
+        if has_events_v2:
+            query_params = build_query_v2(serialized)
+            data_fn = execute_query_v2(query_params)
 
-        has_aggregations = len(serialized.get('aggregations')) > 0
-
-        selected_columns = serialized.get(
-            'conditionFields', []) + [] if has_aggregations else serialized.get('fields', [])
-
-        projects_map = {}
-        for project in projects:
-            projects_map[project.id] = project.slug
-
-        # Make sure that all selected fields are in the group by clause if there
-        # are aggregations
-        groupby = serialized.get('groupby') or []
-        fields = serialized.get('fields') or []
+        has_aggregations = len(query_params.get('aggregations')) > 0
         if has_aggregations:
-            for field in fields:
-                if field not in groupby:
-                    groupby.append(field)
-
-        return self.do_query(
-            projects=projects_map,
-            start=serialized.get('start'),
-            end=serialized.get('end'),
-            groupby=groupby,
-            selected_columns=selected_columns,
-            conditions=serialized.get('conditions'),
-            orderby=serialized.get('orderby'),
-            limit=serialized.get('limit'),
-            aggregations=serialized.get('aggregations'),
-            rollup=serialized.get('rollup'),
-            filter_keys={'project.id': serialized.get('projects')},
-            arrayjoin=serialized.get('arrayjoin'),
-            request=request,
-            turbo=serialized.get('turbo'),
-        )
+            return self.paginate(
+                request=request,
+                on_results=lambda results: handle_results(results, query_params, projects),
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                max_per_page=1000
+            )
+        return Response(handle_results(
+            data_fn(),
+            query_params,
+            projects
+        ), status=200)

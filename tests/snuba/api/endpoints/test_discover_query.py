@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 from datetime import datetime, timedelta
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -416,6 +417,83 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             {'name': 'project.name', 'type': 'string'},
             {'name': 'count', 'type': 'integer'}
         ]
+
+    def test_access_with_event_v2_feature(self):
+        with self.feature('organizations:events-v2'):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'range': '14d',
+                'orderby': '-timestamp',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+
+    def test_v2_auto_fields_no_aggregates(self):
+        with self.feature('organizations:events-v2'):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'range': '14d',
+                'orderby': '-timestamp',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        print response.data
+        assert response.data['data'][0]['id'] == self.event.event_id
+        assert response.data['data'][0]['project.name'] == self.project.slug
+
+    def test_v2_auto_fields_with_aggregates(self):
+        with self.feature('organizations:events-v2'):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
+                'range': '14d',
+                'orderby': 'uniq_event_type',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        assert response.data['data'][0]['latest_event_id'] == self.event.event_id
+        assert response.data['data'][0]['uniq_event_type'] == 1
+        assert response.data['data'][0]['project.name'] == self.project.slug
+
+    def test_v2_last_seen_field_alias(self):
+        with self.feature('organizations:events-v2'):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'last_seen'],
+                'groupby': ['issue.id'],
+                'range': '14d',
+                'orderby': '-last_seen',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        assert response.data['data'][0]['message'] in self.event.message
+        assert response.data['data'][0]['last_seen']
+
+    @pytest.mark.xfail(reason='This requires some request validation improvements')
+    def test_v2_auto_select_and_group_orderby(self):
+        # orderby is not in the fields or groupby clauses
+        # Currently we 500 which isn't acceptable long term
+        with self.feature('organizations:events-v2'):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
+                'orderby': '-timestamp',
+                'range': '1d',
+            })
+        assert response.status_code == 400
 
     def test_no_feature_access(self):
         url = reverse('sentry-api-0-discover-query', args=[self.org.slug])

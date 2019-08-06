@@ -11,7 +11,7 @@ from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.utils import snuba
 
-# We support 4 "special fields" on the v2 events API which perform some
+# We support "special fields" on the v2 events API which perform some
 # additional calculations over aggregated event data
 SPECIAL_FIELDS = {
     'issue_title': {
