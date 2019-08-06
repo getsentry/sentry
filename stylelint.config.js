@@ -8,7 +8,6 @@ module.exports = {
   rules: {
     'declaration-colon-newline-after': null,
     'block-no-empty': null,
-    'selector-type-no-unknown': [true, {ignoreTypes: ['$dummyValue']}],
 
     // This is formatting related
     'declaration-bang-space-before': null,
