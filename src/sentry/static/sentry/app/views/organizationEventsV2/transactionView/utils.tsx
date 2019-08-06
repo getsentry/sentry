@@ -1,6 +1,4 @@
-import {isString, isNumber} from 'lodash';
-
-import {SpanType} from './types';
+import {isString} from 'lodash';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -87,7 +85,27 @@ export const toPercent = (value: number) => {
 };
 
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
-export type SpanGeneratedBoundsType = {start: number; end: number};
+export type SpanGeneratedBoundsType =
+  | {type: 'TRACE_TIMESTAMPS_EQUAL'; isSpanVisibleInView: boolean}
+  | {type: 'INVALID_VIEW_WINDOW'; isSpanVisibleInView: boolean}
+  | {
+      type: 'TIMESTAMPS_EQUAL';
+      start: number;
+      width: number;
+      isSpanVisibleInView: boolean;
+    }
+  | {
+      type: 'TIMESTAMPS_REVERSED';
+      start: number;
+      end: number;
+      isSpanVisibleInView: boolean;
+    }
+  | {
+      type: 'TIMESTAMPS_STABLE';
+      start: number;
+      end: number;
+      isSpanVisibleInView: boolean;
+    };
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   const {startTimestamp, endTimestamp} = spanBounds;
@@ -119,45 +137,65 @@ export const boundsGenerator = (bounds: {
   // side of the trace view minimap
 
   // invariant: viewStart <= viewEnd
-  const viewWindowInvariant = viewStart <= viewEnd;
 
   // duration of the entire trace in seconds
-  const duration = traceEndTimestamp - traceStartTimestamp;
+  const traceDuration = traceEndTimestamp - traceStartTimestamp;
 
-  const viewStartTimestamp = traceStartTimestamp + viewStart * duration;
-  const viewEndTimestamp = traceEndTimestamp - (1 - viewEnd) * duration;
+  const viewStartTimestamp = traceStartTimestamp + viewStart * traceDuration;
+  const viewEndTimestamp = traceEndTimestamp - (1 - viewEnd) * traceDuration;
   const viewDuration = viewEndTimestamp - viewStartTimestamp;
 
   return (spanBounds: SpanBoundsType): SpanGeneratedBoundsType => {
-    if (!viewWindowInvariant || duration <= 0 || viewDuration <= 0) {
+    // TODO: alberto.... refactor so this is impossible 😠
+    if (traceDuration <= 0) {
       return {
-        start: 0,
-        end: 1,
+        type: 'TRACE_TIMESTAMPS_EQUAL',
+        isSpanVisibleInView: true,
+      };
+    }
+
+    if (viewDuration <= 0) {
+      return {
+        type: 'INVALID_VIEW_WINDOW',
+        isSpanVisibleInView: true,
       };
     }
 
     const {startTimestamp, endTimestamp} = normalizeTimestamps(spanBounds);
 
-    if (endTimestamp - startTimestamp <= 0) {
-      return {
-        start: 0,
-        end: 1,
-      };
-    }
+    const timestampStatus = parseSpanTimestamps(spanBounds);
 
     const start = (startTimestamp - viewStartTimestamp) / viewDuration;
+    const end = (endTimestamp - viewStartTimestamp) / viewDuration;
 
-    if (!isNumber(endTimestamp)) {
-      return {
-        start,
-        end: 1,
-      };
+    const isSpanVisibleInView = end > 0 && start < 1;
+
+    switch (timestampStatus) {
+      case TimestampStatus.Equal: {
+        return {
+          type: 'TIMESTAMPS_EQUAL',
+          start,
+          width: 1,
+          isSpanVisibleInView,
+        };
+      }
+      case TimestampStatus.Reversed: {
+        return {
+          type: 'TIMESTAMPS_REVERSED',
+          start,
+          end,
+          isSpanVisibleInView,
+        };
+      }
+      case TimestampStatus.Stable: {
+        return {
+          type: 'TIMESTAMPS_STABLE',
+          start,
+          end,
+          isSpanVisibleInView,
+        };
+      }
     }
-
-    return {
-      start,
-      end: (endTimestamp - viewStartTimestamp) / viewDuration,
-    };
   };
 };
 
@@ -190,9 +228,9 @@ export enum TimestampStatus {
   Equal,
 }
 
-export const parseSpanTimestamps = (span: SpanType): TimestampStatus => {
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
+export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
+  const startTimestamp: number = spanBounds.startTimestamp;
+  const endTimestamp: number = spanBounds.endTimestamp;
 
   if (startTimestamp < endTimestamp) {
     return TimestampStatus.Stable;

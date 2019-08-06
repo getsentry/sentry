@@ -20,8 +20,6 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   getHumanDuration,
-  parseSpanTimestamps,
-  TimestampStatus,
 } from './utils';
 import {SpanType, ParsedTraceType} from './types';
 import {DividerHandlerManagerChildrenProps} from './dividerHandlerManager';
@@ -283,8 +281,6 @@ const SpanBar = styled('div')`
 
   user-select: none;
 
-  padding: 4px;
-
   transition: border-color 0.15s ease-in-out;
   border: 1px solid rgba(0, 0, 0, 0);
 `;
@@ -371,13 +367,61 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     return <SpanDetail span={span} />;
   };
 
-  getBounds = () => {
+  getBounds = (): {
+    warning: undefined | string;
+    left: undefined | string;
+    width: undefined | string;
+    isSpanVisibleInView: boolean;
+  } => {
     const {span, generateBounds} = this.props;
 
-    return generateBounds({
+    const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
+
+    switch (bounds.type) {
+      case 'TRACE_TIMESTAMPS_EQUAL': {
+        return {
+          warning: t('Trace timestamps are equal'),
+          left: void 0,
+          width: void 0,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'INVALID_VIEW_WINDOW': {
+        return {
+          warning: t('Invalid view window'),
+          left: void 0,
+          width: void 0,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'TIMESTAMPS_EQUAL': {
+        return {
+          warning: t('The start and end timestamps are equal'),
+          left: toPercent(bounds.start),
+          width: `${bounds.width}px`,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'TIMESTAMPS_REVERSED': {
+        return {
+          warning: t('The start and end timestamps are reversed'),
+          left: toPercent(bounds.start),
+          width: toPercent(bounds.end - bounds.start),
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'TIMESTAMPS_STABLE': {
+        return {
+          warning: void 0,
+          left: toPercent(bounds.start),
+          width: toPercent(bounds.end - bounds.start),
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+    }
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
@@ -680,22 +724,11 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
 
     const durationString = getHumanDuration(duration);
 
-    const timestampStatus = parseSpanTimestamps(span);
-
-    const warningText =
-      timestampStatus === TimestampStatus.Equal
-        ? t('The start and end timestamps are equal')
-        : timestampStatus === TimestampStatus.Reversed
-        ? t('The start and end timestamps are reversed')
-        : null;
-
     const bounds = this.getBounds();
 
-    const spanLeft = timestampStatus === TimestampStatus.Stable ? bounds.start : 0;
-    const spanWidth =
-      timestampStatus === TimestampStatus.Stable ? bounds.end - bounds.start : 1;
-
     const {dividerPosition} = dividerHandlerChildrenProps;
+
+    const displaySpanBar = bounds.left && bounds.width;
 
     return (
       <SpanRowCellContainer>
@@ -715,15 +748,17 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             backgroundColor: this.state.displayDetail ? '#F0ECF3' : void 0,
           }}
         >
-          <SpanBar
-            style={{
-              backgroundColor: spanBarColour,
-              left: toPercent(spanLeft),
-              width: toPercent(spanWidth),
-            }}
-          />
+          {displaySpanBar && (
+            <SpanBar
+              style={{
+                backgroundColor: spanBarColour,
+                left: bounds.left,
+                width: bounds.width,
+              }}
+            />
+          )}
           <Duration>{durationString}</Duration>
-          {this.renderWarningText({warningText})}
+          {this.renderWarningText({warningText: bounds.warning})}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
       </SpanRowCellContainer>
@@ -731,25 +766,15 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
   };
 
   render() {
-    // TODO: remove
-    // console.log('render span row');
-
-    const {span} = this.props;
-
     const bounds = this.getBounds();
 
-    const timestampStatus = parseSpanTimestamps(span);
-
-    const isVisible =
-      timestampStatus === TimestampStatus.Stable
-        ? bounds.end > 0 && bounds.start < 1
-        : true;
+    const isSpanVisibleInView = bounds.isSpanVisibleInView;
 
     return (
       <SpanRow
         innerRef={this.spanRowDOMRef}
         style={{
-          display: isVisible ? 'block' : 'none',
+          display: isSpanVisibleInView ? 'block' : 'none',
 
           // TODO: this is a border-top; this needs polishing from a real CSS ninja
           boxShadow: this.state.displayDetail ? '0 -1px 0 #d1cad8' : void 0,
@@ -763,7 +788,7 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             return this.renderHeader(dividerHandlerChildrenProps);
           }}
         </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible})}
+        {this.renderDetail({isVisible: isSpanVisibleInView})}
       </SpanRow>
     );
   }

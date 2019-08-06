@@ -13,8 +13,6 @@ import {
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  parseSpanTimestamps,
-  TimestampStatus,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from './types';
@@ -313,6 +311,37 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     });
   };
 
+  getBounds = (
+    bounds: SpanGeneratedBoundsType
+  ): {
+    left: string;
+    width: string;
+  } => {
+    switch (bounds.type) {
+      case 'TRACE_TIMESTAMPS_EQUAL':
+      case 'INVALID_VIEW_WINDOW': {
+        return {
+          left: toPercent(0),
+          width: '0px',
+        };
+      }
+
+      case 'TIMESTAMPS_EQUAL': {
+        return {
+          left: toPercent(bounds.start),
+          width: `${bounds.width}px`,
+        };
+      }
+      case 'TIMESTAMPS_REVERSED':
+      case 'TIMESTAMPS_STABLE': {
+        return {
+          left: toPercent(bounds.start),
+          width: toPercent(bounds.end - bounds.start),
+        };
+      }
+    }
+  };
+
   renderSpan = ({
     spanID,
     pickSpanBarColour,
@@ -333,11 +362,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       endTimestamp: span.timestamp,
     });
 
-    const timestampStatus = parseSpanTimestamps(span);
-
-    const spanLeft = timestampStatus === TimestampStatus.Stable ? bounds.start : 0;
-    const spanWidth =
-      timestampStatus === TimestampStatus.Stable ? bounds.end - bounds.start : 1;
+    const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
     const spanChildren: Array<SpanType> = get(lookup, spanID, []);
 
@@ -364,8 +389,8 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
         <MinimapSpanBar
           style={{
             backgroundColor: spanBarColour,
-            left: toPercent(spanLeft),
-            width: toPercent(spanWidth),
+            left: spanLeft,
+            width: spanWidth,
           }}
         />
         {reduced}

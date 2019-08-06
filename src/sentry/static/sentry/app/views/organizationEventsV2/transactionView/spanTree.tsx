@@ -67,7 +67,7 @@ class SpanTree extends React.Component<PropType> {
       endTimestamp: span.timestamp,
     });
 
-    const isCurrentSpanHidden = bounds.end <= 0 || bounds.start >= 1;
+    const isCurrentSpanHidden = !bounds.isSpanVisibleInView;
 
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
