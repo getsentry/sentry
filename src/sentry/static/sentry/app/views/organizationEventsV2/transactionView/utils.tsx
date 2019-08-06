@@ -117,6 +117,27 @@ const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   return spanBounds;
 };
 
+export enum TimestampStatus {
+  Stable,
+  Reversed,
+  Equal,
+}
+
+export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
+  const startTimestamp: number = spanBounds.startTimestamp;
+  const endTimestamp: number = spanBounds.endTimestamp;
+
+  if (startTimestamp < endTimestamp) {
+    return TimestampStatus.Stable;
+  }
+
+  if (startTimestamp === endTimestamp) {
+    return TimestampStatus.Equal;
+  }
+
+  return TimestampStatus.Reversed;
+};
+
 export const boundsGenerator = (bounds: {
   traceStartTimestamp: number;
   traceEndTimestamp: number;
@@ -195,6 +216,10 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView,
         };
       }
+      default: {
+        const _exhaustiveCheck: never = timestampStatus;
+        return _exhaustiveCheck;
+      }
     }
   };
 };
@@ -220,27 +245,6 @@ export const generateSpanColourPicker = () => {
   };
 
   return pickSpanBarColour;
-};
-
-export enum TimestampStatus {
-  Stable,
-  Reversed,
-  Equal,
-}
-
-export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
-  const startTimestamp: number = spanBounds.startTimestamp;
-  const endTimestamp: number = spanBounds.endTimestamp;
-
-  if (startTimestamp < endTimestamp) {
-    return TimestampStatus.Stable;
-  }
-
-  if (startTimestamp === endTimestamp) {
-    return TimestampStatus.Equal;
-  }
-
-  return TimestampStatus.Reversed;
 };
 
 export type UserSelectValues = {

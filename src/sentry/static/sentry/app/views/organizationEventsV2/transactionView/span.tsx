@@ -22,7 +22,6 @@ import {
   getHumanDuration,
 } from './utils';
 import {SpanType, ParsedTraceType} from './types';
-import {DividerHandlerManagerChildrenProps} from './dividerHandlerManager';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanDetail from './spanDetail';
 
@@ -128,7 +127,7 @@ export const DividerLine = styled('div')`
 
   ${({hovering}: {hovering: boolean}) => {
     if (!hovering) {
-      return `width: 2px;`;
+      return 'width: 2px;';
     }
 
     return `
@@ -421,6 +420,10 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
+      default: {
+        const _exhaustiveCheck: never = bounds;
+        return _exhaustiveCheck;
+      }
     }
   };
 
@@ -539,7 +542,7 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresss spurious scrolling to the top of the page
             if (spanNumber <= 1) {
-              minimapSlider.style.top = `0px`;
+              minimapSlider.style.top = '0px';
               return;
             }
             return;
@@ -638,7 +641,9 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     // }
   }
 
-  renderDivider = (dividerHandlerChildrenProps: DividerHandlerManagerChildrenProps) => {
+  renderDivider = (
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+  ) => {
     if (this.state.displayDetail) {
       // we would like to hide the divider lines when the span details
       // has been expanded
@@ -711,7 +716,9 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     );
   };
 
-  renderHeader = (dividerHandlerChildrenProps: DividerHandlerManagerChildrenProps) => {
+  renderHeader = (
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+  ) => {
     // TODO: remove
     // console.log('render span header');
 
@@ -784,7 +791,9 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
         }}
       >
         <DividerHandlerManager.Consumer>
-          {(dividerHandlerChildrenProps: DividerHandlerManagerChildrenProps) => {
+          {(
+            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+          ) => {
             return this.renderHeader(dividerHandlerChildrenProps);
           }}
         </DividerHandlerManager.Consumer>

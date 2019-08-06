@@ -339,6 +339,10 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
           width: toPercent(bounds.end - bounds.start),
         };
       }
+      default: {
+        const _exhaustiveCheck: never = bounds;
+        return _exhaustiveCheck;
+      }
     }
   };
 

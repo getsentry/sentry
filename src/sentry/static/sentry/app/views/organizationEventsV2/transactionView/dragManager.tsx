@@ -174,7 +174,6 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
           };
         });
         return;
-        break;
       }
       case ViewHandleType.Right: {
         this.setState(state => {
@@ -187,17 +186,11 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
           };
         });
         return;
-        break;
       }
       default: {
         throw Error('this.state.currentDraggingHandle is undefined');
       }
     }
-
-    this.setState({
-      isDragging: false,
-      currentDraggingHandle: void 0,
-    });
   };
 
   cleanUpListeners = () => {
