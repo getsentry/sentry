@@ -8,9 +8,10 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models import (
             OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
             ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
-            Repository, Team, Project, PullRequest, Dashboard, DiscoverSavedQuery, ExternalIssue, PromptsActivity
+            Repository, Team, Project, PullRequest, Dashboard, ExternalIssue, PromptsActivity
         )
         from sentry.incidents.models import Incident
+        from sentry.discover.models import DiscoverSavedQuery
 
         # Team must come first
         relations = [

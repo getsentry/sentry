@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.testutils import TestCase
-from sentry.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
 class DiscoverSavedQueryTest(TestCase):

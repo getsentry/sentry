@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 from sentry.api.serializers import Serializer, register
-from sentry.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery
 
 
 @register(DiscoverSavedQuery)
