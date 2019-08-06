@@ -12,7 +12,7 @@ import {
   generateSpanColourPicker,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
-import Span from './span';
+import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 
@@ -124,7 +124,7 @@ class SpanTree extends React.Component<PropType> {
       spanTree: (
         <React.Fragment>
           {hiddenSpansMessage}
-          <Span
+          <SpanGroup
             spanNumber={spanNumber}
             span={span}
             trace={this.props.trace}
