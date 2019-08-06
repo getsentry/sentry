@@ -56,13 +56,12 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u'/organizations/{}/projects/'.format(self.org.slug)
 
-    def test_no_issues(self):
-        # I think no "activity" would be more accurate?
+    def test_project_with_no_first_event(self):
         self.project.update(first_event=None)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until_test_id('awaiting-events')
-        self.browser.snapshot('org dash no issues')
+        self.browser.wait_until_test_id('resources')
+        self.browser.snapshot('org dash no first event')
 
     def test_one_issue(self):
         self.init_snuba()

@@ -18,7 +18,7 @@ export default class Resources extends React.Component {
 
   render() {
     return (
-      <ResourcesWrapper>
+      <ResourcesWrapper data-test-id="resources">
         <ResourcesSection>
           <PageHeading>{t('Resources')}</PageHeading>
           <ResourceCards>
