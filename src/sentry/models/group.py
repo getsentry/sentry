@@ -7,7 +7,7 @@ import warnings
 from collections import namedtuple
 from enum import Enum
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -135,8 +135,6 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(['environment', 'IN', environments])
 
     result = snuba.raw_query(
-        start=datetime.utcfromtimestamp(0),
-        end=datetime.utcnow(),
         selected_columns=SnubaEvent.selected_columns,
         conditions=conditions,
         filter_keys={
@@ -213,8 +211,6 @@ class GroupManager(BaseManager):
         from sentry.utils import snuba
 
         data = snuba.raw_query(
-            start=datetime.utcfromtimestamp(0),
-            end=datetime.utcnow(),
             selected_columns=['issue'],
             conditions=[['issue', 'IS NOT NULL', None]],
             filter_keys={

@@ -627,12 +627,12 @@ class SnubaQueryParams(object):
     """
 
     def __init__(
-        self, start, end, groupby=None, conditions=None, filter_keys=None,
+        self, start=None, end=None, groupby=None, conditions=None, filter_keys=None,
         aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
         **kwargs
     ):
-        self.start = start
-        self.end = end
+        self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        self.end = end or datetime.utcnow()
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
@@ -643,7 +643,7 @@ class SnubaQueryParams(object):
         self.kwargs = kwargs
 
 
-def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
+def raw_query(start=None, end=None, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, referrer=None,
               is_grouprelease=False, **kwargs):
     """
@@ -728,16 +728,17 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     return results
 
 
-def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=None,
+def query(start=None, end=None, groupby=None, conditions=None, filter_keys=None, aggregations=None,
           selected_columns=None, totals=None, **kwargs):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
+    groupby = groupby or []
 
     try:
         body = raw_query(
-            start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
+            start=start, end=end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             aggregations=aggregations, selected_columns=selected_columns, totals=totals,
             **kwargs
         )

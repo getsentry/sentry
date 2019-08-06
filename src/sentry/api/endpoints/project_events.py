@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from functools import partial
 
 from sentry.api.base import DocSection
@@ -48,12 +46,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         full = request.GET.get('full', False)
         snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
-        now = timezone.now()
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=now - timedelta(days=90),
-            end=now,
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
             selected_columns=snuba_cols,
