@@ -55,7 +55,7 @@ class AvatarBase(Model):
         if photo is None:
             photo_file = self.file.getfile()
             with Image.open(photo_file) as image:
-                image = image.resize((size, size))
+                image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
                 image.save(image_file, 'PNG')
                 photo = image_file.getvalue()
