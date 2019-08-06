@@ -17,23 +17,10 @@ import {getQuery} from './utils';
 const slugValidator = function(props, propName, componentName) {
   const value = props[propName];
   // Accept slugs that look like:
-  // * project-slug:123:latest
-  // * project-slug:123:oldest
-  // * project-slug:123:deadbeef
+  // * project-slug:deadbeef:latest
+  // * project-slug:deadbeef:oldest
   // * project-slug:deadbeef
-  if (value && !/^(?:[^:]+:)?(?:[^:]+):(?:[a-f0-9]+|latest|oldest)$/.test(value)) {
-    return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
-  }
-  return null;
-};
-
-const transactionValidator = function(props, propName, componentName) {
-  const value = props[propName];
-  // Accept slugs that look like:
-  // * project-slug:/some/pathname:latest
-  // * project-slug:a_bare_string:oldest
-  // * project-slug:/some/otherpath:deadbeef
-  if (value && !/^(?:[^:]+):(?:[^:]+):(?:[^:]+|latest|oldest)$/.test(value)) {
+  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)(?:\:latest|oldest)?$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -56,86 +43,36 @@ class EventDetails extends AsyncComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
-    groupSlug: slugValidator,
-    transactionSlug: transactionValidator,
     location: PropTypes.object.isRequired,
     view: PropTypes.object.isRequired,
   };
 
   getEndpoints() {
-    const {
-      organization,
-      eventSlug,
-      groupSlug,
-      transactionSlug,
-      view,
-      location,
-    } = this.props;
+    const {organization, eventSlug, view, location} = this.props;
     const query = getQuery(view, location);
 
-    // If we're getting an issue/group use the latest endpoint.
-    // We pass the current query/view state to the API so we get an
-    // event that matches the current list filters.
-    if (groupSlug) {
-      const [projectId, groupId, eventId] = groupSlug.toString().split(':');
+    // Check the eventid for the latest/oldest keyword and use that to choose
+    // the endpoint as oldest/latest have special endpoints.
+    const [projectId, eventId, keyword] = eventSlug.toString().split(':');
 
-      let url = `/organizations/${organization.slug}/events/`;
-      // latest / oldest have dedicated endpoints
-      if (['latest', 'oldest'].includes(eventId)) {
-        url += `${eventId}/`;
-      } else {
-        url += `${projectId}:${eventId}/`;
-      }
-      if (query.query) {
-        query.query += ` issue.id:${groupId}`;
-      } else {
-        query.query = `issue.id:${groupId}`;
-      }
-
-      return [['event', url, {query}]];
+    let url = `/organizations/${organization.slug}/events/`;
+    // TODO the latest/oldest links are currently broken as they require a
+    // new endpoint that works with the upcoming discover2 queries.
+    if (['latest', 'oldest'].includes(keyword)) {
+      url += `${keyword}/`;
+    } else {
+      url += `${projectId}:${eventId}/`;
     }
 
-    // If we're looking at a transaction aggregate we need to do a search
-    // by transaction to find the latest event for the transaction.
-    if (transactionSlug) {
-      const [projectId, transactionName, eventId] = transactionSlug.toString().split(':');
-
-      let url = `/organizations/${organization.slug}/events/`;
-      // latest / oldest have dedicated endpoints
-      if (['latest', 'oldest'].includes(eventId)) {
-        url += `${eventId}/`;
-      } else {
-        url += `${projectId}:${eventId}/`;
-      }
-      if (query.query) {
-        query.query += ` transaction:${transactionName}`;
-      } else {
-        query.query = `transaction:${transactionName}`;
-      }
-
-      return [['event', url, {query}]];
-    }
-
-    if (eventSlug) {
-      // Get a specific event. This could be coming from
-      // a paginated group or standalone event.
-      const [projectId, eventId] = eventSlug.toString().split(':');
-      return [
-        [
-          'event',
-          `/organizations/${organization.slug}/events/${projectId}:${eventId}/`,
-          {query},
-        ],
-      ];
-    }
-
-    throw new Error('No valid datasource property found.');
+    // Get a specific event. This could be coming from
+    // a paginated group or standalone event.
+    return [['event', url, {query}]];
   }
 
   onDismiss = () => {
     const {location} = this.props;
     // Remove modal related query parameters.
-    const query = omit(location.query, ['transactionSlug', 'groupSlug', 'eventSlug']);
+    const query = omit(location.query, ['eventSlug']);
 
     browserHistory.push({
       pathname: location.pathname,
@@ -144,12 +81,7 @@ class EventDetails extends AsyncComponent {
   };
 
   get projectId() {
-    const source =
-      this.props.eventSlug || this.props.groupSlug || this.props.transactionSlug;
-    if (!source) {
-      throw new Error('Could not determine projectId');
-    }
-    return source.split(':')[0];
+    return this.props.eventSlug.split(':')[0];
   }
 
   renderBody() {
