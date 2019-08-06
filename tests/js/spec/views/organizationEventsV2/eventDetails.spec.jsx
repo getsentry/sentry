@@ -9,7 +9,6 @@ import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
 describe('OrganizationEventsV2 > EventDetails', function() {
   const allEventsView = ALL_VIEWS.find(view => view.id === 'all');
   const errorsView = ALL_VIEWS.find(view => view.id === 'errors');
-  const transactionView = ALL_VIEWS.find(view => view.id === 'transactions');
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -153,8 +152,8 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     const wrapper = mount(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        groupSlug="project-slug:123:latest"
-        location={{query: {groupSlug: 'project-slug:123:latest'}}}
+        eventSlug="project-slug:deadbeef"
+        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
         view={errorsView}
       />,
       TestStubs.routerContext()
@@ -166,54 +165,6 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     expect(graph).toHaveLength(1);
   });
 
-  it('renders pagination buttons in grouped view', function() {
-    const wrapper = mount(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        groupSlug="project-slug:123:latest"
-        location={{query: {groupSlug: 'project-slug:123:latest'}}}
-        view={errorsView}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const content = wrapper.find('ModalPagination');
-    expect(content).toHaveLength(1);
-
-    const prevLink = content.find('StyledLink[data-test-id="older-event"]').first();
-    const target = prevLink.props().to;
-    expect(target.query.groupSlug).toEqual('project-slug:123:beefbeef');
-    expect(target.query.transactionSlug).toBeUndefined();
-    expect(target.query.eventSlug).toBeUndefined();
-
-    const nextLink = content.find('StyledLink[data-test-id="newer-event"]').first();
-    expect(nextLink.props().to).toBeNull();
-  });
-
-  it('renders pagination buttons in transaction view', function() {
-    const wrapper = mount(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        transactionSlug="project-slug:/users/login:latest"
-        location={{query: {transactionSlug: 'project-slug:/users/login:latest'}}}
-        view={transactionView}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const content = wrapper.find('ModalPagination');
-    expect(content).toHaveLength(1);
-
-    const prevLink = content.find('StyledLink[data-test-id="older-event"]').first();
-    const target = prevLink.props().to;
-    expect(target.query.transactionSlug).toEqual('project-slug:/users/login:beefbeef');
-    expect(target.query.groupSlug).toBeUndefined();
-    expect(target.query.eventSlug).toBeUndefined();
-
-    const nextLink = content.find('StyledLink[data-test-id="newer-event"]').first();
-    expect(nextLink.props().to).toBeNull();
-  });
-
   it('removes eventSlug when close button is clicked', function() {
     const wrapper = mount(
       <EventDetails
@@ -222,48 +173,6 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         location={{
           pathname: '/organizations/org-slug/events/',
           query: {eventSlug: 'project-slug:deadbeef'},
-        }}
-        view={allEventsView}
-      />,
-      TestStubs.routerContext()
-    );
-    const button = wrapper.find('DismissButton');
-    button.simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    });
-  });
-
-  it('removes groupSlug when close button is clicked', function() {
-    const wrapper = mount(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        groupSlug="project-slug:123:latest"
-        location={{
-          pathname: '/organizations/org-slug/events/',
-          query: {groupSlug: 'project-slug:123:latest'},
-        }}
-        view={allEventsView}
-      />,
-      TestStubs.routerContext()
-    );
-    const button = wrapper.find('DismissButton');
-    button.simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    });
-  });
-
-  it('removes transactionSlug when close button is clicked', function() {
-    const wrapper = mount(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        transactionSlug="project-slug:/users/login:latest"
-        location={{
-          pathname: '/organizations/org-slug/events/',
-          query: {transactionSlug: 'project-slug:/users/login:latest'},
         }}
         view={allEventsView}
       />,

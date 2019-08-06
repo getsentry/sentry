@@ -15,7 +15,7 @@ import space from 'app/styles/space';
 
 import {QueryLink} from './styles';
 
-export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug', 'transactionSlug'];
+export const MODAL_QUERY_KEYS = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
 
 export const ALL_VIEWS = deepFreeze([
@@ -94,14 +94,14 @@ export const ALL_VIEWS = deepFreeze([
  */
 export const SPECIAL_FIELDS = {
   transaction: {
-    fields: ['project.name', 'transaction'],
+    fields: ['project.name', 'transaction', 'latest_event'],
     sortField: 'transaction',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          transactionSlug: `${data['project.name']}:${data.transaction}:latest`,
+          eventSlug: `${data['project.name']}:${data.latest_event}`,
         },
       };
       return (
@@ -207,14 +207,14 @@ export const SPECIAL_FIELDS = {
     ),
   },
   error: {
-    fields: ['issue_title', 'project.name', 'issue.id'],
+    fields: ['issue_title', 'project.name', 'latest_event'],
     sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          groupSlug: `${data['project.name']}:${data['issue.id']}:latest`,
+          eventSlug: `${data['project.name']}:${data.latest_event}`,
         },
       };
       return (
@@ -227,14 +227,14 @@ export const SPECIAL_FIELDS = {
     },
   },
   csp: {
-    fields: ['issue_title', 'project.name', 'issue.id'],
+    fields: ['issue_title', 'project.name', 'latest_event'],
     sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          groupSlug: `${data['project.name']}:${data['issue.id']}:latest`,
+          eventSlug: `${data['project.name']}:${data.latest_event}`,
         },
       };
       return (

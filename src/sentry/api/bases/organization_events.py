@@ -26,6 +26,11 @@ SPECIAL_FIELDS = {
     'user_count': {
         'aggregations': [['uniq', 'user', 'user_count']],
     },
+    'latest_event': {
+        'fields': [
+            ['argMax', ['id', 'timestamp'], 'latest_event'],
+        ],
+    },
 }
 
 
