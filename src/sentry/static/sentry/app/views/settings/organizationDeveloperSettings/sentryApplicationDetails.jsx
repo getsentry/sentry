@@ -115,13 +115,9 @@ export default class SentryApplicationDetails extends AsyncView {
     const {app, tokens} = this.state;
     const api = this.api;
 
-    try {
-      const token = await addSentryAppToken(api, app);
-      const newTokens = tokens.concat(token);
-      this.setState({tokens: newTokens});
-    } catch (err) {
-      this.setState({tokens});
-    }
+    const token = await addSentryAppToken(api, app);
+    const newTokens = tokens.concat(token);
+    this.setState({tokens: newTokens});
   };
 
   onRemoveToken = async (token, evt) => {
@@ -130,12 +126,8 @@ export default class SentryApplicationDetails extends AsyncView {
     const api = this.api;
     const newTokens = tokens.filter(tok => tok.token !== token.token);
 
-    try {
-      await removeSentryAppToken(api, app, token.token);
-      this.setState({tokens: newTokens});
-    } catch (err) {
-      this.setState({tokens});
-    }
+    await removeSentryAppToken(api, app, token.token);
+    this.setState({tokens: newTokens});
   };
 
   renderTokens = () => {

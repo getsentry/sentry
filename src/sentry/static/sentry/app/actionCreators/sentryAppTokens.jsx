@@ -2,7 +2,6 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-  clearIndicators,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
@@ -18,11 +17,11 @@ export async function addSentryAppToken(client, app) {
     const resp = await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/`, {
       method: 'POST',
     });
-    clearIndicators();
+    addSuccessMessage(t('Token successfully added.'));
     return resp;
   } catch (err) {
     addErrorMessage(t('Unable to create token'));
-    throw err;
+    return err;
   }
 }
 
@@ -42,10 +41,10 @@ export async function removeSentryAppToken(client, app, token) {
         method: 'DELETE',
       }
     );
-    addSuccessMessage(t(`Token successfully deleted.`));
+    addSuccessMessage(t('Token successfully deleted.'));
     return resp;
   } catch (err) {
     addErrorMessage(t('Unable to delete token'));
-    throw err;
+    return err;
   }
 }
