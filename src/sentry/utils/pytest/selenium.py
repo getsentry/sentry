@@ -202,6 +202,7 @@ class Browser(object):
         attempt = 0
         while attempt < times:
             try:
+                attempt += 1
                 func()
                 break
             except retryable_errors:
