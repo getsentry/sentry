@@ -21,9 +21,9 @@ language, in any application.
 .. raw:: html
 
    <p align="center">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-1.png" height="180" width="290">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-2.png" height="180" width="290">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-3.png" height="180" width="290">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-1.png" width="290">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-2.png" width="290">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-3.png" width="290">
    </p>
 
 Official Sentry SDKs
