@@ -21,7 +21,7 @@ export async function addSentryAppToken(client, app) {
     return resp;
   } catch (err) {
     addErrorMessage(t('Unable to create token'));
-    return err;
+    throw err;
   }
 }
 
@@ -45,6 +45,6 @@ export async function removeSentryAppToken(client, app, token) {
     return resp;
   } catch (err) {
     addErrorMessage(t('Unable to delete token'));
-    return err;
+    throw err;
   }
 }
