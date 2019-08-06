@@ -11,7 +11,8 @@ class Pills extends React.Component {
 const StyledPills = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  font-size: 13px;
+  /* font-size: 13px; */
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default Pills;
