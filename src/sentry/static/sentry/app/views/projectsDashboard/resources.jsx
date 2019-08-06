@@ -4,9 +4,6 @@ import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import ResourceCard from 'app/components/resourceCard';
-import SentryTypes from 'app/sentryTypes';
-import ErrorRobot from 'app/components/errorRobot';
-import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 
 import releasesImg from '../../../images/releases.svg';
@@ -14,11 +11,6 @@ import breadcrumbsImg from '../../../images/breadcrumbs-generic.svg';
 import docsImg from '../../../images/code-arguments-tags-mirrored.svg';
 
 export default class Resources extends React.Component {
-  static propTypes = {
-    org: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   componentDidMount() {
     analytics('orgdash.resources_shown');
   }
@@ -26,9 +18,6 @@ export default class Resources extends React.Component {
   render() {
     return (
       <ResourcesWrapper>
-        <RobotPanel>
-          <ErrorRobot org={this.props.org} project={this.props.project} />
-        </RobotPanel>
         <ResourcesSection>
           <h4>{t('Resources')}</h4>
           <Flex justify="space-between">
@@ -62,10 +51,7 @@ export default class Resources extends React.Component {
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
-`;
-
-const RobotPanel = styled(Panel)`
-  margin: 30px 30px 20px 30px;
+  padding-top: 20px;
 `;
 
 const ResourcesSection = styled('div')`
