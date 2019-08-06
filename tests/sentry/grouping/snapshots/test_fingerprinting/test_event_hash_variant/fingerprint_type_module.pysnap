@@ -1,22 +1,25 @@
 ---
-created: '2019-07-23T21:55:25.846335Z'
+created: '2019-08-05T10:24:07.792310Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
   - fingerprint:
-    - database-unavailable
+    - '{{ type }}'
+    - '{{ module }}'
     matchers:
     - - type
       - DatabaseUnavailable
+    - - module
+      - io.sentry.example.*
   version: 1
 fingerprint:
-- my-route
-- database-unavailable
+- '{{ type }}'
+- '{{ module }}'
 variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - my-route
-    - database-unavailable
+    - DatabaseUnavailable
+    - io.sentry.example.Application

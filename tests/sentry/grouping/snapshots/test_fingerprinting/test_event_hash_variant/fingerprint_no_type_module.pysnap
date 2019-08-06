@@ -1,22 +1,26 @@
 ---
-created: '2019-07-23T21:55:25.921295Z'
+created: '2019-08-05T10:26:51.809104Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
   - fingerprint:
-    - symcache-error
+    - '{{ type }}'
+    - '{{ module }}'
+    - '{{ function }}'
     matchers:
     - - function
-      - symbolicator::actors::symcaches::*
-    - - app
-      - 'true'
+      - main
   version: 1
 fingerprint:
-- symcache-error
+- '{{ type }}'
+- '{{ module }}'
+- '{{ function }}'
 variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - symcache-error
+    - <no-type>
+    - <no-module>
+    - main

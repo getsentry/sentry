@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T22:42:22.847873Z'
+created: '2019-07-23T21:55:25.877113Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,3 +13,8 @@ config:
   version: 1
 fingerprint:
 - something-went-wrong
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - something-went-wrong

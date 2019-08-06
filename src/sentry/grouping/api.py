@@ -8,7 +8,8 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
-from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
+from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values, \
+    resolve_fingerprint_values
 
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
@@ -201,6 +202,7 @@ def get_grouping_variants_for_event(event, config=None):
     # If no defaults are referenced we produce a single completely custom
     # fingerprint.
     if defaults_referenced == 0:
+        fingerprint = resolve_fingerprint_values(fingerprint, event)
         return {
             'custom-fingerprint': CustomFingerprintVariant(fingerprint),
         }
@@ -220,6 +222,7 @@ def get_grouping_variants_for_event(event, config=None):
 
     # Otherwise we need to salt each of the components.
     else:
+        fingerprint = resolve_fingerprint_values(fingerprint, event)
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component, config)
 

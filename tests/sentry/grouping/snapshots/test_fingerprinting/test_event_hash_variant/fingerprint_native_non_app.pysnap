@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T09:35:38.141252Z'
+created: '2019-07-23T21:55:26.014346Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -15,3 +15,8 @@ config:
   version: 1
 fingerprint:
 - '{{ default }}'
+variants:
+  app:
+    type: component
+  system:
+    type: component
