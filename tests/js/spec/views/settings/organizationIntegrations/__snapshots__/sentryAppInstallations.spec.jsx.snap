@@ -154,7 +154,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                       is={null}
                     >
                       <SentryAppName
-                        hideStatus={false}
+                        hidePublishStatus={false}
                       >
                         <div
                           className="css-4cu42i-SentryAppName eac2pqx4"

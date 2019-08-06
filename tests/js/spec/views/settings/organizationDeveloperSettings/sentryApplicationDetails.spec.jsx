@@ -14,6 +14,9 @@ describe('Sentry Application Details', function() {
   let createAppRequest;
   let editAppRequest;
 
+  const verifyInstallToggle = 'Switch[name="verifyInstall"]';
+  const redirectUrlInput = 'Input[name="redirectUrl"]';
+
   beforeEach(() => {
     Client.clearMockResponses();
 
@@ -21,7 +24,7 @@ describe('Sentry Application Details', function() {
     orgId = org.slug;
   });
 
-  describe('Creating a new Sentry App', () => {
+  describe('Creating a new external Sentry App', () => {
     beforeEach(() => {
       createAppRequest = Client.addMockResponse({
         url: '/sentry-apps/',
@@ -30,9 +33,14 @@ describe('Sentry Application Details', function() {
       });
 
       wrapper = mount(
-        <SentryApplicationDetails params={{orgId}} />,
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-external/'}} />,
         TestStubs.routerContext()
       );
+    });
+
+    it('has inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
+      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
     it('it shows empty scopes and no credentials', function() {
@@ -41,16 +49,6 @@ describe('Sentry Application Details', function() {
       expect(
         wrapper.find('PanelHeader').findWhere(h => h.text() === 'Permissions')
       ).toBeDefined();
-    });
-
-    it('disables verifyInstall if isInternal is enabled', function() {
-      const verifyInstallToggle = 'Switch[name="verifyInstall"]';
-
-      wrapper.find(verifyInstallToggle).simulate('click');
-      wrapper.find('Switch[name="isInternal"]').simulate('click');
-
-      expect(wrapper.find(verifyInstallToggle).prop('isDisabled')).toBe(true);
-      expect(wrapper.find(verifyInstallToggle).prop('isActive')).toBe(false);
     });
 
     it('saves', function() {
@@ -67,7 +65,7 @@ describe('Sentry Application Details', function() {
         .simulate('change', {target: {value: 'https://webhook.com'}});
 
       wrapper
-        .find('Input[name="redirectUrl"]')
+        .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://webhook.com/setup'}});
 
       wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
@@ -108,7 +106,20 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Renders for non-internal apps', function() {
+  describe('Creating a new internal Sentry App', () => {
+    beforeEach(() => {
+      wrapper = mount(
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
+        TestStubs.routerContext()
+      );
+    });
+    it('no inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
+      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
+    });
+  });
+
+  describe('Renders for external apps', function() {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -124,6 +135,11 @@ describe('Sentry Application Details', function() {
       );
     });
 
+    it('has inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
+      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
+    });
+
     it('it shows application data', function() {
       // data should be filled out
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
@@ -131,7 +147,7 @@ describe('Sentry Application Details', function() {
       ]);
     });
 
-    it('renders clientId and clientSecret for non-internal apps', function() {
+    it('renders clientId and clientSecret for external apps', function() {
       expect(wrapper.find('#clientId').exists()).toBe(true);
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
     });
@@ -156,21 +172,19 @@ describe('Sentry Application Details', function() {
         TestStubs.routerContext()
       );
     });
-    it('has internal option disabled', function() {
-      expect(
-        wrapper
-          .find('Field[name="isInternal"]')
-          .find('FieldControl')
-          .prop('disabled')
-      ).toBe(true);
+
+    it('no inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
+      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
     });
+
     it('shows installationId and token', function() {
       expect(wrapper.find('#installation').exists()).toBe(true);
       expect(wrapper.find('#token').exists()).toBe(true);
     });
   });
 
-  describe('Editing an existing Sentry App', () => {
+  describe('Editing an existing external Sentry App', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -194,7 +208,7 @@ describe('Sentry Application Details', function() {
 
     it('it updates app with correct data', function() {
       wrapper
-        .find('Input[name="redirectUrl"]')
+        .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});
 
       wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
