@@ -1,5 +1,5 @@
 import React from 'react';
-import {get, set, isNumber, forEach} from 'lodash';
+import {get, set, isNumber} from 'lodash';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -142,7 +142,7 @@ class TraceView extends React.Component<PropType, StateType> {
 
     // sort span children by their start timestamps in ascending order
 
-    forEach(reduced.lookup, spanChildren => {
+    Object.values(reduced.lookup).forEach(spanChildren => {
       spanChildren.sort((firstSpan, secondSpan) => {
         if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
           return -1;
