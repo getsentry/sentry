@@ -10,6 +10,7 @@ from pytz import utc
 
 from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters
 
 from sentry.models.organization import Organization
@@ -118,6 +119,13 @@ def get_project_config(project_id, full_config=True, for_store=False):
     error_messages = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
     if error_messages is not None:
         project_cfg[FilterTypes.ERROR_MESSAGES] = error_messages
+
+    csp_disallowed_sources = []
+    if bool(project.get_option('sentry:csp_ignored_sources_defaults', True)):
+        csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
+    csp_disallowed_sources += project.get_option('sentry:csp_ignored_sources', [])
+
+    project_cfg['csp_disallowed_sources'] = csp_disallowed_sources
 
     # get the filter settings for this project
     filter_settings = {}
