@@ -410,7 +410,7 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     );
   };
 
-  renderTitle = ({warningText}: {warningText?: string} = {}) => {
+  renderTitle = () => {
     const {span, treeDepth} = this.props;
 
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
@@ -436,13 +436,6 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             {op}
             {description}
           </span>
-          {warningText && (
-            <Tooltip title={warningText}>
-              <span style={{marginLeft: '8px', lineHeight: 0, height: '15px'}}>
-                <WarningIcon />
-              </span>
-            </Tooltip>
-          )}
         </SpanBarTitle>
       </SpanBarTitleContainer>
     );
@@ -658,6 +651,22 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     );
   };
 
+  renderWarningText = ({warningText}: {warningText?: string} = {}) => {
+    if (!warningText) {
+      return null;
+    }
+
+    return (
+      <WarningTextWrapper>
+        <Tooltip title={warningText}>
+          <span style={{marginLeft: '8px', lineHeight: 0, height: '15px'}}>
+            <WarningIcon />
+          </span>
+        </Tooltip>
+      </WarningTextWrapper>
+    );
+  };
+
   renderHeader = (dividerHandlerChildrenProps: DividerHandlerManagerChildrenProps) => {
     // TODO: remove
     // console.log('render span header');
@@ -697,7 +706,7 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             backgroundColor: this.state.displayDetail ? '#F0ECF3' : void 0,
           }}
         >
-          {this.renderTitle({warningText})}
+          {this.renderTitle()}
         </SpanRowCell>
         <SpanRowCell
           style={{
@@ -714,6 +723,7 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
             }}
           />
           <Duration>{durationString}</Duration>
+          {this.renderWarningText({warningText})}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
       </SpanRowCellContainer>
@@ -758,5 +768,16 @@ class FooSpanBar extends React.Component<FooSpanBarProps, FooSpanBarState> {
     );
   }
 }
+
+const WarningTextWrapper = styled('div')`
+  height: ${SPAN_ROW_HEIGHT}px;
+
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  display: flex;
+  align-items: center;
+`;
 
 export default Span;
