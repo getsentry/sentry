@@ -24,22 +24,13 @@ export default class ResourceCard extends React.Component {
     return (
       <ResourceCardWrapper onClick={this.recordClick}>
         <StyledLink href={link}>
-          <div className="m-b-1">
-            <img src={imgUrl} alt={title} />
-          </div>
+          <StyledImg src={imgUrl} alt={title} />
           <StyledTitle>{title}</StyledTitle>
         </StyledLink>
       </ResourceCardWrapper>
     );
   }
 }
-
-const StyledTitle = styled('div')`
-  color: #493e54;
-  font-size: 16px;
-  text-align: center;
-  font-weight: bold;
-`;
 
 const ResourceCardWrapper = styled(Panel)`
   display: flex;
@@ -51,4 +42,18 @@ const ResourceCardWrapper = styled(Panel)`
 
 const StyledLink = styled(ExternalLink)`
   flex: 1;
+`;
+
+const StyledImg = styled('img')`
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 20px;
+  height: 180px;
+`;
+
+const StyledTitle = styled('div')`
+  color: #493e54;
+  font-size: 16px;
+  text-align: center;
+  font-weight: bold;
 `;
