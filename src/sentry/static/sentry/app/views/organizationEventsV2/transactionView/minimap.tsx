@@ -596,6 +596,8 @@ const MinimapSpanBar = styled('div')`
   height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
   min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
   max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+
+  border-radius: 1px;
 `;
 
 const BackgroundSlider = styled('div')`
