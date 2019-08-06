@@ -3,12 +3,12 @@ from __future__ import absolute_import
 from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
-from sentry.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery
 
 
-class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
+class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverSavedQueriesTest, self).setUp()
+        super(DiscoverSavedQueriesTest, self).setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project_ids = [
@@ -31,7 +31,7 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_get(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-saved-queries', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -44,7 +44,7 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_post(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-saved-queries', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
             response = self.client.post(url, {
                 'name': 'New query',
                 'projects': self.project_ids,
@@ -65,7 +65,7 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_post_invalid_projects(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-saved-queries', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
             response = self.client.post(url, {
                 'name': 'New query',
                 'projects': self.project_ids_without_access,

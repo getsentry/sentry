@@ -6,9 +6,9 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
 
-class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
+class DiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverQueryTest, self).setUp()
+        super(DiscoverQueryTest, self).setUp()
 
         self.now = datetime.now()
         one_second_ago = self.now - timedelta(seconds=1)
@@ -61,7 +61,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform.name'],
@@ -78,7 +78,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_relative_dates(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform.name'],
@@ -95,7 +95,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_invalid_date_request(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -108,7 +108,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -142,7 +142,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 },
             )
 
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', None, 'count']],
@@ -188,7 +188,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -202,7 +202,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_invalid_aggregation_function(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -217,7 +217,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_boolean_condition(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform.name', 'stack.in_app'],
@@ -235,7 +235,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_strip_double_quotes_in_condition_strings(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message'],
@@ -250,7 +250,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_array_join(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'error.type'],
@@ -265,7 +265,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_array_condition_equals(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['error.type', '=', 'ValidationError']],
@@ -280,7 +280,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_array_condition_not_equals(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['error.type', '!=', 'ValidationError']],
@@ -296,7 +296,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_array_condition_custom_tag(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['error.custom', '!=', 'custom']],
@@ -312,7 +312,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_select_project_name(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['project.name'],
@@ -327,7 +327,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_groupby_project_name(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', '', 'count']],
@@ -344,7 +344,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_zerofilled_dates_when_rollup_relative(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', '', 'count']],
@@ -364,7 +364,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_zerofilled_dates_when_rollup_absolute(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', '', 'count']],
@@ -385,7 +385,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_uniq_project_name(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['uniq', 'project.name', 'uniq_project_name']],
@@ -400,7 +400,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_meta_types(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['project.id', 'project.name'],
@@ -418,7 +418,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         ]
 
     def test_no_feature_access(self):
-        url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+        url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
         response = self.client.post(url, {
             'projects': [self.project.id],
             'fields': ['message', 'platform'],
@@ -432,7 +432,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
     def test_invalid_project(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.other_project.id],
                 'fields': ['message', 'platform'],
@@ -453,7 +453,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user, superuser=True)
 
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover-query', args=[self.new_org.slug])
+            url = reverse('sentry-api-0-discover-query', args=[self.new_org.slug])
             response = self.client.post(url, {
                 'projects': [self.new_project.id],
                 'fields': ['message', 'platform'],
