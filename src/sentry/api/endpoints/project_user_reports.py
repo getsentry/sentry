@@ -20,7 +20,6 @@ from sentry.models import (
     EventUser,
     GroupStatus,
     ProjectKey,
-    SnubaEvent,
     UserReport)
 from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
