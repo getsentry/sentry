@@ -48,7 +48,8 @@ describe('Organization Developer Settings', function() {
 
     it('displays empty state', () => {
       expect(wrapper.exists('EmptyMessage')).toBe(true);
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
+      expect(wrapper.text()).toMatch('No external integrations have been created yet');
     });
   });
 
@@ -66,6 +67,10 @@ describe('Organization Developer Settings', function() {
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
       );
+    });
+
+    it('internal integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
     });
 
     it('displays all Apps owned by the Org', () => {
@@ -90,7 +95,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No external integrations have been created yet');
     });
 
     it('can make a request to publish an integration', async () => {
@@ -148,12 +153,16 @@ describe('Organization Developer Settings', function() {
       routerContext
     );
 
+    it('external integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No external integrations have been created yet');
+    });
+
     it('allows deleting', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
     });
 
-    it('publish button is disabled', () => {
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    it('publish button does not exist', () => {
+      expect(wrapper.exists(publishButtonSelector)).toBe(false);
     });
   });
 
