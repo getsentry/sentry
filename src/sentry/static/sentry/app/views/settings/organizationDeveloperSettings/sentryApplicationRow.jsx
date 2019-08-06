@@ -27,7 +27,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
     onPublishRequest: PropTypes.func,
-    showInstallationStatus: PropTypes.bool,
+    showInstallationStatus: PropTypes.bool, //false if we are on the developer settings page where we don't show installation status
   };
 
   static defaultProps = {
