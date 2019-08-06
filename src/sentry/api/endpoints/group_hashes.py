@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import datetime
 from functools import partial
 
 from rest_framework.response import Response
@@ -39,8 +38,6 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         data_fn = partial(
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
-            end=datetime.utcnow(),  # will be clamped to project retention
             aggregations=[
                 ('argMax(event_id, timestamp)', None, 'event_id'),
                 ('max', 'timestamp', 'latest_event_timestamp')
@@ -58,7 +55,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         return self.paginate(
             request=request,
-            on_results=lambda results: handle_results(results),
+            on_results=handle_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 

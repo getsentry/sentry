@@ -16,6 +16,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)
 
+        # remove microseconds and timezone from iso format cause that's what store_event expects
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
         new_event_id = 'b' * 32
@@ -54,6 +55,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_return_multiple_hashes(self):
         self.login_as(user=self.user)
 
+        # remove microseconds and timezone from iso format cause that's what store_event expects
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
 
