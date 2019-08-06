@@ -41,5 +41,5 @@ export type EventsStatsData = [number, {count: number}[]][];
 
 export type EventsStats = {
   data: EventsStatsData;
-  totals?: any;
+  totals?: {count: number};
 };

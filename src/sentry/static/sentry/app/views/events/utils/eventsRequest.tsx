@@ -28,6 +28,7 @@ type RenderProps = {
 };
 
 type EventsRequestProps = {
+  // TODO(ts): Update when we type `app/api`
   api: object;
   organization: Organization;
   timeAggregationSeriesName: string;
@@ -164,7 +165,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   };
 
   state = {
-    reloading: false || !!this.props.loading,
+    reloading: !!this.props.loading,
     timeseriesData: null,
   };
 
@@ -181,7 +182,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.unmounting = true;
   }
 
-  unmounting: boolean = false;
+  private unmounting: boolean = false;
 
   fetchData = async () => {
     const {api, ...props} = this.props;
@@ -234,7 +235,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       timestamp: number,
       countArray: {count: number}[],
       i: number
-    ) => string | number = timestamp => timestamp * 1000
+    ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] =>
     data.map(([timestamp, countArray], i) => ({
       name: getName(timestamp, countArray, i),
@@ -274,7 +275,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData = (data: EventsStatsData): Series[] => {
+  transformTimeseriesData = (data: EventsStatsData): [Series] => {
     return [
       {
         seriesName: 'Current Period',
@@ -285,8 +286,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       },
     ];
   };
-
-  transformData = (data: EventsStatsData): Series[] => this.transformTimeseriesData(data);
 
   processData(response: EventsStats | null) {
     if (!response) {
@@ -300,7 +299,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       timeAggregationSeriesName,
     } = this.props;
     const {current, previous} = this.getData(data);
-    const transformedData = includeTransformedData ? this.transformData(current) : [];
+    const transformedData = includeTransformedData
+      ? this.transformTimeseriesData(current)
+      : [];
     const previousData = includeTransformedData
       ? this.transformPreviousPeriodData(current, previous)
       : null;

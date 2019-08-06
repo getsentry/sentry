@@ -2,7 +2,7 @@ import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviou
 import {getPeriod} from 'app/utils/getPeriod';
 import {EventsStats, Organization} from 'app/types';
 
-const BASE_URL = (org: Organization) => `/organizations/${org.slug}/events-stats/`;
+const getBaseUrl = (org: Organization) => `/organizations/${org.slug}/events-stats/`;
 
 type Options = {
   organization: Organization;
@@ -62,7 +62,7 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
-  return api.requestPromise(`${BASE_URL(organization)}`, {
+  return api.requestPromise(`${getBaseUrl(organization)}`, {
     query: {
       ...urlQuery,
       ...periodObj,
