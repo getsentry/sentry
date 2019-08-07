@@ -177,11 +177,6 @@ export default class SentryApplicationDetails extends AsyncView {
 
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
 
-    let verifyInstall;
-    if (!this.isInternal) {
-      verifyInstall = (app && app.verifyInstall) || false;
-    }
-
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -193,7 +188,7 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: this.isInternal,
-            verifyInstall,
+            verifyInstall: (app && app.verifyInstall) || false,
             schema: {},
             scopes: [],
             ...app,
