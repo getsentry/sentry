@@ -8,6 +8,8 @@ from django.core.urlresolvers import reverse
 
 
 class DiscoverQueryTest(APITestCase, SnubaTestCase):
+    feature_name = 'organizations:discover'
+
     def setUp(self):
         super(DiscoverQueryTest, self).setUp()
 
@@ -61,7 +63,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         )
 
     def test(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -78,7 +80,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['platform.name'] == 'python'
 
     def test_relative_dates(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -95,7 +97,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['platform.name'] == 'python'
 
     def test_invalid_date_request(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -108,7 +110,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
 
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -123,7 +125,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_conditional_fields(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             one_second_ago = self.now - timedelta(seconds=1)
             self.create_event(
                 group=self.group,
@@ -188,7 +190,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 assert data['count'] == 2
 
     def test_invalid_range_value(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -202,7 +204,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_invalid_aggregation_function(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -217,7 +219,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_boolean_condition(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -235,7 +237,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['platform.name'] == 'python'
 
     def test_strip_double_quotes_in_condition_strings(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -250,7 +252,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['message'] == 'message!'
 
     def test_array_join(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -265,7 +267,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data['data'][0]['error.type'] == 'ValidationError'
 
     def test_array_condition_equals(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -280,7 +282,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert len(response.data['data']) == 1
 
     def test_array_condition_not_equals(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -296,7 +298,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert len(response.data['data']) == 0
 
     def test_array_condition_custom_tag(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -312,7 +314,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert len(response.data['data']) == 0
 
     def test_select_project_name(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -327,7 +329,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][0]['project.name']) == 'bar'
 
     def test_groupby_project_name(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -344,7 +346,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][0]['count']) == 1
 
     def test_zerofilled_dates_when_rollup_relative(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -364,7 +366,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][5]['count']) == 1
 
     def test_zerofilled_dates_when_rollup_absolute(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -385,7 +387,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][0]['count']) == 1
 
     def test_uniq_project_name(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -400,7 +402,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][0]['uniq_project_name']) == 1
 
     def test_meta_types(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
@@ -418,82 +420,6 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             {'name': 'count', 'type': 'integer'}
         ]
 
-    def test_access_with_event_v2_feature(self):
-        with self.feature('organizations:events-v2'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform'],
-                'range': '14d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
-        assert response.status_code == 200
-
-    def test_v2_auto_fields_no_aggregates(self):
-        with self.feature('organizations:events-v2'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message'],
-                'range': '14d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
-        assert response.status_code == 200
-        assert response.data['data'][0]['id'] == self.event.event_id
-        assert response.data['data'][0]['project.name'] == self.project.slug
-
-    def test_v2_auto_fields_with_aggregates(self):
-        with self.feature('organizations:events-v2'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message'],
-                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
-                'range': '14d',
-                'orderby': 'uniq_event_type',
-                'start': None,
-                'end': None,
-            })
-        assert response.status_code == 200
-        assert response.data['data'][0]['latest_event_id'] == self.event.event_id
-        assert response.data['data'][0]['uniq_event_type'] == 1
-        assert response.data['data'][0]['project.name'] == self.project.slug
-
-    def test_v2_last_seen_field_alias(self):
-        with self.feature('organizations:events-v2'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'last_seen'],
-                'groupby': ['issue.id'],
-                'range': '14d',
-                'orderby': '-last_seen',
-                'start': None,
-                'end': None,
-            })
-        assert response.status_code == 200
-        assert response.data['data'][0]['message'] in self.event.message
-        assert response.data['data'][0]['last_seen']
-
-    @pytest.mark.xfail(reason='This requires some request validation improvements')
-    def test_v2_auto_select_and_group_orderby(self):
-        # orderby is not in the fields or groupby clauses
-        # Currently we 500 which isn't acceptable long term
-        with self.feature('organizations:events-v2'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message'],
-                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
-                'orderby': '-timestamp',
-                'range': '1d',
-            })
-        assert response.status_code == 400
-
     def test_no_feature_access(self):
         url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
         response = self.client.post(url, {
@@ -508,7 +434,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
     def test_invalid_project(self):
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.other_project.id],
@@ -529,7 +455,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user, superuser=True)
 
-        with self.feature('organizations:discover'):
+        with self.feature(self.feature_name):
             url = reverse('sentry-api-0-discover-query', args=[self.new_org.slug])
             response = self.client.post(url, {
                 'projects': [self.new_project.id],
@@ -541,3 +467,105 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 200, response.content
+
+
+class DiscoverQueryV2Test(DiscoverQueryTest):
+    feature_name = 'organizations:events-v2'
+
+    def test_meta_types(self):
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['title'],
+                'aggregations': [['count()', '', 'count']],
+                'range': '14d',
+                'orderby': '-count',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200, response.content
+        assert response.data['meta'] == [
+            {'name': 'title', 'type': 'string'},
+            {'name': 'project.name', 'type': 'string'},
+            {'name': 'project.name', 'type': 'string'},
+            {'name': 'count', 'type': 'integer'},
+            {'name': 'title', 'type': 'string'},
+            {'name': 'latest_event_id', 'type': 'string'},
+        ]
+
+    def test_access_with_feature(self):
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'range': '14d',
+                'orderby': '-timestamp',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+
+    def test_auto_fields_no_aggregates(self):
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'range': '14d',
+                'orderby': '-timestamp',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        assert response.data['data'][0]['id'] == self.event.event_id
+        assert response.data['data'][0]['project.name'] == self.project.slug
+
+    def test_auto_fields_with_aggregates(self):
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
+                'range': '14d',
+                'orderby': 'uniq_event_type',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        assert response.data['data'][0]['latest_event_id'] == self.event.event_id
+        assert response.data['data'][0]['uniq_event_type'] == 1
+        assert response.data['data'][0]['project.name'] == self.project.slug
+
+    def test_last_seen_field_alias(self):
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'last_seen'],
+                'groupby': ['issue.id'],
+                'range': '14d',
+                'orderby': '-last_seen',
+                'start': None,
+                'end': None,
+            })
+        assert response.status_code == 200
+        assert response.data['data'][0]['message'] in self.event.message
+        assert response.data['data'][0]['last_seen']
+
+    @pytest.mark.xfail(reason='This requires some request validation improvements')
+    def test_auto_select_and_group_orderby(self):
+        # orderby is not in the fields or groupby clauses
+        # Currently we 500 which isn't acceptable long term
+        with self.feature(self.feature_name):
+            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message'],
+                'aggregations': [['uniq', 'event.type', 'uniq_event_type']],
+                'orderby': '-timestamp',
+                'range': '1d',
+            })
+        assert response.status_code == 400

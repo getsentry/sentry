@@ -184,9 +184,9 @@ def build_query_v2(request_data):
 
     # conditionFields are used by dashboards to conditionally generate
     # release data.
-    selected_columns = request_data.get('fields') or []
+    selected_columns = request_data['fields'] or []
     if 'conditionFields' in request_data:
-        selected_columns = request_data.get('conditionFields') or []
+        selected_columns = request_data['conditionFields'] or []
 
     groupby = request_data.get('groupby') or []
 
@@ -201,6 +201,7 @@ def build_query_v2(request_data):
 
     if aggregations or groupby:
         for field in selected_columns[:]:
+            # Check types because conditionField can be complex expressions
             if isinstance(field, six.string_types) and field in FIELD_ALIASES:
                 selected_columns.remove(field)
                 selected_columns.extend(FIELD_ALIASES[field].get('fields', []))
