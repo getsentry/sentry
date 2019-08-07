@@ -101,7 +101,7 @@ export class Provider extends React.Component<PropType, StateType> {
     event.stopPropagation();
 
     // prevent the user from selecting things outside the minimap when dragging
-    // the mouse cursor outside the minimap
+    // the mouse cursor inside the minimap
 
     this.previousUserSelect = setBodyUserSelect({
       userSelect: 'none',
