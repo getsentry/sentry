@@ -1432,7 +1432,7 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-internal-app-tokens'
     ),
     url(
-        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)$',
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$',
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-internal-app-token-details'
     ),

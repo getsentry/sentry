@@ -325,6 +325,7 @@ class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
 
 class SentryInternalAppTokenPermission(SentryPermission):
     scope_map = {
+        'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
         'POST': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
         'DELETE': ('org:write', 'org:admin'),
     }
