@@ -59,3 +59,8 @@ export type User = {
   username: string;
   email: string;
 };
+
+export type CommitAuthor = {
+  email?: string;
+  name?: string;
+};
