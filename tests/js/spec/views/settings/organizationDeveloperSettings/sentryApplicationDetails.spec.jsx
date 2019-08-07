@@ -33,7 +33,7 @@ describe('Sentry Application Details', function() {
       });
 
       wrapper = mount(
-        <SentryApplicationDetails params={{orgId}} route={{path: 'new-external/'}} />,
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
         TestStubs.routerContext()
       );
     });

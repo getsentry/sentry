@@ -49,7 +49,7 @@ describe('Organization Developer Settings', function() {
     it('displays empty state', () => {
       expect(wrapper.exists('EmptyMessage')).toBe(true);
       expect(wrapper.text()).toMatch('No internal integrations have been created yet');
-      expect(wrapper.text()).toMatch('No external integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
   });
 
@@ -95,7 +95,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.text()).toMatch('No external integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
 
     it('can make a request to publish an integration', async () => {
@@ -153,8 +153,8 @@ describe('Organization Developer Settings', function() {
       routerContext
     );
 
-    it('external integration list is empty', () => {
-      expect(wrapper.text()).toMatch('No external integrations have been created yet');
+    it('public integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
 
     it('allows deleting', () => {

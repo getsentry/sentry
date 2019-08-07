@@ -1,7 +1,7 @@
 import React from 'react';
 import {tct} from 'app/locale';
 
-const externalFormFields = [
+const publicFormFields = [
   {
     name: 'name',
     type: 'string',
@@ -89,15 +89,15 @@ const externalFormFields = [
   },
 ];
 
-export const externalIntegrationForms = [
+export const publicIntegrationForms = [
   {
-    title: 'External Integration Details',
-    fields: externalFormFields,
+    title: 'Public Integration Details',
+    fields: publicFormFields,
   },
 ];
 
 // remove fields not needed for internal integrations
-const internalFormFields = externalFormFields.filter(
+const internalFormFields = publicFormFields.filter(
   formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
 );
 

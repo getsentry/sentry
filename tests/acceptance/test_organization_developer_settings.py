@@ -29,7 +29,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         with self.feature('organizations:sentry-apps'):
             self.load_page(self.org_developer_settings_path)
 
-            self.browser.click('[aria-label="New External Integration"]')
+            self.browser.click('[aria-label="New Public Integration"]')
 
             self.browser.element('input[name="name"]').send_keys('Tesla')
             self.browser.element('input[name="author"]').send_keys('Elon Musk')

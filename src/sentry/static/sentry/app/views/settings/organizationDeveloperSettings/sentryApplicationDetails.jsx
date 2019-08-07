@@ -14,7 +14,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {
-  externalIntegrationForms,
+  publicIntegrationForms,
   internalIntegrationForms,
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -106,7 +106,7 @@ export default class SentryApplicationDetails extends AsyncView {
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
-    const forms = this.isInternal ? internalIntegrationForms : externalIntegrationForms;
+    const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
 
     return (
       <div>

@@ -96,17 +96,17 @@ class OrganizationDeveloperSettings extends AsyncView {
       <Button
         priority="primary"
         size="small"
-        to={`/settings/${orgId}/developer-settings/new-external/`}
+        to={`/settings/${orgId}/developer-settings/new-public/`}
         icon="icon-circle-add"
       >
-        {t('New External Integration')}
+        {t('New Public Integration')}
       </Button>
     );
 
     return (
       <Panel>
         <PanelHeader hasButtons={true}>
-          {t('External Integrations')}
+          {t('Public Integrations')}
           {action}
         </PanelHeader>
         <PanelBody>
@@ -114,7 +114,7 @@ class OrganizationDeveloperSettings extends AsyncView {
             integrations.map(this.renderApplicationRow)
           ) : (
             <EmptyMessage>
-              {t('No external integrations have been created yet.')}
+              {t('No public integrations have been created yet.')}
             </EmptyMessage>
           )}
         </PanelBody>
