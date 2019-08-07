@@ -23,12 +23,13 @@ type RenderedSpanTree = {
 };
 
 type PropType = {
-  traceViewRef: React.RefObject<HTMLDivElement>;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
 };
 
 class SpanTree extends React.Component<PropType> {
+  traceViewRef = React.createRef<HTMLDivElement>();
+
   shouldComponentUpdate(nextProps: PropType) {
     if (nextProps.dragProps.isDragging) {
       return false;
@@ -172,8 +173,8 @@ class SpanTree extends React.Component<PropType> {
       ) : null;
 
     return (
-      <DividerHandlerManager.Provider interactiveLayerRef={this.props.traceViewRef}>
-        <TraceViewContainer innerRef={this.props.traceViewRef}>
+      <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+        <TraceViewContainer innerRef={this.traceViewRef}>
           {spanTree}
           {hiddenSpansMessage}
         </TraceViewContainer>

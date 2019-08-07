@@ -20,35 +20,12 @@ type PropType = {
   event: Readonly<SentryEvent>;
 };
 
-type StateType = {
-  renderMinimap: boolean;
-};
-
-class TraceView extends React.Component<PropType, StateType> {
+class TraceView extends React.Component<PropType> {
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
-  traceViewRef = React.createRef<HTMLDivElement>();
-
-  state: StateType = {
-    renderMinimap: false,
-  };
-
-  componentDidMount() {
-    if (this.traceViewRef.current) {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        renderMinimap: true,
-      });
-    }
-  }
 
   renderMinimap = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
-    if (!this.state.renderMinimap) {
-      return null;
-    }
-
     return (
       <TraceViewMinimap
-        traceViewRef={this.traceViewRef}
         minimapInteractiveRef={this.minimapInteractiveRef}
         dragProps={dragProps}
         trace={parsedTrace}
@@ -176,11 +153,7 @@ class TraceView extends React.Component<PropType, StateType> {
           return (
             <React.Fragment>
               {this.renderMinimap(dragProps, parsedTrace)}
-              <SpanTree
-                traceViewRef={this.traceViewRef}
-                trace={parsedTrace}
-                dragProps={dragProps}
-              />
+              <SpanTree trace={parsedTrace} dragProps={dragProps} />
             </React.Fragment>
           );
         }}

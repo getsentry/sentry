@@ -26,7 +26,6 @@ const TIME_AXIS_HEIGHT = 30;
 const VIEW_HANDLE_HEIGHT = 20;
 
 type PropType = {
-  traceViewRef: React.RefObject<HTMLDivElement>;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
