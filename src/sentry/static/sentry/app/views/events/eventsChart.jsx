@@ -4,7 +4,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {getInterval} from 'app/components/charts/utils';
-import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import LoadingPanel, {LoadingMask} from 'app/views/events/loadingPanel';
@@ -15,8 +14,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import EventsRequest from './utils/eventsRequest';
 import YAxisSelector from './yAxisSelector';
-
-const DEFAULT_GET_CATEGORY = () => t('Events');
 
 class EventsLineChart extends React.Component {
   static propTypes = {
@@ -150,7 +147,6 @@ class EventsChart extends React.Component {
             interval={getInterval(this.props, true)}
             showLoading={false}
             query={query}
-            getCategory={DEFAULT_GET_CATEGORY}
             includePrevious={includePrevious}
             yAxis={this.state.yAxis}
           >
