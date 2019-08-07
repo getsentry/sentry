@@ -15,7 +15,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import Environment, Group, GroupStatus
-from sentry.models.event import Event
+from sentry.models.event import Event, SnubaEvent
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
 from sentry.utils.apidocs import attach_scenarios, scenario
@@ -151,7 +151,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Group.DoesNotExist:
                     pass
                 else:
-                    matching_event = Event.objects.from_event_id(event_id, project.id)
+                    matching_event = SnubaEvent.objects.from_event_id(event_id, project.id)
                     if matching_event is not None:
                         Event.objects.bind_nodes([matching_event], 'data')
             elif matching_group is None:

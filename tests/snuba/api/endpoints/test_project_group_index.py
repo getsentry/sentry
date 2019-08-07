@@ -72,23 +72,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert 'could not' in response.data['detail']
 
     def test_simple_pagination(self):
-        now = timezone.now()
-        group1 = self.create_group(
-            project=self.project,
-            last_seen=now - timedelta(seconds=2),
+        event1 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group-1'],
+                'timestamp': (self.min_ago - timedelta(seconds=2)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            group=group1,
-            datetime=now - timedelta(seconds=2),
-        )
-        group2 = self.create_group(
-            project=self.project,
-            last_seen=now - timedelta(seconds=1),
-        )
-        self.create_event(
-            stacktrace=[['foo.py']],
-            group=group2,
-            datetime=now - timedelta(seconds=1),
+        event2 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group-2'],
+                'timestamp': (self.min_ago - timedelta(seconds=1)).isoformat()[:19]
+            },
+            project_id=self.project.id
         )
         self.login_as(user=self.user)
         response = self.client.get(
@@ -97,7 +93,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group2.id)
+        assert response.data[0]['id'] == six.text_type(event2.group.id)
 
         links = self._parse_links(response['Link'])
 
@@ -107,7 +103,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(links['next']['href'], format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(group1.id)
+        assert response.data[0]['id'] == six.text_type(event1.group.id)
 
         links = self._parse_links(response['Link'])
 
@@ -205,7 +201,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(event.group.id)
-        assert response.data[0]['matchingEventId'] == event.id
+        assert response.data[0]['matchingEventId'] == event.event_id
 
     def test_lookup_by_event_with_matching_environment(self):
         project = self.project
@@ -228,7 +224,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(event.group.id)
-        assert response.data[0]['matchingEventId'] == event.id
+        assert response.data[0]['matchingEventId'] == event.event_id
         assert response.data[0]['matchingEventEnvironment'] == 'test'
 
     def test_lookup_by_event_id_with_whitespace(self):
