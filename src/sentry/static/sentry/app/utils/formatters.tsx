@@ -1,8 +1,9 @@
 import {get} from 'lodash';
 
 import {t} from 'app/locale';
+import {User} from 'app/types';
 
-export function userDisplayName(user) {
+export function userDisplayName(user: User): string {
   let displayName = String(get(user, 'name', t('Unknown author'))).trim();
 
   if (displayName.length <= 0) {
