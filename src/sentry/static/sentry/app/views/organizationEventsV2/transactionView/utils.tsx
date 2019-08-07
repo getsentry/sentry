@@ -138,9 +138,14 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
   return TimestampStatus.Reversed;
 };
 
+// given the start and end trace timstamps, and the view window, we want to generate a function
+// that'll output the relative %'s for the width and placements relative to the left-hand side.
+//
+// The view window (viewStart and viewEnd) are percentage values (between 0% and 100%), they correspond to the window placement
+// between the start and end trace timestamps.
 export const boundsGenerator = (bounds: {
-  traceStartTimestamp: number;
-  traceEndTimestamp: number;
+  traceStartTimestamp: number; // unix timestamp
+  traceEndTimestamp: number; // unix timestamp
   viewStart: number; // in [0, 1]
   viewEnd: number; // in [0, 1]
 }) => {
