@@ -599,6 +599,8 @@ const MinimapSpanBar = styled('div')`
   min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
   max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
 
+  min-width: 1px;
+
   border-radius: 1px;
 `;
 

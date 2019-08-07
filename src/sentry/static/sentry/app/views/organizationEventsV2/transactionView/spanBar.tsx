@@ -712,6 +712,8 @@ const SpanBarRectangle = styled('div')`
   height: ${SPAN_ROW_HEIGHT - 4}px;
   max-height: ${SPAN_ROW_HEIGHT - 4}px;
 
+  min-width: 1px;
+
   margin-top: 2px;
   margin-bottom: 2px;
   border-radius: 3px;
