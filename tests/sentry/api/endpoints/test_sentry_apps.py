@@ -106,11 +106,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'isAlertable': self.internal_app.is_alertable,
             'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
-            'schema': {},
-            'installation': {
-                'uuid': self.install.uuid,
-            },
-            'token': self.install.api_token.token
+            'schema': {}
         } in json.loads(response.content)
 
         response_uuids = set(o['uuid'] for o in response.data)
@@ -146,10 +142,6 @@ class GetSentryAppsTest(SentryAppsTest):
             'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
             'schema': {},
-            'installation': {
-                'uuid': self.install.uuid,
-            },
-            'token': self.install.api_token.token
         } in json.loads(response.content)
 
         response_uuids = set(o['uuid'] for o in response.data)
