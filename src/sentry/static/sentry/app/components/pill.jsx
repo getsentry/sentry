@@ -48,7 +48,7 @@ const StyledPill = styled('li')`
   margin: 0 10px 10px 0;
   display: flex;
   border: 1px solid ${p => p.theme.gray1};
-  border-radius: 3px;
+  border-radius: ${p => p.theme.button.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
   line-height: 1.2;
   max-width: 100%;
@@ -64,9 +64,29 @@ const PillName = styled('span')`
 `;
 
 const PillValue = styled(PillName)`
+
+  /* .true - good values */
+  ${p =>
+    p.type === 'true' &&
+    `
+    background: ${p.theme.greenLightest};
+    border: 1px solid ${p.theme.green};
+    margin: -1px;
+  `}
+
+  /* .false - error values */
+  ${p =>
+    p.type === 'false' &&
+    `
+    background: ${p.theme.redLightest};
+    border: 1px solid ${p.theme.red};
+    margin: -1px;
+  `}
+
   background: ${p => p.theme.whiteDark};
   border-left: 1px solid ${p => p.theme.gray1};
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 ${p => p.theme.button.borderRadius} ${p =>
+  p.theme.button.borderRadius} 0;
   font-family: ${p => p.theme.text.familyMono};
   max-width: 100%;
   > a {
@@ -86,27 +106,6 @@ const PillValue = styled(PillName)`
       color: ${p => p.theme.gray4};
     }
   }
-  /* .true - good values */
-  ${p =>
-    p.type === 'true' &&
-    `
-    background: ${p.theme.greenLightest};
-    border-top: 1px solid ${p.theme.green};
-    border-right: 1px solid ${p.theme.green};
-    border-bottom: 1px solid ${p.theme.green};
-    margin: -1px;
-  `}
-
-  /* .false - error values */
-  ${p =>
-    p.type === 'false' &&
-    `
-    background: ${p.theme.redLightest};
-    border-top: 1px solid ${p.theme.red};
-    border-right: 1px solid ${p.theme.red};
-    border-bottom: 1px solid ${p.theme.red};
-    margin: -1px;
-  `}
 `;
 
 export default Pill;
