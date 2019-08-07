@@ -11,13 +11,13 @@ export type Project = {
   slug: string;
   isMember: boolean;
   teams: Team[];
+  features: string[];
 };
 
 export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
-  features: string[];
 };
 
 // This type is incomplete
