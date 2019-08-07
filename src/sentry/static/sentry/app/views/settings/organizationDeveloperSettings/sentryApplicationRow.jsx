@@ -219,12 +219,13 @@ export default class SentryApplicationRow extends React.PureComponent {
     const {app, showInstallationStatus} = this.props;
     const isInstalled = this.isInstalled;
 
+    //showInstallationStatus = true on integrations page
     if (showInstallationStatus) {
       //no installation buttons to show if internal
       if (this.isInternal) {
         return null;
       }
-      //if installed, render the uninstall button and if installed, render uninstall
+      //if installed, render the uninstall button and if installed, render install button
       return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
     }
 
