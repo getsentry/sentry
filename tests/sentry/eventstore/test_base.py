@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import SnubaEvent
+from sentry import eventstore
 from sentry.testutils import TestCase
 from sentry.eventstore.base import EventStorage
 
@@ -44,8 +44,8 @@ class EventStorageTest(TestCase):
             project_id=self.project.id,
         )
 
-        event = SnubaEvent.objects.from_event_id('a' * 32, self.project.id)
-        event2 = SnubaEvent.objects.from_event_id('b' * 32, self.project.id)
+        event = eventstore.get_event_by_id(self.project.id, 'a' * 32)
+        event2 = eventstore.get_event_by_id(self.project.id, 'b' * 32)
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], 'data')
         assert event.data._node_data is not None
