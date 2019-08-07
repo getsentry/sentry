@@ -195,10 +195,10 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: this.isInternal,
-            verifyInstall,
             schema: {},
             scopes: [],
             ...app,
+            verifyInstall, //need to overwrite the value in app for internal if it is true
           }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
