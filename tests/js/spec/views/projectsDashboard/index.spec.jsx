@@ -26,18 +26,17 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('OrganizationDashboard', function() {
-  const routerContext = TestStubs.routerContext();
-  routerContext.context.router = {
-    ...routerContext.context.router,
-    params: {
-      orgId: 'org-slug',
-    },
-  };
-  const teams = [TestStubs.Team()];
+  const org = TestStubs.Organization();
+  const routerContext = TestStubs.routerContext([
+    {router: TestStubs.router({params: {orgId: org.slug}})},
+  ]);
+
+  const team = TestStubs.Team();
+  const teams = [team];
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/teams/org-slug/team-slug/members/',
+      url: `/teams/${org.slug}/${team.slug}/members/`,
       body: [],
     });
     ProjectsStatsStore.reset();
@@ -48,53 +47,42 @@ describe('OrganizationDashboard', function() {
   });
 
   describe('empty state', function() {
-    beforeEach(function() {});
-
     it('renders with no projects', function() {
-      const projects = [];
-
-      const wrapper = shallow(
+      const wrapper = mount(
         <Dashboard
           teams={teams}
-          projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
+          projects={[]}
+          organization={org}
+          params={{orgId: org.slug}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
-      const emptyState = wrapper.find('NoProjectMessage');
-      expect(emptyState).toHaveLength(1);
+
+      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(false);
+      expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     });
 
     it('renders with 1 project, with no first event', function() {
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/issues/',
-        body: [{id: 'sampleIssueId'}],
-      });
-      const projects = [TestStubs.Project()];
+      const projects = [TestStubs.Project({teams})];
 
       const wrapper = mount(
         <Dashboard
           teams={teams}
           projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
+          organization={org}
+          params={{orgId: org.slug}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
-      const emptyState = wrapper.find('ErrorRobot');
-      expect(emptyState).toHaveLength(1);
 
-      expect(
-        wrapper.find('Link[to="/org-slug/project-slug/issues/sampleIssueId/?sample"]')
-      ).toHaveLength(1);
+      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(true);
+      expect(wrapper.find('TeamSection').exists()).toBe(true);
+      expect(wrapper.find('Resources').exists()).toBe(true);
     });
   });
 
   describe('with projects', function() {
-    beforeEach(function() {});
-
-    it('renders TeamSection', function() {
+    it('renders TeamSection with two projects', function() {
       const projects = [
         TestStubs.Project({
           teams,
@@ -112,15 +100,16 @@ describe('OrganizationDashboard', function() {
         <Dashboard
           teams={teams}
           projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
+          organization={org}
+          params={{orgId: org.slug}}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
-      const emptyState = wrapper.find('NoProjectMessage');
-      const teamSection = wrapper.find('TeamSection');
-      expect(emptyState).toHaveLength(0);
-      expect(teamSection).toHaveLength(1);
+
+      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(true);
+      expect(wrapper.find('NoProjectMessage').exists()).toBe(false);
+      expect(wrapper.find('TeamSection').exists()).toBe(true);
+      expect(wrapper.find('Resources').exists()).toBe(false);
     });
 
     it('renders bookmarked projects first in team list', function() {
@@ -169,10 +158,10 @@ describe('OrganizationDashboard', function() {
         }),
       ];
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
+        url: `/organizations/${org.slug}/projects/`,
         body: [
           TestStubs.Project({
-            teams: [TestStubs.Team()],
+            teams,
             stats: [[1517281200, 2], [1517310000, 1]],
           }),
         ],
@@ -183,8 +172,8 @@ describe('OrganizationDashboard', function() {
         <Dashboard
           teams={teams}
           projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
+          organization={org}
+          params={{orgId: org.slug}}
         />,
         routerContext
       );
@@ -247,7 +236,7 @@ describe('OrganizationDashboard', function() {
       ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
+        url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
           ...project,
           stats: [[1517281200, 2], [1517310000, 1]],
@@ -258,8 +247,8 @@ describe('OrganizationDashboard', function() {
         <Dashboard
           teams={teams}
           projects={projects}
-          organization={TestStubs.Organization()}
-          params={{orgId: 'org-slug'}}
+          organization={org}
+          params={{orgId: org.slug}}
         />,
         routerContext
       );

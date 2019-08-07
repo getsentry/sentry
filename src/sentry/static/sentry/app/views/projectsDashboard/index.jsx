@@ -49,18 +49,20 @@ class Dashboard extends React.Component {
     const sortedProjects = sortProjects(projects);
 
     const {isSuperuser} = ConfigStore.get('user');
-
     const {projectsByTeam} = getProjectsByTeams(teams, sortedProjects, isSuperuser);
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
+
     const access = new Set(organization.access);
     const canCreateProjects = access.has('project:admin');
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
-
     const hasTeamAdminAccess = access.has('team:admin');
 
-    if (projects.length === 1 && !projects[0].firstEvent) {
-      return <Resources org={organization} project={projects[0]} />;
+    const showEmptyMessage = teamSlugs.length === 0 && favorites.length === 0;
+    const showResources = projects.length === 1 && !projects[0].firstEvent;
+
+    if (showEmptyMessage) {
+      return <NoProjectMessage organization={organization}>{null}</NoProjectMessage>;
     }
 
     return (
@@ -78,6 +80,7 @@ class Dashboard extends React.Component {
               }
               to={`/organizations/${organization.slug}/projects/new/`}
               icon="icon-circle-add"
+              data-test-id="create-project"
             >
               {t('Create Project')}
             </Button>
@@ -108,9 +111,8 @@ class Dashboard extends React.Component {
             </LazyLoad>
           );
         })}
-        {teamSlugs.length === 0 && favorites.length === 0 && (
-          <NoProjectMessage organization={organization}>{null}</NoProjectMessage>
-        )}
+
+        {showResources && <Resources />}
       </React.Fragment>
     );
   }
