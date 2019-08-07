@@ -1,16 +1,33 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Project, Organization} from 'app/types';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import ComingSoon from './comingSoon';
+
+type BaseFeatureProps = {
+  organization?: Organization;
+  project?: Project;
+  features: string[];
+  requireAll?: boolean;
+  renderDisabled?: Function | boolean;
+  hookName?: string;
+  children: React.ReactNode;
+};
+
+type FeatureProps = BaseFeatureProps & {
+  configFeatures?: string[];
+};
 
 /**
  * Component to handle feature flags.
  */
-class Feature extends React.Component {
+class Feature extends React.Component<FeatureProps> {
   static propTypes = {
     /**
      * The following properties will be set by the FeatureContainer component
@@ -85,7 +102,11 @@ class Feature extends React.Component {
     requireAll: true,
   };
 
-  getAllFeatures() {
+  getAllFeatures(): {
+    configFeatures: string[];
+    organization: string[];
+    project: string[];
+  } {
     const {organization, project, configFeatures} = this.props;
     return {
       configFeatures: configFeatures || [],
@@ -146,7 +167,7 @@ class Feature extends React.Component {
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
     if (hookName) {
-      const hooks = HookStore.get(`feature-disabled:${hookName}`);
+      const hooks: Function[] = HookStore.get(`feature-disabled:${hookName}`);
 
       if (hooks.length > 0) {
         customDisabledRender = hooks[0];
@@ -172,16 +193,13 @@ class Feature extends React.Component {
   }
 }
 
-class FeatureContainer extends React.Component {
+type FeatureContainerProps = BaseFeatureProps & {
+  config: {[key: string]: string};
+};
+
+class FeatureContainer extends React.Component<FeatureContainerProps> {
   static propTypes = {
     config: SentryTypes.Config.isRequired,
-  };
-
-  // TODO(billy): We can derive org/project from latestContextStore if needed,
-  // but let's keep it simple for now and use org/project from context
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
   };
 
   render() {
@@ -189,15 +207,8 @@ class FeatureContainer extends React.Component {
       ? Array.from(this.props.config.features)
       : [];
 
-    return (
-      <Feature
-        configFeatures={features}
-        organization={this.context.organization}
-        project={this.context.project}
-        {...this.props}
-      />
-    );
+    return <Feature configFeatures={features} {...this.props} />;
   }
 }
 
-export default withConfig(FeatureContainer);
+export default withConfig(withOrganization(withProject(FeatureContainer)));

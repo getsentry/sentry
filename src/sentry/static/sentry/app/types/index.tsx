@@ -3,6 +3,7 @@ export type Organization = {
   slug: string;
   projects: Project[];
   access: string[];
+  features: string[];
 };
 
 export type Project = {
@@ -10,6 +11,7 @@ export type Project = {
   slug: string;
   isMember: boolean;
   teams: Team[];
+  features: string[];
 };
 
 export type Team = {
