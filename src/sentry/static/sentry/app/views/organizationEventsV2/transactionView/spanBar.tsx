@@ -377,7 +377,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
             const actualRootTop = Math.ceil(entry.rootBounds.top);
 
-            if (actualRootTop != MINIMAP_CONTAINER_HEIGHT && actualRootTop > 0) {
+            if (actualRootTop !== MINIMAP_CONTAINER_HEIGHT && actualRootTop > 0) {
               // we revert the actualRootTop value by the current zoomLevel factor
               const normalizedActualTop = actualRootTop / this.zoomLevel;
 
