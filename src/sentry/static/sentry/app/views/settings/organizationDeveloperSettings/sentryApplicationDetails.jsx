@@ -176,6 +176,13 @@ export default class SentryApplicationDetails extends AsyncView {
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
+    let verifyInstall;
+    if (this.isInternal) {
+      //force verifyInstall to false for all internal apps
+      verifyInstall = false;
+    } else {
+      verifyInstall = (app && app.verifyInstall) || false;
+    }
 
     return (
       <div>
@@ -188,7 +195,7 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: this.isInternal,
-            verifyInstall: (app && app.verifyInstall) || false,
+            verifyInstall,
             schema: {},
             scopes: [],
             ...app,
