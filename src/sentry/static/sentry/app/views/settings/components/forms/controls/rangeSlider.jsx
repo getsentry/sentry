@@ -157,7 +157,7 @@ class RangeSlider extends React.Component {
     return (
       <div>
         {!showCustomInput && <Label htmlFor={name}>{displayValue}</Label>}
-        <SliderAndInputWrapper>
+        <SliderAndInputWrapper showCustomInput={showCustomInput}>
           <Slider
             type="range"
             name={name}
@@ -327,6 +327,6 @@ const SliderAndInputWrapper = styled('div')`
   display: grid;
   align-items: center;
   grid-auto-flow: column;
-  grid-template-columns: 4fr 1fr;
+  grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
   grid-gap: ${space(1)};
 `;
