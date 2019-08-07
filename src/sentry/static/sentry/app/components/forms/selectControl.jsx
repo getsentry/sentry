@@ -127,6 +127,7 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     }
   }
 
+  /* stylelint-disable-next-line no-descending-specificity */
   .Select.is-focused:not(.is-open) > .Select-control {
     border-color: ${p => p.theme.gray};
   }

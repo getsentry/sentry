@@ -98,7 +98,7 @@ const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
   ${p => (p.disabled ? 'pointer-events: none;' : '')}
 
-  @media(max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-grow: 1;
   }
 `;
