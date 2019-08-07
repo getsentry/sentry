@@ -40,7 +40,7 @@ const SETUP_CHOICES = [
   },
   {
     id: 'learn-more',
-    title: t('How Does Sentry Work?'),
+    title: t('Take a Tour'),
     component: LearnMore,
   },
 ];
