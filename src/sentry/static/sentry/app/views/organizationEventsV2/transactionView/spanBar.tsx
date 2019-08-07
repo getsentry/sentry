@@ -20,7 +20,7 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './minimap';
-import {SPAN_ROW_HEIGHT, SpanRow} from './styles';
+import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanDetail from './spanDetail';
 
@@ -663,7 +663,7 @@ export const DividerLine = styled('div')`
   transform: translateX(-50%);
 
   background-color: #cdc7d5;
-  z-index: 999999;
+  z-index: ${zIndex.dividerLine};
 
   &.hovering {
     width: 4px !important;
@@ -723,7 +723,7 @@ const SpanTreeTogglerContainer = styled('div')`
 
   margin-right: 8px;
 
-  z-index: 99999;
+  z-index: ${zIndex.spanTreeToggler};
 
   user-select: none;
 

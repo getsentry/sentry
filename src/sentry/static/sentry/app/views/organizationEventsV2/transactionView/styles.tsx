@@ -2,6 +2,12 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
+export const zIndex = {
+  minimapContainer: 99999999999,
+  dividerLine: 999999,
+  spanTreeToggler: 99999,
+};
+
 export const SPAN_ROW_HEIGHT = 25;
 
 export const SpanRow = styled('div')`

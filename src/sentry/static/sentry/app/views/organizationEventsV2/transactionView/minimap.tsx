@@ -16,6 +16,7 @@ import {
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from './types';
+import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 5;
@@ -525,7 +526,7 @@ const MinimapContainer = styled('div')`
   position: sticky;
   left: 0;
   top: 0;
-  z-index: 99999999999;
+  z-index: ${zIndex.minimapContainer};
 
   background-color: #fff;
 
