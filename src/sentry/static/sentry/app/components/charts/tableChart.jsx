@@ -406,14 +406,12 @@ export const Cell = styled('div')`
   ${p => (p.justify === 'right' ? 'text-align: right' : '')};
 `;
 
-const Flex = styled('div')`
+const DataGroup = styled('div')`
   display: flex;
-`;
-
-const DataGroup = styled(Flex)`
   flex-shrink: 0;
 `;
-const Row = styled(Flex)`
+const Row = styled('div')`
+  display: flex;
   flex: 1;
   overflow: hidden;
 `;
