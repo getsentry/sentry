@@ -191,6 +191,10 @@ export class Provider extends React.Component<PropType, StateType> {
     }
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   render() {
     const childrenProps = {
       dividerPosition: this.state.dividerPosition,

@@ -200,6 +200,10 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     }
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   render() {
     const childrenProps = {
       isDragging: this.state.isDragging,
