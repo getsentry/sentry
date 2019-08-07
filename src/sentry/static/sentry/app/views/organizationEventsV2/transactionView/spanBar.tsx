@@ -381,13 +381,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {dividerPosition} = dividerHandlerChildrenProps;
+    const {
+      dividerPosition,
+      addDividerLineRef,
+      addGhostDividerLineRef,
+    } = dividerHandlerChildrenProps;
 
     // We display the ghost divider line for whenever the divider line is being dragged.
     // The ghost divider line indicates the original position of the divider line
     const ghostDivider = (
       <DividerLine
-        data-test-id="divider-line-ghost"
+        innerRef={addGhostDividerLineRef()}
         style={{
           left: toPercent(dividerPosition),
           display: 'none',
@@ -406,7 +410,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <React.Fragment>
         {ghostDivider}
         <DividerLine
-          data-test-id="divider-line"
+          innerRef={addDividerLineRef()}
           style={{
             left: toPercent(dividerPosition),
           }}

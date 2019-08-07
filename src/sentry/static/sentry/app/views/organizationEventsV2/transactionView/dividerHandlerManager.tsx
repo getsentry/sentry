@@ -11,24 +11,23 @@ import {
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.5;
 
-const selectDividerLines = (transform: (dividerDOM: HTMLDivElement) => void): void => {
-  document
-    .querySelectorAll<HTMLDivElement>("[data-test-id='divider-line']")
-    .forEach(transform);
-};
-
-const selectGhostDividerLines = (
+const selectRefs = (
+  refs: Array<React.RefObject<HTMLDivElement>>,
   transform: (dividerDOM: HTMLDivElement) => void
-): void => {
-  document
-    .querySelectorAll<HTMLDivElement>("[data-test-id='divider-line-ghost']")
-    .forEach(transform);
+) => {
+  refs.forEach(ref => {
+    if (ref.current) {
+      transform(ref.current);
+    }
+  });
 };
 
 export type DividerHandlerManagerChildrenProps = {
   dividerPosition: number;
   setHover: (nextHover: boolean) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  addDividerLineRef: () => React.RefObject<HTMLDivElement>;
+  addGhostDividerLineRef: () => React.RefObject<HTMLDivElement>;
 };
 
 type StateType = {
@@ -39,6 +38,12 @@ const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenP
   dividerPosition: DEFAULT_DIVIDER_POSITION,
   onDragStart: () => {},
   setHover: () => {},
+  addDividerLineRef: () => {
+    return React.createRef<HTMLDivElement>();
+  },
+  addGhostDividerLineRef: () => {
+    return React.createRef<HTMLDivElement>();
+  },
 });
 
 type PropType = {
@@ -54,9 +59,23 @@ export class Provider extends React.Component<PropType, StateType> {
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
   isDragging: boolean = false;
+  dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
+  ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
 
   hasInteractiveLayer = (): boolean => {
     return !!this.props.interactiveLayerRef.current;
+  };
+
+  addDividerLineRef = () => {
+    const ref = React.createRef<HTMLDivElement>();
+    this.dividerLineRefs.push(ref);
+    return ref;
+  };
+
+  addGhostDividerLineRef = () => {
+    const ref = React.createRef<HTMLDivElement>();
+    this.ghostDividerLineRefs.push(ref);
+    return ref;
   };
 
   setHover = (nextHover: boolean) => {
@@ -64,7 +83,7 @@ export class Provider extends React.Component<PropType, StateType> {
       return;
     }
 
-    selectDividerLines(dividerDOM => {
+    selectRefs(this.dividerLineRefs, dividerDOM => {
       if (nextHover) {
         dividerDOM.classList.add('hovering');
         return;
@@ -98,11 +117,11 @@ export class Provider extends React.Component<PropType, StateType> {
 
     this.isDragging = true;
 
-    selectDividerLines((dividerDOM: HTMLDivElement) => {
+    selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = 'rgba(73,80,87,0.75)';
     });
 
-    selectGhostDividerLines((dividerDOM: HTMLDivElement) => {
+    selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.display = 'block';
     });
   };
@@ -125,7 +144,7 @@ export class Provider extends React.Component<PropType, StateType> {
 
     const dividerHandlePositionString = toPercent(this.dividerHandlePosition);
 
-    selectDividerLines((dividerDOM: HTMLDivElement) => {
+    selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.left = dividerHandlePositionString;
     });
   };
@@ -150,11 +169,11 @@ export class Provider extends React.Component<PropType, StateType> {
 
     this.isDragging = false;
 
-    selectDividerLines((dividerDOM: HTMLDivElement) => {
+    selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = null;
     });
 
-    selectGhostDividerLines((dividerDOM: HTMLDivElement) => {
+    selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.display = 'none';
     });
 
@@ -177,6 +196,8 @@ export class Provider extends React.Component<PropType, StateType> {
       dividerPosition: this.state.dividerPosition,
       setHover: this.setHover,
       onDragStart: this.onDragStart,
+      addDividerLineRef: this.addDividerLineRef,
+      addGhostDividerLineRef: this.addGhostDividerLineRef,
     };
 
     // NOTE: <DividerManagerContext.Provider /> will not re-render its children
