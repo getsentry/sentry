@@ -145,12 +145,12 @@ type SpanBarProps = {
 };
 
 type SpanBarState = {
-  displayDetail: boolean;
+  showDetail: boolean;
 };
 
 class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
-    displayDetail: false,
+    showDetail: false,
   };
 
   spanRowDOMRef = React.createRef<HTMLDivElement>();
@@ -161,13 +161,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   toggleDisplayDetail = () => {
     this.setState(state => {
       return {
-        displayDetail: !state.displayDetail,
+        showDetail: !state.showDetail,
       };
     });
   };
 
   renderDetail = ({isVisible}: {isVisible: boolean}) => {
-    if (!this.state.displayDetail || !isVisible) {
+    if (!this.state.showDetail || !isVisible) {
       return null;
     }
 
@@ -483,7 +483,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    if (this.state.displayDetail) {
+    if (this.state.showDetail) {
       // we would like to hide the divider lines when the span details
       // has been expanded
       return null;
@@ -583,7 +583,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           style={{
             left: 0,
             width: toPercent(dividerPosition),
-            backgroundColor: this.state.displayDetail ? '#F0ECF3' : void 0,
+            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {this.renderTitle()}
@@ -592,7 +592,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           style={{
             left: toPercent(dividerPosition),
             width: toPercent(1 - dividerPosition),
-            backgroundColor: this.state.displayDetail ? '#F0ECF3' : void 0,
+            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {displaySpanBar && (
@@ -624,7 +624,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           display: isSpanVisibleInView ? 'block' : 'none',
 
           // TODO: this is a border-top; this needs polishing from a real CSS ninja
-          boxShadow: this.state.displayDetail ? '0 -1px 0 #d1cad8' : void 0,
+          boxShadow: this.state.showDetail ? '0 -1px 0 #d1cad8' : void 0,
         }}
         onClick={() => {
           this.toggleDisplayDetail();
