@@ -7,10 +7,11 @@ import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import TextLink from 'app/components/links/textLink';
 import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import recreateRoute from 'app/utils/recreateRoute';
 import withLatestContext from 'app/utils/withLatestContext';
+
+import {CrumbLink} from '.';
 
 class OrganizationCrumb extends React.Component {
   static propTypes = {
@@ -53,7 +54,7 @@ class OrganizationCrumb extends React.Component {
     return (
       <BreadcrumbDropdown
         name={
-          <TextLink
+          <CrumbLink
             to={recreateRoute(route, {
               routes,
               params: {...params, orgId: organization.slug},
@@ -62,7 +63,7 @@ class OrganizationCrumb extends React.Component {
             <Flex align="center">
               <IdBadge avatarSize={18} organization={organization} />
             </Flex>
-          </TextLink>
+          </CrumbLink>
         }
         onSelect={this.handleSelect}
         hasMenu={hasMenu}

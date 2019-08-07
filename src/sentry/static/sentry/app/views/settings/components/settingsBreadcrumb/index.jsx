@@ -63,9 +63,9 @@ class SettingsBreadcrumb extends React.Component {
             ? Menu
             : () => (
                 <Crumb route={route} isLast={isLast}>
-                  <TextLink to={recreateRoute(route, {routes, params})}>
+                  <CrumbLink to={recreateRoute(route, {routes, params})}>
                     {pathTitle || route.name}{' '}
-                  </TextLink>
+                  </CrumbLink>
                   <Divider isLast={isLast} />
                 </Crumb>
               );
@@ -92,6 +92,17 @@ export default createReactClass({
     return <SettingsBreadcrumb {...this.props} {...this.state} />;
   },
 });
+
+const CrumbLink = styled(TextLink)`
+  display: block;
+
+  &.focus-visible {
+    outline: none;
+    box-shadow: ${p => p.theme.blue} 0 2px 0;
+  }
+`;
+
+export {CrumbLink};
 
 const Breadcrumbs = styled('div')`
   display: flex;
