@@ -48,6 +48,9 @@ const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenP
 
 type PropType = {
   children: React.ReactNode;
+
+  // this is the DOM element where the drag events occur. it's also the reference point
+  // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 };
 

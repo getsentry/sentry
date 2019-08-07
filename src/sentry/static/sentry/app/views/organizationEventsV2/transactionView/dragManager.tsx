@@ -30,7 +30,7 @@ type DragManagerProps = {
   children: (props: DragManagerChildrenProps) => JSX.Element;
 
   // this is the DOM element where the drag events occur. it's also the reference point
-  // for the mouse x coordinate
+  // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 };
 
