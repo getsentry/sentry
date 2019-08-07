@@ -24,7 +24,7 @@ export type SentryEvent = {
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 
 export type ParsedTraceType = {
-  lookup: SpanChildrenLookupType;
+  childSpans: SpanChildrenLookupType;
   traceID: string;
   rootSpanID: string;
   traceStartTimestamp: number;

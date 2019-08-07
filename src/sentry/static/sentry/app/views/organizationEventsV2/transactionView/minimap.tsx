@@ -307,7 +307,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       generateBounds,
       span: rootSpan,
       spanID: trace.rootSpanID,
-      lookup: trace.lookup,
+      childSpans: trace.childSpans,
     });
   };
 
@@ -349,13 +349,13 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
   renderSpan = ({
     spanID,
     pickSpanBarColour,
-    lookup,
+    childSpans,
     generateBounds,
     span,
   }: {
     spanID: string;
     pickSpanBarColour: () => string;
-    lookup: Readonly<SpanChildrenLookupType>;
+    childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     span: Readonly<SpanType>;
   }): JSX.Element => {
@@ -368,7 +368,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
 
     const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
-    const spanChildren: Array<SpanType> = get(lookup, spanID, []);
+    const spanChildren: Array<SpanType> = get(childSpans, spanID, []);
 
     type AccType = Array<JSX.Element>;
 
@@ -377,7 +377,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
 
       const results = this.renderSpan({
         spanID: spanChild.span_id,
-        lookup,
+        childSpans,
         pickSpanBarColour,
         generateBounds,
         span: spanChild,

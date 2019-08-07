@@ -41,7 +41,7 @@ class SpanTree extends React.Component<PropType> {
     spanNumber,
     treeDepth,
     numOfHiddenSpansAbove,
-    lookup,
+    childSpans,
     span,
     generateBounds,
     pickSpanBarColour,
@@ -50,13 +50,13 @@ class SpanTree extends React.Component<PropType> {
     treeDepth: number;
     numOfHiddenSpansAbove: number;
     span: Readonly<SpanType>;
-    lookup: Readonly<SpanChildrenLookupType>;
+    childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     pickSpanBarColour: () => string;
   }): RenderedSpanTree => {
     const spanBarColour: string = pickSpanBarColour();
 
-    const spanChildren: Array<SpanType> = get(lookup, span.span_id, []);
+    const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -80,7 +80,7 @@ class SpanTree extends React.Component<PropType> {
           treeDepth: treeDepth + 1,
           numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
           span: spanChild,
-          lookup,
+          childSpans,
           generateBounds,
           pickSpanBarColour,
         });
@@ -159,7 +159,7 @@ class SpanTree extends React.Component<PropType> {
       treeDepth: 0,
       numOfHiddenSpansAbove: 0,
       span: rootSpan,
-      lookup: trace.lookup,
+      childSpans: trace.childSpans,
       generateBounds,
       pickSpanBarColour,
     });

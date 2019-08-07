@@ -79,7 +79,7 @@ class TraceView extends React.Component<PropType, StateType> {
 
     if (!spanEntry || spans.length <= 0) {
       return {
-        lookup: {},
+        childSpans: {},
         traceStartTimestamp: event.startTimestamp,
         traceEndTimestamp: event.endTimestamp,
         traceID,
@@ -91,7 +91,7 @@ class TraceView extends React.Component<PropType, StateType> {
     // we reduce spans to become an object mapping span ids to their children
 
     const init: ParsedTraceType = {
-      lookup: {},
+      childSpans: {},
       traceStartTimestamp: event.startTimestamp,
       traceEndTimestamp: event.endTimestamp,
       traceID,
@@ -104,11 +104,11 @@ class TraceView extends React.Component<PropType, StateType> {
         return acc;
       }
 
-      const spanChildren: Array<SpanType> = get(acc.lookup, span.parent_span_id!, []);
+      const spanChildren: Array<SpanType> = get(acc.childSpans, span.parent_span_id!, []);
 
       spanChildren.push(span);
 
-      set(acc.lookup, span.parent_span_id!, spanChildren);
+      set(acc.childSpans, span.parent_span_id!, spanChildren);
 
       if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
         acc.traceStartTimestamp = span.start_timestamp;
@@ -142,7 +142,7 @@ class TraceView extends React.Component<PropType, StateType> {
 
     // sort span children by their start timestamps in ascending order
 
-    Object.values(reduced.lookup).forEach(spanChildren => {
+    Object.values(reduced.childSpans).forEach(spanChildren => {
       spanChildren.sort((firstSpan, secondSpan) => {
         if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
           return -1;
