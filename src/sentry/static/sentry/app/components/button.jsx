@@ -196,6 +196,7 @@ const getColors = ({priority, disabled, borderless, theme}) => {
     backgroundActive,
     border,
     borderActive,
+    focusShadow,
   } = theme.button[themeName];
 
   return css`
@@ -210,11 +211,15 @@ const getColors = ({priority, disabled, borderless, theme}) => {
     &:hover,
     &:focus,
     &:active {
-      ${colorActive ? 'color: ${colorActive};' : ''};
+      color: ${colorActive || color};
       background: ${backgroundActive};
       border-color: ${!borderless && (borderActive || border)
         ? borderActive || border
         : 'transparent'};
+    }
+
+    &.focus-visible {
+      ${focusShadow && `box-shadow: ${focusShadow} 0 0 0 3px;`}
     }
   `;
 };

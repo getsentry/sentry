@@ -936,28 +936,76 @@ exports[`SharedGroupDetails renders 1`] = `
                         <div
                           className="pull-right"
                         >
-                          <a
+                          <FooterLink
                             className="hidden-xs"
                             href="/api/"
+                            rel="noreferrer noopener"
+                            target="_blank"
                           >
-                            API
-                          </a>
-                          <a
+                            <ForwardRef
+                              className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                              href="/api/"
+                              rel="noreferrer noopener"
+                              target="_blank"
+                            >
+                              <a
+                                className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                                href="/api/"
+                                rel="noreferrer noopener"
+                                target="_blank"
+                              >
+                                API
+                              </a>
+                            </ForwardRef>
+                          </FooterLink>
+                          <FooterLink
                             href="/docs/"
+                            rel="noreferrer noopener"
+                            target="_blank"
                           >
-                            Docs
-                          </a>
-                          <a
+                            <ForwardRef
+                              className="css-ry1asy-FooterLink e35opxf0"
+                              href="/docs/"
+                              rel="noreferrer noopener"
+                              target="_blank"
+                            >
+                              <a
+                                className="css-ry1asy-FooterLink e35opxf0"
+                                href="/docs/"
+                                rel="noreferrer noopener"
+                                target="_blank"
+                              >
+                                Docs
+                              </a>
+                            </ForwardRef>
+                          </FooterLink>
+                          <FooterLink
                             className="hidden-xs"
                             href="https://github.com/getsentry/sentry"
                             rel="noreferrer"
+                            target="_blank"
                           >
-                            Contribute
-                          </a>
+                            <ForwardRef
+                              className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                              href="https://github.com/getsentry/sentry"
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              <a
+                                className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                                href="https://github.com/getsentry/sentry"
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Contribute
+                              </a>
+                            </ForwardRef>
+                          </FooterLink>
                         </div>
                         <a
                           className="icon-sentry-logo"
                           href="/"
+                          tabIndex="-1"
                         />
                         <Hook
                           name="footer"

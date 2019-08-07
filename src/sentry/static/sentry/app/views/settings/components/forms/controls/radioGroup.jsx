@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {growIn} from 'app/styles/animations';
 
@@ -17,11 +18,10 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
           onClick={e => !disabled && onChange(id, e)}
           role="radio"
           index={index}
-          tabIndex={isSelected(id) ? 0 : -1}
           aria-checked={isSelected(id)}
           disabled={disabled}
         >
-          <RadioLineButton>
+          <RadioLineButton type="button" disabled={disabled}>
             {isSelected(id) && (
               <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
             )}
@@ -41,31 +41,38 @@ RadioGroup.propTypes = {
   onChange: PropTypes.func,
 };
 
-const RadioLineButton = styled('div')`
+const RadioLineButton = styled('button')`
+  display: flex;
+  padding: 0;
   width: 1.5em;
   height: 1.5em;
   position: relative;
   border-radius: 50%;
-  display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid ${p => p.theme.borderLight};
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
+  background: none;
+
+  &:focus,
+  &.focus-visible {
+    outline: none;
+    border: 1px solid ${p => p.theme.borderDark};
+    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+  }
 `;
 
-const RadioLineItem = styled(({disabled, ...props}) => <div {...props} />)`
+const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
+
+const RadioLineItem = styled('div', {shouldForwardProp})`
   display: flex;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   margin-top: ${p => (p.index ? '0.5em' : '0')};
   outline: none;
-
-  :focus ${RadioLineButton} {
-    border: 1px solid ${p => p.theme.borderDark};
-  }
 `;
 
-const RadioLineButtonFill = styled(({disabled, animate, ...props}) => <div {...props} />)`
+const RadioLineButtonFill = styled('div', {shouldForwardProp})`
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
@@ -74,7 +81,7 @@ const RadioLineButtonFill = styled(({disabled, animate, ...props}) => <div {...p
   opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
-const RadioLineText = styled(({disabled, ...props}) => <div {...props} />)`
+const RadioLineText = styled('div', {shouldForwardProp})`
   margin-left: 0.5em;
   font-size: 0.875em;
   font-weight: bold;
