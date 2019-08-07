@@ -2,148 +2,71 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';
+import {get} from 'lodash';
 
 import {
   rectOfContent,
   clamp,
-  rectRelativeTo,
-  rectOfElement,
   toPercent,
   getHumanDuration,
+  generateSpanColourPicker,
+  boundsGenerator,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  parseSpanTimestamps,
+  TimestampStatus,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
-import {ParsedTraceType, TickAlignment} from './types';
+import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from './types';
 
+export const MINIMAP_CONTAINER_HEIGHT = 106;
+export const MINIMAP_SPAN_BAR_HEIGHT = 5;
 const MINIMAP_HEIGHT = 75;
+export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 30;
 
-type MinimapProps = {
+type PropType = {
   traceViewRef: React.RefObject<HTMLDivElement>;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
 };
 
-type MinimapState = {
+type StateType = {
   showCursorGuide: boolean;
   mousePageX: number | undefined;
   startViewHandleX: number;
 };
 
-class Minimap extends React.Component<MinimapProps, MinimapState> {
-  state: MinimapState = {
+class Minimap extends React.Component<PropType, StateType> {
+  state: StateType = {
     showCursorGuide: false,
     mousePageX: void 0,
     startViewHandleX: 100,
   };
 
-  minimapRef = React.createRef<HTMLCanvasElement>();
-
-  componentDidMount() {
-    this.drawMinimap();
-  }
-
-  drawMinimap = () => {
-    const canvas = this.minimapRef.current;
-    const traceViewDOM = this.props.traceViewRef.current;
-
-    if (!canvas || !traceViewDOM) {
-      return;
-    }
-
-    const canvasContext = canvas.getContext('2d');
-
-    if (!canvasContext) {
-      return;
-    }
-
-    const rootRect = rectOfContent(traceViewDOM);
-
-    const scaleX = canvas.clientWidth / rootRect.width;
-    const scaleY = canvas.clientHeight / rootRect.height;
-
-    // https://www.html5rocks.com/en/tutorials/canvas/hidpi/
-    // we consider the devicePixelRatio (dpr) factor so that the canvas looks decent on hidpi screens
-    // such as retina macbooks
-    const devicePixelRatio = window.devicePixelRatio || 1;
-
-    const resizeCanvas = (width: number, height: number) => {
-      // scale the canvas up by the dpr factor
-      canvas.width = width * devicePixelRatio;
-      canvas.height = height * devicePixelRatio;
-
-      // scale the canvas down by the dpr factor thru CSS
-      canvas.style.width = '100%';
-      canvas.style.height = `${height}px`;
-    };
-
-    resizeCanvas(rootRect.width * scaleX, rootRect.height * scaleY);
-
-    canvasContext.setTransform(1, 0, 0, 1, 0, 0);
-    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-    canvasContext.scale(scaleX, scaleY);
-
-    // scale canvas operations by the dpr factor
-    canvasContext.scale(devicePixelRatio, devicePixelRatio);
-
-    const black = (pc: number) => `rgba(0,0,0,${pc / 100})`;
-    const back = black(0);
-
-    const drawRect = (
-      rect: {x: number; y: number; width: number; height: number},
-      colour: string
-    ) => {
-      if (colour) {
-        canvasContext.beginPath();
-        canvasContext.rect(rect.x, rect.y, rect.width, rect.height);
-        canvasContext.fillStyle = colour;
-        canvasContext.fill();
-      }
-    };
-
-    // draw background
-
-    drawRect(rectRelativeTo(rootRect, rootRect), back);
-
-    // draw the spans
-
-    Array.from(traceViewDOM.querySelectorAll<HTMLElement>('[data-span="true"]')).forEach(
-      el => {
-        const backgroundColor = window.getComputedStyle(el).backgroundColor || black(10);
-        drawRect(rectRelativeTo(rectOfElement(el), rootRect), backgroundColor);
-      }
-    );
-  };
-
-  renderMinimapCursorGuide = () => {
+  renderCursorGuide = (cursorGuideHeight: number) => {
     if (!this.state.showCursorGuide || !this.state.mousePageX) {
       return null;
     }
 
-    const minimapCanvas = this.props.minimapInteractiveRef.current;
+    const interactiveLayer = this.props.minimapInteractiveRef.current;
 
-    if (!minimapCanvas) {
+    if (!interactiveLayer) {
       return null;
     }
 
-    const rect = rectOfContent(minimapCanvas);
+    const rect = rectOfContent(interactiveLayer);
 
-    // clamp mouseLeft to be within [0, 100]
-    const mouseLeft = clamp(
-      ((this.state.mousePageX - rect.x) / rect.width) * 100,
-      0,
-      100
-    );
+    // clamp mouseLeft to be within [0, 1]
+    const mouseLeft = clamp((this.state.mousePageX - rect.x) / rect.width, 0, 1);
 
     return (
-      <line
-        x1={`${mouseLeft}%`}
-        x2={`${mouseLeft}%`}
-        y1="0"
-        y2={MINIMAP_HEIGHT}
-        strokeWidth="1"
-        strokeOpacity="0.7"
-        style={{stroke: '#E03E2F'}}
+      <CursorGuide
+        style={{
+          left: toPercent(mouseLeft),
+          height: `${cursorGuideHeight}px`,
+        }}
       />
     );
   };
@@ -152,89 +75,41 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     isDragging,
     onLeftHandleDragStart,
     leftHandlePosition,
-    viewWindowStart,
     onRightHandleDragStart,
     rightHandlePosition,
+    viewWindowStart,
     viewWindowEnd,
   }: DragManagerChildrenProps) => {
     const leftHandleGhost = isDragging ? (
-      <g>
-        <line
-          x1={toPercent(viewWindowStart)}
-          x2={toPercent(viewWindowStart)}
-          y1="0"
-          y2={MINIMAP_HEIGHT - 20}
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          style={{stroke: '#6C5FC7'}}
-          opacity="0.5"
-        />
-        <ViewHandle
-          x={toPercent(viewWindowStart)}
-          onMouseDown={onLeftHandleDragStart}
-          isDragging={false}
-          opacity="0.5"
-        />
-      </g>
+      <Handle
+        left={viewWindowStart}
+        onMouseDown={onLeftHandleDragStart}
+        isDragging={false}
+      />
     ) : null;
 
     const leftHandle = (
-      <g>
-        <line
-          x1={toPercent(leftHandlePosition)}
-          x2={toPercent(leftHandlePosition)}
-          y1="0"
-          y2={MINIMAP_HEIGHT - 20}
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          style={{stroke: '#6C5FC7'}}
-        />
-        <ViewHandle
-          x={toPercent(leftHandlePosition)}
-          onMouseDown={onLeftHandleDragStart}
-          isDragging={isDragging}
-        />
-      </g>
+      <Handle
+        left={leftHandlePosition}
+        onMouseDown={onLeftHandleDragStart}
+        isDragging={isDragging}
+      />
     );
 
     const rightHandle = (
-      <g>
-        <line
-          x1={toPercent(rightHandlePosition)}
-          x2={toPercent(rightHandlePosition)}
-          y1="0"
-          y2={MINIMAP_HEIGHT - 20}
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          style={{stroke: '#6C5FC7'}}
-        />
-        <ViewHandle
-          x={toPercent(rightHandlePosition)}
-          onMouseDown={onRightHandleDragStart}
-          isDragging={isDragging}
-        />
-      </g>
+      <Handle
+        left={rightHandlePosition}
+        onMouseDown={onRightHandleDragStart}
+        isDragging={isDragging}
+      />
     );
 
     const rightHandleGhost = isDragging ? (
-      <g>
-        <line
-          x1={toPercent(viewWindowEnd)}
-          x2={toPercent(viewWindowEnd)}
-          y1="0"
-          y2={MINIMAP_HEIGHT - 20}
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          style={{stroke: '#6C5FC7'}}
-          opacity="0.5"
-        />
-        <ViewHandle
-          x={toPercent(viewWindowEnd)}
-          onMouseDown={onLeftHandleDragStart}
-          isDragging={false}
-          opacity="0.5"
-        />
-      </g>
+      <Handle
+        left={viewWindowEnd}
+        onMouseDown={onLeftHandleDragStart}
+        isDragging={false}
+      />
     ) : null;
 
     return (
@@ -250,12 +125,13 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
   renderFog = (dragProps: DragManagerChildrenProps) => {
     return (
       <React.Fragment>
-        <Fog x={0} y={0} height="100%" width={toPercent(dragProps.viewWindowStart)} />
+        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
         <Fog
-          x={toPercent(dragProps.viewWindowEnd)}
-          y={0}
-          height="100%"
-          width={toPercent(1 - dragProps.viewWindowEnd)}
+          style={{
+            height: '100%',
+            width: toPercent(1 - dragProps.viewWindowEnd),
+            left: toPercent(dragProps.viewWindowEnd),
+          }}
         />
       </React.Fragment>
     );
@@ -266,13 +142,13 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
       return null;
     }
 
-    const minimapCanvas = this.props.minimapInteractiveRef.current;
+    const interactiveLayer = this.props.minimapInteractiveRef.current;
 
-    if (!minimapCanvas) {
+    if (!interactiveLayer) {
       return null;
     }
 
-    const rect = rectOfContent(minimapCanvas);
+    const rect = rectOfContent(interactiveLayer);
 
     // clamp mouseLeft to be within [0, 1]
     const mouseLeft = clamp((this.state.mousePageX - rect.x) / rect.width, 0, 1);
@@ -354,53 +230,9 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
         {thirdTick}
         {fourthTick}
         {lastTick}
-        <svg
-          style={{
-            position: 'relative',
-            left: 0,
-            top: 0,
-            width: '100%',
-            height: `${TIME_AXIS_HEIGHT}px`,
-            overflow: 'visible',
-          }}
-        >
-          {this.renderTimeAxisCursorGuide()}
-        </svg>
+        {this.renderCursorGuide(TIME_AXIS_HEIGHT)}
         {this.renderDurationGuide()}
       </TimeAxis>
-    );
-  };
-
-  renderTimeAxisCursorGuide = () => {
-    if (!this.state.showCursorGuide || !this.state.mousePageX) {
-      return null;
-    }
-
-    const minimapCanvas = this.props.minimapInteractiveRef.current;
-
-    if (!minimapCanvas) {
-      return null;
-    }
-
-    const rect = rectOfContent(minimapCanvas);
-
-    // clamp mouseLeft to be within [0, 100]
-    const mouseLeft = clamp(
-      ((this.state.mousePageX - rect.x) / rect.width) * 100,
-      0,
-      100
-    );
-
-    return (
-      <line
-        x1={`${mouseLeft}%`}
-        x2={`${mouseLeft}%`}
-        y1="0"
-        y2={TIME_AXIS_HEIGHT}
-        strokeWidth="1"
-        strokeOpacity="0.7"
-        style={{stroke: '#E03E2F'}}
-      />
     );
   };
 
@@ -408,7 +240,7 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
     return (
       <React.Fragment>
         <MinimapContainer>
-          <MinimapBackground innerRef={this.minimapRef} />
+          <ActualMinimap trace={this.props.trace} />
           <div
             ref={this.props.minimapInteractiveRef}
             style={{
@@ -434,15 +266,120 @@ class Minimap extends React.Component<MinimapProps, MinimapState> {
               });
             }}
           >
-            <InteractiveLayer style={{overflow: 'visible'}}>
+            <InteractiveLayer>
               {this.renderFog(this.props.dragProps)}
-              {this.renderMinimapCursorGuide()}
+              {this.renderCursorGuide(MINIMAP_HEIGHT)}
               {this.renderViewHandles(this.props.dragProps)}
             </InteractiveLayer>
             {this.renderTimeAxis()}
           </div>
         </MinimapContainer>
       </React.Fragment>
+    );
+  }
+}
+
+class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
+  drawMinimap = () => {
+    return this.renderRootSpan();
+  };
+
+  renderRootSpan = () => {
+    const {trace} = this.props;
+
+    const pickSpanBarColour = generateSpanColourPicker();
+
+    const generateBounds = boundsGenerator({
+      traceStartTimestamp: trace.traceStartTimestamp,
+      traceEndTimestamp: trace.traceEndTimestamp,
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    const rootSpan: SpanType = {
+      trace_id: trace.traceID,
+      span_id: trace.rootSpanID,
+      start_timestamp: trace.traceStartTimestamp,
+      timestamp: trace.traceEndTimestamp,
+      data: {},
+    };
+
+    return this.renderSpan({
+      pickSpanBarColour,
+      generateBounds,
+      span: rootSpan,
+      spanID: trace.rootSpanID,
+      lookup: trace.lookup,
+    });
+  };
+
+  renderSpan = ({
+    spanID,
+    pickSpanBarColour,
+    lookup,
+    generateBounds,
+    span,
+  }: {
+    spanID: string;
+    pickSpanBarColour: () => string;
+    lookup: Readonly<SpanChildrenLookupType>;
+    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+    span: Readonly<SpanType>;
+  }): JSX.Element => {
+    const spanBarColour: string = pickSpanBarColour();
+
+    const bounds = generateBounds({
+      startTimestamp: span.start_timestamp,
+      endTimestamp: span.timestamp,
+    });
+
+    const timestampStatus = parseSpanTimestamps(span);
+
+    const spanLeft = timestampStatus === TimestampStatus.Stable ? bounds.start : 0;
+    const spanWidth =
+      timestampStatus === TimestampStatus.Stable ? bounds.end - bounds.start : 1;
+
+    const spanChildren: Array<SpanType> = get(lookup, spanID, []);
+
+    type AccType = Array<JSX.Element>;
+
+    const reduced: AccType = spanChildren.reduce((acc: AccType, spanChild) => {
+      const key = `${spanChild.span_id}`;
+
+      const results = this.renderSpan({
+        spanID: spanChild.span_id,
+        lookup,
+        pickSpanBarColour,
+        generateBounds,
+        span: spanChild,
+      });
+
+      acc.push(<React.Fragment key={key}>{results}</React.Fragment>);
+
+      return acc;
+    }, []);
+
+    return (
+      <React.Fragment>
+        <MinimapSpanBar
+          style={{
+            backgroundColor: spanBarColour,
+            left: toPercent(spanLeft),
+            width: toPercent(spanWidth),
+          }}
+        />
+        {reduced}
+      </React.Fragment>
+    );
+  };
+
+  render() {
+    return (
+      <MinimapBackground>
+        <BackgroundSlider id="minimap-background-slider">
+          {this.drawMinimap()}
+        </BackgroundSlider>
+      </MinimapBackground>
     );
   }
 }
@@ -557,30 +494,47 @@ const DurationGuideBox = styled('div')`
 
 const MinimapContainer = styled('div')`
   width: 100%;
-  position: relative;
+  position: sticky;
   left: 0;
+  top: 0;
+  z-index: 99999999999;
+
+  background-color: #fff;
+
   border-bottom: 1px solid #d1cad8;
 
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
 
-const MinimapBackground = styled('canvas')`
+const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
+  max-height: ${MINIMAP_HEIGHT}px;
+  overflow-y: hidden;
   width: 100%;
   position: absolute;
   top: 0;
   left: 0;
 `;
 
-const InteractiveLayer = styled('svg')`
+const InteractiveLayer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   width: 100%;
   position: relative;
   left: 0;
 `;
 
-const ViewHandle = styled('rect')`
-  fill: #6c5fc7;
+const ViewHandleContainer = styled('div')`
+  position: absolute;
+  top: 0;
+
+  height: ${MINIMAP_HEIGHT}px;
+`;
+
+const ViewHandle = styled('div')`
+  position: absolute;
+  top: 0;
+
+  background-color: #6c5fc7;
 
   cursor: col-resize;
 
@@ -589,25 +543,89 @@ const ViewHandle = styled('rect')`
   ${({isDragging}: {isDragging: boolean}) => {
     if (isDragging) {
       return `
-      width: 5px;
-      transform: translate(-2.5px, ${MINIMAP_HEIGHT - 20}px);
+      width: 6px;
+      transform: translate(-3px, ${MINIMAP_HEIGHT - 20}px);
       `;
     }
 
     return `
-    width: 3px;
-    transform: translate(-1.5px, ${MINIMAP_HEIGHT - 20}px);
+    width: 4px;
+    transform: translate(-2px, ${MINIMAP_HEIGHT - 20}px);
     `;
   }};
 
   &:hover {
-    width: 5px;
-    transform: translate(-2.5px, ${MINIMAP_HEIGHT - 20}px);
+    width: 6px;
+    transform: translate(-3px, ${MINIMAP_HEIGHT - 20}px);
   }
 `;
 
-const Fog = styled('rect')`
-  fill: rgba(241, 245, 251, 0.5);
+const Fog = styled('div')`
+  background-color: rgba(241, 245, 251, 0.5);
+  position: absolute;
+  top: 0;
 `;
+
+const MinimapSpanBar = styled('div')`
+  position: relative;
+  height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+  min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+  max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+`;
+
+const BackgroundSlider = styled('div')`
+  position: relative;
+`;
+
+const CursorGuide = styled('div')`
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background-color: #e03e2f;
+
+  transform: translateX(-50%);
+`;
+
+const Handle = ({
+  left,
+  onMouseDown,
+  isDragging,
+}: {
+  left: number;
+  onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  isDragging: boolean;
+}) => {
+  return (
+    <ViewHandleContainer
+      style={{
+        left: toPercent(left),
+      }}
+    >
+      <svg
+        width={1}
+        height={MINIMAP_HEIGHT - 20}
+        fill="none"
+        style={{width: '1px', overflow: 'visible'}}
+      >
+        <line
+          x1="0"
+          x2="0"
+          y1="0"
+          y2={MINIMAP_HEIGHT - 20}
+          strokeWidth="1"
+          strokeDasharray="4 3"
+          style={{stroke: '#6C5FC7'}}
+        />
+      </svg>
+      <ViewHandle
+        onMouseDown={onMouseDown}
+        isDragging={isDragging}
+        style={{
+          height: '20px',
+        }}
+      />
+    </ViewHandleContainer>
+  );
+};
 
 export default Minimap;

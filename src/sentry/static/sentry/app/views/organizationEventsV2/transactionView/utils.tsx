@@ -1,5 +1,7 @@
 import {isString, isNumber} from 'lodash';
 
+import {SpanType} from './types';
+
 type Rect = {
   // x and y are left/top coords respectively
   x: number;
@@ -9,7 +11,7 @@ type Rect = {
 };
 
 // get position of element relative to top/left of document
-const getOffsetOfElement = (element: HTMLElement) => {
+const getOffsetOfElement = (element: Element) => {
   // left and top are relative to viewport
   const {left, top} = element.getBoundingClientRect();
 
@@ -20,7 +22,7 @@ const getOffsetOfElement = (element: HTMLElement) => {
   return {x: left + scrollLeft, y: top + scrollTop};
 };
 
-export const rectOfContent = (element: HTMLElement): Rect => {
+export const rectOfContent = (element: Element): Rect => {
   const {x, y} = getOffsetOfElement(element);
 
   // offsets for the border and any scrollbars (clientLeft and clientTop),
@@ -35,6 +37,15 @@ export const rectOfContent = (element: HTMLElement): Rect => {
     y: y + contentOffsetTop,
     width: element.scrollWidth,
     height: element.scrollHeight,
+  };
+};
+
+export const rectOfViewport = (): Rect => {
+  return {
+    x: window.pageXOffset,
+    y: window.pageYOffset,
+    width: window.document.documentElement.clientWidth,
+    height: window.document.documentElement.clientHeight,
   };
 };
 
@@ -78,18 +89,37 @@ export const toPercent = (value: number) => {
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
 export type SpanGeneratedBoundsType = {start: number; end: number};
 
+const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
+  const {startTimestamp, endTimestamp} = spanBounds;
+
+  if (startTimestamp > endTimestamp) {
+    return {startTimestamp: endTimestamp, endTimestamp: startTimestamp};
+  }
+
+  return spanBounds;
+};
+
 export const boundsGenerator = (bounds: {
   traceStartTimestamp: number;
   traceEndTimestamp: number;
   viewStart: number; // in [0, 1]
   viewEnd: number; // in [0, 1]
 }) => {
-  const {traceEndTimestamp, traceStartTimestamp, viewStart, viewEnd} = bounds;
+  const {viewStart, viewEnd} = bounds;
+
+  const {
+    startTimestamp: traceStartTimestamp,
+    endTimestamp: traceEndTimestamp,
+  } = normalizeTimestamps({
+    startTimestamp: bounds.traceStartTimestamp,
+    endTimestamp: bounds.traceEndTimestamp,
+  });
 
   // viewStart and viewEnd are percentage values (%) of the view window relative to the left
   // side of the trace view minimap
 
   // invariant: viewStart <= viewEnd
+  const viewWindowInvariant = viewStart <= viewEnd;
 
   // duration of the entire trace in seconds
   const duration = traceEndTimestamp - traceStartTimestamp;
@@ -99,7 +129,21 @@ export const boundsGenerator = (bounds: {
   const viewDuration = viewEndTimestamp - viewStartTimestamp;
 
   return (spanBounds: SpanBoundsType): SpanGeneratedBoundsType => {
-    const {startTimestamp, endTimestamp} = spanBounds;
+    if (!viewWindowInvariant || duration <= 0 || viewDuration <= 0) {
+      return {
+        start: 0,
+        end: 1,
+      };
+    }
+
+    const {startTimestamp, endTimestamp} = normalizeTimestamps(spanBounds);
+
+    if (endTimestamp - startTimestamp <= 0) {
+      return {
+        start: 0,
+        end: 1,
+      };
+    }
 
     const start = (startTimestamp - viewStartTimestamp) / viewDuration;
 
@@ -122,4 +166,41 @@ export const getHumanDuration = (duration: number): string => {
 
   const durationMS = duration * 1000;
   return `${durationMS.toFixed(3)} ms`;
+};
+
+export const generateSpanColourPicker = () => {
+  const COLORS = ['#8B7FD7', '#F2BE7C', '#ffe066', '#74c0fc'];
+  let current_index = 0;
+
+  const pickSpanBarColour = () => {
+    const next_colour = COLORS[current_index];
+
+    current_index++;
+    current_index = current_index % COLORS.length;
+
+    return next_colour;
+  };
+
+  return pickSpanBarColour;
+};
+
+export enum TimestampStatus {
+  Stable,
+  Reversed,
+  Equal,
+}
+
+export const parseSpanTimestamps = (span: SpanType): TimestampStatus => {
+  const startTimestamp: number = span.start_timestamp;
+  const endTimestamp: number = span.timestamp;
+
+  if (startTimestamp < endTimestamp) {
+    return TimestampStatus.Stable;
+  }
+
+  if (startTimestamp === endTimestamp) {
+    return TimestampStatus.Equal;
+  }
+
+  return TimestampStatus.Reversed;
 };

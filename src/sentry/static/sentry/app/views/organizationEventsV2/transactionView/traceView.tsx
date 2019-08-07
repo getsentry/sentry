@@ -16,22 +16,19 @@ type TraceContextType = {
   trace_id: string;
 };
 
-type TransactionViewProps = {
+type PropType = {
   event: Readonly<SentryEvent>;
 };
 
-type TransactionViewState = {
+type StateType = {
   renderMinimap: boolean;
 };
 
-class TransactionView extends React.Component<
-  TransactionViewProps,
-  TransactionViewState
-> {
+class TraceView extends React.Component<PropType, StateType> {
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
   traceViewRef = React.createRef<HTMLDivElement>();
 
-  state: TransactionViewState = {
+  state: StateType = {
     renderMinimap: false,
   };
 
@@ -87,6 +84,7 @@ class TransactionView extends React.Component<
         traceEndTimestamp: event.endTimestamp,
         traceID,
         rootSpanID,
+        numOfSpans: 0,
       };
     }
 
@@ -98,6 +96,7 @@ class TransactionView extends React.Component<
       traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
+      numOfSpans: spans.length,
     };
 
     const reduced: ParsedTraceType = spans.reduce((acc, span) => {
@@ -190,4 +189,4 @@ class TransactionView extends React.Component<
   }
 }
 
-export default TransactionView;
+export default TraceView;
