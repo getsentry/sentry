@@ -54,10 +54,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   spanRowDOMRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
-  intersectionObserverVisibility?: IntersectionObserver = void 0;
-
-  // TODO: remove this
-  // resizeObserver?: any = void 0;
+  zoomLevel: number = 1; // assume initial zoomLevel is 100%
 
   toggleDisplayDetail = () => {
     this.setState(state => {
@@ -206,9 +203,35 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     this.disconnectObservers();
 
-    // track intersections events between the root span DOM element
-    // and the viewport's intersection area. the intersection area is sized to
-    // exclude the minimap
+    /**
+
+    We track intersections events between the span bar's DOM element
+    and the viewport's (root) intersection area. the intersection area is sized to
+    exclude the minimap. See below.
+
+    By default, the intersection observer's root intersection is the viewport.
+    We adjust the margins of this root intersection area to exclude the minimap's
+    height. The minimap's height is always fixed.
+
+      VIEWPORT (ancestor element used for the intersection events)
+    +--+-------------------------+--+
+    |  |                         |  |
+    |  |       MINIMAP           |  |
+    |  |                         |  |
+    |  +-------------------------+  |  ^
+    |  |                         |  |  |
+    |  |       SPANS             |  |  | ROOT
+    |  |                         |  |  | INTERSECTION
+    |  |                         |  |  | OBSERVER
+    |  |                         |  |  | HEIGHT
+    |  |                         |  |  |
+    |  |                         |  |  |
+    |  |                         |  |  |
+    |  +-------------------------+  |  |
+    |                               |  |
+    +-------------------------------+  v
+
+     */
 
     this.intersectionObserver = new IntersectionObserver(
       entries => {
@@ -227,7 +250,41 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return;
           }
 
-          // console.log('entry', entry, entry.target);
+          // NOTE: THIS IS HACKY.
+          //
+          // IntersectionObserver.rootMargin is un-affected by the browser's zoom level.
+          // The margins of the intersection area needs to be adjusted.
+          // Thus, IntersectionObserverEntry.rootBounds may not be what we expect.
+          //
+          // We address this below.
+          //
+          // Note that this function was called whenever an intersection event occurred wrt
+          // the thresholds.
+          //
+          if (entry.rootBounds) {
+            // After we create the IntersectionObserver instance with rootMargin set as:
+            // -${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px
+            //
+            // we can introspect the rootBounds to infer the zoomlevel.
+            //
+            // we always expect entry.rootBounds.top to equal MINIMAP_CONTAINER_HEIGHT
+
+            const actualRootTop = Math.round(entry.rootBounds.top);
+
+            if (actualRootTop != MINIMAP_CONTAINER_HEIGHT) {
+              // we revert the actualRootTop value by the current zoomLevel factor
+              const normalizedActualTop = actualRootTop / this.zoomLevel;
+
+              const zoomLevel = MINIMAP_CONTAINER_HEIGHT / normalizedActualTop;
+              this.zoomLevel = zoomLevel;
+
+              // we reconnect the observers; the callback functions may be invoked
+              this.connectObservers();
+
+              // NOTE: since we cannot guarantee that the callback function is invoked on
+              //       the newly connected observers, we continue running this function.
+            }
+          }
 
           // root refers to the root intersection rectangle used for the IntersectionObserver
           const rectRelativeToRoot = entry.boundingClientRect as DOMRect;
@@ -292,64 +349,27 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       },
       {
         threshold: INTERSECTION_THRESHOLDS,
-        rootMargin: `-${MINIMAP_CONTAINER_HEIGHT}px 0px 0px 0px`,
+        rootMargin: `-${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px`,
       }
     );
 
     this.intersectionObserver.observe(this.spanRowDOMRef.current);
-
-    // TODO: remove
-    // this.intersectionObserverVisibility = new IntersectionObserver(
-    //   entries => {
-    //     entries.forEach(entry => {
-    //       const isVisible = entry.intersectionRatio > 0;
-
-    //       this.setState({
-    //         shouldRenderSpanRow: isVisible,
-    //       });
-    //     });
-    //   },
-    //   {
-    //     threshold: [0, 1],
-    //     rootMargin: `100px 100px 100px 100px`,
-    //   }
-    // );
-
-    // TODO: remove
-    // this.intersectionObserverVisibility.observe(this.spanRowDOMRef.current);
   };
 
   disconnectObservers = () => {
     if (this.intersectionObserver) {
       this.intersectionObserver.disconnect();
     }
-
-    if (this.intersectionObserverVisibility) {
-      this.intersectionObserverVisibility.disconnect();
-    }
   };
 
   componentDidMount() {
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
-
-      // TODO: remove this
-      // this.resizeObserver = new (window as any).ResizeObserver(() => {
-      //   console.log('resized');
-      //   this.connectObserver();
-      // });
-
-      // this.resizeObserver.observe(this.spanRowDOMRef.current);
     }
   }
 
   componentWillUnmount() {
     this.disconnectObservers();
-
-    // TODO: remove this
-    // if (this.resizeObserver) {
-    //   this.resizeObserver.disconnect();
-    // }
   }
 
   renderDivider = (
