@@ -376,7 +376,7 @@ exports[`Project Ownership Input renders 1`] = `
                                 onTouchMove={[Function]}
                                 onTouchStart={[Function]}
                               >
-                                <span
+                                <div
                                   className="Select-multi-value-wrapper"
                                   id="react-select-2--value"
                                 >
@@ -464,7 +464,7 @@ exports[`Project Ownership Input renders 1`] = `
                                       />
                                     </div>
                                   </AutosizeInput>
-                                </span>
+                                </div>
                                 <span
                                   className="Select-arrow-zone"
                                   onMouseDown={[Function]}
@@ -762,7 +762,7 @@ exports[`Project Ownership Input renders 1`] = `
                                   onTouchMove={[Function]}
                                   onTouchStart={[Function]}
                                 >
-                                  <span
+                                  <div
                                     className="Select-multi-value-wrapper"
                                     id="react-select-3--value"
                                   >
@@ -827,7 +827,7 @@ exports[`Project Ownership Input renders 1`] = `
                                         />
                                       </div>
                                     </AutosizeInput>
-                                  </span>
+                                  </div>
                                   <span
                                     aria-hidden="true"
                                     className="Select-loading-zone"
