@@ -2,7 +2,7 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const webpack = require('webpack');
-const [appConfig] = require('../webpack.config');
+const appConfig = require('../webpack.config');
 
 const staticPath = path.resolve(
   __dirname,
