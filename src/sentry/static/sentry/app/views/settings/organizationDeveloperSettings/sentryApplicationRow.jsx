@@ -139,7 +139,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  hidePublishStatus() {
+  hideStatus() {
     //no publishing for internal apps so hide the status on the developer settings page
     return this.isInternal && !this.props.showInstallationStatus;
   }
@@ -148,7 +148,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     const {app, showInstallationStatus} = this.props;
     const isInternal = this.isInternal;
     const isInstalled = this.isInstalled;
-    if (this.hidePublishStatus()) {
+    if (this.hideStatus()) {
       return null;
     }
     if (showInstallationStatus) {
@@ -242,7 +242,7 @@ export default class SentryApplicationRow extends React.PureComponent {
         <StyledFlex>
           <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
-            <SentryAppName hidePublishStatus={this.hidePublishStatus()}>
+            <SentryAppName hideStatus={this.hideStatus()}>
               {this.linkToEdit() ? (
                 <SentryAppLink
                   to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
@@ -287,7 +287,7 @@ const SentryAppDetails = styled(Flex)`
 
 const SentryAppName = styled('div')`
   font-weight: bold;
-  margin-top: ${p => (p.hidePublishStatus ? '10px' : '0px')};
+  margin-top: ${p => (p.hideStatus ? '10px' : '0px')};
 `;
 
 const StyledLink = styled(Link)`
