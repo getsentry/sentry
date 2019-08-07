@@ -25,7 +25,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
 
-    def test_create_new_external_integration(self):
+    def test_create_new_public_integration(self):
         with self.feature('organizations:sentry-apps'):
             self.load_page(self.org_developer_settings_path)
 

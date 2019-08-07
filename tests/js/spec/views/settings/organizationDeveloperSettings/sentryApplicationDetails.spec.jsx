@@ -24,7 +24,7 @@ describe('Sentry Application Details', function() {
     orgId = org.slug;
   });
 
-  describe('Creating a new external Sentry App', () => {
+  describe('Creating a new public Sentry App', () => {
     beforeEach(() => {
       createAppRequest = Client.addMockResponse({
         url: '/sentry-apps/',
@@ -119,7 +119,7 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Renders for external apps', function() {
+  describe('Renders public app', function() {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -147,7 +147,7 @@ describe('Sentry Application Details', function() {
       ]);
     });
 
-    it('renders clientId and clientSecret for external apps', function() {
+    it('renders clientId and clientSecret for public apps', function() {
       expect(wrapper.find('#clientId').exists()).toBe(true);
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
     });
@@ -184,7 +184,7 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Editing an existing external Sentry App', () => {
+  describe('Editing an existing public Sentry App', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
