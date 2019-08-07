@@ -349,7 +349,7 @@ exports[`RuleBuilder renders 1`] = `
                               onTouchMove={[Function]}
                               onTouchStart={[Function]}
                             >
-                              <span
+                              <div
                                 className="Select-multi-value-wrapper"
                                 id="react-select-2--value"
                               >
@@ -437,7 +437,7 @@ exports[`RuleBuilder renders 1`] = `
                                     />
                                   </div>
                                 </AutosizeInput>
-                              </span>
+                              </div>
                               <span
                                 className="Select-arrow-zone"
                                 onMouseDown={[Function]}
@@ -884,7 +884,7 @@ exports[`RuleBuilder renders 1`] = `
                                 onTouchMove={[Function]}
                                 onTouchStart={[Function]}
                               >
-                                <span
+                                <div
                                   className="Select-multi-value-wrapper"
                                   id="react-select-3--value"
                                 >
@@ -949,7 +949,7 @@ exports[`RuleBuilder renders 1`] = `
                                       />
                                     </div>
                                   </AutosizeInput>
-                                </span>
+                                </div>
                                 <span
                                   className="Select-arrow-zone"
                                   onMouseDown={[Function]}
@@ -1607,7 +1607,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               onTouchMove={[Function]}
                               onTouchStart={[Function]}
                             >
-                              <span
+                              <div
                                 className="Select-multi-value-wrapper"
                                 id="react-select-4--value"
                               >
@@ -1695,7 +1695,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     />
                                   </div>
                                 </AutosizeInput>
-                              </span>
+                              </div>
                               <span
                                 className="Select-arrow-zone"
                                 onMouseDown={[Function]}
@@ -2446,7 +2446,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 onTouchMove={[Function]}
                                 onTouchStart={[Function]}
                               >
-                                <span
+                                <div
                                   className="Select-multi-value-wrapper"
                                   id="react-select-5--value"
                                 >
@@ -2494,6 +2494,45 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         "searchKey": "janebloggs@example.com jane bloggs",
                                         "value": "user:1",
                                       }
+                                    }
+                                    values={
+                                      Array [
+                                        Object {
+                                          "actor": Object {
+                                            "id": "1",
+                                            "name": "Jane Doe",
+                                            "type": "user",
+                                          },
+                                          "label": <IdBadge
+                                            avatarSize={24}
+                                            hideEmail={true}
+                                            useLink={false}
+                                            user={
+                                              Object {
+                                                "email": "janedoe@example.com",
+                                                "flags": Object {
+                                                  "newsletter_consent_prompt": false,
+                                                },
+                                                "hasPasswordAuth": true,
+                                                "id": "1",
+                                                "isAuthenticated": true,
+                                                "name": "Jane Doe",
+                                                "options": Object {
+                                                  "timezone": "UTC",
+                                                },
+                                                "user": Object {
+                                                  "email": "janedoe@example.com",
+                                                  "id": "1",
+                                                  "name": "Jane Doe",
+                                                },
+                                                "username": "foo@example.com",
+                                              }
+                                            }
+                                          />,
+                                          "searchKey": "janedoe@example.com jane doe",
+                                          "value": "user:1",
+                                        },
+                                      ]
                                     }
                                   >
                                     <a
@@ -2732,7 +2771,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       />
                                     </div>
                                   </AutosizeInput>
-                                </span>
+                                </div>
                                 <span
                                   aria-live="assertive"
                                   className="Select-aria-only"
