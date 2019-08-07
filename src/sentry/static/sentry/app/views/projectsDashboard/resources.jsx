@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {analytics} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 import releasesImg from '../../../images/releases.svg';
@@ -19,22 +20,24 @@ export default class Resources extends React.Component {
   render() {
     return (
       <ResourcesWrapper data-test-id="resources">
-        <ResourcesSection>
-          <PageHeading>{t('Resources')}</PageHeading>
-          <ResourceCards>
-            <ResourceCard
-              link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
-              imgUrl={releasesImg}
-              title="The Sentry Workflow"
-            />
-            <ResourceCard
-              link="https://sentry.io/vs/logging/"
-              imgUrl={breadcrumbsImg}
-              title="Sentry vs Logging"
-            />
-            <ResourceCard link="https://docs.sentry.io/" imgUrl={docsImg} title="Docs" />
-          </ResourceCards>
-        </ResourcesSection>
+        <PageHeading>{t('Resources')}</PageHeading>
+        <ResourceCards>
+          <ResourceCard
+            link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
+            imgUrl={releasesImg}
+            title={t('The Sentry Workflow')}
+          />
+          <ResourceCard
+            link="https://sentry.io/vs/logging/"
+            imgUrl={breadcrumbsImg}
+            title={t('Sentry vs Logging')}
+          />
+          <ResourceCard
+            link="https://docs.sentry.io/"
+            imgUrl={docsImg}
+            title={t('Docs')}
+          />
+        </ResourceCards>
       </ResourcesWrapper>
     );
   }
@@ -42,15 +45,12 @@ export default class Resources extends React.Component {
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
-`;
-
-const ResourcesSection = styled('div')`
-  padding: 30px 30px 10px 30px;
+  padding: 25px 30px 10px 30px;
 `;
 
 const ResourceCards = styled(Flex)`
   display: grid;
   grid-template-columns: repeat(3, auto);
-  margin-top: 25px;
-  grid-gap: 30px;
+  grid-gap: ${space(4)};
+  margin-top: ${space(3)};
 `;

@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {analytics} from 'app/utils/analytics';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
+import space from 'app/styles/space';
 
 export default class ResourceCard extends React.Component {
   static propTypes = {
@@ -36,7 +37,7 @@ const ResourceCardWrapper = styled(Panel)`
   display: flex;
   flex: 1;
   align-items: center;
-  padding: 20px;
+  padding: ${space(3)};
   margin-bottom: 0;
 `;
 
@@ -46,14 +47,13 @@ const StyledLink = styled(ExternalLink)`
 
 const StyledImg = styled('img')`
   display: block;
-  margin: 0 auto;
-  padding-bottom: 20px;
-  height: 180px;
+  margin: 0 auto ${space(3)} auto;
+  height: 160px;
 `;
 
 const StyledTitle = styled('div')`
-  color: #493e54;
-  font-size: 16px;
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeLarge};
   text-align: center;
   font-weight: bold;
 `;
