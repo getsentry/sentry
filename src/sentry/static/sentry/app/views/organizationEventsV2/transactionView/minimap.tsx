@@ -496,7 +496,7 @@ const TickLabel = (props: {
 const DurationGuideBox = styled('div')`
   position: absolute;
 
-  background-color: rgba(255, 255, 255, 1);
+  background-color: ${p => p.theme.white};
   padding: 4px;
 
   border-radius: 3px;
