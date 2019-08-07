@@ -22,6 +22,7 @@ export const MINIMAP_SPAN_BAR_HEIGHT = 5;
 const MINIMAP_HEIGHT = 75;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 30;
+const VIEW_HANDLE_HEIGHT = 20;
 
 type PropType = {
   traceViewRef: React.RefObject<HTMLDivElement>;
@@ -565,25 +566,25 @@ const ViewHandle = styled('div')`
 
   cursor: col-resize;
 
-  height: 20px;
+  height: ${VIEW_HANDLE_HEIGHT}px;
 
   ${({isDragging}: {isDragging: boolean}) => {
     if (isDragging) {
       return `
       width: 6px;
-      transform: translate(-3px, ${MINIMAP_HEIGHT - 20}px);
+      transform: translate(-3px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
       `;
     }
 
     return `
     width: 4px;
-    transform: translate(-2px, ${MINIMAP_HEIGHT - 20}px);
+    transform: translate(-2px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
     `;
   }};
 
   &:hover {
     width: 6px;
-    transform: translate(-3px, ${MINIMAP_HEIGHT - 20}px);
+    transform: translate(-3px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
   }
 `;
 
@@ -634,7 +635,7 @@ const Handle = ({
     >
       <svg
         width={1}
-        height={MINIMAP_HEIGHT - 20}
+        height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
         fill="none"
         style={{width: '1px', overflow: 'visible'}}
       >
@@ -642,7 +643,7 @@ const Handle = ({
           x1="0"
           x2="0"
           y1="0"
-          y2={MINIMAP_HEIGHT - 20}
+          y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
           strokeWidth="1"
           strokeDasharray="4 3"
           style={{stroke: '#6C5FC7'}}
@@ -652,7 +653,7 @@ const Handle = ({
         onMouseDown={onMouseDown}
         isDragging={isDragging}
         style={{
-          height: '20px',
+          height: `${VIEW_HANDLE_HEIGHT}px`,
         }}
       />
     </ViewHandleContainer>
