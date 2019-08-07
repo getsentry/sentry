@@ -254,6 +254,9 @@ export type UserSelectValues = {
 };
 
 export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
+  // NOTE: Vendor prefixes other than `ms` should begin with a capital letter.
+  // ref: https://reactjs.org/docs/dom-elements.html#style
+
   const previousValues = {
     userSelect: document.body.style.userSelect,
     // MozUserSelect is not typed in TS
