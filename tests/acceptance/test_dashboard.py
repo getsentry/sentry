@@ -61,6 +61,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until_test_id('resources')
+        self.browser.wait_until('[data-test-id] figure')
         self.browser.snapshot('org dash no first event')
 
     def test_one_issue(self):
