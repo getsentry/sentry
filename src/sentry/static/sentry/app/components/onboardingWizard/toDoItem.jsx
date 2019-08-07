@@ -5,7 +5,7 @@ import styled, {css, keyframes} from 'react-emotion';
 import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
@@ -68,10 +68,11 @@ class TodoItem extends React.Component {
   }
 
   recordAnalytics(action) {
-    const org = this.props.organization;
-    const {task} = this.props;
-    analytics('onboarding.wizard_clicked', {
-      org_id: parseInt(org.id, 10),
+    const {organization, task} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'onboarding.wizard_clicked',
+      eventName: 'Onboarding Wizard Clicked',
+      organization_id: organization.id,
       todo_id: parseInt(task.task, 10),
       todo_title: task.title,
       action,
