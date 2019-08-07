@@ -92,7 +92,7 @@ describe('Sentry Application Details', function() {
         scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
         events: observable(['issue']),
         isInternal: false,
-        verifyInstall: false,
+        verifyInstall: true,
         isAlertable: true,
         schema: {},
       };

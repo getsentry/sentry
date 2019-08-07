@@ -181,7 +181,8 @@ export default class SentryApplicationDetails extends AsyncView {
       //force verifyInstall to false for all internal apps
       verifyInstall = false;
     } else {
-      verifyInstall = (app && app.verifyInstall) || false;
+      //use the existing value for verifyInstall if the app exists, otherwise default to true
+      verifyInstall = app ? app.verifyInstall : true;
     }
 
     return (
