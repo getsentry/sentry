@@ -1,16 +1,11 @@
 import React from 'react';
 
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 
 export default class AdminEnvironment extends AsyncView {
-  state = {
-    testEmailError: null,
-    testEmailSent: false,
-  };
-
   getEndpoints() {
     return [['data', this.getEndpoint()]];
   }
@@ -20,20 +15,17 @@ export default class AdminEnvironment extends AsyncView {
   }
 
   sendTestEmail = async () => {
-    this.setState({
-      testEmailError: null,
-      testEmailSent: false,
-    });
+    const testMailEmail = this.state.data.testMailEmail;
 
     try {
       await this.api.requestPromise('/internal/mail/', {method: 'POST'});
-      this.setState({testEmailSent: true});
+      addSuccessMessage(t('A test email has been sent to %s', testMailEmail));
     } catch (error) {
-      this.setState({
-        testEmailError: error.responseJSON
+      addErrorMessage(
+        error.responseJSON
           ? error.responseJSON.error
-          : t('Unable to send test email. Check your server logs'),
-      });
+          : t('Unable to send test email. Check your server logs')
+      );
     }
   };
 
@@ -91,15 +83,6 @@ export default class AdminEnvironment extends AsyncView {
         </dl>
 
         <h3>{t('Test Settings')}</h3>
-
-        {this.state.testEmailSent && (
-          <Alert type="info">
-            {t('A test email has been sent to %s.', testMailEmail)}
-          </Alert>
-        )}
-        {this.state.testEmailError && (
-          <Alert type="error">{this.state.testEmailError}</Alert>
-        )}
 
         <p>
           {t(
