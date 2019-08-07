@@ -9,7 +9,7 @@ import {
   clamp,
   toPercent,
   getHumanDuration,
-  generateSpanColourPicker,
+  pickSpanBarColour,
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -278,14 +278,8 @@ class Minimap extends React.Component<PropType, StateType> {
 }
 
 class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
-  drawMinimap = () => {
-    return this.renderRootSpan();
-  };
-
-  renderRootSpan = () => {
+  renderRootSpan = (): JSX.Element => {
     const {trace} = this.props;
-
-    const pickSpanBarColour = generateSpanColourPicker();
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
@@ -303,11 +297,11 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     };
 
     return this.renderSpan({
-      pickSpanBarColour,
+      spanNumber: 0,
       generateBounds,
       span: rootSpan,
       childSpans: trace.childSpans,
-    });
+    }).spanTree;
   };
 
   getBounds = (
@@ -346,17 +340,20 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
   };
 
   renderSpan = ({
-    pickSpanBarColour,
+    spanNumber,
     childSpans,
     generateBounds,
     span,
   }: {
-    pickSpanBarColour: () => string;
+    spanNumber: number;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     span: Readonly<SpanType>;
-  }): JSX.Element => {
-    const spanBarColour: string = pickSpanBarColour();
+  }): {
+    spanTree: JSX.Element;
+    nextSpanNumber: number;
+  } => {
+    const spanBarColour: string = pickSpanBarColour(spanNumber);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -367,42 +364,58 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
 
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
-    type AccType = Array<JSX.Element>;
+    type AccType = {
+      nextSpanNumber: number;
+      renderedSpanChildren: Array<JSX.Element>;
+    };
 
-    const reduced: AccType = spanChildren.reduce((acc: AccType, spanChild) => {
-      const key = `${spanChild.span_id}`;
+    const reduced: AccType = spanChildren.reduce(
+      (acc: AccType, spanChild) => {
+        const key = `${spanChild.span_id}`;
 
-      const results = this.renderSpan({
-        childSpans,
-        pickSpanBarColour,
-        generateBounds,
-        span: spanChild,
-      });
+        const results = this.renderSpan({
+          spanNumber: acc.nextSpanNumber,
+          childSpans,
+          generateBounds,
+          span: spanChild,
+        });
 
-      acc.push(<React.Fragment key={key}>{results}</React.Fragment>);
+        acc.renderedSpanChildren.push(
+          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
+        );
 
-      return acc;
-    }, []);
+        acc.nextSpanNumber = results.nextSpanNumber;
 
-    return (
-      <React.Fragment>
-        <MinimapSpanBar
-          style={{
-            backgroundColor: spanBarColour,
-            left: spanLeft,
-            width: spanWidth,
-          }}
-        />
-        {reduced}
-      </React.Fragment>
+        return acc;
+      },
+      {
+        renderedSpanChildren: [],
+        nextSpanNumber: spanNumber + 1,
+      }
     );
+
+    return {
+      nextSpanNumber: reduced.nextSpanNumber,
+      spanTree: (
+        <React.Fragment>
+          <MinimapSpanBar
+            style={{
+              backgroundColor: spanBarColour,
+              left: spanLeft,
+              width: spanWidth,
+            }}
+          />
+          {reduced.renderedSpanChildren}
+        </React.Fragment>
+      ),
+    };
   };
 
   render() {
     return (
       <MinimapBackground>
         <BackgroundSlider id="minimap-background-slider">
-          {this.drawMinimap()}
+          {this.renderRootSpan()}
         </BackgroundSlider>
       </MinimapBackground>
     );

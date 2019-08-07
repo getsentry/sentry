@@ -236,20 +236,11 @@ export const getHumanDuration = (duration: number): string => {
   return `${durationMS.toFixed(3)} ms`;
 };
 
-export const generateSpanColourPicker = () => {
-  const COLORS = ['#8B7FD7', '#F2BE7C', '#ffe066', '#74c0fc'];
-  let current_index = 0;
+const COLORS = ['#8B7FD7', '#F2BE7C', '#ffe066', '#74c0fc'];
+export const pickSpanBarColour = (spanNumberIndex: number) => {
+  spanNumberIndex = spanNumberIndex % COLORS.length;
 
-  const pickSpanBarColour = () => {
-    const next_colour = COLORS[current_index];
-
-    current_index++;
-    current_index = current_index % COLORS.length;
-
-    return next_colour;
-  };
-
-  return pickSpanBarColour;
+  return COLORS[spanNumberIndex];
 };
 
 export type UserSelectValues = {

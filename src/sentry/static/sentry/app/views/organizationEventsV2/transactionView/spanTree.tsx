@@ -9,7 +9,7 @@ import {
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  generateSpanColourPicker,
+  pickSpanBarColour,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
@@ -44,7 +44,6 @@ class SpanTree extends React.Component<PropType> {
     childSpans,
     span,
     generateBounds,
-    pickSpanBarColour,
   }: {
     spanNumber: number;
     treeDepth: number;
@@ -52,9 +51,8 @@ class SpanTree extends React.Component<PropType> {
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    pickSpanBarColour: () => string;
   }): RenderedSpanTree => {
-    const spanBarColour: string = pickSpanBarColour();
+    const spanBarColour: string = pickSpanBarColour(spanNumber - 1);
 
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
@@ -82,7 +80,6 @@ class SpanTree extends React.Component<PropType> {
           span: spanChild,
           childSpans,
           generateBounds,
-          pickSpanBarColour,
         });
 
         acc.renderedSpanChildren.push(
@@ -145,8 +142,6 @@ class SpanTree extends React.Component<PropType> {
       data: {},
     };
 
-    const pickSpanBarColour = generateSpanColourPicker();
-
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
       traceEndTimestamp: trace.traceEndTimestamp,
@@ -161,7 +156,6 @@ class SpanTree extends React.Component<PropType> {
       span: rootSpan,
       childSpans: trace.childSpans,
       generateBounds,
-      pickSpanBarColour,
     });
   };
 
