@@ -1,11 +1,14 @@
 import queryString from 'query-string';
 import parseurl from 'parseurl';
 // remove leading and trailing whitespace and remove double spaces
-export function formatQueryString(qs) {
+export function formatQueryString(qs: string): string {
   return qs.trim().replace(/\s+/g, ' ');
 }
 
-export function addQueryParamsToExistingUrl(origUrl, queryParams) {
+export function addQueryParamsToExistingUrl(
+  origUrl: string,
+  queryParams: object
+): string {
   const url = parseurl({url: origUrl});
   if (!url) {
     return '';
