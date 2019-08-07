@@ -14,7 +14,7 @@ const publicFormFields = [
     name: 'author',
     type: 'string',
     required: true,
-    placeholder: 'Acme Software',
+    placeholder: 'e.g. Acme Software',
     label: 'Author',
     help: 'The company or person who built and maintains this Integration.',
   },
