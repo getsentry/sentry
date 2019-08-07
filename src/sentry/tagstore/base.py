@@ -408,7 +408,7 @@ class TagStorage(Service):
 
         # only the snuba backend supports multi env, and that overrides this method
         if environment_ids and len(environment_ids) > 1:
-            raise NotImplementedError
+            environment_ids = environment_ids[:1]
 
         # If keys is unspecified, we will grab all tag keys for this group.
         tag_keys = self.get_group_tag_keys(
