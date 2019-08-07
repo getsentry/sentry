@@ -14,8 +14,8 @@ const getOffsetOfElement = (element: Element) => {
   const {left, top} = element.getBoundingClientRect();
 
   // get values that the document is currently scrolled by
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset;
+  const scrollTop = window.pageYOffset;
 
   return {x: left + scrollLeft, y: top + scrollTop};
 };
