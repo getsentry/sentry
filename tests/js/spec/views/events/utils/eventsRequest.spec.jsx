@@ -213,7 +213,7 @@ describe('EventsRequest', function() {
 
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          timeAggregatedData: null,
+          timeAggregatedData: {},
         })
       );
 
@@ -242,11 +242,7 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequest
-          {...DEFAULTS}
-          includeTimeseries={true}
-          getCategory={() => 'static-category'}
-        >
+        <EventsRequest {...DEFAULTS} includeTimeseries={true}>
           {mock}
         </EventsRequest>
       );
@@ -256,7 +252,7 @@ describe('EventsRequest', function() {
 
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          timeAggregatedData: null,
+          timeAggregatedData: {},
         })
       );
 
