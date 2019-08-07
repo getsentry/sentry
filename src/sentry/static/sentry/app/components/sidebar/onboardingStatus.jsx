@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {tct} from 'app/locale';
@@ -29,9 +29,20 @@ class OnboardingStatus extends React.Component {
   }
 
   recordAnalytics(currentPanel, orgId) {
-    currentPanel === 'todos'
-      ? analytics('onboarding.wizard_opened', {org_id: orgId})
-      : analytics('onboarding.wizard_closed', {org_id: orgId});
+    const data =
+      currentPanel === 'todos'
+        ? {
+            eventKey: 'onboarding.wizard_opened',
+            eventName: 'Onboarding Wizard Opened',
+          }
+        : {
+            eventKey: 'onboarding.wizard_closed',
+            eventName: 'Onboarding Wizard Closed',
+          };
+    trackAnalyticsEvent({
+      ...data,
+      organization_id: orgId,
+    });
   }
 
   render() {
