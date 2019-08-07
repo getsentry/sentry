@@ -49,7 +49,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   chartRef: null | ECharts = null;
 
   updateChartAxis = debounce((upperBound, dataArray) => {
-    if (upperBound > maxBy(dataArray, ([_ts, number]) => number)) {
+    if (upperBound > maxBy(dataArray, ({value}) => value)) {
       // We need to force update after we set a new yAxis max because `converToPixel` will
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
       this.setState({yAxisMax: Math.round(upperBound * 1.1)}, this.forceUpdate);
