@@ -175,6 +175,17 @@ const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
     color: ${p => p.theme.gray1};
   }
 
+  &.focus-visible {
+    outline: none;
+    background: #584c66;
+    padding: 0 19px;
+    margin: 0 -19px;
+
+    &:before {
+      left: 0;
+    }
+  }
+
   ${getActiveStyle};
 `;
 

@@ -16,7 +16,6 @@ exports[`DropdownMenu renders 1`] = `
           "outline": "none",
         }
       }
-      tabIndex={-1}
     >
       Open Dropdown
     </button>

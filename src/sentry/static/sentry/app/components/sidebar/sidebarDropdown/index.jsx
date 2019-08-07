@@ -2,24 +2,24 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {logout} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
+import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
-import TextOverflow from 'app/components/textOverflow';
-import IdBadge from 'app/components/idBadge';
-import ConfigStore from 'app/stores/configStore';
-import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
-import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
+import SidebarMenuItem, {getMenuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
+import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
+import TextOverflow from 'app/components/textOverflow';
 import withApi from 'app/utils/withApi';
-import {logout} from 'app/actionCreators/account';
 
-import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
+import SwitchOrganization from './switchOrganization';
 
 const SidebarDropdown = withApi(
   class SidebarDropdown extends React.Component {
@@ -37,7 +37,7 @@ const SidebarDropdown = withApi(
       onClick: () => {},
     };
 
-    handleLogout = (...args) => {
+    handleLogout = () => {
       logout(this.props.api).then(() => (window.location = '/auth/login'));
     };
 
@@ -77,23 +77,22 @@ const SidebarDropdown = withApi(
             return (
               <SidebarDropdownRoot {...getRootProps({isStyled: true})}>
                 <SidebarDropdownActor
+                  type="button"
                   data-test-id="sidebar-dropdown"
                   {...getActorProps({isStyled: true})}
                 >
-                  <div style={{display: 'flex', alignItems: 'flex-start'}}>
-                    {avatar}
-                    {!collapsed && orientation !== 'top' && (
-                      <OrgAndUserWrapper>
-                        <OrgOrUserName>
-                          {hasOrganization ? org.name : user.name}{' '}
-                          <i className="icon-arrow-down" />
-                        </OrgOrUserName>
-                        <UserNameOrEmail>
-                          {hasOrganization ? user.name : user.email}
-                        </UserNameOrEmail>
-                      </OrgAndUserWrapper>
-                    )}
-                  </div>
+                  {avatar}
+                  {!collapsed && orientation !== 'top' && (
+                    <OrgAndUserWrapper>
+                      <OrgOrUserName>
+                        {hasOrganization ? org.name : user.name}{' '}
+                        <i className="icon-arrow-down" />
+                      </OrgOrUserName>
+                      <UserNameOrEmail>
+                        {hasOrganization ? user.name : user.email}
+                      </UserNameOrEmail>
+                    </OrgAndUserWrapper>
+                  )}
                 </SidebarDropdownActor>
 
                 {isOpen && (
@@ -179,7 +178,7 @@ const SentryLink = styled(Link)`
 `;
 
 const UserSummary = styled(Link)`
-  display: flex;
+  ${getMenuItemStyles}
   padding: 10px 15px;
 `;
 
@@ -194,6 +193,7 @@ const SidebarDropdownRoot = styled('div')`
 // So that long org names and user names do not overflow
 const OrgAndUserWrapper = styled('div')`
   overflow: hidden;
+  text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`
   font-size: 16px;
@@ -210,8 +210,14 @@ const UserNameOrEmail = styled(TextOverflow)`
   transition: 0.15s color linear;
 `;
 
-const SidebarDropdownActor = styled('div')`
+const SidebarDropdownActor = styled('button')`
+  display: flex;
+  align-items: flex-start;
   cursor: pointer;
+  border: none;
+  padding: 0;
+  background: none;
+  width: 100%;
 
   &:hover {
     /* stylelint-disable-next-line no-duplicate-selectors */

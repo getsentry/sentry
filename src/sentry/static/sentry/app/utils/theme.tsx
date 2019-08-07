@@ -128,6 +128,7 @@ const button = {
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
+    focusShadow: `${colors.borderLight}7f`,
   },
   primary: {
     color: colors.white,
@@ -135,6 +136,7 @@ const button = {
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
+    focusShadow: `${colors.purple}6f`,
   },
   success: {
     color: colors.white,
@@ -142,6 +144,7 @@ const button = {
     backgroundActive: colors.green,
     border: '#7ccca5',
     borderActive: '#7ccca5',
+    focusShadow: `${colors.green}7f`,
   },
   danger: {
     color: colors.white,
@@ -149,6 +152,7 @@ const button = {
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
+    focusShadow: `${colors.red}7f`,
   },
   link: {
     color: colors.blue,

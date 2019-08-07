@@ -183,7 +183,7 @@ exports[`ConfirmDelete renders 1`] = `
                                                         value=""
                                                       >
                                                         <input
-                                                          className="css-13yodx8-Input-inputStyles e1xej46s0"
+                                                          className="css-1b7nva7-Input-inputStyles e1xej46s0"
                                                           onChange={[Function]}
                                                           placeholder="CoolOrg"
                                                           type="text"
@@ -262,7 +262,7 @@ exports[`ConfirmDelete renders 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+                className="css-ghryvk-StyledButton-getColors e12ma6z0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -275,7 +275,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1i9cddn-StyledButton-getColors e12ma6z0"
+                  className="css-ghryvk-StyledButton-getColors e12ma6z0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -326,7 +326,7 @@ exports[`ConfirmDelete renders 1`] = `
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                 data-test-id="confirm-modal"
                 disabled={true}
                 href={null}
@@ -339,7 +339,7 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                   data-test-id="confirm-modal"
                   href={null}
                   onClick={[Function]}

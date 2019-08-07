@@ -48,6 +48,10 @@ const inputStyles = props => {
         color: ${props.theme.disabled};
       }
     }
+
+    &.focus-visible {
+      box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+    }
   `;
 };
 

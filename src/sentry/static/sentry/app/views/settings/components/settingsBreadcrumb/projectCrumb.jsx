@@ -8,13 +8,14 @@ import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import TextLink from 'app/components/links/textLink';
 import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
+
+import {CrumbLink} from '.';
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -71,14 +72,14 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <TextLink
+              <CrumbLink
                 to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
                   orgId: latestOrganization.slug,
                   projectId: latestProject.slug,
                 })}
               >
                 <IdBadge project={latestProject} avatarSize={18} />
-              </TextLink>
+              </CrumbLink>
             )}
           </ProjectName>
         }

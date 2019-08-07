@@ -163,8 +163,10 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   height: 16px;
   color: inherit;
 
-  &:hover {
+  &:hover,
+  &.focus-visible {
     background: ${p => p.theme.purple};
+    outline: none;
   }
 
   background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};

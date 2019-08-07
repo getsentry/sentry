@@ -20,8 +20,9 @@ class Switch extends React.Component {
     const {size, isActive, isLoading, isDisabled, toggle, id, className} = this.props;
 
     return (
-      <SwitchContainer
+      <SwitchButton
         id={id}
+        type="button"
         className={className}
         onClick={isDisabled ? null : toggle}
         role="checkbox"
@@ -33,7 +34,7 @@ class Switch extends React.Component {
         data-test-id="switch"
       >
         <Toggle isDisabled={isDisabled} isActive={isActive} size={size} />
-      </SwitchContainer>
+      </SwitchButton>
     );
   }
 }
@@ -43,8 +44,10 @@ const getToggleSize = p => getSize(p) - (p.size === 'sm' ? 6 : 10);
 const getToggleTop = p => (p.size === 'sm' ? 2 : 4);
 const getTranslateX = p => (p.isActive ? getToggleTop(p) + getSize(p) : getToggleTop(p));
 
-const SwitchContainer = styled('div')`
+const SwitchButton = styled('button')`
   display: inline-block;
+  background: none;
+  padding: 0;
   border: 1px solid ${p => (p.isActive ? p.theme.borderDark : p.theme.borderLight)};
   position: relative;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
@@ -55,8 +58,16 @@ const SwitchContainer = styled('div')`
   width: ${p => getSize(p) * 2}px;
   border-radius: ${getSize}px;
 
-  &:hover {
+  &:hover,
+  &:focus {
+    outline: none;
     border-color: ${p => p.theme.borderDark};
+  }
+
+  &:focus,
+  &.focus-visible {
+    outline: none;
+    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 `;
 

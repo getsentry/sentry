@@ -70,6 +70,19 @@ const StyledNavItem = styled(Link)`
   &:focus,
   &:active {
     color: ${p => p.theme.gray5};
+    outline: none;
+  }
+
+  &.focus-visible {
+    outline: none;
+    background: #f2eff5;
+    padding: 0 15px;
+    margin: 0 -15px;
+    border-radius: 3px;
+
+    &:before {
+      left: -15px;
+    }
   }
 
   &:before {

@@ -207,7 +207,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                                   value=""
                                 >
                                   <input
-                                    className="search css-13yodx8-Input-inputStyles e1xej46s0"
+                                    className="search css-1b7nva7-Input-inputStyles e1xej46s0"
                                     onChange={[Function]}
                                     placeholder="Search DIFs"
                                     value=""

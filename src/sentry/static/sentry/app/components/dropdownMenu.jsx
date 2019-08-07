@@ -268,7 +268,6 @@ class DropdownMenu extends React.Component {
         outline: 'none',
       },
       ref: !isStyled ? this.handleActorMount : undefined,
-      tabIndex: -1,
       onKeyDown: e => {
         if (typeof onKeyDown === 'function') {
           onKeyDown(e);

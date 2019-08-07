@@ -116,7 +116,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         <ForwardRef
                           aria-disabled={false}
                           aria-label="New API Key"
-                          className="css-23553w-StyledButton-getColors e12ma6z0"
+                          className="css-cwxw5f-StyledButton-getColors e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -126,7 +126,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           <button
                             aria-disabled={false}
                             aria-label="New API Key"
-                            className="css-23553w-StyledButton-getColors e12ma6z0"
+                            className="css-cwxw5f-StyledButton-getColors e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="small"

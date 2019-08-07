@@ -564,7 +564,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                               "outline": "none",
                                             }
                                           }
-                                          tabIndex={-1}
+                                          tabIndex="0"
                                         >
                                           <div
                                             className="css-12n6mek-Actor e53us8t0"
@@ -578,7 +578,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 "outline": "none",
                                               }
                                             }
-                                            tabIndex={-1}
+                                            tabIndex="0"
                                           >
                                             <DropdownButton
                                               aria-label="Add Team"
@@ -622,7 +622,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                       <ForwardRef
                                                         aria-disabled={true}
                                                         aria-label="Add Team"
-                                                        className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
+                                                        className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton e12ma6z0"
                                                         disabled={true}
                                                         href={null}
                                                         onClick={[Function]}
@@ -633,7 +633,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                         <button
                                                           aria-disabled={true}
                                                           aria-label="Add Team"
-                                                          className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
+                                                          className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton e12ma6z0"
                                                           href={null}
                                                           onClick={[Function]}
                                                           role="button"
@@ -768,7 +768,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             aria-disabled={false}
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
+            className="invite-member-submit css-12sg95p-StyledButton-getColors e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -777,7 +777,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             <button
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
+              className="invite-member-submit css-12sg95p-StyledButton-getColors e12ma6z0"
               onClick={[Function]}
               role="button"
             >

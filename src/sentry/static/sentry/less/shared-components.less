@@ -1654,6 +1654,11 @@ header + .alert {
         background: none;
         color: @gray-darker;
       }
+
+      &.focus-visible {
+        text-decoration: underline;
+        outline: none;
+      }
     }
 
     .dropdown-menu {
@@ -1819,7 +1824,7 @@ ul.radio-inputs {
   .close {
     background: none;
     border: 0;
-    padding: 0;
+    padding: 0 6px;
     margin: 0;
     font-size: 24px;
     position: absolute;
@@ -1831,6 +1836,13 @@ ul.radio-inputs {
     .transition(color 0.1s linear);
 
     &:hover {
+      color: @gray;
+    }
+
+    &.focus-visible {
+      outline: none;
+      border-radius: 50%;
+      background: lighten(@gray, 60);
       color: @gray;
     }
   }

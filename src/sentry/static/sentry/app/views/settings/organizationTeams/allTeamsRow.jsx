@@ -153,7 +153,7 @@ class AllTeamsRow extends React.Component {
       <TeamPanelItem>
         <TeamNameWrapper>
           {canViewTeam ? (
-            <Link to={`${urlPrefix}teams/${team.slug}/`}>{display}</Link>
+            <TeamLink to={`${urlPrefix}teams/${team.slug}/`}>{display}</TeamLink>
           ) : (
             display
           )}
@@ -186,6 +186,19 @@ class AllTeamsRow extends React.Component {
   }
 }
 
+const TeamLink = styled(Link)`
+  display: inline-block;
+
+  &.focus-visible {
+    margin: -${space(1)};
+    padding: ${space(1)};
+    background: #f2eff5;
+    border-radius: 3px;
+    outline: none;
+  }
+`;
+
+export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 const TeamPanelItem = styled(PanelItem)`

@@ -332,7 +332,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
+              className="css-1wjcdh-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -1240,7 +1240,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
+              className="css-1pb9wns-ProjectNameInput-inputStyles e2gtsme3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
@@ -1300,7 +1300,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-6lbkok-StyledSelect eho28m20"
+                    className="css-xabluc-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -1314,7 +1314,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-6lbkok-StyledSelect eho28m20"
+                      className="css-xabluc-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -1331,7 +1331,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-6lbkok-StyledSelect eho28m20"
+                        className="css-xabluc-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -1379,7 +1379,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         valueKey="value"
                       >
                         <div
-                          className="Select css-6lbkok-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"
@@ -1518,7 +1518,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1527,7 +1527,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -1624,7 +1624,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -1636,7 +1636,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -1912,7 +1912,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
+              className="css-1wjcdh-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -2125,7 +2125,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-3qafey-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2133,7 +2133,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-3qafey-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2229,7 +2229,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
+              className="css-1pb9wns-ProjectNameInput-inputStyles e2gtsme3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
@@ -2289,7 +2289,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-6lbkok-StyledSelect eho28m20"
+                    className="css-xabluc-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -2303,7 +2303,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-6lbkok-StyledSelect eho28m20"
+                      className="css-xabluc-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -2320,7 +2320,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-6lbkok-StyledSelect eho28m20"
+                        className="css-xabluc-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -2368,7 +2368,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         valueKey="value"
                       >
                         <div
-                          className="Select css-6lbkok-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"
@@ -2507,7 +2507,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -2516,7 +2516,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -2613,7 +2613,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -2625,7 +2625,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2901,7 +2901,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
+              className="css-1wjcdh-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -3014,7 +3014,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-3qafey-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -3022,7 +3022,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-3qafey-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -3918,7 +3918,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
+              className="css-1pb9wns-ProjectNameInput-inputStyles e2gtsme3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
@@ -3978,7 +3978,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-6lbkok-StyledSelect eho28m20"
+                    className="css-xabluc-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -3992,7 +3992,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-6lbkok-StyledSelect eho28m20"
+                      className="css-xabluc-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -4009,7 +4009,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-6lbkok-StyledSelect eho28m20"
+                        className="css-xabluc-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -4057,7 +4057,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         valueKey="value"
                       >
                         <div
-                          className="Select css-6lbkok-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"
@@ -4196,7 +4196,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -4205,7 +4205,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
+                                  className="css-1wfhwj6-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -4302,7 +4302,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -4314,7 +4314,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}

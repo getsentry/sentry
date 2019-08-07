@@ -107,7 +107,6 @@ class RuleNode extends React.Component {
           <Button
             onClick={this.props.handleDelete}
             type="button"
-            tabIndex="-1"
             size="small"
             icon="icon-trash"
           />

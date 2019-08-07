@@ -202,7 +202,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                     "outline": "none",
                   }
                 }
-                tabIndex={-1}
               >
                 <div
                   className="dropdown-actor-title"
@@ -656,7 +655,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     "outline": "none",
                   }
                 }
-                tabIndex={-1}
               >
                 <div
                   className="dropdown-actor-title"
