@@ -1,5 +1,4 @@
 import React from 'react';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
@@ -48,7 +47,7 @@ const ResourcesWrapper = styled('div')`
   padding: 25px 30px 10px 30px;
 `;
 
-const ResourceCards = styled(Flex)`
+const ResourceCards = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, auto);
   grid-gap: ${space(4)};
