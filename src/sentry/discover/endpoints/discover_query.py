@@ -9,7 +9,7 @@ from sentry.models import Project, ProjectStatus
 from sentry import features
 
 from .serializers import DiscoverQuerySerializer
-from ..logic import (
+from ..utils import (
     build_query_v1,
     build_query_v2,
     execute_query_v1,
