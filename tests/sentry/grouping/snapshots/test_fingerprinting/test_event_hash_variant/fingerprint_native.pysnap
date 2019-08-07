@@ -1,5 +1,5 @@
 ---
-created: '2019-04-08T10:39:51.270105Z'
+created: '2019-07-23T21:55:25.902949Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -15,3 +15,8 @@ config:
   version: 1
 fingerprint:
 - symcache-error
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - symcache-error

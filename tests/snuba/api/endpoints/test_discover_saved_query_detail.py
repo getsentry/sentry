@@ -4,12 +4,12 @@ import six
 from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
-from sentry.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
-class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
+class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverSavedQueryDetailTest, self).setUp()
+        super(DiscoverSavedQueryDetailTest, self).setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.org_without_access = self.create_organization()
@@ -40,7 +40,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_get(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id])
@@ -56,7 +56,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_get_org_without_access(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org_without_access.slug,
                     self.query_id])
@@ -67,7 +67,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id])
@@ -93,7 +93,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put_query_without_access(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id_without_access])
@@ -109,7 +109,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put_org_without_access(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org_without_access.slug,
                     self.query_id])
@@ -124,7 +124,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id])
@@ -138,7 +138,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_removes_projects(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id])
@@ -154,7 +154,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_query_without_access(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org.slug,
                     self.query_id_without_access])
@@ -166,7 +166,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_org_without_access(self):
         with self.feature('organizations:discover'):
             url = reverse(
-                'sentry-api-0-organization-discover-saved-query-detail',
+                'sentry-api-0-discover-saved-query-detail',
                 args=[
                     self.org_without_access.slug,
                     self.query_id])

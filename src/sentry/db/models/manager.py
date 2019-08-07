@@ -323,7 +323,7 @@ class SnubaEventManager:
         event_id = normalize_event_id(id_or_event_id)
         if not event_id:
             logger.warning('Attempt to fetch SnubaEvent by primary key', exc_info=True, extra={
-                'stack': True
+                'event_id': event_id
             })
 
             event = Event.objects.from_event_id(id_or_event_id, project_id)

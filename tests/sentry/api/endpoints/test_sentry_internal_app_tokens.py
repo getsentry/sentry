@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.utils import json
 from sentry.models import ApiToken
 
 
-class SentryInternalAppTokenCreationTest(APITestCase):
+class SentryInternalAppTokenTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user, name='My Org')
@@ -23,6 +26,8 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             args=[self.internal_sentry_app.slug],
         )
 
+
+class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     @with_feature('organizations:sentry-apps')
     def test_create_token(self):
         self.login_as(user=self.user)
@@ -74,3 +79,29 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         response = self.client.post(self.url, format='json')
         assert response.status_code == 403
         assert response.data == 'Cannot generate more than 20 tokens for a single integration'
+
+
+class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
+    @with_feature('organizations:sentry-apps')
+    def test_get_tokens(self):
+        self.login_as(self.user)
+
+        self.create_internal_integration(
+            name='OtherInternal',
+            organization=self.org,
+        )
+
+        token = ApiToken.objects.get(
+            application_id=self.internal_sentry_app.application_id,
+        )
+
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200
+        response_content = json.loads(response.content)
+
+        # should not include tokens from other internal app
+        assert len(response_content) == 1
+
+        assert response_content[0]['id'] == six.text_type(token.id)
+        assert response_content[0]['token'] == token.token

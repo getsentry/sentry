@@ -30,15 +30,7 @@ class SentryAppSerializer(Serializer):
         if is_active_superuser(env.request) or (
             hasattr(user, 'get_orgs') and obj.owner in user.get_orgs()
         ):
-            if obj.is_internal:
-                install = obj.installations.first()
-                data.update({
-                    'installation': {
-                        'uuid': install.uuid,
-                    },
-                    'token': install.api_token.token,
-                })
-            else:
+            if not obj.is_internal:
                 data.update({
                     'clientId': obj.application.client_id,
                     'clientSecret': obj.application.client_secret,

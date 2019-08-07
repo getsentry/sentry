@@ -3,7 +3,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -18,6 +18,16 @@ import {
   internalIntegrationForms,
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
+
+import DateTime from 'app/components/dateTime';
+import Button from 'app/components/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+
+import styled from 'react-emotion';
+import {
+  addSentryAppToken,
+  removeSentryAppToken,
+} from 'app/actionCreators/sentryAppTokens';
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -57,14 +67,17 @@ export default class SentryApplicationDetails extends AsyncView {
     return {
       ...super.getDefaultState(),
       app: null,
+      tokens: [],
     };
   }
 
   getEndpoints() {
     const {appSlug} = this.props.params;
-
     if (appSlug) {
-      return [['app', `/sentry-apps/${appSlug}/`]];
+      return [
+        ['app', `/sentry-apps/${appSlug}/`],
+        ['tokens', `/sentry-apps/${appSlug}/api-tokens/`],
+      ];
     }
 
     return [];
@@ -98,6 +111,62 @@ export default class SentryApplicationDetails extends AsyncView {
     return this.props.route.path === 'new-internal/';
   }
 
+  onAddToken = async evt => {
+    evt.preventDefault();
+    const {app, tokens} = this.state;
+    const api = this.api;
+
+    const token = await addSentryAppToken(api, app);
+    const newTokens = tokens.concat(token);
+    this.setState({tokens: newTokens});
+  };
+
+  onRemoveToken = async (token, evt) => {
+    evt.preventDefault();
+    const {app, tokens} = this.state;
+    const api = this.api;
+    const newTokens = tokens.filter(tok => tok.token !== token.token);
+
+    await removeSentryAppToken(api, app, token.token);
+    this.setState({tokens: newTokens});
+  };
+
+  renderTokens = () => {
+    const {tokens} = this.state;
+    if (tokens.length > 0) {
+      return tokens.map(token => {
+        return (
+          <StyledPanelItem key={token.token}>
+            <TokenItem>
+              <TextCopyInput>
+                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
+              </TextCopyInput>
+            </TokenItem>
+            <CreatedDate>
+              <CreatedTitle>Created:</CreatedTitle>
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000),
+                })}
+              />
+            </CreatedDate>
+            <Button
+              onClick={this.onRemoveToken.bind(this, token)}
+              size="small"
+              icon="icon-trash"
+              data-test-id="token-delete"
+            >
+              {t('Revoke')}
+            </Button>
+          </StyledPanelItem>
+        );
+      });
+    } else {
+      return <EmptyMessage description={t('No tokens created yet.')} />;
+    }
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -107,6 +176,11 @@ export default class SentryApplicationDetails extends AsyncView {
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
+
+    let verifyInstall;
+    if (!this.isInternal) {
+      verifyInstall = (app && app.verifyInstall) || false;
+    }
 
     return (
       <div>
@@ -119,7 +193,7 @@ export default class SentryApplicationDetails extends AsyncView {
             organization: orgId,
             isAlertable: false,
             isInternal: this.isInternal,
-            verifyInstall: (app && app.verifyInstall) || false,
+            verifyInstall,
             schema: {},
             scopes: [],
             ...app,
@@ -132,60 +206,74 @@ export default class SentryApplicationDetails extends AsyncView {
           <PermissionsObserver scopes={scopes} events={events} />
 
           {app && (
-            <Panel>
-              <PanelHeader>{t('Credentials')}</PanelHeader>
+            <React.Fragment>
               {app.status === 'internal' ? (
-                <PanelBody>
-                  <FormField name="token" label="Token" overflow>
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_ACCESS_TOKEN'})}
-                        </TextCopyInput>
-                      );
-                    }}
-                  </FormField>
-                  <FormField overflow name="installation" label="Installation ID">
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({
-                            value: value.uuid,
-                            fixed: 'PERCY_INSTALLATION_ID',
-                          })}
-                        </TextCopyInput>
-                      );
-                    }}
-                  </FormField>
-                </PanelBody>
+                <Panel>
+                  <PanelHeader hasButtons>
+                    {t('Tokens')}
+                    <Button
+                      size="xsmall"
+                      icon="icon-circle-add"
+                      onClick={evt => this.onAddToken(evt)}
+                      data-test-id="token-add"
+                    >
+                      {t('New Token')}
+                    </Button>
+                  </PanelHeader>
+                  <PanelBody>{this.renderTokens()}</PanelBody>
+                </Panel>
               ) : (
-                <PanelBody>
-                  <FormField name="clientId" label="Client ID" overflow>
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                        </TextCopyInput>
-                      );
-                    }}
-                  </FormField>
-                  <FormField overflow name="clientSecret" label="Client Secret">
-                    {({value}) => {
-                      return value ? (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                        </TextCopyInput>
-                      ) : (
-                        <em>hidden</em>
-                      );
-                    }}
-                  </FormField>
-                </PanelBody>
+                <Panel>
+                  <PanelHeader>{t('Credentials')}</PanelHeader>
+                  <PanelBody>
+                    <FormField name="clientId" label="Client ID" overflow>
+                      {({value}) => {
+                        return (
+                          <TextCopyInput>
+                            {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                          </TextCopyInput>
+                        );
+                      }}
+                    </FormField>
+                    <FormField overflow name="clientSecret" label="Client Secret">
+                      {({value}) => {
+                        return value ? (
+                          <TextCopyInput>
+                            {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                          </TextCopyInput>
+                        ) : (
+                          <em>hidden</em>
+                        );
+                      }}
+                    </FormField>
+                  </PanelBody>
+                </Panel>
               )}
-            </Panel>
+            </React.Fragment>
           )}
         </Form>
       </div>
     );
   }
 }
+
+const StyledPanelItem = styled(PanelItem)`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const TokenItem = styled('div')`
+  width: 70%;
+`;
+
+const CreatedTitle = styled('span')`
+  color: ${p => p.theme.gray2};
+  margin-bottom: 2px;
+`;
+
+const CreatedDate = styled('div')`
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  margin: 0 10px;
+`;

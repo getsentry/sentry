@@ -81,11 +81,6 @@ from .endpoints.organization_dashboard_widget_details import (
 from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
-from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
-from .endpoints.organization_discover_saved_query_detail import (
-    OrganizationDiscoverSavedQueryDetailEndpoint
-)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import (
     OrganizationEventDetailsEndpoint, OrganizationEventDetailsLatestEndpoint,
@@ -273,6 +268,12 @@ from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEnd
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+
+from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
+from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
+from sentry.discover.endpoints.discover_saved_query_detail import (
+    DiscoverSavedQueryDetailEndpoint
+)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 
@@ -599,18 +600,18 @@ urlpatterns = patterns(
         # Discover
         url(
             r'^(?P<organization_slug>[^\/]+)/discover/query/$',
-            OrganizationDiscoverQueryEndpoint.as_view(),
-            name='sentry-api-0-organization-discover-query'
+            DiscoverQueryEndpoint.as_view(),
+            name='sentry-api-0-discover-query'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/discover/saved/$',
-            OrganizationDiscoverSavedQueriesEndpoint.as_view(),
-            name='sentry-api-0-organization-discover-saved-queries'
+            DiscoverSavedQueriesEndpoint.as_view(),
+            name='sentry-api-0-discover-saved-queries'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$',
-            OrganizationDiscoverSavedQueryDetailEndpoint.as_view(),
-            name='sentry-api-0-organization-discover-saved-query-detail'
+            DiscoverSavedQueryDetailEndpoint.as_view(),
+            name='sentry-api-0-discover-saved-query-detail'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$',
@@ -1431,7 +1432,7 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-internal-app-tokens'
     ),
     url(
-        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)$',
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$',
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-internal-app-token-details'
     ),

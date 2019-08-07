@@ -1086,12 +1086,6 @@ class EventManager(object):
         else:
             is_sample = can_sample
 
-        if not is_sample:
-            GroupHash.record_last_processed_event_id(
-                all_hashes[0].id,
-                event.event_id,
-            )
-
         return group, is_new, is_regression, is_sample
 
     def _handle_regression(self, group, event, release):

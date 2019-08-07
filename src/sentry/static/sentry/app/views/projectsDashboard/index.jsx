@@ -14,7 +14,6 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
@@ -23,6 +22,7 @@ import withTeams from 'app/utils/withTeams';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
+import getProjectsByTeams from './getProjectsByTeams';
 
 class Dashboard extends React.Component {
   static propTypes = {

@@ -15,23 +15,17 @@ import {MODAL_QUERY_KEYS} from './data';
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event, location, view) {
+function buildTargets(event, location) {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
-  let queryKey, aggregateValue;
-  if (view.id === 'transactions') {
-    queryKey = 'transactionSlug';
-    aggregateValue = event.location;
-  } else {
-    queryKey = 'groupSlug';
-    aggregateValue = event.groupID;
-  }
   const urlMap = {
     previous: event.previousEventID,
     next: event.nextEventID,
-    latest: 'latest',
-    oldest: 'oldest',
+    // TODO(mark) Make latest, oldest work once we have new endpoints.
+    // `${event.eventID}:latest`,
+    latest: null,
+    oldest: null,
   };
 
   const links = {};
@@ -44,7 +38,7 @@ function buildTargets(event, location, view) {
         pathname: location.pathname,
         query: {
           ...baseQuery,
-          [queryKey]: `${event.projectSlug}:${aggregateValue}:${value}`,
+          eventSlug: `${event.projectSlug}:${value}`,
         },
       };
     }
@@ -54,13 +48,16 @@ function buildTargets(event, location, view) {
 }
 
 const ModalPagination = props => {
-  const {event, location, view} = props;
-  const links = buildTargets(event, location, view);
+  const {event, location} = props;
+  const links = buildTargets(event, location);
 
   return (
     <Wrapper>
       <ShadowBox>
-        <StyledLink to={links.oldest} disabled={links.previous === null}>
+        <StyledLink
+          to={links.oldest}
+          disabled={links.previous === null || links.oldest === null}
+        >
           <InlineSvg src="icon-prev" size="14px" />
         </StyledLink>
         <StyledLink
@@ -77,7 +74,11 @@ const ModalPagination = props => {
         >
           {t('Newer Event')}
         </StyledLink>
-        <StyledLink to={links.latest} disabled={links.next === null} isLast>
+        <StyledLink
+          to={links.latest}
+          disabled={links.next === null || links.latest === null}
+          isLast
+        >
           <InlineSvg src="icon-next" size="14px" />
         </StyledLink>
       </ShadowBox>
@@ -87,7 +88,6 @@ const ModalPagination = props => {
 ModalPagination.propTypes = {
   location: PropTypes.object.isRequired,
   event: SentryTypes.Event.isRequired,
-  view: PropTypes.object.isRequired,
 };
 
 const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`

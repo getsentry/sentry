@@ -1,0 +1,25 @@
+---
+created: '2019-08-05T10:21:51.486852Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - database-unavailable
+    - '{{ transaction }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    - - module
+      - io.sentry.example.*
+  version: 1
+fingerprint:
+- database-unavailable
+- '{{ transaction }}'
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - database-unavailable
+    - <no-transaction>

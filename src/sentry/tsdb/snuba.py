@@ -79,7 +79,8 @@ class SnubaTSDB(BaseTSDB):
 
         if keys:
             result = snuba.query(
-                start, end,
+                start=start,
+                end=end,
                 groupby=groupby,
                 conditions=None,
                 filter_keys=keys_map,

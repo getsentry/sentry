@@ -10,6 +10,7 @@ describe('Sentry Application Details', function() {
   let org;
   let orgId;
   let sentryApp;
+  let token;
   let wrapper;
   let createAppRequest;
   let editAppRequest;
@@ -129,6 +130,11 @@ describe('Sentry Application Details', function() {
         body: sentryApp,
       });
 
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
       wrapper = mount(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
@@ -157,14 +163,18 @@ describe('Sentry Application Details', function() {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
-        installation: {uuid: 'xxxxxx'},
-        token: 'xxxx',
       });
+      token = TestStubs.SentryAppToken();
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
       });
 
       wrapper = mount(
@@ -178,9 +188,70 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
     });
 
-    it('shows installationId and token', function() {
-      expect(wrapper.find('#installation').exists()).toBe(true);
-      expect(wrapper.find('#token').exists()).toBe(true);
+    it('shows tokens', function() {
+      expect(
+        wrapper
+          .find('PanelHeader')
+          .last()
+          .text()
+      ).toContain('Tokens');
+      expect(wrapper.find('TokenItem').exists()).toBe(true);
+    });
+  });
+
+  describe('Editing internal app tokens', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+      });
+      token = TestStubs.SentryAppToken();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+    it('adding token to list', async function() {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        method: 'POST',
+        body: [
+          TestStubs.SentryAppToken({
+            token: '392847329',
+            dateCreated: '2018-03-02T18:30:26Z',
+          }),
+        ],
+      });
+      wrapper.find('Button[data-test-id="token-add"]').simulate('click');
+      await tick();
+      wrapper.update();
+
+      const tokenItems = wrapper.find('TokenItem');
+      expect(tokenItems).toHaveLength(2);
+    });
+
+    it('removing token from list', async function() {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
+        method: 'DELETE',
+        body: {},
+      });
+      wrapper.find('Button[data-test-id="token-delete"]').simulate('click');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EmptyMessage').exists()).toBe(true);
     });
   });
 
@@ -198,6 +269,11 @@ describe('Sentry Application Details', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
       });
 
       wrapper = mount(

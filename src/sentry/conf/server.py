@@ -256,7 +256,7 @@ INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
     'crispy_forms', 'debug_toolbar',
-    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
+    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents', 'sentry.discover',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
@@ -851,11 +851,11 @@ SENTRY_FEATURES = {
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
-    # DEPCREATED: pending removal.
+    # Enable require 2FA across organization
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
     'organizations:sentry10': True,
-    # Enable basic SSO functionality, providing configurable single signon
+    # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
     'organizations:sso-basic': True,
