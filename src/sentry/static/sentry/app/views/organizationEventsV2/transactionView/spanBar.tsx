@@ -55,6 +55,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   spanRowDOMRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
+  _mounted: boolean = false;
 
   toggleDisplayDetail = () => {
     this.setState(state => {
@@ -236,6 +237,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.intersectionObserver = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
+          if (!this._mounted) {
+            return;
+          }
+
           const shouldMoveMinimap =
             this.props.trace.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
@@ -269,9 +274,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             //
             // we always expect entry.rootBounds.top to equal MINIMAP_CONTAINER_HEIGHT
 
-            const actualRootTop = Math.round(entry.rootBounds.top);
+            const actualRootTop = Math.ceil(entry.rootBounds.top);
 
-            if (actualRootTop != MINIMAP_CONTAINER_HEIGHT) {
+            if (actualRootTop != MINIMAP_CONTAINER_HEIGHT && actualRootTop > 0) {
               // we revert the actualRootTop value by the current zoomLevel factor
               const normalizedActualTop = actualRootTop / this.zoomLevel;
 
@@ -363,12 +368,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   componentDidMount() {
+    this._mounted = true;
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
   }
 
   componentWillUnmount() {
+    this._mounted = false;
     this.disconnectObservers();
   }
 
@@ -454,9 +461,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    // TODO: remove
-    // console.log('render span header');
-
     const {span, spanBarColour} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
