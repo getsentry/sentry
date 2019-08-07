@@ -443,7 +443,6 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 'end': None,
             })
         assert response.status_code == 200
-        print response.data
         assert response.data['data'][0]['id'] == self.event.event_id
         assert response.data['data'][0]['project.name'] == self.project.slug
 
