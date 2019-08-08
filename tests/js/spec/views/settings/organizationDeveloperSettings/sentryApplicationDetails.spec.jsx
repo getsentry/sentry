@@ -192,10 +192,15 @@ describe('Sentry Application Details', function() {
       expect(
         wrapper
           .find('PanelHeader')
-          .last()
+          .at(3)
           .text()
       ).toContain('Tokens');
       expect(wrapper.find('TokenItem').exists()).toBe(true);
+    });
+
+    it('shows just clientSecret', function() {
+      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+      expect(wrapper.find('#clientId').exists()).toBe(false);
     });
   });
 
