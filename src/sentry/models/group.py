@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -191,10 +191,9 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry.models import SnubaEvent
         group_id = None
 
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id
