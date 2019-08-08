@@ -10,6 +10,13 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def setUp(self):
         super(OrganizationDeveloperSettingsNewAcceptanceTest, self).setUp()
+        self.team = self.create_team(organization=self.organization, name='Tesla Motors')
+        self.project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            name='Model S',
+        )
+
         self.login_as(self.user)
         self.org_developer_settings_path = u'/settings/{}/developer-settings/'.format(
             self.organization.slug)
@@ -18,11 +25,28 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('.loading-indicator')
 
-    def test_create_new_integration(self):
+    def test_create_new_public_integration(self):
         with self.feature('organizations:sentry-apps'):
             self.load_page(self.org_developer_settings_path)
 
-            self.browser.click('[aria-label="Create New Integration"]')
+            self.browser.click('[aria-label="New Public Integration"]')
+
+            self.browser.element('input[name="name"]').send_keys('Tesla')
+            self.browser.element('input[name="author"]').send_keys('Elon Musk')
+            self.browser.element('input[name="webhookUrl"]').send_keys(
+                'https://example.com/webhook')
+
+            self.browser.click('[aria-label="Save Changes"]')
+
+            self.browser.wait_until('.ref-success')
+
+            assert self.browser.find_element_by_link_text('Tesla')
+
+    def test_create_new_internal_integration(self):
+        with self.feature('organizations:sentry-apps'):
+            self.load_page(self.org_developer_settings_path)
+
+            self.browser.click('[aria-label="New Internal Integration"]')
 
             self.browser.element('input[name="name"]').send_keys('Tesla')
             self.browser.element('input[name="author"]').send_keys('Elon Musk')

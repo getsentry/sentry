@@ -97,9 +97,9 @@ class Updater(Mediator):
 
     @if_param('verify_install')
     def _update_verify_install(self):
-        if self.sentry_app.is_internal:
+        if self.sentry_app.is_internal and self.verify_install:
             raise APIError(
-                u'Internal integrations do not require installation verification.',
+                u'Internal integrations cannot have verify_install=True.',
             )
         self.sentry_app.verify_install = self.verify_install
 

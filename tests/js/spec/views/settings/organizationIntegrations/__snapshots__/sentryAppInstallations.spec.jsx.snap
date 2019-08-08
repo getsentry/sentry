@@ -76,8 +76,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "webhookUrl": "https://example.com/webhook",
       }
     }
-    hideButtons={false}
-    isInternal={false}
     key="123456123456123456123456"
     onInstall={[Function]}
     onUninstall={[Function]}
@@ -109,7 +107,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "teams": Array [],
       }
     }
-    showPublishStatus={false}
+    showInstallationStatus={true}
   >
     <SentryAppItem
       data-test-id="sample-app"
@@ -155,9 +153,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                       className="css-161g25b-SentryAppBox eac2pqx2"
                       is={null}
                     >
-                      <SentryAppName>
+                      <SentryAppName
+                        hideStatus={false}
+                      >
                         <div
-                          className="css-uiwo8x-SentryAppName eac2pqx4"
+                          className="css-4cu42i-SentryAppName eac2pqx4"
                         >
                           Sample App
                         </div>
