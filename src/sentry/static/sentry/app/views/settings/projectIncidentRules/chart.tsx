@@ -8,14 +8,20 @@ import {Panel} from 'app/components/panels';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 type Props = {
   data: Series[];
-  onChangeUpperBound: (upperBound: number) => void;
-  upperBound: number;
+  alertThreshold: number;
+  resolveThreshold: number;
+  isInverted: boolean;
+  onChangeIncidentThreshold: (alertThreshold: number) => void;
+  onChangeResolutionThreshold: (resolveThreshold: number) => void;
 };
+
 type State = {
   width: number;
+  height: number;
   yAxisMax: number | null;
 };
 
@@ -26,12 +32,13 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
 
   state = {
     width: -1,
+    height: -1,
     yAxisMax: null,
   };
 
   componentDidUpdate(prevProps: Props) {
     if (
-      this.props.upperBound !== prevProps.upperBound ||
+      this.props.alertThreshold !== prevProps.alertThreshold ||
       this.props.data !== prevProps.data
     ) {
       this.handleUpdateChartAxis();
@@ -41,32 +48,41 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   chartRef: null | ECharts = null;
 
   // If we have ref to chart and data, try to update chart axis so that
-  // upperBound is visible in chart
+  // alertThreshold is visible in chart
   handleUpdateChartAxis = () => {
-    const {data, upperBound} = this.props;
+    const {data, alertThreshold} = this.props;
     if (this.chartRef && data.length && data[0].data) {
-      this.updateChartAxis(upperBound, data[0].data);
+      this.updateChartAxis(alertThreshold, data[0].data);
     }
   };
 
-  updateChartAxis = debounce((upperBound, dataArray: SeriesDataUnit[]) => {
+  updateChartAxis = debounce((alertThreshold, dataArray: SeriesDataUnit[]) => {
     const max = maxBy(dataArray, ({value}) => value);
-    if (typeof max !== 'undefined' && upperBound > max) {
+    if (typeof max !== 'undefined' && alertThreshold > max) {
       // We need to force update after we set a new yAxis max because `convertToPixel` will
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
-      this.setState({yAxisMax: Math.round(upperBound * 1.1)}, this.forceUpdate);
+      this.setState({yAxisMax: Math.round(alertThreshold * 1.1)}, this.forceUpdate);
     } else {
       this.setState({yAxisMax: null});
     }
   }, 150);
 
-  setUpperBound = (pos: [number, number]) => {
+  setIncidentThreshold = (pos: [number, number]) => {
     if (!this.chartRef) {
       return;
     }
 
-    const upperBound = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
-    this.props.onChangeUpperBound(upperBound);
+    const alertThreshold = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
+    this.props.onChangeIncidentThreshold(alertThreshold);
+  };
+
+  setResolutionThreshold = (pos: [number, number]) => {
+    if (!this.chartRef) {
+      return;
+    }
+
+    const boundary = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
+    this.props.onChangeResolutionThreshold(boundary);
   };
 
   handleRef = (ref: ReactEchartsRef): void => {
@@ -75,10 +91,12 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
     if (ref && typeof ref.getEchartsInstance === 'function' && !this.chartRef) {
       this.chartRef = ref.getEchartsInstance();
       const width = this.chartRef.getWidth();
+      const height = this.chartRef.getHeight();
       this.handleUpdateChartAxis();
-      if (width !== this.state.width) {
+      if (width !== this.state.width || height !== this.state.height) {
         this.setState({
           width,
+          height,
         });
       }
     }
@@ -88,45 +106,131 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
     }
   };
 
-  handleUpperBoundDrag = _e => {};
+  getShadedThresholdPosition = (
+    isResolution: boolean,
+    position: number
+    // yAxisPosition: number
+  ) => {
+    const {isInverted} = this.props;
 
-  handleLowerBoundDrag = () => {};
+    if (!isInverted) {
+      if (isResolution) {
+        return [0, position + 1];
+      } else {
+        return [0, 0];
+      }
+    } else {
+      if (isResolution) {
+        return [0, 0];
+      } else {
+        return [0, position + 1];
+      }
+    }
+  };
+
+  /**
+   * Draws the boundary lines and shaded areas for the chart.
+   */
+  getThresholdLine = (
+    position: string | any[] | null | number,
+    isResolution: boolean,
+    setFn: Function
+  ) => {
+    const {resolveThreshold, isInverted} = this.props;
+
+    if (
+      typeof position !== 'number' ||
+      !this.state.height ||
+      !this.chartRef ||
+      (isResolution && resolveThreshold < 0)
+    ) {
+      return [];
+    }
+
+    const yAxisPixelPosition = this.chartRef.convertToPixel({yAxisIndex: 0}, '0');
+    const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
+
+    return [
+      {
+        type: 'line',
+        invisible: position === -1,
+        draggable: true,
+        position: [0, position],
+        shape: {y1: 1, y2: 1, x1: -this.state.width, x2: this.state.width * 2},
+        style: {
+          stroke: theme.purpleLight,
+          lineDash: [2],
+        },
+        ondragend: e => {
+          setFn(e.target.position);
+        },
+        z: 101,
+      },
+      ...(position >= 0 && [
+        {
+          type: 'rect',
+          draggable: false,
+          position: isResolution !== isInverted ? [0, position + 1] : [0, 0],
+          shape: {
+            width: this.state.width,
+            height: isResolution !== isInverted ? yAxisPosition - position : position,
+          },
+
+          style: {
+            fill: isResolution ? 'rgba(87, 190, 140, 0.1)' : 'rgba(220, 107, 107, 0.18)',
+          },
+          z: 100,
+        },
+      ]),
+      {
+        type: 'line',
+        invisible: position === -1,
+        draggable: false,
+        position: [0, position],
+        shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
+        style: {
+          stroke: theme.purple,
+          lineDash: [2],
+        },
+      },
+    ];
+  };
 
   render() {
-    const {width} = this.state;
-
-    const upperBoundPosition =
+    const alertThresholdPosition =
       this.chartRef &&
-      this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.upperBound}`);
+      this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.alertThreshold}`);
+    const resolveThresholdPosition =
+      this.chartRef &&
+      this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.resolveThreshold}`);
 
     return (
       <ChartPanel>
         <LineChart
           isGroupedByDate
           forwardedRef={this.handleRef}
+          grid={{
+            left: space(1),
+            right: space(1),
+            top: space(2),
+            bottom: space(1),
+          }}
           yAxis={{
             max: this.state.yAxisMax,
+            boundaryGddap: [8, 8],
           }}
           graphic={Graphic({
             elements: [
-              {
-                type: 'line',
-                invisible: false,
-                draggable: true,
-                position: [0, upperBoundPosition],
-                shape: {y1: 1, y2: 1, x1: -width, x2: width * 2},
-                ondragend: e => {
-                  this.setUpperBound(e.target.position);
-                },
-                z: 100,
-              },
-              {
-                type: 'line',
-                draggable: false,
-                position: [0, upperBoundPosition],
-                shape: {y1: 1, y2: 1, x1: 0, x2: width},
-                ondrag: () => {},
-              },
+              ...this.getThresholdLine(
+                alertThresholdPosition,
+                false,
+                this.setIncidentThreshold
+              ),
+              ...this.getThresholdLine(
+                resolveThresholdPosition,
+                true,
+                this.setResolutionThreshold
+              ),
             ],
           })}
           series={this.props.data}
@@ -139,5 +243,4 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
 const ChartPanel = styled(Panel)`
   background-color: white;
   margin-bottom: ${space(1)};
-  padding: 0 ${space(1)};
 `;
