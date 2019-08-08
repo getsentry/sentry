@@ -5,7 +5,17 @@ import createReactClass from 'create-react-class';
 import getDisplayName from 'app/utils/getDisplayName';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 
-const withSentryAppComponents = (WrappedComponent, {componentType} = {}) =>
+type Options = {
+  componentType: 'stacktrace-link';
+};
+
+// TODO(ts): Update when component type is defined
+type Component = {};
+
+const withSentryAppComponents = <P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  {componentType}: Options
+) =>
   createReactClass({
     displayName: `withSentryAppComponents(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.connect(SentryAppComponentsStore, 'components')],
@@ -13,8 +23,10 @@ const withSentryAppComponents = (WrappedComponent, {componentType} = {}) =>
     render() {
       return (
         <WrappedComponent
-          components={SentryAppComponentsStore.getComponentByType(componentType)}
-          {...this.props}
+          components={
+            SentryAppComponentsStore.getComponentByType(componentType) as Component[]
+          }
+          {...this.props as P}
         />
       );
     },

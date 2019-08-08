@@ -53,14 +53,3 @@ export type DiscoverBaseProps = {
   columns: Column[];
   disabled: boolean;
 };
-
-export type GlobalSelection = {
-  projects: number[];
-  environments: string[];
-  datetime: {
-    start: string;
-    end: string;
-    period: string;
-    utc: boolean;
-  };
-};

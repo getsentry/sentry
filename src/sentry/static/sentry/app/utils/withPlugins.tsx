@@ -10,12 +10,14 @@ import SentryTypes from 'app/sentryTypes';
 
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {Plugin} from 'app/types';
 
 /**
  * Higher order component that fetches list of plugins and
  * passes PluginsStore to component as `plugins`
  */
-const withPlugins = WrappedComponent =>
+
+const withPlugins = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
   withOrganization(
     withProject(
       createReactClass({
@@ -30,7 +32,7 @@ const withPlugins = WrappedComponent =>
           this.fetchPlugins();
         },
 
-        componentDidUpdate(prevProps, prevState, prevContext) {
+        componentDidUpdate(prevProps, _prevState, prevContext) {
           const {organization, project} = this.props;
 
           // Only fetch plugins when a org slug or project slug has changed
@@ -70,7 +72,12 @@ const withPlugins = WrappedComponent =>
         },
 
         render() {
-          return <WrappedComponent {...this.props} plugins={this.state.store} />;
+          return (
+            <WrappedComponent
+              {...this.props as P}
+              plugins={this.state.store as Plugin[]}
+            />
+          );
         },
       })
     )
