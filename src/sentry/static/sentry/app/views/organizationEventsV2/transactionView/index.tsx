@@ -5,14 +5,14 @@ import SentryTypes from 'app/sentryTypes';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 
-import {SpanEntry, SentryEvent} from './types';
-import TransactionView from './transactionView';
+import {SentryEvent} from './types';
+import TraceView from './traceView';
 
-type SpansInterfacePropTypes = {
+type PropType = {
   event: SentryEvent;
-} & SpanEntry;
+};
 
-class SpansInterface extends React.Component<SpansInterfacePropTypes> {
+class TransanctionView extends React.Component<PropType> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
   };
@@ -22,14 +22,14 @@ class SpansInterface extends React.Component<SpansInterfacePropTypes> {
     return (
       <Panel>
         <PanelHeader disablePadding={false} hasButtons={false}>
-          {t('Trace View')}
+          {t('Trace View - This Transaction')}
         </PanelHeader>
         <PanelBody>
-          <TransactionView event={event} />
+          <TraceView event={event} />
         </PanelBody>
       </Panel>
     );
   }
 }
 
-export default SpansInterface;
+export default TransanctionView;

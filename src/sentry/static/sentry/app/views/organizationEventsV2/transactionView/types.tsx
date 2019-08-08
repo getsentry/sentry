@@ -4,7 +4,7 @@ export type SpanType = {
   span_id: string;
   start_timestamp: number;
   timestamp: number; // this is essentially end_timestamp
-  same_process_as_parent: boolean;
+  same_process_as_parent?: boolean;
   op?: string;
   description?: string;
   data: Object;
@@ -24,11 +24,12 @@ export type SentryEvent = {
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 
 export type ParsedTraceType = {
-  lookup: SpanChildrenLookupType;
+  childSpans: SpanChildrenLookupType;
   traceID: string;
   rootSpanID: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
+  numOfSpans: number;
 };
 
 export enum TickAlignment {
