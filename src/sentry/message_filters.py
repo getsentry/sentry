@@ -235,6 +235,8 @@ _EXTENSION_EXC_VALUES = re.compile(
         # Dragon Web Extension from Nuance Communications
         # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
         'plugin.setSuspendState is not a function',
+        # lastpass
+        'should_do_lastpass_here',
     ))), re.I)
 
 _EXTENSION_EXC_SOURCES = re.compile(
