@@ -5,7 +5,7 @@ import six
 from enum import Enum
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry import features
+from sentry import eventstore, features
 from sentry.models import SnubaEvent
 from sentry.models.project import Project
 from sentry.api.serializers import serialize
@@ -40,7 +40,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
