@@ -1209,10 +1209,16 @@ class ConvertEndpointParamsTests(unittest.TestCase):
 
 
 class ResolveFieldListTest(unittest.TestCase):
+    def test_non_string_field_error(self):
+        fields = [['any', 'thing', 'lol']]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, {})
+        assert 'Field names' in six.text_type(err)
+
     def test_automatic_fields_no_aggregates(self):
         fields = ['event.type', 'message']
         result = resolve_field_list(fields, {})
-        assert result['selected_columns'] == ['event.type', 'message', 'project.id', 'id']
+        assert result['selected_columns'] == ['event.type', 'message', 'id', 'project.id']
         assert result['aggregations'] == []
         assert result['groupby'] == []
 
@@ -1222,18 +1228,17 @@ class ResolveFieldListTest(unittest.TestCase):
         # Automatic fields should be inserted
         assert result['selected_columns'] == [
             'message',
-            'project.id',
             ['argMax', ['id', 'timestamp'], 'latest_event'],
+            ['argMax', ['project_id', 'timestamp'], 'projectid'],
         ]
         assert result['aggregations'] == [
             ['anyHeavy', 'title', 'issue_title']
         ]
-        assert result['groupby'] == ['message', 'project.id']
+        assert result['groupby'] == ['message']
 
     def test_field_alias_expansion(self):
         fields = ['issue_title', 'last_seen', 'latest_event', 'project', 'user', 'message']
         result = resolve_field_list(fields, {})
-        print result
         assert result['selected_columns'] == [
             ['argMax', ['id', 'timestamp'], 'latest_event'],
             'project.id',
@@ -1263,15 +1268,15 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
         assert result['selected_columns'] == [
-            'project.id',
             ['argMax', ['id', 'timestamp'], 'latest_event'],
+            ['argMax', ['project_id', 'timestamp'], 'projectid'],
         ]
         assert result['aggregations'] == [
             ['uniq', 'user', 'count_unique_user'],
             ['count', 'id', 'count_id'],
             ['avg', 'duration', 'avg_duration'],
         ]
-        assert result['groupby'] == ['project.id']
+        assert result['groupby'] == []
 
     def test_aggregate_function_invalid_name(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -1319,7 +1324,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ['message']
         snuba_args = {'orderby': '-message'}
         result = resolve_field_list(fields, snuba_args)
-        assert result['selected_columns'] == ['message', 'project.id', 'id']
+        assert result['selected_columns'] == ['message', 'id', 'project.id']
         assert result['aggregations'] == []
         assert result['groupby'] == []
 
@@ -1328,10 +1333,10 @@ class ResolveFieldListTest(unittest.TestCase):
         snuba_args = {'orderby': '-issue_title'}
         result = resolve_field_list(fields, snuba_args)
         assert result['selected_columns'] == [
-            'project.id',
-            ['argMax', ['id', 'timestamp'], 'latest_event']
+            ['argMax', ['id', 'timestamp'], 'latest_event'],
+            ['argMax', ['project_id', 'timestamp'], 'projectid'],
         ]
         assert result['aggregations'] == [
-            ['anyHeavy', 'title', 'issue_title']
+            ['anyHeavy', 'title', 'issue_title'],
         ]
-        assert result['groupby'] == ['project.id']
+        assert result['groupby'] == []

@@ -759,6 +759,9 @@ def resolve_field_list(fields, snuba_args):
     groupby = []
     columns = []
     for field in fields:
+        if not isinstance(field, six.string_types):
+            raise InvalidSearchQuery('Field names must be strings')
+
         if field in FIELD_ALIASES:
             special_field = deepcopy(FIELD_ALIASES[field])
             columns.extend(special_field.get('fields', []))
@@ -783,13 +786,17 @@ def resolve_field_list(fields, snuba_args):
     if not rollup:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
-        # would be aggregated away.
-        if 'project.id' not in columns:
-            columns.append('project.id')
+        # would be aggregated away. When there are aggregations
+        # we use argMax to get the latest event/projectid so we can create links.
+        # The `projectid` output name is not a typo, using `project_id` triggers
+        # generates invalid queries.
         if not aggregations and 'id' not in columns:
             columns.append('id')
+            columns.append('project.id')
         if aggregations and 'latest_event' not in fields:
             columns.extend(deepcopy(FIELD_ALIASES['latest_event']['fields']))
+        if aggregations and 'project.id' not in columns:
+            columns.append(['argMax', ['project_id', 'timestamp'], 'projectid'])
 
     basic_fields = [col for col in columns if isinstance(col, six.string_types)]
     if rollup and basic_fields:
