@@ -1,5 +1,5 @@
 import React from 'react';
-import {get, set, isNumber, forEach} from 'lodash';
+import {get, set, isNumber} from 'lodash';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -16,42 +16,16 @@ type TraceContextType = {
   trace_id: string;
 };
 
-type TransactionViewProps = {
+type PropType = {
   event: Readonly<SentryEvent>;
 };
 
-type TransactionViewState = {
-  renderMinimap: boolean;
-};
-
-class TransactionView extends React.Component<
-  TransactionViewProps,
-  TransactionViewState
-> {
+class TraceView extends React.Component<PropType> {
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
-  traceViewRef = React.createRef<HTMLDivElement>();
-
-  state: TransactionViewState = {
-    renderMinimap: false,
-  };
-
-  componentDidMount() {
-    if (this.traceViewRef.current) {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        renderMinimap: true,
-      });
-    }
-  }
 
   renderMinimap = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
-    if (!this.state.renderMinimap) {
-      return null;
-    }
-
     return (
       <TraceViewMinimap
-        traceViewRef={this.traceViewRef}
         minimapInteractiveRef={this.minimapInteractiveRef}
         dragProps={dragProps}
         trace={parsedTrace}
@@ -82,22 +56,24 @@ class TransactionView extends React.Component<
 
     if (!spanEntry || spans.length <= 0) {
       return {
-        lookup: {},
+        childSpans: {},
         traceStartTimestamp: event.startTimestamp,
         traceEndTimestamp: event.endTimestamp,
         traceID,
         rootSpanID,
+        numOfSpans: 0,
       };
     }
 
     // we reduce spans to become an object mapping span ids to their children
 
     const init: ParsedTraceType = {
-      lookup: {},
+      childSpans: {},
       traceStartTimestamp: event.startTimestamp,
       traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
+      numOfSpans: spans.length,
     };
 
     const reduced: ParsedTraceType = spans.reduce((acc, span) => {
@@ -105,11 +81,11 @@ class TransactionView extends React.Component<
         return acc;
       }
 
-      const spanChildren: Array<SpanType> = get(acc.lookup, span.parent_span_id!, []);
+      const spanChildren: Array<SpanType> = get(acc.childSpans, span.parent_span_id!, []);
 
       spanChildren.push(span);
 
-      set(acc.lookup, span.parent_span_id!, spanChildren);
+      set(acc.childSpans, span.parent_span_id!, spanChildren);
 
       if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
         acc.traceStartTimestamp = span.start_timestamp;
@@ -143,7 +119,7 @@ class TransactionView extends React.Component<
 
     // sort span children by their start timestamps in ascending order
 
-    forEach(reduced.lookup, spanChildren => {
+    Object.values(reduced.childSpans).forEach(spanChildren => {
       spanChildren.sort((firstSpan, secondSpan) => {
         if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
           return -1;
@@ -177,11 +153,7 @@ class TransactionView extends React.Component<
           return (
             <React.Fragment>
               {this.renderMinimap(dragProps, parsedTrace)}
-              <SpanTree
-                traceViewRef={this.traceViewRef}
-                trace={parsedTrace}
-                dragProps={dragProps}
-              />
+              <SpanTree trace={parsedTrace} dragProps={dragProps} />
             </React.Fragment>
           );
         }}
@@ -190,4 +162,4 @@ class TransactionView extends React.Component<
   }
 }
 
-export default TransactionView;
+export default TraceView;

@@ -71,7 +71,7 @@ const SpanDetail = (props: PropTypes) => {
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid #d1cad8;
   padding: ${space(2)};
-  background-color: #fff;
+  background-color: #faf9fb;
 
   cursor: auto;
 `;
@@ -93,7 +93,7 @@ const Row = ({
     <tr>
       <td className="key">{title}</td>
       <td className="value">
-        <pre className="val ">
+        <pre className="val " style={{backgroundColor: '#F0ECF3'}}>
           <span className="val-string">{children}</span>
         </pre>
       </td>

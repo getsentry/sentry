@@ -18,6 +18,7 @@ import ModalLineGraph from './modalLineGraph';
 import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 import {AGGREGATE_ALIASES} from './data';
+import TransanctionView from './transactionView';
 
 /**
  * Render the columns and navigation elements inside the event modal view.
@@ -55,7 +56,11 @@ const EventModalContent = props => {
           })}
       </HeaderBox>
       <ContentColumn>
-        <EventInterfaces event={event} projectId={projectId} />
+        {event.type === 'transaction' ? (
+          <TransanctionView event={event} />
+        ) : (
+          <EventInterfaces event={event} projectId={projectId} />
+        )}
       </ContentColumn>
       <SidebarColumn>
         {event.groupID && (

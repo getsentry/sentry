@@ -61,6 +61,8 @@ class BaseChart extends React.Component {
 
     toolBox: SentryTypes.EChartsToolBox,
 
+    graphic: SentryTypes.EchartsGraphic,
+
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
 
@@ -193,6 +195,7 @@ class BaseChart extends React.Component {
       xAxis,
       dataZoom,
       toolBox,
+      graphic,
 
       isGroupedByDate,
       shouldXAxisRenderTimeOnly,
@@ -277,6 +280,7 @@ class BaseChart extends React.Component {
               ],
           dataZoom,
           toolbox: toolBox,
+          graphic,
         }}
       />
     );

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {rectOfContent, clamp} from './utils';
+import {rectOfContent, clamp, UserSelectValues, setBodyUserSelect} from './utils';
 
 // we establish the minimum window size so that the window size of 0% is not possible
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size
@@ -15,19 +15,22 @@ export type DragManagerChildrenProps = {
 
   // left-side handle
 
-  onLeftHandleDragStart: (event: React.MouseEvent<SVGRectElement, MouseEvent>) => void;
+  onLeftHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   leftHandlePosition: number; // between 0 to 1
   viewWindowStart: number; // between 0 to 1
 
   // right-side handle
 
-  onRightHandleDragStart: (event: React.MouseEvent<SVGRectElement, MouseEvent>) => void;
+  onRightHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   rightHandlePosition: number; // between 0 to 1
   viewWindowEnd: number; // between 0 to 1
 };
 
 type DragManagerProps = {
   children: (props: DragManagerChildrenProps) => JSX.Element;
+
+  // this is the DOM element where the drag events occur. it's also the reference point
+  // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 };
 
@@ -52,14 +55,14 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     viewWindowEnd: 1,
   };
 
-  previousUserSelect: string | null = null;
+  previousUserSelect: UserSelectValues | null = null;
 
   hasInteractiveLayer = (): boolean => {
     return !!this.props.interactiveLayerRef.current;
   };
 
   onDragStart = (viewHandle: ViewHandleType) => (
-    event: React.MouseEvent<SVGRectElement, MouseEvent>
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
     if (
       this.state.isDragging ||
@@ -72,8 +75,11 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     // prevent the user from selecting things outside the minimap when dragging
     // the mouse cursor outside the minimap
 
-    this.previousUserSelect = document.body.style.userSelect;
-    document.body.style.userSelect = 'none';
+    this.previousUserSelect = setBodyUserSelect({
+      userSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none',
+    });
 
     // attach event listeners so that the mouse cursor can drag outside of the
     // minimap
@@ -88,11 +94,11 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     });
   };
 
-  onLeftHandleDragStart = (event: React.MouseEvent<SVGRectElement, MouseEvent>) => {
+  onLeftHandleDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     this.onDragStart(ViewHandleType.Left)(event);
   };
 
-  onRightHandleDragStart = (event: React.MouseEvent<SVGRectElement, MouseEvent>) => {
+  onRightHandleDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     this.onDragStart(ViewHandleType.Right)(event);
   };
 
@@ -148,13 +154,14 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     // remove listeners that were attached in onDragStart
 
-    window.removeEventListener('mousemove', this.onDragMove);
-    window.removeEventListener('mouseup', this.onDragEnd);
+    this.cleanUpListeners();
 
     // restore body styles
 
-    document.body.style.userSelect = this.previousUserSelect;
-    this.previousUserSelect = null;
+    if (this.previousUserSelect) {
+      setBodyUserSelect(this.previousUserSelect);
+      this.previousUserSelect = null;
+    }
 
     // indicate drag has ended
 
@@ -169,7 +176,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
             viewWindowStart: state.leftHandlePosition,
           };
         });
-        break;
+        return;
       }
       case ViewHandleType.Right: {
         this.setState(state => {
@@ -181,18 +188,24 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
             viewWindowEnd: state.rightHandlePosition,
           };
         });
-        break;
+        return;
       }
       default: {
         throw Error('this.state.currentDraggingHandle is undefined');
       }
     }
-
-    this.setState({
-      isDragging: false,
-      currentDraggingHandle: void 0,
-    });
   };
+
+  cleanUpListeners = () => {
+    if (this.state.isDragging) {
+      window.removeEventListener('mousemove', this.onDragMove);
+      window.removeEventListener('mouseup', this.onDragEnd);
+    }
+  };
+
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
 
   render() {
     const childrenProps = {
