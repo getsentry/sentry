@@ -31,11 +31,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args(request, organization, params)
             fields = snuba_args.get('selected_columns')
-            aggregations = snuba_args.get('aggregations')
-            groupby = snuba_args.get('groupby', [])
-
-            if not fields and not aggregations and not groupby:
-                return Response({'detail': 'No fields or groupings provided'}, status=400)
+            if not fields:
+                return Response({'detail': 'No fields provided'}, status=400)
 
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)

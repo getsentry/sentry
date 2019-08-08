@@ -564,7 +564,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == 'No fields or groupings provided'
+        assert response.data['detail'] == 'No fields provided'
 
     def test_condition_on_aggregate_fails(self):
         self.login_as(user=self.user)
