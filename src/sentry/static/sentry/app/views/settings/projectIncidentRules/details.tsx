@@ -6,9 +6,8 @@ import {t} from 'app/locale';
 import AsyncView, {AsyncViewState} from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
+import {IncidentRule} from './types';
 import RuleForm from './ruleForm';
-
-type IncidentRule = {};
 
 type State = {
   rule: IncidentRule;
