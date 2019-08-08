@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 from collections import namedtuple, defaultdict
+from copy import deepcopy
 from datetime import datetime
 
 import six
@@ -142,9 +143,8 @@ SEARCH_MAP = dict({
     'first_seen': 'first_seen',
     'last_seen': 'last_seen',
     'times_seen': 'times_seen',
-    # OrganizationEvents aggregations
-    'event_count': 'event_count',
-    'user_count': 'user_count',
+    # TODO(mark) figure out how to safelist aggregate functions/field aliases
+    # so they can be used in conditions
 }, **SENTRY_SNUBA_MAP)
 no_conversion = set(['project_id', 'start', 'end'])
 
@@ -215,9 +215,9 @@ class SearchVisitor(NodeVisitor):
         'device.battery_level', 'device.charging', 'device.online',
         'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
         'stack.in_app', 'stack.lineno', 'stack.stack_level',
-        # OrganizationEvents aggregations
-        'event_count', 'user_count',
-
+        'duration',
+        # TODO(mark) figure out how to safelist aggregate functions/field aliases
+        # so they can be used in conditions
     ])
     date_keys = set([
         'start', 'end', 'first_seen', 'last_seen', 'time', 'timestamp',
@@ -662,3 +662,150 @@ def get_snuba_query_args(query=None, params=None):
             kwargs['has_boolean_terms'] = True
             kwargs['conditions'].append(convert_search_boolean_to_snuba_query(term))
     return kwargs
+
+
+FIELD_ALIASES = {
+    'issue_title': {
+        'aggregations': [['anyHeavy', 'title', 'issue_title']],
+    },
+    'last_seen': {
+        'aggregations': [['max', 'timestamp', 'last_seen']],
+    },
+    'latest_event': {
+        'fields': [
+            ['argMax', ['id', 'timestamp'], 'latest_event'],
+        ],
+    },
+    'project': {
+        'fields': ['project.id'],
+    },
+    'user': {
+        'fields': ['user.id', 'user.name', 'user.username', 'user.email', 'user.ip'],
+    }
+    # TODO(mark) Add rpm alias.
+}
+
+VALID_AGGREGATES = {
+    'count_unique': {
+        'snuba_name': 'uniq',
+        'fields': '*',
+    },
+    'count': {
+        'snuba_name': 'count',
+        'fields': '*'
+    },
+    'avg': {
+        'snuba_name': 'avg',
+        'fields': ['issue.id', 'duration'],
+    },
+    'min': {
+        'snuba_name': 'min',
+        'fields': ['timestamp', 'issue.id', 'duration'],
+    },
+    'max': {
+        'snuba_name': 'max',
+        'fields': ['timestamp', 'issue.id', 'duration'],
+    },
+    'sum': {
+        'snuba_name': 'sum',
+        'fields': ['duration'],
+    },
+    # This doesn't work yet, but is an illustration of how it could work
+    'p75': {
+        'snuba_name': 'quantileTiming(0.75)',
+        'fields': ['duration'],
+    },
+}
+
+AGGREGATE_PATTERN = re.compile(r'^(?P<function>[^\(]+)\((?P<column>[a-z\._+]+)\)$')
+
+
+def validate_aggregate(field, match):
+    function_name = match.group('function')
+    if function_name not in VALID_AGGREGATES:
+        raise InvalidSearchQuery("Unknown aggregate function '%s'" % field)
+
+    function_data = VALID_AGGREGATES[function_name]
+    column = match.group('column')
+    if column not in function_data['fields'] and function_data['fields'] != '*':
+        raise InvalidSearchQuery(
+            "Invalid column '%s' in aggregate function '%s'" % (column, function_name))
+
+
+def validate_orderby(orderby, fields):
+    orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    for column in orderby:
+        column = column.lstrip('-')
+        if column not in fields:
+            raise InvalidSearchQuery('Cannot order by an field that is not selected.')
+
+
+def resolve_field_list(fields, snuba_args):
+    """
+    Expand a list of fields based on aliases and aggregate functions.
+
+    Returns a dist of aggregations, selected_columns, and
+    groupby that can be merged into the result of get_snuba_query_args()
+    to build a more complete snuba query based on event search conventions.
+    """
+    # If project.name is requested, get the project.id from Snuba so we
+    # can use this to look up the name in Sentry
+    if 'project.name' in fields:
+        fields.remove('project.name')
+        if 'project.id' not in fields:
+            fields.append('project.id')
+
+    aggregations = []
+    groupby = []
+    columns = []
+    for field in fields:
+        if field in FIELD_ALIASES:
+            special_field = deepcopy(FIELD_ALIASES[field])
+            columns.extend(special_field.get('fields', []))
+            aggregations.extend(special_field.get('aggregations', []))
+            continue
+
+        # Basic fields don't require additional validation. They could be tag
+        # names which we have no way of validating at this point.
+        match = AGGREGATE_PATTERN.search(field)
+        if not match:
+            columns.append(field)
+            continue
+
+        validate_aggregate(field, match)
+        aggregations.append([
+            VALID_AGGREGATES[match.group('function')]['snuba_name'],
+            match.group('column'),
+            u'{}_{}'.format(match.group('function'), match.group('column'))
+        ])
+
+    rollup = snuba_args.get('rollup')
+    if not rollup:
+        # Ensure fields we require to build a functioning interface
+        # are present. We don't add fields when using a rollup as the additional fields
+        # would be aggregated away.
+        if 'project.id' not in columns:
+            columns.append('project.id')
+        if not aggregations and 'id' not in columns:
+            columns.append('id')
+        if aggregations and 'latest_event' not in fields:
+            columns.extend(deepcopy(FIELD_ALIASES['latest_event']['fields']))
+
+    basic_fields = [col for col in columns if isinstance(col, six.string_types)]
+    if rollup and basic_fields:
+        raise InvalidSearchQuery('You cannot combine rollup with non-aggregate fields')
+
+    orderby = snuba_args.get('orderby')
+    if orderby:
+        validate_orderby(orderby, fields)
+
+    # If aggregations are present all basic fields
+    # need to be added to the group by so that the query is valid.
+    if aggregations:
+        groupby.extend(basic_fields)
+
+    return {
+        'selected_columns': columns,
+        'aggregations': aggregations,
+        'groupby': groupby,
+    }
