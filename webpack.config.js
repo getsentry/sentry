@@ -2,8 +2,9 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
+
+const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -12,6 +13,8 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+
+const babelConfig = require('./babel.config');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -272,6 +275,7 @@ const appConfig = {
     ],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     /**
      * Used to make our lodash modules even smaller
      */
