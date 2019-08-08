@@ -200,15 +200,54 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 2
         assert response.data[0] == {
             'project.id': project.id,
+            'project.name': project.slug,
             'issue.id': event1.group_id,
             'count_id': 2,
             'latest_event': event1.event_id,
         }
         assert response.data[1] == {
             'project.id': project.id,
+            'project.name': project.slug,
             'issue.id': event2.group_id,
             'count_id': 1,
             'latest_event': event2.event_id,
+        }
+
+    def test_automatic_id_and_project(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
+            },
+            project_id=project.id,
+        )
+        event1 = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
+            },
+            project_id=project.id,
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['count(id)'],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'project.name': project.slug,
+            'count_id': 2,
+            'latest_event': event1.event_id,
         }
 
     def test_orderby(self):
@@ -366,6 +405,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['issue.id'] == event1.group_id
         assert response.data[0]['count_id'] == 1
         assert response.data[0]['count_unique_user'] == 1
+        assert 'latest_event' in response.data[0]
+        assert 'project.name' in response.data[0]
+        assert 'projectid' not in response.data[0]
+        assert 'project.id' not in response.data[0]
         assert response.data[1]['issue.id'] == event2.group_id
         assert response.data[1]['count_id'] == 2
         assert response.data[1]['count_unique_user'] == 2

@@ -122,16 +122,22 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def handle_results(self, request, organization, project_ids, results):
+        if not results:
+            return results
+
+        first_row = results[0]
+        if not ('project.id' in first_row or 'projectid' in first_row):
+            return results
+
+        fields = request.GET.getlist('field')
         projects = {p['id']: p['slug'] for p in Project.objects.filter(
             organization=organization,
             id__in=project_ids).values('id', 'slug')}
-
-        fields = request.GET.getlist('field')
-
-        if 'project.name' in fields or 'project' in fields:
-            for result in results:
-                result['project.name'] = projects[result['project.id']]
-                if 'project.id' not in fields:
-                    del result['project.id']
+        for result in results:
+            for key in ('projectid', 'project.id'):
+                if key in result:
+                    result['project.name'] = projects[result[key]]
+                    if key not in fields:
+                        del result[key]
 
         return results
