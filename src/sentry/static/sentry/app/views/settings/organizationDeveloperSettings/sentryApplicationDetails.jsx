@@ -208,51 +208,51 @@ export default class SentryApplicationDetails extends AsyncView {
 
           <PermissionsObserver scopes={scopes} events={events} />
 
+          {app && app.status === 'internal' && (
+            <Panel>
+              <PanelHeader hasButtons>
+                {t('Tokens')}
+                <Button
+                  size="xsmall"
+                  icon="icon-circle-add"
+                  onClick={evt => this.onAddToken(evt)}
+                  data-test-id="token-add"
+                >
+                  {t('New Token')}
+                </Button>
+              </PanelHeader>
+              <PanelBody>{this.renderTokens()}</PanelBody>
+            </Panel>
+          )}
+
           {app && (
-            <React.Fragment>
-              {app.status === 'internal' ? (
-                <Panel>
-                  <PanelHeader hasButtons>
-                    {t('Tokens')}
-                    <Button
-                      size="xsmall"
-                      icon="icon-circle-add"
-                      onClick={evt => this.onAddToken(evt)}
-                      data-test-id="token-add"
-                    >
-                      {t('New Token')}
-                    </Button>
-                  </PanelHeader>
-                  <PanelBody>{this.renderTokens()}</PanelBody>
-                </Panel>
-              ) : (
-                <Panel>
-                  <PanelHeader>{t('Credentials')}</PanelHeader>
-                  <PanelBody>
-                    <FormField name="clientId" label="Client ID" overflow>
-                      {({value}) => {
-                        return (
-                          <TextCopyInput>
-                            {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                          </TextCopyInput>
-                        );
-                      }}
-                    </FormField>
-                    <FormField overflow name="clientSecret" label="Client Secret">
-                      {({value}) => {
-                        return value ? (
-                          <TextCopyInput>
-                            {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                          </TextCopyInput>
-                        ) : (
-                          <em>hidden</em>
-                        );
-                      }}
-                    </FormField>
-                  </PanelBody>
-                </Panel>
-              )}
-            </React.Fragment>
+            <Panel>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
+              <PanelBody>
+                {app.status !== 'internal' && (
+                  <FormField name="clientId" label="Client ID" overflow>
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                )}
+                <FormField overflow name="clientSecret" label="Client Secret">
+                  {({value}) => {
+                    return value ? (
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                      </TextCopyInput>
+                    ) : (
+                      <em>hidden</em>
+                    );
+                  }}
+                </FormField>
+              </PanelBody>
+            </Panel>
           )}
         </Form>
       </div>
