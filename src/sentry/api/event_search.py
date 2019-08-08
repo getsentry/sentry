@@ -696,15 +696,15 @@ VALID_AGGREGATES = {
     },
     'avg': {
         'snuba_name': 'avg',
-        'fields': ['issue.id', 'duration'],
+        'fields': ['duration'],
     },
     'min': {
         'snuba_name': 'min',
-        'fields': ['timestamp', 'issue.id', 'duration'],
+        'fields': ['timestamp', 'duration'],
     },
     'max': {
         'snuba_name': 'max',
-        'fields': ['timestamp', 'issue.id', 'duration'],
+        'fields': ['timestamp', 'duration'],
     },
     'sum': {
         'snuba_name': 'sum',
