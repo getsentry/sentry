@@ -51,7 +51,6 @@ const Container = styled('div')`
   height: ${p => p.theme.headerSelectorRowHeight}px;
   flex-shrink: 0;
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${CheckboxFancy} {
     opacity: ${p => (p.isChecked ? 1 : 0.33)};
   }

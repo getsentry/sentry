@@ -67,7 +67,6 @@ const getMenuItemStyles = p => css`
     outline: none;
   }
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${OrgSummary} {
     padding-left: 0;
     padding-right: 0;

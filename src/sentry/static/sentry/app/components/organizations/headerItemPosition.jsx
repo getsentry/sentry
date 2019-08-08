@@ -9,7 +9,6 @@ const HeaderItemPosition = styled('div')`
   height: 100%;
   min-width: 0;
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${AutoCompleteRoot}, ${TimeRangeRoot} {
     flex: 1;
     min-width: 0;

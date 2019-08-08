@@ -342,7 +342,6 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   justify-content: flex-end;
 
   /* manually align menu underneath dropdown caret */
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${DropdownBubble} {
     right: -14px;
   }

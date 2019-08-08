@@ -49,7 +49,6 @@ const EmptyStreamWrapper = styled('div')`
     }
   }
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${HeroIcon} {
     margin-bottom: 20px;
   }

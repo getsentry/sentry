@@ -109,7 +109,6 @@ const Sidebar = styled('div')`
   border-left: 1px solid ${p => p.theme.borderLight};
   background-color: ${p => p.theme.white};
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${PageContent} {
     padding-top: ${space(3)};
   }
