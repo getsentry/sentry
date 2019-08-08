@@ -1,13 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import datetime
-
 from sentry.utils import snuba
 from sentry.models import SnubaEvent
 from sentry.eventstore.base import EventStorage
 
-DEFAULT_START = datetime.utcfromtimestamp(0)  # will be clamped to project retention
-DEFAULT_END = datetime.utcnow()  # will be clamped to project retention
 DEFAULT_ORDERBY = ['-timestamp', '-event_id']
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
@@ -20,8 +16,8 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        start=DEFAULT_START,
-        end=DEFAULT_END,
+        start,
+        end,
         additional_columns=None,
         conditions=None,
         filter_keys=None,
