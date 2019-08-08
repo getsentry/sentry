@@ -38,21 +38,93 @@ class OrganizationDeveloperSettings extends AsyncView {
     publishRequestSentryApp(this.api, app);
   };
 
-  renderBody() {
+  renderApplicationRow = app => {
     const {organization} = this.props;
+    return (
+      <SentryApplicationRow
+        key={app.uuid}
+        app={app}
+        organization={organization}
+        onRemoveApp={this.removeApp}
+        onPublishRequest={this.publishRequest}
+        showInstallationStatus={false}
+      />
+    );
+  };
+
+  renderInternalIntegrations() {
     const {orgId} = this.props.params;
+    const integrations = this.state.applications.filter(app => app.status === 'internal');
+    const isEmpty = integrations.length === 0;
+
     const action = (
       <Button
         priority="primary"
         size="small"
-        to={`/settings/${orgId}/developer-settings/new/`}
+        to={`/settings/${orgId}/developer-settings/new-internal/`}
         icon="icon-circle-add"
       >
-        {t('Create New Integration')}
+        {t('New Internal Integration')}
       </Button>
     );
 
-    const isEmpty = this.state.applications.length === 0;
+    return (
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          {t('Internal Integrations')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {!isEmpty ? (
+            integrations.map(this.renderApplicationRow)
+          ) : (
+            <EmptyMessage>
+              {t('No internal integrations have been created yet.')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  renderExernalIntegrations() {
+    const {orgId} = this.props.params;
+    const integrations = this.state.applications.filter(app => app.status !== 'internal');
+    const isEmpty = integrations.length === 0;
+
+    const action = (
+      <Button
+        priority="primary"
+        size="small"
+        to={`/settings/${orgId}/developer-settings/new-public/`}
+        icon="icon-circle-add"
+      >
+        {t('New Public Integration')}
+      </Button>
+    );
+
+    return (
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          {t('Public Integrations')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {!isEmpty ? (
+            integrations.map(this.renderApplicationRow)
+          ) : (
+            <EmptyMessage>
+              {t('No public integrations have been created yet.')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  renderBody() {
+    const {organization} = this.props;
+
     if (!organization.features.includes('sentry-apps')) {
       return (
         <div>
@@ -72,33 +144,14 @@ class OrganizationDeveloperSettings extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Developer Settings')} action={action} />
+        <SettingsPageHeader title={t('Developer Settings')} />
         <AlertLink to="https://docs.sentry.io/workflow/integrations/integration-platform/">
           {t(
             'Have questions about the Integration Platform? Learn more about it in our docs.'
           )}
         </AlertLink>
-        <Panel>
-          <PanelHeader>{t('Integrations')}</PanelHeader>
-          <PanelBody>
-            {!isEmpty ? (
-              this.state.applications.map(app => {
-                return (
-                  <SentryApplicationRow
-                    key={app.uuid}
-                    app={app}
-                    organization={organization}
-                    onRemoveApp={this.removeApp}
-                    onPublishRequest={this.publishRequest}
-                    showPublishStatus={true}
-                  />
-                );
-              })
-            ) : (
-              <EmptyMessage>{t('No integrations have been created yet.')}</EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
+        {this.renderExernalIntegrations()}
+        {this.renderInternalIntegrations()}
       </div>
     );
   }

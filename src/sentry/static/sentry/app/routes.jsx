@@ -645,8 +645,16 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="New Integration"
-          path="new/"
+          name="New Public Integration"
+          path="new-public/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Internal Integration"
+          path="new-internal/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           }
