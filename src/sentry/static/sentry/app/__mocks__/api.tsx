@@ -1,4 +1,5 @@
 import * as ImportedClient from 'app/api';
+
 const RealClient: typeof ImportedClient = jest.requireActual('app/api');
 
 export class Request {}
