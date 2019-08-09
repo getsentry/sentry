@@ -651,7 +651,7 @@ def get_snuba_query_args(query=None, params=None, legacy_format=False):
             elif snuba_name == 'start':
                 start = term.value.value
             elif snuba_name == 'end':
-                end == term.value.value
+                end = term.value.value
             elif snuba_name in ('project_id', 'issue'):
                 value = term.value.value
                 if isinstance(value, int):
