@@ -164,7 +164,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
+                'timestamp': self.two_min_ago,
                 'fingerprint': ['group_1'],
             },
             project_id=project.id,
@@ -198,6 +198,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
+        print response.content
         assert response.data[0] == {
             'project.id': project.id,
             'project.name': project.slug,
@@ -219,12 +220,12 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': 'a' * 32,
-                'timestamp': self.min_ago,
+                'timestamp': self.two_min_ago,
                 'fingerprint': ['group_1'],
             },
             project_id=project.id,
         )
-        event1 = self.store_event(
+        event = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -247,7 +248,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0] == {
             'project.name': project.slug,
             'count_id': 2,
-            'latest_event': event1.event_id,
+            'latest_event': event.event_id,
         }
 
     def test_orderby(self):
