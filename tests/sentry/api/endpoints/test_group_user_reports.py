@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from exam import fixture
-import logging
 
 from sentry.models import Environment, GroupStatus, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
