@@ -6,26 +6,14 @@ from django.utils import timezone
 from uuid import uuid4
 
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.models import EventUser, Environment, GroupStatus, UserReport
-# from sentry.event_manager import EventManager
+from sentry.models import EventUser, GroupStatus, UserReport
 
 
-class ProjectUserReportTestCase(APITestCase, SnubaTestCase):
-    def make_environment(self, project, name='production'):
-        environment = Environment.objects.create(
-            project_id=project.id,
-            organization_id=project.organization_id,
-            name=name,
-        )
-        environment.add_project(project)
-        return environment
-
-
-class ProjectUserReportListTest(ProjectUserReportTestCase):
+class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectUserReportListTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.environment = self.make_environment(self.project)
+        self.environment = self.create_environment(project=self.project, name='production')
         self.event = self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -34,7 +22,7 @@ class ProjectUserReportListTest(ProjectUserReportTestCase):
             },
             project_id=self.project.id
         )
-        self.environment2 = self.make_environment(self.project, name='staging')
+        self.environment2 = self.create_environment(project=self.project, name='staging')
         self.event2 = self.store_event(
             data={
                 'event_id': 'b' * 32,
@@ -188,14 +176,14 @@ class ProjectUserReportListTest(ProjectUserReportTestCase):
         assert response.data == []
 
 
-class CreateProjectUserReportTest(ProjectUserReportTestCase):
+class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(CreateProjectUserReportTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.hour_ago = (timezone.now() - timedelta(minutes=60)).isoformat()[:19]
 
         self.project = self.create_project()
-        self.environment = self.make_environment(self.project)
+        self.environment = self.create_environment(project=self.project)
         self.event = self.store_event(
             data={
                 'timestamp': self.min_ago,
