@@ -3,7 +3,22 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-class MenuItem extends React.Component {
+type Props = {
+  header?: boolean;
+  divider?: boolean;
+  title?: string;
+  onSelect?: (eventKey: any) => void;
+  eventKey?: any;
+  isActive?: boolean;
+  noAnchor?: boolean;
+  href?: string;
+  to?: string;
+  query?: object;
+  className?: string;
+  onClick?: (evt: React.MouseEvent) => void;
+};
+
+class MenuItem extends React.Component<Props> {
   static propTypes = {
     header: PropTypes.bool,
     divider: PropTypes.bool,
@@ -17,26 +32,25 @@ class MenuItem extends React.Component {
     // router link
     to: PropTypes.string,
     query: PropTypes.object,
-    linkClassName: PropTypes.string,
+    className: PropTypes.string,
     onClick: PropTypes.func,
   };
 
-  handleClick = e => {
+  handleClick = (e: React.MouseEvent): void => {
     if (this.props.onSelect) {
       e.preventDefault();
       this.props.onSelect(this.props.eventKey);
     }
   };
 
-  renderAnchor = () => {
+  renderAnchor = (): React.ReactNode => {
     if (this.props.to) {
       return (
         <Link
           to={{pathname: this.props.to, query: this.props.query}}
           title={this.props.title}
           onClick={this.handleClick}
-          className={this.props.linkClassName}
-          tabIndex="-1"
+          tabIndex={-1}
         >
           {this.props.children}
         </Link>
@@ -47,8 +61,7 @@ class MenuItem extends React.Component {
         title={this.props.title}
         onClick={this.handleClick}
         href={this.props.href}
-        className={this.props.linkClassName}
-        tabIndex="-1"
+        tabIndex={-1}
       >
         {this.props.children}
       </a>
@@ -62,7 +75,7 @@ class MenuItem extends React.Component {
       active: this.props.isActive,
     };
 
-    let children = null;
+    let children: React.ReactNode | null = null;
     if (this.props.noAnchor) {
       children = this.props.children;
     } else if (this.props.header) {
@@ -74,8 +87,6 @@ class MenuItem extends React.Component {
     return (
       <li
         role="presentation"
-        title={null}
-        href={null}
         className={classNames(this.props.className, classes)}
         onClick={this.props.onClick}
       >
