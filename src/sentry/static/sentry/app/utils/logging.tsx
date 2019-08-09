@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/browser';
 
-export function logException(ex, context) {
+export function logException(ex: Error, context: any): void {
   Sentry.withScope(scope => {
     if (context) {
       scope.setExtra('context', context);

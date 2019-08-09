@@ -15,7 +15,12 @@ import {getUtcDateString} from 'app/utils/dates';
  * @param {Boolean} [options.shouldDoublePeriod] Doubles the given period (useful for getting previous period data)
  * @return {Object} Returns an object with either a period or start/end dates ({statsPeriod: string} or {start: string, end: string})
  */
-export const getPeriod = ({period, start, end}, {shouldDoublePeriod} = {}) => {
+type Options = {shouldDoublePeriod?: boolean};
+
+export const getPeriod = (
+  {period, start, end},
+  {shouldDoublePeriod}: Options = {}
+): {start: string; end: string} | {statsPeriod: string} => {
   if (!period && !start && !end) {
     period = DEFAULT_STATS_PERIOD;
   }
