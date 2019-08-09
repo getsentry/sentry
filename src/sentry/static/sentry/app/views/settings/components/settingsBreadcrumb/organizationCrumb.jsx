@@ -30,9 +30,15 @@ class OrganizationCrumb extends React.Component {
     // e.g. if you are on API details, we want the API listing
     // This fails if our route tree is not nested
     const hasProjectParam = !!params.projectId;
-    const destination = hasProjectParam
+    let destination = hasProjectParam
       ? route
       : findFirstRouteWithoutRouteParam(routes.slice(routes.indexOf(route)));
+
+    // It's possible there is no route without route params (e.g. organization settings index),
+    // in which case, we can use the org settings index route (e.g. `route`)
+    if (!hasProjectParam && typeof destination === 'undefined') {
+      destination = route;
+    }
 
     browserHistory.push(
       recreateRoute(destination, {
