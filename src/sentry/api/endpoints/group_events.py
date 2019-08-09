@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.event_search import get_snuba_query_args
@@ -92,8 +92,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params['environment'] = [env.name for env in environments]
 
         full = request.GET.get('full', False)
-        snuba_args = get_snuba_query_args(request.GET.get(
-            'query', None, legacy_format=True), params)
+        snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
 
         # TODO(lb): remove once boolean search is fully functional
         if snuba_args:
@@ -106,15 +105,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 raise GroupEventsError(
                     'Boolean search operator OR and AND not allowed in this search.')
 
-        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
-
         data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            selected_columns=snuba_cols,
-            orderby='-timestamp',
+            eventstore.get_events,
+            filter=snuba_args,
+            additional_columns=None if full else eventstore.full_columns,
             referrer='api.group-events',
-            **snuba_args
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
