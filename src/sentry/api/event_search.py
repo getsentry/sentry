@@ -607,6 +607,28 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
+class SnubaQueryFilter:
+    conditions = []
+    filter_keys = {}
+    start = None
+    end = None
+
+    def __init__(self, start=None, end=None, conditions=None, filter_keys=None):
+        pass
+
+    def update_start(self, start):
+        self.start = start
+
+    def update_end(self, end):
+        self.end = end
+
+    def update_conditions(self, conditions):
+        self.conditions = conditions
+
+    def update_filter_keys(self, filter_keys):
+        self.filter_keys = filter_keys
+
+
 def get_snuba_query_args(query=None, params=None):
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
@@ -622,10 +644,10 @@ def get_snuba_query_args(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {
-        'conditions': [],
-        'filter_keys': defaultdict(list),
-    }
+    start = None
+    end = None
+    conditions = []
+    filter_keys = defaultdict(list)
 
     projects = {}
     has_project_term = any(
@@ -645,20 +667,23 @@ def get_snuba_query_args(query=None, params=None):
             snuba_name = term.key.snuba_name
             if term.key.name == PROJECT_KEY:
                 condition = ['project_id', '=', projects.get(term.value.value)]
-                kwargs['conditions'].append(condition)
+                conditions.append(condition)
 
-            elif snuba_name in ('start', 'end'):
-                kwargs[snuba_name] = term.value.value
+            elif snuba_name == 'start':
+                start = term.value.value
+            elif snuba_name == 'end':
+                end == term.value.value
             elif snuba_name in ('project_id', 'issue'):
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs['filter_keys'][snuba_name].extend(value)
+                filter_keys[snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
-                kwargs['conditions'].append(converted_filter)
+                conditions.append(converted_filter)
         else:  # SearchBoolean
             # TODO(lb): remove when boolean terms fully functional
-            kwargs['has_boolean_terms'] = True
-            kwargs['conditions'].append(convert_search_boolean_to_snuba_query(term))
-    return kwargs
+            # kwargs['has_boolean_terms'] = True
+            conditions.append(convert_search_boolean_to_snuba_query(term))
+
+    return SnubaQueryFilter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)
