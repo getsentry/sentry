@@ -47,10 +47,9 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 'id', 'slug'))
 
         try:
-            event = eventstore.get_events(filter_keys={
-                'project_id': project_slugs_by_id.keys(),
-                'event_id': event_id,
-            }, limit=1)[0]
+            filter = eventstore.filter.Filter(
+                filter_keys={'project_id': project_slugs_by_id.keys(), 'event_id': event_id})
+            event = eventstore.get_events(filter=filter, limit=1)[0]
         except IndexError:
             raise ResourceDoesNotExist()
         else:

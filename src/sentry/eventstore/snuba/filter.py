@@ -13,6 +13,12 @@ class Filter:
         self.conditions = conditions
         self.filter_keys = filter_keys
 
+    def from_project_ids(self, project_ids):
+        """
+        Get a filter given a set of project_ids
+        """
+        return Filter(filter_keys={'project_ids': [project_ids]})
+
     def update_start(self, start):
         self.start = start
 

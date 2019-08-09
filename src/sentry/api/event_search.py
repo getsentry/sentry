@@ -12,7 +12,7 @@ from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 
-from sentry.eventstore import Filter
+from sentry.eventstore.filter import Filter
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
