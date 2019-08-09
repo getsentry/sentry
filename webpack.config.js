@@ -167,12 +167,12 @@ const localeRestrictionPlugins = [
 const cacheGroups = {
   vendors: {
     name: 'vendor',
-
-    /**
-     * Do not split platformicons into its own (css) bundle -- keep it in the `sentry` css bundle
-     * TODO: kill platformicons css completely
-     */
-    test: /[\\/]node_modules[\\/](!platformicons)[\\/]/,
+    // This `platformicons` check is required otherwise it will get put into this chunk instead
+    // of `sentry.css` bundle
+    // TODO(platformicons): Simplify this if we move platformicons into repo
+    test: module =>
+      !/platformicons/.test(module.resource) &&
+      /[\\/]node_modules[\\/]/.test(module.resource),
     priority: -10,
     enforce: true,
     chunks: 'initial',
@@ -342,6 +342,7 @@ const appConfig = {
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
     },
+
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
