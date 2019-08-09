@@ -8,23 +8,22 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, SnubaEvent
+from sentry.models import Group
 from sentry.search.utils import (
     InvalidQuery,
     parse_query,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
@@ -92,18 +91,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params['environment'] = [env.name for env in environments]
 
         full = request.GET.get('full', False)
-        snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
 
-        # TODO(lb): remove once boolean search is fully functional
-        if snuba_args:
-            has_boolean_op_flag = features.has(
-                'organizations:boolean-search',
-                group.project.organization,
-                actor=request.user
-            )
-            if not has_boolean_op_flag:
-                raise GroupEventsError(
-                    'Boolean search operator OR and AND not allowed in this search.')
+        try:
+            snuba_args = get_snuba_query_args(request.GET.get(
+                'query', None), params, raise_boolean_search_error=True)
+        except InvalidSearchQuery as exc:
+            raise GroupEventsError(exc.message)
 
         data_fn = partial(
             eventstore.get_events,
@@ -116,7 +109,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
+                results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 

@@ -5,7 +5,6 @@ from rest_framework.exceptions import PermissionDenied
 import six
 from enum import Enum
 
-from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.models.project import Project
@@ -63,7 +62,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params['project_id'] = list(set([p.id for p in projects] + params['project_id']))
 
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params, legacy_format=True)
+            snuba_args = get_snuba_query_args(
+                query=query,
+                params=params,
+                legacy_format=True,
+                raise_boolean_search_error=True)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
@@ -108,15 +111,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if orderby and snuba.valid_orderby(orderby, SPECIAL_FIELDS) and 'orderby' not in snuba_args:
             snuba_args['orderby'] = orderby
 
-        # TODO(lb): remove once boolean search is fully functional
-        has_boolean_op_flag = features.has(
-            'organizations:boolean-search',
-            organization,
-            actor=request.user
-        )
-        if not has_boolean_op_flag:
-            raise OrganizationEventsError(
-                'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
     def get_snuba_query_args_legacy(self, request, organization):
@@ -150,15 +144,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # Filter out special aggregates.
         self._filter_unspecified_special_fields_in_conditions(snuba_args, set())
 
-        # TODO(lb): remove once boolean search is fully functional
-        has_boolean_op_flag = features.has(
-            'organizations:boolean-search',
-            organization,
-            actor=request.user
-        )
-        if not has_boolean_op_flag:
-            raise OrganizationEventsError(
-                'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
     def next_event_id(self, *args):

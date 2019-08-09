@@ -20,7 +20,9 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
             params=snuba_params)
 
         results = eventstore.get_events(
-            filter=filter, referrer=referrer, columns=eventstore.full_columns)
+            filter=filter,
+            referrer=referrer,
+            additional_columns=eventstore.full_columns)
 
         if len(results) == 1:
             response = Response(
