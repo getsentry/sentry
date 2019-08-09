@@ -11,7 +11,6 @@ from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
-
 from sentry.eventstore.filter import Filter
 from sentry.search.utils import (
     parse_datetime_range,
