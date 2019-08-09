@@ -672,8 +672,10 @@ FIELD_ALIASES = {
         'aggregations': [['max', 'timestamp', 'last_seen']],
     },
     'latest_event': {
-        'fields': [
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
+        'aggregations': [
+            # TODO(mark) This is a hack to work around jsonschema limitations
+            # in snuba.
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
         ],
     },
     'project': {
@@ -717,7 +719,7 @@ VALID_AGGREGATES = {
     },
 }
 
-AGGREGATE_PATTERN = re.compile(r'^(?P<function>[^\(]+)\((?P<column>[a-z\._+]+)\)$')
+AGGREGATE_PATTERN = re.compile(r'^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$')
 
 
 def validate_aggregate(field, match):
@@ -779,7 +781,7 @@ def resolve_field_list(fields, snuba_args):
         aggregations.append([
             VALID_AGGREGATES[match.group('function')]['snuba_name'],
             match.group('column'),
-            u'{}_{}'.format(match.group('function'), match.group('column'))
+            u'{}_{}'.format(match.group('function'), match.group('column')).rstrip('_')
         ])
 
     rollup = snuba_args.get('rollup')
@@ -794,22 +796,21 @@ def resolve_field_list(fields, snuba_args):
             columns.append('id')
             columns.append('project.id')
         if aggregations and 'latest_event' not in fields:
-            columns.extend(deepcopy(FIELD_ALIASES['latest_event']['fields']))
+            aggregations.extend(deepcopy(FIELD_ALIASES['latest_event']['aggregations']))
         if aggregations and 'project.id' not in columns:
-            columns.append(['argMax', ['project_id', 'timestamp'], 'projectid'])
+            aggregations.append(['argMax(project_id, timestamp)', '', 'projectid'])
 
-    basic_fields = [col for col in columns if isinstance(col, six.string_types)]
-    if rollup and basic_fields:
-        raise InvalidSearchQuery('You cannot combine rollup with non-aggregate fields')
+    if rollup and columns and not aggregations:
+        raise InvalidSearchQuery('You cannot use rollup without an aggregate field.')
 
     orderby = snuba_args.get('orderby')
     if orderby:
         validate_orderby(orderby, fields)
 
-    # If aggregations are present all basic fields
+    # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(basic_fields)
+        groupby.extend(columns)
 
     return {
         'selected_columns': columns,

@@ -30,8 +30,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args(request, organization, params)
-            fields = snuba_args.get('selected_columns')
-            if not fields:
+            if not snuba_args.get('selected_columns') and not snuba_args.get('aggregations'):
                 return Response({'detail': 'No fields provided'}, status=400)
 
         except OrganizationEventsError as exc:

@@ -1228,11 +1228,11 @@ class ResolveFieldListTest(unittest.TestCase):
         # Automatic fields should be inserted
         assert result['selected_columns'] == [
             'message',
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
-            ['argMax', ['project_id', 'timestamp'], 'projectid'],
         ]
         assert result['aggregations'] == [
-            ['anyHeavy', 'title', 'issue_title']
+            ['anyHeavy', 'title', 'issue_title'],
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
+            ['argMax(project_id, timestamp)', '', 'projectid'],
         ]
         assert result['groupby'] == ['message']
 
@@ -1240,7 +1240,6 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ['issue_title', 'last_seen', 'latest_event', 'project', 'user', 'message']
         result = resolve_field_list(fields, {})
         assert result['selected_columns'] == [
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
             'project.id',
             'user.id',
             'user.name',
@@ -1251,7 +1250,8 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result['aggregations'] == [
             ['anyHeavy', 'title', 'issue_title'],
-            ['max', 'timestamp', 'last_seen']
+            ['max', 'timestamp', 'last_seen'],
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
         ]
         assert result['groupby'] == [
             'project.id',
@@ -1267,14 +1267,13 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ['count_unique(user)', 'count(id)', 'avg(duration)']
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
-        assert result['selected_columns'] == [
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
-            ['argMax', ['project_id', 'timestamp'], 'projectid'],
-        ]
+        assert result['selected_columns'] == []
         assert result['aggregations'] == [
             ['uniq', 'user', 'count_unique_user'],
             ['count', 'id', 'count_id'],
             ['avg', 'duration', 'avg_duration'],
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
+            ['argMax(project_id, timestamp)', '', 'projectid'],
         ]
         assert result['groupby'] == []
 
@@ -1301,7 +1300,18 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ['message']
             snuba_args = {'rollup': 15}
             resolve_field_list(fields, snuba_args)
-        assert 'rollup with non-aggregate' in six.text_type(err)
+        assert 'rollup without an aggregate' in six.text_type(err)
+
+    def test_rollup_with_basic_and_aggregated_fields(self):
+        fields = ['message', 'count()']
+        snuba_args = {'rollup': 15}
+        result = resolve_field_list(fields, snuba_args)
+
+        assert result['aggregations'] == [
+            ['count', '', 'count']
+        ]
+        assert result['selected_columns'] == ['message']
+        assert result['groupby'] == ['message']
 
     def test_rollup_with_aggregated_fields(self):
         fields = ['count_unique(user)']
@@ -1332,11 +1342,10 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ['issue_title']
         snuba_args = {'orderby': '-issue_title'}
         result = resolve_field_list(fields, snuba_args)
-        assert result['selected_columns'] == [
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
-            ['argMax', ['project_id', 'timestamp'], 'projectid'],
-        ]
+        assert result['selected_columns'] == []
         assert result['aggregations'] == [
             ['anyHeavy', 'title', 'issue_title'],
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
+            ['argMax(project_id, timestamp)', '', 'projectid'],
         ]
         assert result['groupby'] == []
