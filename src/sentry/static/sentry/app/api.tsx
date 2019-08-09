@@ -92,7 +92,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 type RequestCallbacks = {
   success?: (data: any, textStatus?: string, xhr?: JQueryXHR) => void;
   complete?: (jqXHR: JQueryXHR, textStatus: string) => void;
-  // TODO: refine this type later
+  // TODO(ts): Update this when sentry is mostly migrated to TS
   error?: FunctionCallback;
 };
 
