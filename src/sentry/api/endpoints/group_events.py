@@ -92,7 +92,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params['environment'] = [env.name for env in environments]
 
         full = request.GET.get('full', False)
-        snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+        snuba_args = get_snuba_query_args(request.GET.get(
+            'query', None, legacy_format=True), params)
 
         # TODO(lb): remove once boolean search is fully functional
         if snuba_args:
@@ -101,7 +102,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.project.organization,
                 actor=request.user
             )
-            if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+            if not has_boolean_op_flag:
                 raise GroupEventsError(
                     'Boolean search operator OR and AND not allowed in this search.')
 

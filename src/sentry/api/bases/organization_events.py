@@ -63,7 +63,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params['project_id'] = list(set([p.id for p in projects] + params['project_id']))
 
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params)
+            snuba_args = get_snuba_query_args(query=query, params=params, legacy_format=True)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
@@ -114,7 +114,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             organization,
             actor=request.user
         )
-        if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+        if not has_boolean_op_flag:
             raise OrganizationEventsError(
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
@@ -143,7 +143,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         query = request.GET.get('query')
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params)
+            snuba_args = get_snuba_query_args(query=query, params=params, legacy_format=True)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
@@ -156,7 +156,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             organization,
             actor=request.user
         )
-        if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+        if not has_boolean_op_flag:
             raise OrganizationEventsError(
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args

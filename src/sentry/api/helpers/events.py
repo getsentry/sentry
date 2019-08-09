@@ -18,7 +18,7 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
     if event_id:
         snuba_args = get_snuba_query_args(
             query=u'id:{}'.format(event_id),
-            params=snuba_params)
+            params=snuba_params, legacy_format=True)
 
         results = raw_query(
             selected_columns=SnubaEvent.selected_columns,

@@ -9,6 +9,10 @@ DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
 
+class InvalidQuery(Exception):
+    pass
+
+
 class SnubaEventStorage(EventStorage):
     """
     Eventstore backend backed by Snuba
@@ -16,11 +20,8 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        start=None,
-        end=None,
+        filter=None,
         additional_columns=None,
-        conditions=None,
-        filter_keys=None,
         orderby=DEFAULT_ORDERBY,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -30,12 +31,15 @@ class SnubaEventStorage(EventStorage):
         """
         cols = self.__get_columns(additional_columns)
 
+        if not filter:
+            raise InvalidQuery('No filter provided')
+
         result = snuba.raw_query(
-            start=start,
-            end=end,
+            start=filter.start,
+            end=filter.end,
+            conditions=filter.conditions,
+            filter_keys=filter.filter_keys,
             selected_columns=cols,
-            conditions=conditions,
-            filter_keys=filter_keys,
             orderby=orderby,
             limit=limit,
             offset=offset,

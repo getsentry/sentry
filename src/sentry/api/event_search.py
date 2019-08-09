@@ -11,6 +11,8 @@ from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
+
+from sentry.eventstore import Filter
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -607,29 +609,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
-class SnubaQueryFilter:
-    conditions = []
-    filter_keys = {}
-    start = None
-    end = None
-
-    def __init__(self, start=None, end=None, conditions=None, filter_keys=None):
-        pass
-
-    def update_start(self, start):
-        self.start = start
-
-    def update_end(self, end):
-        self.end = end
-
-    def update_conditions(self, conditions):
-        self.conditions = conditions
-
-    def update_filter_keys(self, filter_keys):
-        self.filter_keys = filter_keys
-
-
-def get_snuba_query_args(query=None, params=None):
+def get_snuba_query_args(query=None, params=None, legacy_format=False):
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
     if query is not None:
@@ -682,8 +662,14 @@ def get_snuba_query_args(query=None, params=None):
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 conditions.append(converted_filter)
         else:  # SearchBoolean
-            # TODO(lb): remove when boolean terms fully functional
-            # kwargs['has_boolean_terms'] = True
             conditions.append(convert_search_boolean_to_snuba_query(term))
 
-    return SnubaQueryFilter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)
+    if legacy_format:
+        return {
+            'start': start,
+            'end': end,
+            'conditions': condition,
+            'filter_keys': filter_keys,
+        }
+
+    return Filter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)
