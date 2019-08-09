@@ -2,17 +2,24 @@ import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {EventsStatsData} from 'app/types';
+import {EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
+import EventsRequest from 'app/views/events/utils/eventsRequest';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import IncidentRulesChart from './chart';
 import {AlertRuleAggregations, AlertRuleThresholdType} from './constants';
 
 type Props = {
+  api: any;
   data: EventsStatsData;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {
@@ -43,27 +50,26 @@ class RuleForm extends React.Component<Props, State> {
     this.setState({upperBound});
     this.context.form.setValue('alertThreshold', Math.round(upperBound));
   };
-
   render() {
+    const {api, organization, project} = this.props;
+
     return (
       <React.Fragment>
-        <IncidentRulesChart
-          onChangeUpperBound={this.handleChangeUpperBound}
-          upperBound={this.state.upperBound}
-          data={[
-            {
-              seriesName: 'Test',
-              dataArray: this.props.data.map(([ts, val]) => {
-                return [
-                  ts * 1000,
-                  val.length
-                    ? val.reduce((acc, {count} = {count: 0}) => acc + (count || 0), 0)
-                    : 0,
-                ];
-              }),
-            },
-          ]}
-        />
+        <EventsRequest
+          api={api}
+          organization={organization}
+          project={[parseInt(project.id, 10)]}
+          interval="10m"
+          includePrevious={false}
+        >
+          {({timeseriesData}) => (
+            <IncidentRulesChart
+              onChangeUpperBound={this.handleChangeUpperBound}
+              upperBound={this.state.upperBound}
+              data={timeseriesData}
+            />
+          )}
+        </EventsRequest>
         <JsonForm
           renderHeader={() => {
             return (
@@ -157,6 +163,9 @@ class RuleForm extends React.Component<Props, State> {
 }
 
 type RuleFormContainerProps = {
+  api: any;
+  organization: Organization;
+  project: Project;
   orgId: string;
   projectId: string;
   incidentRuleId?: string;
@@ -164,6 +173,9 @@ type RuleFormContainerProps = {
   onSubmitSuccess?: Function;
 };
 function RuleFormContainer({
+  api,
+  organization,
+  project,
   orgId,
   projectId,
   incidentRuleId,
@@ -185,9 +197,9 @@ function RuleFormContainer({
       saveOnBlur={false}
       onSubmitSuccess={onSubmitSuccess}
     >
-      <RuleForm {...props} />
+      <RuleForm api={api} project={project} organization={organization} {...props} />
     </Form>
   );
 }
 
-export default RuleFormContainer;
+export default withApi(withOrganization(withProject(RuleFormContainer)));

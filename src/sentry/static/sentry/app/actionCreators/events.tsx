@@ -49,13 +49,15 @@ export const doEventsRequest = (
   }: Options
 ): Promise<EventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
-  const urlQuery = {
-    interval,
-    project,
-    environment,
-    query,
-    yAxis,
-  };
+  const urlQuery = Object.fromEntries(
+    Object.entries({
+      interval,
+      project,
+      environment,
+      query,
+      yAxis,
+    }).filter(([, value]) => typeof value !== 'undefined')
+  );
 
   // Doubling period for absolute dates is not accurate unless starting and
   // ending times are the same (at least for daily intervals). This is
