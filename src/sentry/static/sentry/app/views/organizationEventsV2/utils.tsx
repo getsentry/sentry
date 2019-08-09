@@ -11,7 +11,7 @@ import {ALL_VIEWS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
  * @returns {Object}
  *
  */
-export function getCurrentView(requestedView) {
+export function getCurrentView(requestedView?: string) {
   return ALL_VIEWS.find(view => view.id === requestedView) || ALL_VIEWS[0];
 }
 
@@ -55,7 +55,7 @@ export function getQuery(view, location) {
  * @param {Location} browser location
  * @param {Object} additional parameters to merge into the query string.
  */
-export function getQueryString(view, location, additional) {
+export function getQueryString(view, location, additional): string {
   const queryParts = [];
   if (view.data.query) {
     queryParts.push(view.data.query);
