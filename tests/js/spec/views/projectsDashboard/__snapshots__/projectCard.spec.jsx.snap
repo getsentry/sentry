@@ -977,7 +977,7 @@ exports[`ProjectCard renders 1`] = `
                                 <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                  className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                   disabled={false}
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
@@ -988,7 +988,7 @@ exports[`ProjectCard renders 1`] = `
                                   <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Track deploys"
-                                    className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                    className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
                                     rel="noreferrer noopener"
@@ -999,7 +999,7 @@ exports[`ProjectCard renders 1`] = `
                                     <a
                                       aria-disabled={false}
                                       aria-label="Track deploys"
-                                      className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                       href="https://docs.sentry.io/learn/releases/"
                                       onClick={[Function]}
                                       rel="noreferrer noopener"

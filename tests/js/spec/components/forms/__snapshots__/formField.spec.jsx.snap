@@ -336,7 +336,7 @@ exports[`FormField + model renders with Form 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Save Changes"
-                className="css-12sg95p-StyledButton-getColors e12ma6z0"
+                className="css-xiynrq-StyledButton-getColors e12ma6z0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -347,7 +347,7 @@ exports[`FormField + model renders with Form 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Save Changes"
-                  className="css-12sg95p-StyledButton-getColors e12ma6z0"
+                  className="css-xiynrq-StyledButton-getColors e12ma6z0"
                   data-test-id="form-submit"
                   onClick={[Function]}
                   role="button"
