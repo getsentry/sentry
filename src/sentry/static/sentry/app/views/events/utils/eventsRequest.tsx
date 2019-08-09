@@ -27,11 +27,10 @@ type RenderProps = {
   timeAggregatedData?: Series | {};
 };
 
-type EventsRequestProps = {
+type EventsRequestPartialProps = {
   // TODO(ts): Update when we type `app/api`
   api: object;
   organization: Organization;
-  timeAggregationSeriesName: string;
 
   project?: number[];
   environment?: string[];
@@ -44,12 +43,17 @@ type EventsRequestProps = {
   query?: string;
   includePrevious?: boolean;
   includeTransformedData?: boolean;
-  includeTimeAggregation?: boolean;
   loading?: boolean;
   showLoading?: boolean;
   yAxis?: 'event_count' | 'user_count';
   children: (renderProps: RenderProps) => React.ReactNode;
 };
+
+type TimeAggregationProps =
+  | {includeTimeAggregation: true; timeAggregationSeriesName: string}
+  | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
+
+type EventsRequestProps = TimeAggregationProps & EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;
@@ -266,7 +270,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries = (data: EventsStatsData, seriesName: string): Series => {
+  transformAggregatedTimeseries = (
+    data: EventsStatsData,
+    seriesName: string = ''
+  ): Series => {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),

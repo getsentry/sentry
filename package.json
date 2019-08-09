@@ -140,6 +140,7 @@
     "jest-canvas-mock": "^2.1.0",
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",
+    "object.fromentries": "^2.0.0",
     "prettier": "1.16.4",
     "react-test-renderer": "16.7.0",
     "source-map-loader": "^0.2.4",

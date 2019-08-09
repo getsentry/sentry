@@ -3,20 +3,15 @@ import {debounce, maxBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {ReactEchartsRef} from 'app/types/echarts';
+import {ReactEchartsRef, Series, SeriesDataUnit} from 'app/types/echarts';
 import {Panel} from 'app/components/panels';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 
-type DataArray = Array<[number, number]>;
-
 type Props = {
-  data: Array<{
-    seriesName: string;
-    dataArray: DataArray;
-  }>;
-  onChangeUpperBound: Function;
+  data: Series[];
+  onChangeUpperBound: (upperBound: number) => void;
   upperBound: number;
 };
 type State = {
@@ -35,21 +30,27 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    const {data, upperBound} = this.props;
     if (
-      upperBound !== prevProps.upperBound &&
-      this.chartRef &&
-      data.length &&
-      data[0].dataArray
+      this.props.upperBound !== prevProps.upperBound ||
+      this.props.data !== prevProps.data
     ) {
-      this.updateChartAxis(upperBound, data[0].dataArray);
+      this.handleUpdateChartAxis();
     }
   }
 
   chartRef: null | ECharts = null;
 
-  updateChartAxis = debounce((upperBound, dataArray: DataArray) => {
-    const max = maxBy(dataArray, ([_ts, number]) => number);
+  // If we have ref to chart and data, try to update chart axis so that
+  // upperBound is visible in chart
+  handleUpdateChartAxis = () => {
+    const {data, upperBound} = this.props;
+    if (this.chartRef && data.length && data[0].data) {
+      this.updateChartAxis(upperBound, data[0].data);
+    }
+  };
+
+  updateChartAxis = debounce((upperBound, dataArray: SeriesDataUnit[]) => {
+    const max = maxBy(dataArray, ({value}) => value);
     if (typeof max !== 'undefined' && upperBound > max) {
       // We need to force update after we set a new yAxis max because `convertToPixel` will
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
@@ -74,6 +75,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
     if (ref && typeof ref.getEchartsInstance === 'function' && !this.chartRef) {
       this.chartRef = ref.getEchartsInstance();
       const width = this.chartRef.getWidth();
+      this.handleUpdateChartAxis();
       if (width !== this.state.width) {
         this.setState({
           width,
