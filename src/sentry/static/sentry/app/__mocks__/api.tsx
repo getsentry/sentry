@@ -1,8 +1,9 @@
-const RealClient = require.requireActual('app/api');
+import * as ImportedClient from 'app/api';
+const RealClient: typeof ImportedClient = jest.requireActual('app/api');
 
 export class Request {}
 
-const respond = (isAsync, fn, ...args) => {
+const respond = (isAsync: boolean, fn, ...args): void => {
   if (fn) {
     if (isAsync) {
       setTimeout(() => fn(...args), 1);
@@ -16,8 +17,23 @@ const DEFAULT_MOCK_RESPONSE_OPTIONS = {
   predicate: () => true,
 };
 
+type ResponseType = JQueryXHR & {
+  url: string;
+  statusCode: number;
+  method: string;
+  callCount: 0;
+  body: any;
+  headers: {[key: string]: string};
+};
+
 class Client {
-  static mockResponses = [];
+  static mockResponses: Array<
+    [
+      ResponseType,
+      jest.Mock,
+      (url: string, options: Readonly<ImportedClient.RequestOptions>) => boolean
+    ]
+  > = [];
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -42,8 +58,8 @@ class Client {
     return mock;
   }
 
-  static findMockResponse(url, options) {
-    return Client.mockResponses.find(([response, mock, predicate]) => {
+  static findMockResponse(url: string, options: Readonly<ImportedClient.RequestOptions>) {
+    return Client.mockResponses.find(([response, _mock, predicate]) => {
       const matchesURL = url === response.url;
       const matchesMethod = (options.method || 'GET') === response.method;
       const matchesPredicate = predicate(url, options);
@@ -61,8 +77,9 @@ class Client {
 
   static mockAsync = false;
 
-  wrapCallback(id, error) {
+  wrapCallback(_id, error) {
     return (...args) => {
+      // @ts-ignore
       if (this.hasProjectBeenRenamed(...args)) {
         return;
       }
@@ -70,24 +87,33 @@ class Client {
     };
   }
 
-  requestPromise(path, {includeAllArgs, ...options} = {}) {
+  requestPromise(
+    path,
+    {
+      includeAllArgs,
+      ...options
+    }: {includeAllArgs?: boolean} & Readonly<ImportedClient.RequestOptions> = {}
+  ) {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
-        error: (error, ...args) => {
+        error: (error, ..._args) => {
           reject(error);
         },
       });
     });
   }
 
-  request(url, options) {
-    const [response, mock] = Client.findMockResponse(url, options) || [];
+  request(url, options: Readonly<ImportedClient.RequestOptions> = {}) {
+    const [response, mock] = Client.findMockResponse(url, options) || [
+      undefined,
+      undefined,
+    ];
 
-    if (!response) {
+    if (!response || !mock) {
       // Endpoints need to be mocked
       throw new Error(
         `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
@@ -103,17 +129,33 @@ class Client {
 
       if (response.statusCode !== 200) {
         response.callCount++;
-        const resp = {
-          status: response.statusCode,
-          responseText: JSON.stringify(body),
-          responseJSON: body,
-        };
+
+        const deferred = $.Deferred();
+
+        const errorResponse: JQueryXHR = Object.assign(
+          {
+            status: response.statusCode,
+            responseText: JSON.stringify(body),
+            responseJSON: body,
+          },
+          {
+            overrideMimeType: () => {},
+            abort: () => {},
+            then: () => {},
+            error: () => {},
+          },
+          deferred,
+          new XMLHttpRequest()
+        );
         this.handleRequestError(
           {
+            id: '1234',
             path: url,
             requestOptions: options,
           },
-          resp
+          errorResponse,
+          'error',
+          'error'
         );
       } else {
         response.callCount++;
@@ -131,15 +173,13 @@ class Client {
 
     respond(Client.mockAsync, options.complete);
   }
-}
 
-Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
-Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
-Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
-Client.prototype._chain = RealClient.Client.prototype._chain;
-Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
-Client.prototype.hasProjectBeenRenamed =
-  RealClient.Client.prototype.hasProjectBeenRenamed;
-Client.prototype.merge = RealClient.Client.prototype.merge;
+  hasProjectBeenRenamed = RealClient.Client.prototype.hasProjectBeenRenamed;
+  handleRequestError = RealClient.Client.prototype.handleRequestError;
+  bulkUpdate = RealClient.Client.prototype.bulkUpdate;
+  _chain = RealClient.Client.prototype._chain;
+  _wrapRequest = RealClient.Client.prototype._wrapRequest;
+  merge = RealClient.Client.prototype.merge;
+}
 
 export {Client};

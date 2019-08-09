@@ -96,7 +96,7 @@ type RequestCallbacks = {
   error?: FunctionCallback;
 };
 
-type RequestOptions = {
+export type RequestOptions = {
   method?: APIRequestMethod;
   data?: any;
   query?: Array<any> | object;
