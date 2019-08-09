@@ -51,9 +51,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_get_events(self):
         events = self.eventstore.get_events(filter_keys={'project_id': [self.project.id]})
         assert len(events) == 3
-        # Default sort is timestamp desc
-        assert events[0].id == 'b' * 32
-        assert events[1].id == 'a' * 32
+        # Default sort is timestamp desc, event_id desc
+        assert events[0].id == 'c' * 32
+        assert events[1].id == 'b' * 32
+        assert events[2].id == 'a' * 32
 
         # No events found
         project = self.create_project()
