@@ -1,10 +1,11 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import {Link} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import AsyncView, {AsyncViewState} from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -12,26 +13,40 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-class IncidentRulesList extends AsyncView {
+import {IncidentRule} from './types';
+import {deleteRule} from './actions';
+
+type State = {
+  rules: IncidentRule[];
+} & AsyncViewState;
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+};
+type Props = RouteComponentProps<RouteParams, {}>;
+class IncidentRulesList extends AsyncView<Props, State> {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
 
-    return [['rules', `/projects/${orgId}/${projectId}/alert-rules/`]];
+    return [
+      ['rules', `/projects/${orgId}/${projectId}/alert-rules/`] as [string, string],
+    ];
   }
 
-  handleRemoveRule = async (rule, e) => {
-    e.stopPropagation();
+  handleRemoveRule = async (rule: IncidentRule) => {
+    const {orgId, projectId} = this.props.params;
 
     // Optimistic update
     const oldRules = this.state.rules.slice(0);
-    const newRules = this.state.rules.filter(({id}) => id === rule.id);
+
+    const newRules = this.state.rules.filter(({id}) => id !== rule.id);
 
     try {
       this.setState({
         rules: newRules,
       });
 
-      // TODO: Delete rule
+      deleteRule(this.api, orgId, projectId, rule);
     } catch (_err) {
       this.setState({
         rules: oldRules,
@@ -80,7 +95,8 @@ class IncidentRulesList extends AsyncView {
                     {rule.name}
                   </RuleLink>
                   <Confirm
-                    onConfirm={e => this.handleRemoveRule(rule, e)}
+                    priority="danger"
+                    onConfirm={() => this.handleRemoveRule(rule)}
                     message={t('Are you sure you want to remove this rule?')}
                   >
                     <RemoveButton
