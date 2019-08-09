@@ -5,6 +5,7 @@ import string
 import warnings
 import pytz
 
+from datetime import datetime
 from collections import OrderedDict
 from dateutil.parser import parse as parse_date
 from django.db import models
@@ -26,7 +27,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
@@ -624,7 +625,7 @@ class SnubaEvent(EventCommon):
 
         result = snuba.raw_query(
             start=self.datetime,  # gte current event
-            selected_columns=['event_id'],
+            selected_columns=['event_id', 'timestamp'],
             conditions=conditions,
             filter_keys={
                 'project_id': [self.project_id],
@@ -637,6 +638,12 @@ class SnubaEvent(EventCommon):
 
         if 'error' in result or len(result['data']) == 0:
             return None
+
+        # Increment count if the next event ID is after utcnow
+        event_time = parse_date(result['data'][0]['timestamp']).replace(tzinfo=pytz.utc)
+
+        if event_time > datetime.utcnow().replace(tzinfo=pytz.utc):
+            metrics.incr('events.future_next_event_id', skip_internal=False)
 
         return six.text_type(result['data'][0]['event_id'])
 
