@@ -198,7 +198,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        print response.content
         assert response.data[0] == {
             'project.id': project.id,
             'project.name': project.slug,
