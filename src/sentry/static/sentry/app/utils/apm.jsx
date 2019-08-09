@@ -35,7 +35,27 @@ function finishTransaction(delay) {
   if (flushTransactionTimeout) {
     clearTimeout(flushTransactionTimeout);
   }
-  flushTransactionTimeout = setTimeout(() => Sentry.finishSpan(), delay || 5000);
+
+  flushTransactionTimeout = setTimeout(() => {
+    const hub = Sentry.getCurrentHub();
+    hub.configureScope(scope => {
+      const currentTransaction = scope.getSpan();
+
+      // If there is a transaction, we try to set it's timestamp
+      // to the last finished span prior to a timeout
+      if (currentTransaction && currentTransaction.finishedSpans) {
+        const finished = currentTransaction.finishedSpans;
+
+        if (finished.length > 0) {
+          currentTransaction.timestamp = finished[finished.length - 1].timestamp;
+          // This is to be inline with SDK behavior, but we should move this to SDK as a whole
+          currentTransaction.finishedSpans.push(currentTransaction);
+        }
+      }
+
+      hub.finishSpan(currentTransaction);
+    });
+  }, delay || 5000);
 }
 
 export function startApm() {
