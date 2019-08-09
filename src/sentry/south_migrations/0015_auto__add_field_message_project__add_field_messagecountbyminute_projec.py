@@ -8,17 +8,17 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
 
-        # Removing unique constraint on 'GroupedMessage', fields ['checksum', 'logger', 'view']
-        db.delete_unique('sentry_groupedmessage', ['checksum', 'logger', 'view'])
+        # Removing unique constraint on 'GroupedMessage', fields ['checksum', 'logger', 'view'] if they exist
+        db.delete_unique('sentry_groupedmessage', ['checksum', 'logger', 'view'], True)
 
-        # Removing unique constraint on 'MessageFilterValue', fields ['group', 'value', 'key']
-        db.delete_unique('sentry_messagefiltervalue', ['group_id', 'value', 'key'])
+        # Removing unique constraint on 'MessageFilterValue', fields ['group', 'value', 'key'] if they exist
+        db.delete_unique('sentry_messagefiltervalue', ['group_id', 'value', 'key'], True)
 
-        # Removing unique constraint on 'FilterValue', fields ['key', 'value']
-        db.delete_unique('sentry_filtervalue', ['key', 'value'])
+        # Removing unique constraint on 'FilterValue', fields ['key', 'value'] if they exist
+        db.delete_unique('sentry_filtervalue', ['key', 'value'], True)
 
-        # Removing unique constraint on 'MessageCountByMinute', fields ['date', 'group']
-        db.delete_unique('sentry_messagecountbyminute', ['date', 'group_id'])
+        # Removing unique constraint on 'MessageCountByMinute', fields ['date', 'group'] if they exist
+        db.delete_unique('sentry_messagecountbyminute', ['date', 'group_id'], True)
 
         # Adding field 'Message.project'
         db.add_column(
@@ -84,17 +84,17 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
 
-        # Removing unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view']
-        db.delete_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
+        # Removing unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view'] if they exist
+        db.delete_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'], True)
 
-        # Removing unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key']
-        db.delete_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'])
+        # Removing unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key'] if they exist
+        db.delete_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'], True)
 
-        # Removing unique constraint on 'FilterValue', fields ['project', 'value', 'key']
-        db.delete_unique('sentry_filtervalue', ['project_id', 'value', 'key'])
+        # Removing unique constraint on 'FilterValue', fields ['project', 'value', 'key'] if they exist
+        db.delete_unique('sentry_filtervalue', ['project_id', 'value', 'key'], True)
 
-        # Removing unique constraint on 'MessageCountByMinute', fields ['project', 'date', 'group']
-        db.delete_unique('sentry_messagecountbyminute', ['project_id', 'date', 'group_id'])
+        # Removing unique constraint on 'MessageCountByMinute', fields ['project', 'date', 'group'] if they exist
+        db.delete_unique('sentry_messagecountbyminute', ['project_id', 'date', 'group_id'], True)
 
         # Deleting field 'Message.project'
         db.delete_column('sentry_message', 'project_id')
