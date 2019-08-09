@@ -7,7 +7,13 @@ exports[`FormField + model renders with Form 1`] = `
   className="form-stacked"
   model={
     FormModel {
-      "api": Client {},
+      "api": Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      },
       "errors": Object {},
       "fieldDescriptor": Map {
         "fieldName" => Object {
@@ -102,7 +108,13 @@ exports[`FormField + model renders with Form 1`] = `
                             <ControlState
                               model={
                                 FormModel {
-                                  "api": Client {},
+                                  "api": Client {
+                                    "_chain": [Function],
+                                    "_wrapRequest": [Function],
+                                    "bulkUpdate": [Function],
+                                    "handleRequestError": [Function],
+                                    "hasProjectBeenRenamed": [Function],
+                                  },
                                   "errors": Object {},
                                   "fieldDescriptor": Map {
                                     "fieldName" => Object {
@@ -247,7 +259,13 @@ exports[`FormField + model renders with Form 1`] = `
                                                         <ControlState
                                                           model={
                                                             FormModel {
-                                                              "api": Client {},
+                                                              "api": Client {
+                                                                "_chain": [Function],
+                                                                "_wrapRequest": [Function],
+                                                                "bulkUpdate": [Function],
+                                                                "handleRequestError": [Function],
+                                                                "hasProjectBeenRenamed": [Function],
+                                                              },
                                                               "errors": Object {},
                                                               "fieldDescriptor": Map {
                                                                 "fieldName" => Object {

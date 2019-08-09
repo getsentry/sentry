@@ -5,7 +5,15 @@ exports[`OrganizationRepositoriesContainer render() without any providers is loa
   title="Repositories - Sentry"
 >
   <OrganizationRepositories
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     error={false}
     errors={Object {}}
     itemList={Array []}

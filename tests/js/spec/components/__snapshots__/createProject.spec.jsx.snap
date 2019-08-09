@@ -92,7 +92,15 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
 
 exports[`CreateProject should deal with incorrect platform name if its provided by url 1`] = `
 <CreateProject
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -1672,7 +1680,15 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
 
 exports[`CreateProject should fill in platform name if its provided by url 1`] = `
 <CreateProject
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -2661,7 +2677,15 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
 
 exports[`CreateProject should fill in project name if its empty when platform is chosen 1`] = `
 <CreateProject
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
