@@ -667,7 +667,7 @@ def get_snuba_query_args(query=None, params=None, legacy_format=False):
         return {
             'start': start,
             'end': end,
-            'conditions': condition,
+            'conditions': conditions,
             'filter_keys': filter_keys,
         }
 
