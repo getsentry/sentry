@@ -26,8 +26,8 @@ type Props = {
   organization: Organization;
   data: SnubaResult;
   query: Query;
-  height?: number;
-  width?: number;
+  height: number | null;
+  width: number | null;
 };
 
 /**
@@ -233,7 +233,7 @@ class ResultTable extends React.Component<Props> {
     return Math.ceil(context.measureText(text).width) + 5;
   };
 
-  getMaxVisibleRows = (elementHeight?: number) => {
+  getMaxVisibleRows = (elementHeight: number | null) => {
     if (!elementHeight) {
       return MIN_VISIBLE_ROWS;
     }
