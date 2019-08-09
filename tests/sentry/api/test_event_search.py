@@ -993,7 +993,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert snuba_args.conditions == []
         assert snuba_args.filter_keys == {'project_id': [1, 2, 3]}
         assert snuba_args.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        # assert snuba_args.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert snuba_args.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
 
     def test_wildcard(self):
         snuba_args = get_snuba_query_args('release:3.1.* user.email:*@example.com')
