@@ -64,7 +64,6 @@ const PillName = styled('span')`
 `;
 
 const PillValue = styled(PillName)`
-
   /* .true - good values */
   ${p =>
     p.type === 'true' &&
@@ -89,6 +88,7 @@ const PillValue = styled(PillName)`
   p.theme.button.borderRadius} 0;
   font-family: ${p => p.theme.text.familyMono};
   max-width: 100%;
+
   > a {
     max-width: 100%;
     text-overflow: ellipsis;
@@ -97,6 +97,8 @@ const PillValue = styled(PillName)`
     display: inline-block;
     vertical-align: text-bottom;
   }
+
+  .pill-icon,
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
