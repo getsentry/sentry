@@ -18,6 +18,8 @@ const DEFAULT_MOCK_RESPONSE_OPTIONS = {
   predicate: () => true,
 };
 
+const mergeMock = jest.fn();
+
 type ResponseType = JQueryXHR & {
   url: string;
   statusCode: number;
@@ -180,7 +182,12 @@ class Client {
   bulkUpdate = RealClient.Client.prototype.bulkUpdate;
   _chain = RealClient.Client.prototype._chain;
   _wrapRequest = RealClient.Client.prototype._wrapRequest;
-  merge = RealClient.Client.prototype.merge;
+
+  merge(params, options) {
+    mergeMock(params, options);
+
+    return RealClient.Client.prototype.merge.call(this, params, options);
+  }
 }
 
-export {Client};
+export {Client, mergeMock};
