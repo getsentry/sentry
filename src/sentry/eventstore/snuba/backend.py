@@ -25,6 +25,7 @@ class SnubaEventStorage(EventStorage):
         orderby=DEFAULT_ORDERBY,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
+        referrer='eventstore.get_events'
     ):
         """
         Get events from Snuba.
@@ -43,7 +44,7 @@ class SnubaEventStorage(EventStorage):
             orderby=orderby,
             limit=limit,
             offset=offset,
-            referrer='eventstore.get_events',
+            referrer=referrer,
         )
 
         if 'error' not in result:
