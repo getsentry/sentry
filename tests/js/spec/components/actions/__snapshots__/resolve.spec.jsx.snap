@@ -223,9 +223,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 >
                   <li
                     className="dropdown-header"
-                    href={null}
                     role="presentation"
-                    title={null}
                   >
                     Resolved In
                   </li>
@@ -235,9 +233,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 >
                   <li
                     className=""
-                    href={null}
                     role="presentation"
-                    title={null}
                   >
                     <Tooltip
                       containerDisplayMode="block"
@@ -676,9 +672,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                 >
                   <li
                     className="dropdown-header"
-                    href={null}
                     role="presentation"
-                    title={null}
                   >
                     Resolved In
                   </li>
@@ -688,9 +682,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                 >
                   <li
                     className=""
-                    href={null}
                     role="presentation"
-                    title={null}
                   >
                     <Tooltip
                       containerDisplayMode="block"
