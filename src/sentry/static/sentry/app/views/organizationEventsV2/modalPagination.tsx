@@ -11,11 +11,12 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import {MODAL_QUERY_KEYS} from './data';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event, location) {
+function buildTargets(event: Event, location: ReactRouterLocation) {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
@@ -47,7 +48,12 @@ function buildTargets(event, location) {
   return links;
 }
 
-const ModalPagination = props => {
+type Props = {
+  event: Event;
+  location: ReactRouterLocation;
+};
+
+const ModalPagination = (props: Props) => {
   const {event, location} = props;
   const links = buildTargets(event, location);
 
