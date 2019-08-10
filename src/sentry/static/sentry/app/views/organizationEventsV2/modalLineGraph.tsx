@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import {omit} from 'lodash';
 
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {getInterval, useShortInterval} from 'app/components/charts/utils';
@@ -18,6 +19,8 @@ import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
+import {Event, Organization, EventView} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import {getQueryString} from './utils';
@@ -26,10 +29,10 @@ import {getQueryString} from './utils';
  * Generate the data to display a vertical line for the current
  * event on the graph.
  */
-const getCurrentEventMarker = currentEvent => {
+const getCurrentEventMarker = (currentEvent: Event) => {
   const title = t('Current Event');
   const eventTime = +new Date(
-    currentEvent.dateCreated || currentEvent.endTimestamp * 1000
+    currentEvent.dateCreated || (currentEvent.endTimestamp || 0) * 1000
   );
 
   return {
@@ -88,7 +91,7 @@ const handleClick = async function(
 
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
-  const query = {
+  const query: any = {
     environment: selection.environments,
     start: getUtcDateString(value),
     end: getUtcDateString(value + intervalToMilliseconds(interval)),
@@ -127,10 +130,20 @@ const handleClick = async function(
   });
 };
 
+type ModalLineGraphProps = {
+  api: Client;
+  organization: Organization;
+  location: ReactRouterLocation;
+  currentEvent: Event;
+  view: EventView;
+  // TODO(ts): adjust
+  selection: any;
+};
+
 /**
  * Render a graph of event volumes for the current group + event.
  */
-const ModalLineGraph = props => {
+const ModalLineGraph = (props: ModalLineGraphProps) => {
   const {api, organization, location, selection, currentEvent, view} = props;
 
   const isUtc = selection.datetime.utc;
@@ -215,6 +228,6 @@ ModalLineGraph.propTypes = {
   organization: SentryTypes.Organization.isRequired,
   selection: PropTypes.object.isRequired,
   view: PropTypes.object.isRequired,
-};
+} as any;
 
 export default withGlobalSelection(withApi(ModalLineGraph));
