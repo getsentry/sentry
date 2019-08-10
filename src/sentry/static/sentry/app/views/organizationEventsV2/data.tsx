@@ -14,16 +14,15 @@ import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
 
 import {QueryLink} from './styles';
+import {EventView} from 'app/types';
 
-export const MODAL_QUERY_KEYS: ['eventSlug'] = ['eventSlug'];
+export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES: ['issue_title', 'last_seen', 'latest_event'] = [
-  'issue_title',
-  'last_seen',
-  'latest_event',
-];
+export const AGGREGATE_ALIASES = ['issue_title', 'last_seen', 'latest_event'] as const;
 
-export const ALL_VIEWS = deepFreeze([
+// TODO: eventually defer to TS compile-time check to ensure this is readonly instead
+//       of deepfreezing it in runtime
+export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
   {
     id: 'all',
     name: t('All Events'),
