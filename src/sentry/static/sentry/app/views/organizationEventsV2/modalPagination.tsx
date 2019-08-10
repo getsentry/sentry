@@ -9,24 +9,35 @@ import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {ReactRouterLocation} from 'app/types/reactRouter';
+import {Event} from 'app/types';
 
 import {MODAL_QUERY_KEYS} from './data';
+
+type LinksType = {
+  oldest: null;
+  latest: null;
+
+  next: {};
+  previous: {};
+};
 
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event, location) {
+function buildTargets(event: Event, location: ReactRouterLocation): LinksType {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
-  const urlMap = {
+  const urlMap: {[k in keyof LinksType]: string | undefined | null} = {
     previous: event.previousEventID,
     next: event.nextEventID,
     oldest: event.oldestEventID,
     latest: event.latestEventID,
   };
 
-  const links = {};
+  const links: {[k in keyof LinksType]?: any} = {};
+
   Object.entries(urlMap).forEach(([key, value]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
     if (!value) {
@@ -42,10 +53,15 @@ function buildTargets(event, location) {
     }
   });
 
-  return links;
+  return links as LinksType;
 }
 
-const ModalPagination = props => {
+type Props = {
+  event: Event;
+  location: ReactRouterLocation;
+};
+
+const ModalPagination = (props: Props) => {
   const {event, location} = props;
   const links = buildTargets(event, location);
 
@@ -88,7 +104,9 @@ ModalPagination.propTypes = {
   event: SentryTypes.Event.isRequired,
 };
 
-const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
+const StyledLink = styled(Link, {
+  shouldForwardProp: isPropValid,
+})<{theme: any; disabled: boolean; fontSizeMedium: string; isLast: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
   font-size: ${p => p.fontSizeMedium};
   text-align: center;
