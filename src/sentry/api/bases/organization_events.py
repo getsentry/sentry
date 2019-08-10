@@ -6,7 +6,7 @@ import six
 from enum import Enum
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
+from sentry.api.event_search import get_snuba_filter, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.utils import snuba
 
@@ -62,11 +62,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params['project_id'] = list(set([p.id for p in projects] + params['project_id']))
 
         try:
-            snuba_args = get_snuba_query_args(
-                query=query,
-                params=params,
-                legacy_format=True,
-                raise_boolean_search_error=True)
+            snuba_args = get_snuba_filter(query=query, params=params).to_snuba_args()
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
@@ -137,7 +133,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         query = request.GET.get('query')
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params, legacy_format=True)
+            snuba_args = get_snuba_filter(query=query, params=params).to_snuba_args()
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 

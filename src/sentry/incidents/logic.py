@@ -13,7 +13,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_snuba_filter
 from sentry.http import safe_urlopen
 from sentry.incidents.models import (
     AlertRule,
@@ -150,7 +150,7 @@ def calculate_incident_start(query, projects, groups):
     if projects:
         params['project_id'] = [p.id for p in projects]
 
-    query_args = get_snuba_query_args(query, params, legacy_format=True)
+    query_args = get_snuba_filter(query, params).to_snuba_args()
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
@@ -441,7 +441,7 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         project_ids = incident_projects[incident.id]
         if project_ids:
             params['project_id'] = project_ids
-        query_args_list.append(get_snuba_query_args(incident.query, params, legacy_format=True))
+        query_args_list.append(get_snuba_filter(incident.query, params).to_snuba_args())
 
     return query_args_list
 
@@ -775,7 +775,7 @@ def validate_alert_rule_query(query):
     # TODO: We should add more validation here to reject queries that include
     # fields that are invalid in alert rules. For now this will just make sure
     # the query parses correctly.
-    get_snuba_query_args(query, legacy_format=True)
+    get_snuba_filter(query)
 
 
 def create_snuba_subscription(project, dataset, query, aggregations, time_window, resolution):
@@ -803,7 +803,7 @@ def create_snuba_subscription(project, dataset, query, aggregations, time_window
             # We only care about conditions here. Filter keys only matter for
             # filtering to project and groups. Projects are handled with an
             # explicit param, and groups can't be queried here.
-            'conditions': get_snuba_query_args(query, legacy_format=True)['conditions'],
+            'conditions': get_snuba_filter(query).conditions,
             'aggregates': [alert_aggregation_to_snuba[agg] for agg in aggregations],
             'time_window': time_window,
             'resolution': resolution,

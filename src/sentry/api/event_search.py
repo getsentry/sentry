@@ -608,8 +608,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
-def get_snuba_query_args(query=None, params=None, legacy_format=False,
-                         raise_boolean_search_error=False):
+def get_snuba_filter(query=None, params=None):
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
     if query is not None:
@@ -662,17 +661,8 @@ def get_snuba_query_args(query=None, params=None, legacy_format=False,
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 conditions.append(converted_filter)
         else:  # SearchBoolean
-            if raise_boolean_search_error:
-                raise InvalidSearchQuery(
-                    'Boolean search operator OR and AND not allowed in this search.')
+            raise InvalidSearchQuery(
+                'Boolean search operator OR and AND not allowed in this search.')
             # conditions.append(convert_search_boolean_to_snuba_query(term))
-
-    if legacy_format:
-        return {
-            'start': start,
-            'end': end,
-            'conditions': conditions,
-            'filter_keys': filter_keys,
-        }
 
     return Filter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)

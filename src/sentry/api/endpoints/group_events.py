@@ -11,7 +11,7 @@ from functools import partial
 from sentry import eventstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
+from sentry.api.event_search import get_snuba_filter, InvalidSearchQuery
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
@@ -93,14 +93,13 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         full = request.GET.get('full', False)
 
         try:
-            snuba_args = get_snuba_query_args(request.GET.get(
-                'query', None), params, raise_boolean_search_error=True)
+            filter = get_snuba_filter(request.GET.get('query', None), params)
         except InvalidSearchQuery as exc:
             raise GroupEventsError(exc.message)
 
         data_fn = partial(
             eventstore.get_events,
-            filter=snuba_args,
+            filter=filter,
             additional_columns=None if full else eventstore.full_columns,
             referrer='api.group-events',
         )

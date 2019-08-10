@@ -5,6 +5,7 @@ import six
 from enum import Enum
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.event_search import get_snuba_filter
 from sentry import eventstore, features
 from sentry.models import SnubaEvent
 from sentry.models.project import Project
@@ -23,8 +24,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         try:
+            query = request.GET.get('query')
             params = self.get_filter_params(request, organization)
-            snuba_args = self.get_snuba_query_args(request, organization, params)
+            snuba_args = get_snuba_filter(query, params).to_snuba_args()
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
