@@ -3,7 +3,10 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
+import AsyncComponent, {
+  AsyncComponentProps,
+  AsyncComponentState,
+} from 'app/components/asyncComponent';
 import GroupChart from 'app/components/stream/groupChart';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
@@ -13,14 +16,27 @@ import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
+import {Group} from 'app/types';
 
-class LinkedIssuePreview extends AsyncComponent {
+type Props = {
+  groupId: string;
+  eventId: string;
+};
+
+type State = {
+  group: Group;
+};
+
+class LinkedIssuePreview extends AsyncComponent<
+  Props & AsyncComponentProps,
+  State & AsyncComponentState
+> {
   static propTypes = {
     groupId: PropTypes.string.isRequired,
     eventId: PropTypes.string.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string]> {
     const {groupId} = this.props;
     const groupUrl = `/issues/${groupId}/`;
 
