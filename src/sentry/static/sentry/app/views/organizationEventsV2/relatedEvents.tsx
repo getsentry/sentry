@@ -2,7 +2,9 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
+import {Organization, EventView, Event, Project} from 'app/types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -17,16 +19,25 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withProjects from 'app/utils/withProjects';
 
 import {MODAL_QUERY_KEYS} from './data';
+import {EventQuery} from './utils';
 
-class RelatedEvents extends AsyncComponent {
-  static propTypes = {
+type Props = {
+  location: ReactRouterLocation;
+  organization: Organization;
+  view: EventView;
+  event: Event;
+  projects: Array<Project>;
+};
+
+class RelatedEvents extends AsyncComponent<Props> {
+  static propTypes: any = {
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     // TODO what happens when global-views feature is not on the org?
     const {event, organization} = this.props;
     const eventsUrl = `/organizations/${organization.slug}/eventsv2/`;
@@ -36,7 +47,7 @@ class RelatedEvents extends AsyncComponent {
       return [];
     }
 
-    const params = {
+    const params: {query: EventQuery} = {
       query: {
         field: [
           'project.name',
@@ -106,7 +117,7 @@ const Container = styled('div')`
   position: relative;
 `;
 
-const Card = styled('div')`
+const Card = styled('div')<{isCurrent?: boolean; theme?: any}>`
   display: flex;
   flex-direction: column;
   border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
