@@ -660,9 +660,7 @@ def get_snuba_filter(query=None, params=None):
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 conditions.append(converted_filter)
-        else:  # SearchBoolean
-            raise InvalidSearchQuery(
-                'Boolean search operator OR and AND not allowed in this search.')
+        # else:  # SearchBoolean
             # conditions.append(convert_search_boolean_to_snuba_query(term))
 
     return Filter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)
