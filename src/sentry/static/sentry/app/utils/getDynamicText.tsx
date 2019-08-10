@@ -2,12 +2,12 @@
 
 // Return a specified "fixed" string when we are in a testing environment
 // (more specifically in a PERCY env (e.g. CI))
-export default function getDynamicText({
+export default function getDynamicText<T>({
   value,
   fixed,
 }: {
-  value: React.ReactNode;
+  value: T;
   fixed: string;
-}): React.ReactNode {
+}): T | string {
   return process.env.IS_PERCY ? fixed : value;
 }
