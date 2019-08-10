@@ -2,6 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {omit, isEqual} from 'lodash';
+import {InjectedRouter} from 'react-router';
+import {ReactRouterLocation} from 'app/types/reactRouter';
+
+import {Organization, EventView} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
@@ -15,7 +19,7 @@ import {getParams} from 'app/views/events/utils/getParams';
 
 import Table from './table';
 import Tags from './tags';
-import {getQuery} from './utils';
+import {getQuery, EventQuery} from './utils';
 import {MODAL_QUERY_KEYS} from './data';
 
 const CHART_AXIS_OPTIONS = [
@@ -23,7 +27,14 @@ const CHART_AXIS_OPTIONS = [
   {label: 'Users', value: 'user_count'},
 ];
 
-export default class Events extends React.Component {
+type EventsProps = {
+  router: InjectedRouter;
+  location: ReactRouterLocation;
+  organization: Organization;
+  view: EventView;
+};
+
+export default class Events extends React.Component<EventsProps> {
   static propTypes = {
     router: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
@@ -81,7 +92,13 @@ export default class Events extends React.Component {
   }
 }
 
-class EventsTable extends AsyncComponent {
+type EventsTableProps = {
+  location: ReactRouterLocation;
+  organization: Organization;
+  view: EventView;
+};
+
+class EventsTable extends AsyncComponent<EventsTableProps> {
   static propTypes = {
     location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -90,7 +107,7 @@ class EventsTable extends AsyncComponent {
 
   shouldReload = false;
 
-  componentDidUpdate(prevProps, prevContext) {
+  componentDidUpdate(prevProps: EventsTableProps, prevContext) {
     // Do not update if we are just opening/closing the modal
     const locationHasChanged = !isEqual(
       omit(prevProps.location.query, MODAL_QUERY_KEYS),
@@ -102,7 +119,7 @@ class EventsTable extends AsyncComponent {
     }
   }
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     const {location, organization, view} = this.props;
     return [
       [
