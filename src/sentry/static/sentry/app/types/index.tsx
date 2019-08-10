@@ -66,3 +66,16 @@ export type CommitAuthor = {
   email?: string;
   name?: string;
 };
+
+export type EventView = {
+  id: string;
+  name: string;
+  data: {
+    fields: string[];
+    groupby: string[];
+    orderby: string[];
+    sort?: string;
+    query?: string;
+  };
+  tags: string[];
+};
