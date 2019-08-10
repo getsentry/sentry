@@ -5,22 +5,33 @@ import {omit} from 'lodash';
 import {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import AsyncComponent from 'app/components/asyncComponent';
+import AsyncComponent, {AsyncComponentState} from 'app/components/asyncComponent';
 import ModalDialog from 'app/components/modalDialog';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {Organization, EventView, Event} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
+import {EventQuery} from './utils';
 
 import EventModalContent from './eventModalContent';
 import {getQuery} from './utils';
 
-const slugValidator = function(props, propName, componentName) {
+const slugValidator = function(
+  props: {[key: string]: any},
+  propName: string,
+  componentName: string
+) {
   const value = props[propName];
   // Accept slugs that look like:
   // * project-slug:deadbeef:latest
   // * project-slug:deadbeef:oldest
   // * project-slug:deadbeef
-  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)(?:\:latest|oldest)?$/.test(value)) {
+  if (
+    value &&
+    typeof value === 'string' &&
+    !/^(?:[^:]+):(?:[a-f0-9]+)(?:\:latest|oldest)?$/.test(value)
+  ) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -39,7 +50,18 @@ const modalStyles = css`
   }
 `;
 
-class EventDetails extends AsyncComponent {
+type Props = {
+  organization: Organization;
+  location: ReactRouterLocation;
+  eventSlug: string;
+  view: EventView;
+};
+
+type State = {
+  event: Event;
+};
+
+class EventDetails extends AsyncComponent<Props, State & AsyncComponentState> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
@@ -47,7 +69,7 @@ class EventDetails extends AsyncComponent {
     view: PropTypes.object.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     const {organization, eventSlug, view, location} = this.props;
     const query = getQuery(view, location);
 
@@ -91,7 +113,6 @@ class EventDetails extends AsyncComponent {
     return (
       <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
         <EventModalContent
-          onTabChange={this.handleTabChange}
           event={event}
           projectId={this.projectId}
           organization={organization}
