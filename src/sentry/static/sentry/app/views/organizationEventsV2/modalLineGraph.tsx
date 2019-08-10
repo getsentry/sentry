@@ -18,15 +18,17 @@ import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
+import {Event, Organization, EventView} from 'app/types';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import {getQueryString} from './utils';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 /**
  * Generate the data to display a vertical line for the current
  * event on the graph.
  */
-const getCurrentEventMarker = currentEvent => {
+const getCurrentEventMarker = (currentEvent: Event) => {
   const title = t('Current Event');
   const eventTime = +new Date(
     currentEvent.dateCreated || currentEvent.endTimestamp * 1000
@@ -107,10 +109,19 @@ const handleClick = async function(
   });
 };
 
+type ModalLineGraphProps = {
+  // TODO: fix this
+  api: any;
+  organization: Organization;
+  location: ReactRouterLocation;
+  currentEvent: Event;
+  view: EventView;
+};
+
 /**
  * Render a graph of event volumes for the current group + event.
  */
-const ModalLineGraph = props => {
+const ModalLineGraph = (props: ModalLineGraphProps) => {
   const {api, organization, location, selection, currentEvent, view} = props;
 
   const isUtc = selection.datetime.utc;
