@@ -163,10 +163,10 @@ class SensitiveDataFilter(object):
                 # already been decoded by the request interface.
                 data[n] = varmap(self.sanitize, data[n])
 
-    def filter_user(self, data):
-        if not data.get("data"):
-            return
-        data["data"] = varmap(self.sanitize, data["data"])
+    def filter_user(self, user):
+        for key in user:
+            if user[key]:  # no need to scrub falsy values, as there's no data there
+                user[key] = varmap(self.sanitize, user[key], name=key)
 
     def filter_crumb(self, data):
         for key in "data", "message":
