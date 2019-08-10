@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import {css} from 'react-emotion';
@@ -17,11 +18,15 @@ import {ReactRouterLocation} from 'app/types/reactRouter';
 import EventModalContent from './eventModalContent';
 import {EventQuery, getQuery} from './utils';
 
-const slugValidator = function(props, propName, componentName) {
+const slugValidator = function(
+  props: {[key: string]: any},
+  propName: string,
+  componentName: string
+) {
   const value = props[propName];
   // Accept slugs that look like:
   // * project-slug:deadbeef
-  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)$/.test(value)) {
+  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9]+)$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -45,14 +50,14 @@ type Props = {
   location: ReactRouterLocation;
   eventSlug: string;
   view: EventView;
-  params: any;
+  params: Params;
 };
 
 type State = {
   event: Event;
 };
 
-class EventDetails extends AsyncComponent<Props, State & AsyncComponentState> {
+class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
@@ -60,7 +65,7 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponentState> {
     view: PropTypes.object.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     const {organization, eventSlug, view, location} = this.props;
     const query = getQuery(view, location);
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
@@ -92,7 +97,6 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponentState> {
     return (
       <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
         <EventModalContent
-          onTabChange={this.handleTabChange}
           event={event}
           projectId={this.projectId}
           organization={organization}
