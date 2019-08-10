@@ -11,9 +11,11 @@ import NotFound from 'app/components/errors/notFound';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {Organization, EventView, Event} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import EventModalContent from './eventModalContent';
-import {getQuery} from './utils';
+import {EventQuery, getQuery} from './utils';
 
 const slugValidator = function(props, propName, componentName) {
   const value = props[propName];
@@ -38,8 +40,20 @@ const modalStyles = css`
   }
 `;
 
-class EventDetails extends AsyncComponent {
-  static propTypes = {
+type Props = {
+  organization: Organization;
+  location: ReactRouterLocation;
+  eventSlug: string;
+  view: EventView;
+  params: any;
+};
+
+type State = {
+  event: Event;
+};
+
+class EventDetails extends AsyncComponent<Props, State & AsyncComponentState> {
+  static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
     location: PropTypes.object.isRequired,
