@@ -1,16 +1,23 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
+import * as ReactRouter from 'react-router';
 
+import {ReactRouterLocation} from 'app/types/reactRouter';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {EventTag} from 'app/types';
+
 import {getEventTagSearchUrl} from './utils';
 
-const TagsTable = props => {
+type Props = {
+  tags: Array<EventTag>;
+} & ReactRouter.WithRouterProps;
+
+const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
     <div>
@@ -45,7 +52,7 @@ const TagsTable = props => {
 TagsTable.propTypes = {
   tags: PropTypes.array.isRequired,
   location: PropTypes.object,
-};
+} as any;
 
 const StyledTable = styled('table')`
   table-layout: fixed;
@@ -77,4 +84,4 @@ const TagValue = styled(TagKey)`
   ${overflowEllipsis};
 `;
 
-export default withRouter(TagsTable);
+export default ReactRouter.withRouter(TagsTable);
