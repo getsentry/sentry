@@ -15,9 +15,13 @@ import space from 'app/styles/space';
 
 import {QueryLink} from './styles';
 
-export const MODAL_QUERY_KEYS = ['eventSlug'];
+export const MODAL_QUERY_KEYS: ['eventSlug'] = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['issue_title', 'last_seen', 'latest_event'];
+export const AGGREGATE_ALIASES: ['issue_title', 'last_seen', 'latest_event'] = [
+  'issue_title',
+  'last_seen',
+  'latest_event',
+];
 
 export const ALL_VIEWS = deepFreeze([
   {
