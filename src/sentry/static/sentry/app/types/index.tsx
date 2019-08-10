@@ -46,6 +46,8 @@ export type Event = {
   metadata: EventMetadata;
   message: string;
   platform?: string;
+  dateCreated?: string;
+  endTimestamp?: number;
 };
 
 export type EventsStatsData = [number, {count: number}[]][];
@@ -67,15 +69,70 @@ export type CommitAuthor = {
   name?: string;
 };
 
+type Metadata = {
+  value: string;
+  message: string;
+  directive: string;
+  type: string;
+  title: string;
+  uri: string;
+};
+
+type EventOrGroupType = [
+  'error',
+  'csp',
+  'hpkp',
+  'expectct',
+  'expectstaple',
+  'default',
+  'transaction'
+];
+
+// TODO: incomplete
+export type Group = {
+  id: string;
+  annotations: string[];
+  assignedTo: User;
+  count: string;
+  culprit: string;
+  firstSeen: string;
+  hasSeen: boolean;
+  isBookmarked: boolean;
+  isPublic: boolean;
+  isSubscribed: boolean;
+  lastSeen: string;
+  level: string;
+  logger: string;
+  metadata: Metadata;
+  numComments: number;
+  permalink: string;
+  project: {
+    name: string;
+    slug: string;
+  };
+  shareId: string;
+  shortId: string;
+  status: string;
+  statusDetails: {};
+  title: string;
+  type: EventOrGroupType;
+  userCount: number;
+  seenBy: User[];
+};
+
 export type EventView = {
   id: string;
   name: string;
   data: {
     fields: string[];
-    groupby: string[];
-    orderby: string[];
-    sort?: string;
+    columnNames: string[];
+    sort: string[];
     query?: string;
+
+    // TODO: removed as of https://github.com/getsentry/sentry/pull/14321
+    // groupby: string[];
+    // orderby: string[];
   };
   tags: string[];
+  columnWidths: string[];
 };
