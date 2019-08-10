@@ -10,6 +10,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
+import {Event} from 'app/types';
 
 import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -104,7 +105,7 @@ EventHeader.propTypes = {
 /**
  * Render metadata about the event and provide a link to the JSON blob
  */
-const EventMetadata = props => {
+const EventMetadata = (props: {event: Event; eventJsonUrl: string}) => {
   const {event, eventJsonUrl} = props;
 
   return (
