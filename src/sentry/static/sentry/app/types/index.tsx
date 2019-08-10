@@ -1,3 +1,5 @@
+import {SpanEntry} from 'app/views/organizationEventsV2/transactionView/types';
+
 export type Organization = {
   id: string;
   slug: string;
@@ -64,18 +66,49 @@ export type EventAttachment = {
   type: string;
 };
 
-// This type is incomplete
-export type Event = {
+type EntryType = {
+  data: {[key: string]: any} | any[];
+  type: string;
+};
+
+export type EventTag = {key: string; value: string};
+
+type SentryEventBase = {
   id: string;
   eventID: string;
   groupID?: string;
-  type: string;
   title: string;
   culprit: string;
   metadata: EventMetadata;
   message: string;
   platform?: string;
+  dateCreated?: string;
+  endTimestamp?: number;
+  entries: EntryType[];
+
+  previousEventID?: string;
+  nextEventID?: string;
+  projectSlug: string;
+
+  tags: EventTag[];
+
+  size: number;
+
+  location: string;
+
+  oldestEventID: string | null;
+  latestEventID: string | null;
 };
+
+// This type is incomplete
+export type Event =
+  | ({type: string} & SentryEventBase)
+  | {
+      type: 'transaction';
+      entries: SpanEntry[];
+      startTimestamp: number;
+      endTimestamp: number;
+    } & SentryEventBase;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -189,4 +222,72 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
+};
+
+type Metadata = {
+  value: string;
+  message: string;
+  directive: string;
+  type: string;
+  title: string;
+  uri: string;
+};
+
+type EventOrGroupType = [
+  'error',
+  'csp',
+  'hpkp',
+  'expectct',
+  'expectstaple',
+  'default',
+  'transaction'
+];
+
+// TODO(ts): incomplete
+export type Group = {
+  id: string;
+  annotations: string[];
+  assignedTo: User;
+  count: string;
+  culprit: string;
+  firstSeen: string;
+  hasSeen: boolean;
+  isBookmarked: boolean;
+  isPublic: boolean;
+  isSubscribed: boolean;
+  lastSeen: string;
+  level: string;
+  logger: string;
+  metadata: Metadata;
+  numComments: number;
+  permalink: string;
+  project: {
+    name: string;
+    slug: string;
+  };
+  shareId: string;
+  shortId: string;
+  status: string;
+  statusDetails: {};
+  title: string;
+  type: EventOrGroupType;
+  userCount: number;
+  seenBy: User[];
+};
+
+export type EventView = {
+  id: string;
+  name: string;
+  data: {
+    fields: string[];
+    columnNames: string[];
+    sort: string[];
+    query?: string;
+
+    // TODO: removed as of https://github.com/getsentry/sentry/pull/14321
+    // groupby: string[];
+    // orderby: string[];
+  };
+  tags: string[];
+  columnWidths: string[];
 };
