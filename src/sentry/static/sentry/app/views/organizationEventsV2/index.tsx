@@ -17,14 +17,22 @@ import EventDetails from './eventDetails';
 import {ALL_VIEWS} from './data';
 import {getCurrentView} from './utils';
 
-export default class OrganizationEventsV2 extends React.Component {
+type Props = {
+  organization: any;
+  location: any;
+  router: any;
+  // TODO: what is this?
+  params: any;
+};
+
+export default class OrganizationEventsV2 extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     router: PropTypes.object.isRequired,
   };
 
-  renderTabs() {
+  renderTabs(): React.ReactNode {
     const {organization} = this.props;
     const currentView = getCurrentView(this.props.location.query.view);
 
