@@ -99,7 +99,13 @@ export const SENTRY_APP_PERMISSIONS = [
 
 export const DEFAULT_TOAST_DURATION = 6000;
 
-export const CSRF_COOKIE_NAME = window.csrfCookieName || 'sc';
+declare global {
+  interface Window {
+    csrfCookieName?: string;
+  }
+}
+
+export const CSRF_COOKIE_NAME: string = window.csrfCookieName || 'sc';
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
