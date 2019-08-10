@@ -4,27 +4,45 @@ import styled from 'react-emotion';
 import {isEqual, omit} from 'lodash';
 import * as Sentry from '@sentry/browser';
 
+import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
+import {Organization, EventView} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
+
 import {
   fetchTagDistribution,
   fetchTotalCount,
   getEventTagSearchUrl,
   getQuery,
+  Tag,
+  TagTopValue,
 } from './utils';
 import {MODAL_QUERY_KEYS} from './data';
 
-class Tags extends React.Component {
-  static propTypes = {
+type Props = {
+  api: Client;
+  organization: Organization;
+  view: EventView;
+  location: ReactRouterLocation;
+};
+
+type State = {
+  tags: {[key: string]: Tag};
+  totalValues: null | number;
+};
+
+class Tags extends React.Component<Props, State> {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
     location: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
     tags: {},
     totalValues: null,
   };
@@ -81,7 +99,8 @@ class Tags extends React.Component {
     const {location} = this.props;
     const {tags, totalValues} = this.state;
     const isLoading = !tags[tag] || totalValues === null;
-    let segments = [];
+
+    let segments: Array<TagTopValue> = [];
 
     if (!isLoading) {
       segments = tags[tag].topValues;
