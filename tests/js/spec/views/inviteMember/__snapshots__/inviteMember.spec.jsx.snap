@@ -15,7 +15,15 @@ exports[`InviteMember should render loading 1`] = `
 
 exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -434,7 +442,15 @@ exports[`InviteMember should render roles when available and allowed, and handle
         selectedTeams={Array []}
       >
         <TeamSelect
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           onAddTeam={[Function]}
           onRemoveTeam={[Function]}
           organization={

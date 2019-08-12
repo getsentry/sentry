@@ -152,7 +152,15 @@ exports[`ProjectDebugFiles renders 1`] = `
                         is={null}
                       >
                         <withRouter(AsyncComponentSearchInput)
-                          api={Client {}}
+                          api={
+                            Client {
+                              "_chain": [Function],
+                              "_wrapRequest": [Function],
+                              "bulkUpdate": [Function],
+                              "handleRequestError": [Function],
+                              "hasProjectBeenRenamed": [Function],
+                            }
+                          }
                           className="search"
                           onError={[Function]}
                           onSuccess={[Function]}
@@ -162,7 +170,15 @@ exports[`ProjectDebugFiles renders 1`] = `
                           url="/projects/org/project/"
                         >
                           <AsyncComponentSearchInput
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             className="search"
                             debounceWait={200}
                             location={
@@ -328,7 +344,15 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       </Box>
       <Box>
         <withRouter(AsyncComponentSearchInput)
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           className="search"
           onError={[Function]}
           onSuccess={[Function]}

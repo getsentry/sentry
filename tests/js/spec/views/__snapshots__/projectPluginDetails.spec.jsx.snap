@@ -508,7 +508,15 @@ exports[`ProjectPluginDetails renders 1`] = `
                     }
                   >
                     <PluginConfig
-                      api={Client {}}
+                      api={
+                        Client {
+                          "_chain": [Function],
+                          "_wrapRequest": [Function],
+                          "bulkUpdate": [Function],
+                          "handleRequestError": [Function],
+                          "hasProjectBeenRenamed": [Function],
+                        }
+                      }
                       data={
                         Object {
                           "assets": Array [],
