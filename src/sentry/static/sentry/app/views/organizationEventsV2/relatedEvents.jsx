@@ -14,6 +14,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import DateTime from 'app/components/dateTime';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import withProjects from 'app/utils/withProjects';
 
 import {MODAL_QUERY_KEYS} from './data';
 
@@ -22,6 +23,7 @@ class RelatedEvents extends AsyncComponent {
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
   getEndpoints() {
@@ -46,7 +48,7 @@ class RelatedEvents extends AsyncComponent {
           'timestamp',
         ],
         sort: ['-timestamp'],
-        query: `trace:${trace.value} !id:${event.id}`,
+        query: `trace:${trace.value}`,
       },
     };
 
@@ -58,7 +60,7 @@ class RelatedEvents extends AsyncComponent {
   }
 
   renderBody() {
-    const {location} = this.props;
+    const {location, projects, event} = this.props;
     const {events} = this.state;
     if (!events) {
       return null;
@@ -80,9 +82,9 @@ class RelatedEvents extends AsyncComponent {
                 eventSlug: `${item['project.name']}:${item.id}`,
               },
             };
-            const project = {slug: item['project.name']};
+            const project = projects.find(p => p.slug === item['project.name']);
             return (
-              <Card key={item.id}>
+              <Card key={item.id} isCurrent={event.id === item.id}>
                 <EventLink to={eventUrl} data-test-id="linked-event">
                   {item.title ? item.title : item.transaction}
                 </EventLink>
@@ -107,7 +109,7 @@ const Container = styled('div')`
 const Card = styled('div')`
   display: flex;
   flex-direction: column;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(1)};
   padding: ${space(1)};
@@ -133,7 +135,6 @@ const StyledDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.gray2};
-  margin-left: ${space(1)};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
@@ -141,4 +142,4 @@ const StyledProjectBadge = styled(ProjectBadge)`
   margin-bottom: ${space(0.5)};
 `;
 
-export default RelatedEvents;
+export default withProjects(RelatedEvents);
