@@ -25,6 +25,13 @@ type State = {
   yAxisMax: number | null;
 };
 
+const CHART_GRID = {
+  left: space(1),
+  right: space(1),
+  top: space(2),
+  bottom: space(1),
+};
+
 export default class IncidentRulesChart extends React.Component<Props, State> {
   static defaultProps = {
     data: [],
@@ -48,20 +55,20 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   chartRef: null | ECharts = null;
 
   // If we have ref to chart and data, try to update chart axis so that
-  // alertThreshold is visible in chart
+  // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
-    const {data, alertThreshold} = this.props;
+    const {data, alertThreshold, resolveThreshold} = this.props;
     if (this.chartRef && data.length && data[0].data) {
-      this.updateChartAxis(alertThreshold, data[0].data);
+      this.updateChartAxis(Math.max(alertThreshold, resolveThreshold), data[0].data);
     }
   };
 
-  updateChartAxis = debounce((alertThreshold, dataArray: SeriesDataUnit[]) => {
+  updateChartAxis = debounce((threshold: number, dataArray: SeriesDataUnit[]) => {
     const max = maxBy(dataArray, ({value}) => value);
-    if (typeof max !== 'undefined' && alertThreshold > max) {
+    if (typeof max !== 'undefined' && threshold > max.value) {
       // We need to force update after we set a new yAxis max because `convertToPixel` will
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
-      this.setState({yAxisMax: Math.round(alertThreshold * 1.1)}, this.forceUpdate);
+      this.setState({yAxisMax: Math.round(threshold * 1.1)}, this.forceUpdate);
     } else {
       this.setState({yAxisMax: null});
     }
@@ -113,19 +120,16 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   ) => {
     const {isInverted} = this.props;
 
-    if (!isInverted) {
-      if (isResolution) {
-        return [0, position + 1];
-      } else {
-        return [0, 0];
-      }
-    } else {
-      if (isResolution) {
-        return [0, 0];
-      } else {
-        return [0, position + 1];
-      }
+    // i.e. isInverted xor isResolution
+    // We shade the bottom area if:
+    // * we are shading the resolution and it is *NOT* inverted
+    // * we are shading the incident and it *IS* inverted
+    if (isInverted !== isResolution) {
+      return [0, position + 1];
     }
+
+    // Otherwise shade the top area (`0,0` coordinates represents top left of chart)
+    return [0, 0];
   };
 
   /**
@@ -150,26 +154,50 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
     const yAxisPixelPosition = this.chartRef.convertToPixel({yAxisIndex: 0}, '0');
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
 
+    const LINE_STYLE = {
+      stroke: theme.purpleLight,
+      lineDash: [2],
+    };
+
     return [
+      // Draggable line
       {
         type: 'line',
+        // Resolution is considered "off" if it is -1
         invisible: position === -1,
         draggable: true,
         position: [0, position],
+        // We are doubling the width so that it looks like you are only able to drag along Y axis
+        // There doesn't seem to be a way in echarts to lock dragging to a single axis
         shape: {y1: 1, y2: 1, x1: -this.state.width, x2: this.state.width * 2},
-        style: {
-          stroke: theme.purpleLight,
-          lineDash: [2],
-        },
+        style: LINE_STYLE,
         ondragend: e => {
           setFn(e.target.position);
         },
         z: 101,
       },
-      ...(position >= 0 && [
+      // This is the stationary line (e.g. when you drag, this stays in place while the other
+      // line moves to show user where they are moving the line)
+      {
+        type: 'line',
+        // Resolution is considered "off" if it is -1
+        invisible: position === -1,
+        draggable: false,
+        position: [0, position],
+        shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
+        style: LINE_STYLE,
+      },
+
+      // Shaded area for incident/resolutions to show user when they can expect to be alerted
+      // for incidents (or when they will be considered as resolved)
+      //
+      // Resolution is considered "off" if it is -1
+      ...(position > -1 && [
         {
           type: 'rect',
           draggable: false,
+
+          //
           position: isResolution !== isInverted ? [0, position + 1] : [0, 0],
           shape: {
             width: this.state.width,
@@ -179,20 +207,11 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
           style: {
             fill: isResolution ? 'rgba(87, 190, 140, 0.1)' : 'rgba(220, 107, 107, 0.18)',
           },
+
+          // This needs to be below the draggable line
           z: 100,
         },
       ]),
-      {
-        type: 'line',
-        invisible: position === -1,
-        draggable: false,
-        position: [0, position],
-        shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
-        style: {
-          stroke: theme.purple,
-          lineDash: [2],
-        },
-      },
     ];
   };
 
@@ -209,15 +228,9 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
         <LineChart
           isGroupedByDate
           forwardedRef={this.handleRef}
-          grid={{
-            left: space(1),
-            right: space(1),
-            top: space(2),
-            bottom: space(1),
-          }}
+          grid={CHART_GRID}
           yAxis={{
             max: this.state.yAxisMax,
-            boundaryGddap: [8, 8],
           }}
           graphic={Graphic({
             elements: [
