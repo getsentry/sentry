@@ -11,7 +11,7 @@ from pytz import utc
 from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.message_filters import get_all_filters
+from sentry.message_filters import get_all_filters, get_filter_key
 
 from sentry.models.organization import Organization
 from sentry.models.organizationoption import OrganizationOption
@@ -113,7 +113,7 @@ def get_project_config(project_id, full_config=True, for_store=False):
     project_cfg['filter_settings'] = filter_settings
 
     for flt in get_all_filters():
-        filter_id = flt.spec.id.replace('-', '_')
+        filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
