@@ -226,7 +226,9 @@ class RuleForm extends React.Component<Props, State> {
                   label: t('Incident Boundary'),
                   name: 'alertThreshold',
                   type: 'range',
-                  help: t('Anything trending above this limit will trigger an Incident'),
+                  help: !this.state.isInverted
+                    ? t('Anything trending above this limit will trigger an Incident')
+                    : t('Anything trending below this limit will trigger an Incident'),
                   onChange: this.handleChangeIncidentThresholdInput,
                   showCustomInput: true,
                   required: true,
@@ -235,7 +237,9 @@ class RuleForm extends React.Component<Props, State> {
                   label: t('Resolution Threshold'),
                   name: 'resolveThreshold',
                   type: 'range',
-                  help: t('Anything trending below this limit will resolve an Incident'),
+                  help: !this.state.isInverted
+                    ? t('Anything trending below this limit will resolve an Incident')
+                    : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   required: true,
