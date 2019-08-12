@@ -639,7 +639,7 @@ class DatabaseOperations(object):
         return name
 
     @invalidate_table_constraints
-    def delete_unique(self, table_name, columns, if_exist=False):
+    def delete_unique(self, table_name, columns, should_exist=True):
         """
         Deletes a UNIQUE constraint on precisely the columns on the given table.
         """
@@ -655,7 +655,7 @@ class DatabaseOperations(object):
 
         constraints = list(self._constraints_affecting_columns(table_name, columns))
         if not constraints:
-            if if_exist:
+            if not should_exist:
                 return
             raise ValueError(
                 "Cannot find a UNIQUE constraint on table %s, columns %r" %
