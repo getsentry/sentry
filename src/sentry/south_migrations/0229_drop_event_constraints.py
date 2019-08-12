@@ -15,6 +15,8 @@ class Migration(SchemaMigration):
             db.delete_foreign_key('sentry_eventmapping', 'project_id')
         except OperationalError:
             pass
+        except ValueError:
+            pass
 
     def backwards(self, orm):
         pass
