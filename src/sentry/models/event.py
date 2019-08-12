@@ -5,7 +5,6 @@ import string
 import warnings
 import pytz
 
-from datetime import datetime
 from collections import OrderedDict
 from dateutil.parser import parse as parse_date
 from django.db import models
@@ -26,7 +25,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
