@@ -661,6 +661,9 @@ def get_snuba_filter(query=None, params=None):
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 conditions.append(converted_filter)
         # else:  # SearchBoolean
+            # TODO: The boolean search feature below has been commented out
+            # since boolean search is dependent on change capture to work properly
+
             # conditions.append(convert_search_boolean_to_snuba_query(term))
 
     return Filter(start=start, end=end, conditions=conditions, filter_keys=filter_keys)
