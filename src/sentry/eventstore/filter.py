@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-class Filter:
+class Filter(object):
     conditions = []
     filter_keys = {}
     start = None
