@@ -215,7 +215,6 @@ class SearchVisitor(NodeVisitor):
         'device.battery_level', 'device.charging', 'device.online',
         'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
         'stack.in_app', 'stack.lineno', 'stack.stack_level',
-        'duration',
         # TODO(mark) figure out how to safelist aggregate functions/field aliases
         # so they can be used in conditions
     ])
