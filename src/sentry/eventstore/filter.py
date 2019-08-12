@@ -10,8 +10,12 @@ class Filter:
     def __init__(self, start=None, end=None, conditions=None, filter_keys=None):
         self.start = start
         self.end = end
-        self.conditions = conditions
-        self.filter_keys = filter_keys
+
+        if conditions:
+            self.conditions = conditions
+
+        if filter_keys:
+            self.filter_keys = filter_keys
 
     def to_snuba_args(self):
         """

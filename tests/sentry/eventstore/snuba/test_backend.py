@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.eventstore.filter import Filter
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
@@ -49,7 +50,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
-        events = self.eventstore.get_events(filter_keys={'project_id': [self.project.id]})
+        events = self.eventstore.get_events(filter=Filter(
+            filter_keys={'project_id': [self.project.id]}))
         assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
         assert events[0].id == 'c' * 32
@@ -58,7 +60,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter_keys={'project_id': [project.id]})
+        events = self.eventstore.get_events(filter=Filter(filter_keys={'project_id': [project.id]}))
         assert events == []
 
     def test_get_event_by_id(self):
