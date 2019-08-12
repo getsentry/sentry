@@ -12,7 +12,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
+      url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
           id: 'string',
