@@ -13,6 +13,8 @@ class Migration(SchemaMigration):
             db.delete_foreign_key('sentry_messagefiltervalue', 'project_id')
         except OperationalError:
             pass
+        except ValueError:
+            pass
 
     def backwards(self, orm):
         "Write your backwards methods here."
