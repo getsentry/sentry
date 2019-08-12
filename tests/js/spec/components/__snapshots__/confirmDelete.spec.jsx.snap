@@ -262,7 +262,7 @@ exports[`ConfirmDelete renders 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-ghryvk-StyledButton-getColors e12ma6z0"
+                className="css-4gvaqq-StyledButton-getColors e12ma6z0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -275,7 +275,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-ghryvk-StyledButton-getColors e12ma6z0"
+                  className="css-4gvaqq-StyledButton-getColors e12ma6z0"
                   onClick={[Function]}
                   role="button"
                   style={
