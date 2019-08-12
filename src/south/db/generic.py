@@ -797,6 +797,10 @@ class DatabaseOperations(object):
         """
         constraint_name = '%s_refs_%s_%s' % (
             from_column_name, to_column_name, self._digest(from_table_name, to_table_name))
+        constraints = self._find_foreign_constraints(to_table_name, constraint_name)
+        if constraints:
+            # no-op, fk already exists
+            return "NULL;"
         return self.add_foreign_key_sql % (
             self.quote_name(from_table_name),
             self.quote_name(self.shorten_name(constraint_name)),
