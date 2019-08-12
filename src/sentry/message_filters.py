@@ -170,7 +170,7 @@ def _get_filter_settings(project_config, flt):
     :return: the options for the filter
     """
     filter_settings = project_config.config.get('filter_settings', {})
-    filter_key = flt.spec.id
+    filter_key = flt.spec.id.replace('-', '_')
     return filter_settings.get(filter_key, None)
 
 
