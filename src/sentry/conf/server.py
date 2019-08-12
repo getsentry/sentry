@@ -77,8 +77,9 @@ ADMINS = ()
 # This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
-# Hosts that are allowed to use system token authentication.
-INTERNAL_SYSTEM_IPS = (
+# List of IP subnets which should not be accessible
+# http://en.wikipedia.org/wiki/Reserved_IP_addresses
+SENTRY_DISALLOWED_IPS = (
     "0.0.0.0/8",
     "10.0.0.0/8",
     "100.64.0.0/10",
@@ -95,6 +96,9 @@ INTERNAL_SYSTEM_IPS = (
     "240.0.0.0/4",
     "255.255.255.255/32",
 )
+
+# Hosts that are allowed to use system token authentication.
+INTERNAL_SYSTEM_IPS = SENTRY_DISALLOWED_IPS
 
 MANAGERS = ADMINS
 
@@ -1174,9 +1178,6 @@ SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
 
 # Maximum content length for source files before we abort fetching
 SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
-
-# List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
