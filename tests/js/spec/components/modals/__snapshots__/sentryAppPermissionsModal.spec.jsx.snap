@@ -147,7 +147,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Install"
-            className="ey7jt0i0 css-1wxdked-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1tzz3wq-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="success"
@@ -156,7 +156,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
             <button
               aria-disabled={false}
               aria-label="Install"
-              className="ey7jt0i0 css-1wxdked-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1tzz3wq-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -203,7 +203,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="ey7jt0i0 css-1k9q35k-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1v01il8-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -211,7 +211,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="ey7jt0i0 css-1k9q35k-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1v01il8-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -385,7 +385,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Install"
-            className="ey7jt0i0 css-1wxdked-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1tzz3wq-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="success"
@@ -394,7 +394,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
             <button
               aria-disabled={false}
               aria-label="Install"
-              className="ey7jt0i0 css-1wxdked-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1tzz3wq-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -441,7 +441,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="ey7jt0i0 css-1k9q35k-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1v01il8-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -449,7 +449,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="ey7jt0i0 css-1k9q35k-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1v01il8-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >

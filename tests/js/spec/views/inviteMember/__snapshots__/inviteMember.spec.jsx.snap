@@ -768,7 +768,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             aria-disabled={false}
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-12sg95p-StyledButton-getColors e12ma6z0"
+            className="invite-member-submit css-xiynrq-StyledButton-getColors e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -777,7 +777,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             <button
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-12sg95p-StyledButton-getColors e12ma6z0"
+              className="invite-member-submit css-xiynrq-StyledButton-getColors e12ma6z0"
               onClick={[Function]}
               role="button"
             >

@@ -2853,7 +2853,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc79 css-1modaai-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-1tsyl87-StyledButton-getColors-AddButton e12ma6z0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2862,7 +2862,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc79 css-1modaai-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1tsyl87-StyledButton-getColors-AddButton e12ma6z0"
                 onClick={[Function]}
                 role="button"
                 size="small"

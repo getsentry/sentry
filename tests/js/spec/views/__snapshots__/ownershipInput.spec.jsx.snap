@@ -1070,7 +1070,7 @@ url:http://example.com/settings/* #product"
                   <ForwardRef
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                    className="css-1lua553-StyledButton-getColors e12ma6z0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -1080,7 +1080,7 @@ url:http://example.com/settings/* #product"
                     <button
                       aria-disabled={false}
                       aria-label="Save Changes"
-                      className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                      className="css-1lua553-StyledButton-getColors e12ma6z0"
                       onClick={[Function]}
                       role="button"
                       size="small"
