@@ -175,3 +175,6 @@ export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
 // Webpack configures EXPERIMENTAL_SPA.
 // eslint-disable-next-line no-undef
 export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
+
+// so we don't use filtered values in certain display contexts
+export const FILTER_MASK = '[Filtered]';

@@ -3,6 +3,7 @@ import React from 'react';
 
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
+import {removeFilteredValues} from 'app/components/events/interfaces/utils';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
@@ -109,7 +110,7 @@ class UserSummary extends React.Component {
   };
 
   render() {
-    const user = this.props.data;
+    const user = removeFilteredValues(this.props.data);
 
     if (objectIsEmpty(user)) {
       return <NoSummary title={t('Unknown User')} />;
