@@ -28,7 +28,7 @@ type RenderProps = {
   timeAggregatedData?: Series | {};
 };
 
-type EventsRequestProps = {
+type EventsRequestPartialProps = {
   api: Client;
   organization: Organization;
 
