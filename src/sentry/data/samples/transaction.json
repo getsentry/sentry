@@ -136,13 +136,11 @@
    },
    "spans": [
       {
-         "start_timestamp": 1562681591.0,
          "same_process_as_parent":true,
          "description": "Django: SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
          "tags": {
             "error":false
          },
-         "timestamp":1562681591.0,
          "parent_span_id": "babaae0d4b7512d9",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
          "op": "db",
@@ -150,7 +148,6 @@
          "span_id": "b048b4c8fdc5168c"
       }
    ],
-   "start_timestamp": 1562681591.0,
    "transaction": "/country_by_code/",
    "type": "transaction",
    "user": {
