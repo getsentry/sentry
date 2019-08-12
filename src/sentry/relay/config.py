@@ -113,7 +113,7 @@ def get_project_config(project_id, full_config=True, for_store=False):
     project_cfg['filter_settings'] = filter_settings
 
     for flt in get_all_filters():
-        filter_id = flt.spec.id
+        filter_id = flt.spec.id.replace('-', '_')
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
