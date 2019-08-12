@@ -99,6 +99,7 @@ class DatabaseOperations(object):
     delete_primary_key_sql = "ALTER TABLE %(table)s DROP CONSTRAINT %(constraint)s"
     add_check_constraint_fragment = "ADD CONSTRAINT %(constraint)s CHECK (%(check)s)"
     rename_table_sql = "ALTER TABLE %s RENAME TO %s;"
+    add_foreign_key_sql = 'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)%s;'
     backend_name = None
 
     default_schema_name = "public"
@@ -796,7 +797,7 @@ class DatabaseOperations(object):
         """
         constraint_name = '%s_refs_%s_%s' % (
             from_column_name, to_column_name, self._digest(from_table_name, to_table_name))
-        return 'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)%s;' % (
+        return self.add_foreign_key_sql % (
             self.quote_name(from_table_name),
             self.quote_name(self.shorten_name(constraint_name)),
             self.quote_name(from_column_name),
