@@ -3,8 +3,9 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import Widget from 'app/views/organizationDashboard/widget';
 import space from 'app/styles/space';
+
+import Widget from './widget';
 
 class Dashboard extends React.Component {
   static propTypes = {

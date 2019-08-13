@@ -1,4 +1,4 @@
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 
 import eventsByRelease from '../queries/eventsByRelease';
 

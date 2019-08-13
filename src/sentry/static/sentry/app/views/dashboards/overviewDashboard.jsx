@@ -2,8 +2,9 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Dashboard from 'app/views/organizationDashboard/dashboard';
-import overviewDashboard from 'app/views/organizationDashboard/data/dashboards/overviewDashboard';
+
+import Dashboard from './dashboard';
+import overviewDashboard from './data/dashboards/overviewDashboard';
 
 class OverviewDashboard extends AsyncView {
   getEndpoints() {

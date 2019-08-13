@@ -6,13 +6,13 @@ import {LoadingMask} from 'app/views/events/loadingPanel';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
-import ExploreWidget from 'app/views/organizationDashboard/exploreWidget';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import DiscoverQuery from './discoverQuery';
+import ExploreWidget from './exploreWidget';
 import WidgetChart from './widgetChart';
 
 class Widget extends React.Component {
