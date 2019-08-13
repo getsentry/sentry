@@ -15,7 +15,7 @@ export type SpanEntry = {
   data: Array<SpanType>;
 };
 
-export type SentryEvent = {
+export type SentryTransactionEvent = {
   entries: Array<SpanEntry>;
   startTimestamp: number;
   endTimestamp: number;
