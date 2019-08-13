@@ -20,30 +20,6 @@ describe('getCurrentView()', function() {
 });
 
 describe('getQuery()', function() {
-  it('expands special "event" and "user" fields', function() {
-    const view = {
-      id: 'test',
-      name: 'test view',
-      data: {
-        fields: ['event', 'user', 'issue.id'],
-      },
-      tags: [],
-    };
-
-    expect(getQuery(view, {}).field).toEqual([
-      'title',
-      'id',
-      'project.name',
-      'user',
-      'user.name',
-      'user.username',
-      'user.email',
-      'user.ip',
-      'user.id',
-      'issue.id',
-    ]);
-  });
-
   it('appends any additional conditions defined for view', function() {
     const view = {
       id: 'test',

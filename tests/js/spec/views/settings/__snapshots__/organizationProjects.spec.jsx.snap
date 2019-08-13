@@ -136,7 +136,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create Project"
-                                className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                                className="css-1lua553-StyledButton-getColors e12ma6z0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -147,7 +147,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create Project"
-                                  className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                                  className="css-1lua553-StyledButton-getColors e12ma6z0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -158,7 +158,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create Project"
-                                    className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                                    className="css-1lua553-StyledButton-getColors e12ma6z0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -270,7 +270,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         >
                           Projects
                           <withRouter(AsyncComponentSearchInput)
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             className="search"
                             onError={[Function]}
                             onSuccess={[Function]}
@@ -280,7 +288,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             url="/organizations/org-slug/projects/"
                           >
                             <AsyncComponentSearchInput
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="search"
                               debounceWait={200}
                               location={
@@ -533,7 +549,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           }
                                         >
                                           <BookmarkStar
-                                            api={Client {}}
+                                            api={
+                                              Client {
+                                                "_chain": [Function],
+                                                "_wrapRequest": [Function],
+                                                "bulkUpdate": [Function],
+                                                "handleRequestError": [Function],
+                                                "hasProjectBeenRenamed": [Function],
+                                              }
+                                            }
                                             className="css-10z01iz-BookmarkLink enngb6z1"
                                             isBookmarked={false}
                                             onToggle={[Function]}

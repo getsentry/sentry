@@ -1,3 +1,4 @@
+import {Client} from 'app/api';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 import {EventsStats, Organization} from 'app/types';
@@ -33,8 +34,7 @@ type Options = {
  * @param {String} options.query Search query
  */
 export const doEventsRequest = (
-  // TODO(ts): Update when we type `app/api`
-  api: any,
+  api: Client,
   {
     organization,
     project,

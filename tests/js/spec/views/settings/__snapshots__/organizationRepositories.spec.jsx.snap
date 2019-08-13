@@ -31,7 +31,15 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     >
       <Box>
         <RepositoryRow
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           key="4"
           orgId="org-slug"
           repository={

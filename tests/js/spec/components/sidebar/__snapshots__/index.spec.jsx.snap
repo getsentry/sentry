@@ -1264,7 +1264,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Learn more"
-                className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                className="css-z6hjis-StyledButton-getColors e12ma6z0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1275,7 +1275,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 <ForwardRef
                   aria-disabled={false}
                   aria-label="Learn more"
-                  className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                  className="css-z6hjis-StyledButton-getColors e12ma6z0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
                   rel="noreferrer noopener"
@@ -1286,7 +1286,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   <a
                     aria-disabled={false}
                     aria-label="Learn more"
-                    className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                    className="css-z6hjis-StyledButton-getColors e12ma6z0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
                     rel="noreferrer noopener"
@@ -1369,10 +1369,26 @@ exports[`Sidebar can have onboarding feature 1`] = `
           >
             <withApi(WithOrganizationMockWrapper)>
               <WithOrganizationMockWrapper
-                api={Client {}}
+                api={
+                  Client {
+                    "_chain": [Function],
+                    "_wrapRequest": [Function],
+                    "bulkUpdate": [Function],
+                    "handleRequestError": [Function],
+                    "hasProjectBeenRenamed": [Function],
+                  }
+                }
               >
                 <TodoList
-                  api={Client {}}
+                  api={
+                    Client {
+                      "_chain": [Function],
+                      "_wrapRequest": [Function],
+                      "bulkUpdate": [Function],
+                      "handleRequestError": [Function],
+                      "hasProjectBeenRenamed": [Function],
+                    }
+                  }
                   organization={
                     Object {
                       "access": Array [
@@ -1543,7 +1559,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -1553,7 +1569,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -1858,7 +1874,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -1868,7 +1884,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2171,7 +2187,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2181,7 +2197,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2488,7 +2504,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2498,7 +2514,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2807,7 +2823,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2817,7 +2833,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -3126,7 +3142,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -3136,7 +3152,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-dvos23-StyledButton-getColors-SkipButton e12ma6z0"
+                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton e12ma6z0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"

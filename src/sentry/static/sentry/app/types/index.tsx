@@ -12,6 +12,8 @@ export type Project = {
   isMember: boolean;
   teams: Team[];
   features: string[];
+
+  isBookmarked: boolean;
 };
 
 export type Team = {
@@ -63,4 +65,24 @@ export type User = {
 export type CommitAuthor = {
   email?: string;
   name?: string;
+};
+
+// TODO(ts): This type is incomplete
+export type Environment = {};
+
+// TODO(ts): This type is incomplete
+export type SavedSearch = {};
+
+// TODO(ts): This type is incomplete
+export type Plugin = {};
+
+export type GlobalSelection = {
+  projects: number[];
+  environments: string[];
+  datetime: {
+    start: string;
+    end: string;
+    period: string;
+    utc: boolean;
+  };
 };

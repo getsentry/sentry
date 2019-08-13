@@ -431,7 +431,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+            className="css-z6hjis-StyledButton-getColors e12ma6z0"
             data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -441,7 +441,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+              className="css-z6hjis-StyledButton-getColors e12ma6z0"
               data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
@@ -765,7 +765,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                            className="css-1lua553-StyledButton-getColors e12ma6z0"
                             data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
@@ -781,7 +781,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-cwxw5f-StyledButton-getColors e12ma6z0"
+                              className="css-1lua553-StyledButton-getColors e12ma6z0"
                               data-test-id="add-button"
                               onClick={[Function]}
                               role="button"

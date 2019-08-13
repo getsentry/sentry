@@ -44,7 +44,15 @@ exports[`BookmarkStar renders 1`] = `
   }
 >
   <BookmarkStar
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     organization={
       Object {
         "access": Array [

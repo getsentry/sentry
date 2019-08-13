@@ -7,7 +7,13 @@ exports[`FormField + model renders with Form 1`] = `
   className="form-stacked"
   model={
     FormModel {
-      "api": Client {},
+      "api": Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      },
       "errors": Object {},
       "fieldDescriptor": Map {
         "fieldName" => Object {
@@ -102,7 +108,13 @@ exports[`FormField + model renders with Form 1`] = `
                             <ControlState
                               model={
                                 FormModel {
-                                  "api": Client {},
+                                  "api": Client {
+                                    "_chain": [Function],
+                                    "_wrapRequest": [Function],
+                                    "bulkUpdate": [Function],
+                                    "handleRequestError": [Function],
+                                    "hasProjectBeenRenamed": [Function],
+                                  },
                                   "errors": Object {},
                                   "fieldDescriptor": Map {
                                     "fieldName" => Object {
@@ -247,7 +259,13 @@ exports[`FormField + model renders with Form 1`] = `
                                                         <ControlState
                                                           model={
                                                             FormModel {
-                                                              "api": Client {},
+                                                              "api": Client {
+                                                                "_chain": [Function],
+                                                                "_wrapRequest": [Function],
+                                                                "bulkUpdate": [Function],
+                                                                "handleRequestError": [Function],
+                                                                "hasProjectBeenRenamed": [Function],
+                                                              },
                                                               "errors": Object {},
                                                               "fieldDescriptor": Map {
                                                                 "fieldName" => Object {
@@ -336,7 +354,7 @@ exports[`FormField + model renders with Form 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Save Changes"
-                className="css-12sg95p-StyledButton-getColors e12ma6z0"
+                className="css-xiynrq-StyledButton-getColors e12ma6z0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -347,7 +365,7 @@ exports[`FormField + model renders with Form 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Save Changes"
-                  className="css-12sg95p-StyledButton-getColors e12ma6z0"
+                  className="css-xiynrq-StyledButton-getColors e12ma6z0"
                   data-test-id="form-submit"
                   onClick={[Function]}
                   role="button"
