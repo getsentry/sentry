@@ -511,32 +511,6 @@ class EventManager(object):
             id=project.organization_id
         )
 
-        # Check to make sure we're not about to do a bunch of work that's
-        # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-        # there's a race condition between here and when the event is actually
-        # saved, but it's an improvement. See GH-7677.)
-        # try:
-        #     event = Event.objects.get(
-        #         project_id=project.id,
-        #         event_id=data['event_id'],
-        #     )
-        # except Event.DoesNotExist:
-        #     pass
-        # else:
-        #     # Make sure we cache on the project before returning
-        #     event._project_cache = project
-        #     logger.info(
-        #         'duplicate.found',
-        #         exc_info=True,
-        #         extra={
-        #             'event_uuid': data['event_id'],
-        #             'project_id': project.id,
-        #             'model': Event.__name__,
-        #         }
-        #     )
-        #     return event
-
         # Pull out the culprit
         culprit = self.get_culprit()
 
@@ -784,7 +758,13 @@ class EventManager(object):
         if not is_sample:
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
-                    event.save()
+                    try:
+                        event = Event.objects.get(
+                            project_id=project.id,
+                            event_id=data['event_id'],
+                        )
+                    except Event.DoesNotExist:
+                        event.save()
             except IntegrityError:
                 logger.info(
                     "duplicate.found",
