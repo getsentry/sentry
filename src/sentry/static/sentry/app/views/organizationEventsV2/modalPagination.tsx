@@ -9,9 +9,9 @@ import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {MODAL_QUERY_KEYS} from './data';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 
 /**
  * Generate a mapping of link names => link targets for pagination
