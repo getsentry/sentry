@@ -60,7 +60,18 @@ class SnubaEventStorage(EventStorage):
         if not event_id:
             return None
 
-        return SnubaEvent.get_event(project_id, event_id, snuba_cols=cols)
+        result = snuba.raw_query(
+            selected_columns=cols,
+            filter_keys={
+                'event_id': [event_id],
+                'project_id': [project_id],
+            },
+            referrer='eventstore.get_event_by_id',
+            limit=1,
+        )
+        if 'error' not in result and len(result['data']) == 1:
+            return SnubaEvent(result['data'][0])
+        return None
 
     def __get_columns(self, additional_columns):
         columns = EventStorage.minimal_columns

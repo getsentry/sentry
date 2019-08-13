@@ -25,7 +25,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr
 )
-from sentry.db.models.manager import EventManager, SnubaEventManager
+from sentry.db.models.manager import EventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json, metrics
 from sentry.utils.cache import memoize
@@ -457,25 +457,7 @@ class SnubaEvent(EventCommon):
         'username',
     ]
 
-    objects = SnubaEventManager()
-
     __repr__ = sane_repr('project_id', 'group_id')
-
-    @classmethod
-    def get_event(cls, project_id, event_id, snuba_cols=selected_columns):
-        from sentry.utils import snuba
-        result = snuba.raw_query(
-            selected_columns=snuba_cols,
-            filter_keys={
-                'event_id': [event_id],
-                'project_id': [project_id],
-            },
-            referrer='SnubaEvent.get_event',
-            limit=1,
-        )
-        if 'error' not in result and len(result['data']) == 1:
-            return SnubaEvent(result['data'][0])
-        return None
 
     def __init__(self, snuba_values):
         """

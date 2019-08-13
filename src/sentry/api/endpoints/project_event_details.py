@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from datetime import datetime
 from rest_framework.response import Response
 
+from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
-from sentry.models import SnubaEvent
 
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -41,16 +41,16 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        snuba_event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
-        if snuba_event is None:
+        if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
-        data = serialize(snuba_event, request.user, DetailedEventSerializer())
+        data = serialize(event, request.user, DetailedEventSerializer())
         requested_environments = set(request.GET.getlist('environment'))
 
-        next_event_id = snuba_event.next_event_id(environments=requested_environments)
-        prev_event_id = snuba_event.prev_event_id(environments=requested_environments)
+        next_event_id = event.next_event_id(environments=requested_environments)
+        prev_event_id = event.prev_event_id(environments=requested_environments)
 
         data['nextEventID'] = next_event_id
         data['previousEventID'] = prev_event_id
@@ -61,7 +61,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 class EventJsonEndpoint(ProjectEndpoint):
 
     def get(self, request, project, event_id):
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if not event:
             return Response({'detail': 'Event not found'}, status=404)

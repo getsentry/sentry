@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import SnubaEvent, EventAttachment
+from sentry.models import EventAttachment
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
@@ -24,7 +24,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
                             project.organization, actor=request.user):
             return self.respond(status=404)
 
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({'detail': 'Event not found'}, status=404)
 

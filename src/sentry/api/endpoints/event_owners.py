@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import Event, SnubaEvent, ProjectOwnership
+from sentry.models import Event, ProjectOwnership
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -20,7 +21,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
