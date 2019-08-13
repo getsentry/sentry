@@ -12,8 +12,8 @@ import theme from 'app/utils/theme';
 
 type Props = {
   data: Series[];
-  alertThreshold: number;
-  resolveThreshold: number;
+  alertThreshold: number | null;
+  resolveThreshold: number | null;
   isInverted: boolean;
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
@@ -58,8 +58,16 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
     const {data, alertThreshold, resolveThreshold} = this.props;
-    if (this.chartRef && data.length && data[0].data) {
-      this.updateChartAxis(Math.max(alertThreshold, resolveThreshold), data[0].data);
+    if (
+      this.chartRef &&
+      data.length &&
+      data[0].data &&
+      (alertThreshold !== null || resolveThreshold !== null)
+    ) {
+      this.updateChartAxis(
+        Math.max(alertThreshold || 0, resolveThreshold || 0),
+        data[0].data
+      );
     }
   };
 
@@ -140,13 +148,14 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
     isResolution: boolean,
     setFn: Function
   ) => {
-    const {resolveThreshold, isInverted} = this.props;
+    const {alertThreshold, resolveThreshold, isInverted} = this.props;
 
     if (
       typeof position !== 'number' ||
       !this.state.height ||
       !this.chartRef ||
-      (isResolution && resolveThreshold < 0)
+      resolveThreshold === null ||
+      alertThreshold === null
     ) {
       return [];
     }
@@ -164,7 +173,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       {
         type: 'line',
         // Resolution is considered "off" if it is -1
-        invisible: position === -1,
+        invisible: position === null,
         draggable: true,
         position: [0, position],
         // We are doubling the width so that it looks like you are only able to drag along Y axis
@@ -181,7 +190,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       {
         type: 'line',
         // Resolution is considered "off" if it is -1
-        invisible: position === -1,
+        invisible: position === null,
         draggable: false,
         position: [0, position],
         shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
@@ -192,7 +201,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       // for incidents (or when they will be considered as resolved)
       //
       // Resolution is considered "off" if it is -1
-      ...(position > -1 && [
+      ...(position !== null && [
         {
           type: 'rect',
           draggable: false,

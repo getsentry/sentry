@@ -33,16 +33,14 @@ type Props = {
 type State = {
   width?: number;
   isInverted: boolean;
-  alertThreshold: number;
-  resolveThreshold: number;
+  alertThreshold: number | null;
+  resolveThreshold: number | null;
 };
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
   [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
 };
-
-const START_POSITION = 20;
 
 class RuleForm extends React.Component<Props, State> {
   static contextTypes = {
@@ -57,12 +55,10 @@ class RuleForm extends React.Component<Props, State> {
     isInverted: this.props.initialData
       ? this.props.initialData.thresholdType === AlertRuleThresholdType.BELOW
       : false,
-    alertThreshold: this.props.initialData
-      ? this.props.initialData.alertThreshold
-      : START_POSITION,
+    alertThreshold: this.props.initialData ? this.props.initialData.alertThreshold : null,
     resolveThreshold: this.props.initialData
       ? this.props.initialData.resolveThreshold
-      : -1,
+      : null,
   };
 
   getThresholdKey = (
@@ -85,8 +81,8 @@ class RuleForm extends React.Component<Props, State> {
     // If this is resolve threshold and not inverted, it can't be above resolve
     // If this is resolve threshold and inverted, it can't be below resolve
     return !!this.state.isInverted !== isResolution
-      ? value < this.state[isResolution ? 'alertThreshold' : 'resolveThreshold']
-      : value > this.state[isResolution ? 'alertThreshold' : 'resolveThreshold'];
+      ? value < (this.state[isResolution ? 'alertThreshold' : 'resolveThreshold'] || 0)
+      : value > (this.state[isResolution ? 'alertThreshold' : 'resolveThreshold'] || 0);
   };
 
   revertThresholdUpdate = () => {
@@ -142,12 +138,13 @@ class RuleForm extends React.Component<Props, State> {
   handleChangeThresholdType = (value: boolean) => {
     this.setState({isInverted: value});
     // We also need to reset resolution threshold, otherwise can be in an invalid state
-    this.setState({resolveThreshold: -1});
-    this.context.form.setValue('resolveThreshold', -1);
+    this.setState({resolveThreshold: null});
+    this.context.form.setValue('resolveThreshold', null);
   };
 
   render() {
     const {api, organization, project} = this.props;
+    const {alertThreshold, resolveThreshold, isInverted} = this.state;
 
     return (
       <React.Fragment>
@@ -164,10 +161,10 @@ class RuleForm extends React.Component<Props, State> {
             ) : (
               <IncidentRulesChart
                 onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
-                alertThreshold={this.state.alertThreshold}
+                alertThreshold={alertThreshold}
                 onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
-                resolveThreshold={this.state.resolveThreshold}
-                isInverted={this.state.isInverted}
+                resolveThreshold={resolveThreshold}
+                isInverted={isInverted}
                 data={timeseriesData}
               />
             )
@@ -226,7 +223,7 @@ class RuleForm extends React.Component<Props, State> {
                   label: t('Incident Boundary'),
                   name: 'alertThreshold',
                   type: 'range',
-                  help: !this.state.isInverted
+                  help: !isInverted
                     ? t('Anything trending above this limit will trigger an Incident')
                     : t('Anything trending below this limit will trigger an Incident'),
                   onChange: this.handleChangeIncidentThresholdInput,
@@ -237,14 +234,14 @@ class RuleForm extends React.Component<Props, State> {
                   label: t('Resolution Threshold'),
                   name: 'resolveThreshold',
                   type: 'range',
-                  help: !this.state.isInverted
+                  help: !isInverted
                     ? t('Anything trending below this limit will resolve an Incident')
                     : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   required: true,
-                  ...(!this.state.isInverted && {max: this.state.alertThreshold}),
-                  ...(this.state.isInverted && {min: this.state.alertThreshold}),
+                  ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
+                  ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
                 },
                 {
                   label: t('Use an inverted incident threshold'),
