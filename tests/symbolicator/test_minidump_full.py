@@ -11,7 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
 from sentry.testutils import TransactionTestCase
-from sentry.models import Event, EventAttachment
+from sentry.models import EventAttachment
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
@@ -98,7 +98,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 resp = self._postMinidumpWithHeader(f, raw=True)
                 assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
@@ -109,6 +109,6 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 })
                 assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
