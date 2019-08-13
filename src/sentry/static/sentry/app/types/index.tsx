@@ -1,3 +1,5 @@
+import {SpanEntry} from 'app/views/organizationEventsV2/transactionView/types.tsx';
+
 export type Organization = {
   id: string;
   slug: string;
@@ -40,12 +42,12 @@ type EntryType = {
   type: string;
 };
 
-// This type is incomplete
-export type Event = {
+export type EventTag = {key: string; value: string};
+
+type SentryEventBase = {
   id: string;
   eventID: string;
   groupID?: string;
-  type: string;
   title: string;
   culprit: string;
   metadata: EventMetadata;
@@ -58,7 +60,23 @@ export type Event = {
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+
+  tags: EventTag[];
+
+  size: number;
+
+  location: string;
 };
+
+// This type is incomplete
+export type Event =
+  | ({type: string} & SentryEventBase)
+  | {
+      type: 'transaction';
+      entries: Array<SpanEntry>;
+      startTimestamp: number;
+      endTimestamp: number;
+    } & SentryEventBase;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
