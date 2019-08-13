@@ -163,7 +163,7 @@ export default class AsyncComponent<
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
-  api: any;
+  api: Client = new Client();
   private _measurement: any;
 
   // XXX: cant call this getInitialState as React whines

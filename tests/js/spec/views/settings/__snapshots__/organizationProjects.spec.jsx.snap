@@ -270,7 +270,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         >
                           Projects
                           <withRouter(AsyncComponentSearchInput)
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             className="search"
                             onError={[Function]}
                             onSuccess={[Function]}
@@ -280,7 +288,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             url="/organizations/org-slug/projects/"
                           >
                             <AsyncComponentSearchInput
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="search"
                               debounceWait={200}
                               location={
@@ -533,7 +549,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           }
                                         >
                                           <BookmarkStar
-                                            api={Client {}}
+                                            api={
+                                              Client {
+                                                "_chain": [Function],
+                                                "_wrapRequest": [Function],
+                                                "bulkUpdate": [Function],
+                                                "handleRequestError": [Function],
+                                                "hasProjectBeenRenamed": [Function],
+                                              }
+                                            }
                                             className="css-10z01iz-BookmarkLink enngb6z1"
                                             isBookmarked={false}
                                             onToggle={[Function]}
