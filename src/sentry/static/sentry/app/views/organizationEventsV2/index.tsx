@@ -1,7 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import {InjectedRouter} from 'react-router';
+import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
@@ -23,7 +23,7 @@ import {getCurrentView} from './utils';
 type Props = {
   organization: Organization;
   location: Location;
-  router: InjectedRouter;
+  router: ReactRouter.InjectedRouter;
   // TODO: what is this?
   params: any;
 };
