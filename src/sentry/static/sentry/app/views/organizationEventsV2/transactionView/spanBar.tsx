@@ -132,6 +132,10 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   1.0,
 ];
 
+const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
+const TOGGLE_BUTTON_MAX_WIDTH = 40;
+const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+
 type SpanBarProps = {
   trace: Readonly<ParsedTraceType>;
   span: Readonly<SpanType>;
@@ -243,7 +247,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const chevron = this.props.showSpanTree ? <ChevronOpen /> : <ChevronClosed />;
 
     if (numOfSpanChildren <= 0) {
-      return null;
+      return <SpanTreeTogglerContainer style={{left: `${left}px`}} />;
     }
 
     return (
@@ -274,11 +278,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const description = get(span, 'description', span.span_id);
 
     const MARGIN_LEFT = 8;
-    const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
-    const TOGGLE_BUTTON_MAX_WIDTH = 40;
-
-    const left =
-      treeDepth * (TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT) + MARGIN_LEFT;
+    const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
       <SpanBarTitleContainer>
