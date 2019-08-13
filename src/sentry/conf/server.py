@@ -77,10 +77,10 @@ ADMINS = ()
 # This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
+# List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
 # Hosts that are allowed to use system token authentication.
-# List of IP subnets which should not be accessible
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
     "0.0.0.0/8",
