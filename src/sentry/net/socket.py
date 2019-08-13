@@ -19,6 +19,12 @@ DISALLOWED_IPS = frozenset(
 )
 
 
+WHITELISTED_IPS = frozenset(
+    ipaddress.ip_network(six.text_type(i), strict=False)
+    for i in settings.INTERNAL_SYSTEM_IPS
+)
+
+
 @lru_cache(maxsize=100)
 def is_ipaddress_allowed(ip):
     """
@@ -30,10 +36,10 @@ def is_ipaddress_allowed(ip):
     if isinstance(ip, six.binary_type):
         ip = ip.decode()
     ip_address = ipaddress.ip_address(ip)
-    for ip_network in DISALLOWED_IPS:
-        if ip_address in ip_network:
-            return False
-    return True
+    return (
+        any((ip_address in ip_network) for ip_network in WHITELISTED_IPS) or
+        all((ip_address not in ip_network) for ip_network in DISALLOWED_IPS)
+    )
 
 
 def is_valid_url(url):
