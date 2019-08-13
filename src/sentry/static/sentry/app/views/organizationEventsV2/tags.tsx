@@ -12,13 +12,13 @@ import withApi from 'app/utils/withApi';
 import {Organization, EventView} from 'app/types';
 import {ReactRouterLocation} from 'app/types/reactRouter';
 
-import {Tag, TagTopValue} from './utils';
-
 import {
   fetchTagDistribution,
   fetchTotalCount,
   getEventTagSearchUrl,
   getQuery,
+  Tag,
+  TagTopValue,
 } from './utils';
 import {MODAL_QUERY_KEYS} from './data';
 
