@@ -31,9 +31,10 @@ KEY_MAP = {
 class UserNotificationFineTuningEndpoint(UserEndpoint):
     def get(self, request, user, notification_type):
         if notification_type not in KEY_MAP:
-            return Response({
-                'detail': 'Unknown notification type: %s.' % notification_type
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Unknown notification type: %s." % notification_type},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         notifications = UserNotificationsSerializer()
 
@@ -69,9 +70,10 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         """
 
         if notification_type not in KEY_MAP:
-            return Response({
-                'detail': 'Unknown notification type: %s.' % notification_type
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Unknown notification type: %s." % notification_type},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         key = KEY_MAP[notification_type]
         filter_args = {"user": user, "key": key["key"]}
@@ -90,10 +92,14 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
                 # make sure user is in org
                 if org_id not in org_ids:
-                    return Response({
-                        'detail': 'User does not belong to at least one of the \
-                            requested orgs (org_id: %s).' % org_id
-                    }, status=status.HTTP_403_FORBIDDEN)
+                    return Response(
+                        {
+                            "detail": "User does not belong to at least one of the \
+                            requested orgs (org_id: %s)."
+                            % org_id
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
 
                 # list contains org ids that should have reports DISABLED
                 # so if enabled need to check if org_id exists in list (because by default
@@ -125,11 +131,15 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         # list of orgs or projects
         if not ids_to_update.issubset(parent_ids):
             bad_ids = ids_to_update - parent_ids
-            return Response({
-                'detail': 'At least one of the requested projects is not \
+            return Response(
+                {
+                    "detail": "At least one of the requested projects is not \
                     available to this user, because the user does not belong \
-                    to the necessary teams. (ids of unavailable projects: %s)' % bad_ids
-            }, status=status.HTTP_403_FORBIDDEN)
+                    to the necessary teams. (ids of unavailable projects: %s)"
+                    % bad_ids
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         if notification_type == "email":
             # make sure target emails exist and are verified
@@ -140,10 +150,13 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
             # Is there a better way to check this?
             if len(emails) != len(emails_to_check):
-                return Response({
-                    'detail': 'Invalid email value(s) provided. Email values \
-                        must be verified emails for the given user.'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "detail": "Invalid email value(s) provided. Email values \
+                        must be verified emails for the given user."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         with transaction.atomic():
             for id in request.data:

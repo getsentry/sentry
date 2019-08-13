@@ -16,13 +16,11 @@ from .serializers import DiscoverQuerySerializer
 
 
 class DiscoverQueryPermission(OrganizationPermission):
-    scope_map = {
-        'POST': ['org:read', 'project:read'],
-    }
+    scope_map = {"POST": ["org:read", "project:read"]}
 
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
-    permission_classes = (DiscoverQueryPermission, )
+    permission_classes = (DiscoverQueryPermission,)
 
     def handle_results(self, snuba_results, requested_query, projects):
         if "project.name" in requested_query["selected_columns"]:

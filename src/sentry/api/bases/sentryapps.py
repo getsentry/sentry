@@ -314,9 +314,9 @@ class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
 
 class SentryInternalAppTokenPermission(SentryPermission):
     scope_map = {
-        'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-        'POST': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
-        'DELETE': ('org:write', 'org:admin'),
+        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
+        "DELETE": ("org:write", "org:admin"),
     }
 
     def has_object_permission(self, request, view, sentry_app):

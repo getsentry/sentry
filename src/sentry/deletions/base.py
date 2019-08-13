@@ -137,7 +137,7 @@ class BaseDeletionTask(object):
 
 class ModelDeletionTask(BaseDeletionTask):
     DEFAULT_QUERY_LIMIT = None
-    manager_name = 'objects'
+    manager_name = "objects"
 
     def __init__(self, manager, model, query, query_limit=None, order_by=None, **kwargs):
         super(ModelDeletionTask, self).__init__(manager, **kwargs)

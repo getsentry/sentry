@@ -13,8 +13,11 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
-from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values, \
-    resolve_fingerprint_values
+from sentry.grouping.utils import (
+    DEFAULT_FINGERPRINT_VALUES,
+    hash_from_values,
+    resolve_fingerprint_values,
+)
 
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
@@ -196,9 +199,7 @@ def get_grouping_variants_for_event(event, config=None):
     # fingerprint.
     if defaults_referenced == 0:
         fingerprint = resolve_fingerprint_values(fingerprint, event)
-        return {
-            'custom-fingerprint': CustomFingerprintVariant(fingerprint),
-        }
+        return {"custom-fingerprint": CustomFingerprintVariant(fingerprint)}
 
     if config is None:
         config = load_default_grouping_config()

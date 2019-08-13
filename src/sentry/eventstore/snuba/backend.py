@@ -9,7 +9,7 @@ from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
 from sentry.utils.validators import normalize_event_id
 
-DEFAULT_ORDERBY = ['-timestamp', '-event_id']
+DEFAULT_ORDERBY = ["-timestamp", "-event_id"]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
@@ -48,8 +48,8 @@ class SnubaEventStorage(EventStorage):
             referrer=referrer,
         )
 
-        if 'error' not in result:
-            return [SnubaEvent(evt) for evt in result['data']]
+        if "error" not in result:
+            return [SnubaEvent(evt) for evt in result["data"]]
 
         return []
 

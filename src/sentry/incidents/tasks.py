@@ -19,10 +19,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSuspectCommit,
 )
-from sentry.tasks.base import (
-    instrumented_task,
-    retry,
-)
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
@@ -114,21 +111,24 @@ def calculate_incident_suspects(incident_id):
         suspect_commits = get_incident_suspect_commits(incident)
         with transaction.atomic():
             IncidentSuspectCommit.objects.filter(incident=incident).delete()
-            IncidentSuspectCommit.objects.bulk_create([
-                IncidentSuspectCommit(incident=incident, commit_id=commit_id, order=i)
-                for i, commit_id in enumerate(suspect_commits)
-            ])
+            IncidentSuspectCommit.objects.bulk_create(
+                [
+                    IncidentSuspectCommit(incident=incident, commit_id=commit_id, order=i)
+                    for i, commit_id in enumerate(suspect_commits)
+                ]
+            )
 
 
 @instrumented_task(
-    name='sentry.incidents.tasks.delete_alert_rule',
-    queue='cleanup',
+    name="sentry.incidents.tasks.delete_alert_rule",
+    queue="cleanup",
     default_retry_delay=60 * 5,
-    max_retries=1
+    max_retries=1,
 )
-@retry(exclude=(DeleteAborted, ))
+@retry(exclude=(DeleteAborted,))
 def delete_alert_rule(alert_rule_id, transaction_id=None, **kwargs):
     from sentry.incidents.models import AlertRule
+
     try:
         instance = AlertRule.objects_with_deleted.get(id=alert_rule_id)
     except AlertRule.DoesNotExist:
@@ -141,22 +141,17 @@ def delete_alert_rule(alert_rule_id, transaction_id=None, **kwargs):
         raise DeleteAborted
 
     task = deletions.get(
-        model=AlertRule,
-        query={
-            'id': alert_rule_id,
-        },
-        transaction_id=transaction_id or uuid4().hex,
+        model=AlertRule, query={"id": alert_rule_id}, transaction_id=transaction_id or uuid4().hex
     )
     has_more = task.chunk()
     if has_more:
         delete_alert_rule.apply_async(
-            kwargs={'alert_rule_id': alert_rule_id, 'transaction_id': transaction_id},
-            countdown=15,
+            kwargs={"alert_rule_id": alert_rule_id, "transaction_id": transaction_id}, countdown=15
         )
 
 
 class AlertRuleDeletionTask(deletions.ModelDeletionTask):
-    manager_name = 'objects_with_deleted'
+    manager_name = "objects_with_deleted"
 
 
 deletions.default_manager.register(AlertRule, AlertRuleDeletionTask)

@@ -10,10 +10,17 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
-    convert_endpoint_params, event_search_grammar, get_snuba_query_args,
-    resolve_field_list, parse_search_query,
-    InvalidSearchQuery, SearchBoolean, SearchFilter, SearchKey,
-    SearchValue, SearchVisitor,
+    convert_endpoint_params,
+    event_search_grammar,
+    get_snuba_query_args,
+    resolve_field_list,
+    parse_search_query,
+    InvalidSearchQuery,
+    SearchBoolean,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+    SearchVisitor,
 )
 from sentry.testutils import TestCase
 
@@ -1068,143 +1075,137 @@ class ConvertEndpointParamsTests(unittest.TestCase):
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
-        fields = [['any', 'thing', 'lol']]
+        fields = [["any", "thing", "lol"]]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, {})
-        assert 'Field names' in six.text_type(err)
+        assert "Field names" in six.text_type(err)
 
     def test_automatic_fields_no_aggregates(self):
-        fields = ['event.type', 'message']
+        fields = ["event.type", "message"]
         result = resolve_field_list(fields, {})
-        assert result['selected_columns'] == ['event.type', 'message', 'id', 'project.id']
-        assert result['aggregations'] == []
-        assert result['groupby'] == []
+        assert result["selected_columns"] == ["event.type", "message", "id", "project.id"]
+        assert result["aggregations"] == []
+        assert result["groupby"] == []
 
     def test_automatic_fields_with_aggregate_aliases(self):
-        fields = ['issue_title', 'message']
+        fields = ["issue_title", "message"]
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
-        assert result['selected_columns'] == [
-            'message',
+        assert result["selected_columns"] == ["message"]
+        assert result["aggregations"] == [
+            ["anyHeavy", "title", "issue_title"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
-        assert result['aggregations'] == [
-            ['anyHeavy', 'title', 'issue_title'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
-        ]
-        assert result['groupby'] == ['message']
+        assert result["groupby"] == ["message"]
 
     def test_field_alias_expansion(self):
-        fields = ['issue_title', 'last_seen', 'latest_event', 'project', 'user', 'message']
+        fields = ["issue_title", "last_seen", "latest_event", "project", "user", "message"]
         result = resolve_field_list(fields, {})
-        assert result['selected_columns'] == [
-            'project.id',
-            'user.id',
-            'user.name',
-            'user.username',
-            'user.email',
-            'user.ip',
-            'message',
+        assert result["selected_columns"] == [
+            "project.id",
+            "user.id",
+            "user.name",
+            "user.username",
+            "user.email",
+            "user.ip",
+            "message",
         ]
-        assert result['aggregations'] == [
-            ['anyHeavy', 'title', 'issue_title'],
-            ['max', 'timestamp', 'last_seen'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
+        assert result["aggregations"] == [
+            ["anyHeavy", "title", "issue_title"],
+            ["max", "timestamp", "last_seen"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
         ]
-        assert result['groupby'] == [
-            'project.id',
-            'user.id',
-            'user.name',
-            'user.username',
-            'user.email',
-            'user.ip',
-            'message',
+        assert result["groupby"] == [
+            "project.id",
+            "user.id",
+            "user.name",
+            "user.username",
+            "user.email",
+            "user.ip",
+            "message",
         ]
 
     def test_aggregate_function_expansion(self):
-        fields = ['count_unique(user)', 'count(id)', 'avg(duration)']
+        fields = ["count_unique(user)", "count(id)", "avg(duration)"]
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
-        assert result['selected_columns'] == []
-        assert result['aggregations'] == [
-            ['uniq', 'user', 'count_unique_user'],
-            ['count', 'id', 'count_id'],
-            ['avg', 'duration', 'avg_duration'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["uniq", "user", "count_unique_user"],
+            ["count", "id", "count_id"],
+            ["avg", "duration", "avg_duration"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
-        assert result['groupby'] == []
+        assert result["groupby"] == []
 
     def test_aggregate_function_invalid_name(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ['derp(user)']
+            fields = ["derp(user)"]
             resolve_field_list(fields, {})
-        assert 'Unknown aggregate' in six.text_type(err)
+        assert "Unknown aggregate" in six.text_type(err)
 
     def test_aggregate_function_case_sensitive(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ['MAX(user)']
+            fields = ["MAX(user)"]
             resolve_field_list(fields, {})
-        assert 'Unknown aggregate' in six.text_type(err)
+        assert "Unknown aggregate" in six.text_type(err)
 
     def test_aggregate_function_invalid_column(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ['p75(message)']
+            fields = ["p75(message)"]
             resolve_field_list(fields, {})
-        assert 'Invalid column' in six.text_type(err)
+        assert "Invalid column" in six.text_type(err)
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ['message']
-            snuba_args = {'rollup': 15}
+            fields = ["message"]
+            snuba_args = {"rollup": 15}
             resolve_field_list(fields, snuba_args)
-        assert 'rollup without an aggregate' in six.text_type(err)
+        assert "rollup without an aggregate" in six.text_type(err)
 
     def test_rollup_with_basic_and_aggregated_fields(self):
-        fields = ['message', 'count()']
-        snuba_args = {'rollup': 15}
+        fields = ["message", "count()"]
+        snuba_args = {"rollup": 15}
         result = resolve_field_list(fields, snuba_args)
 
-        assert result['aggregations'] == [
-            ['count', '', 'count']
-        ]
-        assert result['selected_columns'] == ['message']
-        assert result['groupby'] == ['message']
+        assert result["aggregations"] == [["count", "", "count"]]
+        assert result["selected_columns"] == ["message"]
+        assert result["groupby"] == ["message"]
 
     def test_rollup_with_aggregated_fields(self):
-        fields = ['count_unique(user)']
-        snuba_args = {'rollup': 15}
+        fields = ["count_unique(user)"]
+        snuba_args = {"rollup": 15}
         result = resolve_field_list(fields, snuba_args)
-        assert result['aggregations'] == [
-            ['uniq', 'user', 'count_unique_user']
-        ]
-        assert result['selected_columns'] == []
-        assert result['groupby'] == []
+        assert result["aggregations"] == [["uniq", "user", "count_unique_user"]]
+        assert result["selected_columns"] == []
+        assert result["groupby"] == []
 
     def test_orderby_unselected_field(self):
-        fields = ['message']
-        snuba_args = {'orderby': 'timestamp'}
+        fields = ["message"]
+        snuba_args = {"orderby": "timestamp"}
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, snuba_args)
-        assert 'Cannot order' in six.text_type(err)
+        assert "Cannot order" in six.text_type(err)
 
     def test_orderby_basic_field(self):
-        fields = ['message']
-        snuba_args = {'orderby': '-message'}
+        fields = ["message"]
+        snuba_args = {"orderby": "-message"}
         result = resolve_field_list(fields, snuba_args)
-        assert result['selected_columns'] == ['message', 'id', 'project.id']
-        assert result['aggregations'] == []
-        assert result['groupby'] == []
+        assert result["selected_columns"] == ["message", "id", "project.id"]
+        assert result["aggregations"] == []
+        assert result["groupby"] == []
 
     def test_orderby_field_alias(self):
-        fields = ['issue_title']
-        snuba_args = {'orderby': '-issue_title'}
+        fields = ["issue_title"]
+        snuba_args = {"orderby": "-issue_title"}
         result = resolve_field_list(fields, snuba_args)
-        assert result['selected_columns'] == []
-        assert result['aggregations'] == [
-            ['anyHeavy', 'title', 'issue_title'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["anyHeavy", "title", "issue_title"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
         assert result['groupby'] == []
 

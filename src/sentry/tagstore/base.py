@@ -131,13 +131,13 @@ class TagStorage(Service):
 
         if key == "sentry:user":
             if value.startswith("id:"):
-                label = value[len("id:"):]
+                label = value[len("id:") :]
             elif value.startswith("email:"):
-                label = value[len("email:"):]
+                label = value[len("email:") :]
             elif value.startswith("username:"):
-                label = value[len("username:"):]
+                label = value[len("username:") :]
             elif value.startswith("ip:"):
-                label = value[len("ip:"):]
+                label = value[len("ip:") :]
         elif key == "sentry:release":
             from sentry.models import Release
 

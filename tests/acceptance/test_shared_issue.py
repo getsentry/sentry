@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime, timedelta
 
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import GroupShare
@@ -20,16 +17,13 @@ class SharedIssueTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_python_event(self):
-        data = load_data(platform='python')
-        data['timestamp'] = (datetime.now() - timedelta(days=1)).isoformat()[:19]
+        data = load_data(platform="python")
+        data["timestamp"] = (datetime.now() - timedelta(days=1)).isoformat()[:19]
         event = self.store_event(data=data, project_id=self.project.id)
 
-        GroupShare.objects.create(
-            project_id=event.group.project_id,
-            group=event.group,
-        )
+        GroupShare.objects.create(project_id=event.group.project_id, group=event.group)
 
-        self.browser.get(u'/share/issue/{}/'.format(event.group.get_share_id()))
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.entries')
-        self.browser.snapshot('shared issue python')
+        self.browser.get(u"/share/issue/{}/".format(event.group.get_share_id()))
+        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until(".entries")
+        self.browser.snapshot("shared issue python")

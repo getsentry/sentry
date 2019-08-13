@@ -161,7 +161,7 @@ def down(project, service):
 
     for container in client.containers.list(all=True):
         if container.name.startswith(prefix):
-            if not service or container.name[len(prefix):] in service:
+            if not service or container.name[len(prefix) :] in service:
                 click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
                 container.stop()
                 container.remove()
@@ -186,14 +186,14 @@ def rm(project, service):
 
     for container in client.containers.list(all=True):
         if container.name.startswith(prefix):
-            if not service or container.name[len(prefix):] in service:
+            if not service or container.name[len(prefix) :] in service:
                 click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
                 container.stop()
                 container.remove()
 
     for volume in client.volumes.list():
         if volume.name.startswith(prefix):
-            if not service or volume.name[len(prefix):] in service:
+            if not service or volume.name[len(prefix) :] in service:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
                 volume.remove()
 

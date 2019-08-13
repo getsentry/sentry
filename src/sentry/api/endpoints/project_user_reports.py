@@ -12,12 +12,7 @@ from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (
-    Environment,
-    EventUser,
-    GroupStatus,
-    ProjectKey,
-    UserReport)
+from sentry.models import Environment, EventUser, GroupStatus, ProjectKey, UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -131,13 +126,13 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         report["event_id"] = report["event_id"].lower()
         report["project"] = project
 
-        event = eventstore.get_event_by_id(project.id, report['event_id'])
+        event = eventstore.get_event_by_id(project.id, report["event_id"])
 
         # TODO(dcramer): we should probably create the user if they dont
         # exist, and ideally we'd also associate that with the event
         euser = self.find_event_user(report, event)
-        if euser and not euser.name and report['name']:
-            euser.update(name=report['name'])
+        if euser and not euser.name and report["name"]:
+            euser.update(name=report["name"])
         if euser:
             report["event_user_id"] = euser.id
 
@@ -187,9 +182,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 report_instance.notify()
 
         user_feedback_received.send(
-            project=report_instance.project,
-            group=report_instance.group,
-            sender=self)
+            project=report_instance.project, group=report_instance.group, sender=self
+        )
 
         return self.respond(
             serialize(
@@ -203,7 +197,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def find_event_user(self, report_data, event):
         if not event:
-            if not report_data.get('email'):
+            if not report_data.get("email"):
                 return None
             try:
                 return EventUser.objects.filter(

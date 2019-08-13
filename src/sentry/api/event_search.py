@@ -138,19 +138,22 @@ spaces               = ~r"\ *"
 
 
 # add valid snuba `raw_query` args
-SEARCH_MAP = dict({
-    'start': 'start',
-    'end': 'end',
-    'project_id': 'project_id',
-    'first_seen': 'first_seen',
-    'last_seen': 'last_seen',
-    'times_seen': 'times_seen',
-    # TODO(mark) figure out how to safelist aggregate functions/field aliases
-    # so they can be used in conditions
-}, **SENTRY_SNUBA_MAP)
-no_conversion = set(['project_id', 'start', 'end'])
+SEARCH_MAP = dict(
+    {
+        "start": "start",
+        "end": "end",
+        "project_id": "project_id",
+        "first_seen": "first_seen",
+        "last_seen": "last_seen",
+        "times_seen": "times_seen",
+        # TODO(mark) figure out how to safelist aggregate functions/field aliases
+        # so they can be used in conditions
+    },
+    **SENTRY_SNUBA_MAP
+)
+no_conversion = set(["project_id", "start", "end"])
 
-PROJECT_KEY = 'project.name'
+PROJECT_KEY = "project.name"
 
 
 class InvalidSearchQuery(Exception):
@@ -210,16 +213,23 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    numeric_keys = set([
-        'device.battery_level', 'device.charging', 'device.online',
-        'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
-        'stack.in_app', 'stack.lineno', 'stack.stack_level',
-        # TODO(mark) figure out how to safelist aggregate functions/field aliases
-        # so they can be used in conditions
-    ])
-    date_keys = set([
-        'start', 'end', 'first_seen', 'last_seen', 'time', 'timestamp',
-    ])
+    numeric_keys = set(
+        [
+            "device.battery_level",
+            "device.charging",
+            "device.online",
+            "device.simulator",
+            "error.handled",
+            "issue.id",
+            "stack.colno",
+            "stack.in_app",
+            "stack.lineno",
+            "stack.stack_level",
+            # TODO(mark) figure out how to safelist aggregate functions/field aliases
+            # so they can be used in conditions
+        ]
+    )
+    date_keys = set(["start", "end", "first_seen", "last_seen", "time", "timestamp"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -640,73 +650,45 @@ def get_snuba_query_args(query=None, params=None):
 
 
 FIELD_ALIASES = {
-    'issue_title': {
-        'aggregations': [['anyHeavy', 'title', 'issue_title']],
-    },
-    'last_seen': {
-        'aggregations': [['max', 'timestamp', 'last_seen']],
-    },
-    'latest_event': {
-        'aggregations': [
+    "issue_title": {"aggregations": [["anyHeavy", "title", "issue_title"]]},
+    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
+    "latest_event": {
+        "aggregations": [
             # TODO(mark) This is a hack to work around jsonschema limitations
             # in snuba.
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-        ],
+            ["argMax(event_id, timestamp)", "", "latest_event"]
+        ]
     },
-    'project': {
-        'fields': ['project.id'],
-    },
-    'user': {
-        'fields': ['user.id', 'user.name', 'user.username', 'user.email', 'user.ip'],
-    }
+    "project": {"fields": ["project.id"]},
+    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]}
     # TODO(mark) Add rpm alias.
 }
 
 VALID_AGGREGATES = {
-    'count_unique': {
-        'snuba_name': 'uniq',
-        'fields': '*',
-    },
-    'count': {
-        'snuba_name': 'count',
-        'fields': '*'
-    },
-    'avg': {
-        'snuba_name': 'avg',
-        'fields': ['duration'],
-    },
-    'min': {
-        'snuba_name': 'min',
-        'fields': ['timestamp', 'duration'],
-    },
-    'max': {
-        'snuba_name': 'max',
-        'fields': ['timestamp', 'duration'],
-    },
-    'sum': {
-        'snuba_name': 'sum',
-        'fields': ['duration'],
-    },
+    "count_unique": {"snuba_name": "uniq", "fields": "*"},
+    "count": {"snuba_name": "count", "fields": "*"},
+    "avg": {"snuba_name": "avg", "fields": ["duration"]},
+    "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
+    "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
+    "sum": {"snuba_name": "sum", "fields": ["duration"]},
     # This doesn't work yet, but is an illustration of how it could work
-    'p75': {
-        'snuba_name': 'quantileTiming(0.75)',
-        'fields': ['duration'],
-    },
+    "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
 }
 
-AGGREGATE_PATTERN = re.compile(r'^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$')
+AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
 
 
 def validate_aggregate(field, match):
-    function_name = match.group('function')
+    function_name = match.group("function")
     if function_name not in VALID_AGGREGATES:
         raise InvalidSearchQuery("Unknown aggregate function '%s'" % field)
 
     function_data = VALID_AGGREGATES[function_name]
-    column = match.group('column')
-    if column not in function_data['fields'] and function_data['fields'] != '*':
+    column = match.group("column")
+    if column not in function_data["fields"] and function_data["fields"] != "*":
         raise InvalidSearchQuery(
-            "Invalid column '%s' in aggregate function '%s'" % (column, function_name))
+            "Invalid column '%s' in aggregate function '%s'" % (column, function_name)
+        )
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -750,22 +732,22 @@ def resolve_field_list(fields, snuba_args):
     """
     # If project.name is requested, get the project.id from Snuba so we
     # can use this to look up the name in Sentry
-    if 'project.name' in fields:
-        fields.remove('project.name')
-        if 'project.id' not in fields:
-            fields.append('project.id')
+    if "project.name" in fields:
+        fields.remove("project.name")
+        if "project.id" not in fields:
+            fields.append("project.id")
 
     aggregations = []
     groupby = []
     columns = []
     for field in fields:
         if not isinstance(field, six.string_types):
-            raise InvalidSearchQuery('Field names must be strings')
+            raise InvalidSearchQuery("Field names must be strings")
 
         if field in FIELD_ALIASES:
             special_field = deepcopy(FIELD_ALIASES[field])
-            columns.extend(special_field.get('fields', []))
-            aggregations.extend(special_field.get('aggregations', []))
+            columns.extend(special_field.get("fields", []))
+            aggregations.extend(special_field.get("aggregations", []))
             continue
 
         # Basic fields don't require additional validation. They could be tag
@@ -782,7 +764,7 @@ def resolve_field_list(fields, snuba_args):
             get_aggregate_alias(match)
         ])
 
-    rollup = snuba_args.get('rollup')
+    rollup = snuba_args.get("rollup")
     if not rollup:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
@@ -790,18 +772,18 @@ def resolve_field_list(fields, snuba_args):
         # we use argMax to get the latest event/projectid so we can create links.
         # The `projectid` output name is not a typo, using `project_id` triggers
         # generates invalid queries.
-        if not aggregations and 'id' not in columns:
-            columns.append('id')
-            columns.append('project.id')
-        if aggregations and 'latest_event' not in fields:
-            aggregations.extend(deepcopy(FIELD_ALIASES['latest_event']['aggregations']))
-        if aggregations and 'project.id' not in columns:
-            aggregations.append(['argMax(project_id, timestamp)', '', 'projectid'])
+        if not aggregations and "id" not in columns:
+            columns.append("id")
+            columns.append("project.id")
+        if aggregations and "latest_event" not in fields:
+            aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
+        if aggregations and "project.id" not in columns:
+            aggregations.append(["argMax(project_id, timestamp)", "", "projectid"])
 
     if rollup and columns and not aggregations:
-        raise InvalidSearchQuery('You cannot use rollup without an aggregate field.')
+        raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
-    orderby = snuba_args.get('orderby')
+    orderby = snuba_args.get("orderby")
     if orderby:
         orderby = resolve_orderby(orderby, columns, aggregations)
 

@@ -85,25 +85,22 @@ class GetSentryAppsTest(SentryAppsTest):
 
         assert response.status_code == 200
         assert {
-            'name': self.internal_app.name,
-            'author': self.internal_app.author,
-            'slug': self.internal_app.slug,
-            'scopes': [],
-            'events': [],
-            'status': self.internal_app.get_status_display(),
-            'uuid': self.internal_app.uuid,
-            'webhookUrl': self.internal_app.webhook_url,
-            'redirectUrl': self.internal_app.redirect_url,
-            'isAlertable': self.internal_app.is_alertable,
-            'verifyInstall': self.internal_app.verify_install,
-            'overview': self.internal_app.overview,
-            'schema': {},
-            'clientId': self.internal_app.application.client_id,
-            'clientSecret': self.internal_app.application.client_secret,
-            'owner': {
-                'id': self.internal_org.id,
-                'slug': self.internal_org.slug,
-            }
+            "name": self.internal_app.name,
+            "author": self.internal_app.author,
+            "slug": self.internal_app.slug,
+            "scopes": [],
+            "events": [],
+            "status": self.internal_app.get_status_display(),
+            "uuid": self.internal_app.uuid,
+            "webhookUrl": self.internal_app.webhook_url,
+            "redirectUrl": self.internal_app.redirect_url,
+            "isAlertable": self.internal_app.is_alertable,
+            "verifyInstall": self.internal_app.verify_install,
+            "overview": self.internal_app.overview,
+            "schema": {},
+            "clientId": self.internal_app.application.client_id,
+            "clientSecret": self.internal_app.application.client_secret,
+            "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -123,25 +120,22 @@ class GetSentryAppsTest(SentryAppsTest):
 
         assert response.status_code == 200
         assert {
-            'name': self.internal_app.name,
-            'author': self.internal_app.author,
-            'slug': self.internal_app.slug,
-            'scopes': [],
-            'events': [],
-            'status': self.internal_app.get_status_display(),
-            'uuid': self.internal_app.uuid,
-            'webhookUrl': self.internal_app.webhook_url,
-            'redirectUrl': self.internal_app.redirect_url,
-            'isAlertable': self.internal_app.is_alertable,
-            'verifyInstall': self.internal_app.verify_install,
-            'overview': self.internal_app.overview,
-            'schema': {},
-            'clientId': self.internal_app.application.client_id,
-            'clientSecret': self.internal_app.application.client_secret,
-            'owner': {
-                'id': self.internal_org.id,
-                'slug': self.internal_org.slug,
-            }
+            "name": self.internal_app.name,
+            "author": self.internal_app.author,
+            "slug": self.internal_app.slug,
+            "scopes": [],
+            "events": [],
+            "status": self.internal_app.get_status_display(),
+            "uuid": self.internal_app.uuid,
+            "webhookUrl": self.internal_app.webhook_url,
+            "redirectUrl": self.internal_app.redirect_url,
+            "isAlertable": self.internal_app.is_alertable,
+            "verifyInstall": self.internal_app.verify_install,
+            "overview": self.internal_app.overview,
+            "schema": {},
+            "clientId": self.internal_app.application.client_id,
+            "clientSecret": self.internal_app.application.client_secret,
+            "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)

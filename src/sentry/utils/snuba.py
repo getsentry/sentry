@@ -625,8 +625,16 @@ class SnubaQueryParams(object):
     """
 
     def __init__(
-        self, start=None, end=None, groupby=None, conditions=None, filter_keys=None,
-        aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
+        self,
+        start=None,
+        end=None,
+        groupby=None,
+        conditions=None,
+        filter_keys=None,
+        aggregations=None,
+        rollup=None,
+        referrer=None,
+        is_grouprelease=False,
         **kwargs
     ):
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
@@ -641,9 +649,18 @@ class SnubaQueryParams(object):
         self.kwargs = kwargs
 
 
-def raw_query(start=None, end=None, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, referrer=None,
-              is_grouprelease=False, **kwargs):
+def raw_query(
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    rollup=None,
+    referrer=None,
+    is_grouprelease=False,
+    **kwargs
+):
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
@@ -722,8 +739,17 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     return results
 
 
-def query(start=None, end=None, groupby=None, conditions=None, filter_keys=None, aggregations=None,
-          selected_columns=None, totals=None, **kwargs):
+def query(
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    selected_columns=None,
+    totals=None,
+    **kwargs
+):
 
     aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
@@ -732,8 +758,14 @@ def query(start=None, end=None, groupby=None, conditions=None, filter_keys=None,
 
     try:
         body = raw_query(
-            start=start, end=end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
-            aggregations=aggregations, selected_columns=selected_columns, totals=totals,
+            start=start,
+            end=end,
+            groupby=groupby,
+            conditions=conditions,
+            filter_keys=filter_keys,
+            aggregations=aggregations,
+            selected_columns=selected_columns,
+            totals=totals,
             **kwargs
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):

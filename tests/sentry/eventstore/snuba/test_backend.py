@@ -18,34 +18,34 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         self.event1 = self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'type': 'default',
-                'platform': 'python',
-                'fingerprint': ['group1'],
-                'timestamp': self.two_min_ago,
-                'tags': {'foo': '1'},
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group1"],
+                "timestamp": self.two_min_ago,
+                "tags": {"foo": "1"},
             },
             project_id=self.project1.id,
         )
         self.event2 = self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'type': 'default',
-                'platform': 'python',
-                'fingerprint': ['group1'],
-                'timestamp': self.min_ago,
-                'tags': {'foo': '1'},
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group1"],
+                "timestamp": self.min_ago,
+                "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
         )
         self.event3 = self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'type': 'default',
-                'platform': 'python',
-                'fingerprint': ['group2'],
-                'timestamp': self.min_ago,
-                'tags': {'foo': '1'},
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group2"],
+                "timestamp": self.min_ago,
+                "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
         )
@@ -57,13 +57,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             filter_keys={'project_id': [self.project1.id, self.project2.id]})
         assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
-        assert events[0].id == 'c' * 32
-        assert events[1].id == 'b' * 32
-        assert events[2].id == 'a' * 32
+        assert events[0].id == "c" * 32
+        assert events[1].id == "b" * 32
+        assert events[2].id == "a" * 32
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter_keys={'project_id': [project.id]})
+        events = self.eventstore.get_events(filter_keys={"project_id": [project.id]})
         assert events == []
 
     def test_get_event_by_id(self):

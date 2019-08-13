@@ -91,7 +91,7 @@ class SocialAuthBackend(object):
         kwargs["backend"] = self
 
         if "pipeline_index" in kwargs:
-            pipeline = pipeline[kwargs["pipeline_index"]:]
+            pipeline = pipeline[kwargs["pipeline_index"] :]
         else:
             kwargs["details"] = self.get_user_details(response)
             kwargs["uid"] = self.get_user_id(kwargs["details"], response)

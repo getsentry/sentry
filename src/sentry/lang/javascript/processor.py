@@ -131,7 +131,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
         context_line = ""
 
     try:
-        post_context = [trim_line(x) for x in source[(lineno + 1): upper_bound]]
+        post_context = [trim_line(x) for x in source[(lineno + 1) : upper_bound]]
     except IndexError:
         post_context = []
 
@@ -435,7 +435,7 @@ def generate_module(src):
     for idx, token in enumerate(tokens):
         # a SHA
         if VERSION_RE.match(token):
-            return "/".join(tokens[idx + 1:])
+            return "/".join(tokens[idx + 1 :])
 
     return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
 

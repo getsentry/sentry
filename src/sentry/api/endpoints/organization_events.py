@@ -85,8 +85,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args(request, organization, params)
-            if not snuba_args.get('selected_columns') and not snuba_args.get('aggregations'):
-                return Response({'detail': 'No fields provided'}, status=400)
+            if not snuba_args.get("selected_columns") and not snuba_args.get("aggregations"):
+                return Response({"detail": "No fields provided"}, status=400)
 
         except OrganizationEventsError as exc:
             return Response({"detail": exc.message}, status=400)
@@ -146,17 +146,20 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             return results
 
         first_row = results[0]
-        if not ('project.id' in first_row or 'projectid' in first_row):
+        if not ("project.id" in first_row or "projectid" in first_row):
             return results
 
-        fields = request.GET.getlist('field')
-        projects = {p['id']: p['slug'] for p in Project.objects.filter(
-            organization=organization,
-            id__in=project_ids).values('id', 'slug')}
+        fields = request.GET.getlist("field")
+        projects = {
+            p["id"]: p["slug"]
+            for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
+                "id", "slug"
+            )
+        }
         for result in results:
-            for key in ('projectid', 'project.id'):
+            for key in ("projectid", "project.id"):
                 if key in result:
-                    result['project.name'] = projects[result[key]]
+                    result["project.name"] = projects[result[key]]
                     if key not in fields:
                         del result[key]
 

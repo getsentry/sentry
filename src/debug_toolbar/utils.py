@@ -184,7 +184,7 @@ def getframeinfo(frame, context=1):
             start = max(start, 1)
             start = max(0, min(start, len(lines) - context))
             first_lines = lines[:2]
-            lines = lines[start: (start + context)]
+            lines = lines[start : (start + context)]
             index = lineno - 1 - start
     else:
         first_lines = lines = index = None

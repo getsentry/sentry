@@ -79,7 +79,7 @@ class ProfileMiddleware(object):
         def rel_filename(filename):
             for path in python_paths:
                 if filename.startswith(path):
-                    return filename[len(path) + 1:]
+                    return filename[len(path) + 1 :]
             return os.path.basename(filename)
 
         def func_strip_path(func_name):

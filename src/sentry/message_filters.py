@@ -170,7 +170,7 @@ def _get_filter_settings(project_config, flt):
     :param flt: the filter
     :return: the options for the filter
     """
-    filter_settings = project_config.config.get('filter_settings', {})
+    filter_settings = project_config.config.get("filter_settings", {})
     return filter_settings.get(get_filter_key(flt), None)
 
 
@@ -184,7 +184,7 @@ def _is_filter_enabled(project_config, flt):
 
 
 def get_filter_key(flt):
-    return flt.spec.id.replace('-', '_')
+    return flt.spec.id.replace("-", "_")
 
 
 # ************* local host filter *************
@@ -208,40 +208,47 @@ _localhost_filter.spec = _FilterSpec(
 
 # ************* browser extensions filter *************
 _EXTENSION_EXC_VALUES = re.compile(
-    '|'.join((re.escape(x) for x in (
-        # Random plugins/extensions
-        'top.GLOBALS',
-        # See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error.html
-        'originalCreateNotification',
-        'canvas.contentDocument',
-        'MyApp_RemoveAllHighlights',
-        'http://tt.epicplay.com',
-        'Can\'t find variable: ZiteReader',
-        'jigsaw is not defined',
-        'ComboSearch is not defined',
-        'http://loading.retry.widdit.com/',
-        'atomicFindClose',
-        # Facebook borked
-        'fb_xd_fragment',
-        # ISP "optimizing" proxy - `Cache-Control: no-transform` seems to
-        # reduce this. (thanks @acdha)
-        # See http://stackoverflow.com/questions/4113268
-        'bmi_SafeAddOnload',
-        'EBCallBackMessageReceived',
-        # See
-        # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
-        '_gCrWeb',
-        # See http://toolbar.conduit.com/Debveloper/HtmlAndGadget/Methods/JSInjection.aspx
-        'conduitPage',
-        # Google Search app (iOS)
-        # See: https://github.com/getsentry/raven-js/issues/756
-        'null is not an object (evaluating \'elt.parentNode\')',
-        # Dragon Web Extension from Nuance Communications
-        # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
-        'plugin.setSuspendState is not a function',
-        # lastpass
-        'should_do_lastpass_here',
-    ))), re.I)
+    "|".join(
+        (
+            re.escape(x)
+            for x in (
+                # Random plugins/extensions
+                "top.GLOBALS",
+                # See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error.html
+                "originalCreateNotification",
+                "canvas.contentDocument",
+                "MyApp_RemoveAllHighlights",
+                "http://tt.epicplay.com",
+                "Can't find variable: ZiteReader",
+                "jigsaw is not defined",
+                "ComboSearch is not defined",
+                "http://loading.retry.widdit.com/",
+                "atomicFindClose",
+                # Facebook borked
+                "fb_xd_fragment",
+                # ISP "optimizing" proxy - `Cache-Control: no-transform` seems to
+                # reduce this. (thanks @acdha)
+                # See http://stackoverflow.com/questions/4113268
+                "bmi_SafeAddOnload",
+                "EBCallBackMessageReceived",
+                # See
+                # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
+                "_gCrWeb",
+                # See http://toolbar.conduit.com/Debveloper/HtmlAndGadget/Methods/JSInjection.aspx
+                "conduitPage",
+                # Google Search app (iOS)
+                # See: https://github.com/getsentry/raven-js/issues/756
+                "null is not an object (evaluating 'elt.parentNode')",
+                # Dragon Web Extension from Nuance Communications
+                # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
+                "plugin.setSuspendState is not a function",
+                # lastpass
+                "should_do_lastpass_here",
+            )
+        )
+    ),
+    re.I,
+)
 
 _EXTENSION_EXC_SOURCES = re.compile(
     "|".join(

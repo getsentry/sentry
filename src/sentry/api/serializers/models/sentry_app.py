@@ -30,13 +30,12 @@ class SentryAppSerializer(Serializer):
         if is_active_superuser(env.request) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()
         ):
-            data.update({
-                'clientId': obj.application.client_id,
-                'clientSecret': obj.application.client_secret,
-                'owner': {
-                    'id': obj.owner.id,
-                    'slug': obj.owner.slug,
-                },
-            })
+            data.update(
+                {
+                    "clientId": obj.application.client_id,
+                    "clientSecret": obj.application.client_secret,
+                    "owner": {"id": obj.owner.id, "slug": obj.owner.slug},
+                }
+            )
 
         return data

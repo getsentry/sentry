@@ -37,18 +37,15 @@ class GroupHashesEndpoint(GroupEndpoint):
         """
 
         data_fn = partial(
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+            lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
             aggregations=[
-                ('argMax(event_id, timestamp)', None, 'event_id'),
-                ('max', 'timestamp', 'latest_event_timestamp')
+                ("argMax(event_id, timestamp)", None, "event_id"),
+                ("max", "timestamp", "latest_event_timestamp"),
             ],
-            filter_keys={
-                'project_id': [group.project_id],
-                'group_id': [group.id]
-            },
-            groupby=['primary_hash'],
-            referrer='api.group-hashes',
-            orderby=['-latest_event_timestamp'],
+            filter_keys={"project_id": [group.project_id], "group_id": [group.id]},
+            groupby=["primary_hash"],
+            referrer="api.group-hashes",
+            orderby=["-latest_event_timestamp"],
         )
 
         handle_results = partial(self.__handle_results, group.project_id, group.id, request.user)
@@ -56,7 +53,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         return self.paginate(
             request=request,
             on_results=handle_results,
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
     def delete(self, request, group):
@@ -83,13 +80,13 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(self, user, project_id, group_id, result):
         event = {
-            'timestamp': result['latest_event_timestamp'],
-            'event_id': result['event_id'],
-            'group_id': group_id,
-            'project_id': project_id
+            "timestamp": result["latest_event_timestamp"],
+            "event_id": result["event_id"],
+            "group_id": group_id,
+            "project_id": project_id,
         }
 
         return {
-            'id': result['primary_hash'],
-            'latestEvent': serialize(SnubaEvent(event), user, EventSerializer())
+            "id": result["primary_hash"],
+            "latestEvent": serialize(SnubaEvent(event), user, EventSerializer()),
         }

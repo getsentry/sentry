@@ -1,11 +1,22 @@
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase',
-    'AuthProviderTestCase', 'RuleTestCase', 'PermissionTestCase', 'PluginTestCase',
-    'CliTestCase', 'AcceptanceTestCase', 'IntegrationTestCase', 'SnubaTestCase',
-    'IntegrationRepositoryTestCase', 'ReleaseCommitPatchTest', 'SetRefsTestCase',
-    'OrganizationDashboardWidgetTestCase'
+    "TestCase",
+    "TransactionTestCase",
+    "APITestCase",
+    "TwoFactorAPITestCase",
+    "AuthProviderTestCase",
+    "RuleTestCase",
+    "PermissionTestCase",
+    "PluginTestCase",
+    "CliTestCase",
+    "AcceptanceTestCase",
+    "IntegrationTestCase",
+    "SnubaTestCase",
+    "IntegrationRepositoryTestCase",
+    "ReleaseCommitPatchTest",
+    "SetRefsTestCase",
+    "OrganizationDashboardWidgetTestCase",
 )
 
 import base64
@@ -52,9 +63,19 @@ from sentry.auth.superuser import (
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
-    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, Repository, DeletedOrganization,
-    Environment, Organization, TotpInterface,
-    Dashboard, ObjectStatus, WidgetDataSource, WidgetDataSourceTypes
+    GroupEnvironment,
+    GroupHash,
+    GroupMeta,
+    ProjectOption,
+    Repository,
+    DeletedOrganization,
+    Environment,
+    Organization,
+    TotpInterface,
+    Dashboard,
+    ObjectStatus,
+    WidgetDataSource,
+    WidgetDataSourceTypes,
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState

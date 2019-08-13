@@ -98,7 +98,7 @@ def safe_join(base, *paths):
     # equal to base_path).
     base_path_len = len(base_path)
     if not final_path.startswith(base_path) or final_path[
-        base_path_len: base_path_len + 1
+        base_path_len : base_path_len + 1
     ] not in ("", "/"):
         raise ValueError("the joined path is located outside of the base path" " component")
 
@@ -130,7 +130,7 @@ class S3Boto3StorageFile(File):
 
     def __init__(self, name, mode, storage, buffer_size=None):
         self._storage = storage
-        self.name = name[len(self._storage.location):].lstrip("/")
+        self.name = name[len(self._storage.location) :].lstrip("/")
         self._mode = mode
         self.obj = storage.bucket.Object(storage._encode_name(name))
         # NOTE(mattrobenolt): This is an explicit deviation from
@@ -562,7 +562,7 @@ class S3Boto3Storage(Storage):
         base_parts = name.split("/")[:-1]
         for item in self.bucket.objects.filter(Prefix=self._encode_name(name)):
             parts = item.key.split("/")
-            parts = parts[len(base_parts):]
+            parts = parts[len(base_parts) :]
             if len(parts) == 1:
                 # File
                 files.append(parts[0])

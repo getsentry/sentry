@@ -19,7 +19,7 @@ class GroupEventJsonView(OrganizationView):
         except Group.DoesNotExist:
             raise Http404
 
-        if event_id_or_latest == 'latest':
+        if event_id_or_latest == "latest":
             event = group.get_latest_event()
         else:
             event = eventstore.get_event_by_id(group.project.id, event_id_or_latest)

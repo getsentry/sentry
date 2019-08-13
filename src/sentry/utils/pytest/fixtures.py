@@ -302,7 +302,7 @@ def insta_snapshot(request, log):
                 os.makedirs(os.path.dirname(reference_file))
             source = os.path.realpath(six.text_type(request.node.fspath))
             if source.startswith(_test_base + os.path.sep):
-                source = source[len(_test_base) + 1:]
+                source = source[len(_test_base) + 1 :]
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:

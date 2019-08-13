@@ -180,7 +180,7 @@ class FingerprintingRules(object):
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
-            context = e.text[e.pos: e.pos + 33]
+            context = e.text[e.pos : e.pos + 33]
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidFingerprintingConfig(

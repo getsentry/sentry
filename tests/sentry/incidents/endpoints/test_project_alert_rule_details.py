@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 
 
 class AlertRuleDetailsBase(object):
-    endpoint = 'sentry-api-0-project-alert-rule-details'
+    endpoint = "sentry-api-0-project-alert-rule-details"
 
     @fixture
     def organization(self):
@@ -39,10 +39,7 @@ class AlertRuleDetailsBase(object):
 
     def test_invalid_rule_id(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
@@ -60,10 +57,7 @@ class AlertRuleDetailsBase(object):
 
     def test_no_feature(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
@@ -71,22 +65,19 @@ class AlertRuleDetailsBase(object):
 
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
-
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug,
-                self.project.slug,
-                self.alert_rule.id,
+                self.organization.slug, self.project.slug, self.alert_rule.id
             )
 
         assert resp.data == serialize(self.alert_rule)
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
-    method = 'put'
+    method = "put"
 
     def test_simple(self):
         self.create_member(
@@ -126,19 +117,16 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
-    method = 'delete'
+    method = "delete"
 
     def test_simple(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             self.get_valid_response(
-                self.organization.slug,
-                self.project.slug,
-                self.alert_rule.id,
-                status_code=204,
+                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()

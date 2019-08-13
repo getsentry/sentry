@@ -13,7 +13,7 @@ def _translate(pat, doublestar=False):
         i = i + 1
         if c == "*":
             if doublestar:
-                if pat[i: i + 1] == "*":
+                if pat[i : i + 1] == "*":
                     res.append(".*")
                     i += 1
                 else:

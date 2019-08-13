@@ -23,7 +23,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.ProjectTeam, models.PromptsActivity, models.SavedSearchUserDefault, models.SavedSearch,
             models.ServiceHook, models.UserReport, DiscoverSavedQueryProject, IncidentProject,
             AlertRule,
-
         )
 
         relations.extend(

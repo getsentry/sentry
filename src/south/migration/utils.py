@@ -89,7 +89,7 @@ def _dfs(start, get_children, path):
 
     results = []
     if start in path:
-        raise exceptions.CircularDependency(path[path.index(start):] + [start])
+        raise exceptions.CircularDependency(path[path.index(start) :] + [start])
     path.append(start)
     results.append(start)
     children = sorted(get_children(start), key=lambda x: str(x))

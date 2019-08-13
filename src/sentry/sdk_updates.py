@@ -236,18 +236,20 @@ SDK_SUPPORTED_MODULES = [
         ),
     },
     {
-        'sdk_name': 'sentry.python',
-        'sdk_version_added': '0.10.0',
-        'module_name': 'redis',
-        'module_version_min': '0.0.0',
-        'suggestion': EnableIntegrationSuggestion('redis', 'https://docs.sentry.io/platforms/python/redis/')
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "0.10.0",
+        "module_name": "redis",
+        "module_version_min": "0.0.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "redis", "https://docs.sentry.io/platforms/python/redis/"
+        ),
     },
     {
-        'sdk_name': 'sentry.dotnet',
-        'sdk_version_added': '0.0.0',
-        'module_name': 'Microsoft.AspNetCore.Hosting',
-        'module_version_min': '2.1.0',
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.aspnetcore', ['Sentry.AspNetCore']),
+        "sdk_name": "sentry.dotnet",
+        "sdk_version_added": "0.0.0",
+        "module_name": "Microsoft.AspNetCore.Hosting",
+        "module_version_min": "2.1.0",
+        "suggestion": ChangeSDKSuggestion("sentry.dotnet.aspnetcore", ["Sentry.AspNetCore"]),
     },
     {
         "sdk_name": "sentry.dotnet",

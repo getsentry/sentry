@@ -51,7 +51,7 @@ def replace_enclosed_string(s, start, end, replacement=None):
             if depth == 0:
                 if replacement is not None:
                     if callable(replacement):
-                        rv.append(replacement(s[pair_start + 1: idx], pair_start))
+                        rv.append(replacement(s[pair_start + 1 : idx], pair_start))
                     else:
                         rv.append(replacement)
         elif depth == 0:
@@ -72,7 +72,7 @@ def split_func_tokens(s):
         elif stack and char == stack[-1]:
             stack.pop()
             if not stack:
-                buf.append(s[end: idx + 1])
+                buf.append(s[end : idx + 1])
                 end = idx + 1
         elif not stack:
             if char.isspace():
@@ -80,7 +80,7 @@ def split_func_tokens(s):
                     rv.append(buf)
                 buf = []
             else:
-                buf.append(s[end: idx + 1])
+                buf.append(s[end : idx + 1])
             end = idx + 1
 
     if buf:

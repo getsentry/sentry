@@ -54,7 +54,7 @@ def safe_extract_zip(f, path, strip_toplevel=True):
 
             if not member.startswith(prefix) or is_unsafe_path(member):
                 continue
-            dst_path = os.path.join(path, member[len(prefix):])
+            dst_path = os.path.join(path, member[len(prefix) :])
             try:
                 os.makedirs(os.path.dirname(dst_path))
             except OSError:

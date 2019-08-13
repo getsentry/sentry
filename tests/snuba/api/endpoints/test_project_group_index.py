@@ -81,23 +81,23 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_simple_pagination(self):
         event1 = self.store_event(
             data={
-                'fingerprint': ['put-me-in-group-1'],
-                'timestamp': (self.min_ago - timedelta(seconds=2)).isoformat()[:19]
+                "fingerprint": ["put-me-in-group-1"],
+                "timestamp": (self.min_ago - timedelta(seconds=2)).isoformat()[:19],
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
         event2 = self.store_event(
             data={
-                'fingerprint': ['put-me-in-group-2'],
-                'timestamp': (self.min_ago - timedelta(seconds=1)).isoformat()[:19]
+                "fingerprint": ["put-me-in-group-2"],
+                "timestamp": (self.min_ago - timedelta(seconds=1)).isoformat()[:19],
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
         self.login_as(user=self.user)
         response = self.client.get(u"{}?sort_by=date&limit=1".format(self.path), format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event2.group.id)
+        assert response.data[0]["id"] == six.text_type(event2.group.id)
 
         links = self._parse_links(response["Link"])
 
@@ -107,7 +107,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event1.group.id)
+        assert response.data[0]["id"] == six.text_type(event1.group.id)
 
         links = self._parse_links(response["Link"])
 
@@ -189,8 +189,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(u"{}?query={}".format(self.path, "c" * 32), format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event.group.id)
-        assert response.data[0]['matchingEventId'] == event.event_id
+        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["matchingEventId"] == event.event_id
 
     def test_lookup_by_event_with_matching_environment(self):
         project = self.project
@@ -209,9 +209,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event.group.id)
-        assert response.data[0]['matchingEventId'] == event.event_id
-        assert response.data[0]['matchingEventEnvironment'] == 'test'
+        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["matchingEventId"] == event.event_id
+        assert response.data[0]["matchingEventEnvironment"] == "test"
 
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project

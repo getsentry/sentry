@@ -43,8 +43,11 @@ class WebHooksPlugin(notify.NotificationPlugin):
     version = sentry.VERSION
     description = "Integrates web hooks."
     resource_links = [
-        ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
-        ('Source', 'https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks'),
+        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
+        (
+            "Source",
+            "https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks",
+        ),
     ]
 
     slug = "webhooks"

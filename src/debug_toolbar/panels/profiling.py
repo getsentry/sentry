@@ -58,7 +58,7 @@ class FunctionCall(object):
             file_name, line_num, method = self.func
             idx = file_name.find("/site-packages/")
             if idx > -1:
-                file_name = file_name[(idx + 14):]
+                file_name = file_name[(idx + 14) :]
 
             file_path, file_name = file_name.rsplit(os.sep, 1)
 

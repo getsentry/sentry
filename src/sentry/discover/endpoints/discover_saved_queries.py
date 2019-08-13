@@ -11,7 +11,7 @@ from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 
 
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
-    permission_classes = (DiscoverSavedQueryPermission, )
+    permission_classes = (DiscoverSavedQueryPermission,)
 
     def get(self, request, organization):
         """

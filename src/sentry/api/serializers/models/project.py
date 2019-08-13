@@ -170,7 +170,7 @@ class ProjectSerializer(Serializer):
                 continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the project scope prefix
-                feature_list.add(feature_name[len("projects:"):])
+                feature_list.add(feature_name[len("projects:") :])
 
         if obj.flags.has_releases:
             feature_list.add("releases")

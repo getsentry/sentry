@@ -52,10 +52,10 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def test_project_with_no_first_event(self):
         self.project.update(first_event=None)
         self.browser.get(self.path)
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until_test_id('resources')
-        self.browser.wait_until('[data-test-id] figure')
-        self.browser.snapshot('org dash no first event')
+        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_test_id("resources")
+        self.browser.wait_until("[data-test-id] figure")
+        self.browser.snapshot("org dash no first event")
 
     def test_one_issue(self):
         self.init_snuba()

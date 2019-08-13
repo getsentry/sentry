@@ -37,10 +37,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_get(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -53,10 +51,9 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_get_org_without_access(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org_without_access.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org_without_access.slug, self.query_id],
+            )
             response = self.client.get(url)
 
         assert response.status_code == 403, response.content
@@ -64,21 +61,22 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
 
-            response = self.client.put(url, {
-                'name': 'New query',
-                'projects': self.project_ids,
-                'fields': [],
-                'range': '24h',
-                'limit': 20,
-                'conditions': [],
-                'aggregations': [],
-                'orderby': '-time',
-            })
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(self.query_id)
@@ -90,10 +88,9 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put_query_without_access(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id_without_access])
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, self.query_id_without_access],
+            )
 
             response = self.client.put(
                 url, {"name": "New query", "projects": self.project_ids, "range": "24h"}
@@ -104,25 +101,20 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_put_org_without_access(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org_without_access.slug,
-                    self.query_id])
-            response = self.client.put(url, {
-                'name': 'New query',
-                'projects': self.project_ids,
-                'range': '24h',
-            })
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org_without_access.slug, self.query_id],
+            )
+            response = self.client.put(
+                url, {"name": "New query", "projects": self.project_ids, "range": "24h"}
+            )
 
         assert response.status_code == 403, response.content
 
     def test_delete(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
 
             response = self.client.delete(url)
 
@@ -133,10 +125,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_removes_projects(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
 
             self.client.delete(url)
 
@@ -149,10 +139,9 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_query_without_access(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org.slug,
-                    self.query_id_without_access])
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, self.query_id_without_access],
+            )
 
             response = self.client.delete(url)
 
@@ -161,10 +150,9 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_delete_org_without_access(self):
         with self.feature("organizations:discover"):
             url = reverse(
-                'sentry-api-0-discover-saved-query-detail',
-                args=[
-                    self.org_without_access.slug,
-                    self.query_id])
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org_without_access.slug, self.query_id],
+            )
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content

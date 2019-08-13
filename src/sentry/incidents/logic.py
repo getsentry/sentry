@@ -32,24 +32,15 @@ from sentry.incidents.models import (
     SnubaDatasets,
     TimeSeriesSnapshot,
 )
-from sentry.models import (
-    Commit,
-    Release,
-)
+from sentry.models import Commit, Release
 from sentry.incidents import tasks
 from sentry.utils.committers import get_event_file_committers
-from sentry.utils.snuba import (
-    bulk_raw_query,
-    raw_query,
-    SnubaQueryParams,
-    SnubaTSResult,
-    zerofill,
-)
+from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 alert_aggregation_to_snuba = {
-    AlertRuleAggregations.TOTAL: ('count()', '', 'count'),
-    AlertRuleAggregations.UNIQUE_USERS: ('uniq', 'tags[sentry:user]', 'unique_users'),
+    AlertRuleAggregations.TOTAL: ("count()", "", "count"),
+    AlertRuleAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
 }
 
 
@@ -121,7 +112,7 @@ def create_incident(
             incident_type=type.value,
         )
 
-    tasks.calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
+    tasks.calculate_incident_suspects.apply_async(kwargs={"incident_id": incident.id})
     return incident
 
 
@@ -136,34 +127,31 @@ def calculate_incident_start(query, projects, groups):
     """
     params = {}
     if groups:
-        params['issue.id'] = [g.id for g in groups]
+        params["issue.id"] = [g.id for g in groups]
         end = max(g.last_seen for g in groups) + timedelta(seconds=1)
     else:
         end = timezone.now()
 
-    params['start'] = end - INCIDENT_START_PERIOD
-    params['end'] = end
+    params["start"] = end - INCIDENT_START_PERIOD
+    params["end"] = end
 
     if projects:
-        params['project_id'] = [p.id for p in projects]
+        params["project_id"] = [p.id for p in projects]
 
     query_args = get_snuba_query_args(query, params)
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
-        aggregations=[
-            ('count()', '', 'count'),
-            ('min', 'timestamp', 'first_seen'),
-        ],
-        orderby='time',
-        groupby=['time'],
+        aggregations=[("count()", "", "count"), ("min", "timestamp", "first_seen")],
+        orderby="time",
+        groupby=["time"],
         rollup=rollup,
-        referrer='incidents.calculate_incident_start',
+        referrer="incidents.calculate_incident_start",
         limit=10000,
         **query_args
-    )['data']
+    )["data"]
     # TODO: Start could be the period before the first period we find
-    result = zerofill(result, params['start'], params['end'], rollup, 'time')
+    result = zerofill(result, params["start"], params["end"], rollup, "time")
 
     # We want to linearly scale scores from 100% value at the most recent to
     # 50% at the oldest. This gives a bias towards newer results.
@@ -179,8 +167,8 @@ def calculate_incident_start(query, projects, groups):
 
     def get_row_first_seen(row, default=None):
         first_seen = default
-        if 'first_seen' in row:
-            first_seen = parse_date(row['first_seen']).replace(tzinfo=pytz.utc)
+        if "first_seen" in row:
+            first_seen = parse_date(row["first_seen"]).replace(tzinfo=pytz.utc)
         return first_seen
 
     def calculate_start(spike_start, spike_end):
@@ -190,11 +178,11 @@ def calculate_incident_start(query, projects, groups):
         more detail and choosing a date that most closely fits with being 1/3
         up the spike.
         """
-        spike_length = (spike_end - spike_start)
+        spike_length = spike_end - spike_start
         return spike_start + (spike_length / 3)
 
     for row in reversed(result):
-        cur_count = row.get('count', 0)
+        cur_count = row.get("count", 0)
         if cur_count < prev_count or cur_count > 0 and cur_count == prev_count:
             cur_height = cur_spike_max_count - cur_count
         elif cur_count > 0 or prev_count > 0 or cur_height > 0:
@@ -334,13 +322,14 @@ def create_incident_activity(
             ).values_list("user_id", flat=True)
         )
         if user_ids_to_subscribe:
-            IncidentSubscription.objects.bulk_create([
-                IncidentSubscription(incident=incident, user_id=mentioned_user_id)
-                for mentioned_user_id in user_ids_to_subscribe
-            ])
+            IncidentSubscription.objects.bulk_create(
+                [
+                    IncidentSubscription(incident=incident, user_id=mentioned_user_id)
+                    for mentioned_user_id in user_ids_to_subscribe
+                ]
+            )
     tasks.send_subscriber_notifications.apply_async(
-        kwargs={'activity_id': activity.id},
-        countdown=10,
+        kwargs={"activity_id": activity.id}, countdown=10
     )
     if activity_type == IncidentActivityType.COMMENT:
         analytics.record(
@@ -609,12 +598,7 @@ def create_alert_rule(
         raise AlertRuleNameAlreadyUsedError()
     try:
         subscription_id = create_snuba_subscription(
-            project,
-            dataset,
-            query,
-            aggregations,
-            time_window,
-            resolution,
+            project, dataset, query, aggregations, time_window, resolution
         )
         alert_rule = AlertRule.objects.create(
             project=project,
@@ -704,9 +688,9 @@ def update_alert_rule(
             alert_rule.project,
             SnubaDatasets(alert_rule.dataset),
             query if query is not None else alert_rule.query,
-            aggregations if aggregations else [
-                AlertRuleAggregations(agg) for agg in alert_rule.aggregations
-            ],
+            aggregations
+            if aggregations
+            else [AlertRuleAggregations(agg) for agg in alert_rule.aggregations],
             time_window if time_window else alert_rule.time_window,
             DEFAULT_ALERT_RULE_RESOLUTION,
         )
@@ -745,7 +729,7 @@ def delete_alert_rule(alert_rule):
         name=uuid4().get_hex(),
         status=AlertRuleStatus.PENDING_DELETION.value,
     )
-    tasks.delete_alert_rule.apply_async(kwargs={'alert_rule_id': alert_rule.id})
+    tasks.delete_alert_rule.apply_async(kwargs={"alert_rule_id": alert_rule.id})
     delete_snuba_subscription(alert_rule.subscription_id)
 
 
@@ -773,22 +757,22 @@ def create_snuba_subscription(project, dataset, query, aggregations, time_window
     # TODO: Might make sense to move this into snuba if we have wider use for
     # it.
     resp = safe_urlopen(
-        settings.SENTRY_SNUBA + '/subscriptions',
-        'POST',
+        settings.SENTRY_SNUBA + "/subscriptions",
+        "POST",
         json={
-            'project_id': project.id,
-            'dataset': dataset.value,
+            "project_id": project.id,
+            "dataset": dataset.value,
             # We only care about conditions here. Filter keys only matter for
             # filtering to project and groups. Projects are handled with an
             # explicit param, and groups can't be queried here.
-            'conditions': get_snuba_query_args(query)['conditions'],
-            'aggregates': [alert_aggregation_to_snuba[agg] for agg in aggregations],
-            'time_window': time_window,
-            'resolution': resolution,
+            "conditions": get_snuba_query_args(query)["conditions"],
+            "aggregates": [alert_aggregation_to_snuba[agg] for agg in aggregations],
+            "time_window": time_window,
+            "resolution": resolution,
         },
     )
     resp.raise_for_status()
-    return uuid.UUID(resp.json()['subscription_id'])
+    return uuid.UUID(resp.json()["subscription_id"])
 
 
 def delete_snuba_subscription(subscription_id):
@@ -797,8 +781,5 @@ def delete_snuba_subscription(subscription_id):
     :param subscription_id: The uuid of the subscription to delete
     :return:
     """
-    resp = safe_urlopen(
-        settings.SENTRY_SNUBA + '/subscriptions/%s' % subscription_id,
-        'DELETE',
-    )
+    resp = safe_urlopen(settings.SENTRY_SNUBA + "/subscriptions/%s" % subscription_id, "DELETE")
     resp.raise_for_status()

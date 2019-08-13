@@ -21,6 +21,7 @@ def override_blacklist(*ip_addresses):
                 # We end up caching these disallowed ips on this function, so
                 # make sure we clear the cache as part of cleanup
                 net_socket.is_ipaddress_allowed.cache_clear()
+
         return wrapper
 
     return decorator

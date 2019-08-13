@@ -65,8 +65,8 @@ from sentry.testutils import TestCase, SnubaTestCase
 
 
 class CreateIncidentTest(TestCase):
-    record_event = patcher('sentry.analytics.base.Analytics.record_event')
-    calculate_incident_suspects = patcher('sentry.incidents.tasks.calculate_incident_suspects')
+    record_event = patcher("sentry.analytics.base.Analytics.record_event")
+    calculate_incident_suspects = patcher("sentry.incidents.tasks.calculate_incident_suspects")
 
     def test_simple(self):
         incident_type = IncidentType.CREATED
@@ -393,8 +393,8 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    send_subscriber_notifications = patcher('sentry.incidents.tasks.send_subscriber_notifications')
-    record_event = patcher('sentry.analytics.base.Analytics.record_event')
+    send_subscriber_notifications = patcher("sentry.incidents.tasks.send_subscriber_notifications")
+    record_event = patcher("sentry.analytics.base.Analytics.record_event")
 
     def assert_notifications_sent(self, activity):
         self.send_subscriber_notifications.apply_async.assert_called_once_with(
@@ -536,9 +536,7 @@ class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
             self.create_event(self.now - timedelta(minutes=100))
 
             incident = self.create_incident(
-                date_started=self.now - timedelta(minutes=5),
-                query='',
-                projects=[self.project]
+                date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
             )
             event_stat_snapshot = create_initial_event_stats_snapshot(incident)
             assert event_stat_snapshot.start == self.now - timedelta(minutes=20)
@@ -861,7 +859,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
-            update_alert_rule(self.alert_rule, query='has:')
+            update_alert_rule(self.alert_rule, query="has:")
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -869,9 +867,9 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     def alert_rule(self):
         return create_alert_rule(
             self.project,
-            'hello',
+            "hello",
             AlertRuleThresholdType.ABOVE,
-            'level:error',
+            "level:error",
             [AlertRuleAggregations.TOTAL],
             10,
             1000,
@@ -900,17 +898,16 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
-
     def test_empty(self):
-        assert timezone.now() == calculate_incident_start('', [self.project], [])
+        assert timezone.now() == calculate_incident_start("", [self.project], [])
 
     def test_single_event(self):
         start = self.now - timedelta(minutes=2)
         event = self.create_event(start)
-        assert start == calculate_incident_start('', [self.project], [event.group])
+        assert start == calculate_incident_start("", [self.project], [event.group])
 
     def test_single_spike(self):
-        fingerprint = 'hello'
+        fingerprint = "hello"
         start = self.now - (INCIDENT_START_ROLLUP * 2)
         for _ in xrange(3):
             event = self.create_event(start, fingerprint=fingerprint)
@@ -919,14 +916,12 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         for _ in xrange(4):
             event = self.create_event(end, fingerprint=fingerprint)
         assert start + ((end - start) / 3) == calculate_incident_start(
-            '',
-            [self.project],
-            [event.group],
+            "", [self.project], [event.group]
         )
 
     def test_multiple_same_size_spikes(self):
         # The most recent spike should take precedence
-        fingerprint = 'hello'
+        fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 3)
         for _ in xrange(3):
             event = self.create_event(older_spike, fingerprint=fingerprint)
@@ -934,11 +929,11 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         newer_spike = self.now - INCIDENT_START_ROLLUP
         for _ in xrange(3):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start('', [self.project], [event.group])
+        assert newer_spike == calculate_incident_start("", [self.project], [event.group])
 
     def test_multiple_spikes_large_older(self):
         # The older spike should take precedence because it's much larger
-        fingerprint = 'hello'
+        fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 2)
         for _ in xrange(4):
             event = self.create_event(older_spike, fingerprint=fingerprint)
@@ -946,12 +941,12 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         newer_spike = self.now - INCIDENT_START_ROLLUP
         for _ in xrange(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert older_spike == calculate_incident_start('', [self.project], [event.group])
+        assert older_spike == calculate_incident_start("", [self.project], [event.group])
 
     def test_multiple_spikes_large_much_older(self):
         # The most recent spike should take precedence because even though the
         # older spike is larger, it's much older.
-        fingerprint = 'hello'
+        fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 1000)
         for _ in xrange(3):
             event = self.create_event(older_spike, fingerprint=fingerprint)
@@ -959,4 +954,4 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         newer_spike = self.now - INCIDENT_START_ROLLUP
         for _ in xrange(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start('', [self.project], [event.group])
+        assert newer_spike == calculate_incident_start("", [self.project], [event.group])

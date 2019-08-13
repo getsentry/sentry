@@ -250,7 +250,7 @@ def get_numeric_field_value(field, raw_value, type=int):
     try:
         for modifier, function in numeric_modifiers:
             if raw_value.startswith(modifier):
-                return function(field, type(raw_value[len(modifier):]))
+                return function(field, type(raw_value[len(modifier) :]))
         else:
             return {field: type(raw_value)}
     except ValueError:
@@ -308,7 +308,7 @@ def format_tag(tag):
     """
     idx = tag.index(":")
     key = tag[:idx].strip('"')
-    value = tag[idx + 1:].strip('"')
+    value = tag[idx + 1 :].strip('"')
     return key, value
 
 

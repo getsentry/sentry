@@ -91,11 +91,11 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             incident = create_incident(
                 organization=organization,
                 type=IncidentType.CREATED,
-                title=result['title'],
-                query=result.get('query', ''),
-                date_started=result.get('dateStarted'),
-                date_detected=result.get('dateDetected'),
-                projects=result['projects'],
+                title=result["title"],
+                query=result.get("query", ""),
+                date_started=result.get("dateStarted"),
+                date_detected=result.get("dateDetected"),
+                projects=result["projects"],
                 groups=groups,
                 user=request.user,
             )

@@ -25,8 +25,8 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
 
     def test_get(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -38,18 +38,21 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data[0]["limit"] == 10
 
     def test_post(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
-            response = self.client.post(url, {
-                'name': 'New query',
-                'projects': self.project_ids,
-                'fields': [],
-                'range': '24h',
-                'limit': 20,
-                'conditions': [],
-                'aggregations': [],
-                'orderby': '-time',
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+            )
 
         assert response.status_code == 201, response.content
         assert response.data["name"] == "New query"
@@ -59,17 +62,20 @@ class DiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         assert not hasattr(response.data, "end")
 
     def test_post_invalid_projects(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-saved-queries', args=[self.org.slug])
-            response = self.client.post(url, {
-                'name': 'New query',
-                'projects': self.project_ids_without_access,
-                'fields': [],
-                'range': '24h',
-                'limit': 20,
-                'conditions': [],
-                'aggregations': [],
-                'orderby': '-time',
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids_without_access,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+            )
 
         assert response.status_code == 403, response.content

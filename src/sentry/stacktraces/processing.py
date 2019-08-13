@@ -388,10 +388,11 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
 
 
 def get_crash_frame_from_event_data(data, frame_filter=None):
-    frames = get_path(data, 'exception', 'values', -1, 'stacktrace', 'frames') or \
-        get_path(data, 'stacktrace', 'frames')
+    frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
+        data, "stacktrace", "frames"
+    )
     if not frames:
-        threads = get_path(data, 'threads', 'values')
+        threads = get_path(data, "threads", "values")
         if threads and len(threads) == 1:
             frames = get_path(threads, 0)
 
@@ -400,7 +401,7 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
         if frame_filter is not None:
             if not frame_filter(frame):
                 continue
-        if frame.get('in_app'):
+        if frame.get("in_app"):
             return frame
         if default is None:
             default = frame

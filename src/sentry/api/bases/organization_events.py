@@ -4,11 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry import eventstore, features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import (
-    get_snuba_query_args,
-    resolve_field_list,
-    InvalidSearchQuery
-)
+from sentry.api.event_search import get_snuba_query_args, resolve_field_list, InvalidSearchQuery
 from sentry.models.project import Project
 
 
@@ -20,23 +16,23 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        sort = request.GET.getlist('sort')
+        sort = request.GET.getlist("sort")
         if sort:
-            snuba_args['orderby'] = sort
+            snuba_args["orderby"] = sort
 
         # Deprecated. `sort` should be used as it is supported by
         # more endpoints.
-        orderby = request.GET.getlist('orderby')
-        if orderby and 'orderby' not in snuba_args:
-            snuba_args['orderby'] = orderby
+        orderby = request.GET.getlist("orderby")
+        if orderby and "orderby" not in snuba_args:
+            snuba_args["orderby"] = orderby
 
-        if request.GET.get('rollup'):
+        if request.GET.get("rollup"):
             try:
-                snuba_args['rollup'] = int(request.GET.get('rollup'))
+                snuba_args["rollup"] = int(request.GET.get("rollup"))
             except ValueError:
-                raise OrganizationEventsError('rollup must be an integer.')
+                raise OrganizationEventsError("rollup must be an integer.")
 
-        fields = request.GET.getlist('field')[:]
+        fields = request.GET.getlist("field")[:]
         if fields:
             try:
                 snuba_args.update(resolve_field_list(fields, snuba_args))

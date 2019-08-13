@@ -138,21 +138,21 @@ def load_data(platform, default=None, sample_name=None):
         return
 
     data = CanonicalKeyDict(data)
-    if platform in ('csp', 'hkpk', 'expectct', 'expectstaple'):
+    if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 
     # Transaction events need timestamp data set to something current.
-    if platform == 'transaction':
+    if platform == "transaction":
         now = timezone.now()
         now_time = to_timestamp(now)
         start_time = to_timestamp(now - timedelta(seconds=-2))
-        data.setdefault('timestamp', now_time)
-        data.setdefault('start_timestamp', start_time)
-        for span in data['spans']:
-            span.setdefault('timestamp', now_time)
-            span.setdefault('start_timestamp', start_time)
+        data.setdefault("timestamp", now_time)
+        data.setdefault("start_timestamp", start_time)
+        for span in data["spans"]:
+            span.setdefault("timestamp", now_time)
+            span.setdefault("start_timestamp", start_time)
 
-    data['platform'] = platform
+    data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
     if "message" not in data:
         data["message"] = "This is an example %s exception" % (sample_name or platform,)

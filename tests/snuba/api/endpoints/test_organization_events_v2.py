@@ -96,8 +96,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    'field': ['id', 'project.id', 'user.email', 'user.ip', 'timestamp'],
-                    'orderby': '-timestamp',
+                    "field": ["id", "project.id", "user.email", "user.ip", "timestamp"],
+                    "orderby": "-timestamp",
                 },
             )
 
@@ -137,19 +137,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': self.two_min_ago,
-                'fingerprint': ['group_1'],
-            },
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
             project_id=project.id,
         )
         event1 = self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
-            },
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_1"]},
             project_id=project.id,
         )
         event2 = self.store_event(
@@ -161,10 +153,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={
-                    'field': ['count(id)', 'project.id', 'issue.id'],
-                    'orderby': 'issue.id',
-                },
+                data={"field": ["count(id)", "project.id", "issue.id"], "orderby": "issue.id"},
             )
 
         assert response.status_code == 200, response.content
@@ -191,30 +180,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': self.two_min_ago,
-                'fingerprint': ['group_1'],
-            },
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
             project_id=project.id,
         )
         event = self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
-            },
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_1"]},
             project_id=project.id,
         )
 
-        with self.feature('organizations:events-v2'):
-            response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'field': ['count(id)'],
-                },
-            )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(self.url, format="json", data={"field": ["count(id)"]})
 
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
@@ -244,11 +219,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
-                data={
-                    'field': ['id', 'timestamp'],
-                    'orderby': ['-timestamp', '-id']
-                },
+                format="json",
+                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
             )
 
         assert response.status_code == 200, response.content
@@ -274,12 +246,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
         with self.feature("organizations:events-v2"):
             response = self.client.get(
-                self.url,
-                format='json',
-                data={
-                    'field': ['id', 'title'],
-                    'sort': 'title'
-                },
+                self.url, format="json", data={"field": ["id", "title"], "sort": "title"}
             )
 
         assert response.status_code == 200, response.content
@@ -299,7 +266,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url, format="json", data={"field": ["id"], "sort": "garbage"}
             )
         assert response.status_code == 400
-        assert 'order by' in response.content
+        assert "order by" in response.content
 
     def test_aliased_fields(self):
         self.login_as(user=self.user)
@@ -337,8 +304,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    'field': ['issue.id', 'issue_title', 'count(id)', 'count_unique(user)'],
-                    'orderby': 'issue.id'
+                    "field": ["issue.id", "issue_title", "count(id)", "count_unique(user)"],
+                    "orderby": "issue.id",
                 },
             )
 
@@ -411,9 +378,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    'field': ['issue_title', 'count(id)', 'count_unique(user)'],
-                    'query': 'count_id:>1 count_unique_user:>1',
-                    'orderby': 'issue_title'
+                    "field": ["issue_title", "count(id)", "count_unique(user)"],
+                    "query": "count_id:>1 count_unique_user:>1",
+                    "orderby": "issue_title",
                 },
             )
 
@@ -425,7 +392,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]['count_id'] == 2
         assert data[0]['count_unique_user'] == 2
 
-    @pytest.mark.xfail(reason='aggregate comparisons need parser improvements')
+    @pytest.mark.xfail(reason="aggregate comparisons need parser improvements")
     def test_aggregation_comparison_with_conditions(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -475,9 +442,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    'field': ['issue_title', 'count(id)'],
-                    'query': 'count_id:>1 user.email:foo@example.com environment:prod',
-                    'orderby': 'issue_title'
+                    "field": ["issue_title", "count(id)"],
+                    "query": "count_id:>1 user.email:foo@example.com environment:prod",
+                    "orderby": "issue_title",
                 },
             )
 
@@ -514,7 +481,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:events-v2"):
             response = self.client.get(self.url, format="json", data={"query": "test"})
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == 'No fields provided'
+        assert response.data["detail"] == "No fields provided"
 
     def test_condition_on_aggregate_fails(self):
         self.login_as(user=self.user)
@@ -532,12 +499,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:events-v2"):
             response = self.client.get(
                 self.url,
-                format='json',
-                data={
-                    'field': ['issue.id'],
-                    'query': 'event_count:>0',
-                    'orderby': 'issue.id'
-                },
+                format="json",
+                data={"field": ["issue.id"], "query": "event_count:>0", "orderby": "issue.id"},
             )
 
         assert response.status_code == 200, response.content

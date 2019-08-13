@@ -19,10 +19,10 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
 
         self.event = self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'message': 'oh no',
-                'timestamp': min_ago,
-                'fingerprint': ['group-1']
+                "event_id": "b" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         )
@@ -38,11 +38,11 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['organizationSlug'] == self.org.slug
-        assert response.data['projectSlug'] == self.project.slug
-        assert response.data['groupId'] == six.text_type(self.group.id)
-        assert response.data['eventId'] == six.text_type(self.event.event_id)
-        assert response.data['event']['id'] == six.text_type(self.event.event_id)
+        assert response.data["organizationSlug"] == self.org.slug
+        assert response.data["projectSlug"] == self.project.slug
+        assert response.data["groupId"] == six.text_type(self.group.id)
+        assert response.data["eventId"] == six.text_type(self.event.event_id)
+        assert response.data["event"]["id"] == six.text_type(self.event.event_id)
 
     def test_missing_eventid(self):
         url = reverse(

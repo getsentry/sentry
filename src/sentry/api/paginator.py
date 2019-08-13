@@ -239,7 +239,7 @@ class OffsetPaginator(object):
 
         results = list(queryset[offset:stop])
         if cursor.value != limit:
-            results = results[-(limit + 1):]
+            results = results[-(limit + 1) :]
 
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)

@@ -32,8 +32,8 @@ class EventStorageTest(TestCase):
             project_id=self.project.id,
         )
 
-        event = eventstore.get_event_by_id(self.project.id, 'a' * 32)
-        event2 = eventstore.get_event_by_id(self.project.id, 'b' * 32)
+        event = eventstore.get_event_by_id(self.project.id, "a" * 32)
+        event2 = eventstore.get_event_by_id(self.project.id, "b" * 32)
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None

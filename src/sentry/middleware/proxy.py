@@ -85,7 +85,7 @@ class ZDecoder(io.RawIOBase):
                 decompressed = self.flushed[:max_length]
                 self.flushed = self.flushed[max_length:]
 
-            buf[n: n + len(decompressed)] = decompressed
+            buf[n : n + len(decompressed)] = decompressed
             n += len(decompressed)
             max_length = len(buf) - n
 
@@ -117,7 +117,7 @@ class SetRemoteAddrFromForwardedFor(object):
     def _remove_port_number(self, ip_address):
         if "[" in ip_address and "]" in ip_address:
             # IPv6 address with brackets, possibly with a port number
-            return ip_address[ip_address.find("[") + 1: ip_address.find("]")]
+            return ip_address[ip_address.find("[") + 1 : ip_address.find("]")]
         if "." in ip_address and ip_address.rfind(":") > ip_address.rfind("."):
             # IPv4 address with port number
             # the last condition excludes IPv4-mapped IPv6 addresses

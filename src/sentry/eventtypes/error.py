@@ -9,12 +9,15 @@ from .base import BaseEvent
 
 def get_crash_location(data):
     from sentry.stacktraces.processing import get_crash_frame_from_event_data
+
     frame = get_crash_frame_from_event_data(
-        data, frame_filter=lambda x: x.get('filename') or x.get('abs_path'))
+        data, frame_filter=lambda x: x.get("filename") or x.get("abs_path")
+    )
     if frame is not None:
         from sentry.stacktraces.functions import get_function_name_for_frame
-        func = get_function_name_for_frame(frame, data.get('platform'))
-        return frame.get('filename') or frame.get('abs_path'), func
+
+        func = get_function_name_for_frame(frame, data.get("platform"))
+        return frame.get("filename") or frame.get("abs_path"), func
 
 
 class ErrorEvent(BaseEvent):
@@ -26,9 +29,7 @@ class ErrorEvent(BaseEvent):
             return {}
 
         loc = get_crash_location(data)
-        rv = {
-            'value': trim(get_path(exception, 'value', default=''), 1024),
-        }
+        rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
 
         # If the exception mechanism indicates a synthetic exception we do not
         # want to record the type and value into the metadata.

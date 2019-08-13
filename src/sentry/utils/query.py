@@ -81,7 +81,7 @@ class RangeQuerySetWrapper(object):
             elif not self.desc:
                 results = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
-            results = list(results[0: self.step])
+            results = list(results[0 : self.step])
 
             for cb in self.callbacks:
                 cb(results)

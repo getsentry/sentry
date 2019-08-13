@@ -26,7 +26,7 @@ class SentryInternalAppTokenTest(APITestCase):
 
 
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
-    @with_feature('organizations:sentry-apps')
+    @with_feature("organizations:sentry-apps")
     def test_create_token(self):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
@@ -67,24 +67,19 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         response = self.client.post(self.url, format="json")
         assert response.status_code == 403
-        assert response.data == 'Cannot generate more than 20 tokens for a single integration'
+        assert response.data == "Cannot generate more than 20 tokens for a single integration"
 
 
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
-    @with_feature('organizations:sentry-apps')
+    @with_feature("organizations:sentry-apps")
     def test_get_tokens(self):
         self.login_as(self.user)
 
-        self.create_internal_integration(
-            name='OtherInternal',
-            organization=self.org,
-        )
+        self.create_internal_integration(name="OtherInternal", organization=self.org)
 
-        token = ApiToken.objects.get(
-            application_id=self.internal_sentry_app.application_id,
-        )
+        token = ApiToken.objects.get(application_id=self.internal_sentry_app.application_id)
 
-        response = self.client.get(self.url, format='json')
+        response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200
         response_content = json.loads(response.content)
@@ -92,5 +87,5 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         # should not include tokens from other internal app
         assert len(response_content) == 1
 
-        assert response_content[0]['id'] == six.text_type(token.id)
-        assert response_content[0]['token'] == token.token
+        assert response_content[0]["id"] == six.text_type(token.id)
+        assert response_content[0]["token"] == token.token

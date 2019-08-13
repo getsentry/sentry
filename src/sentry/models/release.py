@@ -236,7 +236,7 @@ class Release(Model):
     def get_display_version(version):
         match = _dotted_path_prefix_re.match(version)
         if match is not None:
-            version = version[match.end():]
+            version = version[match.end() :]
         if _sha1_re.match(version):
             return version[:7]
         return version

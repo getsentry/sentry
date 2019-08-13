@@ -6,9 +6,24 @@ from ..base import ModelDeletionTask, ModelRelation
 class OrganizationDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.models import (
-            OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
-            ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
-            Repository, Team, Project, PullRequest, Dashboard, ExternalIssue, PromptsActivity
+            OrganizationMember,
+            Commit,
+            CommitAuthor,
+            CommitFileChange,
+            Environment,
+            Release,
+            ReleaseCommit,
+            ReleaseEnvironment,
+            ReleaseFile,
+            Distribution,
+            ReleaseHeadCommit,
+            Repository,
+            Team,
+            Project,
+            PullRequest,
+            Dashboard,
+            ExternalIssue,
+            PromptsActivity,
         )
         from sentry.incidents.models import Incident
         from sentry.discover.models import DiscoverSavedQuery

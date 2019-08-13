@@ -22,6 +22,6 @@ class GroupHash(Model):
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_grouphash'
-        unique_together = (('project', 'hash'), )
+        app_label = "sentry"
+        db_table = "sentry_grouphash"
+        unique_together = (("project", "hash"),)

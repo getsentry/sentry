@@ -522,7 +522,7 @@ class ChunkedFileBlobIndexWrapper(object):
                     chunk = sf.read(65535)
                     if not chunk:
                         break
-                    mem[offset: offset + len(chunk)] = chunk
+                    mem[offset : offset + len(chunk)] = chunk
                     offset += len(chunk)
 
         with ThreadPoolExecutor(max_workers=4) as exe:
@@ -551,7 +551,7 @@ class ChunkedFileBlobIndexWrapper(object):
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
                 if idx != self._curidx:
-                    self._idxiter = iter(self._indexes[-(n + 1):])
+                    self._idxiter = iter(self._indexes[-(n + 1) :])
                     self._nextidx()
                 break
         else:

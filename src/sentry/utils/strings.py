@@ -79,7 +79,7 @@ def strip(value):
 
 
 def soft_hyphenate(value, length, hyphen=u"\u00ad"):
-    return hyphen.join([value[i: (i + length)] for i in range(0, len(value), length)])
+    return hyphen.join([value[i : (i + length)] for i in range(0, len(value), length)])
 
 
 def soft_break(value, length, process=lambda chunk: chunk):

@@ -71,7 +71,7 @@ class OrganizationSerializer(Serializer):
                 continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the organization scope prefix
-                feature_list.add(feature_name[len("organizations:"):])
+                feature_list.add(feature_name[len("organizations:") :])
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (

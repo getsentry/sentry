@@ -236,7 +236,8 @@ class LegacyBrowsersFilterTest(TestCase):
         if filter_opt is not None:
             key = get_filter_key(_legacy_browsers_filter)
             filter_settings[key] = _filter_option_to_config_setting(
-                _legacy_browsers_filter, filter_opt)
+                _legacy_browsers_filter, filter_opt
+            )
         return ret_val
 
     def test_filters_android_2_by_default(self):

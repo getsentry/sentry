@@ -110,27 +110,28 @@ def get_project_config(project_id, full_config=True, for_store=False):
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
-    invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
+    invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
     if invalid_releases:
-        filter_settings[FilterTypes.RELEASES] = {'releases': invalid_releases}
+        filter_settings[FilterTypes.RELEASES] = {"releases": invalid_releases}
 
-    blacklisted_ips = project.get_option('sentry:blacklisted_ips')
+    blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
-        filter_settings['client_ips'] = {'blacklisted_ips': blacklisted_ips}
+        filter_settings["client_ips"] = {"blacklisted_ips": blacklisted_ips}
 
-    error_messages = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
     if error_messages:
-        filter_settings[FilterTypes.ERROR_MESSAGES] = {'patterns': error_messages}
+        filter_settings[FilterTypes.ERROR_MESSAGES] = {"patterns": error_messages}
 
     csp_disallowed_sources = []
-    if bool(project.get_option('sentry:csp_ignored_sources_defaults', True)):
+    if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
-    csp_disallowed_sources += project.get_option('sentry:csp_ignored_sources', [])
+    csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
     if csp_disallowed_sources:
-        filter_settings['csp'] = {'disallowed_sources': csp_disallowed_sources}
+        filter_settings["csp"] = {"disallowed_sources": csp_disallowed_sources}
 
-    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                        project.get_option('sentry:scrub_ip_address', False))
+    scrub_ip_address = org_options.get(
+        "sentry:require_scrub_ip_address", False
+    ) or project.get_option("sentry:scrub_ip_address", False)
 
     project_cfg["scrub_ip_addresses"] = scrub_ip_address
 

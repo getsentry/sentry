@@ -314,7 +314,7 @@ class GoogleCloudStorage(Storage):
         base_parts = name.split("/")[:-1]
         for item in files_list:
             parts = item.name.split("/")
-            parts = parts[len(base_parts):]
+            parts = parts[len(base_parts) :]
             if len(parts) == 1 and parts[0]:
                 # File
                 files.append(parts[0])
