@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 import six
+from copy import copy
 
 from sentry.models import SnubaEvent
 from sentry.utils import snuba
@@ -74,7 +75,7 @@ class SnubaEventStorage(EventStorage):
         if not event:
             return None
 
-        conditions = conditions[:]
+        conditions = copy(conditions)
 
         time_condition = [
             ['timestamp', '>=', event.timestamp],
@@ -100,7 +101,7 @@ class SnubaEventStorage(EventStorage):
         if not event:
             return None
 
-        conditions = conditions[:]
+        conditions = copy(conditions)
 
         time_condition = [
             ['timestamp', '<=', event.timestamp],
