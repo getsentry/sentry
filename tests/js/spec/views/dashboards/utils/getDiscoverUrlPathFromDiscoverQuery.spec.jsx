@@ -1,4 +1,4 @@
-import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getDiscoverUrlPathFromDiscoverQuery';
+import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 
 describe('getDiscoverUrlPathFromDiscoverQuery', function() {
   const organization = TestStubs.Organization();

@@ -3,14 +3,15 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
-import {getChartComponent} from 'app/views/organizationDashboard/utils/getChartComponent';
-import {getData} from 'app/views/organizationDashboard/utils/getData';
-import {getEventsUrlFromDiscoverQueryWithConditions} from 'app/views/organizationDashboard/utils/getEventsUrlFromDiscoverQueryWithConditions';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
+
+import {WIDGET_DISPLAY} from './constants';
+import {getChartComponent} from './utils/getChartComponent';
+import {getData} from './utils/getData';
+import {getEventsUrlFromDiscoverQueryWithConditions} from './utils/getEventsUrlFromDiscoverQueryWithConditions';
 
 const tableRowCss = css`
   color: ${theme.textColor};

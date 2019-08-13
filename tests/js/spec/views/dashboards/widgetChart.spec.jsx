@@ -3,7 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 
-import WidgetChart from 'app/views/organizationDashboard/widgetChart';
+import WidgetChart from 'app/views/dashboards/widgetChart';
 
 describe('WidgetChart', function() {
   const {organization, router, routerContext} = initializeOrg({

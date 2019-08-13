@@ -9,7 +9,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
-class OrganizationDashboard extends React.Component {
+class Dashboards extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -34,4 +34,4 @@ class OrganizationDashboard extends React.Component {
     );
   }
 }
-export default withOrganization(OrganizationDashboard);
+export default withOrganization(Dashboards);

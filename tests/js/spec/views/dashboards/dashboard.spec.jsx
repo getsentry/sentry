@@ -4,8 +4,8 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 
-import Dashboard from 'app/views/organizationDashboard/dashboard';
-import OrganizationDashboardContainer from 'app/views/organizationDashboard';
+import Dashboard from 'app/views/dashboards/dashboard';
+import OrganizationDashboardContainer from 'app/views/dashboards';
 
 jest.mock('app/utils/withLatestContext');
 
