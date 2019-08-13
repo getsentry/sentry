@@ -19,10 +19,10 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, EventView} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import {getQueryString} from './utils';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 
 /**
  * Generate the data to display a vertical line for the current
