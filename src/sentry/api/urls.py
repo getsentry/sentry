@@ -277,9 +277,7 @@ from .endpoints.useravatar import UserAvatarEndpoint
 
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
-from sentry.discover.endpoints.discover_saved_query_detail import (
-    DiscoverSavedQueryDetailEndpoint
-)
+from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 
@@ -1401,7 +1399,7 @@ urlpatterns = patterns(
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
     url(
-        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$',
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),

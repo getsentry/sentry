@@ -54,16 +54,19 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         )
 
     def test(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform.name'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform.name"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -71,16 +74,19 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["platform.name"] == "python"
 
     def test_relative_dates(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform.name'],
-                'range': '1d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform.name"],
+                    "range": "1d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -88,30 +94,36 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["platform.name"] == "python"
 
     def test_invalid_date_request(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform'],
-                'range': '1d',
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform"],
+                    "range": "1d",
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                },
+            )
 
         assert response.status_code == 400, response.content
 
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform'],
-                'statsPeriodStart': '7d',
-                'statsPeriodEnd': '1d',
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform"],
+                    "statsPeriodStart": "7d",
+                    "statsPeriodEnd": "1d",
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                },
+            )
 
         assert response.status_code == 400, response.content
 
@@ -134,17 +146,20 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 data={},
             )
 
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'aggregations': [['count()', None, 'count']],
-                'conditionFields': [
-                    [
-                        'if',
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "aggregations": [["count()", None, "count"]],
+                    "conditionFields": [
                         [
                             "if",
-                            [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
-                            "release",
+                            [
+                                "if",
+                                [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
+                                "release",
+                            ],
                         ]
                     ],
                     "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
@@ -171,46 +186,55 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 assert data["count"] == 2
 
     def test_invalid_range_value(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform'],
-                'range': '1x',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform"],
+                    "range": "1x",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
 
         assert response.status_code == 400, response.content
 
     def test_invalid_aggregation_function(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform'],
-                'aggregations': [['test', 'test', 'test']],
-                'range': '14d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform"],
+                    "aggregations": [["test", "test", "test"]],
+                    "range": "14d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
 
         assert response.status_code == 400, response.content
 
     def test_boolean_condition(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'platform.name', 'stack.in_app'],
-                'conditions': [['stack.in_app', '=', True]],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "platform.name", "stack.in_app"],
+                    "conditions": [["stack.in_app", "=", True]],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -218,128 +242,152 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["platform.name"] == "python"
 
     def test_strip_double_quotes_in_condition_strings(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message'],
-                'conditions': [['message', '=', '"message!"']],
-                'range': '14d',
-                'orderby': '-timestamp',
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message"],
+                    "conditions": [["message", "=", '"message!"']],
+                    "range": "14d",
+                    "orderby": "-timestamp",
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["message"] == "message!"
 
     def test_array_join(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['message', 'error.type'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now() + timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["message", "error.type"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now() + timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["error.type"] == "ValidationError"
 
     def test_array_condition_equals(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'conditions': [['error.type', '=', 'ValidationError']],
-                'fields': ['message'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "conditions": [["error.type", "=", "ValidationError"]],
+                    "fields": ["message"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
 
     def test_array_condition_not_equals(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'conditions': [['error.type', '!=', 'ValidationError']],
-                'fields': ['message'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "conditions": [["error.type", "!=", "ValidationError"]],
+                    "fields": ["message"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
     def test_array_condition_custom_tag(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'conditions': [['error.custom', '!=', 'custom']],
-                'fields': ['message'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "conditions": [["error.custom", "!=", "custom"]],
+                    "fields": ["message"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
     def test_select_project_name(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['project.name'],
-                'range': '14d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["project.name"],
+                    "range": "14d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert (response.data["data"][0]["project.name"]) == "bar"
 
     def test_groupby_project_name(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'aggregations': [['count()', '', 'count']],
-                'fields': ['project.name'],
-                'range': '14d',
-                'orderby': '-count',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "aggregations": [["count()", "", "count"]],
+                    "fields": ["project.name"],
+                    "range": "14d",
+                    "orderby": "-count",
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert (response.data["data"][0]["project.name"]) == "bar"
         assert (response.data["data"][0]["count"]) == 1
 
     def test_zerofilled_dates_when_rollup_relative(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'aggregations': [['count()', '', 'count']],
-                'fields': ['project.name'],
-                'groupby': ['time'],
-                'orderby': 'time',
-                'range': '5d',
-                'rollup': 86400,
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "aggregations": [["count()", "", "count"]],
+                    "fields": ["project.name"],
+                    "groupby": ["time"],
+                    "orderby": "time",
+                    "range": "5d",
+                    "rollup": 86400,
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 6
         assert (response.data["data"][5]["time"]) > response.data["data"][4]["time"]
@@ -347,19 +395,22 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert (response.data["data"][5]["count"]) == 1
 
     def test_zerofilled_dates_when_rollup_absolute(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'aggregations': [['count()', '', 'count']],
-                'fields': ['project.name'],
-                'groupby': ['time'],
-                'orderby': '-time',
-                'start': (self.now - timedelta(seconds=300)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': self.now.strftime('%Y-%m-%dT%H:%M:%S'),
-                'rollup': 60,
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "aggregations": [["count()", "", "count"]],
+                    "fields": ["project.name"],
+                    "groupby": ["time"],
+                    "orderby": "-time",
+                    "start": (self.now - timedelta(seconds=300)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": self.now.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "rollup": 60,
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 6
@@ -368,32 +419,38 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         assert (response.data["data"][0]["count"]) == 1
 
     def test_uniq_project_name(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'aggregations': [['uniq', 'project.name', 'uniq_project_name']],
-                'range': '14d',
-                'orderby': '-uniq_project_name',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "aggregations": [["uniq", "project.name", "uniq_project_name"]],
+                    "range": "14d",
+                    "orderby": "-uniq_project_name",
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert (response.data["data"][0]["uniq_project_name"]) == 1
 
     def test_meta_types(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.project.id],
-                'fields': ['project.id', 'project.name'],
-                'aggregations': [['count()', '', 'count']],
-                'range': '14d',
-                'orderby': '-count',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.project.id],
+                    "fields": ["project.id", "project.name"],
+                    "aggregations": [["count()", "", "count"]],
+                    "range": "14d",
+                    "orderby": "-count",
+                    "start": None,
+                    "end": None,
+                },
+            )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == [
             {"name": "project.id", "type": "integer"},
@@ -402,29 +459,35 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         ]
 
     def test_no_feature_access(self):
-        url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-        response = self.client.post(url, {
-            'projects': [self.project.id],
-            'fields': ['message', 'platform'],
-            'range': '14d',
-            'orderby': '-timestamp',
-            'start': None,
-            'end': None,
-        })
+        url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+        response = self.client.post(
+            url,
+            {
+                "projects": [self.project.id],
+                "fields": ["message", "platform"],
+                "range": "14d",
+                "orderby": "-timestamp",
+                "start": None,
+                "end": None,
+            },
+        )
 
         assert response.status_code == 404, response.content
 
     def test_invalid_project(self):
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.org.slug])
-            response = self.client.post(url, {
-                'projects': [self.other_project.id],
-                'fields': ['message', 'platform'],
-                'range': '14d',
-                'orderby': '-timestamp',
-                'start': None,
-                'end': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.other_project.id],
+                    "fields": ["message", "platform"],
+                    "range": "14d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
 
         assert response.status_code == 403, response.content
 
@@ -433,15 +496,18 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
         self.new_project = self.create_project(name="bar_new", organization=self.new_org)
         self.login_as(user=self.user, superuser=True)
 
-        with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-discover-query', args=[self.new_org.slug])
-            response = self.client.post(url, {
-                'projects': [self.new_project.id],
-                'fields': ['message', 'platform'],
-                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
-                'orderby': '-timestamp',
-                'range': None,
-            })
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.new_org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [self.new_project.id],
+                    "fields": ["message", "platform"],
+                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "orderby": "-timestamp",
+                    "range": None,
+                },
+            )
 
         assert response.status_code == 200, response.content
