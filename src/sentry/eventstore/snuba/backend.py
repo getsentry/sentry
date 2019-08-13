@@ -74,6 +74,8 @@ class SnubaEventStorage(EventStorage):
         if not event:
             return None
 
+        conditions = conditions[:]
+
         time_condition = [
             ['timestamp', '>=', event.timestamp],
             [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
@@ -97,6 +99,8 @@ class SnubaEventStorage(EventStorage):
         """
         if not event:
             return None
+
+        conditions = conditions[:]
 
         time_condition = [
             ['timestamp', '<=', event.timestamp],
