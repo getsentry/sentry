@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {omit, isEqual} from 'lodash';
-import {InjectedRouter} from 'react-router';
+import * as ReactRouter from 'react-router';
 import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {Organization, EventView} from 'app/types';
@@ -28,7 +28,7 @@ const CHART_AXIS_OPTIONS = [
 ];
 
 type EventsProps = {
-  router: InjectedRouter;
+  router: ReactRouter.InjectedRouter;
   location: ReactRouterLocation;
   organization: Organization;
   view: EventView;
