@@ -94,9 +94,9 @@ describe('OrganizationEventsV2', function() {
     // Sort link should reverse.
     expect(timestamp.props().to.query).toEqual({sort: 'timestamp'});
 
-    const userlink = findLink('user');
+    const userlink = findLink('user.id');
     // User link should be descending.
-    expect(userlink.props().to.query).toEqual({sort: '-user'});
+    expect(userlink.props().to.query).toEqual({sort: '-user.id'});
   });
 
   it('generates links to modals', async function() {

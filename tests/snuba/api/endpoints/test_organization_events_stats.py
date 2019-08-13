@@ -164,25 +164,3 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{'count': 1}],
             [{'count': 2}],
         ]
-
-    def test_special_fields_ignored(self):
-        url = reverse(
-            'sentry-api-0-organization-events-stats',
-            kwargs={
-                'organization_slug': self.project.organization.slug,
-            }
-        )
-        response = self.client.get('%s?%s' % (url, urlencode({
-            'start': self.day_ago.isoformat()[:19],
-            'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-            'interval': '1h',
-            'yAxis': 'event_count',
-            'query': 'event_count:>5'
-        })), format='json')
-
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data['data']] == [
-            [],
-            [{'count': 1}],
-            [{'count': 2}],
-        ]

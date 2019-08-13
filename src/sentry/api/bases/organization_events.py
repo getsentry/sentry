@@ -1,37 +1,18 @@
 from __future__ import absolute_import
 
-from copy import deepcopy
-from rest_framework.exceptions import PermissionDenied
 import six
+from rest_framework.exceptions import PermissionDenied
 from enum import Enum
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
+from sentry.api.event_search import (
+    get_snuba_query_args,
+    resolve_field_list,
+    InvalidSearchQuery
+)
 from sentry.models.project import Project
 from sentry.utils import snuba
-
-# We support 4 "special fields" on the v2 events API which perform some
-# additional calculations over aggregated event data
-SPECIAL_FIELDS = {
-    'issue_title': {
-        'aggregations': [['anyHeavy', 'title', 'issue_title']],
-    },
-    'last_seen': {
-        'aggregations': [['max', 'timestamp', 'last_seen']],
-    },
-    'event_count': {
-        'aggregations': [['uniq', 'id', 'event_count']],
-    },
-    'user_count': {
-        'aggregations': [['uniq', 'user', 'user_count']],
-    },
-    'latest_event': {
-        'fields': [
-            ['argMax', ['id', 'timestamp'], 'latest_event'],
-        ],
-    },
-}
 
 
 class Direction(Enum):
@@ -67,46 +48,28 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        fields = request.GET.getlist('field')[:]
-        aggregations = []
-        groupby = request.GET.getlist('groupby')
-        special_fields = set()
-
-        if fields:
-            # If project.name is requested, get the project.id from Snuba so we
-            # can use this to look up the name in Sentry
-            if 'project.name' in fields:
-                fields.remove('project.name')
-                if 'project.id' not in fields:
-                    fields.append('project.id')
-
-            for field in fields[:]:
-                if field in SPECIAL_FIELDS:
-                    special_fields.add(field)
-                    special_field = deepcopy(SPECIAL_FIELDS[field])
-                    fields.remove(field)
-                    fields.extend(special_field.get('fields', []))
-                    aggregations.extend(special_field.get('aggregations', []))
-                    groupby.extend(special_field.get('groupby', []))
-
-            snuba_args['selected_columns'] = fields
-
-        self._filter_unspecified_special_fields_in_conditions(snuba_args, special_fields)
-        if aggregations:
-            snuba_args['aggregations'] = aggregations
-
-        if groupby:
-            snuba_args['groupby'] = groupby
-
         sort = request.GET.getlist('sort')
-        if sort and snuba.valid_orderby(sort, SPECIAL_FIELDS):
+        if sort:
             snuba_args['orderby'] = sort
 
         # Deprecated. `sort` should be used as it is supported by
         # more endpoints.
         orderby = request.GET.getlist('orderby')
-        if orderby and snuba.valid_orderby(orderby, SPECIAL_FIELDS) and 'orderby' not in snuba_args:
+        if orderby and 'orderby' not in snuba_args:
             snuba_args['orderby'] = orderby
+
+        if request.GET.get('rollup'):
+            try:
+                snuba_args['rollup'] = int(request.GET.get('rollup'))
+            except ValueError:
+                raise OrganizationEventsError('rollup must be an integer.')
+
+        fields = request.GET.getlist('field')[:]
+        if fields:
+            try:
+                snuba_args.update(resolve_field_list(fields, snuba_args))
+            except InvalidSearchQuery as exc:
+                raise OrganizationEventsError(exc.message)
 
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(
@@ -146,9 +109,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             snuba_args = get_snuba_query_args(query=query, params=params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
-
-        # Filter out special aggregates.
-        self._filter_unspecified_special_fields_in_conditions(snuba_args, set())
 
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(
@@ -212,17 +172,3 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return None
 
         return six.text_type(result['data'][0]['event_id'])
-
-    def _filter_unspecified_special_fields_in_conditions(self, snuba_args, special_fields):
-        conditions = []
-        for condition in snuba_args['conditions']:
-            field = condition[0]
-            if (
-                not isinstance(field, (list, tuple))
-                and field in SPECIAL_FIELDS
-                and field not in special_fields
-            ):
-                # skip over special field.
-                continue
-            conditions.append(condition)
-        snuba_args['conditions'] = conditions

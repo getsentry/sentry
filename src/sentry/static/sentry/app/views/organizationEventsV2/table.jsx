@@ -49,7 +49,6 @@ export default class Table extends React.Component {
               query: `${field}:${row[field]}`,
             },
           };
-
           return (
             <Cell key={field}>
               {SPECIAL_FIELDS.hasOwnProperty(field) ? (
@@ -66,17 +65,16 @@ export default class Table extends React.Component {
 
   render() {
     const {isLoading, location, view} = this.props;
-    const {fields, sort} = view.data;
+    const {fields, columnNames, sort} = view.data;
     const defaultSort = sort.length ? sort[0] : null;
 
     return (
       <Panel>
         <TableHeader className={getGridStyle(view)}>
-          {fields.map(field => {
-            let title = field;
+          {fields.map((field, i) => {
+            const title = columnNames[i] || field;
             let sortKey = field;
             if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-              title = SPECIAL_FIELDS[field].title || field;
               sortKey = SPECIAL_FIELDS[field].sortField;
             }
 

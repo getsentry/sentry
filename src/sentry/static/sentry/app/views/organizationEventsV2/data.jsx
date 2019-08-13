@@ -17,14 +17,16 @@ import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
+export const AGGREGATE_ALIASES = ['issue_title', 'last_seen', 'latest_event'];
 
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
     name: t('All Events'),
     data: {
-      fields: ['event', 'type', 'project', 'user', 'time'],
-      sort: ['-timestamp', '-id'],
+      fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+      columnNames: ['title', 'type', 'project', 'user', 'time'],
+      sort: ['-timestamp'],
     },
     tags: [
       'event.type',
@@ -40,9 +42,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: t('Errors'),
     data: {
-      fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
-      groupby: ['issue.id', 'project.id'],
-      sort: ['-last_seen', '-issue.id'],
+      fields: ['issue_title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+      columnNames: ['error', 'events', 'users', 'project', 'last seen'],
+      sort: ['-last_seen', '-issue_title'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
@@ -52,9 +54,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: t('CSP'),
     data: {
-      fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
-      groupby: ['issue.id', 'project.id'],
-      sort: ['-last_seen', '-issue.id'],
+      fields: ['issue_title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+      columnNames: ['csp', 'events', 'users', 'project', 'last seen'],
+      sort: ['-last_seen', '-issue_title'],
       query: 'event.type:csp',
     },
     tags: [
@@ -70,8 +72,8 @@ export const ALL_VIEWS = deepFreeze([
     id: 'transactions',
     name: t('Transactions'),
     data: {
-      fields: ['transaction', 'project'],
-      groupby: ['transaction', 'project.id'],
+      fields: ['transaction', 'project', 'count(id)'],
+      columnNames: ['transaction', 'project', 'volume'],
       sort: ['-transaction'],
       query: 'event.type:transaction',
     },
@@ -83,7 +85,7 @@ export const ALL_VIEWS = deepFreeze([
       'user.ip',
       'environment',
     ],
-    columnWidths: ['3fr', '2fr'],
+    columnWidths: ['3fr', '1fr', '70px'],
   },
 ]);
 
@@ -94,7 +96,6 @@ export const ALL_VIEWS = deepFreeze([
  */
 export const SPECIAL_FIELDS = {
   transaction: {
-    fields: ['project.name', 'transaction', 'latest_event'],
     sortField: 'transaction',
     renderFunc: (data, {organization, location}) => {
       const target = {
@@ -113,8 +114,7 @@ export const SPECIAL_FIELDS = {
       );
     },
   },
-  event: {
-    fields: ['title', 'id', 'project.name'],
+  title: {
     sortField: 'title',
     renderFunc: (data, {organization, location}) => {
       const target = {
@@ -131,7 +131,6 @@ export const SPECIAL_FIELDS = {
     },
   },
   type: {
-    fields: ['event.type'],
     sortField: 'event.type',
     renderFunc: (data, {location, organization}) => {
       const target = {
@@ -146,7 +145,6 @@ export const SPECIAL_FIELDS = {
     },
   },
   project: {
-    fields: ['project.name'],
     sortField: false,
     renderFunc: (data, {organization}) => {
       const project = organization.projects.find(p => p.slug === data['project.name']);
@@ -162,8 +160,7 @@ export const SPECIAL_FIELDS = {
     },
   },
   user: {
-    fields: ['user', 'user.name', 'user.username', 'user.email', 'user.ip', 'user.id'],
-    sortField: 'user',
+    sortField: 'user.id',
     renderFunc: (data, {organization, location}) => {
       const userObj = {
         id: data['user.id'],
@@ -192,8 +189,7 @@ export const SPECIAL_FIELDS = {
       return <QueryLink to={target}>{badge}</QueryLink>;
     },
   },
-  time: {
-    fields: ['timestamp'],
+  timestamp: {
     sortField: 'timestamp',
     renderFunc: data => (
       <Container>
@@ -206,8 +202,7 @@ export const SPECIAL_FIELDS = {
       </Container>
     ),
   },
-  error: {
-    fields: ['issue_title', 'project.name', 'latest_event'],
+  issue_title: {
     sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
       const target = {
@@ -226,49 +221,26 @@ export const SPECIAL_FIELDS = {
       );
     },
   },
-  csp: {
-    fields: ['issue_title', 'project.name', 'latest_event'],
-    sortField: 'issue_title',
-    renderFunc: (data, {organization, location}) => {
-      const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
-        query: {
-          ...location.query,
-          eventSlug: `${data['project.name']}:${data.latest_event}`,
-        },
-      };
-      return (
-        <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
-            {data.issue_title}
-          </Link>
-        </Container>
-      );
-    },
-  },
-  event_count: {
-    title: 'events',
-    fields: ['event_count'],
-    sortField: 'event_count',
+  // TODO generalize this.
+  'count(id)': {
+    sortField: 'count_id',
     renderFunc: data => (
       <NumberContainer>
-        {typeof data.event_count === 'number' ? <Count value={data.event_count} /> : null}
+        {typeof data.count_id === 'number' ? <Count value={data.count_id} /> : null}
       </NumberContainer>
     ),
   },
-  user_count: {
-    title: 'users',
-    fields: ['user_count'],
-    sortField: 'user_count',
+  'count_unique(user)': {
+    sortField: 'unique_count_user',
     renderFunc: data => (
       <NumberContainer>
-        {typeof data.user_count === 'number' ? <Count value={data.user_count} /> : null}
+        {typeof data.count_unique_user === 'number' ? (
+          <Count value={data.count_unique_user} />
+        ) : null}
       </NumberContainer>
     ),
   },
   last_seen: {
-    title: 'last seen',
-    fields: ['last_seen'],
     sortField: 'last_seen',
     renderFunc: data => {
       return (

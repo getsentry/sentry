@@ -17,6 +17,7 @@ import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
+import {AGGREGATE_ALIASES} from './data';
 import TransanctionView from './transactionView';
 
 /**
@@ -25,7 +26,11 @@ import TransanctionView from './transactionView';
  */
 const EventModalContent = props => {
   const {event, projectId, organization, location, view} = props;
-  const isGroupedView = !!view.data.groupby;
+
+  // Known aggregate aliases and functions indicated grouped views.
+  const isGroupedView = !!view.data.fields.find(
+    field => AGGREGATE_ALIASES.includes(field) || field.match(/[a-z_]+\([a-z_\.]+\)/)
+  );
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
     event.eventID
   }/json/`;

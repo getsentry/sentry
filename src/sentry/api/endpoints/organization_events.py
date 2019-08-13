@@ -18,7 +18,6 @@ from sentry.utils.snuba import (
 from sentry import features
 from sentry.models.project import Project
 
-ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id', 'transaction'))
 logger = logging.getLogger(__name__)
 
 
@@ -31,16 +30,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args(request, organization, params)
-            fields = snuba_args.get('selected_columns')
-            groupby = snuba_args.get('groupby', [])
-
-            if not fields and not groupby:
-                return Response({'detail': 'No fields or groupings provided'}, status=400)
-
-            if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
-                message = ('Invalid groupby value requested. Allowed values are ' +
-                           ', '.join(ALLOWED_GROUPINGS))
-                return Response({'detail': message}, status=400)
+            if not snuba_args.get('selected_columns') and not snuba_args.get('aggregations'):
+                return Response({'detail': 'No fields provided'}, status=400)
 
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
@@ -130,16 +121,22 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def handle_results(self, request, organization, project_ids, results):
+        if not results:
+            return results
+
+        first_row = results[0]
+        if not ('project.id' in first_row or 'projectid' in first_row):
+            return results
+
+        fields = request.GET.getlist('field')
         projects = {p['id']: p['slug'] for p in Project.objects.filter(
             organization=organization,
             id__in=project_ids).values('id', 'slug')}
-
-        fields = request.GET.getlist('field')
-
-        if 'project.name' in fields:
-            for result in results:
-                result['project.name'] = projects[result['project.id']]
-                if 'project.id' not in fields:
-                    del result['project.id']
+        for result in results:
+            for key in ('projectid', 'project.id'):
+                if key in result:
+                    result['project.name'] = projects[result[key]]
+                    if key not in fields:
+                        del result[key]
 
         return results
