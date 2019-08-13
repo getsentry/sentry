@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import signal
 import sys
 from multiprocessing import cpu_count
 
@@ -314,3 +315,42 @@ def post_process_forwarder(**options):
             "process to enqueue post-process tasks. Exiting...\n"
         )
         return
+
+
+@run.command("query-subscription-consumer")
+@click.option(
+    "--group",
+    default="query-subscription-consumer",
+    help="Consumer group to track query subscription offsets. ",
+)
+@click.option("--topic", default=None, help="Topic to get subscription updates from.")
+@click.option(
+    "--commit-batch-size",
+    default=100,
+    type=int,
+    help="How many messages to process before committing offsets.",
+)
+@click.option(
+    "--initial-offset-reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@log_options()
+@configuration
+def query_subscription_consumer(**options):
+    from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer
+
+    subscriber = QuerySubscriptionConsumer(
+        group_id=options["group"],
+        topic=options["topic"],
+        commit_batch_size=options["commit_batch_size"],
+        initial_offset_reset=options["initial_offset_reset"],
+    )
+
+    def handler(signum, frame):
+        subscriber.shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+
+    subscriber.run()

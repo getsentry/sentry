@@ -270,20 +270,23 @@ class AlertRule(Model):
     objects_with_deleted = BaseManager()
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True, null=True)
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
-    subscription_id = models.UUIDField(db_index=True)
     threshold_type = models.SmallIntegerField()
-    dataset = models.TextField()
-    query = models.TextField()
-    aggregations = ArrayField(of=models.IntegerField)
-    time_window = models.IntegerField()
-    resolution = models.IntegerField()
     alert_threshold = models.IntegerField()
     resolve_threshold = models.IntegerField()
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+    # These will be removed after we've made these columns nullable. Moving to
+    # QuerySubscription
+    subscription_id = models.UUIDField(db_index=True, null=True)
+    dataset = models.TextField(null=True)
+    query = models.TextField(null=True)
+    aggregations = ArrayField(of=models.IntegerField, null=True)
+    time_window = models.IntegerField(null=True)
+    resolution = models.IntegerField(null=True)
 
     class Meta:
         app_label = "sentry"

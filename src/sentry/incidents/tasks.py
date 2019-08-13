@@ -19,11 +19,14 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSuspectCommit,
 )
+from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 from sentry.utils.retries import TimedRetryPolicy
+
+INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 
 
 @instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
@@ -155,3 +158,15 @@ class AlertRuleDeletionTask(deletions.ModelDeletionTask):
 
 
 deletions.default_manager.register(AlertRule, AlertRuleDeletionTask)
+
+
+@register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
+def handle_snuba_query_update(subscription_update, subscription):
+    """
+    Handles a subscription update for a `QuerySubscription`.
+    :param subscription_update: dict formatted according to schemas in
+    sentry/snuba/json_schemas.py
+    :param subscription: The `QuerySubscription` that this update is for
+    """
+    # TODO: Implement
+    pass

@@ -320,6 +320,7 @@ INSTALLED_APPS = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.search",
+    "sentry.snuba",
     "sentry.lang.java",
     "sentry.lang.javascript",
     "sentry.lang.native",
@@ -1674,10 +1675,15 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
+KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: {
+        "cluster": "default",
+        "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
+    },
 }
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely
