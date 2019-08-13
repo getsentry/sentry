@@ -152,10 +152,10 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
 
     if (
       typeof position !== 'number' ||
+      (isResolution && resolveThreshold === null) ||
+      (!isResolution && alertThreshold === null) ||
       !this.state.height ||
-      !this.chartRef ||
-      resolveThreshold === null ||
-      alertThreshold === null
+      !this.chartRef
     ) {
       return [];
     }

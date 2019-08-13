@@ -86,14 +86,21 @@ class RuleForm extends React.Component<Props, State> {
    */
   canUpdateThreshold = (type: AlertRuleThreshold, value: number): boolean => {
     const isResolution = type === AlertRuleThreshold.RESOLUTION;
+    const otherKey = isResolution ? 'alertThreshold' : 'resolveThreshold';
+    const otherValue = this.state[otherKey];
+
+    // If other value is `null`, then there are no checks to perform against
+    if (otherValue === null) {
+      return true;
+    }
 
     // If this is alert threshold and not inverted, it can't be below resolve
     // If this is alert threshold and inverted, it can't be above resolve
     // If this is resolve threshold and not inverted, it can't be above resolve
     // If this is resolve threshold and inverted, it can't be below resolve
     return !!this.state.isInverted !== isResolution
-      ? value < (this.state[isResolution ? 'alertThreshold' : 'resolveThreshold'] || 0)
-      : value > (this.state[isResolution ? 'alertThreshold' : 'resolveThreshold'] || 0);
+      ? value <= otherValue
+      : value >= otherValue;
   };
 
   revertThresholdUpdate = () => {
@@ -117,11 +124,12 @@ class RuleForm extends React.Component<Props, State> {
   updateThreshold = (type: AlertRuleThreshold, value: number) => {
     if (this.canUpdateThreshold(type, value)) {
       const thresholdKey = this.getThresholdKey(type);
+      const newValue = Math.round(value);
       this.setState(state => ({
         ...state,
-        [thresholdKey]: value,
+        [thresholdKey]: newValue,
       }));
-      this.context.form.setValue(thresholdKey, Math.round(value));
+      this.context.form.setValue(thresholdKey, Math.round(newValue));
     } else {
       this.revertThresholdUpdate();
     }
@@ -174,7 +182,13 @@ class RuleForm extends React.Component<Props, State> {
 
   render() {
     const {api, organization, project} = this.props;
-    const {alertThreshold, resolveThreshold, isInverted} = this.state;
+    const {
+      aggregations,
+      alertThreshold,
+      resolveThreshold,
+      isInverted,
+      timeWindow,
+    } = this.state;
 
     return (
       <React.Fragment>
@@ -182,11 +196,9 @@ class RuleForm extends React.Component<Props, State> {
           api={api}
           organization={organization}
           project={[parseInt(project.id, 10)]}
-          interval={`${this.state.timeWindow}s`}
+          interval={`${timeWindow}s`}
           yAxis={
-            this.state.aggregations[0] === AlertRuleAggregations.TOTAL
-              ? 'event_count'
-              : 'user_count'
+            aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
           }
           includePrevious={false}
         >
@@ -283,12 +295,8 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   placeholder: resolveThreshold === null ? t('Off') : '',
-                  ...(resolveThreshold !== null &&
-                    !isInverted &&
-                    alertThreshold !== null && {max: alertThreshold}),
-                  ...(resolveThreshold !== null &&
-                    isInverted &&
-                    alertThreshold !== null && {min: alertThreshold}),
+                  ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
+                  ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
                 },
                 {
                   name: 'thresholdType',
