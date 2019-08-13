@@ -92,9 +92,6 @@ from .endpoints.organization_events_distribution import OrganizationEventsDistri
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from .endpoints.organization_health import (
-    OrganizationHealthGraphEndpoint, OrganizationHealthTopEndpoint
-)
 from .endpoints.organization_incident_activity_index import (
     OrganizationIncidentActivityIndexEndpoint
 )
@@ -634,18 +631,6 @@ urlpatterns = patterns(
             r'^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/widgets/(?P<widget_id>[^\/]+)$',
             OrganizationDashboardWidgetDetailsEndpoint.as_view(),
             name='sentry-api-0-organization-dashboard-widget-details',
-        ),
-
-        # Health
-        url(
-            r'^(?P<organization_slug>[^\/]+)/health/top/$',
-            OrganizationHealthTopEndpoint.as_view(),
-            name='sentry-api-0-organization-health-top',
-        ),
-        url(
-            r'^(?P<organization_slug>[^\/]+)/health/graph/$',
-            OrganizationHealthGraphEndpoint.as_view(),
-            name='sentry-api-0-organization-health-graph',
         ),
 
         url(
