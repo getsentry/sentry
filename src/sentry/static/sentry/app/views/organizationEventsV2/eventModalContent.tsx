@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {StyledComponent} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
@@ -21,6 +21,7 @@ import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 import TransanctionView from './transactionView';
 import {AGGREGATE_ALIASES} from './data';
+import {SentryTransactionEvent} from './transactionView/types';
 
 type EventModalContentProps = {
   event: Event;
@@ -67,7 +68,7 @@ const EventModalContent = (props: EventModalContentProps) => {
       </HeaderBox>
       <ContentColumn>
         {event.type === 'transaction' ? (
-          <TransanctionView event={event} />
+          <TransanctionView event={event as SentryTransactionEvent} />
         ) : (
           <EventInterfaces event={event} projectId={projectId} />
         )}
@@ -123,7 +124,7 @@ const EventMetadata = (props: {event: Event; eventJsonUrl: string}) => {
       <MetadataContainer>
         <DateTime
           date={getDynamicText({
-            value: event.dateCreated || event.endTimestamp * 1000,
+            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
             fixed: 'Dummy timestamp',
           })}
         />
@@ -180,7 +181,8 @@ const SidebarColumn = styled('div')`
   grid-column: 2 / 3;
 `;
 
-const SidebarBlock = styled('div')`
+// TODO(ts): adjust types
+const SidebarBlock: StyledComponent<any, any, any> = styled('div')`
   margin: 0 0 ${space(2)} 0;
   padding: 0 0 ${space(2)} 0;
   ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
