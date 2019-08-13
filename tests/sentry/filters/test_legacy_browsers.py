@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.message_filters import _legacy_browsers_filter  # noqa
+from sentry.message_filters import _legacy_browsers_filter, get_filter_key  # noqa
 from sentry.models.projectoption import ProjectOption
 from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase, TestCase
@@ -268,8 +268,9 @@ class LegacyBrowsersFilterTest(TestCase):
         filter_settings = {}
         config['filter_settings'] = filter_settings
         if filter_opt is not None:
-            key = _legacy_browsers_filter.spec.id
-            filter_settings[key] = _filter_option_to_config_setting(_legacy_browsers_filter, filter_opt)
+            key = get_filter_key(_legacy_browsers_filter)
+            filter_settings[key] = _filter_option_to_config_setting(
+                _legacy_browsers_filter, filter_opt)
         return ret_val
 
     def test_filters_android_2_by_default(self):
