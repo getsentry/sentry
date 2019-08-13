@@ -78,13 +78,11 @@ def _capture_stats(event, is_new):
 
     # This is an experiment to understand whether we have, in production,
     # mismatches between event and group before we permanently rely on events
-    # for project and platform. before adding some more verbose logging ont this
+    # for the platform. before adding some more verbose logging on this
     # case, using a stats will give us a sense of the magnitude of the problem.
     if event.group:
         if event.group.platform != event.platform:
             metrics.incr('events.platform_mismatch', tags=tags)
-        if event.group.project_id != event.project_id:
-            metrics.incr('events.project_mismatch')
 
 
 def check_event_already_post_processed(event):
@@ -146,16 +144,13 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
             # which may contain a stale Project.
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
-            project_id = event.group.project_id
-        else:
-            project_id = event.project_id
 
         with configure_scope() as scope:
-            scope.set_tag("project", project_id)
+            scope.set_tag("project", event.project_id)
 
         # Re-bind Project since we're pickling the whole Event object
         # which may contain a stale Project.
-        event.project = Project.objects.get_from_cache(id=project_id)
+        event.project = Project.objects.get_from_cache(id=event.project_id)
 
         _capture_stats(event, is_new)
 
