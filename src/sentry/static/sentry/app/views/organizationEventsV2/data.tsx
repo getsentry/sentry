@@ -12,9 +12,9 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
+import {EventView} from 'app/types';
 
 import {QueryLink} from './styles';
-import {EventView} from 'app/types';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
