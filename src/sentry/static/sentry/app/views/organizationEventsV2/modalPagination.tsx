@@ -10,7 +10,7 @@ import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {ReactRouterLocation} from 'app/types/reactRouter';
-import {Event} from 'app/types';
+import {Event, EventView} from 'app/types';
 
 import {MODAL_QUERY_KEYS} from './data';
 
@@ -61,6 +61,7 @@ function buildTargets(event: Event, location: ReactRouterLocation): LinksType {
 type Props = {
   event: Event;
   location: ReactRouterLocation;
+  view: EventView;
 };
 
 const ModalPagination = (props: Props) => {
