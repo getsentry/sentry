@@ -54,6 +54,10 @@ export type Event = {
   dateCreated?: string;
   endTimestamp?: number;
   entries: EntryType[];
+
+  previousEventID?: string;
+  nextEventID?: string;
+  projectSlug: string;
 };
 
 export type EventsStatsData = [number, {count: number}[]][];
