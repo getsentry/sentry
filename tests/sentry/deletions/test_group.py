@@ -5,7 +5,7 @@ from uuid import uuid4
 from sentry import tagstore
 from sentry.tagstore.models import EventTag
 from sentry.models import (
-    Event, EventMapping, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
+    Event, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
     ScheduledDeletion, UserReport
 )
 from sentry.tasks.deletion import run_deletion
@@ -19,11 +19,7 @@ class DeleteGroupTest(TestCase):
             project=project,
         )
         event = self.create_event(group=group)
-        EventMapping.objects.create(
-            project_id=project.id,
-            event_id='a' * 32,
-            group_id=group.id,
-        )
+
         UserReport.objects.create(
             group_id=group.id,
             project_id=event.project_id,
@@ -78,9 +74,6 @@ class DeleteGroupTest(TestCase):
             run_deletion(deletion.id)
 
         assert not Event.objects.filter(id=event.id).exists()
-        assert not EventMapping.objects.filter(
-            group_id=group.id,
-        ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
