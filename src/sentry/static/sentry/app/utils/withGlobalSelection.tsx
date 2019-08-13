@@ -4,12 +4,15 @@ import createReactClass from 'create-react-class';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import getDisplayName from 'app/utils/getDisplayName';
+import {GlobalSelection} from 'app/types';
 
 /**
  * Higher order component that uses GlobalSelectionStore and provides the
  * active project
  */
-const withGlobalSelection = WrappedComponent =>
+const withGlobalSelection = <P extends object>(
+  WrappedComponent: React.ComponentType<P>
+) =>
   createReactClass({
     displayName: `withGlobalSelection(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.listenTo(GlobalSelectionStore, 'onUpdate')],
@@ -41,9 +44,9 @@ const withGlobalSelection = WrappedComponent =>
       const {forceUrlSync, ...selection} = this.state.selection;
       return (
         <WrappedComponent
-          forceUrlSync={forceUrlSync}
-          selection={selection}
-          {...this.props}
+          forceUrlSync={forceUrlSync as boolean}
+          selection={selection as GlobalSelection}
+          {...this.props as P}
         />
       );
     },

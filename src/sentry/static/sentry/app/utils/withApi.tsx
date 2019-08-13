@@ -6,8 +6,10 @@ import getDisplayName from 'app/utils/getDisplayName';
 /**
  * HoC that provides "api" client when mounted, and clears API requests when component is unmounted
  */
-const withApi = WrappedComponent => {
-  class WithApi extends React.Component {
+const withApi = <P extends object>(WrappedComponent: React.ComponentType<P>) => {
+  return class extends React.Component<Omit<P, 'api'>> {
+    static displayName = `withApi(${getDisplayName(WrappedComponent)})`;
+
     constructor(props) {
       super(props);
       this.api = new Client();
@@ -15,14 +17,14 @@ const withApi = WrappedComponent => {
     componentWillUnmount() {
       this.api.clear();
     }
+
+    // TODO(ts): Update this when API client is typed
+    private api: any;
+
     render() {
-      return <WrappedComponent api={this.api} {...this.props} />;
+      return <WrappedComponent api={this.api as any} {...this.props as P} />;
     }
-  }
-
-  WithApi.displayName = `withApi(${getDisplayName(WrappedComponent)})`;
-
-  return WithApi;
+  };
 };
 
 export default withApi;

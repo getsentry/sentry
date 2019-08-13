@@ -5,11 +5,16 @@ import createReactClass from 'create-react-class';
 import getDisplayName from 'app/utils/getDisplayName';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
+import {Project} from 'app/types';
 
 /**
  * Higher order component that uses ProjectsStore and provides a list of projects
  */
-const withProjects = WrappedComponent =>
+type Props = {
+  projects: Project[];
+};
+
+const withProjects = <P extends Props>(WrappedComponent: React.ComponentType<P>) =>
   createReactClass({
     displayName: `withProjects(${getDisplayName(WrappedComponent)})`,
     propTypes: {

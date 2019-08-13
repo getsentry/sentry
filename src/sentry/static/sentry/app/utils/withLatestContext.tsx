@@ -8,11 +8,9 @@ import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
+import {Project, Organization} from 'app/types';
 
-// HoC that returns most usable organization + project
-// This means your org if you only have 1 org, or
-// last accessed organization/project
-const withLatestContext = WrappedComponent =>
+const withLatestContext = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
   withOrganizations(
     createReactClass({
       displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
@@ -24,7 +22,12 @@ const withLatestContext = WrappedComponent =>
       render() {
         const {organizations} = this.props;
         const {latestContext} = this.state;
-        const {organization, project, lastRoute} = latestContext || {};
+        const {
+          organization,
+          project,
+          lastRoute,
+        }: {organization?: Organization; project?: Project; lastRoute?: string} =
+          latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
@@ -42,11 +45,11 @@ const withLatestContext = WrappedComponent =>
         // project from `latestContext`
         return (
           <WrappedComponent
-            organizations={organizations}
-            organization={latestOrganization}
-            project={project}
-            lastRoute={lastRoute}
-            {...this.props}
+            organizations={organizations as Organization[]}
+            organization={latestOrganization as Organization}
+            project={project as Project}
+            lastRoute={lastRoute as string}
+            {...this.props as P}
           />
         );
       },
