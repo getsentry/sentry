@@ -159,19 +159,21 @@ class EventCauseEmpty extends React.Component {
                     {t('Snooze')}
                   </SnoozeButton>
                 </Tooltip>
-                <DismissButton
-                  size="small"
-                  onClick={() =>
-                    this.handleClick({
-                      action: 'dismissed',
-                      eventKey: 'event_cause.dismissed',
-                      eventName: 'Event Cause Dismissed',
-                    })
-                  }
-                  data-test-id="dismissed"
-                >
-                  {t('Dismiss')}
-                </DismissButton>
+                <Tooltip title={t('Dismiss for this project')}>
+                  <DismissButton
+                    size="small"
+                    onClick={() =>
+                      this.handleClick({
+                        action: 'dismissed',
+                        eventKey: 'event_cause.dismissed',
+                        eventName: 'Event Cause Dismissed',
+                      })
+                    }
+                    data-test-id="dismissed"
+                  >
+                    {t('Dismiss')}
+                  </DismissButton>
+                </Tooltip>
               </div>
             </ButtonList>
           </BoxHeader>
