@@ -1,8 +1,6 @@
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {getShortVersion} from 'app/utils';
@@ -17,99 +15,78 @@ import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
 import withApi from 'app/utils/withApi';
 
-const VersionHoverCard = createReactClass({
-  displayName: 'VersionHoverCard',
-
-  propTypes: {
+class VersionHoverCard extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       loading: true,
       error: false,
       data: {},
       visible: false,
       hasRepos: false,
       deploys: [],
+      release: null,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   fetchData() {
-    const {orgId, projectId, version} = this.props;
-    const done = _.after(3, () => {
-      this.setState({loading: false});
-    });
+    const {api, orgId, projectId, version} = this.props;
 
     // releases
     const releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
-    this.props.api.request(releasePath, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          release: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-      complete: done,
-    });
+    const releaseRequest = api
+      .requestPromise(releasePath, {
+        method: 'GET',
+      })
+      .then(data => {
+        this.setState({release: data});
+      });
 
     // repos
-    const repoPath = `/organizations/${orgId}/repos/`;
-    this.props.api.request(repoPath, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          hasRepos: data.length > 0,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-      complete: done,
-    });
+    const repoRequest = api
+      .requestPromise(`/organizations/${orgId}/repos/`, {
+        method: 'GET',
+      })
+      .then(data => {
+        this.setState({hasRepos: data.length > 0});
+      });
 
     //deploys
     const deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/deploys/`;
-    this.props.api.request(deployPath, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          deploys: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-      complete: done,
-    });
-  },
+    const deployRequest = api
+      .requestPromise(deployPath, {
+        method: 'GET',
+      })
+      .then(data => {
+        this.setState({deploys: data});
+      });
+
+    Promise.all([releaseRequest, repoRequest, deployRequest])
+      .then(() => this.setState({loading: false}))
+      .catch(() => this.setState({error: true}));
+  }
 
   toggleHovercard() {
     this.setState({
       visible: true,
       // visible: !this.state.visible,
     });
-  },
+  }
 
   getRepoLink() {
     const {orgId} = this.props;
@@ -127,7 +104,7 @@ const VersionHoverCard = createReactClass({
         </Box>
       ),
     };
-  },
+  }
 
   getBody() {
     const {release, deploys} = this.state;
@@ -187,19 +164,7 @@ const VersionHoverCard = createReactClass({
                   <div className="deploy" key={idx}>
                     <div className="deploy-meta" style={{position: 'relative'}}>
                       <VersionRepoLabel>{env}</VersionRepoLabel>
-                      {dateFinished && (
-                        <span
-                          className="text-light"
-                          style={{
-                            position: 'absolute',
-                            left: 98,
-                            width: '50%',
-                            padding: '3px 0',
-                          }}
-                        >
-                          <TimeSince date={dateFinished} />
-                        </span>
-                      )}
+                      {dateFinished && <StyledTimeSince date={dateFinished} />}
                     </div>
                   </div>
                 );
@@ -209,19 +174,18 @@ const VersionHoverCard = createReactClass({
         </div>
       ),
     };
-  },
+  }
 
   render() {
-    const {loading, error, hasRepos} = this.state;
+    const {loading, error, hasRepos, release} = this.state;
     let header = null;
-    let body = loading ? (
-      <LoadingIndicator mini={true} />
-    ) : error ? (
-      <LoadingError />
-    ) : null;
-
-    if (!loading && !error) {
-      const renderObj = hasRepos ? this.getBody() : this.getRepoLink();
+    let body = null;
+    if (loading) {
+      body = <LoadingIndicator mini={true} />;
+    } else if (error) {
+      body = <LoadingError />;
+    } else {
+      const renderObj = hasRepos && release ? this.getBody() : this.getRepoLink();
       header = renderObj.header;
       body = renderObj.body;
     }
@@ -231,8 +195,8 @@ const VersionHoverCard = createReactClass({
         {this.props.children}
       </Hovercard>
     );
-  },
-});
+  }
+}
 
 export {VersionHoverCard};
 
@@ -240,4 +204,12 @@ export default withApi(VersionHoverCard);
 
 const VersionRepoLabel = styled(RepoLabel)`
   width: 86px;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.gray2};
+  position: absolute;
+  left: 98px;
+  width: 50%;
+  padding: 3px 0;
 `;
