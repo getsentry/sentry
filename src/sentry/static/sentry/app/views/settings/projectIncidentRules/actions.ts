@@ -1,8 +1,9 @@
 import {IncidentRule} from './types';
+import {Client} from 'app/api';
 
-// TODO(ts): type api and response
+// TODO(ts): type response
 export function deleteRule(
-  api: any,
+  api: Client,
   orgId: string,
   projectId: string,
   rule: IncidentRule
