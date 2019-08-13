@@ -155,11 +155,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                     "conditionFields": [
                         [
                             "if",
-                            [
-                                "if",
-                                [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
-                                "release",
-                            ],
+                            [["in", ["release", "tuple", ["'foo'"]]], "release", "'other'"],
+                            "release",
                         ]
                     ],
                     "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
