@@ -9,6 +9,7 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from sentry import eventstore
 from sentry.testutils import TransactionTestCase
 from sentry.models import Event, EventAttachment
 
@@ -70,7 +71,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 })
                 assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
 
         attachments = sorted(
