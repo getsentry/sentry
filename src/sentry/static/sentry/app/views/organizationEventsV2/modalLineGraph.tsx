@@ -31,7 +31,7 @@ import {getQueryString} from './utils';
 const getCurrentEventMarker = (currentEvent: Event) => {
   const title = t('Current Event');
   const eventTime = +new Date(
-    currentEvent.dateCreated || currentEvent.endTimestamp * 1000
+    currentEvent.dateCreated || (currentEvent.endTimestamp || 0) * 1000
   );
 
   return {
@@ -116,6 +116,8 @@ type ModalLineGraphProps = {
   location: ReactRouterLocation;
   currentEvent: Event;
   view: EventView;
+  // TODO(ts): adjust
+  selection: any;
 };
 
 /**
@@ -149,7 +151,8 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
 
   // Generate a query string that finds events similar to our
   // current event based on the type of view being used.
-  const eventConditions = {};
+  // TODO(ts): adjust this type
+  const eventConditions: any = {};
   if (view.id === 'transactions') {
     eventConditions.transaction = currentEvent.location;
   } else {
