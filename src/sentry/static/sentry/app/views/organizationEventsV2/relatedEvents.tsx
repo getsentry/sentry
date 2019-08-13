@@ -1,8 +1,10 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {StyledComponent} from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
+import {Organization, EventView, Event} from 'app/types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -17,8 +19,18 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withProjects from 'app/utils/withProjects';
 
 import {MODAL_QUERY_KEYS} from './data';
+import {EventQuery} from './utils';
 
-class RelatedEvents extends AsyncComponent {
+type Props = {
+  location: ReactRouterLocation;
+  organization: Organization;
+  view: EventView;
+  event: Event;
+  // TODO(ts): waiting on https://github.com/getsentry/sentry/pull/14326
+  projects: any;
+};
+
+class RelatedEvents extends AsyncComponent<Props> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
@@ -26,7 +38,7 @@ class RelatedEvents extends AsyncComponent {
     projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     // TODO what happens when global-views feature is not on the org?
     const {event, organization} = this.props;
     const eventsUrl = `/organizations/${organization.slug}/events/`;
@@ -36,7 +48,7 @@ class RelatedEvents extends AsyncComponent {
       return [];
     }
 
-    const params = {
+    const params: {query: EventQuery} = {
       query: {
         field: [
           'project.name',
@@ -59,7 +71,7 @@ class RelatedEvents extends AsyncComponent {
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
-  renderBody() {
+  c() {
     const {location, projects, event} = this.props;
     const {events} = this.state;
     if (!events || !events.data) {
@@ -106,7 +118,8 @@ const Container = styled('div')`
   position: relative;
 `;
 
-const Card = styled('div')`
+// TODO(ts): adjust types
+const Card: StyledComponent<any, any, any> = styled('div')`
   display: flex;
   flex-direction: column;
   border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
