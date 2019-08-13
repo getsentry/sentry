@@ -2,7 +2,15 @@
 
 exports[`Sentry App Installations when Apps exist displays all Apps owned by the Org 1`] = `
 <SentryAppInstallations
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   applications={
     Array [
       Object {
@@ -862,7 +870,15 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
 
 exports[`Sentry App Installations when no Apps exist no row is displayed 1`] = `
 <SentryAppInstallations
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   applications={Array []}
   installs={Array []}
   organization={

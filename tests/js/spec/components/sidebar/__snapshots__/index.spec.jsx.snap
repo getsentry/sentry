@@ -1369,10 +1369,26 @@ exports[`Sidebar can have onboarding feature 1`] = `
           >
             <withApi(WithOrganizationMockWrapper)>
               <WithOrganizationMockWrapper
-                api={Client {}}
+                api={
+                  Client {
+                    "_chain": [Function],
+                    "_wrapRequest": [Function],
+                    "bulkUpdate": [Function],
+                    "handleRequestError": [Function],
+                    "hasProjectBeenRenamed": [Function],
+                  }
+                }
               >
                 <TodoList
-                  api={Client {}}
+                  api={
+                    Client {
+                      "_chain": [Function],
+                      "_wrapRequest": [Function],
+                      "bulkUpdate": [Function],
+                      "handleRequestError": [Function],
+                      "hasProjectBeenRenamed": [Function],
+                    }
+                  }
                   organization={
                     Object {
                       "access": Array [

@@ -2,7 +2,15 @@
 
 exports[`IssueDiff can diff message 1`] = `
 <IssueDiff
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   baseEventId="latest"
   baseIssueId="base"
   orgId="org-slug"
@@ -131,7 +139,15 @@ exports[`IssueDiff can diff message 1`] = `
 
 exports[`IssueDiff can dynamically import SplitDiff 1`] = `
 <IssueDiff
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   baseEventId="latest"
   baseIssueId="base"
   orgId="org-slug"

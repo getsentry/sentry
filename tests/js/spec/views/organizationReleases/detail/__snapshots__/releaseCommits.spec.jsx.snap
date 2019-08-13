@@ -11,7 +11,15 @@ exports[`ReleaseCommits organization release commits 1`] = `
   }
 >
   <ReleaseCommits
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     location={Object {}}
     params={
       Object {
@@ -374,7 +382,15 @@ exports[`ReleaseCommits project release commits 1`] = `
   }
 >
   <ReleaseCommits
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     location={Object {}}
     params={
       Object {

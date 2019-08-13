@@ -9,7 +9,15 @@ exports[`SharedGroupDetails renders 1`] = `
   }
 >
   <SharedGroupDetails
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     params={
       Object {
         "shareId": "a",
@@ -495,7 +503,15 @@ exports[`SharedGroupDetails renders 1`] = `
                           }
                         >
                           <EventEntries
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             event={
                               Object {
                                 "dateCreated": "2019-05-21T18:01:48.762Z",
