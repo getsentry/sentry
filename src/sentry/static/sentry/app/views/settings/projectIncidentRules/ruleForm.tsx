@@ -169,7 +169,7 @@ type RuleFormContainerProps = {
   orgId: string;
   projectId: string;
   incidentRuleId?: string;
-  initialData?: {[key: string]: string | number | boolean};
+  initialData?: {[key: string]: string | number | boolean | number[]};
   onSubmitSuccess?: Function;
 };
 function RuleFormContainer({

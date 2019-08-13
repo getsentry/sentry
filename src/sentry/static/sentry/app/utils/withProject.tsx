@@ -2,19 +2,25 @@ import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
+import {Project} from 'app/types';
 
 /**
  * Currently wraps component with project from context
  */
-const withProject = WrappedComponent =>
-  class extends React.Component {
+const withProject = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
+  class extends React.Component<Omit<P, 'project'>> {
     static displayName = `withProject(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
       project: SentryTypes.Project,
     };
 
     render() {
-      return <WrappedComponent project={this.context.project} {...this.props} />;
+      return (
+        <WrappedComponent
+          project={this.context.project as Project}
+          {...this.props as P}
+        />
+      );
     }
   };
 

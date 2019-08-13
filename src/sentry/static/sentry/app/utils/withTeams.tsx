@@ -5,11 +5,12 @@ import createReactClass from 'create-react-class';
 import getDisplayName from 'app/utils/getDisplayName';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
+import {Team} from 'app/types';
 
 /**
  * Higher order component that uses TeamStore and provides a list of teams
  */
-const withTeams = WrappedComponent =>
+const withTeams = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
   createReactClass({
     displayName: `withTeams(${getDisplayName(WrappedComponent)})`,
     propTypes: {
@@ -28,7 +29,7 @@ const withTeams = WrappedComponent =>
       });
     },
     render() {
-      return <WrappedComponent {...this.props} teams={this.state.teams} />;
+      return <WrappedComponent {...this.props as P} teams={this.state.teams as Team[]} />;
     },
   });
 

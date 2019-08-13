@@ -7,7 +7,7 @@ import ConfigStore from 'app/stores/configStore';
 /**
  * Higher order component that passes the config object to the wrapped component
  */
-const withConfig = WrappedComponent =>
+const withConfig = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
   createReactClass({
     displayName: `withConfig(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.listenTo(ConfigStore, 'onUpdate')],
@@ -24,7 +24,9 @@ const withConfig = WrappedComponent =>
     },
 
     render() {
-      return <WrappedComponent config={this.state.config} {...this.props} />;
+      return (
+        <WrappedComponent config={this.state.config as object} {...this.props as P} />
+      );
     },
   });
 

@@ -64,3 +64,23 @@ export type CommitAuthor = {
   email?: string;
   name?: string;
 };
+
+// TODO(ts): This type is incomplete
+export type Environment = {};
+
+// TODO(ts): This type is incomplete
+export type SavedSearch = {};
+
+// TODO(ts): This type is incomplete
+export type Plugin = {};
+
+export type GlobalSelection = {
+  projects: number[];
+  environments: string[];
+  datetime: {
+    start: string;
+    end: string;
+    period: string;
+    utc: boolean;
+  };
+};

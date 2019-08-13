@@ -1,5 +1,7 @@
 import React from 'react';
 
+declare const TestStubs;
+
 const MOCK_ORG = TestStubs.Organization();
 const DEFAULTS = {
   organization: MOCK_ORG,

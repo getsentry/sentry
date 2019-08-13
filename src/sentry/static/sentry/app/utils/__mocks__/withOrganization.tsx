@@ -2,6 +2,8 @@ import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 
+declare const TestStubs;
+
 const withOrganizationMock = WrappedComponent =>
   class WithOrganizationMockWrapper extends React.Component {
     static contextTypes = {

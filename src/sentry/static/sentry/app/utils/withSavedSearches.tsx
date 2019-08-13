@@ -4,11 +4,13 @@ import createReactClass from 'create-react-class';
 
 import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import getDisplayName from 'app/utils/getDisplayName';
+import {SavedSearch} from 'app/types';
 
 /**
  * Currently wraps component with organization from context
  */
-const withSavedSearches = WrappedComponent =>
+
+const withSavedSearches = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
   createReactClass({
     displayName: `withSavedSearches(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.listenTo(SavedSearchesStore, 'onUpdate')],
@@ -45,10 +47,10 @@ const withSavedSearches = WrappedComponent =>
 
       return (
         <WrappedComponent
-          savedSearches={savedSearches}
-          savedSearchLoading={isLoading}
-          savedSearch={savedSearch}
-          {...this.props}
+          savedSearches={savedSearches as SavedSearch[]}
+          savedSearchLoading={isLoading as boolean}
+          savedSearch={savedSearch as SavedSearch | null}
+          {...this.props as P}
         />
       );
     },
