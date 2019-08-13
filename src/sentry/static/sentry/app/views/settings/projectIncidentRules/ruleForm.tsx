@@ -239,7 +239,7 @@ class RuleForm extends React.Component<Props, State> {
                     : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
-                  required: true,
+                  placeholder: resolveThreshold === null ? t('Off') : '',
                   ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
                   ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
                 },
