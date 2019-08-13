@@ -6,7 +6,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 
 type Options = {
-  componentType: 'stacktrace-link';
+  componentType?: 'stacktrace-link';
 };
 
 // TODO(ts): Update when component type is defined
@@ -14,7 +14,7 @@ type Component = {};
 
 const withSentryAppComponents = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  {componentType}: Options
+  {componentType}: Options = {}
 ) =>
   createReactClass({
     displayName: `withSentryAppComponents(${getDisplayName(WrappedComponent)})`,
