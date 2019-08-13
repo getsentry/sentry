@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled, {StyledComponent} from 'react-emotion';
+import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {omit} from 'lodash';
 
@@ -107,16 +107,16 @@ ModalPagination.propTypes = {
   event: SentryTypes.Event.isRequired,
 };
 
-// TODO(ts): provide proper types for StyledComponent<any, any, any>
-const StyledLink: StyledComponent<any, any, any> = styled(Link, {
+// TODO(ts): adjust types
+const StyledLink = styled(Link, {
   shouldForwardProp: isPropValid,
 })`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
-  font-size: ${p => p.fontSizeMedium};
+  color: ${(p: any) => (p.disabled ? p.theme.disabled : p.theme.gray3)};
+  font-size: ${(p: any) => p.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
-  ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
-  ${p => (p.disabled ? 'pointer-events: none;' : '')}
+  ${(p: any) => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
+  ${(p: any) => (p.disabled ? 'pointer-events: none;' : '')}
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-grow: 1;
