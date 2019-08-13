@@ -1,5 +1,5 @@
-import {IncidentRule} from './types';
 import {Client} from 'app/api';
+import {IncidentRule} from './types';
 
 // TODO(ts): type response
 export function deleteRule(
