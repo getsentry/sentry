@@ -72,8 +72,6 @@ class UserContextType extends React.Component {
   }
 }
 
-UserContextType.getTitle = function(value) {
-  return 'User';
-};
+UserContextType.getTitle = () => 'User';
 
 export default UserContextType;
