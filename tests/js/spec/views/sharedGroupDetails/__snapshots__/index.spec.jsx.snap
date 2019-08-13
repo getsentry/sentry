@@ -181,11 +181,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           message="fetchData(app/components/group/suggestedOwners)"
                         >
                           <EventMessage
-                            className="css-1u2jzzx edommoc2"
+                            className="css-1u2jzzx edommoc1"
                             message="fetchData(app/components/group/suggestedOwners)"
                           >
                             <div
-                              className="css-1u2jzzx edommoc2"
+                              className="css-1u2jzzx edommoc1"
                             >
                               <Message>
                                 <span

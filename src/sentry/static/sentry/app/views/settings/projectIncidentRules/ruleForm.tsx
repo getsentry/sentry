@@ -32,7 +32,9 @@ type Props = {
 
 type State = {
   width?: number;
+  aggregations: AlertRuleAggregations[];
   isInverted: boolean;
+  timeWindow: number;
   alertThreshold: number | null;
   resolveThreshold: number | null;
 };
@@ -41,6 +43,9 @@ type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
   [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
 };
+
+const DEFAULT_TIME_WINDOW = 60;
+const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
 class RuleForm extends React.Component<Props, State> {
   static contextTypes = {
@@ -52,9 +57,15 @@ class RuleForm extends React.Component<Props, State> {
   };
 
   state = {
+    aggregations: this.props.initialData
+      ? this.props.initialData.aggregations
+      : DEFAULT_METRIC,
     isInverted: this.props.initialData
       ? this.props.initialData.thresholdType === AlertRuleThresholdType.BELOW
       : false,
+    timeWindow: this.props.initialData
+      ? this.props.initialData.timeWindow
+      : DEFAULT_TIME_WINDOW,
     alertThreshold: this.props.initialData ? this.props.initialData.alertThreshold : null,
     resolveThreshold: this.props.initialData
       ? this.props.initialData.resolveThreshold
@@ -132,14 +143,33 @@ class RuleForm extends React.Component<Props, State> {
     this.updateThreshold(AlertRuleThreshold.RESOLUTION, value);
   };
 
+  handleTimeWindowChange = (timeWindow: number) => {
+    this.setState({timeWindow});
+  };
+
+  handleChangeMetric = (aggregations: AlertRuleAggregations) => {
+    this.setState({aggregations: [aggregations]});
+  };
+
   /**
    * Changes the threshold type (i.e. if thresholds are inverted or not)
    */
   handleChangeThresholdType = (value: boolean) => {
-    this.setState({isInverted: value});
-    // We also need to reset resolution threshold, otherwise can be in an invalid state
-    this.setState({resolveThreshold: null});
-    this.context.form.setValue('resolveThreshold', null);
+    // Swap values and toggle `state.isInverted`, so they if invert it twice, they get their original values
+    this.setState(state => {
+      const oldValues = {
+        resolve: state.resolveThreshold,
+        alert: state.alertThreshold,
+      };
+
+      this.context.form.setValue('resolveThreshold', oldValues.alert);
+      this.context.form.setValue('alertThreshold', oldValues.resolve);
+      return {
+        isInverted: value,
+        resolveThreshold: oldValues.alert,
+        alertThreshold: oldValues.resolve,
+      };
+    });
   };
 
   render() {
@@ -152,7 +182,12 @@ class RuleForm extends React.Component<Props, State> {
           api={api}
           organization={organization}
           project={[parseInt(project.id, 10)]}
-          interval="10m"
+          interval={`${this.state.timeWindow}s`}
+          yAxis={
+            this.state.aggregations[0] === AlertRuleAggregations.TOTAL
+              ? 'event_count'
+              : 'user_count'
+          }
           includePrevious={false}
         >
           {({loading, timeseriesData}) =>
@@ -185,9 +220,9 @@ class RuleForm extends React.Component<Props, State> {
               title: t('Metric'),
               fields: [
                 {
-                  label: t('Metric'),
                   name: 'aggregations',
                   type: 'select',
+                  label: t('Metric'),
                   help: t('Choose which metric to display on the Y-axis'),
                   choices: [
                     [AlertRuleAggregations.UNIQUE_USERS, 'Users Affected'],
@@ -196,33 +231,41 @@ class RuleForm extends React.Component<Props, State> {
                   required: true,
                   setValue: value => (value && value.length ? value[0] : value),
                   getValue: value => [value],
+                  onChange: this.handleChangeMetric,
                 },
                 {
-                  label: t('Time Window'),
                   name: 'timeWindow',
-                  type: 'number',
-                  min: 1,
-                  max: 86400,
-                  placeholder: '60',
-                  help: t(
-                    'The time window to use when evaluating the Metric (in number of seconds)'
-                  ),
+                  type: 'select',
+                  label: t('Time Window'),
+                  help: t('The time window to use when evaluating the Metric'),
+                  onChange: this.handleTimeWindowChange,
+                  choices: [
+                    [60, t('1 minute')],
+                    [300, t('5 minutes')],
+                    [600, t('10 minutes')],
+                    [900, t('15 minutes')],
+                    [1800, t('30 minutes')],
+                    [3600, t('1 hour')],
+                    [7200, t('2 hours')],
+                    [14400, t('4 hours')],
+                    [86400, t('24 hours')],
+                  ],
                   required: true,
                 },
                 {
-                  label: t('Filter'),
                   name: 'query',
-                  defaultValue: '',
                   type: 'text',
+                  label: t('Filter'),
+                  defaultValue: '',
                   placeholder: 'error.type:TypeError',
                   help: t(
                     'You can apply standard Sentry filter syntax to filter by status, user, etc.'
                   ),
                 },
                 {
-                  label: t('Incident Boundary'),
                   name: 'alertThreshold',
                   type: 'range',
+                  label: t('Incident Boundary'),
                   help: !isInverted
                     ? t('Anything trending above this limit will trigger an Incident')
                     : t('Anything trending below this limit will trigger an Incident'),
@@ -231,32 +274,36 @@ class RuleForm extends React.Component<Props, State> {
                   required: true,
                 },
                 {
-                  label: t('Resolution Threshold'),
                   name: 'resolveThreshold',
                   type: 'range',
+                  label: t('Resolution Threshold'),
                   help: !isInverted
                     ? t('Anything trending below this limit will resolve an Incident')
                     : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   placeholder: resolveThreshold === null ? t('Off') : '',
-                  ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
-                  ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
+                  ...(resolveThreshold !== null &&
+                    !isInverted &&
+                    alertThreshold !== null && {max: alertThreshold}),
+                  ...(resolveThreshold !== null &&
+                    isInverted &&
+                    alertThreshold !== null && {min: alertThreshold}),
                 },
                 {
-                  label: t('Use an inverted incident threshold'),
                   name: 'thresholdType',
                   type: 'boolean',
+                  label: t('Reverse the Boundaries'),
                   defaultValue: AlertRuleThresholdType.ABOVE,
                   help: t(
-                    'Alert me when the limit is trending below the incident boundary'
+                    'This is a metric that needs to stay above a certain threshold'
                   ),
                   onChange: this.handleChangeThresholdType,
                 },
                 {
-                  label: t('Name'),
                   name: 'name',
                   type: 'text',
+                  label: t('Name'),
                   help: t('Give your Incident Rule a name so it is easy to manage later'),
                   placeholder: t('My Incident Rule Name'),
                   required: true,
@@ -299,7 +346,9 @@ function RuleFormContainer({
       }`}
       initialData={{
         query: '',
+        aggregations: DEFAULT_METRIC,
         thresholdType: AlertRuleThresholdType.ABOVE,
+        timeWindow: DEFAULT_TIME_WINDOW,
         ...initialData,
       }}
       saveOnBlur={false}
