@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, {StyledComponent} from 'react-emotion';
+import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import {ReactRouterLocation} from 'app/types/reactRouter';
@@ -119,11 +119,12 @@ const Container = styled('div')`
 `;
 
 // TODO(ts): adjust types
-const Card: StyledComponent<any, any, any> = styled('div')`
+const Card = styled('div')`
   display: flex;
   flex-direction: column;
-  border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid
+    ${(p: any) => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
+  border-radius: ${(p: any) => p.theme.borderRadius};
   margin-bottom: ${space(1)};
   padding: ${space(1)};
 `;
