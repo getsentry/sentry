@@ -11,9 +11,7 @@ class Migration(SchemaMigration):
         try:
             db.delete_foreign_key('sentry_messagefiltervalue', 'group_id')
             db.delete_foreign_key('sentry_messagefiltervalue', 'project_id')
-        except OperationalError:
-            pass
-        except ValueError:
+        except (OperationalError, ValueError):
             pass
 
     def backwards(self, orm):
