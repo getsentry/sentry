@@ -5,6 +5,7 @@ import React from 'react';
 import {Organization, EventsStats, EventsStatsData} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 
+import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -28,8 +29,7 @@ type RenderProps = {
 };
 
 type EventsRequestPartialProps = {
-  // TODO(ts): Update when we type `app/api`
-  api: object;
+  api: Client;
   organization: Organization;
 
   project?: number[];
