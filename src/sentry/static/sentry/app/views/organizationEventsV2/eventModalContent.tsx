@@ -10,7 +10,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Event} from 'app/types';
+import {Event, Organization, EventView} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -21,11 +22,19 @@ import TagsTable from './tagsTable';
 import TransanctionView from './transactionView';
 import {AGGREGATE_ALIASES} from './data';
 
+type EventModalContentProps = {
+  event: Event;
+  projectId: string;
+  organization: Organization;
+  location: ReactRouterLocation;
+  view: EventView;
+};
+
 /**
  * Render the columns and navigation elements inside the event modal view.
  * Controlled by the EventDetails View.
  */
-const EventModalContent = props => {
+const EventModalContent = (props: EventModalContentProps) => {
   const {event, projectId, organization, location, view} = props;
 
   // Known aggregate aliases and functions indicated grouped views.
