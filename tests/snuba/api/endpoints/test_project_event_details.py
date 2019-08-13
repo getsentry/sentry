@@ -62,23 +62,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data['previousEventID'] == six.text_type(self.prev_event.event_id)
         assert response.data['groupID'] == six.text_type(self.cur_event.group.id)
 
-        # Same event can be looked up by primary key
-        url = reverse(
-            'sentry-api-0-project-event-details',
-            kwargs={
-                'event_id': self.cur_event.id,
-                'project_slug': self.cur_event.project.slug,
-                'organization_slug': self.cur_event.project.organization.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.cur_event.event_id)
-        assert response.data['nextEventID'] == six.text_type(self.next_event.event_id)
-        assert response.data['previousEventID'] == six.text_type(self.prev_event.event_id)
-        assert response.data['groupID'] == six.text_type(self.cur_event.group.id)
-
     def test_snuba_no_prev(self):
         url = reverse(
             'sentry-api-0-project-event-details',
