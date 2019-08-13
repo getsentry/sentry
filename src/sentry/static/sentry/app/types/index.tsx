@@ -12,6 +12,8 @@ export type Project = {
   isMember: boolean;
   teams: Team[];
   features: string[];
+
+  isBookmarked: boolean;
 };
 
 export type Team = {
