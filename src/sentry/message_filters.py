@@ -170,8 +170,7 @@ def _get_filter_settings(project_config, flt):
     :return: the options for the filter
     """
     filter_settings = project_config.config.get('filter_settings', {})
-    filter_key = flt.spec.id
-    return filter_settings.get(filter_key, None)
+    return filter_settings.get(get_filter_key(flt), None)
 
 
 def _is_filter_enabled(project_config, flt):
@@ -181,6 +180,10 @@ def _is_filter_enabled(project_config, flt):
         raise ValueError("unknown filter", flt.spec.id)
 
     return filter_options['is_enabled']
+
+
+def get_filter_key(flt):
+    return flt.spec.id.replace('-', '_')
 
 
 # ************* local host filter *************
