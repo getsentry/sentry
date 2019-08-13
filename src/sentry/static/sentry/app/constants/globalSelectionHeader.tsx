@@ -5,14 +5,14 @@ export const URL_PARAM = {
   PERIOD: 'statsPeriod',
   PROJECT: 'project',
   ENVIRONMENT: 'environment',
-} as const;
+};
 
 export const DATE_TIME = {
   START: 'start',
   END: 'end',
   PERIOD: 'period',
   UTC: 'utc',
-} as const;
+};
 
 export const DATE_TIME_KEYS = Object.values(DATE_TIME);
 
