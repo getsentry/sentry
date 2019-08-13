@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import best_match
+from jsonschema.exceptions import ValidationError as SchemaValidationError
 
 SCHEMA = {
     'type': 'object',
@@ -13,7 +14,7 @@ SCHEMA = {
         'uri': {
             'type': 'string',
             'format': 'uri',
-            'pattern': '^\/',
+            'pattern': r'^\/',
         },
 
         'options': {
@@ -142,7 +143,7 @@ SCHEMA = {
                 'url': {
                     'type': 'string',
                     'format': 'uri',
-                    'pattern': '^(?:https?|\/)',
+                    'pattern': r'^(?:https?|\/)',
                 },
                 'alt': {
                     'type': 'string',
@@ -161,7 +162,7 @@ SCHEMA = {
                 'url': {
                     'type': 'string',
                     'format': 'uri',
-                    'pattern': '^(?:https?|\/)',
+                    'pattern': r'^(?:https?|\/)',
                 },
             },
             'required': ['type', 'url'],
@@ -301,9 +302,16 @@ SCHEMA = {
     'required': ['elements'],
 }
 
+element_types = ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']
 
-def validate(instance, schema=SCHEMA):
-    v = Draft4Validator(schema)
+
+def validate(instance):
+    v = Draft4Validator(SCHEMA)
 
     if not v.is_valid(instance):
+        for element in instance['elements']:
+            found_type = element['type']
+            if not found_type in element_types:
+                raise SchemaValidationError("Element has type '%s'. Type must be one of the following: %s" % (found_type, element_types))
+
         raise best_match(v.iter_errors(instance))
