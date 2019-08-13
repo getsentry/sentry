@@ -21,7 +21,7 @@ export function getCurrentView(requestedView?: string): EventView {
 export type EventQuery = {
   field: Array<string>;
   project?: string;
-  sort?: string;
+  sort?: string | string[];
   query: string;
 };
 
