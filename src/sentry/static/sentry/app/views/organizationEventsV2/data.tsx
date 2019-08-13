@@ -16,9 +16,13 @@ import {EventView} from 'app/types';
 
 import {QueryLink} from './styles';
 
-export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
+export const MODAL_QUERY_KEYS: ['eventSlug'] = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['issue_title', 'last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES: ['issue_title', 'last_seen', 'latest_event'] = [
+  'issue_title',
+  'last_seen',
+  'latest_event',
+];
 
 // TODO: eventually defer to TS compile-time check to ensure this is readonly instead
 //       of deepfreezing it in runtime
