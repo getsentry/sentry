@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled, {css, StyledComponent} from 'react-emotion';
+import styled, {css} from 'react-emotion';
 import {omit} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
@@ -135,9 +135,9 @@ const Cell = styled('div')`
 `;
 
 // TODO(ts): adjust types
-const StyledPanelBody: StyledComponent<{isLoading: boolean}, any, any> = styled(props => {
+const StyledPanelBody = styled(props => {
   const otherProps = omit(props, 'isLoading');
   return <PanelBody {...otherProps} />;
 })`
-  ${p => p.isLoading && 'min-height: 240px;'};
+  ${(p: {isLoading: boolean}) => p.isLoading && 'min-height: 240px;'};
 `;
