@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled, {StyledComponent} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {omit} from 'lodash';
 
@@ -10,13 +10,22 @@ import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {ReactRouterLocation} from 'app/types/reactRouter';
+import {Event} from 'app/types';
 
 import {MODAL_QUERY_KEYS} from './data';
+
+type LinksType = {
+  oldest: null;
+  latest: null;
+
+  next: {};
+  previous: {};
+};
 
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event: Event, location: ReactRouterLocation) {
+function buildTargets(event: Event, location: ReactRouterLocation): LinksType {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
@@ -30,6 +39,7 @@ function buildTargets(event: Event, location: ReactRouterLocation) {
   };
 
   const links = {};
+
   Object.entries(urlMap).forEach(([key, value]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
     if (!value) {
@@ -45,7 +55,7 @@ function buildTargets(event: Event, location: ReactRouterLocation) {
     }
   });
 
-  return links;
+  return links as LinksType;
 }
 
 type Props = {
@@ -96,7 +106,10 @@ ModalPagination.propTypes = {
   event: SentryTypes.Event.isRequired,
 };
 
-const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
+// TODO(ts): provide proper types for StyledComponent<any, any, any>
+const StyledLink: StyledComponent<any, any, any> = styled(Link, {
+  shouldForwardProp: isPropValid,
+})`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
   font-size: ${p => p.fontSizeMedium};
   text-align: center;
