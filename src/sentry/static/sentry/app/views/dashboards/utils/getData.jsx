@@ -1,7 +1,8 @@
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
-import {getChartDataFunc} from 'app/views/organizationDashboard/utils/getChartDataFunc';
-import {isTimeSeries} from 'app/views/organizationDashboard/utils/isTimeSeries';
 import {t} from 'app/locale';
+
+import {WIDGET_DISPLAY} from '../constants';
+import {getChartDataFunc} from './getChartDataFunc';
+import {isTimeSeries} from './isTimeSeries';
 
 // TODO(billy): Currently only supports discover queries
 export function getData(results, widget) {

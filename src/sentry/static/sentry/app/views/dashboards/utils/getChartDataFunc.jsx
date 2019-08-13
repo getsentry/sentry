@@ -1,6 +1,7 @@
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import {getChartDataForWidget, getChartDataByDay} from 'app/views/discover/result/utils';
-import {isTimeSeries} from 'app/views/organizationDashboard/utils/isTimeSeries';
+
+import {isTimeSeries} from './isTimeSeries';
+import {WIDGET_DISPLAY} from '../constants';
 
 /**
  * Get data function based on widget properties

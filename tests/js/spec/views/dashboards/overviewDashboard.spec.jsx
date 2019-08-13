@@ -3,8 +3,8 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
-import OrganizationDashboardContainer from 'app/views/organizationDashboard';
-import OverviewDashboard from 'app/views/organizationDashboard/overviewDashboard';
+import DashboardsContainer from 'app/views/dashboards';
+import OverviewDashboard from 'app/views/dashboards/overviewDashboard';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -30,9 +30,9 @@ describe('OverviewDashboard', function() {
 
   const createWrapper = props => {
     wrapper = mount(
-      <OrganizationDashboardContainer>
+      <DashboardsContainer>
         <OverviewDashboard params={{orgId: organization.slug}} {...props} />
-      </OrganizationDashboardContainer>,
+      </DashboardsContainer>,
       routerContext
     );
     mockRouterPush(wrapper, router);

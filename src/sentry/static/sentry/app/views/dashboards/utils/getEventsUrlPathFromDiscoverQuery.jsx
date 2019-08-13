@@ -1,8 +1,9 @@
 import {pickBy} from 'lodash';
 import qs from 'query-string';
 
-import {getDiscoverConditionsToSearchString} from 'app/views/organizationDashboard/utils/getDiscoverConditionsToSearchString';
 import {getUtcDateString} from 'app/utils/dates';
+
+import {getDiscoverConditionsToSearchString} from './getDiscoverConditionsToSearchString';
 
 export function getEventsUrlPathFromDiscoverQuery({organization, selection, query}) {
   const {

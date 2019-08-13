@@ -940,13 +940,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDashboardContainer" */ 'app/views/organizationDashboard')
+              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/organizationDashboard/overviewDashboard')
+                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard')
               }
               component={errorHandler(LazyLoad)}
             />

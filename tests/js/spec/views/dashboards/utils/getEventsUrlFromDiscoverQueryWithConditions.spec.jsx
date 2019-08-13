@@ -1,4 +1,4 @@
-import {getEventsUrlFromDiscoverQueryWithConditions} from 'app/views/organizationDashboard/utils/getEventsUrlFromDiscoverQueryWithConditions';
+import {getEventsUrlFromDiscoverQueryWithConditions} from 'app/views/dashboards/utils/getEventsUrlFromDiscoverQueryWithConditions';
 
 describe('getEventsUrlFromDiscoverQueryWithConditions', function() {
   const organization = TestStubs.Organization();

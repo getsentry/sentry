@@ -1,4 +1,3 @@
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
@@ -7,6 +6,8 @@ import PercentageTableChart from 'app/components/charts/percentageTableChart';
 import PieChart from 'app/components/charts/pieChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import WorldMapChart from 'app/components/charts/worldMapChart';
+
+import {WIDGET_DISPLAY} from '../constants';
 
 const CHART_MAP = {
   [WIDGET_DISPLAY.LINE_CHART]: LineChart,

@@ -4,7 +4,7 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 
-import DiscoverQuery from 'app/views/organizationDashboard/discoverQuery';
+import DiscoverQuery from 'app/views/dashboards/discoverQuery';
 
 describe('DiscoverQuery', function() {
   const {organization, router, routerContext} = initializeOrg({

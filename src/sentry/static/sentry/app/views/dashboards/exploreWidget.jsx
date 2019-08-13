@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {omit} from 'lodash';
 
-import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getDiscoverUrlPathFromDiscoverQuery';
-import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
+import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
+import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -102,7 +103,10 @@ const ExploreRoot = styled('div')`
 
 const UnstyledButton = props => <Button borderless size="zero" {...props} />;
 
-const ExploreButton = styled(({isOpen, ...props}) => <UnstyledButton {...props} />)`
+const ExploreButton = styled(props => {
+  const remaining = omit(props, 'isOpen');
+  return <UnstyledButton {...remaining} />;
+})`
   position: relative;
   color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray2)};
   padding: ${space(1)} ${space(2)};
