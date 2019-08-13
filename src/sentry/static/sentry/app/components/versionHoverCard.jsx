@@ -23,18 +23,15 @@ class VersionHoverCard extends React.Component {
     projectId: PropTypes.string.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      loading: true,
-      error: false,
-      data: {},
-      visible: false,
-      hasRepos: false,
-      deploys: [],
-      release: null,
-    };
-  }
+  state = {
+    loading: true,
+    error: false,
+    data: {},
+    visible: false,
+    hasRepos: false,
+    deploys: [],
+    release: null,
+  };
 
   componentDidMount() {
     this.fetchData();
@@ -84,7 +81,6 @@ class VersionHoverCard extends React.Component {
   toggleHovercard() {
     this.setState({
       visible: true,
-      // visible: !this.state.visible,
     });
   }
 
