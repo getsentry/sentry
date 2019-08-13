@@ -12,10 +12,9 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {Organization, EventView, Event} from 'app/types';
 import {ReactRouterLocation} from 'app/types/reactRouter';
-import {EventQuery} from './utils';
 
 import EventModalContent from './eventModalContent';
-import {getQuery} from './utils';
+import {EventQuery, getQuery} from './utils';
 
 const slugValidator = function(
   props: {[key: string]: any},
