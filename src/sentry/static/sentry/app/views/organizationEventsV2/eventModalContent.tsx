@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {StyledComponent} from 'react-emotion';
+import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
@@ -182,10 +182,11 @@ const SidebarColumn = styled('div')`
 `;
 
 // TODO(ts): adjust types
-const SidebarBlock: StyledComponent<any, any, any> = styled('div')`
+const SidebarBlock = styled('div')`
   margin: 0 0 ${space(2)} 0;
   padding: 0 0 ${space(2)} 0;
-  ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
+  ${(p: any) =>
+    p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : ''}
 `;
 
 export default EventModalContent;
