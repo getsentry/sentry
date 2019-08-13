@@ -207,20 +207,17 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.utils import snuba
-
-        data = snuba.raw_query(
-            selected_columns=['issue'],
-            conditions=[['issue', 'IS NOT NULL', None]],
+        data = eventstore.get_events(
+            conditions=[['group_id', 'IS NOT NULL', None]],
             filter_keys={
                 'event_id': [event_id],
                 'project_id': project_ids,
             },
             limit=len(project_ids),
-            referrer="Group.filter_by_event_id",
-        )['data']
+            referrer='Group.filter_by_event_id',
+        )
 
-        group_ids = set([evt['issue'] for evt in data])
+        group_ids = set([evt['group_id'] for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
 

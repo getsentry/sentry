@@ -9,13 +9,11 @@ from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsE
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.models import SnubaEvent
 from sentry.utils.snuba import (
-    raw_query,
     SnubaError,
     transform_aliases_and_query,
 )
-from sentry import features
+from sentry import eventstore, features
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -102,12 +100,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # or user doesn't have access to projects in org
             data_fn = lambda *args, **kwargs: []
         else:
-            snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
+            cols = None if full else eventstore.full_columns
+
             data_fn = partial(
-                # extract 'data' from raw_query result
-                lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-                selected_columns=snuba_cols,
-                orderby='-timestamp',
+                eventstore.get_events,
+                additional_columns=cols,
                 referrer='api.organization-events',
                 **snuba_args
             )
@@ -115,8 +112,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
+            on_results=lambda results: serialize(results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
