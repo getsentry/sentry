@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from sentry.api.serializers import serialize
 from sentry.models.event import Event, SnubaEvent
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry import nodestore
+from sentry import eventstore, nodestore
 
 
 class SnubaEventTest(TestCase, SnubaTestCase):
@@ -67,7 +67,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
             assert nodestore.get(node_id) == data
 
     def test_fetch(self):
-        event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
 
         # Make sure we get back event properties from snuba
         assert event.event_id == self.event_id
@@ -85,7 +85,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
 
     def test_same(self):
         django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
-        snuba_event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        snuba_event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
 
         assert django_event.group_id == snuba_event.group_id
         assert django_event.interfaces == snuba_event.interfaces
@@ -106,10 +106,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         can still be serialized completely by falling back to nodestore data.
         """
         django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
-        snuba_event = SnubaEvent.get_event(
-            self.proj1.id,
-            self.event_id,
-            snuba_cols=SnubaEvent.minimal_columns)
+        snuba_event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
 
         django_serialized = serialize(django_event)
         snuba_serialized = serialize(snuba_event)
@@ -122,7 +119,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         Test that bind_nodes works on snubaevents to populate their
         NodeDatas.
         """
-        event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
         assert event.data._node_data is None
         Event.objects.bind_nodes([event], 'data')
         assert event.data._node_data is not None
@@ -135,7 +132,10 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         assert nodestore.get(node_id) is None
 
         # Check that we can still serialize it
-        event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        event = eventstore.get_event_by_id(
+            self.proj1.id,
+            self.event_id,
+            additional_columns=eventstore.full_columns)
         serialized = serialize(event)
         assert event.data == {}
 
