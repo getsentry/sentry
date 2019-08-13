@@ -35,6 +35,11 @@ export type EventMetadata = {
   function?: string;
 };
 
+type EntryType = {
+  data: {[key: string]: any} | any[];
+  type: string;
+};
+
 // This type is incomplete
 export type Event = {
   id: string;
@@ -48,6 +53,7 @@ export type Event = {
   platform?: string;
   dateCreated?: string;
   endTimestamp?: number;
+  entries: EntryType[];
 };
 
 export type EventsStatsData = [number, {count: number}[]][];
