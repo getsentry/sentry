@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled, {css} from 'react-emotion';
+import styled, {css, StyledComponent} from 'react-emotion';
 import {omit} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
@@ -9,12 +9,23 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {EventView, Organization} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {FIELD_FORMATTERS, SPECIAL_FIELDS} from './data';
 import {getFieldRenderer} from './utils';
 import SortLink from './sortLink';
 
-export default class Table extends React.Component {
+type Props = {
+  view: EventView;
+  isLoading: boolean;
+  location: ReactRouterLocation;
+  organization: Organization;
+  // TODO(ts): adjust this type
+  data: any;
+};
+
+export default class Table extends React.Component<Props> {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
     data: PropTypes.object,
@@ -61,14 +72,14 @@ export default class Table extends React.Component {
           {fields.map((field, i) => {
             const title = columnNames[i] || field;
 
-            let sortKey = field;
+            let sortKey: string | null = field;
             if (SPECIAL_FIELDS.hasOwnProperty(field)) {
               sortKey = SPECIAL_FIELDS[field].sortField;
             } else if (FIELD_FORMATTERS.hasOwnProperty(field)) {
-              sortKey = FIELD_FORMATTERS[field].sortField ? field : false;
+              sortKey = FIELD_FORMATTERS[field].sortField ? field : null;
             }
 
-            if (sortKey === false) {
+            if (sortKey === null) {
               return <HeaderItem key={field}>{title}</HeaderItem>;
             }
 
@@ -123,7 +134,8 @@ const Cell = styled('div')`
   overflow: hidden;
 `;
 
-const StyledPanelBody = styled(props => {
+// TODO(ts): adjust types
+const StyledPanelBody: StyledComponent<{isLoading: boolean}, any, any> = styled(props => {
   const otherProps = omit(props, 'isLoading');
   return <PanelBody {...otherProps} />;
 })`
