@@ -47,10 +47,32 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             return Response({'detail': 'Event not found'}, status=404)
 
         data = serialize(event, request.user, DetailedEventSerializer())
-        requested_environments = set(request.GET.getlist('environment'))
 
-        next_event_id = event.next_event_id(environments=requested_environments)
-        prev_event_id = event.prev_event_id(environments=requested_environments)
+        # Used for paginating through events of a single issue in group details
+        # Skip next/prev for issueless events
+        next_event_id = None
+        prev_event_id = None
+
+        if event.group_id:
+            requested_environments = set(request.GET.getlist('environment'))
+            conditions = []
+
+            if requested_environments:
+                conditions.append(['environment', 'IN', requested_environments])
+
+            filter_keys = {
+                'project_id': [event.project_id],
+                'issue': [event.group_id],
+            }
+
+            next_event = eventstore.get_next_event_id(
+                event, conditions=conditions, filter_keys=filter_keys)
+
+            prev_event = eventstore.get_prev_event_id(
+                event, conditions=conditions, filter_keys=filter_keys)
+
+            next_event_id = next_event[1] if next_event else None
+            prev_event_id = prev_event[1] if prev_event else None
 
         data['nextEventID'] = next_event_id
         data['previousEventID'] = prev_event_id
