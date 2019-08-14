@@ -37,45 +37,45 @@ class VersionHoverCard extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  async fetchData() {
     const {api, orgId, projectId, version} = this.props;
 
     // releases
     const releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
-    const releaseRequest = api
-      .requestPromise(releasePath, {
-        method: 'GET',
-      })
-      .then(data => {
-        this.setState({release: data});
-      });
+    const releaseRequest = api.requestPromise(releasePath, {
+      method: 'GET',
+    });
 
     // repos
-    const repoRequest = api
-      .requestPromise(`/organizations/${orgId}/repos/`, {
-        method: 'GET',
-      })
-      .then(data => {
-        this.setState({hasRepos: data.length > 0});
-      });
+    const repoRequest = api.requestPromise(`/organizations/${orgId}/repos/`, {
+      method: 'GET',
+    });
 
     //deploys
     const deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/deploys/`;
-    const deployRequest = api
-      .requestPromise(deployPath, {
-        method: 'GET',
-      })
-      .then(data => {
-        this.setState({deploys: data});
-      });
+    const deployRequest = api.requestPromise(deployPath, {
+      method: 'GET',
+    });
 
-    Promise.all([releaseRequest, repoRequest, deployRequest])
-      .then(() => this.setState({loading: false}))
-      .catch(() => this.setState({error: true}));
+    try {
+      const [release, repos, deploys] = await Promise.all([
+        releaseRequest,
+        repoRequest,
+        deployRequest,
+      ]);
+      this.setState({
+        release,
+        deploys,
+        hasRepos: repos.length > 0,
+        loading: false,
+      });
+    } catch (e) {
+      this.setState({error: true});
+    }
   }
 
   toggleHovercard() {
