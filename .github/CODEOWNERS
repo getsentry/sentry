@@ -2,7 +2,7 @@
 /LICENSE  @getsentry/owners-legal
 
 # Migrations
-south_migrations/  @getsentry/owners-migrations
+/src/sentry/south_migrations/  @getsentry/owners-migrations
 
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
@@ -18,3 +18,6 @@ south_migrations/  @getsentry/owners-migrations
 /src/sentry/digests/                 @tkaemming
 /src/sentry/tasks/reports.py         @tkaemming
 /src/sentry/tasks/digests.py         @tkaemming
+
+# Security
+/src/sentry/net/  @getsentry/security
