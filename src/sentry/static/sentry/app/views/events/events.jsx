@@ -26,8 +26,8 @@ const parseRowFromLinks = (links, numRows) => {
   if (!links.previous.results) {
     return `1-${numRows}`;
   }
-  const prevStart = links.previous.cursor.split(':')[1];
-  const nextStart = links.next.cursor.split(':')[1];
+  const prevStart = Number(links.previous.cursor.split(':')[1]);
+  const nextStart = Number(links.next.cursor.split(':')[1]);
   const currentStart = (prevStart + nextStart) / 2 + 1;
   return `${currentStart}-${currentStart + numRows - 1}`;
 };
