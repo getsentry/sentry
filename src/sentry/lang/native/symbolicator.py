@@ -385,12 +385,16 @@ class SymbolicatorSession(object):
                     # the symbolication task.
                     return None
 
-                if response.status_code == 503:
+                if response.status_code in (502, 503):
                     raise ServiceUnavailable()
 
-                response.raise_for_status()
-
-                json = response.json()
+                if response.ok:
+                    json = response.json()
+                else:
+                    json = {
+                        'status': 'failed',
+                        'message': 'internal server error',
+                    }
 
                 return json
             except (IOError, RequestException):
