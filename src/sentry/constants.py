@@ -12,7 +12,6 @@ from datetime import timedelta
 from collections import OrderedDict, namedtuple
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from operator import attrgetter
 
 from sentry.utils.integrationdocs import load_doc
 from sentry.utils.geo import rust_geoip
@@ -209,9 +208,6 @@ OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
 
 WARN_SESSION_EXPIRED = 'Your session has expired.'  # TODO: translate this
-
-# Key to use when ordering a list of events manually
-EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
 
 FILTER_MASK = '[Filtered]'
 
