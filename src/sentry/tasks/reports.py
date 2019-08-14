@@ -213,7 +213,17 @@ def prepare_project_aggregates(ignore__stop, project):
     ]
 
 
-def batch_request(func):
+def chunk_event_counts(func):
+    """
+    Chunks queries for getting event counts
+
+    We are chunking up the issue ids and querying because Snuba produces SQL for Clickhouse.
+    There is a max limit on how long the SQL can be. We cross this limit for large accounts
+    and as a result, they cannot produce the weekly report.
+
+    So, with this decorator, we will chunk up the issue IDs and ask for the issue count in those chunks.
+    Then, we will stitch the responses back together.
+    """
     def chunks(arr, chunk_size):
         for i in range(0, len(arr), chunk_size):
             yield arr[i:i + chunk_size]
@@ -229,7 +239,7 @@ def batch_request(func):
     return wrapper
 
 
-@batch_request
+@chunk_event_counts
 def get_event_counts(issue_ids, start, stop, rollup):
     return tsdb.get_sums(
         tsdb.models.group,

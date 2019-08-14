@@ -294,6 +294,4 @@ class ReportTestCase(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        expected = [2, 0, 0]
-
-        assert expected == prepare_project_issue_summaries([two_min_ago, now], self.project)
+        assert prepare_project_issue_summaries([two_min_ago, now], self.project) == [2, 0, 0]
