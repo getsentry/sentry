@@ -8,8 +8,9 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.testutils import TestCase
+
 
 PROGUARD_UUID = '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
 PROGUARD_SOURCE = b'''\
@@ -116,7 +117,7 @@ class BasicResolvingIntegrationTest(TestCase):
             resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = Event.objects.first()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
 
         bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
@@ -202,7 +203,7 @@ class BasicResolvingIntegrationTest(TestCase):
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
 
         assert len(event.data['errors']) == 1
         assert event.data['errors'][0] == {

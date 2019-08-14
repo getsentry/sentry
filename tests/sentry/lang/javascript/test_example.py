@@ -6,8 +6,8 @@ import os
 import json
 import responses
 
+from sentry import eventstore
 from sentry.testutils import TestCase
-from sentry.models import Event
 
 
 def get_fixture_path(name):
@@ -60,7 +60,7 @@ class ExampleTestCase(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
