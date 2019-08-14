@@ -16,6 +16,8 @@ PROJECT_KEY = 'project.name'
 
 class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+        if not features.has('organizations:events-v2', organization, actor=request.user):
+            return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args(request, organization, params)

@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import six
 from rest_framework.exceptions import PermissionDenied
-from enum import Enum
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import (
     get_snuba_query_args,
@@ -12,12 +10,6 @@ from sentry.api.event_search import (
     InvalidSearchQuery
 )
 from sentry.models.project import Project
-from sentry.utils import snuba
-
-
-class Direction(Enum):
-    NEXT = 0
-    PREV = 1
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -121,54 +113,30 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
-    def next_event_id(self, *args):
+    def next_event_id(self, request, organization, snuba_args, event):
         """
         Returns the next event ID if there is a subsequent event matching the
-        conditions provided
+        conditions provided. Ignores the project_id.
         """
-        return self._get_next_or_prev_id(Direction.NEXT, *args)
-
-    def prev_event_id(self, *args):
-        """
-        Returns the previous event ID if there is a previous event matching the
-        conditions provided
-        """
-        return self._get_next_or_prev_id(Direction.PREV, *args)
-
-    def _get_next_or_prev_id(self, direction, request, organization, snuba_args, event):
-        if (direction == Direction.NEXT):
-            time_condition = [
-                ['timestamp', '>=', event.timestamp],
-                [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
-            ]
-            orderby = ['timestamp', 'event_id']
-            start = max(event.datetime, snuba_args['start'])
-            end = snuba_args['end']
-
-        else:
-            time_condition = [
-                ['timestamp', '<=', event.timestamp],
-                [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
-            ]
-            orderby = ['-timestamp', '-event_id']
-            start = snuba_args['start']
-            end = min(event.datetime, snuba_args['end'])
-
-        conditions = snuba_args['conditions'][:]
-        conditions.extend(time_condition)
-
-        result = snuba.raw_query(
-            start=start,
-            end=end,
-            selected_columns=['event_id'],
-            conditions=conditions,
-            filter_keys=snuba_args['filter_keys'],
-            orderby=orderby,
-            limit=1,
-            referrer='api.organization-events.next-or-prev-id',
+        next_event = eventstore.get_next_event_id(
+            event,
+            conditions=snuba_args['conditions'],
+            filter_keys=snuba_args['filter_keys']
         )
 
-        if 'error' in result or len(result['data']) == 0:
-            return None
+        if next_event:
+            return next_event[1]
 
-        return six.text_type(result['data'][0]['event_id'])
+    def prev_event_id(self, request, organization, snuba_args, event):
+        """
+        Returns the previous event ID if there is a previous event matching the
+        conditions provided. Ignores the project_id.
+        """
+        prev_event = eventstore.get_prev_event_id(
+            event,
+            conditions=snuba_args['conditions'],
+            filter_keys=snuba_args['filter_keys']
+        )
+
+        if prev_event:
+            return prev_event[1]

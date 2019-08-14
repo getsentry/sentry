@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from datetime import timedelta
 from django.utils import timezone
 
@@ -12,6 +13,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         super(SnubaEventStorageTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.project1 = self.create_project()
+        self.project2 = self.create_project()
+
         self.event1 = self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -21,9 +25,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
                 'timestamp': self.two_min_ago,
                 'tags': {'foo': '1'},
             },
-            project_id=self.project.id,
+            project_id=self.project1.id,
         )
-        self.store_event(
+        self.event2 = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'type': 'default',
@@ -32,9 +36,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
                 'timestamp': self.min_ago,
                 'tags': {'foo': '1'},
             },
-            project_id=self.project.id,
+            project_id=self.project2.id,
         )
-        self.store_event(
+        self.event3 = self.store_event(
             data={
                 'event_id': 'c' * 32,
                 'type': 'default',
@@ -43,13 +47,14 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
                 'timestamp': self.min_ago,
                 'tags': {'foo': '1'},
             },
-            project_id=self.project.id,
+            project_id=self.project2.id,
         )
 
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
-        events = self.eventstore.get_events(filter_keys={'project_id': [self.project.id]})
+        events = self.eventstore.get_events(
+            filter_keys={'project_id': [self.project1.id, self.project2.id]})
         assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
         assert events[0].id == 'c' * 32
@@ -63,21 +68,39 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     def test_get_event_by_id(self):
         # Get event with default columns
-        event = self.eventstore.get_event_by_id(self.project.id, 'a' * 32)
+        event = self.eventstore.get_event_by_id(self.project1.id, 'a' * 32)
 
         assert event.id == 'a' * 32
         assert event.event_id == 'a' * 32
-        assert event.project_id == self.project.id
+        assert event.project_id == self.project1.id
         assert len(event.snuba_data.keys()) == 4
 
         # Get all columns
         event = self.eventstore.get_event_by_id(
-            self.project.id, 'b' * 32, self.eventstore.full_columns)
+            self.project2.id, 'b' * 32, self.eventstore.full_columns)
         assert event.id == 'b' * 32
         assert event.event_id == 'b' * 32
-        assert event.project_id == self.project.id
+        assert event.project_id == self.project2.id
         assert len(event.snuba_data.keys()) == 16
 
         # Get non existent event
-        event = self.eventstore.get_event_by_id(self.project.id, 'd' * 32)
+        event = self.eventstore.get_event_by_id(self.project2.id, 'd' * 32)
         assert event is None
+
+    def test_get_next_prev_event_id(self):
+        event = self.eventstore.get_event_by_id(self.project2.id, 'b' * 32)
+
+        filter_keys = {'project_id': [self.project1.id, self.project2.id]}
+
+        prev_event = self.eventstore.get_prev_event_id(event, filter_keys=filter_keys)
+
+        next_event = self.eventstore.get_next_event_id(event, filter_keys=filter_keys)
+
+        assert prev_event == (six.text_type(self.project1.id), 'a' * 32)
+
+        # Events with the same timestamp are sorted by event_id
+        assert next_event == (six.text_type(self.project2.id), 'c' * 32)
+
+        # Returns None if no event
+        assert self.eventstore.get_prev_event_id(None, filter_keys=filter_keys) is None
+        assert self.eventstore.get_next_event_id(None, filter_keys=filter_keys) is None
