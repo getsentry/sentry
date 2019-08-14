@@ -62,9 +62,6 @@ function objectMatchesSubset(obj?: object, other?: object, deep?: boolean): bool
   return true;
 }
 
-// TODO: instances of objectToArray should be refactored
-export const objectToArray = Object.entries;
-
 export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }

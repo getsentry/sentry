@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {objectToArray} from 'app/utils';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 class FrameVariables extends React.Component {
@@ -16,7 +15,7 @@ class FrameVariables extends React.Component {
   };
 
   render() {
-    const data = objectToArray(this.props.data);
+    const data = Object.entries(this.props.data);
 
     return (
       <KeyValueList data={data} isContextData={true} onClick={this.preventToggling} />
