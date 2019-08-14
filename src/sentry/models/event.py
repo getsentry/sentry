@@ -5,7 +5,6 @@ import string
 import warnings
 import pytz
 
-from datetime import datetime
 from collections import OrderedDict
 from dateutil.parser import parse as parse_date
 from django.db import models
@@ -16,7 +15,6 @@ from hashlib import md5
 from semaphore.processing import StoreNormalizer
 
 from sentry import eventtypes
-from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -27,7 +25,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
@@ -612,70 +610,6 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
-    def next_event_id(self, environments=None):
-        from sentry.utils import snuba
-
-        conditions = [
-            ['timestamp', '>=', self.timestamp],
-            [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
-        ]
-
-        if environments:
-            conditions.append(['environment', 'IN', environments])
-
-        result = snuba.raw_query(
-            start=self.datetime,  # gte current event
-            selected_columns=['event_id', 'timestamp'],
-            conditions=conditions,
-            filter_keys={
-                'project_id': [self.project_id],
-                'issue': [self.group_id] if self.group_id else [],
-            },
-            orderby=['timestamp', 'event_id'],
-            limit=1,
-            referrer='SnubaEvent.next_event_id',
-        )
-
-        if 'error' in result or len(result['data']) == 0:
-            return None
-
-        # Increment count if the next event ID is after utcnow
-        event_time = parse_date(result['data'][0]['timestamp']).replace(tzinfo=pytz.utc)
-
-        if event_time > datetime.utcnow().replace(tzinfo=pytz.utc):
-            metrics.incr('events.future_next_event_id', skip_internal=False)
-
-        return six.text_type(result['data'][0]['event_id'])
-
-    def prev_event_id(self, environments=None):
-        from sentry.utils import snuba
-
-        conditions = [
-            ['timestamp', '<=', self.timestamp],
-            [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
-        ]
-
-        if environments:
-            conditions.append(['environment', 'IN', environments])
-
-        result = snuba.raw_query(
-            end=self.datetime,  # lte current event
-            selected_columns=['event_id'],
-            conditions=conditions,
-            filter_keys={
-                'project_id': [self.project_id],
-                'issue': [self.group_id] if self.group_id else [],
-            },
-            orderby=['-timestamp', '-event_id'],
-            limit=1,
-            referrer='SnubaEvent.prev_event_id',
-        )
-
-        if 'error' in result or len(result['data']) == 0:
-            return None
-
-        return six.text_type(result['data'][0]['event_id'])
-
     def save(self):
         raise NotImplementedError
 
@@ -727,34 +661,6 @@ class Event(EventCommon, Model):
         state.pop('interfaces', None)
 
         return state
-
-    # Find next and previous events based on datetime and id. We cannot
-    # simply `ORDER BY (datetime, id)` as this is too slow (no index), so
-    # we grab the next 5 / prev 5 events by datetime, and sort locally to
-    # get the next/prev events. Given that timestamps only have 1-second
-    # granularity, this will be inaccurate if there are more than 5 events
-    # in a given second.
-    def next_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
-            datetime__gte=self.datetime,
-            group_id=self.group_id,
-        ).exclude(id=self.id).order_by('datetime')[0:5]
-
-        events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
-                  e.datetime > self.datetime]
-        events.sort(key=EVENT_ORDERING_KEY)
-        return six.text_type(events[0].event_id) if events else None
-
-    def prev_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
-            datetime__lte=self.datetime,
-            group_id=self.group_id,
-        ).exclude(id=self.id).order_by('-datetime')[0:5]
-
-        events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
-                  e.datetime < self.datetime]
-        events.sort(key=EVENT_ORDERING_KEY, reverse=True)
-        return six.text_type(events[0].event_id) if events else None
 
 
 class EventSubjectTemplate(string.Template):
