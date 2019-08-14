@@ -5,6 +5,7 @@ import six
 from enum import Enum
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.event_search import get_reference_event_conditions
 from sentry import eventstore, features
 from sentry.models import SnubaEvent
 from sentry.models.project import Project
@@ -37,11 +38,18 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
 
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        # Scope the pagination related event ids to the current event
+        # This ensure that if a field list/groupby conditions were provided
+        # that we constrain related events to the query + current event values
+        snuba_args['conditions'].extend(get_reference_event_conditions(
+            snuba_args,
+            event.snuba_data
+        ))
         next_event = eventstore.get_next_event_id(
             event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
@@ -50,10 +58,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         )
 
         data = serialize(event)
-        data["nextEventID"] = next_event[1] if next_event else None
-        data["previousEventID"] = prev_event[1] if prev_event else None
-
-        data["projectSlug"] = project_slug
+        data['nextEventID'] = next_event[1] if next_event else None
+        data['previousEventID'] = prev_event[1] if prev_event else None
+        data['oldestEventID'] = self.oldest_event_id(snuba_args, event)
+        data['latestEventID'] = self.latest_event_id(snuba_args, event)
+        data['projectSlug'] = project_slug
 
         return Response(data)
 

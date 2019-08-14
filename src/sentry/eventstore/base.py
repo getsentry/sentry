@@ -7,22 +7,23 @@ from sentry.utils.services import Service
 
 
 class Columns(Enum):
-    EVENT_ID = "event_id"
-    GROUP_ID = "group_id"
-    PROJECT_ID = "project_id"
-    TIMESTAMP = "timestamp"
-    CULPRIT = "culprit"
-    LOCATION = "location"
-    MESSAGE = "message"
-    PLATFORM = "platform"
-    TITLE = "title"
-    TYPE = "type"
-    TAGS_KEY = "tags.key"
-    TAGS_VALUE = "tags.value"
-    EMAIL = "email"
-    IP_ADDRESS = "ip_address"
-    USER_ID = "user_id"
-    USERNAME = "username"
+    EVENT_ID = 'event_id'
+    GROUP_ID = 'group_id'
+    PROJECT_ID = 'project_id'
+    TIMESTAMP = 'timestamp'
+    CULPRIT = 'culprit'
+    LOCATION = 'location'
+    MESSAGE = 'message'
+    PLATFORM = 'platform'
+    TITLE = 'title'
+    TYPE = 'type'
+    TAGS_KEY = 'tags.key'
+    TAGS_VALUE = 'tags.value'
+    EMAIL = 'email'
+    IP_ADDRESS = 'ip_address'
+    USER_ID = 'user_id'
+    USERNAME = 'username'
+    TRANSACTION = 'transaction'
 
 
 class EventStorage(Service):
@@ -50,6 +51,8 @@ class EventStorage(Service):
         Columns.PLATFORM,
         Columns.TITLE,
         Columns.TYPE,
+        Columns.TRANSACTION,
+
         # Required to provide snuba-only tags
         Columns.TAGS_KEY,
         Columns.TAGS_VALUE,
