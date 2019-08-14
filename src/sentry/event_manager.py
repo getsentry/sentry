@@ -13,7 +13,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -752,40 +752,6 @@ class EventManager(object):
         if group:
             UserReport.objects.filter(project=project, event_id=event_id).update(
                 group=group, environment=environment
-            )
-
-        # save the event unless its been sampled
-        if not is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    try:
-                        event = Event.objects.get(
-                            project_id=project.id,
-                            event_id=data['event_id'],
-                        )
-                    except Event.DoesNotExist:
-                        event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
-                return event
-
-            tagstore.delay_index_event_tags(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group.id if group else None,
-                environment_id=environment.id,
-                event_id=event.id,
-                tags=event.tags,
-                date_added=event.datetime,
             )
 
         if event_user:

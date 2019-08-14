@@ -17,23 +17,10 @@ from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
-    Activity,
-    Environment,
-    Event,
-    ExternalIssue,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    GroupTombstone,
-    Integration,
-    Release,
-    ReleaseProjectEnvironment,
-    OrganizationIntegration,
-    UserReport,
+    Activity, Environment, ExternalIssue, Group, GroupEnvironment,
+    GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
+    GroupTombstone, Integration, Release, ReleaseProjectEnvironment,
+    OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
@@ -74,25 +61,6 @@ class EventManagerTest(TestCase):
 
         assert event1.group_id != event2.group_id
 
-    @mock.patch("sentry.event_manager.should_sample")
-    def test_does_not_save_event_when_sampled(self, should_sample):
-        should_sample.return_value = True
-        event_id = "a" * 32
-
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
-
-        # This is a brand new event, so it is actually saved.
-        assert Event.objects.filter(event_id=event_id).exists()
-
-        event_id = "b" * 32
-
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
-
-        # This second is a dupe, so should be sampled
-        assert not Event.objects.filter(event_id=event_id).exists()
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
@@ -101,22 +69,6 @@ class EventManagerTest(TestCase):
         group = event.group
         assert group.platform == "python"
         assert event.platform == "python"
-
-    def test_dupe_message_id(self):
-        event_id = "a" * 32
-
-        manager = EventManager(make_event(event_id=event_id))
-        manager.normalize()
-        manager.save(1)
-
-        assert Event.objects.count() == 1
-
-        # ensure that calling it again doesn't raise a db error
-        manager = EventManager(make_event(event_id=event_id))
-        manager.normalize()
-        manager.save(1)
-
-        assert Event.objects.count() == 1
 
     def test_updates_group(self):
         timestamp = time() - 300
