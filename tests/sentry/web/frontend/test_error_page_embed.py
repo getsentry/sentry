@@ -4,6 +4,8 @@ from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import quote
 from uuid import uuid4
 import logging
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
@@ -161,13 +163,14 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.environment.add_project(self.project)
 
     def make_event(self, **kwargs):
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         result = {
-            "event_id": "a" * 32,
-            "message": "foo",
-            "timestamp": 1403007314.570599,
-            "level": logging.ERROR,
-            "logger": "default",
-            "tags": [],
+            'event_id': 'a' * 32,
+            'message': 'foo',
+            'timestamp': min_ago,
+            'level': logging.ERROR,
+            'logger': 'default',
+            'tags': [],
         }
         result.update(kwargs)
         return self.store_event(data=result, project_id=self.project.id, assert_no_errors=False)
