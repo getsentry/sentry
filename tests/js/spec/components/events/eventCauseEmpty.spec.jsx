@@ -60,7 +60,7 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     wrapper
-      .find('[data-test-id="snoozed"]')
+      .find('button[data-test-id="snoozed"]')
       .first()
       .simulate('click');
 
@@ -142,7 +142,7 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     wrapper
-      .find('[data-test-id="dismissed"]')
+      .find('button[data-test-id="dismissed"]')
       .first()
       .simulate('click');
 
