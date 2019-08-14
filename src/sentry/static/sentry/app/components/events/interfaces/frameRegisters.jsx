@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {defined, objectToArray} from 'app/utils';
+import {defined} from 'app/utils';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 
@@ -68,7 +68,7 @@ class FrameRegisters extends React.Component {
   };
 
   render() {
-    const registers = objectToArray(this.props.data).filter(register =>
+    const registers = Object.entries(this.props.data).filter(register =>
       defined(register[1])
     );
 
