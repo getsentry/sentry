@@ -19,8 +19,8 @@ from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
-    GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
+    GroupTombstone, Integration, Release, ReleaseProjectEnvironment,
+    OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
@@ -62,21 +62,14 @@ class EventManagerTest(TestCase):
         assert event1.group_id != event2.group_id
 
     @mock.patch('sentry.event_manager.should_sample')
-    def test_saves_event_mapping_when_sampled(self, should_sample):
+    def test_does_not_save_event_when_sampled(self, should_sample):
         should_sample.return_value = True
         event_id = 'a' * 32
 
         manager = EventManager(make_event(event_id=event_id))
-        event = manager.save(1)
+        manager.save(1)
 
         # This is a brand new event, so it is actually saved.
-        # In this case, we don't need an EventMapping, but we
-        # do need the Event.
-        assert not EventMapping.objects.filter(
-            group_id=event.group_id,
-            event_id=event_id,
-        ).exists()
-
         assert Event.objects.filter(
             event_id=event_id,
         ).exists()
@@ -84,16 +77,9 @@ class EventManagerTest(TestCase):
         event_id = 'b' * 32
 
         manager = EventManager(make_event(event_id=event_id))
-        event = manager.save(1)
+        manager.save(1)
 
         # This second is a dupe, so should be sampled
-        # For a sample, we want to store the EventMapping,
-        # but don't need to store the Event
-        assert EventMapping.objects.filter(
-            group_id=event.group_id,
-            event_id=event_id,
-        ).exists()
-
         assert not Event.objects.filter(
             event_id=event_id,
         ).exists()

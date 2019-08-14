@@ -37,7 +37,6 @@ def merge_groups(
         GroupRuleStatus,
         GroupSubscription,
         Environment,
-        EventMapping,
         Event,
         UserReport,
         GroupRedirect,
@@ -99,8 +98,7 @@ def merge_groups(
     else:
         model_list = tuple(EXTRA_MERGE_MODELS) + (
             Activity, GroupAssignee, GroupEnvironment, GroupHash, GroupRuleStatus,
-            GroupSubscription, EventMapping, Event, UserReport, GroupRedirect,
-            GroupMeta,
+            GroupSubscription, Event, UserReport, GroupRedirect, GroupMeta,
         )
 
         has_more = merge_objects(

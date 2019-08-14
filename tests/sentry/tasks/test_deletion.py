@@ -11,8 +11,8 @@ from sentry.tagstore.models import EventTag
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit, CommitAuthor, Environment,
-    EnvironmentProject, Event, EventMapping, Group, GroupAssignee, GroupHash, GroupMeta,
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit, CommitAuthor,
+    Environment, EnvironmentProject, Event, Group, GroupAssignee, GroupHash, GroupMeta,
     GroupRedirect, GroupResolution, GroupStatus, Organization, OrganizationStatus, Project,
     ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment, Repository, Team, TeamStatus
 )
@@ -296,11 +296,6 @@ class DeleteGroupTest(TestCase):
             status=GroupStatus.PENDING_DELETION,
         )
         event = self.create_event(group=group)
-        EventMapping.objects.create(
-            project_id=project.id,
-            event_id='a' * 32,
-            group_id=group.id,
-        )
         tv, _ = tagstore.get_or_create_tag_value(project.id, self.environment.id, 'key1', 'value1')
         tagstore.create_event_tags(
             event_id=event.id,
@@ -335,10 +330,6 @@ class DeleteGroupTest(TestCase):
             delete_groups(object_ids=[group.id])
 
         assert not Event.objects.filter(id=event.id).exists()
-        assert not EventMapping.objects.filter(
-            event_id='a' * 32,
-            group_id=group.id,
-        ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
