@@ -15,10 +15,12 @@ from sentry.net.socket import (
 
 
 class SocketTest(TestCase):
-    @override_blacklist('10.0.0.0/8', '127.0.0.1')
+    @override_blacklist('10.0.0.0/8', '127.0.0.0/8', whitelist=('127.0.0.1',))
     def test_is_ipaddress_allowed(self):
         is_ipaddress_allowed.cache_clear()
-        assert is_ipaddress_allowed('127.0.0.1') is False
+        assert is_ipaddress_allowed('127.0.0.1') is True
+        is_ipaddress_allowed.cache_clear()
+        assert is_ipaddress_allowed('127.0.0.2') is False
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed('10.0.1.1') is False
         is_ipaddress_allowed.cache_clear()

@@ -7,7 +7,7 @@ from sentry.net import socket as net_socket
 __all__ = ['override_blacklist']
 
 
-def override_blacklist(*ip_addresses):
+def override_blacklist(*ip_addresses, whitelist=tuple()):
     def decorator(func):
         def wrapper(*args, **kwargs):
             disallowed_ips = frozenset(net_socket.DISALLOWED_IPS)
@@ -15,7 +15,9 @@ def override_blacklist(*ip_addresses):
             net_socket.DISALLOWED_IPS = frozenset(
                 ipaddress.ip_network(six.text_type(ip)) for ip in ip_addresses
             )
-            net_socket.WHITELISTED_IPS = frozenset()
+            net_socket.WHITELISTED_IPS = frozenset(
+                ipaddress.ip_network(six.text_type(ip)) for ip in whitelist
+            )
             try:
                 func(*args, **kwargs)
             finally:
