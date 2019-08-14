@@ -36,6 +36,8 @@ date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
+BATCH_SIZE = 1000
+
 
 def _get_organization_queryset():
     return Organization.objects.filter(status=OrganizationStatus.VISIBLE)
@@ -209,6 +211,33 @@ def prepare_project_aggregates(ignore__stop, project):
         get_aggregate_value(start + (period * i), start + (period * (i + 1) - timedelta(seconds=1)))
         for i in range(segments)
     ]
+
+
+def batch_request(func):
+    def chunks(arr, chunk_size):
+        for i in range(0, len(arr), chunk_size):
+            yield arr[i:i + chunk_size]
+
+    def wrapper(cls, model, keys, *args, **kwargs):
+        combined = {}
+
+        for chunk in chunks(list(keys), BATCH_SIZE):
+            single = func(cls, model, chunk, *args, **kwargs)
+            combined.update(single)
+
+        return combined
+    return wrapper
+
+
+@batch_request
+def get_event_counts(issue_ids, start, stop, rollup):
+    return tsdb.get_sums(
+        tsdb.models.group,
+        issue_ids,
+        start,
+        stop,
+        rollup=rollup,
+    )
 
 
 def prepare_project_issue_summaries(interval, project):

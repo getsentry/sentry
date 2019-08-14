@@ -7,24 +7,6 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba
 from sentry.utils.dates import to_datetime
 
-BATCH_SIZE_TO_SNUBA = 1000
-
-
-def batch_request_to_snuba(func):
-    def chunks(arr, chunk_size):
-        for i in range(0, len(arr), chunk_size):
-            yield arr[i:i + chunk_size]
-
-    def wrapper(cls, model, keys, *args, **kwargs):
-        combined = {}
-
-        for chunk in chunks(list(keys), BATCH_SIZE_TO_SNUBA):
-            single = func(cls, model, chunk, *args, **kwargs)
-            combined.update(single)
-
-        return combined
-    return wrapper
-
 
 class SnubaTSDB(BaseTSDB):
     """
@@ -55,7 +37,6 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
 
-    @batch_request_to_snuba
     def get_data(
         self,
         model,
