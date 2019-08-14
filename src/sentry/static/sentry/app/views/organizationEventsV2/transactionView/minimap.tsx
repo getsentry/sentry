@@ -546,7 +546,7 @@ const MinimapContainer = styled('div')`
 const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
-  overflow-y: hidden;
+  overflow: hidden;
   width: 100%;
   position: absolute;
   top: 0;
