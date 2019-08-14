@@ -1,9 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import {t} from 'app/locale';
 
-class LoadingError extends React.Component {
+type Props = {
+  onRetry?: () => void;
+  message?: React.ReactNode;
+};
+class LoadingError extends React.Component<Props> {
   static propTypes = {
     onRetry: PropTypes.func,
     message: PropTypes.string,
@@ -18,9 +21,9 @@ class LoadingError extends React.Component {
   }
 
   render() {
-    const {className, message, onRetry} = this.props;
+    const {message, onRetry} = this.props;
     return (
-      <div className={classNames('alert alert-error alert-block', className)}>
+      <div className="alert alert-error alert-block">
         <p>
           {message}
           {onRetry && (
