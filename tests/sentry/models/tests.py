@@ -7,13 +7,13 @@ import pytest
 from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.db import connection
+# from django.db import connection
 from django.http import HttpRequest
 from django.utils import timezone
 from exam import fixture
 
 from sentry import nodestore
-from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
+from sentry.db.models.fields.node import NodeIntegrityFailure
 from sentry.models import ProjectKey, Event, LostPasswordHash
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
@@ -90,50 +90,6 @@ class GroupIsOverResolveAgeTest(TestCase):
 
 
 class EventNodeStoreTest(TestCase):
-    def test_does_transition_data_to_node(self):
-        group = self.group
-        data = {'key': 'value'}
-
-        query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, message, datetime)",
-            "VALUES(%s, %s, %s, %s, %s)",
-        ]
-        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', timezone.now()]
-
-        # This is pulled from SQLInsertCompiler
-        if connection.features.can_return_id_from_insert:
-            r_fmt, r_params = connection.ops.return_insert_id()
-            if r_fmt:
-                query_bits.append(r_fmt % Event._meta.pk.column)
-                params += r_params
-
-        cursor = connection.cursor()
-        cursor.execute(' '.join(query_bits), params)
-
-        if connection.features.can_return_id_from_insert:
-            event_id = connection.ops.fetch_returned_insert_id(cursor)
-        else:
-            event_id = connection.ops.last_insert_id(
-                cursor, Event._meta.db_table, Event._meta.pk.column
-            )
-
-        event = Event.objects.get(id=event_id)
-        assert type(event.data) == NodeData
-        assert event.data == data
-
-        event.save()
-
-        assert event.data == data
-        assert event.data.id is not None
-
-        node_id = event.data.id
-        event = Event.objects.get(id=event_id)
-
-        Event.objects.bind_nodes([event], 'data')
-
-        assert event.data == data
-        assert event.data.id == node_id
-
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated
         e1 = Event(project_id=1, event_id='abc', data={'foo': 'bar'})
@@ -163,7 +119,8 @@ class EventNodeStoreTest(TestCase):
         # Create an event with a new event body that specifies the node_id to use.
         e3 = Event(project_id=1, event_id='ghi', data={'baz': 'quux', 'node_id': '1:ghi'})
         assert e3.data.id == '1:ghi', "Event should have the specified node_id"
-        assert e3.data.data == {'baz': 'quux'}, "Event body should be the one provided (sans node_id)"
+        assert e3.data.data == {
+            'baz': 'quux'}, "Event body should be the one provided (sans node_id)"
         e3.save()
         e3_body = nodestore.get('1:ghi')
         assert e3_body == {'baz': 'quux'}, "Event body should be saved to nodestore"

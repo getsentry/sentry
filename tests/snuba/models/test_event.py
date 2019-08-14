@@ -24,7 +24,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         )
 
         # Raw event data
-        data = {
+        self.data = {
             'event_id': self.event_id,
             'primary_hash': '1' * 32,
             'project_id': self.proj1.id,
@@ -51,20 +51,20 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         make_django_event = True
         if make_django_event:
             self.create_event(
-                event_id=data['event_id'],
+                event_id=self.data['event_id'],
                 datetime=self.now,
                 project=self.proj1,
                 group=self.proj1group1,
-                data=data,
+                data=self.data,
             )
             nodestore_data = nodestore.get(
                 SnubaEvent.generate_node_id(
                     self.proj1.id, self.event_id))
-            assert data['event_id'] == nodestore_data['event_id']
+            assert self.data['event_id'] == nodestore_data['event_id']
         else:
             node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
-            nodestore.set(node_id, data)
-            assert nodestore.get(node_id) == data
+            nodestore.set(node_id, self.data)
+            assert nodestore.get(node_id) == self.data
 
     def test_fetch(self):
         event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
@@ -83,36 +83,19 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         # And the full user should be in there.
         assert event.data['user']['id'] == u'user1'
 
-    def test_same(self):
-        django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
-        snuba_event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
-
-        assert django_event.group_id == snuba_event.group_id
-        assert django_event.interfaces == snuba_event.interfaces
-        assert django_event.datetime == snuba_event.datetime
-        assert django_event.platform == snuba_event.platform
-
-        assert django_event.as_dict() == snuba_event.as_dict()
-
-        django_serialized = serialize(django_event)
-        snuba_serialized = serialize(snuba_event)
-        del django_serialized['id']
-        del snuba_serialized['id']
-        assert django_serialized == snuba_serialized
-
     def test_minimal(self):
         """
         Test that a SnubaEvent that only loads minimal data from snuba
         can still be serialized completely by falling back to nodestore data.
         """
-        django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
         snuba_event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
 
-        django_serialized = serialize(django_event)
         snuba_serialized = serialize(snuba_event)
-        del django_serialized['id']
-        del snuba_serialized['id']
-        assert django_serialized == snuba_serialized
+
+        assert snuba_serialized['message'] == self.data['message']
+        assert snuba_serialized['eventID'] == self.data['event_id']
+        assert snuba_serialized['platform'] == self.data['platform']
+        assert snuba_serialized['user']['email'] == self.data['user']['email']
 
     def test_bind_nodes(self):
         """
