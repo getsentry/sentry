@@ -1,18 +1,18 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
-import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
-import styled from 'react-emotion';
+import {PoseGroup} from 'react-pose';
 import {ThemeProvider} from 'emotion-theming';
 import {cx} from 'emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ToastIndicator from 'app/components/alerts/toastIndicator';
-import IndicatorStore from 'app/stores/indicatorStore';
-import theme from 'app/utils/theme';
 import {removeIndicator} from 'app/actionCreators/indicator';
+import IndicatorStore from 'app/stores/indicatorStore';
+import ToastIndicator from 'app/components/alerts/toastIndicator';
+import theme from 'app/utils/theme';
 
-const Toasts = styled('div')`
+const Toasts = styled(PoseGroup)`
   position: fixed;
   right: 30px;
   bottom: 30px;
@@ -44,25 +44,19 @@ class Indicators extends React.Component {
 
     return (
       <Toasts {...props} className={cx(className, 'ref-toasts')}>
-        <ReactCSSTransitionGroup
-          transitionName="toast"
-          transitionEnterTimeout={400}
-          transitionLeaveTimeout={400}
-        >
-          {items.map((indicator, i) => {
-            // We purposefully use `i` as key here because of transitions
-            // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
-            // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
-            // to replace `firstToast` with `secondToast`
-            return (
-              <ToastIndicator
-                onDismiss={this.handleDismiss}
-                indicator={indicator}
-                key={i}
-              />
-            );
-          })}
-        </ReactCSSTransitionGroup>
+        {items.map((indicator, i) => {
+          // We purposefully use `i` as key here because of transitions
+          // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
+          // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
+          // to replace `firstToast` with `secondToast`
+          return (
+            <ToastIndicator
+              onDismiss={this.handleDismiss}
+              indicator={indicator}
+              key={i}
+            />
+          );
+        })}
       </Toasts>
     );
   }

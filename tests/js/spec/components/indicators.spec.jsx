@@ -48,7 +48,7 @@ describe('Indicators', function() {
     IndicatorStore.remove(indicator);
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator')).toHaveLength(0);
+    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
   });
 
   // This is a common pattern used throughout the code for API calls
@@ -92,7 +92,7 @@ describe('Indicators', function() {
     clearIndicators();
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator')).toHaveLength(0);
+    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
   });
 
   it('adds and replaces toast by calling action creators', function() {
@@ -161,7 +161,7 @@ describe('Indicators', function() {
     clearIndicators();
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator')).toHaveLength(0);
+    expect(wrapper.find('ToastIndicator[_pose="exit"]')).toHaveLength(3);
   });
 
   it('dismisses on click', function() {
@@ -174,7 +174,7 @@ describe('Indicators', function() {
     wrapper.find('ToastIndicator').simulate('click');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator')).toHaveLength(0);
+    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
   });
 
   it('hides after 10s', function() {
@@ -196,9 +196,7 @@ describe('Indicators', function() {
     wrapper.update();
     expect(wrapper.find('Indicators').prop('items')).toHaveLength(0);
 
-    // After animation timeout
-    jest.advanceTimersByTime(1000);
-    wrapper.update();
-    expect(wrapper.find('ToastIndicator')).toHaveLength(0);
+    // Animation is exiting
+    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
   });
 });
