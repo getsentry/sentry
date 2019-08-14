@@ -5,12 +5,15 @@ from __future__ import absolute_import
 import pytest
 import os.path
 import responses
-
 from mock import patch
-from django.conf import settings
+from datetime import timedelta
 
-from sentry.models import Event, File, Release, ReleaseFile
-from sentry.testutils import TestCase
+from django.conf import settings
+from django.utils import timezone
+
+from sentry import eventstore
+from sentry.models import File, Release, ReleaseFile
+from sentry.testutils import TestCase, SnubaTestCase
 
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
@@ -28,13 +31,21 @@ def load_fixture(name):
         return fp.read()
 
 
-class JavascriptIntegrationTest(TestCase):
+class JavascriptIntegrationTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super(JavascriptIntegrationTest, self).setUp()
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
+    def get_event(self):
+        return eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+
     @pytest.mark.skipif(
         settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
         reason='Queries are completly different when using tagstore'
     )
     def test_adds_contexts_without_device(self):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'request': {
@@ -65,7 +76,8 @@ class JavascriptIntegrationTest(TestCase):
             resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.first()
+        event = self.get_event()
+
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') == {
             'name': 'Windows 8',
@@ -80,6 +92,7 @@ class JavascriptIntegrationTest(TestCase):
 
     def test_adds_contexts_with_device(self):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'request': {
@@ -97,7 +110,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') == {
             'name': 'Android',
@@ -118,6 +131,7 @@ class JavascriptIntegrationTest(TestCase):
 
     def test_adds_contexts_with_ps4_device(self):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'request': {
@@ -135,7 +149,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') is None
         assert contexts.get('browser') is None
@@ -149,6 +163,7 @@ class JavascriptIntegrationTest(TestCase):
     @patch('sentry.lang.javascript.processor.fetch_file')
     def test_source_expansion(self, mock_fetch_file):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -190,7 +205,7 @@ class JavascriptIntegrationTest(TestCase):
             allow_scraping=True,
         )
 
-        event = Event.objects.get()
+        event = self.get_event()
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
@@ -211,6 +226,7 @@ class JavascriptIntegrationTest(TestCase):
     @patch('sentry.lang.javascript.processor.discover_sourcemap')
     def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -249,7 +265,7 @@ class JavascriptIntegrationTest(TestCase):
             allow_scraping=True,
         )
 
-        event = Event.objects.get()
+        event = self.get_event()
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
@@ -262,6 +278,7 @@ class JavascriptIntegrationTest(TestCase):
     @responses.activate
     def test_error_message_translations(self):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'logentry': {
@@ -284,7 +301,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
 
         message = event.interfaces['logentry']
         assert message.formatted == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
@@ -322,6 +339,7 @@ class JavascriptIntegrationTest(TestCase):
         responses.add(responses.GET, 'http://example.com/index.html', body='Not Found', status=404)
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -356,7 +374,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [
             {
                 'type': 'js_no_source',
@@ -404,6 +422,7 @@ class JavascriptIntegrationTest(TestCase):
         responses.add(responses.GET, 'http://example.com/index.html', body='Not Found', status=404)
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -438,7 +457,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [
             {
                 'type': 'js_no_source',
@@ -494,6 +513,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
@@ -518,7 +538,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
@@ -567,6 +587,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -597,7 +618,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
@@ -739,6 +760,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
@@ -769,7 +791,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
@@ -896,6 +918,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
@@ -927,7 +950,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
@@ -973,6 +996,7 @@ class JavascriptIntegrationTest(TestCase):
         responses.add(responses.GET, 'http://example.com/file1.js', body='Not Found', status=404)
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -1005,7 +1029,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [
             {
                 'url': u'http://example.com/file1.js',
@@ -1049,6 +1073,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -1073,7 +1098,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [
             {
                 'url': u'http://example.com/unsupported.sourcemap.js',
@@ -1083,6 +1108,7 @@ class JavascriptIntegrationTest(TestCase):
 
     def test_failed_sourcemap_expansion_data_url(self):
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -1107,7 +1133,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [{'url': u'<data url>', 'type': 'js_no_source'}]
 
     @responses.activate
@@ -1123,6 +1149,7 @@ class JavascriptIntegrationTest(TestCase):
             body='{}'
         )
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -1151,7 +1178,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert 'errors' not in event.data
 
     @responses.activate
@@ -1175,6 +1202,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
@@ -1211,7 +1239,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         assert event.data['errors'] == [
             {
                 'url': u'http://example.com/file1.js',
@@ -1257,6 +1285,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'node',
             'release': 'nodeabc123',
@@ -1312,7 +1341,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -1367,6 +1396,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         data = {
+            'timestamp': self.min_ago,
             'message': 'hello',
             'platform': 'node',
             'exception': {
@@ -1421,7 +1451,7 @@ class JavascriptIntegrationTest(TestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = self.get_event()
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
