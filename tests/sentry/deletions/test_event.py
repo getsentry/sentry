@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry import tagstore
 from sentry.tagstore.models import EventTag
 from sentry.models import (
-    Event, EventAttachment, EventMapping, File, ScheduledDeletion, UserReport
+    Event, EventAttachment, File, ScheduledDeletion, UserReport
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -61,10 +61,6 @@ class DeleteEventTest(TestCase):
 
         assert not Event.objects.filter(id=event.id).exists()
         assert not EventAttachment.objects.filter(
-            event_id=event.event_id,
-            project_id=project.id,
-        ).exists()
-        assert not EventMapping.objects.filter(
             event_id=event.event_id,
             project_id=project.id,
         ).exists()

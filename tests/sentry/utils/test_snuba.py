@@ -5,7 +5,7 @@ import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.utils.snuba import get_snuba_translators, zerofill
+from sentry.utils.snuba import get_snuba_translators, zerofill, get_json_type
 
 
 class SnubaUtilsTest(TestCase):
@@ -183,3 +183,16 @@ class SnubaUtilsTest(TestCase):
 
         assert results[0]['time'] == 1546387200
         assert results[7]['time'] == 1546992000
+
+    def test_get_json_type(self):
+        assert get_json_type('UInt8') == 'boolean'
+        assert get_json_type('UInt16') == 'integer'
+        assert get_json_type('UInt32') == 'integer'
+        assert get_json_type('UInt64') == 'integer'
+        assert get_json_type('Float32') == 'number'
+        assert get_json_type('Float64') == 'number'
+        assert get_json_type('Nullable(Float64)') == 'number'
+        assert get_json_type('Array(String)') == 'array'
+        assert get_json_type('Char') == 'string'
+        assert get_json_type('unknown') == 'string'
+        assert get_json_type('') == 'string'

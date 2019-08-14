@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {objectToArray} from 'app/utils';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -30,7 +29,7 @@ class EventExtraData extends React.Component {
   };
 
   render() {
-    const extraDataArray = objectToArray(this.props.event.context);
+    const extraDataArray = Object.entries(this.props.event.context);
     return (
       <div className="extra-data">
         <EventDataSection

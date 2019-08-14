@@ -9,11 +9,8 @@ from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsE
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.utils.snuba import (
-    SnubaError,
-    transform_aliases_and_query,
-)
 from sentry import eventstore, features
+from sentry.utils import snuba
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -47,8 +44,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             }, status=400)
 
         data_fn = partial(
-            lambda **kwargs: transform_aliases_and_query(
-                skip_conditions=True, **kwargs)['data'],
+            lambda **kwargs: snuba.transform_aliases_and_query(skip_conditions=True, **kwargs),
             referrer='api.organization-events-v2',
             **snuba_args
         )
@@ -57,10 +53,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=lambda results: self.handle_results(
+                on_results=lambda results: self.handle_results_with_meta(
                     request, organization, params['project_id'], results),
             )
-        except SnubaError as error:
+        except snuba.SnubaError as error:
             logger.info(
                 'organization.events.snuba-error',
                 extra={
@@ -115,6 +111,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             on_results=lambda results: serialize(results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
+
+    def handle_results_with_meta(self, request, organization, project_ids, results):
+        data = self.handle_results(request, organization, project_ids, results.get('data'))
+        if not data:
+            return {'data': [], 'meta': {}}
+
+        meta = {value['name']: snuba.get_json_type(value['type']) for value in results['meta']}
+        # Ensure all columns in the result have types.
+        for key in data[0]:
+            if key not in meta:
+                meta[key] = 'string'
+        return {
+            'meta': meta,
+            'data': data,
+        }
 
     def handle_results(self, request, organization, project_ids, results):
         if not results:

@@ -8,14 +8,22 @@ describe('OrganizationEventsV2', function() {
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: [
-        {
-          id: 'deadbeef',
-          title: eventTitle,
-          'project.name': 'project-slug',
-          timestamp: '2019-05-23T22:12:48+00:00',
+      body: {
+        meta: {
+          id: 'string',
+          title: 'string',
+          'project.name': 'string',
+          timestamp: 'date',
         },
-      ],
+        data: [
+          {
+            id: 'deadbeef',
+            title: eventTitle,
+            'project.name': 'project-slug',
+            timestamp: '2019-05-23T22:12:48+00:00',
+          },
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/project-slug:deadbeef/',

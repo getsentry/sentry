@@ -36,7 +36,7 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventDict, EventError, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport, Organization,
@@ -718,28 +718,6 @@ class EventManager(object):
 
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
-
-        # When an event was sampled, the canonical source of truth
-        # is the EventMapping table since we aren't going to be writing out an actual
-        # Event row. Otherwise, if the Event isn't being sampled, we can safely
-        # rely on the Event table itself as the source of truth and ignore
-        # EventMapping since it's redundant information.
-        if is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(EventMapping)):
-                    EventMapping.objects.create(project=project, group=group, event_id=event_id)
-            except IntegrityError:
-                logger.info(
-                    'duplicate.found',
-                    exc_info=True,
-                    extra={
-                        'event_uuid': event_id,
-                        'project_id': project.id,
-                        'group_id': group.id if group else None,
-                        'model': EventMapping.__name__,
-                    }
-                )
-                return event
 
         environment = Environment.get_or_create(
             project=project,
