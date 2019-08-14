@@ -4,7 +4,13 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry import eventstore, features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, resolve_field_list, InvalidSearchQuery
+from sentry.api.event_search import (
+    get_snuba_query_args,
+    resolve_field_list,
+    InvalidSearchQuery,
+    find_reference_event,
+    get_reference_event_conditions,
+)
 from sentry.models.project import Project
 
 
@@ -43,6 +49,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 snuba_args.update(resolve_field_list(fields, snuba_args))
             except InvalidSearchQuery as exc:
                 raise OrganizationEventsError(exc.message)
+
+        reference_event_id = request.GET.get("referenceEvent")
+        if reference_event_id:
+            reference_event = find_reference_event(snuba_args, reference_event_id)
+            snuba_args["conditions"] = get_reference_event_conditions(
+                snuba_args, reference_event.snuba_data
+            )
 
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(

@@ -17,6 +17,8 @@ type Options = {
   limit?: number;
   query?: string;
   yAxis?: 'event_count' | 'user_count';
+  field?: string[];
+  referenceEvent?: string;
 };
 
 /**
@@ -46,6 +48,8 @@ export const doEventsRequest = (
     includePrevious,
     query,
     yAxis,
+    field,
+    referenceEvent,
   }: Options
 ): Promise<EventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -56,6 +60,8 @@ export const doEventsRequest = (
       environment,
       query,
       yAxis,
+      field,
+      referenceEvent,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
