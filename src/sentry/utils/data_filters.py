@@ -11,6 +11,10 @@ from sentry.utils.safe import get_path
 
 
 class FilterStatKeys(object):
+    """
+    NOTE: This enum also exists in semaphore, check if alignment is needed when
+    editing this.
+    """
     IP_ADDRESS = 'ip-address'
     RELEASE_VERSION = 'release-version'
     ERROR_MESSAGE = 'error-message'
