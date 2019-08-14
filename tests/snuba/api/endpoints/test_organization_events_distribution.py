@@ -10,6 +10,8 @@ from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
+    feature_list = ('organizations:events-v2', 'organizations:global-views')
+
     def setUp(self):
         super(OrganizationEventsDistributionEndpointTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).replace(microsecond=0)
@@ -51,7 +53,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(self.url, {'key': 'number'}, format='json')
 
         assert response.status_code == 200, response.content
@@ -101,7 +103,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url, {
                     'query': 'delet', 'key': 'color'}, format='json')
@@ -153,7 +155,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url, {
                     'query': 'color:yellow', 'key': 'color'}, format='json')
@@ -209,7 +211,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url,
                 {
@@ -260,14 +262,15 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id
         )
 
-        response = self.client.get(
-            self.url,
-            {
-                'key': 'user',
-                'project': [self.project.id]
-            },
-            format='json'
-        )
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'key': 'user',
+                    'project': [self.project.id]
+                },
+            )
 
         assert response.status_code == 200, response.content
         assert response.data == {
@@ -294,12 +297,14 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.get(url, {'key': 'color'}, format='json')
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(url, {'key': 'color'}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'A valid project must be included.'}
 
     def test_no_key_param(self):
-        response = self.client.get(self.url, {'project': [self.project.id]}, format='json')
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, {'project': [self.project.id]}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'Tag key must be specified.'}
 
@@ -317,7 +322,8 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        response = self.client.get(self.url, {'key': 'color'}, format='json')
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, {'key': 'color'}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
@@ -339,7 +345,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url,
                 {'key': 'number', 'project': [self.project.id]},
@@ -390,7 +396,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url, {'key': 'project.name'}, format='json')
 
@@ -460,7 +466,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id
         )
 
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url, {'key': 'user.email'}, format='json')
 
@@ -508,7 +514,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project2.id
         )
-        with self.feature('organizations:global-views'):
+        with self.feature(self.feature_list):
             response = self.client.get(
                 self.url, {'key': 'color'}, format='json')
 
@@ -534,16 +540,25 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project2.id
         )
 
-        response = self.client.get(
-            self.url, {
-                'key': ['color'], 'query': '\n\n\n\n'}, format='json')
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'key': ['color'],
+                    'query': '\n\n\n\n'
+                })
         assert response.status_code == 400, response.content
         assert response.data == {
             'detail': "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."}
 
     def test_invalid_tag(self):
-        response = self.client.get(
-            self.url, {
-                'key': ['color;;;']}, format='json')
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url,
+                data={
+                    'key': ['color;;;']
+                },
+                format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': "Tag key color;;; is not valid."}

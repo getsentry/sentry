@@ -29,7 +29,7 @@ class RelatedEvents extends AsyncComponent {
   getEndpoints() {
     // TODO what happens when global-views feature is not on the org?
     const {event, organization} = this.props;
-    const eventsUrl = `/organizations/${organization.slug}/events/`;
+    const eventsUrl = `/organizations/${organization.slug}/eventsv2/`;
     const trace = event.tags.find(tag => tag.key === 'trace');
 
     if (!trace) {

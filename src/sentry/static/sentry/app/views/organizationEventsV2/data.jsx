@@ -163,9 +163,9 @@ export const FIELD_FORMATTERS = {
 export const SPECIAL_FIELDS = {
   transaction: {
     sortField: 'transaction',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: (data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           eventSlug: `${data['project.name']}:${data.latest_event}`,
@@ -182,9 +182,9 @@ export const SPECIAL_FIELDS = {
   },
   title: {
     sortField: 'title',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: (data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
       };
       return (
@@ -198,9 +198,9 @@ export const SPECIAL_FIELDS = {
   },
   type: {
     sortField: 'event.type',
-    renderFunc: (data, {location, organization}) => {
+    renderFunc: (data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `event.type:${data['event.type']}`,
@@ -227,7 +227,7 @@ export const SPECIAL_FIELDS = {
   },
   user: {
     sortField: 'user.id',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: (data, {location}) => {
       const userObj = {
         id: data['user.id'],
         name: data['user.name'],
@@ -245,7 +245,7 @@ export const SPECIAL_FIELDS = {
       }
 
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `user:${data.user}`,
@@ -257,9 +257,9 @@ export const SPECIAL_FIELDS = {
   },
   issue_title: {
     sortField: 'issue_title',
-    renderFunc: (data, {organization, location}) => {
+    renderFunc: (data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           eventSlug: `${data['project.name']}:${data.latest_event}`,
