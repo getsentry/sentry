@@ -62,7 +62,7 @@ class RelatedEvents extends AsyncComponent {
   renderBody() {
     const {location, projects, event} = this.props;
     const {events} = this.state;
-    if (!events) {
+    if (!events || !events.data) {
       return null;
     }
 
@@ -71,10 +71,10 @@ class RelatedEvents extends AsyncComponent {
         <Title>
           <InlineSvg src="icon-link" size="12px" /> {t('Related Events')}
         </Title>
-        {events.length < 1 ? (
+        {events.data.length < 1 ? (
           <Card>{t('No related events found.')}</Card>
         ) : (
-          events.map(item => {
+          events.data.map(item => {
             const eventUrl = {
               pathname: location.pathname,
               query: {

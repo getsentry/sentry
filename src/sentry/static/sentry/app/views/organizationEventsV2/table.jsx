@@ -10,26 +10,27 @@ import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {SPECIAL_FIELDS} from './data';
-import {QueryLink} from './styles';
+import {FIELD_FORMATTERS, SPECIAL_FIELDS} from './data';
+import {getFieldRenderer} from './utils';
 import SortLink from './sortLink';
 
 export default class Table extends React.Component {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
-    data: PropTypes.arrayOf(PropTypes.object),
+    data: PropTypes.object,
     isLoading: PropTypes.bool.isRequired,
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object,
   };
 
   renderBody() {
-    const {view, data, organization, location, isLoading} = this.props;
-    const {fields} = view.data;
+    const {view, organization, location, isLoading} = this.props;
 
-    if (!data || isLoading) {
+    if (!this.props.data || isLoading) {
       return null;
     }
+    const {fields} = view.data;
+    const {data, meta} = this.props.data;
 
     if (data.length === 0) {
       return (
@@ -42,22 +43,8 @@ export default class Table extends React.Component {
     return data.map((row, idx) => (
       <Row key={idx} className={getGridStyle(view)}>
         {fields.map(field => {
-          const target = {
-            pathname: `/organizations/${organization.slug}/events/`,
-            query: {
-              ...location.query,
-              query: `${field}:${row[field]}`,
-            },
-          };
-          return (
-            <Cell key={field}>
-              {SPECIAL_FIELDS.hasOwnProperty(field) ? (
-                SPECIAL_FIELDS[field].renderFunc(row, {organization, location})
-              ) : (
-                <QueryLink to={target}>{row[field]}</QueryLink>
-              )}
-            </Cell>
-          );
+          const fieldRenderer = getFieldRenderer(field, meta);
+          return <Cell key={field}>{fieldRenderer(row, {organization, location})}</Cell>;
         })}
       </Row>
     ));
@@ -73,9 +60,12 @@ export default class Table extends React.Component {
         <TableHeader className={getGridStyle(view)}>
           {fields.map((field, i) => {
             const title = columnNames[i] || field;
+
             let sortKey = field;
             if (SPECIAL_FIELDS.hasOwnProperty(field)) {
               sortKey = SPECIAL_FIELDS[field].sortField;
+            } else if (FIELD_FORMATTERS.hasOwnProperty(field)) {
+              sortKey = FIELD_FORMATTERS[field].sortField ? field : false;
             }
 
             if (sortKey === false) {

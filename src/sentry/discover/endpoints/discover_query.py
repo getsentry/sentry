@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 from functools import partial
 from copy import deepcopy
 
@@ -24,34 +23,6 @@ class DiscoverQueryPermission(OrganizationPermission):
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission, )
-
-    def get_json_type(self, snuba_type):
-        """
-        Convert Snuba/Clickhouse type to JSON type
-        Default is string
-        """
-
-        # Ignore Nullable part
-        nullable_match = re.search(r'^Nullable\((.+)\)$', snuba_type)
-
-        if nullable_match:
-            snuba_type = nullable_match.group(1)
-        # Check for array
-
-        array_match = re.search(r'^Array\(.+\)$', snuba_type)
-        if array_match:
-            return 'array'
-
-        types = {
-            'UInt8': 'boolean',
-            'UInt16': 'integer',
-            'UInt32': 'integer',
-            'UInt64': 'integer',
-            'Float32': 'number',
-            'Float64': 'number',
-        }
-
-        return types.get(snuba_type, 'string')
 
     def handle_results(self, snuba_results, requested_query, projects):
         if 'project.name' in requested_query['selected_columns']:
@@ -88,7 +59,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
 
         # Convert snuba types to json types
         for col in snuba_results['meta']:
-            col['type'] = self.get_json_type(col.get('type'))
+            col['type'] = snuba.get_json_type(col.get('type'))
 
         return snuba_results
 

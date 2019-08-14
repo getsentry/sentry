@@ -90,6 +90,72 @@ export const ALL_VIEWS = deepFreeze([
 ]);
 
 /**
+ * A mapping of field types to their rendering function.
+ * This mapping is used when a field is not defined in SPECIAL_FIELDS
+ * This mapping should match the output sentry.utils.snuba:get_json_type
+ */
+export const FIELD_FORMATTERS = {
+  boolean: {
+    sortField: true,
+    renderFunc: (field, data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          query: `${field}:${data[field]}`,
+        },
+      };
+      const value = data[field] ? t('yes') : t('no');
+      return <QueryLink to={target}>{value}</QueryLink>;
+    },
+  },
+  integer: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+      </NumberContainer>
+    ),
+  },
+  number: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+      </NumberContainer>
+    ),
+  },
+  date: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <Container>
+        {data[field] ? (
+          getDynamicText({
+            value: <StyledDateTime date={data[field]} />,
+            fixed: 'timestamp',
+          })
+        ) : (
+          <span>t('n/a')</span>
+        )}
+      </Container>
+    ),
+  },
+  string: {
+    sortField: false,
+    renderFunc: (field, data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          query: `${field}:${data[field]}`,
+        },
+      };
+      return <QueryLink to={target}>{data[field]}</QueryLink>;
+    },
+  },
+};
+
+/**
  * "Special fields" do not map 1:1 to an single column in the event database,
  * they are a UI concept that combines the results of multiple fields and
  * displays with a custom render function.
@@ -189,19 +255,6 @@ export const SPECIAL_FIELDS = {
       return <QueryLink to={target}>{badge}</QueryLink>;
     },
   },
-  timestamp: {
-    sortField: 'timestamp',
-    renderFunc: data => (
-      <Container>
-        {data.timestamp
-          ? getDynamicText({
-              value: <StyledDateTime date={data.timestamp} />,
-              fixed: 'time',
-            })
-          : null}
-      </Container>
-    ),
-  },
   issue_title: {
     sortField: 'issue_title',
     renderFunc: (data, {organization, location}) => {
@@ -220,25 +273,6 @@ export const SPECIAL_FIELDS = {
         </Container>
       );
     },
-  },
-  // TODO generalize this.
-  'count(id)': {
-    sortField: 'count_id',
-    renderFunc: data => (
-      <NumberContainer>
-        {typeof data.count_id === 'number' ? <Count value={data.count_id} /> : null}
-      </NumberContainer>
-    ),
-  },
-  'count_unique(user)': {
-    sortField: 'unique_count_user',
-    renderFunc: data => (
-      <NumberContainer>
-        {typeof data.count_unique_user === 'number' ? (
-          <Count value={data.count_unique_user} />
-        ) : null}
-      </NumberContainer>
-    ),
   },
   last_seen: {
     sortField: 'last_seen',

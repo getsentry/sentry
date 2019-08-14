@@ -786,6 +786,36 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
+JSON_TYPE_MAP = {
+    'UInt8': 'boolean',
+    'UInt16': 'integer',
+    'UInt32': 'integer',
+    'UInt64': 'integer',
+    'Float32': 'number',
+    'Float64': 'number',
+    'DateTime': 'date',
+}
+
+
+def get_json_type(snuba_type):
+    """
+    Convert Snuba/Clickhouse type to JSON type
+    Default is string
+    """
+    # Ignore Nullable part
+    nullable_match = re.search(r'^Nullable\((.+)\)$', snuba_type)
+
+    if nullable_match:
+        snuba_type = nullable_match.group(1)
+
+    # Check for array
+    array_match = re.search(r'^Array\(.+\)$', snuba_type)
+    if array_match:
+        return 'array'
+
+    return JSON_TYPE_MAP.get(snuba_type, 'string')
+
+
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
 # implementation have to know about these relationships is not ideal, and
