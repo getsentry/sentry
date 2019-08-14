@@ -976,6 +976,13 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/eventsv2/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "EventsV2" */ 'app/views/organizationEventsV2')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>
               import(/* webpackChunkName: "MonitorsContainer" */ 'app/views/monitors')

@@ -1,13 +1,15 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationEventsV2 from 'app/views/organizationEventsV2';
+import {OrganizationEventsV2} from 'app/views/organizationEventsV2';
 
 describe('OrganizationEventsV2', function() {
   const eventTitle = 'Oh no something bad';
+  const features = ['events-v2'];
+
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
+      url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
           id: 'string',
@@ -50,7 +52,7 @@ describe('OrganizationEventsV2', function() {
   it('renders', function() {
     const wrapper = mount(
       <OrganizationEventsV2
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
         router={{}}
       />,
@@ -63,7 +65,7 @@ describe('OrganizationEventsV2', function() {
   it('handles no projects', function() {
     const wrapper = mount(
       <OrganizationEventsV2
-        organization={TestStubs.Organization()}
+        organization={TestStubs.Organization({features})}
         location={{query: {}}}
         router={{}}
       />,
@@ -77,7 +79,7 @@ describe('OrganizationEventsV2', function() {
   it('generates an active sort link based on default sort', function() {
     const wrapper = mount(
       <OrganizationEventsV2
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
         router={{}}
       />,
@@ -110,7 +112,7 @@ describe('OrganizationEventsV2', function() {
   it('generates links to modals', async function() {
     const wrapper = mount(
       <OrganizationEventsV2
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
         router={{}}
       />,
@@ -122,7 +124,10 @@ describe('OrganizationEventsV2', function() {
   });
 
   it('opens a modal when eventSlug is present', async function() {
-    const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
     const wrapper = mount(
       <OrganizationEventsV2
         organization={organization}
