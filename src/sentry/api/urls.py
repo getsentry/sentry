@@ -87,7 +87,10 @@ from .endpoints.organization_event_details import (
     OrganizationEventDetailsOldestEndpoint
 )
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint
+from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
+    OrganizationEventsV2Endpoint
+)
 from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -712,6 +715,12 @@ urlpatterns = patterns(
             r'^(?P<organization_slug>[^\/]+)/events/$',
             OrganizationEventsEndpoint.as_view(),
             name='sentry-api-0-organization-events'
+        ),
+        # This is temporary while we alpha test eventsv2
+        url(
+            r'^(?P<organization_slug>[^\/]+)/eventsv2/$',
+            OrganizationEventsV2Endpoint.as_view(),
+            name='sentry-api-0-organization-eventsv2'
         ),
         url(
             r'^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$',
