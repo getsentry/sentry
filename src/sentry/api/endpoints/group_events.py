@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.event_search import get_snuba_query_args
@@ -18,13 +18,12 @@ from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, SnubaEvent
+from sentry.models import Group
 from sentry.search.utils import (
     InvalidQuery,
     parse_query,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
@@ -105,13 +104,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 raise GroupEventsError(
                     'Boolean search operator OR and AND not allowed in this search.')
 
-        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
+        snuba_cols = None if full else eventstore.full_columns
 
         data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            selected_columns=snuba_cols,
-            orderby='-timestamp',
+            eventstore.get_events,
+            additional_columns=snuba_cols,
             referrer='api.group-events',
             **snuba_args
         )
@@ -119,8 +116,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
+            on_results=lambda results: serialize(results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 

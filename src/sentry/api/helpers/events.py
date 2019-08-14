@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import eventstore
 from sentry.api.event_search import get_snuba_query_args
-from sentry.models import SnubaEvent
-from sentry.utils.snuba import raw_query
 from sentry.utils.validators import normalize_event_id
 from sentry.api.serializers import serialize
 
@@ -20,15 +19,12 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
             query=u'id:{}'.format(event_id),
             params=snuba_params)
 
-        results = raw_query(
-            selected_columns=SnubaEvent.selected_columns,
+        results = eventstore.get_events(
             referrer=referrer,
             **snuba_args
-        )['data']
+        )
 
         if len(results) == 1:
-            response = Response(
-                serialize([SnubaEvent(row) for row in results], request.user)
-            )
+            response = Response(serialize(results, request.user))
             response['X-Sentry-Direct-Hit'] = '1'
             return response
