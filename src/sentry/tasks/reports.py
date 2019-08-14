@@ -218,11 +218,11 @@ def batch_request(func):
         for i in range(0, len(arr), chunk_size):
             yield arr[i:i + chunk_size]
 
-    def wrapper(cls, model, keys, *args, **kwargs):
+    def wrapper(issue_ids, start, stop, rollup):
         combined = {}
 
-        for chunk in chunks(list(keys), BATCH_SIZE):
-            single = func(cls, model, chunk, *args, **kwargs)
+        for chunk in chunks(list(issue_ids), BATCH_SIZE):
+            single = func(chunk, start, stop, rollup)
             combined.update(single)
 
         return combined
@@ -273,10 +273,7 @@ def prepare_project_issue_summaries(interval, project):
     )
 
     rollup = 60 * 60 * 24
-
-    event_counts = tsdb.get_sums(
-        tsdb.models.group, new_issue_ids | reopened_issue_ids, start, stop, rollup=rollup
-    )
+    event_counts = get_event_counts(new_issue_ids | reopened_issue_ids, start, stop, rollup)
 
     new_issue_count = sum(event_counts[id] for id in new_issue_ids)
     reopened_issue_count = sum(event_counts[id] for id in reopened_issue_ids)

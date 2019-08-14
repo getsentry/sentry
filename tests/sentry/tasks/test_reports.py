@@ -31,7 +31,7 @@ from sentry.tasks.reports import (
     user_subscribed_to_organization_reports,
     prepare_project_issue_summaries,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import (TestCase, SnubaTestCase)
 from sentry.utils.dates import to_datetime, to_timestamp
 from six.moves import xrange
 
@@ -194,7 +194,7 @@ def test_calendar_range():
     )
 
 
-class ReportTestCase(TestCase):
+class ReportTestCase(TestCase, SnubaTestCase):
     def test_integration(self):
         Project.objects.all().delete()
 
