@@ -12,7 +12,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.models import Event, Group, ProjectKey, ProjectOption, UserReport
+from sentry import eventstore
+from sentry.models import (Event, ProjectKey, ProjectOption, UserReport)
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
@@ -149,16 +150,9 @@ class ErrorPageEmbedView(View):
             report.project = key.project
             report.event_id = event_id
 
-            try:
-                event = Event.objects.filter(
-                    project_id=report.project.id, event_id=report.event_id
-                )[0]
-            except IndexError:
-                try:
-                    report.group = Group.objects.from_event_id(report.project, report.event_id)
-                except Group.DoesNotExist:
-                    pass
-            else:
+            event = eventstore.get_event_by_id(report.project.id, report.event_id)
+
+            if event is not None:
                 Event.objects.bind_nodes([event])
                 report.environment = event.get_environment()
                 report.group = event.group
