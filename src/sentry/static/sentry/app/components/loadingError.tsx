@@ -4,7 +4,7 @@ import {t} from 'app/locale';
 
 type Props = {
   onRetry?: () => void;
-  message?: string;
+  message?: React.ReactNode;
 };
 class LoadingError extends React.Component<Props> {
   static propTypes = {
