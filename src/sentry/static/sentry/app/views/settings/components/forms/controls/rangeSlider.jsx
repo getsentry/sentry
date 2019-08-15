@@ -46,6 +46,9 @@ class RangeSlider extends React.Component {
      */
     showCustomInput: PropTypes.bool,
 
+    // Placeholder for custom input
+    placeholder: PropTypes.string,
+
     /**
      * This is called when *any* MouseUp or KeyUp event happens.
      * Used for "smart" Fields to trigger a "blur" event. `onChange` can
@@ -137,7 +140,14 @@ class RangeSlider extends React.Component {
 
   render() {
     let {min, max, step} = this.props;
-    const {name, disabled, allowedValues, formatLabel, showCustomInput} = this.props;
+    const {
+      name,
+      disabled,
+      allowedValues,
+      formatLabel,
+      placeholder,
+      showCustomInput,
+    } = this.props;
     const {sliderValue} = this.state;
     let actualValue = sliderValue;
     let displayValue = actualValue;
@@ -174,6 +184,7 @@ class RangeSlider extends React.Component {
           />
           {showCustomInput && (
             <Input
+              placeholder={placeholder}
               value={sliderValue}
               onChange={this.handleCustomInputChange}
               onBlur={this.handleCustomInputBlur}

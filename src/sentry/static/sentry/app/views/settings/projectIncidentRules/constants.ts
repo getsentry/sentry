@@ -1,3 +1,8 @@
+export enum AlertRuleThreshold {
+  INCIDENT,
+  RESOLUTION,
+}
+
 export enum AlertRuleThresholdType {
   ABOVE,
   BELOW,
