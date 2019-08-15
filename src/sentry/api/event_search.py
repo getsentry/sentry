@@ -719,7 +719,8 @@ def resolve_orderby(orderby, fields, aggregations):
 
 
 def get_aggregate_alias(match):
-    return u"{}_{}".format(match.group("function"), match.group("column")).rstrip("_")
+    column = match.group('column').replace('.', '_')
+    return u'{}_{}'.format(match.group('function'), column).rstrip('_')
 
 
 def resolve_field_list(fields, snuba_args):

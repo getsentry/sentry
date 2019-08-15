@@ -1141,6 +1141,15 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_aggregate_function_safe_alias(self):
+        fields = ['count_unique(user.id)']
+        result = resolve_field_list(fields, {})
+        assert result['aggregations'] == [
+            ['uniq', 'user.id', 'count_unique_user_id'],
+            ['argMax(event_id, timestamp)', '', 'latest_event'],
+            ['argMax(project_id, timestamp)', '', 'projectid'],
+        ]
+
     def test_aggregate_function_invalid_name(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["derp(user)"]
