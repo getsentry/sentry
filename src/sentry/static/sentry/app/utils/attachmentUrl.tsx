@@ -1,12 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
+import {OrganizationDetailed, Event, EventAttachment} from 'app/types';
 import ConfigStore from 'app/stores/configStore';
 import MemberListStore from 'app/stores/memberListStore';
 import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-class AttachmentUrl extends React.PureComponent {
+type Props = {
+  organization: OrganizationDetailed;
+  projectId: string;
+  event: Event;
+  attachment: EventAttachment;
+  children: (downloadUrl: string | null) => React.ReactNode;
+};
+
+class AttachmentUrl extends React.PureComponent<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -39,16 +48,16 @@ class AttachmentUrl extends React.PureComponent {
     return currentIndex >= requiredIndex;
   }
 
-  getDownloadUrl(attachment) {
-    const {organization, event, projectId} = this.props;
+  getDownloadUrl() {
+    const {attachment, organization, event, projectId} = this.props;
     return `/api/0/projects/${organization.slug}/${projectId}/events/${
       event.id
     }/attachments/${attachment.id}/?download=1`;
   }
 
   render() {
-    const {attachment, children} = this.props;
-    return children(this.hasAttachmentsRole() ? this.getDownloadUrl(attachment) : null);
+    const {children} = this.props;
+    return children(this.hasAttachmentsRole() ? this.getDownloadUrl() : null);
   }
 }
 

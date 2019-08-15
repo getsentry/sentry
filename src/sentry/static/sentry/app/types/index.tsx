@@ -6,6 +6,25 @@ export type Organization = {
   features: string[];
 };
 
+export type OrganizationDetailed = Organization & {
+  isDefault: boolean;
+  defaultRole: string;
+  availableRoles: {id: string; name: string}[];
+  openMembership: boolean;
+  require2FA: boolean;
+  allowSharedIssues: boolean;
+  enhancedPrivacy: boolean;
+  dataScrubber: boolean;
+  dataScrubberDefaults: boolean;
+  sensitiveFields: string[];
+  safeFields: string[];
+  storeCrashReports: boolean;
+  attachmentsRole: string;
+  scrubIPAddresses: boolean;
+  scrapeJavaScript: boolean;
+  trustedRelays: string[];
+};
+
 export type Project = {
   id: string;
   slug: string;
@@ -33,6 +52,16 @@ export type EventMetadata = {
   filename?: string;
   origin?: string;
   function?: string;
+};
+
+export type EventAttachment = {
+  id: string;
+  dateCreated: string;
+  headers: Object;
+  name: string;
+  sha1: string;
+  size: number;
+  type: string;
 };
 
 // This type is incomplete
