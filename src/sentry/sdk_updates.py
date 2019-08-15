@@ -116,9 +116,9 @@ class UpdateSDKSuggestion(Suggestion):
 
 class ChangeSDKSuggestion(Suggestion):
     """
-    :param module_names: A list of modules that, when any of them is loaded,
-        indicate that the SDK is already used. This list is used to weed out
-        invalid suggestions when using multiple SDKs in e.g. .NET.
+    :param module_names: Hide this suggestion if any of the given modules is
+        loaded. This list is used to weed out invalid suggestions when using
+        multiple SDKs in e.g. .NET.
     """
 
     def __init__(self, new_sdk_name, module_names=None):
@@ -249,10 +249,17 @@ SDK_SUPPORTED_MODULES = [
         'sdk_version_added': '0.0.0',
         'module_name': 'Microsoft.Extensions.Logging.Configuration',
         'module_version_min': '2.1.0',
-        # For some reason the SDK does not always report the
-        # `Sentry.Extensions.Logging` module (observed in ASP.NET apps that use
-        # the logging SDK implicitly).
-        'suggestion': ChangeSDKSuggestion('sentry.dotnet.extensions.logging', ['Sentry.Extensions.Logging', 'Sentry.AspNetCore']),
+        'suggestion': ChangeSDKSuggestion(
+            'sentry.dotnet.extensions.logging',
+            [
+                'Sentry.Extensions.Logging',
+
+                # If AspNetCore is used, do not show this suggestion at all,
+                # because the (hopefully visible) suggestion to use the
+                # AspNetCore SDK is more specific.
+                'Microsoft.AspNetCore.Hosting',
+            ]
+        ),
     },
     {
         'sdk_name': 'sentry.dotnet',
