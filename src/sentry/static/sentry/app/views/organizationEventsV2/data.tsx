@@ -102,7 +102,7 @@ type RenderFunctionBaggage = {
   location: ReactRouterLocation;
 };
 
-type RenderFunction = (
+type FieldFormatterRenderFunction = (
   field: string,
   data: EventData,
   baggage: RenderFunctionBaggage
@@ -110,7 +110,7 @@ type RenderFunction = (
 
 type FieldFormatter = {
   sortField: boolean;
-  renderFunc: RenderFunction;
+  renderFunc: FieldFormatterRenderFunction;
 };
 
 type FieldFormatters = {
@@ -187,12 +187,32 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
 };
 
+type SpecialFieldRenderFunc = (
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type SpecialField = {
+  sortField: boolean;
+  renderFunc: SpecialFieldRenderFunc;
+};
+
+type SpecialFields = {
+  transaction: SpecialField;
+  title: SpecialField;
+  type: SpecialField;
+  project: SpecialField;
+  user: SpecialField;
+  issue_title: SpecialField;
+  last_seen: SpecialField;
+};
+
 /**
  * "Special fields" do not map 1:1 to an single column in the event database,
  * they are a UI concept that combines the results of multiple fields and
  * displays with a custom render function.
  */
-export const SPECIAL_FIELDS = {
+export const SPECIAL_FIELDS: SpecialFields = {
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {
