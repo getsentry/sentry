@@ -6,6 +6,7 @@ from sentry.models import SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+from mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -329,6 +330,31 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert response.status_code == 200
+
+    @patch('sentry.analytics.record')
+    @with_feature('organizations:sentry-apps')
+    def test_bad_schema(self, record):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name='SampleApp',
+            organization=self.org,
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'schema': {"bad_key": "bad_value"},
+            },
+            format='json',
+        )
+        assert response.status_code == 400
+        assert response.data == {'schema': ["'elements' is a required property"]}
+        record.assert_called_with('sentry_app.schema_validation_error',
+                                  user_id=self.user.id, organization_id=self.org.id,
+                                  sentry_app_id=app.id, sentry_app_name='SampleApp',
+                                  error_message="'elements' is a required property",
+                                  schema='{"bad_key": "bad_value"}'
+                                  )
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
