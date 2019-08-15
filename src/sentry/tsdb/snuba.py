@@ -76,6 +76,7 @@ class SnubaTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
+        limit = min(10000, len(keys) * ((end - start).total_seconds() / rollup))
 
         if keys:
             result = snuba.query(
@@ -86,6 +87,7 @@ class SnubaTSDB(BaseTSDB):
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
+                limit=limit,
                 referrer='tsdb',
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group)
             )
