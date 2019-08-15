@@ -73,9 +73,7 @@ class SentryAppInstallations extends React.Component {
   };
 
   openModal = app => {
-    const {organization} = this.props;
-    const onInstall = () => this.install(app);
-    openSentryAppPermissionModal({app, onInstall, orgId: organization.slug});
+    this.install(app);
   };
 
   get installsByApp() {

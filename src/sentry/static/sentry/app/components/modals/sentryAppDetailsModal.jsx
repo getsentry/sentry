@@ -9,12 +9,14 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Panel, PanelItem} from 'app/components/panels';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
+import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -52,6 +54,61 @@ export default class SentryAppDetailsModal extends AsyncComponent {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
     });
+  }
+
+  get permissions() {
+    return new ConsolidatedScopes(this.props.sentryApp.scopes).toPermissions();
+  }
+
+  renderPermissions() {
+    const permissions = this.permissions;
+    const {organization, sentryApp} = this.props;
+    return (
+      <React.Fragment>
+        <p>
+          {t('Install on your ')}
+          <strong>{organization.slug}</strong>
+          {t(' organization with the following permissions:')}
+        </p>
+        <Panel>
+          {permissions.read.length > 0 && (
+            <PanelItem key="read">
+              <Text>
+                <strong>{t('Read')}</strong>
+                {t(` access to ${permissions.read.join(', ')}`)}
+              </Text>
+            </PanelItem>
+          )}
+          {permissions.write.length > 0 && (
+            <PanelItem key="write">
+              <Text>
+                <strong>{t('Read')}</strong>
+                {t(' and ')}
+                <strong>{t('write')}</strong>
+                {t(` access to ${permissions.write.join(', ')}`)}
+              </Text>
+            </PanelItem>
+          )}
+          {permissions.admin.length > 0 && (
+            <PanelItem key="admin">
+              <Text>
+                <strong>{t('Admin')}</strong>
+                {t(` access to ${permissions.admin.join(', ')}`)}
+              </Text>
+            </PanelItem>
+          )}
+        </Panel>
+        {sentryApp.redirectUrl && (
+          <RedirectionInfo>
+            {t(
+              `After installation you'll be redirected to the ${
+                sentryApp.name
+              } service to finish setup.`
+            )}
+          </RedirectionInfo>
+        )}
+      </React.Fragment>
+    );
   }
 
   renderBody() {
@@ -92,28 +149,32 @@ export default class SentryAppDetailsModal extends AsyncComponent {
 
         <IntegrationFeatures {...featureProps}>
           {({disabled, disabledReason}) => (
-            <div className="modal-footer">
-              {disabled && <DisabledNotice reason={disabledReason} />}
-              <Button size="small" onClick={closeModal}>
-                {t('Cancel')}
-              </Button>
+            <React.Fragment>
+              {!disabled && !isInstalled && this.renderPermissions()}
 
-              <Access organization={organization} access={['org:integrations']}>
-                {({hasAccess}) =>
-                  hasAccess && (
-                    <Button
-                      size="small"
-                      priority="primary"
-                      disabled={isInstalled || disabled}
-                      onClick={onInstall}
-                      style={{marginLeft: space(1)}}
-                    >
-                      {t('Install')}
-                    </Button>
-                  )
-                }
-              </Access>
-            </div>
+              <div className="modal-footer">
+                {disabled && <DisabledNotice reason={disabledReason} />}
+                <Button size="small" onClick={closeModal}>
+                  {t('Cancel')}
+                </Button>
+
+                <Access organization={organization} access={['org:integrations']}>
+                  {({hasAccess}) =>
+                    hasAccess && (
+                      <Button
+                        size="small"
+                        priority="primary"
+                        disabled={isInstalled || disabled}
+                        onClick={onInstall}
+                        style={{marginLeft: space(1)}}
+                      >
+                        {t('Install')}
+                      </Button>
+                    )
+                  }
+                </Access>
+              </div>
+            </React.Fragment>
           )}
         </IntegrationFeatures>
       </React.Fragment>
@@ -164,4 +225,14 @@ const StyledTag = styled(Tag)`
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
+`;
+
+const RedirectionInfo = styled('div')`
+  padding-right: 5px;
+  font-size: 12px;
+  color: ${p => p.theme.gray2};
+`;
+
+const Text = styled('p')`
+  margin-bottom: 0px;
 `;
