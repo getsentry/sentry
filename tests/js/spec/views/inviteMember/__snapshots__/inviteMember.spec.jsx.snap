@@ -677,14 +677,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                                       className="css-17v3tc-StyledChevronDown e1yghndz0"
                                                                       src="icon-chevron-down"
                                                                     >
-                                                                      <StyledSvg
-                                                                        className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                        height="1em"
-                                                                        viewBox={Object {}}
-                                                                        width="1em"
+                                                                      <ForwardRef
+                                                                        className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                        src="icon-chevron-down"
                                                                       >
                                                                         <svg
-                                                                          className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                          className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
                                                                           height="1em"
                                                                           viewBox={Object {}}
                                                                           width="1em"
@@ -694,7 +692,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                                             xlinkHref="#test"
                                                                           />
                                                                         </svg>
-                                                                      </StyledSvg>
+                                                                      </ForwardRef>
                                                                     </InlineSvg>
                                                                   </Component>
                                                                 </StyledChevronDown>

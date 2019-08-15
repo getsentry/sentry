@@ -501,29 +501,22 @@ exports[`Project Ownership Input renders 1`] = `
         <Divider
           src="icon-chevron-right"
         >
-          <InlineSvg
-            className="css-a4tn6s-Divider e1hyuoc78"
+          <ForwardRef
+            className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
             src="icon-chevron-right"
           >
-            <StyledSvg
-              className="css-a4tn6s-Divider e1hyuoc78"
+            <svg
+              className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
               height="1em"
               viewBox={Object {}}
               width="1em"
             >
-              <svg
-                className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
-                height="1em"
-                viewBox={Object {}}
-                width="1em"
-              >
-                <use
-                  href="#test"
-                  xlinkHref="#test"
-                />
-              </svg>
-            </StyledSvg>
-          </InlineSvg>
+              <use
+                href="#test"
+                xlinkHref="#test"
+              />
+            </svg>
+          </ForwardRef>
         </Divider>
         <Flex
           align="center"
@@ -943,30 +936,23 @@ exports[`Project Ownership Input renders 1`] = `
                                 size="12px"
                                 src="icon-circle-add"
                               >
-                                <InlineSvg
-                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                <ForwardRef
+                                  className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                   size="12px"
                                   src="icon-circle-add"
                                 >
-                                  <StyledSvg
-                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                  <svg
+                                    className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
                                   >
-                                    <svg
-                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                      height="12px"
-                                      viewBox={Object {}}
-                                      width="12px"
-                                    >
-                                      <use
-                                        href="#test"
-                                        xlinkHref="#test"
-                                      />
-                                    </svg>
-                                  </StyledSvg>
-                                </InlineSvg>
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </ForwardRef>
                               </StyledInlineSvg>
                             </span>
                           </Component>

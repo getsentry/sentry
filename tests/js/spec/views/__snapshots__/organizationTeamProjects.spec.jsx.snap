@@ -257,14 +257,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                 className="css-17v3tc-StyledChevronDown e1yghndz0"
                                                                 src="icon-chevron-down"
                                                               >
-                                                                <StyledSvg
-                                                                  className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                  height="1em"
-                                                                  viewBox={Object {}}
-                                                                  width="1em"
+                                                                <ForwardRef
+                                                                  className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                  src="icon-chevron-down"
                                                                 >
                                                                   <svg
-                                                                    className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                    className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
                                                                     height="1em"
                                                                     viewBox={Object {}}
                                                                     width="1em"
@@ -274,7 +272,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                       xlinkHref="#test"
                                                                     />
                                                                   </svg>
-                                                                </StyledSvg>
+                                                                </ForwardRef>
                                                               </InlineSvg>
                                                             </Component>
                                                           </StyledChevronDown>
@@ -528,34 +526,25 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
-                                <InlineSvg
-                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                <ForwardRef
+                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
-                                  <StyledSvg
-                                    className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                  <svg
+                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                     height="1em"
-                                    isBookmarked={false}
                                     onClick={[Function]}
                                     viewBox={Object {}}
                                     width="1em"
                                   >
-                                    <svg
-                                      className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                      height="1em"
-                                      onClick={[Function]}
-                                      viewBox={Object {}}
-                                      width="1em"
-                                    >
-                                      <use
-                                        href="#test"
-                                        xlinkHref="#test"
-                                      />
-                                    </svg>
-                                  </StyledSvg>
-                                </InlineSvg>
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </ForwardRef>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -672,14 +661,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
-                                        <StyledSvg
-                                          className="css-1e2j5j0-RemoveIcon eqsa6vb0"
-                                          height="1em"
-                                          viewBox={Object {}}
-                                          width="1em"
+                                        <ForwardRef
+                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -689,7 +676,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               xlinkHref="#test"
                                             />
                                           </svg>
-                                        </StyledSvg>
+                                        </ForwardRef>
                                       </InlineSvg>
                                     </Component>
                                   </RemoveIcon>
@@ -915,34 +902,25 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
-                                <InlineSvg
-                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                <ForwardRef
+                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
-                                  <StyledSvg
-                                    className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                  <svg
+                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                     height="1em"
-                                    isBookmarked={false}
                                     onClick={[Function]}
                                     viewBox={Object {}}
                                     width="1em"
                                   >
-                                    <svg
-                                      className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                      height="1em"
-                                      onClick={[Function]}
-                                      viewBox={Object {}}
-                                      width="1em"
-                                    >
-                                      <use
-                                        href="#test"
-                                        xlinkHref="#test"
-                                      />
-                                    </svg>
-                                  </StyledSvg>
-                                </InlineSvg>
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </ForwardRef>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -1055,14 +1033,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
-                                        <StyledSvg
-                                          className="css-1e2j5j0-RemoveIcon eqsa6vb0"
-                                          height="1em"
-                                          viewBox={Object {}}
-                                          width="1em"
+                                        <ForwardRef
+                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -1072,7 +1048,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               xlinkHref="#test"
                                             />
                                           </svg>
-                                        </StyledSvg>
+                                        </ForwardRef>
                                       </InlineSvg>
                                     </Component>
                                   </RemoveIcon>

@@ -535,30 +535,23 @@ exports[`ProjectTags renders 1`] = `
                                                                 size="12px"
                                                                 src="icon-trash"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                <ForwardRef
+                                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                  <svg
+                                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
-                                                                    <svg
-                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef>
                                                               </StyledInlineSvg>
                                                             </span>
                                                           </Component>
@@ -770,30 +763,23 @@ exports[`ProjectTags renders 1`] = `
                                                                 size="12px"
                                                                 src="icon-trash"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                <ForwardRef
+                                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                  <svg
+                                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
-                                                                    <svg
-                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef>
                                                               </StyledInlineSvg>
                                                             </span>
                                                           </Component>
@@ -1005,30 +991,23 @@ exports[`ProjectTags renders 1`] = `
                                                                 size="12px"
                                                                 src="icon-trash"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                <ForwardRef
+                                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                  <svg
+                                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
-                                                                    <svg
-                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef>
                                                               </StyledInlineSvg>
                                                             </span>
                                                           </Component>
@@ -1268,30 +1247,23 @@ exports[`ProjectTags renders 1`] = `
                                                                           size="12px"
                                                                           src="icon-trash"
                                                                         >
-                                                                          <InlineSvg
-                                                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                          <ForwardRef
+                                                                            className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                             size="12px"
                                                                             src="icon-trash"
                                                                           >
-                                                                            <StyledSvg
-                                                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                            <svg
+                                                                              className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                               height="12px"
                                                                               viewBox={Object {}}
                                                                               width="12px"
                                                                             >
-                                                                              <svg
-                                                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                                height="12px"
-                                                                                viewBox={Object {}}
-                                                                                width="12px"
-                                                                              >
-                                                                                <use
-                                                                                  href="#test"
-                                                                                  xlinkHref="#test"
-                                                                                />
-                                                                              </svg>
-                                                                            </StyledSvg>
-                                                                          </InlineSvg>
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </ForwardRef>
                                                                         </StyledInlineSvg>
                                                                       </span>
                                                                     </Component>
@@ -1535,30 +1507,23 @@ exports[`ProjectTags renders 1`] = `
                                                                           size="12px"
                                                                           src="icon-trash"
                                                                         >
-                                                                          <InlineSvg
-                                                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                          <ForwardRef
+                                                                            className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                             size="12px"
                                                                             src="icon-trash"
                                                                           >
-                                                                            <StyledSvg
-                                                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                            <svg
+                                                                              className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                                               height="12px"
                                                                               viewBox={Object {}}
                                                                               width="12px"
                                                                             >
-                                                                              <svg
-                                                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                                height="12px"
-                                                                                viewBox={Object {}}
-                                                                                width="12px"
-                                                                              >
-                                                                                <use
-                                                                                  href="#test"
-                                                                                  xlinkHref="#test"
-                                                                                />
-                                                                              </svg>
-                                                                            </StyledSvg>
-                                                                          </InlineSvg>
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </ForwardRef>
                                                                         </StyledInlineSvg>
                                                                       </span>
                                                                     </Component>

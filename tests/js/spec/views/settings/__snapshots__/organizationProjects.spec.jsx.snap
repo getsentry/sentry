@@ -195,30 +195,23 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <InlineSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                  <ForwardRef
+                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                     size="12px"
                                                     src="icon-circle-add"
                                                   >
-                                                    <StyledSvg
-                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                    <svg
+                                                      className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <svg
-                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                        height="12px"
-                                                        viewBox={Object {}}
-                                                        width="12px"
-                                                      >
-                                                        <use
-                                                          href="#test"
-                                                          xlinkHref="#test"
-                                                        />
-                                                      </svg>
-                                                    </StyledSvg>
-                                                  </InlineSvg>
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </ForwardRef>
                                                 </StyledInlineSvg>
                                               </span>
                                             </Component>
@@ -608,34 +601,25 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               onClick={[Function]}
                                               src="icon-star-small-filled"
                                             >
-                                              <InlineSvg
-                                                className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                              <ForwardRef
+                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                                 isBookmarked={false}
                                                 onClick={[Function]}
                                                 src="icon-star-small-filled"
                                               >
-                                                <StyledSvg
-                                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                                <svg
+                                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                                   height="1em"
-                                                  isBookmarked={false}
                                                   onClick={[Function]}
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
-                                                  <svg
-                                                    className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                                    height="1em"
-                                                    onClick={[Function]}
-                                                    viewBox={Object {}}
-                                                    width="1em"
-                                                  >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
+                                                  <use
+                                                    href="#test"
+                                                    xlinkHref="#test"
+                                                  />
+                                                </svg>
+                                              </ForwardRef>
                                             </Star>
                                           </BookmarkStar>
                                         </withApi(BookmarkStar)>
