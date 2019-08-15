@@ -37,7 +37,7 @@ comment        = ~r"#[^\r\n]*"
 
 quoted         = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 unquoted       = ~r"\S+"
-unquoted_no_comma = ~r"[^\s,]+"
+unquoted_no_comma = ~r"((?:\{\{\s*\S+\s*\}\})|(?:[^\s,]+))"
 
 follow  = "->"
 sep     = ":"

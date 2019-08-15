@@ -1,17 +1,24 @@
 from __future__ import absolute_import
 
+import uuid
 from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
 
+import pytz
 import six
+from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
+from sentry.http import safe_urlopen
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleAggregations,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -29,21 +36,28 @@ from sentry.models import (
     Commit,
     Release,
 )
-from sentry.incidents.tasks import (
-    calculate_incident_suspects,
-    send_subscriber_notifications,
-)
+from sentry.incidents import tasks
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     bulk_raw_query,
+    raw_query,
     SnubaQueryParams,
     SnubaTSResult,
+    zerofill,
 )
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+alert_aggregation_to_snuba = {
+    AlertRuleAggregations.TOTAL: ('count()', '', 'count'),
+    AlertRuleAggregations.UNIQUE_USERS: ('uniq', 'tags[sentry:user]', 'unique_users'),
+}
 
 
 class StatusAlreadyChangedError(Exception):
+    pass
+
+
+class AlreadyDeletedError(Exception):
     pass
 
 
@@ -52,21 +66,24 @@ def create_incident(
     type,
     title,
     query,
-    date_started,
+    date_started=None,
     date_detected=None,
     detection_uuid=None,
     projects=None,
     groups=None,
     user=None,
 ):
-    if date_detected is None:
-        date_detected = date_started
-
     if groups:
         group_projects = [g.project for g in groups]
         if projects is None:
             projects = []
         projects = list(set(projects + group_projects))
+
+    if date_started is None:
+        date_started = calculate_incident_start(query, projects, groups)
+
+    if date_detected is None:
+        date_detected = date_started
 
     with transaction.atomic():
         incident = Incident.objects.create(
@@ -107,8 +124,112 @@ def create_incident(
             incident_type=type.value,
         )
 
-    calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
+    tasks.calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
     return incident
+
+
+INCIDENT_START_PERIOD = timedelta(days=14)
+INCIDENT_START_ROLLUP = timedelta(minutes=15)
+
+
+def calculate_incident_start(query, projects, groups):
+    """
+    Attempts to automatically calculate the date that an incident began at based
+    on the events related to the incident.
+    """
+    params = {}
+    if groups:
+        params['issue.id'] = [g.id for g in groups]
+        end = max(g.last_seen for g in groups) + timedelta(seconds=1)
+    else:
+        end = timezone.now()
+
+    params['start'] = end - INCIDENT_START_PERIOD
+    params['end'] = end
+
+    if projects:
+        params['project_id'] = [p.id for p in projects]
+
+    query_args = get_snuba_query_args(query, params)
+    rollup = int(INCIDENT_START_ROLLUP.total_seconds())
+
+    result = raw_query(
+        aggregations=[
+            ('count()', '', 'count'),
+            ('min', 'timestamp', 'first_seen'),
+        ],
+        orderby='time',
+        groupby=['time'],
+        rollup=rollup,
+        referrer='incidents.calculate_incident_start',
+        limit=10000,
+        **query_args
+    )['data']
+    # TODO: Start could be the period before the first period we find
+    result = zerofill(result, params['start'], params['end'], rollup, 'time')
+
+    # We want to linearly scale scores from 100% value at the most recent to
+    # 50% at the oldest. This gives a bias towards newer results.
+    negative_weight = (1.0 / len(result)) / 2
+    multiplier = 1.0
+    cur_spike_max_count = -1
+    cur_spike_start = None
+    cur_spike_end = None
+    max_height = 0
+    incident_start = None
+    cur_height = 0
+    prev_count = 0
+
+    def get_row_first_seen(row, default=None):
+        first_seen = default
+        if 'first_seen' in row:
+            first_seen = parse_date(row['first_seen']).replace(tzinfo=pytz.utc)
+        return first_seen
+
+    def calculate_start(spike_start, spike_end):
+        """
+        We arbitrarily choose a date about 1/3 into the incident period. We
+        could potentially improve this if we want by analyzing the period in
+        more detail and choosing a date that most closely fits with being 1/3
+        up the spike.
+        """
+        spike_length = (spike_end - spike_start)
+        return spike_start + (spike_length / 3)
+
+    for row in reversed(result):
+        cur_count = row.get('count', 0)
+        if cur_count < prev_count or cur_count > 0 and cur_count == prev_count:
+            cur_height = cur_spike_max_count - cur_count
+        elif cur_count > 0 or prev_count > 0 or cur_height > 0:
+            # Now we've got the height of the current spike, compare it to the
+            # current max. We decrease the value by `multiplier` so that we
+            # favour newer results
+            cur_height *= multiplier
+            if cur_height > max_height:
+                # If we detect that we have a new highest peak, then set a new
+                # incident start date
+                incident_start = calculate_start(cur_spike_start, cur_spike_end)
+                max_height = cur_height
+
+            cur_height = 0
+            cur_spike_max_count = cur_count
+            cur_spike_end = get_row_first_seen(row)
+
+        # We attempt to get the first_seen value from the row here. If the row
+        # doesn't have it (because it's a zerofilled row), then just use the
+        # previous value. This allows us to have the start of a spike always be
+        # a bucket that contains at least one element.
+        cur_spike_start = get_row_first_seen(row, cur_spike_start)
+        prev_count = cur_count
+        multiplier -= negative_weight
+
+    if (cur_height > max_height or not incident_start) and cur_spike_start:
+        incident_start = calculate_start(cur_spike_start, cur_spike_end)
+
+    if not incident_start:
+        incident_start = timezone.now()
+
+    return incident_start
 
 
 def update_incident_status(incident, status, user=None, comment=None):
@@ -187,7 +308,7 @@ def create_initial_event_stats_snapshot(incident):
         MAX_INITIAL_INCIDENT_PERIOD,
     )
     end = incident.date_started + initial_period_length
-    start = end - (initial_period_length * 8)
+    start = end - (initial_period_length * 4)
     return create_event_stat_snapshot(incident, start, end)
 
 
@@ -226,7 +347,7 @@ def create_incident_activity(
                 IncidentSubscription(incident=incident, user_id=mentioned_user_id)
                 for mentioned_user_id in user_ids_to_subscribe
             ])
-    send_subscriber_notifications.apply_async(
+    tasks.send_subscriber_notifications.apply_async(
         kwargs={'activity_id': activity.id},
         countdown=10,
     )
@@ -511,6 +632,7 @@ def create_alert_rule(
         raise AlertRuleNameAlreadyUsedError()
     try:
         subscription_id = create_snuba_subscription(
+            project,
             dataset,
             query,
             aggregations,
@@ -540,6 +662,115 @@ def create_alert_rule(
     return alert_rule
 
 
+def update_alert_rule(
+    alert_rule,
+    name=None,
+    threshold_type=None,
+    query=None,
+    aggregations=None,
+    time_window=None,
+    alert_threshold=None,
+    resolve_threshold=None,
+    threshold_period=None,
+):
+    """
+    Updates an alert rule.
+
+    :param alert_rule: The alert rule to update
+    :param name: Name for the alert rule. This will be used as part of the
+    incident name, and must be unique per project.
+    :param threshold_type: An AlertRuleThresholdType
+    :param query: An event search query to subscribe to and monitor for alerts
+    :param aggregations: A list of AlertRuleAggregations that we want to fetch
+    for this alert rule
+    :param time_window: Time period to aggregate over, in minutes.
+    :param alert_threshold: Value that the subscription needs to reach to
+    trigger the alert
+    :param resolve_threshold: Value that the subscription needs to reach to
+    resolve the alert
+    :param threshold_period: How many update periods the value of the
+    subscription needs to exceed the threshold before triggering
+    :return: The updated `AlertRule`
+    """
+    if name and alert_rule.name != name and AlertRule.objects.filter(
+        project=alert_rule.project,
+        name=name,
+    ).exists():
+        raise AlertRuleNameAlreadyUsedError()
+
+    old_subscription_id = None
+    subscription_id = None
+    updated_fields = {}
+    if name:
+        updated_fields['name'] = name
+    if threshold_type:
+        updated_fields['threshold_type'] = threshold_type.value
+    if query is not None:
+        validate_alert_rule_query(query)
+        updated_fields['query'] = query
+    if aggregations:
+        updated_fields['aggregations'] = [a.value for a in aggregations]
+    if time_window:
+        updated_fields['time_window'] = time_window
+    if alert_threshold:
+        updated_fields['alert_threshold'] = alert_threshold
+    if resolve_threshold:
+        updated_fields['resolve_threshold'] = resolve_threshold
+    if threshold_period:
+        updated_fields['threshold_period'] = threshold_period
+
+    if query or aggregations or time_window:
+        old_subscription_id = alert_rule.subscription_id
+        # If updating any details of the query, create a new subscription
+        subscription_id = create_snuba_subscription(
+            alert_rule.project,
+            SnubaDatasets(alert_rule.dataset),
+            query if query is not None else alert_rule.query,
+            aggregations if aggregations else [
+                AlertRuleAggregations(agg) for agg in alert_rule.aggregations
+            ],
+            time_window if time_window else alert_rule.time_window,
+            DEFAULT_ALERT_RULE_RESOLUTION,
+        )
+        updated_fields['subscription_id'] = subscription_id
+
+    try:
+        alert_rule.update(**updated_fields)
+    except Exception:
+        # If we error for some reason and have a valid subscription_id then
+        # attempt to delete from snuba to avoid orphaned subscriptions.
+        if subscription_id:
+            delete_snuba_subscription(subscription_id)
+        raise
+
+    if old_subscription_id:
+        # Once we're set up correctly, remove the previous subscription id.
+        delete_snuba_subscription(old_subscription_id)
+
+    return alert_rule
+
+
+def delete_alert_rule(alert_rule):
+    """
+    Marks an alert rule as deleted and fires off a task to actually delete it.
+    :param alert_rule:
+    """
+    if alert_rule.status in (
+        AlertRuleStatus.PENDING_DELETION.value,
+        AlertRuleStatus.DELETION_IN_PROGRESS.value,
+    ):
+        raise AlreadyDeletedError()
+
+    alert_rule.update(
+        # Randomize the name here so that we don't get unique constraint issues
+        # while waiting for the deletion to process
+        name=uuid4().get_hex(),
+        status=AlertRuleStatus.PENDING_DELETION.value,
+    )
+    tasks.delete_alert_rule.apply_async(kwargs={'alert_rule_id': alert_rule.id})
+    delete_snuba_subscription(alert_rule.subscription_id)
+
+
 def validate_alert_rule_query(query):
     # TODO: We should add more validation here to reject queries that include
     # fields that are invalid in alert rules. For now this will just make sure
@@ -547,15 +778,39 @@ def validate_alert_rule_query(query):
     get_snuba_query_args(query)
 
 
-def create_snuba_subscription(dataset, query, aggregations, time_window, resolution):
+def create_snuba_subscription(project, dataset, query, aggregations, time_window, resolution):
     """
     Creates a subscription to a snuba query.
 
-    :param alert_rule: The alert rule to create the subscription for
+    :param project: The project we're applying the query to
+    :param dataset: The snuba dataset to query and aggregate over
+    :param query: An event search query that we can parse and convert into a
+    set of Snuba conditions
+    :param aggregations: A list of aggregations to calculate over the time
+    window
+    :param time_window: The time window to aggregate over
+    :param resolution: How often to receive updates/bucket size
     :return: A uuid representing the subscription id.
     """
-    # TODO: Implement
-    return uuid4()
+    # TODO: Might make sense to move this into snuba if we have wider use for
+    # it.
+    resp = safe_urlopen(
+        settings.SENTRY_SNUBA + '/subscriptions',
+        'POST',
+        json={
+            'project_id': project.id,
+            'dataset': dataset.value,
+            # We only care about conditions here. Filter keys only matter for
+            # filtering to project and groups. Projects are handled with an
+            # explicit param, and groups can't be queried here.
+            'conditions': get_snuba_query_args(query)['conditions'],
+            'aggregates': [alert_aggregation_to_snuba[agg] for agg in aggregations],
+            'time_window': time_window,
+            'resolution': resolution,
+        },
+    )
+    resp.raise_for_status()
+    return uuid.UUID(resp.json()['subscription_id'])
 
 
 def delete_snuba_subscription(subscription_id):
@@ -564,5 +819,8 @@ def delete_snuba_subscription(subscription_id):
     :param subscription_id: The uuid of the subscription to delete
     :return:
     """
-    # TODO: Implement
-    pass
+    resp = safe_urlopen(
+        settings.SENTRY_SNUBA + '/subscriptions/%s' % subscription_id,
+        'DELETE',
+    )
+    resp.raise_for_status()

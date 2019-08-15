@@ -107,10 +107,12 @@ class GetSentryAppsTest(SentryAppsTest):
             'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
             'schema': {},
-            'installation': {
-                'uuid': self.install.uuid,
-            },
-            'token': self.install.api_token.token
+            'clientId': self.internal_app.application.client_id,
+            'clientSecret': self.internal_app.application.client_secret,
+            'owner': {
+                'id': self.internal_org.id,
+                'slug': self.internal_org.slug,
+            }
         } in json.loads(response.content)
 
         response_uuids = set(o['uuid'] for o in response.data)
@@ -146,10 +148,12 @@ class GetSentryAppsTest(SentryAppsTest):
             'verifyInstall': self.internal_app.verify_install,
             'overview': self.internal_app.overview,
             'schema': {},
-            'installation': {
-                'uuid': self.install.uuid,
-            },
-            'token': self.install.api_token.token
+            'clientId': self.internal_app.application.client_id,
+            'clientSecret': self.internal_app.application.client_secret,
+            'owner': {
+                'id': self.internal_org.id,
+                'slug': self.internal_org.slug,
+            }
         } in json.loads(response.content)
 
         response_uuids = set(o['uuid'] for o in response.data)

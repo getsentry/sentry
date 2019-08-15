@@ -66,52 +66,42 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq10"
+                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq11"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
                 <StyledInputWrapper>
-                  <Base
-                    className="css-8ql7bl-StyledInputWrapper ejumqxq2"
+                  <div
+                    className="css-3qvqqu-StyledInputWrapper ejumqxq2"
                   >
-                    <div
-                      className="css-8ql7bl-StyledInputWrapper ejumqxq2"
-                      is={null}
+                    <StyledInput
+                      autoFocus={true}
+                      onBlur={[Function]}
+                      onChange={[Function]}
+                      onFocus={[Function]}
+                      onKeyDown={[Function]}
+                      placeholder="Filter search"
+                      value=""
                     >
-                      <StyledInput
+                      <input
                         autoFocus={true}
+                        className="css-w10g4i-Input-inputStyles-StyledInput ejumqxq3"
                         onBlur={[Function]}
                         onChange={[Function]}
                         onFocus={[Function]}
                         onKeyDown={[Function]}
                         placeholder="Filter search"
                         value=""
-                      >
-                        <input
-                          autoFocus={true}
-                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
-                          onBlur={[Function]}
-                          onChange={[Function]}
-                          onFocus={[Function]}
-                          onKeyDown={[Function]}
-                          placeholder="Filter search"
-                          value=""
-                        />
-                      </StyledInput>
-                      <InputLoadingWrapper>
-                        <Base
-                          className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
-                        >
-                          <div
-                            className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
-                            is={null}
-                          />
-                        </Base>
-                      </InputLoadingWrapper>
-                    </div>
-                  </Base>
+                      />
+                    </StyledInput>
+                    <InputLoadingWrapper>
+                      <div
+                        className="css-kha9qr-InputLoadingWrapper ejumqxq1"
+                      />
+                    </InputLoadingWrapper>
+                  </div>
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
@@ -245,52 +235,42 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq10"
+                className="css-1w57aoy-DropdownBubble-getMenuBorderRadius-BubbleWithMinWidth ejumqxq11"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
                 <StyledInputWrapper>
-                  <Base
-                    className="css-8ql7bl-StyledInputWrapper ejumqxq2"
+                  <div
+                    className="css-3qvqqu-StyledInputWrapper ejumqxq2"
                   >
-                    <div
-                      className="css-8ql7bl-StyledInputWrapper ejumqxq2"
-                      is={null}
+                    <StyledInput
+                      autoFocus={true}
+                      onBlur={[Function]}
+                      onChange={[Function]}
+                      onFocus={[Function]}
+                      onKeyDown={[Function]}
+                      placeholder="Filter search"
+                      value=""
                     >
-                      <StyledInput
+                      <input
                         autoFocus={true}
+                        className="css-w10g4i-Input-inputStyles-StyledInput ejumqxq3"
                         onBlur={[Function]}
                         onChange={[Function]}
                         onFocus={[Function]}
                         onKeyDown={[Function]}
                         placeholder="Filter search"
                         value=""
-                      >
-                        <input
-                          autoFocus={true}
-                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
-                          onBlur={[Function]}
-                          onChange={[Function]}
-                          onFocus={[Function]}
-                          onKeyDown={[Function]}
-                          placeholder="Filter search"
-                          value=""
-                        />
-                      </StyledInput>
-                      <InputLoadingWrapper>
-                        <Base
-                          className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
-                        >
-                          <div
-                            className="css-7dbbu3-InputLoadingWrapper ejumqxq1"
-                            is={null}
-                          />
-                        </Base>
-                      </InputLoadingWrapper>
-                    </div>
-                  </Base>
+                      />
+                    </StyledInput>
+                    <InputLoadingWrapper>
+                      <div
+                        className="css-kha9qr-InputLoadingWrapper ejumqxq1"
+                      />
+                    </InputLoadingWrapper>
+                  </div>
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList

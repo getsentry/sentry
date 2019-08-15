@@ -2,7 +2,15 @@
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/",
@@ -401,7 +409,15 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/hidden/",
@@ -800,7 +816,15 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/hidden/",
@@ -1344,7 +1368,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="e1pnz46f0 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1353,7 +1377,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f0 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"

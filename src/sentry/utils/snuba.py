@@ -627,12 +627,12 @@ class SnubaQueryParams(object):
     """
 
     def __init__(
-        self, start, end, groupby=None, conditions=None, filter_keys=None,
+        self, start=None, end=None, groupby=None, conditions=None, filter_keys=None,
         aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
         **kwargs
     ):
-        self.start = start
-        self.end = end
+        self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        self.end = end or datetime.utcnow()
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
@@ -643,7 +643,7 @@ class SnubaQueryParams(object):
         self.kwargs = kwargs
 
 
-def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
+def raw_query(start=None, end=None, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, referrer=None,
               is_grouprelease=False, **kwargs):
     """
@@ -728,16 +728,17 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     return results
 
 
-def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=None,
+def query(start=None, end=None, groupby=None, conditions=None, filter_keys=None, aggregations=None,
           selected_columns=None, totals=None, **kwargs):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
+    groupby = groupby or []
 
     try:
         body = raw_query(
-            start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
+            start=start, end=end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             aggregations=aggregations, selected_columns=selected_columns, totals=totals,
             **kwargs
         )
@@ -783,6 +784,36 @@ def nest_groups(data, groups, aggregate_cols):
         return OrderedDict(
             (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
         )
+
+
+JSON_TYPE_MAP = {
+    'UInt8': 'boolean',
+    'UInt16': 'integer',
+    'UInt32': 'integer',
+    'UInt64': 'integer',
+    'Float32': 'number',
+    'Float64': 'number',
+    'DateTime': 'date',
+}
+
+
+def get_json_type(snuba_type):
+    """
+    Convert Snuba/Clickhouse type to JSON type
+    Default is string
+    """
+    # Ignore Nullable part
+    nullable_match = re.search(r'^Nullable\((.+)\)$', snuba_type)
+
+    if nullable_match:
+        snuba_type = nullable_match.group(1)
+
+    # Check for array
+    array_match = re.search(r'^Array\(.+\)$', snuba_type)
+    if array_match:
+        return 'array'
+
+    return JSON_TYPE_MAP.get(snuba_type, 'string')
 
 
 # The following are functions for resolving information from sentry models

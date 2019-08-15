@@ -7,14 +7,14 @@ import warnings
 from collections import namedtuple
 from enum import Enum
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -135,8 +135,6 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(['environment', 'IN', environments])
 
     result = snuba.raw_query(
-        start=datetime.utcfromtimestamp(0),
-        end=datetime.utcnow(),
         selected_columns=SnubaEvent.selected_columns,
         conditions=conditions,
         filter_keys={
@@ -193,10 +191,9 @@ class GroupManager(BaseManager):
         Resolves the 32 character event_id string into
         a Group for which it is found.
         """
-        from sentry.models import SnubaEvent
         group_id = None
 
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id
@@ -210,22 +207,17 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
-        from sentry.utils import snuba
-
-        data = snuba.raw_query(
-            start=datetime.utcfromtimestamp(0),
-            end=datetime.utcnow(),
-            selected_columns=['issue'],
-            conditions=[['issue', 'IS NOT NULL', None]],
+        data = eventstore.get_events(
+            conditions=[['group_id', 'IS NOT NULL', None]],
             filter_keys={
                 'event_id': [event_id],
                 'project_id': project_ids,
             },
             limit=len(project_ids),
-            referrer="Group.filter_by_event_id",
-        )['data']
+            referrer='Group.filter_by_event_id',
+        )
 
-        group_ids = set([evt['issue'] for evt in data])
+        group_ids = set([evt.group_id for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
 

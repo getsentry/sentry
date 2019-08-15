@@ -2,7 +2,15 @@
 
 exports[`OrganizationTeamProjects Should render 1`] = `
 <TeamProjects
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -168,7 +176,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         "outline": "none",
                                       }
                                     }
-                                    tabIndex={-1}
+                                    tabIndex="0"
                                   >
                                     <div
                                       className="css-12n6mek-Actor e53us8t0"
@@ -182,7 +190,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           "outline": "none",
                                         }
                                       }
-                                      tabIndex={-1}
+                                      tabIndex="0"
                                     >
                                       <DropdownButton
                                         isOpen={false}
@@ -215,7 +223,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
-                                                  className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                  className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton e12ma6z0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -223,7 +231,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                    className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton e12ma6z0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -459,7 +467,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             }
                           >
                             <BookmarkStar
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="css-10z01iz-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
@@ -623,7 +639,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -631,7 +647,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -840,7 +856,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             }
                           >
                             <BookmarkStar
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="css-10z01iz-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
@@ -998,7 +1022,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -1006,7 +1030,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -1071,7 +1095,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
     </Component>
   </Panel>
   <Pagination
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     className="css-1yt0wm7-streamCss"
     location={
       Object {

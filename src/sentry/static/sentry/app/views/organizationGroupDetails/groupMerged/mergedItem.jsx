@@ -157,19 +157,20 @@ const Controls = styled(({expanded: _expanded, ...props}) => (
   padding: ${space(0.5)} 0;
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
 
-  ${MergedGroup}:first-child & {
-    border-top: none;
-  }
-  ${MergedGroup}:last-child & {
-    border-top: none;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+  ${MergedGroup} {
+    &:first-child & {
+      border-top: none;
+    }
+    &:last-child & {
+      border-top: none;
+      border-bottom: 1px solid ${p => p.theme.borderLight};
+    }
   }
 `;
 
 const Fingerprint = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${Controls} & {
     font-weight: normal;
     margin: 0;

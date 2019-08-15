@@ -175,8 +175,6 @@ class OrganizationIntegrations extends AsyncComponent {
         key={`sentry-app-row-${key}`}
         data-test-id="internal-integration-row"
         api={this.api}
-        showPublishStatus
-        isInternal
         onRemoveApp={() => this.onRemoveInternalApp(app)}
         organization={organization}
         app={app}

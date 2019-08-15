@@ -1,8 +1,8 @@
-import {pick, get} from 'lodash';
+import {partial, pick, get} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
+import {ALL_VIEWS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 
 /**
  * Given a view id, return the corresponding view object
@@ -22,25 +22,8 @@ export function getCurrentView(requestedView) {
  * @returns {Object}
  */
 export function getQuery(view, location) {
-  const fields = [];
   const groupby = view.data.groupby ? [...view.data.groupby] : [];
-
-  const viewFields = get(view, 'data.fields', []);
-
-  viewFields.forEach(field => {
-    if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-      const specialField = SPECIAL_FIELDS[field];
-
-      if (specialField.hasOwnProperty('fields')) {
-        fields.push(...specialField.fields);
-      }
-      if (specialField.hasOwnProperty('groupby')) {
-        groupby.push(...specialField.groupby);
-      }
-    } else {
-      fields.push(field);
-    }
-  });
+  const fields = get(view, 'data.fields', []);
 
   const data = pick(location.query, [
     'project',
@@ -150,4 +133,24 @@ export function fetchTotalCount(api, orgSlug, query) {
       query: {...urlParams, query: query.query},
     })
     .then(res => res.count);
+}
+
+/**
+ * Get the field renderer for the named field and metadata
+ *
+ * @param {String} field name
+ * @param {object} metadata mapping.
+ * @returns {Function}
+ */
+export function getFieldRenderer(field, meta) {
+  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    return SPECIAL_FIELDS[field].renderFunc;
+  }
+  // Inflect the field name so it will match the property in the result set.
+  const fieldName = field.replace(/^([^\(]+)\(([a-z\._+]+)\)$/, '$1_$2');
+  const fieldType = meta[fieldName];
+  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+  }
+  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }

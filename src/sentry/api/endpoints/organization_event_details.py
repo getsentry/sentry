@@ -5,7 +5,7 @@ import six
 from enum import Enum
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry import features
+from sentry import eventstore, features
 from sentry.models import SnubaEvent
 from sentry.models.project import Project
 from sentry.api.serializers import serialize
@@ -40,15 +40,26 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
-        data = serialize(event)
+        next_event = eventstore.get_next_event_id(
+            event,
+            conditions=snuba_args['conditions'],
+            filter_keys=snuba_args['filter_keys']
+        )
+        prev_event = eventstore.get_prev_event_id(
+            event,
+            conditions=snuba_args['conditions'],
+            filter_keys=snuba_args['filter_keys']
+        )
 
-        data['nextEventID'] = self.next_event_id(request, organization, snuba_args, event)
-        data['previousEventID'] = self.prev_event_id(request, organization, snuba_args, event)
+        data = serialize(event)
+        data['nextEventID'] = next_event[1] if next_event else None
+        data['previousEventID'] = prev_event[1] if prev_event else None
+
         data['projectSlug'] = project_slug
 
         return Response(data)

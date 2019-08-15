@@ -7,9 +7,14 @@ import six
 from django.utils.encoding import force_text
 
 from sentry import tsdb
+from sentry.utils.safe import get_path
 
 
 class FilterStatKeys(object):
+    """
+    NOTE: This enum also exists in semaphore, check if alignment is needed when
+    editing this.
+    """
     IP_ADDRESS = 'ip-address'
     RELEASE_VERSION = 'release-version'
     ERROR_MESSAGE = 'error-message'
@@ -46,7 +51,7 @@ def is_valid_ip(project_config, ip_address):
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = project_config.config.get('blacklisted_ips')
+    blacklist = get_path(project_config.config, 'filter_settings', 'client_ips', 'blacklisted_ips')
     if not blacklist:
         return True
 
@@ -75,7 +80,13 @@ def is_valid_release(project_config, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = project_config.config.get(FilterTypes.RELEASES)
+    invalid_versions = get_path(
+        project_config.config,
+        'filter_settings',
+        FilterTypes.RELEASES,
+        'releases'
+    )
+
     if not invalid_versions:
         return True
 
@@ -93,7 +104,13 @@ def is_valid_error_message(project_config, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = project_config.config.get(FilterTypes.ERROR_MESSAGES)
+    filtered_errors = get_path(
+        project_config.config,
+        'filter_settings',
+        FilterTypes.ERROR_MESSAGES,
+        'patterns'
+    )
+
     if not filtered_errors:
         return True
 

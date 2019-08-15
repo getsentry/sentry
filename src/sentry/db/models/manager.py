@@ -6,7 +6,6 @@ import threading
 import weakref
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
@@ -14,10 +13,8 @@ from django.db.models.signals import (post_save, post_delete, post_init, class_p
 from django.utils.encoding import smart_text
 
 from sentry import nodestore
-from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.validators import normalize_event_id
 
 from .query import create_or_update
 
@@ -309,35 +306,8 @@ class BaseManager(Manager):
         return self._queryset_class(self.model, using=self._db)
 
 
-class SnubaEventManager:
-    def from_event_id(self, id_or_event_id, project_id):
-        """
-        Get a SnubaEvent by either its id primary key or its hex event_id.
-
-        Returns None if the event cannot be found under either scheme.
-
-        Log any attempt to fetch a SnubaEvent by primary key and eventually remove.
-        """
-        from sentry.models import SnubaEvent, Event
-
-        event_id = normalize_event_id(id_or_event_id)
-        if not event_id:
-            logger.warning('Attempt to fetch SnubaEvent by primary key', exc_info=True, extra={
-                'stack': True
-            })
-
-            event = Event.objects.from_event_id(id_or_event_id, project_id)
-
-            if not event:
-                return None
-
-            event_id = event.event_id
-
-        return SnubaEvent.get_event(project_id, event_id)
-
-
 class EventManager(BaseManager):
-
+    # TODO: Remove method in favour of eventstore.bind_nodes
     def bind_nodes(self, object_list, *node_names):
         """
         For a list of Event objects, and a property name where we might find an
@@ -360,46 +330,3 @@ class EventManager(BaseManager):
         for item, node in object_node_list:
             data = node_results.get(node.id) or {}
             node.bind_data(data, ref=node.get_ref(item))
-
-    def from_event_id(self, id_or_event_id, project_id):
-        """
-        Get an Event by either its id primary key or its hex event_id.
-
-        Will automatically try to infer the type of id, and grab the correct
-        event.  If the provided id is a hex event_id, the project_id must also
-        be provided to disambiguate it.
-
-        Returns None if the event cannot be found under either scheme.
-        """
-        # TODO (alexh) instrument this to report any times we are still trying
-        # to get events by id.
-        # TODO (alexh) deprecate lookup by id so we can move to snuba.
-
-        event = None
-        if id_or_event_id.isdigit() and int(id_or_event_id) <= BoundedBigIntegerField.MAX_VALUE:
-            # If its a numeric string, check if it's an event Primary Key first
-            try:
-                if project_id is None:
-                    event = self.get(
-                        id=id_or_event_id,
-                    )
-                else:
-                    event = self.get(
-                        id=id_or_event_id,
-                        project_id=project_id,
-                    )
-            except ObjectDoesNotExist:
-                pass
-        # If it was not found as a PK, and its a possible event_id, search by
-        # that instead.
-        event_id = normalize_event_id(id_or_event_id)
-        if project_id is not None and event is None and event_id:
-            try:
-                event = self.get(
-                    event_id=event_id,
-                    project_id=project_id,
-                )
-            except ObjectDoesNotExist:
-                pass
-
-        return event

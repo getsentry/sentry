@@ -1,7 +1,9 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import ExternalLink from 'app/components/links/externalLink';
 import Hook from 'app/components/hook';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -11,21 +13,21 @@ const Footer = () => {
     <footer>
       <div className="container">
         <div className="pull-right">
-          <a className="hidden-xs" href="/api/">
+          <FooterLink className="hidden-xs" href="/api/">
             {t('API')}
-          </a>
-          <a href="/docs/">{t('Docs')}</a>
-          <a
+          </FooterLink>
+          <FooterLink href="/docs/">{t('Docs')}</FooterLink>
+          <FooterLink
             className="hidden-xs"
             href="https://github.com/getsentry/sentry"
             rel="noreferrer"
           >
             {t('Contribute')}
-          </a>
+          </FooterLink>
           {config.isOnPremise && (
-            <a className="hidden-xs" href="/out/">
+            <FooterLink className="hidden-xs" href="/out/">
               {t('Migrate to SaaS')}
-            </a>
+            </FooterLink>
           )}
         </div>
         {config.isOnPremise && (
@@ -37,11 +39,18 @@ const Footer = () => {
             })}
           </div>
         )}
-        <a href="/" className="icon-sentry-logo" />
+        <a href="/" tabIndex="-1" className="icon-sentry-logo" />
         <Hook name="footer" />
       </div>
     </footer>
   );
 };
+
+const FooterLink = styled(ExternalLink)`
+  &.focus-visible {
+    outline: none;
+    box-shadow: ${p => p.theme.blue} 0 2px 0;
+  }
+`;
 
 export default Footer;

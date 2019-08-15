@@ -491,7 +491,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -500,7 +500,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                  className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -726,7 +726,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -735,7 +735,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                  className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -961,7 +961,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -970,7 +970,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                                  className="css-z6hjis-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -1220,7 +1220,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <ForwardRef
                                                           aria-disabled={true}
-                                                          className="css-15g9rdf-StyledButton-getColors e12ma6z0"
+                                                          className="css-19y9gg5-StyledButton-getColors e12ma6z0"
                                                           data-test-id="delete"
                                                           disabled={true}
                                                           href={null}
@@ -1231,7 +1231,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-15g9rdf-StyledButton-getColors e12ma6z0"
+                                                            className="css-19y9gg5-StyledButton-getColors e12ma6z0"
                                                             data-test-id="delete"
                                                             href={null}
                                                             onClick={[Function]}
@@ -1487,7 +1487,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <ForwardRef
                                                           aria-disabled={true}
-                                                          className="css-15g9rdf-StyledButton-getColors e12ma6z0"
+                                                          className="css-19y9gg5-StyledButton-getColors e12ma6z0"
                                                           data-test-id="delete"
                                                           disabled={true}
                                                           href={null}
@@ -1498,7 +1498,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-15g9rdf-StyledButton-getColors e12ma6z0"
+                                                            className="css-19y9gg5-StyledButton-getColors e12ma6z0"
                                                             data-test-id="delete"
                                                             href={null}
                                                             onClick={[Function]}

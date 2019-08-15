@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from functools import partial
 
+from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -37,8 +36,6 @@ class ProjectEventsEndpoint(ProjectEndpoint):
                                      belong to.
         """
         from sentry.api.paginator import GenericOffsetPaginator
-        from sentry.models import SnubaEvent
-        from sentry.utils.snuba import raw_query
 
         query = request.GET.get('query')
         conditions = []
@@ -47,24 +44,19 @@ class ProjectEventsEndpoint(ProjectEndpoint):
                 [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
 
         full = request.GET.get('full', False)
-        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
-        now = timezone.now()
+        cols = None if full else eventstore.full_columns
+
         data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=now - timedelta(days=90),
-            end=now,
+            eventstore.get_events,
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
-            selected_columns=snuba_cols,
-            orderby='-timestamp',
+            additional_columns=cols,
             referrer='api.project-events',
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
+            on_results=lambda results: serialize(results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )

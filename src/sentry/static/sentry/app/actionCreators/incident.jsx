@@ -13,13 +13,7 @@ import {t} from 'app/locale';
  * @param {String} title Title of the incident
  * @param {String[]} groups List of group ids
  */
-export async function createIncident(
-  api,
-  organization,
-  title,
-  groups,
-  dateStarted = new Date()
-) {
+export async function createIncident(api, organization, title, groups) {
   addLoadingMessage(t('Creating new incident...'));
 
   try {
@@ -30,7 +24,6 @@ export async function createIncident(
         data: {
           title,
           groups,
-          dateStarted,
           query: '',
         },
       }

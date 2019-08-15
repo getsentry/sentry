@@ -29,7 +29,7 @@ from sentry.incidents.models import (
 )
 from sentry.mediators import sentry_apps, sentry_app_installations, sentry_app_installation_tokens, service_hooks
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
+    Activity, Environment, Event, EventError, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
     UserReport, PlatformExternalIssue,
@@ -497,12 +497,6 @@ class Factories(object):
         )
 
         event = Event(event_id=event_id, group=group, **kwargs)
-        if group:
-            EventMapping.objects.create(
-                project_id=event.project.id,
-                event_id=event_id,
-                group=group,
-            )
         # emulate EventManager refs
         event.data.bind_ref(event)
         event.save()
@@ -740,11 +734,10 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration_token(install, **kwargs):
-        installation_token = sentry_app_installation_tokens.Creator.run(
+        return sentry_app_installation_tokens.Creator.run(
             sentry_app_installation=install,
             **kwargs
         )
-        return installation_token.api_token
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):

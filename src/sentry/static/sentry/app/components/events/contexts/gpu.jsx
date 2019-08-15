@@ -58,8 +58,6 @@ class GpuContextType extends React.Component {
   }
 }
 
-GpuContextType.getTitle = function(value) {
-  return 'GPU';
-};
+GpuContextType.getTitle = () => 'GPU';
 
 export default GpuContextType;

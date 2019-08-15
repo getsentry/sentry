@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
+from sentry.utils import metrics
 
 from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember
 from sentry.signals import member_joined
@@ -169,6 +170,7 @@ class BaseInviteHelper(object):
             )
 
             self.handle_success()
+            metrics.incr('organization.invite-accepted', sample_rate=1.0)
 
     def remove_invite_cookie(self, response):
         if PENDING_INVITE in self.request.COOKIES:

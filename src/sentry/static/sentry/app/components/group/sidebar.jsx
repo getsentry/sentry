@@ -80,7 +80,6 @@ const GroupSidebar = createReactClass({
       query: pickBy({
         key: group.tags.map(data => data.key),
         environment: this.state.environments.map(env => env.name),
-        enable_snuba: '1',
       }),
       success: data => {
         this.setState({

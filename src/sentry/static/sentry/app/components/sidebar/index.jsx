@@ -260,8 +260,7 @@ class Sidebar extends React.Component {
                   />
 
                   <Feature
-                    features={['events', 'events-v2']}
-                    requireAll={false}
+                    features={['events']}
                     hookName="events-sidebar-item"
                     organization={organization}
                   >
@@ -277,6 +276,26 @@ class Sidebar extends React.Component {
                       label={t('Events')}
                       to={`/organizations/${organization.slug}/events/`}
                       id="events"
+                    />
+                  </Feature>
+
+                  <Feature
+                    features={['events-v2']}
+                    hookName="events-sidebar-item"
+                    organization={organization}
+                  >
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/eventsv2/`,
+                          evt
+                        )
+                      }
+                      icon={<InlineSvg src="icon-labs" />}
+                      label={t('Events V2')}
+                      to={`/organizations/${organization.slug}/eventsv2/`}
+                      id="events-v2"
                     />
                   </Feature>
 

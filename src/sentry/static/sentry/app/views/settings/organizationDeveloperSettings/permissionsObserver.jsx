@@ -62,7 +62,7 @@ export default class PermissionsObserver extends React.Component {
           </PanelBody>
         </Panel>
         <Panel>
-          <PanelHeader>{t('Resource Subscriptions')}</PanelHeader>
+          <PanelHeader>{t('Webhooks')}</PanelHeader>
           <PanelBody>
             <Subscriptions
               permissions={permissions}

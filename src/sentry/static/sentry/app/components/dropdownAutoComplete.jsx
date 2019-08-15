@@ -35,6 +35,7 @@ class DropdownAutoComplete extends React.Component {
             <Actor
               isOpen={renderProps.isOpen}
               role="button"
+              tabIndex="0"
               onClick={
                 renderProps.isOpen && allowActorToggle
                   ? renderProps.actions.close

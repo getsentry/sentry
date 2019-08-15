@@ -46,6 +46,11 @@ const StyledLink = styled(Link)`
   &:hover {
     border-color: ${p => p.theme.blueLight};
   }
+
+  &.focus-visible {
+    outline: none;
+    box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
+  }
 `;
 
 const AlertLinkText = styled('div')`

@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
-    'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
-    'IntegrationRepositoryTestCase',
-    'ReleaseCommitPatchTest', 'SetRefsTestCase', 'OrganizationDashboardWidgetTestCase'
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase',
+    'AuthProviderTestCase', 'RuleTestCase', 'PermissionTestCase', 'PluginTestCase',
+    'CliTestCase', 'AcceptanceTestCase', 'IntegrationTestCase', 'SnubaTestCase',
+    'IntegrationRepositoryTestCase', 'ReleaseCommitPatchTest', 'SetRefsTestCase',
+    'OrganizationDashboardWidgetTestCase'
 )
 
 import base64
@@ -17,7 +17,6 @@ import pytest
 import requests
 import six
 import types
-import logging
 import mock
 
 from click.testing import CliRunner
@@ -49,7 +48,7 @@ from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
     GroupEnvironment, GroupHash, GroupMeta, ProjectOption, Repository, DeletedOrganization,
-    Environment, GroupStatus, Organization, TotpInterface, UserReport,
+    Environment, Organization, TotpInterface,
     Dashboard, ObjectStatus, WidgetDataSource, WidgetDataSourceTypes
 )
 from sentry.plugins import plugins
@@ -522,69 +521,6 @@ class TwoFactorAPITestCase(APITestCase):
             else:
                 non_compliant_members.append(user.email)
         return non_compliant_members
-
-
-class UserReportEnvironmentTestCase(APITestCase):
-    def setUp(self):
-
-        self.project = self.create_project()
-        self.env1 = self.create_environment(self.project, 'production')
-        self.env2 = self.create_environment(self.project, 'staging')
-
-        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
-
-        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
-        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
-
-        self.env1_userreports = self.create_user_report_for_events(
-            self.project, self.group, self.env1_events, self.env1)
-        self.env2_userreports = self.create_user_report_for_events(
-            self.project, self.group, self.env2_events, self.env2)
-
-    def make_event(self, **kwargs):
-        result = {
-            'event_id': 'a' * 32,
-            'message': 'foo',
-            'timestamp': 1403007314.570599,
-            'level': logging.ERROR,
-            'logger': 'default',
-            'tags': [],
-        }
-        result.update(kwargs)
-        return result
-
-    def create_environment(self, project, name):
-        env = Environment.objects.create(
-            project_id=project.id,
-            organization_id=project.organization_id,
-            name=name,
-        )
-        env.add_project(project)
-        return env
-
-    def create_events_for_environment(self, group, environment, num_events):
-        return [self.create_event(group=group, tags={
-            'environment': environment.name}) for __i in range(num_events)]
-
-    def create_user_report_for_events(self, project, group, events, environment):
-        reports = []
-        for i, event in enumerate(events):
-            reports.append(UserReport.objects.create(
-                group=group,
-                project=project,
-                event_id=event.event_id,
-                name='foo%d' % i,
-                email='bar%d@example.com' % i,
-                comments='It Broke!!!',
-                environment=environment,
-            ))
-        return reports
-
-    def assert_same_userreports(self, response_data, userreports):
-        assert sorted(int(r.get('id')) for r in response_data) == sorted(
-            r.id for r in userreports)
-        assert sorted(r.get('eventID') for r in response_data) == sorted(
-            r.event_id for r in userreports)
 
 
 class AuthProviderTestCase(TestCase):

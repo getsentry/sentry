@@ -17,11 +17,12 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
         three_min_ago = (timezone.now() - timedelta(minutes=3)).isoformat()[:19]
+        four_min_ago = (timezone.now() - timedelta(minutes=4)).isoformat()[:19]
 
         self.prev_event = self.store_event(
             data={
                 'event_id': 'a' * 32,
-                'timestamp': three_min_ago,
+                'timestamp': four_min_ago,
                 'fingerprint': ['group-1']
             },
             project_id=project.id
@@ -29,7 +30,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.cur_event = self.store_event(
             data={
                 'event_id': 'b' * 32,
-                'timestamp': two_min_ago,
+                'timestamp': three_min_ago,
                 'fingerprint': ['group-1']
             },
             project_id=project.id
@@ -37,8 +38,20 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.next_event = self.store_event(
             data={
                 'event_id': 'c' * 32,
-                'timestamp': one_min_ago,
+                'timestamp': two_min_ago,
                 'fingerprint': ['group-1'],
+                'environment': 'production',
+                'tags': {'environment': 'production'}
+            },
+            project_id=project.id
+        )
+
+        # Event in different group
+        self.store_event(
+            data={
+                'event_id': 'd' * 32,
+                'timestamp': one_min_ago,
+                'fingerprint': ['group-2'],
                 'environment': 'production',
                 'tags': {'environment': 'production'}
             },
@@ -54,28 +67,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
                 'organization_slug': self.cur_event.project.organization.slug,
             }
         )
-        response = self.client.get(url, format='json', data={
-            'enable_snuba': '1',
-        })
-
-        assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.cur_event.event_id)
-        assert response.data['nextEventID'] == six.text_type(self.next_event.event_id)
-        assert response.data['previousEventID'] == six.text_type(self.prev_event.event_id)
-        assert response.data['groupID'] == six.text_type(self.cur_event.group.id)
-
-        # Same event can be looked up by primary key
-        url = reverse(
-            'sentry-api-0-project-event-details',
-            kwargs={
-                'event_id': self.cur_event.id,
-                'project_slug': self.cur_event.project.slug,
-                'organization_slug': self.cur_event.project.organization.slug,
-            }
-        )
-        response = self.client.get(url, format='json', data={
-            'enable_snuba': '1',
-        })
+        response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.cur_event.event_id)
@@ -92,9 +84,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
                 'organization_slug': self.prev_event.project.organization.slug,
             }
         )
-        response = self.client.get(url, format='json', data={
-            'enable_snuba': '1'
-        })
+        response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.prev_event.event_id)
@@ -112,7 +102,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             }
         )
         response = self.client.get(url, format='json', data={
-            'enable_snuba': '1',
             'environment': ['production', 'staging']
         })
 
@@ -121,6 +110,21 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data['previousEventID'] is None
         assert response.data['nextEventID'] == self.next_event.event_id
         assert response.data['groupID'] == six.text_type(self.prev_event.group.id)
+
+    def test_ignores_different_group(self):
+        url = reverse(
+            'sentry-api-0-project-event-details',
+            kwargs={
+                'event_id': self.next_event.event_id,
+                'project_slug': self.next_event.project.slug,
+                'organization_slug': self.next_event.project.organization.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(self.next_event.event_id)
+        assert response.data['nextEventID'] is None
 
 
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):

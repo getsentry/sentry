@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
-from datetime import datetime
-from django.utils import timezone
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import GroupShare
-from sentry.utils.samples import create_sample_event
+from sentry.utils.samples import load_data
 
 
 class SharedIssueTest(AcceptanceTestCase):
@@ -21,32 +23,17 @@ class SharedIssueTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def create_sample_event(self, platform):
-        event = create_sample_event(
-            project=self.project,
-            platform=platform,
-            event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
-            timestamp=1452683305,
-        )
-        event.group.update(
-            first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc),
-            last_seen=datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
-        )
-        return event
-
-    def test_cocoa_event(self):
-        event = self.create_sample_event(
-            platform='cocoa',
-        )
-
-        group = event.group
+    def test_python_event(self):
+        data = load_data(platform='python')
+        data['timestamp'] = (datetime.now() - timedelta(days=1)).isoformat()[:19]
+        event = self.store_event(data=data, project_id=self.project.id)
 
         GroupShare.objects.create(
-            project_id=group.project_id,
-            group=group,
+            project_id=event.group.project_id,
+            group=event.group,
         )
 
-        self.browser.get(u'/share/issue/{}/'.format(group.get_share_id()))
+        self.browser.get(u'/share/issue/{}/'.format(event.group.get_share_id()))
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.entries')
-        self.browser.snapshot('shared issue cocoa')
+        self.browser.snapshot('shared issue python')

@@ -40,15 +40,15 @@ class OnboardingWelcome extends React.Component {
           {t(
             `With Sentry, you can find and fix bugs before your customers even
              notice a problem. When things go to hell, we'll help you fight the
-             fires. Let's get started!`
+             fires. In the next two steps you will…`
           )}
         </p>
         <ul>
           <li>{t('Choose your platform.')}</li>
           <li>
             {t(
-              `Install and verify the integration of Sentry into your
-               application by sending your first event.`
+              `Integrate Sentry into your applicaton, invite your team, or take
+               a tour of Sentry.`
             )}
           </li>
         </ul>

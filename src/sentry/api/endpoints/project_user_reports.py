@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from uuid import uuid4
 
+from sentry import eventstore
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
@@ -16,9 +17,7 @@ from sentry.api.serializers import (
 from sentry.api.paginator import DateTimePaginator
 from sentry.models import (
     Environment,
-    Event,
     EventUser,
-    Group,
     GroupStatus,
     ProjectKey,
     UserReport)
@@ -140,21 +139,17 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         report['event_id'] = report['event_id'].lower()
         report['project'] = project
 
+        event = eventstore.get_event_by_id(project.id, report['event_id'])
+
         # TODO(dcramer): we should probably create the user if they dont
         # exist, and ideally we'd also associate that with the event
-        euser = self.find_event_user(report)
+        euser = self.find_event_user(report, event)
         if euser and not euser.name and report['name']:
             euser.update(name=report['name'])
         if euser:
             report['event_user_id'] = euser.id
 
-        event = Event.objects.from_event_id(report['event_id'], project.id)
-        if not event:
-            try:
-                report['group'] = Group.objects.from_event_id(project, report['event_id'])
-            except Group.DoesNotExist:
-                pass
-        else:
+        if event:
             # if the event is more than 30 minutes old, we dont allow updates
             # as it might be abusive
             if event.datetime < timezone.now() - timedelta(minutes=30):
@@ -198,20 +193,18 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             if report_instance.group:
                 report_instance.notify()
 
-        user_feedback_received.send(project=report_instance.project, group=report_instance.group, sender=self)
+        user_feedback_received.send(
+            project=report_instance.project,
+            group=report_instance.group,
+            sender=self)
 
         return self.respond(serialize(report_instance, request.user, UserReportWithGroupSerializer(
             environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))
 
-    def find_event_user(self, report_data):
-        try:
-            event = Event.objects.get(
-                group_id=report_data.get('group_id'),
-                event_id=report_data['event_id'],
-            )
-        except Event.DoesNotExist:
+    def find_event_user(self, report_data, event):
+        if not event:
             if not report_data.get('email'):
                 return None
             try:

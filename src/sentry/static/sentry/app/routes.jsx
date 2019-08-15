@@ -645,8 +645,16 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="New Integration"
-          path="new/"
+          name="New Public Integration"
+          path="new-public/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Internal Integration"
+          path="new-internal/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           }
@@ -932,13 +940,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDashboardContainer" */ 'app/views/organizationDashboard')
+              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/organizationDashboard/overviewDashboard')
+                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -967,6 +975,13 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
+          <Route
+            path="/organizations/:orgId/eventsv2/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "EventsV2" */ 'app/views/organizationEventsV2')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
 
-from sentry.models import SnubaEvent
+from sentry import eventstore
 from sentry.web.frontend.base import ProjectView
 
 
@@ -14,7 +14,7 @@ class ProjectEventRedirect(ProjectView):
         """
         Given a client event id and project, redirects to the event page
         """
-        event = SnubaEvent.objects.from_event_id(client_event_id, project.id)
+        event = eventstore.get_event_by_id(project.id, client_event_id)
 
         if event is None:
             raise Http404

@@ -77,8 +77,28 @@ ADMINS = ()
 # This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
+# List of IP subnets which should not be accessible
+SENTRY_DISALLOWED_IPS = ()
+
 # Hosts that are allowed to use system token authentication.
-INTERNAL_SYSTEM_IPS = ()
+# http://en.wikipedia.org/wiki/Reserved_IP_addresses
+INTERNAL_SYSTEM_IPS = (
+    "0.0.0.0/8",
+    "10.0.0.0/8",
+    "100.64.0.0/10",
+    "127.0.0.0/8",
+    "169.254.0.0/16",
+    "172.16.0.0/12",
+    "192.0.0.0/29",
+    "192.0.2.0/24",
+    "192.88.99.0/24",
+    "192.168.0.0/16",
+    "198.18.0.0/15",
+    "198.51.100.0/24",
+    "224.0.0.0/4",
+    "240.0.0.0/4",
+    "255.255.255.255/32",
+)
 
 MANAGERS = ADMINS
 
@@ -256,7 +276,7 @@ INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
     'crispy_forms', 'debug_toolbar',
-    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
+    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents', 'sentry.discover',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
@@ -851,11 +871,11 @@ SENTRY_FEATURES = {
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
-    # DEPCREATED: pending removal.
+    # Enable require 2FA across organization
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
     'organizations:sentry10': True,
-    # Enable basic SSO functionality, providing configurable single signon
+    # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
     'organizations:sso-basic': True,
@@ -1158,9 +1178,6 @@ SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
 
 # Maximum content length for source files before we abort fetching
 SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
-
-# List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS = ()
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and

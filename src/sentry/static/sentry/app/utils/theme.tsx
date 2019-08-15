@@ -1,3 +1,5 @@
+import color from 'color';
+
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
@@ -64,6 +66,7 @@ const colors = {
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
+  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
 
@@ -128,6 +131,9 @@ const button = {
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
+    focusShadow: color(colors.borderLight)
+      .alpha(0.5)
+      .string(),
   },
   primary: {
     color: colors.white,
@@ -135,6 +141,9 @@ const button = {
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
+    focusShadow: color(colors.purple)
+      .alpha(0.4)
+      .string(),
   },
   success: {
     color: colors.white,
@@ -142,6 +151,9 @@ const button = {
     backgroundActive: colors.green,
     border: '#7ccca5',
     borderActive: '#7ccca5',
+    focusShadow: color(colors.green)
+      .alpha(0.5)
+      .string(),
   },
   danger: {
     color: colors.white,
@@ -149,6 +161,9 @@ const button = {
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
+    focusShadow: color(colors.red)
+      .alpha(0.5)
+      .string(),
   },
   link: {
     color: colors.blue,

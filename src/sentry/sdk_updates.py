@@ -217,6 +217,13 @@ SDK_SUPPORTED_MODULES = [
         'suggestion': EnableIntegrationSuggestion('tornado', 'https://docs.sentry.io/platforms/python/tornado/')
     },
     {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.10.0',
+        'module_name': 'redis',
+        'module_version_min': '0.0.0',
+        'suggestion': EnableIntegrationSuggestion('redis', 'https://docs.sentry.io/platforms/python/redis/')
+    },
+    {
         'sdk_name': 'sentry.dotnet',
         'sdk_version_added': '0.0.0',
         'module_name': 'Microsoft.AspNetCore.Hosting',

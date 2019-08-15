@@ -36,7 +36,7 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventDict, EventError, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport, Organization,
@@ -46,7 +46,6 @@ from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -362,14 +361,13 @@ class EventManager(object):
             protocol_version=six.text_type(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
+            normalize_user_agent=True,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
         self._data = CanonicalKeyDict(
             rust_normalizer.normalize_event(dict(self._data))
         )
-
-        normalize_user_agent(self._data)
 
     def should_filter(self):
         '''
@@ -721,28 +719,6 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        # When an event was sampled, the canonical source of truth
-        # is the EventMapping table since we aren't going to be writing out an actual
-        # Event row. Otherwise, if the Event isn't being sampled, we can safely
-        # rely on the Event table itself as the source of truth and ignore
-        # EventMapping since it's redundant information.
-        if is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(EventMapping)):
-                    EventMapping.objects.create(project=project, group=group, event_id=event_id)
-            except IntegrityError:
-                logger.info(
-                    'duplicate.found',
-                    exc_info=True,
-                    extra={
-                        'event_uuid': event_id,
-                        'project_id': project.id,
-                        'group_id': group.id if group else None,
-                        'model': EventMapping.__name__,
-                    }
-                )
-                return event
-
         environment = Environment.get_or_create(
             project=project,
             name=environment,
@@ -1087,12 +1063,6 @@ class EventManager(object):
             is_sample = False
         else:
             is_sample = can_sample
-
-        if not is_sample:
-            GroupHash.record_last_processed_event_id(
-                all_hashes[0].id,
-                event.event_id,
-            )
 
         return group, is_new, is_regression, is_sample
 

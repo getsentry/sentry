@@ -1,14 +1,65 @@
 from __future__ import absolute_import
-from sentry.testutils import UserReportEnvironmentTestCase
 from exam import fixture
 
+from sentry.models import Environment, GroupStatus, UserReport
+from sentry.testutils import APITestCase, SnubaTestCase
 
-class GroupUserReport(UserReportEnvironmentTestCase):
+
+class GroupUserReport(APITestCase, SnubaTestCase):
+
+    def setUp(self):
+        self.project = self.create_project()
+        self.env1 = self.create_environment(self.project, 'production')
+        self.env2 = self.create_environment(self.project, 'staging')
+
+        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+
+        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
+        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
+
+        self.env1_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env1_events, self.env1)
+        self.env2_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env2_events, self.env2)
+
     @fixture
     def path(self):
         return u'/api/0/groups/{}/user-feedback/'.format(
             self.group.id,
         )
+
+    def create_environment(self, project, name):
+        env = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
+
+    def create_events_for_environment(self, group, environment, num_events):
+        return [self.create_event(group=group, tags={
+            'environment': environment.name}) for __i in range(num_events)]
+
+    def create_user_report_for_events(self, project, group, events, environment):
+        reports = []
+        for i, event in enumerate(events):
+            reports.append(UserReport.objects.create(
+                group=group,
+                project=project,
+                event_id=event.event_id,
+                name='foo%d' % i,
+                email='bar%d@example.com' % i,
+                comments='It Broke!!!',
+                environment=environment,
+            ))
+        return reports
+
+    def assert_same_userreports(self, response_data, userreports):
+        assert sorted(int(r.get('id')) for r in response_data) == sorted(
+            r.id for r in userreports)
+        assert sorted(r.get('eventID') for r in response_data) == sorted(
+            r.event_id for r in userreports)
 
     def test_specified_enviroment(self):
         self.login_as(user=self.user)

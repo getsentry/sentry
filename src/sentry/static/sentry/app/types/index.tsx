@@ -3,9 +3,20 @@ export type Organization = {
   slug: string;
   projects: Project[];
   access: string[];
+  features: string[];
 };
 
 export type Project = {
+  id: string;
+  slug: string;
+  isMember: boolean;
+  teams: Team[];
+  features: string[];
+
+  isBookmarked: boolean;
+};
+
+export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
@@ -35,4 +46,43 @@ export type Event = {
   metadata: EventMetadata;
   message: string;
   platform?: string;
+};
+
+export type EventsStatsData = [number, {count: number}[]][];
+
+export type EventsStats = {
+  data: EventsStatsData;
+  totals?: {count: number};
+};
+
+export type User = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+};
+
+export type CommitAuthor = {
+  email?: string;
+  name?: string;
+};
+
+// TODO(ts): This type is incomplete
+export type Environment = {};
+
+// TODO(ts): This type is incomplete
+export type SavedSearch = {};
+
+// TODO(ts): This type is incomplete
+export type Plugin = {};
+
+export type GlobalSelection = {
+  projects: number[];
+  environments: string[];
+  datetime: {
+    start: string;
+    end: string;
+    period: string;
+    utc: boolean;
+  };
 };

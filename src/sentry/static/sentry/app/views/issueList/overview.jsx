@@ -54,6 +54,10 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
 
+const CongratsRobots = React.lazy(() =>
+  import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
+);
+
 const IssueList = createReactClass({
   displayName: 'IssueList',
 
@@ -564,10 +568,19 @@ const IssueList = createReactClass({
     return <LoadingIndicator />;
   },
 
+  renderNoUnresolvedIssues() {
+    return (
+      <React.Suspense fallback={this.renderLoading()}>
+        <CongratsRobots data-test-id="congrats-robots" />
+      </React.Suspense>
+    );
+  },
+
   renderStreamBody() {
     let body;
     const {organization} = this.props;
     const selectedProjects = this.getGlobalSearchProjects();
+    const query = this.getQuery();
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
@@ -584,6 +597,8 @@ const IssueList = createReactClass({
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
     } else if (noFirstEvents) {
       body = this.renderAwaitingEvents(projects);
+    } else if (query === DEFAULT_QUERY) {
+      body = this.renderNoUnresolvedIssues();
     } else {
       body = this.renderEmpty();
     }

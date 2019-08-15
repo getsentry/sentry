@@ -2,7 +2,8 @@ from __future__ import absolute_import, division
 
 from django.http import Http404, HttpResponse
 
-from sentry.models import Event, SnubaEvent, Group, GroupMeta, get_group_with_redirect
+from sentry import eventstore
+from sentry.models import Event, Group, GroupMeta, get_group_with_redirect
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView
 
@@ -21,13 +22,11 @@ class GroupEventJsonView(OrganizationView):
             raise Http404
 
         if event_id_or_latest == 'latest':
-            # It's possible that a message would not be created under certain
-            # circumstances (such as a post_save signal failing)
-            event = group.get_latest_event() or Event(group=group)
+            event = group.get_latest_event()
         else:
-            event = SnubaEvent.objects.from_event_id(event_id_or_latest, group.project.id)
+            event = eventstore.get_event_by_id(group.project.id, event_id_or_latest)
 
-        if event is None or (event.group_id != int(group_id)):
+        if event is None:
             raise Http404
 
         Event.objects.bind_nodes([event], 'data')
