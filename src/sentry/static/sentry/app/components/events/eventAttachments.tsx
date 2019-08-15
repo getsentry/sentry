@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -13,8 +14,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 type Props = {
-  // TODO(ts): Updates with api typing
-  api: any;
+  api: Client;
   event: Event;
   orgId: string;
   projectId: string;
@@ -26,7 +26,7 @@ type State = {
 };
 
 class EventAttachments extends React.Component<Props, State> {
-  static propTypes = {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -107,11 +107,11 @@ class EventAttachments extends React.Component<Props, State> {
                       event={this.props.event}
                       attachment={attachment}
                     >
-                      {(downloadUrl: string) => (
+                      {downloadUrl => (
                         <Button
                           size="xsmall"
                           icon="icon-download"
-                          href={downloadUrl}
+                          href={downloadUrl || ''}
                           disabled={!downloadUrl}
                           title={
                             !downloadUrl &&
@@ -133,7 +133,7 @@ class EventAttachments extends React.Component<Props, State> {
   }
 }
 
-export default withApi(EventAttachments);
+export default withApi<Props>(EventAttachments);
 
 const AttachmentName = styled('div')`
   flex: 1;
