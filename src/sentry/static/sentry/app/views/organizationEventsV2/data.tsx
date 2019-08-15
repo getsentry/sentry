@@ -193,7 +193,7 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: boolean;
+  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
 };
 
@@ -265,7 +265,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   project: {
-    sortField: false,
+    sortField: null,
     renderFunc: (data, {organization}) => {
       const project = organization.projects.find(p => p.slug === data['project.name']);
       return (
