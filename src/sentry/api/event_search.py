@@ -733,12 +733,35 @@ def validate_aggregate(field, match):
             "Invalid column '%s' in aggregate function '%s'" % (column, function_name))
 
 
-def validate_orderby(orderby, fields):
+def resolve_orderby(orderby, fields, aggregations):
+    """
+    We accept column names, aggregate functions, and aliases as order by
+    values. Aggregates and field aliases need to be resolve/validated.
+    """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    validated = []
     for column in orderby:
-        column = column.lstrip('-')
-        if column not in fields:
-            raise InvalidSearchQuery('Cannot order by an field that is not selected.')
+        bare_column = column.lstrip('-')
+        if bare_column in fields:
+            validated.append(column)
+            continue
+
+        match = AGGREGATE_PATTERN.search(bare_column)
+        if match:
+            bare_column = get_aggregate_alias(match)
+        found = [agg[2] for agg in aggregations if agg[2] == bare_column]
+        if found:
+            prefix = '-' if column.startswith('-') else ''
+            validated.append(prefix + bare_column)
+
+    if len(validated) == len(orderby):
+        return validated
+
+    raise InvalidSearchQuery('Cannot order by an field that is not selected.')
+
+
+def get_aggregate_alias(match):
+    return u'{}_{}'.format(match.group('function'), match.group('column')).rstrip('_')
 
 
 def resolve_field_list(fields, snuba_args):
@@ -780,7 +803,7 @@ def resolve_field_list(fields, snuba_args):
         aggregations.append([
             VALID_AGGREGATES[match.group('function')]['snuba_name'],
             match.group('column'),
-            u'{}_{}'.format(match.group('function'), match.group('column')).rstrip('_')
+            get_aggregate_alias(match)
         ])
 
     rollup = snuba_args.get('rollup')
@@ -804,7 +827,7 @@ def resolve_field_list(fields, snuba_args):
 
     orderby = snuba_args.get('orderby')
     if orderby:
-        validate_orderby(orderby, fields)
+        orderby = resolve_orderby(orderby, columns, aggregations)
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
@@ -815,4 +838,5 @@ def resolve_field_list(fields, snuba_args):
         'selected_columns': columns,
         'aggregations': aggregations,
         'groupby': groupby,
+        'orderby': orderby
     }

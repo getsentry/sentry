@@ -9,23 +9,17 @@ from sentry.testutils import APITestCase, SnubaTestCase
 import pytest
 
 
-class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
+class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTestBase, self).setUp()
+        super(OrganizationEventsV2EndpointTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
         self.url = reverse(
-            'sentry-api-0-organization-events',
+            'sentry-api-0-organization-eventsv2',
             kwargs={
                 'organization_slug': self.organization.slug,
             }
         )
-
-    def assert_events_in_response(self, response, event_ids):
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(event_ids)
-
-
-class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
     def test_no_projects(self):
         self.login_as(user=self.user)
@@ -126,10 +120,17 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0]['id'] == 'b' * 32
-        assert response.data[0]['project.id'] == project.id
-        assert response.data[0]['user.email'] == 'foo@example.com'
+        data = response.data['data']
+        assert len(data) == 2
+        assert data[0]['id'] == 'b' * 32
+        assert data[0]['project.id'] == project.id
+        assert data[0]['user.email'] == 'foo@example.com'
+        meta = response.data['meta']
+        assert meta['id'] == 'string'
+        assert meta['project.name'] == 'string'
+        assert meta['user.email'] == 'string'
+        assert meta['user.ip'] == 'string'
+        assert meta['timestamp'] == 'date'
 
     def test_project_name(self):
         self.login_as(user=self.user)
@@ -153,10 +154,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]['project.name'] == project.slug
-        assert 'project.id' not in response.data[0]
-        assert response.data[0]['environment'] == 'staging'
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['project.name'] == project.slug
+        assert 'project.id' not in response.data['data'][0]
+        assert response.data['data'][0]['environment'] == 'staging'
 
     def test_implicit_groupby(self):
         self.login_as(user=self.user)
@@ -197,21 +198,24 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0] == {
+        assert len(response.data['data']) == 2
+        data = response.data['data']
+        assert data[0] == {
             'project.id': project.id,
             'project.name': project.slug,
             'issue.id': event1.group_id,
             'count_id': 2,
             'latest_event': event1.event_id,
         }
-        assert response.data[1] == {
+        assert data[1] == {
             'project.id': project.id,
             'project.name': project.slug,
             'issue.id': event2.group_id,
             'count_id': 1,
             'latest_event': event2.event_id,
         }
+        meta = response.data['meta']
+        assert meta['count_id'] == 'integer'
 
     def test_automatic_id_and_project(self):
         self.login_as(user=self.user)
@@ -243,12 +247,17 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0] == {
+        assert len(response.data['data']) == 1
+        data = response.data['data']
+        assert data[0] == {
             'project.name': project.slug,
             'count_id': 2,
             'latest_event': event.event_id,
         }
+        meta = response.data['meta']
+        assert meta['count_id'] == 'integer'
+        assert meta['project.name'] == 'string'
+        assert meta['latest_event'] == 'string'
 
     def test_orderby(self):
         self.login_as(user=self.user)
@@ -285,9 +294,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert response.data[0]['id'] == 'c' * 32
-        assert response.data[1]['id'] == 'b' * 32
-        assert response.data[2]['id'] == 'a' * 32
+        data = response.data['data']
+        assert data[0]['id'] == 'c' * 32
+        assert data[1]['id'] == 'b' * 32
+        assert data[2]['id'] == 'a' * 32
 
     def test_sort_title(self):
         self.login_as(user=self.user)
@@ -327,9 +337,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert response.data[0]['id'] == 'c' * 32
-        assert response.data[1]['id'] == 'b' * 32
-        assert response.data[2]['id'] == 'a' * 32
+        data = response.data['data']
+        assert data[0]['id'] == 'c' * 32
+        assert data[1]['id'] == 'b' * 32
+        assert data[2]['id'] == 'a' * 32
 
     def test_sort_invalid(self):
         self.login_as(user=self.user)
@@ -401,17 +412,18 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0]['issue.id'] == event1.group_id
-        assert response.data[0]['count_id'] == 1
-        assert response.data[0]['count_unique_user'] == 1
-        assert 'latest_event' in response.data[0]
-        assert 'project.name' in response.data[0]
-        assert 'projectid' not in response.data[0]
-        assert 'project.id' not in response.data[0]
-        assert response.data[1]['issue.id'] == event2.group_id
-        assert response.data[1]['count_id'] == 2
-        assert response.data[1]['count_unique_user'] == 2
+        assert len(response.data['data']) == 2
+        data = response.data['data']
+        assert data[0]['issue.id'] == event1.group_id
+        assert data[0]['count_id'] == 1
+        assert data[0]['count_unique_user'] == 1
+        assert 'latest_event' in data[0]
+        assert 'project.name' in data[0]
+        assert 'projectid' not in data[0]
+        assert 'project.id' not in data[0]
+        assert data[1]['issue.id'] == event2.group_id
+        assert data[1]['count_id'] == 2
+        assert data[1]['count_unique_user'] == 2
 
     @pytest.mark.xfail(reason='aggregate comparisons need parser improvements')
     def test_aggregation_comparison(self):
@@ -486,10 +498,11 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == event.group_id
-        assert response.data[0]['count_id'] == 2
-        assert response.data[0]['count_unique_user'] == 2
+        assert len(response.data['data']) == 1
+        data = response.data['data']
+        assert data[0]['issue.id'] == event.group_id
+        assert data[0]['count_id'] == 2
+        assert data[0]['count_unique_user'] == 2
 
     @pytest.mark.xfail(reason='aggregate comparisons need parser improvements')
     def test_aggregation_comparison_with_conditions(self):
@@ -557,9 +570,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == event.group_id
-        assert response.data[0]['count_id'] == 2
+        assert len(response.data['data']) == 1
+        data = response.data['data']
+        assert data[0]['issue.id'] == event.group_id
+        assert data[0]['count_id'] == 2
 
     def test_nonexistent_fields(self):
         self.login_as(user=self.user)
@@ -583,7 +597,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 },
             )
         assert response.status_code == 200, response.content
-        assert response.data[0]['issue_world.id'] == ''
+        assert response.data['data'][0]['issue_world.id'] == ''
 
     def test_no_requested_fields_or_grouping(self):
         self.login_as(user=self.user)
@@ -636,74 +650,4 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 0
-
-    def test_group_filtering(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        self.login_as(user=user)
-
-        team = self.create_team(organization=org, members=[user])
-
-        self.login_as(user=user)
-
-        project = self.create_project(organization=org, teams=[team])
-        events = []
-        for event_id, fingerprint in [
-            ('a' * 32, 'put-me-in-group1'),
-            ('b' * 32, 'put-me-in-group1'),
-            ('c' * 32, 'put-me-in-group2'),
-            ('d' * 32, 'put-me-in-group3'),
-        ]:
-            events.append(self.store_event(
-                data={
-                    'event_id': event_id,
-                    'timestamp': self.min_ago,
-                    'fingerprint': [fingerprint],
-                },
-                project_id=project.id
-            ))
-
-        event_1, event_2, event_3, event_4 = events
-        group_1, group_2, group_3 = event_1.group, event_3.group, event_4.group
-
-        base_url = reverse(
-            'sentry-api-0-organization-events',
-            kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-
-        response = self.client.get(base_url, format='json', data={'group': [group_1.id]})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
-
-        response = self.client.get(base_url, format='json', data={'group': [group_3.id]})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        self.assert_events_in_response(response, [event_4.event_id])
-
-        response = self.client.get(
-            base_url,
-            format='json',
-            data={'group': [group_1.id, group_3.id]},
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 3
-        self.assert_events_in_response(
-            response,
-            [event_1.event_id, event_2.event_id, event_4.event_id],
-        )
-
-        response = self.client.get(
-            base_url,
-            format='json',
-            data={'group': [group_1.id, group_2.id, group_3.id]},
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 4
-        self.assert_events_in_response(
-            response,
-            [event_1.event_id, event_2.event_id, event_3.event_id, event_4.event_id],
-        )
+        assert len(response.data['data']) == 0

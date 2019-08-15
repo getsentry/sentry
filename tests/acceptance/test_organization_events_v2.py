@@ -12,9 +12,9 @@ from sentry.utils.samples import load_data
 FEATURE_NAME = 'organizations:events-v2'
 
 
-class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
+class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTest, self).setUp()
+        super(OrganizationEventsV2Test, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.org = self.create_organization(owner=None, name='Rowdy Tiger')
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
@@ -31,7 +31,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u'/organizations/{}/events/'.format(self.org.slug)
+        self.path = u'/organizations/{}/eventsv2/'.format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading-indicator')
