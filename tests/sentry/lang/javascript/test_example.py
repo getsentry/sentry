@@ -5,6 +5,8 @@ from __future__ import absolute_import
 import os
 import json
 import responses
+from datetime import timedelta
+from django.utils import timezone
 
 from sentry import eventstore
 from sentry.testutils import TestCase
@@ -42,7 +44,10 @@ class ExampleTestCase(TestCase):
         )
         responses.add(responses.GET, 'http://example.com/index.html', body='Not Found', status=404)
 
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
         data = {
+            'timestamp': min_ago,
             'message': 'hello',
             'platform': 'javascript',
             'exception': {
