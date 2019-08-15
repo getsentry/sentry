@@ -51,30 +51,23 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
             size="24px"
             src="icon-upgrade"
           >
-            <InlineSvg
-              className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+            <ForwardRef
+              className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
               size="24px"
               src="icon-upgrade"
             >
-              <StyledSvg
-                className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+              <svg
+                className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
                 height="24px"
                 viewBox={Object {}}
                 width="24px"
               >
-                <svg
-                  className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
-                  height="24px"
-                  viewBox={Object {}}
-                  width="24px"
-                >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </ForwardRef>
           </StyledInlineSvg>
           <StyledTextBlock>
             <Component

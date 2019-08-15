@@ -544,34 +544,25 @@ exports[`ProjectCard renders 1`] = `
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
-                      <InlineSvg
-                        className="css-fl9x15-Star e5ekdrk0"
+                      <ForwardRef
+                        className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
                         isBookmarked={false}
                         onClick={[Function]}
                         src="icon-star-small-filled"
                       >
-                        <StyledSvg
-                          className="css-fl9x15-Star e5ekdrk0"
+                        <svg
+                          className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
                           height="1em"
-                          isBookmarked={false}
                           onClick={[Function]}
                           viewBox={Object {}}
                           width="1em"
                         >
-                          <svg
-                            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
-                            height="1em"
-                            onClick={[Function]}
-                            viewBox={Object {}}
-                            width="1em"
-                          >
-                            <use
-                              href="#test"
-                              xlinkHref="#test"
-                            />
-                          </svg>
-                        </StyledSvg>
-                      </InlineSvg>
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </ForwardRef>
                     </Star>
                   </BookmarkStar>
                 </withApi(BookmarkStar)>
