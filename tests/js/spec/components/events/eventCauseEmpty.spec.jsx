@@ -60,7 +60,7 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     wrapper
-      .find('button[data-test-id="snoozed"]')
+      .find('button[aria-label="Snooze"]')
       .first()
       .simulate('click');
 
@@ -142,7 +142,7 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     wrapper
-      .find('button[data-test-id="dismissed"]')
+      .find('button[aria-label="Dismiss"]')
       .first()
       .simulate('click');
 
@@ -198,7 +198,7 @@ describe('EventCauseEmpty', function() {
     wrapper.update();
 
     wrapper
-      .find('[data-test-id="read-the-docs"]')
+      .find('[aria-label="Read the docs"]')
       .first()
       .simulate('click');
 

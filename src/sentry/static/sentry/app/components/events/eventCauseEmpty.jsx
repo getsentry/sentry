@@ -137,7 +137,6 @@ class EventCauseEmpty extends React.Component {
                     eventName: 'Event Cause Docs Clicked',
                   })
                 }
-                data-test-id="read-the-docs"
               >
                 {t('Read the docs')}
               </DocsButton>
@@ -153,7 +152,6 @@ class EventCauseEmpty extends React.Component {
                       eventName: 'Event Cause Snoozed',
                     })
                   }
-                  data-test-id="snoozed"
                 >
                   {t('Snooze')}
                 </SnoozeButton>
@@ -167,7 +165,6 @@ class EventCauseEmpty extends React.Component {
                       eventName: 'Event Cause Dismissed',
                     })
                   }
-                  data-test-id="dismissed"
                 >
                   {t('Dismiss')}
                 </DismissButton>
