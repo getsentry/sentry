@@ -32,15 +32,17 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
         except OrganizationEventsError as error:
             return Response({'detail': six.text_type(error)}, status=400)
 
-        colname = get_snuba_column_name(key)
-
         if key == PROJECT_KEY:
             colname = 'project_id'
+            conditions = snuba_args['conditions']
+        else:
+            colname = get_snuba_column_name(key)
+            conditions = snuba_args['conditions'] + [[colname, 'IS NOT NULL', None]]
 
         top_values = raw_query(
             start=snuba_args['start'],
             end=snuba_args['end'],
-            conditions=snuba_args['conditions'] + [[colname, 'IS NOT NULL', None]],
+            conditions=conditions,
             filter_keys=snuba_args['filter_keys'],
             groupby=[colname],
             aggregations=[('count()', None, 'count')],
