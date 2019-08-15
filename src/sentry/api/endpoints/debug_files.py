@@ -107,17 +107,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
         debug_id = request.GET.get('debug_id')
         query = request.GET.get('query')
 
-        if code_id:
-            # If a code identifier is provided, try to find an exact match and
-            # only consider the debug identifier if the DIF does not have a
-            # primary code identifier.
-            q = Q(code_id__exact=code_id)
-            if debug_id:
-                q |= Q(code_id__exact=None, debug_id__exact=debug_id)
-        elif debug_id:
-            # If only a debug ID is specified, do not consider the stored code
-            # identifier and strictly filter by debug identifier.
+        if debug_id:
+            # If a debug ID is specified, do not consider the stored code
+            # identifier and strictly filter by debug identifier. Often there
+            # are mismatches in the code identifier in PEs.
             q = Q(debug_id__exact=debug_id)
+        elif code_id:
+            q = Q(code_id__exact=code_id)
         elif query:
             if len(query) <= 45:
                 # If this query contains a debug identifier, normalize it to
