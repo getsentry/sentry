@@ -91,15 +91,6 @@ def get_less_files(file_list=None):
     return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
 
 
-def get_python_files(file_list=None):
-    if file_list is None:
-        file_list = ['src', 'tests']
-    return [
-        x for x in get_files_for_list(file_list)
-        if x.endswith('.py')
-    ]
-
-
 def js_lint(file_list=None, parseable=False, format=False):
 
     # We require eslint in path but we actually call an eslint wrapper
@@ -282,24 +273,6 @@ def less_format(file_list=None):
     )
 
 
-def py_format(file_list=None):
-    try:
-        __import__('autopep8')
-    except ImportError:
-        print('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', file=sys.stderr)  # noqa: B314
-        return False
-
-    py_file_list = get_python_files(file_list)
-
-    return run_formatter([
-        'autopep8',
-        '--in-place',
-        '-j0',
-        '--ignore',
-        'E721,E722,W690',
-    ], py_file_list)
-
-
 def run_formatter(cmd, file_list, prompt_on_changes=True):
     if not file_list:
         return False
@@ -354,7 +327,8 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
         if format:
             if py:
-                results.append(py_format(file_list))
+                # python autoformatting is now done via pre-commit (black)
+                pass
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
