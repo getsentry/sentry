@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import uuid
 from collections import defaultdict
 from datetime import timedelta
@@ -8,13 +9,11 @@ from uuid import uuid4
 import pytz
 import six
 from dateutil.parser import parse as parse_date
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
-from sentry.http import safe_urlopen
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleAggregations,
@@ -35,7 +34,15 @@ from sentry.incidents.models import (
 from sentry.models import Commit, Release
 from sentry.incidents import tasks
 from sentry.utils.committers import get_event_file_committers
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
+from sentry.utils.snuba import (
+    _snuba_pool,
+    bulk_raw_query,
+    raw_query,
+    SnubaError,
+    SnubaQueryParams,
+    SnubaTSResult,
+    zerofill,
+)
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 alert_aggregation_to_snuba = {
@@ -756,23 +763,28 @@ def create_snuba_subscription(project, dataset, query, aggregations, time_window
     """
     # TODO: Might make sense to move this into snuba if we have wider use for
     # it.
-    resp = safe_urlopen(
-        settings.SENTRY_SNUBA + "/subscriptions",
+    response = _snuba_pool.urlopen(
         "POST",
-        json={
-            "project_id": project.id,
-            "dataset": dataset.value,
-            # We only care about conditions here. Filter keys only matter for
-            # filtering to project and groups. Projects are handled with an
-            # explicit param, and groups can't be queried here.
-            "conditions": get_snuba_query_args(query)["conditions"],
-            "aggregates": [alert_aggregation_to_snuba[agg] for agg in aggregations],
-            "time_window": time_window,
-            "resolution": resolution,
-        },
+        "/subscriptions",
+        body=json.dumps(
+            {
+                "project_id": project.id,
+                "dataset": dataset.value,
+                # We only care about conditions here. Filter keys only matter for
+                # filtering to project and groups. Projects are handled with an
+                # explicit param, and groups can't be queried here.
+                "conditions": get_snuba_query_args(query)["conditions"],
+                "aggregates": [alert_aggregation_to_snuba[agg] for agg in aggregations],
+                "time_window": time_window,
+                "resolution": resolution,
+            }
+        ),
+        retries=False,
     )
-    resp.raise_for_status()
-    return uuid.UUID(resp.json()["subscription_id"])
+    if response.status != 202:
+        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+
+    return uuid.UUID(json.loads(response.data)["subscription_id"])
 
 
 def delete_snuba_subscription(subscription_id):
@@ -781,5 +793,6 @@ def delete_snuba_subscription(subscription_id):
     :param subscription_id: The uuid of the subscription to delete
     :return:
     """
-    resp = safe_urlopen(settings.SENTRY_SNUBA + "/subscriptions/%s" % subscription_id, "DELETE")
-    resp.raise_for_status()
+    response = _snuba_pool.urlopen("DELETE", "/subscriptions/%s" % subscription_id, retries=False)
+    if response.status != 202:
+        raise SnubaError("HTTP %s response from Snuba!" % response.status)
