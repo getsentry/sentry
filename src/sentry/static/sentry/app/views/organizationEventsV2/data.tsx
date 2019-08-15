@@ -12,7 +12,8 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
-import {EventView} from 'app/types';
+import {EventView, Organization} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {QueryLink} from './styles';
 
@@ -94,12 +95,38 @@ export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
   },
 ]);
 
+type EventData = {[key: string]: any};
+
+type RenderFunctionBaggage = {
+  organization: Organization;
+  location: ReactRouterLocation;
+};
+
+type RenderFunction = (
+  field: string,
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type FieldFormatter = {
+  sortField: boolean;
+  renderFunc: RenderFunction;
+};
+
+type FieldFormatters = {
+  boolean: FieldFormatter;
+  integer: FieldFormatter;
+  number: FieldFormatter;
+  date: FieldFormatter;
+  string: FieldFormatter;
+};
+
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-export const FIELD_FORMATTERS = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     sortField: true,
     renderFunc: (field, data, {organization, location}) => {

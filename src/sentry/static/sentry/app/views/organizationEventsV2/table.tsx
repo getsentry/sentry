@@ -76,7 +76,9 @@ export default class Table extends React.Component<Props> {
             if (SPECIAL_FIELDS.hasOwnProperty(field)) {
               sortKey = SPECIAL_FIELDS[field].sortField || null;
             } else if (FIELD_FORMATTERS.hasOwnProperty(field)) {
-              sortKey = FIELD_FORMATTERS[field].sortField ? field : null;
+              sortKey = FIELD_FORMATTERS[field as keyof typeof FIELD_FORMATTERS].sortField
+                ? field
+                : null;
             }
 
             if (sortKey === null) {
