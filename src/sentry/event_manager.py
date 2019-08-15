@@ -13,7 +13,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -757,6 +757,16 @@ class EventManager(object):
         # save the event unless its been sampled
         if not is_sample:
             event.data.save()
+
+            tagstore.delay_index_event_tags(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                group_id=group.id if group else None,
+                environment_id=environment.id,
+                event_id=event.id,
+                tags=event.tags,
+                date_added=event.datetime,
+            )
 
         if event_user:
             counters = [
