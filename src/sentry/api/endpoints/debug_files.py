@@ -107,6 +107,15 @@ class DebugFilesEndpoint(ProjectEndpoint):
         debug_id = request.GET.get('debug_id')
         query = request.GET.get('query')
 
+        # If this query contains a debug identifier, normalize it to allow for
+        # more lenient queries (e.g. supporting Breakpad ids). Use the index to
+        # speed up such queries.
+        if query and len(query) <= 45 and not debug_id:
+            try:
+                debug_id = normalize_debug_id(query.strip())
+            except SymbolicError:
+                pass
+
         if debug_id:
             # If a debug ID is specified, do not consider the stored code
             # identifier and strictly filter by debug identifier. Often there
@@ -115,14 +124,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
         elif code_id:
             q = Q(code_id__exact=code_id)
         elif query:
-            if len(query) <= 45:
-                # If this query contains a debug identifier, normalize it to
-                # allow for more lenient queries (e.g. supporting Breakpad ids).
-                try:
-                    query = normalize_debug_id(query.strip())
-                except SymbolicError:
-                    pass
-
             q = Q(object_name__icontains=query) \
                 | Q(debug_id__icontains=query) \
                 | Q(code_id__icontains=query) \
