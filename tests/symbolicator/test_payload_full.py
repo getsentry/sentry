@@ -10,7 +10,8 @@ from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TransactionTestCase
-from sentry.models import Event, File, ProjectDebugFile
+from sentry.models import File, ProjectDebugFile
+from sentry import eventstore
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
@@ -54,6 +55,9 @@ REAL_RESOLVING_EVENT_DATA = {
 
 
 class ResolvingIntegrationTestBase(object):
+    def get_event(self):
+        return eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+
     def test_real_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -85,8 +89,9 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = Event.objects.get()
-        assert event.data["culprit"] == "main"
+        event = self.get_event()
+
+        assert event.data['culprit'] == 'main'
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_debug_id_resolving(self):
@@ -145,8 +150,8 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
-        assert event.data["culprit"] == "main"
+        event = self.get_event()
+        assert event.data['culprit'] == 'main'
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
@@ -155,8 +160,8 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = Event.objects.get()
-        assert event.data["culprit"] == "unknown"
+        event = self.get_event()
+        assert event.data['culprit'] == 'unknown'
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_debug_images(self):
@@ -168,8 +173,8 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(payload)
         assert resp.status_code == 200
 
-        event = Event.objects.get()
-        assert event.data["culprit"] == "unknown"
+        event = self.get_event()
+        assert event.data['culprit'] == 'unknown'
         insta_snapshot_stacktrace_data(self, event.data)
 
 
