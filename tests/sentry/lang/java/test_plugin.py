@@ -12,8 +12,8 @@ from sentry import eventstore
 from sentry.testutils import TestCase
 
 
-PROGUARD_UUID = '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
-PROGUARD_SOURCE = b'''\
+PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
+PROGUARD_SOURCE = b"""\
 org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     65:65:void <init>() -> <init>
     67:67:java.lang.Class[] getClassContext() -> a
@@ -111,7 +111,7 @@ class BasicResolvingIntegrationTest(TestCase):
             resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
 
         bt = event.interfaces["exception"].values[0].stacktrace
         frames = bt.frames
@@ -190,7 +190,7 @@ class BasicResolvingIntegrationTest(TestCase):
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
