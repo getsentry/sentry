@@ -13,7 +13,6 @@ class GroupDeletionTask(ModelDeletionTask):
         model_list = (
             # prioritize GroupHash
             models.GroupHash,
-            models.EventMapping,
             models.GroupAssignee,
             models.GroupCommitResolution,
             models.GroupLink,
