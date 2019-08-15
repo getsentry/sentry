@@ -47,11 +47,11 @@ class ExampleTestCase(TestCase):
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
 
         data = {
-            'timestamp': min_ago,
-            'message': 'hello',
-            'platform': 'javascript',
-            'exception': {
-                'values': [
+            "timestamp": min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
                     {
                         "type": "Error",
                         "stacktrace": {

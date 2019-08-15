@@ -127,10 +127,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         elif code_id:
             q = Q(code_id__exact=code_id)
         elif query:
-            q = Q(object_name__icontains=query) \
-                | Q(debug_id__icontains=query) \
-                | Q(code_id__icontains=query) \
-                | Q(cpu_name__icontains=query) \
+            q = (
+                Q(object_name__icontains=query)
+                | Q(debug_id__icontains=query)
+                | Q(code_id__icontains=query)
+                | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
             )
 
