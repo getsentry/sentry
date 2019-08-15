@@ -73,7 +73,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 )
                 assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
 
         attachments = sorted(
@@ -99,7 +99,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 resp = self._postMinidumpWithHeader(f, raw=True)
                 assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
@@ -108,6 +108,6 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 resp = self._postMinidumpWithHeader(f, {"sentry[logger]": "test-logger"})
                 assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)

@@ -43,21 +43,17 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": "Event not found"}, status=404)
 
         next_event = eventstore.get_next_event_id(
-            event,
-            conditions=snuba_args['conditions'],
-            filter_keys=snuba_args['filter_keys']
+            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
         prev_event = eventstore.get_prev_event_id(
-            event,
-            conditions=snuba_args['conditions'],
-            filter_keys=snuba_args['filter_keys']
+            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
 
         data = serialize(event)
-        data['nextEventID'] = next_event[1] if next_event else None
-        data['previousEventID'] = prev_event[1] if prev_event else None
+        data["nextEventID"] = next_event[1] if next_event else None
+        data["previousEventID"] = prev_event[1] if prev_event else None
 
-        data['projectSlug'] = project_slug
+        data["projectSlug"] = project_slug
 
         return Response(data)
 

@@ -273,7 +273,7 @@ OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
 WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
 
-FILTER_MASK = '[Filtered]'
+FILTER_MASK = "[Filtered]"
 
 # Maximum length of a symbol
 MAX_SYM = 256

@@ -56,8 +56,8 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
                         del result["project.id"]
 
         # Convert snuba types to json types
-        for col in snuba_results['meta']:
-            col['type'] = snuba.get_json_type(col.get('type'))
+        for col in snuba_results["meta"]:
+            col["type"] = snuba.get_json_type(col.get("type"))
 
         return snuba_results
 

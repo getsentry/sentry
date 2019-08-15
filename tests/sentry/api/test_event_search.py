@@ -1207,17 +1207,17 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
-        assert result['groupby'] == []
+        assert result["groupby"] == []
 
     def test_orderby_field_aggregate(self):
-        fields = ['count(id)', 'count_unique(user)']
-        snuba_args = {'orderby': '-count(id)'}
+        fields = ["count(id)", "count_unique(user)"]
+        snuba_args = {"orderby": "-count(id)"}
         result = resolve_field_list(fields, snuba_args)
-        assert result['orderby'] == ['-count_id']
-        assert result['aggregations'] == [
-            ['count', 'id', 'count_id'],
-            ['uniq', 'user', 'count_unique_user'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["orderby"] == ["-count_id"]
+        assert result["aggregations"] == [
+            ["count", "id", "count_id"],
+            ["uniq", "user", "count_unique_user"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
-        assert result['groupby'] == []
+        assert result["groupby"] == []

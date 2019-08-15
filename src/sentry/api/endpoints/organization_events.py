@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         # Check for a direct hit on event ID
-        query = request.GET.get('query', '').strip()
+        query = request.GET.get("query", "").strip()
 
         try:
             direct_hit_resp = get_direct_hit_response(
                 request,
                 query,
                 self.get_filter_params(request, organization),
-                'api.organization-events'
+                "api.organization-events",
             )
         except (OrganizationEventsError, NoProjects):
             pass
@@ -34,11 +34,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             if direct_hit_resp:
                 return direct_hit_resp
 
-        full = request.GET.get('full', False)
+        full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
         except OrganizationEventsError as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({"detail": exc.message}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
@@ -49,7 +49,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             data_fn = partial(
                 eventstore.get_events,
                 additional_columns=cols,
-                referrer='api.organization-events',
+                referrer="api.organization-events",
                 **snuba_args
             )
 
@@ -57,29 +57,31 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(results, request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
     def handle_results(self, request, organization, project_ids, results):
-        projects = {p['id']: p['slug'] for p in Project.objects.filter(
-            organization=organization,
-            id__in=project_ids).values('id', 'slug')}
+        projects = {
+            p["id"]: p["slug"]
+            for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
+                "id", "slug"
+            )
+        }
 
-        fields = request.GET.getlist('field')
+        fields = request.GET.getlist("field")
 
-        if 'project.name' in fields:
+        if "project.name" in fields:
             for result in results:
-                result['project.name'] = projects[result['project.id']]
-                if 'project.id' not in fields:
-                    del result['project.id']
+                result["project.name"] = projects[result["project.id"]]
+                if "project.id" not in fields:
+                    del result["project.id"]
 
         return results
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
-
     def get(self, request, organization):
-        if not features.has('organizations:events-v2', organization, actor=request.user):
+        if not features.has("organizations:events-v2", organization, actor=request.user):
             return Response(status=404)
 
         try:
@@ -104,7 +106,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         data_fn = partial(
             lambda **kwargs: snuba.transform_aliases_and_query(skip_conditions=True, **kwargs),
-            referrer='api.organization-events-v2',
+            referrer="api.organization-events-v2",
             **snuba_args
         )
 
@@ -113,7 +115,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: self.handle_results_with_meta(
-                    request, organization, params['project_id'], results),
+                    request, organization, params["project_id"], results
+                ),
             )
         except snuba.SnubaError as error:
             logger.info(
@@ -127,19 +130,16 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             return Response({"detail": "Invalid query."}, status=400)
 
     def handle_results_with_meta(self, request, organization, project_ids, results):
-        data = self.handle_data(request, organization, project_ids, results.get('data'))
+        data = self.handle_data(request, organization, project_ids, results.get("data"))
         if not data:
-            return {'data': [], 'meta': {}}
+            return {"data": [], "meta": {}}
 
-        meta = {value['name']: snuba.get_json_type(value['type']) for value in results['meta']}
+        meta = {value["name"]: snuba.get_json_type(value["type"]) for value in results["meta"]}
         # Ensure all columns in the result have types.
         for key in data[0]:
             if key not in meta:
-                meta[key] = 'string'
-        return {
-            'meta': meta,
-            'data': data,
-        }
+                meta[key] = "string"
+        return {"meta": meta, "data": data}
 
     def handle_data(self, request, organization, project_ids, results):
         if not results:

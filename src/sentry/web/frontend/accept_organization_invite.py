@@ -154,7 +154,7 @@ class BaseInviteHelper(object):
             )
 
             self.handle_success()
-            metrics.incr('organization.invite-accepted', sample_rate=1.0)
+            metrics.incr("organization.invite-accepted", sample_rate=1.0)
 
     def remove_invite_cookie(self, response):
         if PENDING_INVITE in self.request.COOKIES:

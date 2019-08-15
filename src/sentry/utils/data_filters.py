@@ -15,16 +15,17 @@ class FilterStatKeys(object):
     NOTE: This enum also exists in semaphore, check if alignment is needed when
     editing this.
     """
-    IP_ADDRESS = 'ip-address'
-    RELEASE_VERSION = 'release-version'
-    ERROR_MESSAGE = 'error-message'
-    BROWSER_EXTENSION = 'browser-extensions'
-    LEGACY_BROWSER = 'legacy-browsers'
-    LOCALHOST = 'localhost'
-    WEB_CRAWLER = 'web-crawlers'
-    INVALID_CSP = 'invalid-csp'
-    CORS = 'cors'
-    DISCARDED_HASH = 'discarded-hash'
+
+    IP_ADDRESS = "ip-address"
+    RELEASE_VERSION = "release-version"
+    ERROR_MESSAGE = "error-message"
+    BROWSER_EXTENSION = "browser-extensions"
+    LEGACY_BROWSER = "legacy-browsers"
+    LOCALHOST = "localhost"
+    WEB_CRAWLER = "web-crawlers"
+    INVALID_CSP = "invalid-csp"
+    CORS = "cors"
+    DISCARDED_HASH = "discarded-hash"
 
 
 FILTER_STAT_KEYS_TO_VALUES = {

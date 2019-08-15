@@ -10,8 +10,17 @@ from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
-    Activity, Environment, Event, EventUser, Group, GroupEnvironment, GroupHash,
-    GroupRelease, Project, Release, UserReport
+    Activity,
+    Environment,
+    Event,
+    EventUser,
+    Group,
+    GroupEnvironment,
+    GroupHash,
+    GroupRelease,
+    Project,
+    Release,
+    UserReport,
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -218,10 +227,9 @@ def migrate_events(
 
     event_event_id_set = set(event.event_id for event in events)
 
-    UserReport.objects.filter(
-        project_id=project.id,
-        event_id__in=event_event_id_set,
-    ).update(group=destination_id)
+    UserReport.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
+        group=destination_id
+    )
 
     return (destination.id, eventstream_state)
 

@@ -699,7 +699,7 @@ def resolve_orderby(orderby, fields, aggregations):
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     validated = []
     for column in orderby:
-        bare_column = column.lstrip('-')
+        bare_column = column.lstrip("-")
         if bare_column in fields:
             validated.append(column)
             continue
@@ -709,17 +709,17 @@ def resolve_orderby(orderby, fields, aggregations):
             bare_column = get_aggregate_alias(match)
         found = [agg[2] for agg in aggregations if agg[2] == bare_column]
         if found:
-            prefix = '-' if column.startswith('-') else ''
+            prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + bare_column)
 
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery('Cannot order by an field that is not selected.')
+    raise InvalidSearchQuery("Cannot order by an field that is not selected.")
 
 
 def get_aggregate_alias(match):
-    return u'{}_{}'.format(match.group('function'), match.group('column')).rstrip('_')
+    return u"{}_{}".format(match.group("function"), match.group("column")).rstrip("_")
 
 
 def resolve_field_list(fields, snuba_args):
@@ -758,11 +758,13 @@ def resolve_field_list(fields, snuba_args):
             continue
 
         validate_aggregate(field, match)
-        aggregations.append([
-            VALID_AGGREGATES[match.group('function')]['snuba_name'],
-            match.group('column'),
-            get_aggregate_alias(match)
-        ])
+        aggregations.append(
+            [
+                VALID_AGGREGATES[match.group("function")]["snuba_name"],
+                match.group("column"),
+                get_aggregate_alias(match),
+            ]
+        )
 
     rollup = snuba_args.get("rollup")
     if not rollup:
@@ -793,8 +795,8 @@ def resolve_field_list(fields, snuba_args):
         groupby.extend(columns)
 
     return {
-        'selected_columns': columns,
-        'aggregations': aggregations,
-        'groupby': groupby,
-        'orderby': orderby
+        "selected_columns": columns,
+        "aggregations": aggregations,
+        "groupby": groupby,
+        "orderby": orderby,
     }

@@ -454,7 +454,7 @@ class SnubaEvent(EventCommon):
         "username",
     ]
 
-    __repr__ = sane_repr('project_id', 'group_id')
+    __repr__ = sane_repr("project_id", "group_id")
 
     def __init__(self, snuba_values):
         """

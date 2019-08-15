@@ -279,7 +279,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
 
-    cache.set(cache_key, '', 60 * 60)  # Cache for 1 hour
+    cache.set(cache_key, "", 60 * 60)  # Cache for 1 hour
 
     api_logger.debug("New event received (%s)", event_id)
 

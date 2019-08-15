@@ -342,10 +342,7 @@ class SymbolicatorSession(object):
                 if response.ok:
                     json = response.json()
                 else:
-                    json = {
-                        'status': 'failed',
-                        'message': 'internal server error',
-                    }
+                    json = {"status": "failed", "message": "internal server error"}
 
                 return json
             except (IOError, RequestException):

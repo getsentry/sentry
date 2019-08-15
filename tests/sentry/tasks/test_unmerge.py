@@ -17,8 +17,15 @@ from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, Environment, EnvironmentProject, Event, Group, GroupHash, GroupRelease,
-    Release, UserReport
+    Activity,
+    Environment,
+    EnvironmentProject,
+    Event,
+    Group,
+    GroupHash,
+    GroupRelease,
+    Release,
+    UserReport,
 )
 from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
@@ -377,9 +384,7 @@ class UnmergeTestCase(TestCase):
         source_event_event_ids = map(lambda event: event.event_id, events.values()[0])
 
         assert set(
-            UserReport.objects.filter(
-                group_id=source.id,
-            ).values_list('event_id', flat=True)
+            UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
         ) == set(source_event_event_ids)
 
         assert set(
@@ -426,9 +431,7 @@ class UnmergeTestCase(TestCase):
         destination_event_event_ids = map(lambda event: event.event_id, events.values()[1])
 
         assert set(
-            UserReport.objects.filter(
-                group_id=destination.id,
-            ).values_list('event_id', flat=True)
+            UserReport.objects.filter(group_id=destination.id).values_list("event_id", flat=True)
         ) == set(destination_event_event_ids)
 
         assert set(

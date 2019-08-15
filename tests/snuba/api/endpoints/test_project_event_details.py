@@ -20,28 +20,20 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         four_min_ago = (timezone.now() - timedelta(minutes=4)).isoformat()[:19]
 
         self.prev_event = self.store_event(
-            data={
-                'event_id': 'a' * 32,
-                'timestamp': four_min_ago,
-                'fingerprint': ['group-1']
-            },
-            project_id=project.id
+            data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
+            project_id=project.id,
         )
         self.cur_event = self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'timestamp': three_min_ago,
-                'fingerprint': ['group-1']
-            },
-            project_id=project.id
+            data={"event_id": "b" * 32, "timestamp": three_min_ago, "fingerprint": ["group-1"]},
+            project_id=project.id,
         )
         self.next_event = self.store_event(
             data={
-                'event_id': 'c' * 32,
-                'timestamp': two_min_ago,
-                'fingerprint': ['group-1'],
-                'environment': 'production',
-                'tags': {'environment': 'production'}
+                "event_id": "c" * 32,
+                "timestamp": two_min_ago,
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "tags": {"environment": "production"},
             },
             project_id=project.id,
         )
@@ -49,23 +41,23 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         # Event in different group
         self.store_event(
             data={
-                'event_id': 'd' * 32,
-                'timestamp': one_min_ago,
-                'fingerprint': ['group-2'],
-                'environment': 'production',
-                'tags': {'environment': 'production'}
+                "event_id": "d" * 32,
+                "timestamp": one_min_ago,
+                "fingerprint": ["group-2"],
+                "environment": "production",
+                "tags": {"environment": "production"},
             },
-            project_id=project.id
+            project_id=project.id,
         )
 
     def test_snuba(self):
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
-                'event_id': self.cur_event.event_id,
-                'project_slug': self.cur_event.project.slug,
-                'organization_slug': self.cur_event.project.organization.slug,
-            }
+                "event_id": self.cur_event.event_id,
+                "project_slug": self.cur_event.project.slug,
+                "organization_slug": self.cur_event.project.organization.slug,
+            },
         )
         response = self.client.get(url, format="json")
 
@@ -116,18 +108,18 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
 
     def test_ignores_different_group(self):
         url = reverse(
-            'sentry-api-0-project-event-details',
+            "sentry-api-0-project-event-details",
             kwargs={
-                'event_id': self.next_event.event_id,
-                'project_slug': self.next_event.project.slug,
-                'organization_slug': self.next_event.project.organization.slug,
-            }
+                "event_id": self.next_event.event_id,
+                "project_slug": self.next_event.project.slug,
+                "organization_slug": self.next_event.project.organization.slug,
+            },
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.next_event.event_id)
-        assert response.data['nextEventID'] is None
+        assert response.data["id"] == six.text_type(self.next_event.event_id)
+        assert response.data["nextEventID"] is None
 
 
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):

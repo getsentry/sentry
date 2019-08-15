@@ -143,18 +143,18 @@ class SnubaUtilsTest(TestCase):
         # Bucket for the 2, 3, 4, 5, 6, 7, 8, 9
         assert len(results) == 8
 
-        assert results[0]['time'] == 1546387200
-        assert results[7]['time'] == 1546992000
+        assert results[0]["time"] == 1546387200
+        assert results[7]["time"] == 1546992000
 
     def test_get_json_type(self):
-        assert get_json_type('UInt8') == 'boolean'
-        assert get_json_type('UInt16') == 'integer'
-        assert get_json_type('UInt32') == 'integer'
-        assert get_json_type('UInt64') == 'integer'
-        assert get_json_type('Float32') == 'number'
-        assert get_json_type('Float64') == 'number'
-        assert get_json_type('Nullable(Float64)') == 'number'
-        assert get_json_type('Array(String)') == 'array'
-        assert get_json_type('Char') == 'string'
-        assert get_json_type('unknown') == 'string'
-        assert get_json_type('') == 'string'
+        assert get_json_type("UInt8") == "boolean"
+        assert get_json_type("UInt16") == "integer"
+        assert get_json_type("UInt32") == "integer"
+        assert get_json_type("UInt64") == "integer"
+        assert get_json_type("Float32") == "number"
+        assert get_json_type("Float64") == "number"
+        assert get_json_type("Nullable(Float64)") == "number"
+        assert get_json_type("Array(String)") == "array"
+        assert get_json_type("Char") == "string"
+        assert get_json_type("unknown") == "string"
+        assert get_json_type("") == "string"

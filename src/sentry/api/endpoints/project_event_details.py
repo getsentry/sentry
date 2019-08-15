@@ -44,7 +44,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         event = eventstore.get_event_by_id(project.id, event_id)
 
         if event is None:
-            return Response({'detail': 'Event not found'}, status=404)
+            return Response({"detail": "Event not found"}, status=404)
 
         data = serialize(event, request.user, DetailedEventSerializer())
 
@@ -54,22 +54,21 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         prev_event_id = None
 
         if event.group_id:
-            requested_environments = set(request.GET.getlist('environment'))
+            requested_environments = set(request.GET.getlist("environment"))
             conditions = []
 
             if requested_environments:
-                conditions.append(['environment', 'IN', requested_environments])
+                conditions.append(["environment", "IN", requested_environments])
 
-            filter_keys = {
-                'project_id': [event.project_id],
-                'issue': [event.group_id],
-            }
+            filter_keys = {"project_id": [event.project_id], "issue": [event.group_id]}
 
             next_event = eventstore.get_next_event_id(
-                event, conditions=conditions, filter_keys=filter_keys)
+                event, conditions=conditions, filter_keys=filter_keys
+            )
 
             prev_event = eventstore.get_prev_event_id(
-                event, conditions=conditions, filter_keys=filter_keys)
+                event, conditions=conditions, filter_keys=filter_keys
+            )
 
             next_event_id = next_event[1] if next_event else None
             prev_event_id = prev_event[1] if prev_event else None

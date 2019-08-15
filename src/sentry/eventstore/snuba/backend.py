@@ -29,7 +29,7 @@ class SnubaEventStorage(EventStorage):
         orderby=DEFAULT_ORDERBY,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
-        referrer='eventstore.get_events',
+        referrer="eventstore.get_events",
     ):
         """
         Get events from Snuba.
@@ -67,15 +67,12 @@ class SnubaEventStorage(EventStorage):
 
         result = snuba.raw_query(
             selected_columns=cols,
-            filter_keys={
-                'event_id': [event_id],
-                'project_id': [project_id],
-            },
-            referrer='eventstore.get_event_by_id',
+            filter_keys={"event_id": [event_id], "project_id": [project_id]},
+            referrer="eventstore.get_event_by_id",
             limit=1,
         )
-        if 'error' not in result and len(result['data']) == 1:
-            return SnubaEvent(result['data'][0])
+        if "error" not in result and len(result["data"]) == 1:
+            return SnubaEvent(result["data"][0])
         return None
 
     def get_next_event_id(self, event, conditions=None, filter_keys=None):
@@ -90,8 +87,8 @@ class SnubaEventStorage(EventStorage):
         conditions = copy(conditions)
 
         time_condition = [
-            ['timestamp', '>=', event.timestamp],
-            [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
+            ["timestamp", ">=", event.timestamp],
+            [["timestamp", ">", event.timestamp], ["event_id", ">", event.event_id]],
         ]
 
         conditions = conditions or []
@@ -102,7 +99,7 @@ class SnubaEventStorage(EventStorage):
             end=datetime.utcnow(),
             conditions=conditions,
             filter_keys=filter_keys,
-            orderby=['timestamp', 'event_id']
+            orderby=["timestamp", "event_id"],
         )
 
     def get_prev_event_id(self, event, conditions=None, filter_keys=None):
@@ -116,8 +113,8 @@ class SnubaEventStorage(EventStorage):
         conditions = copy(conditions)
 
         time_condition = [
-            ['timestamp', '<=', event.timestamp],
-            [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
+            ["timestamp", "<=", event.timestamp],
+            [["timestamp", "<", event.timestamp], ["event_id", "<", event.event_id]],
         ]
         conditions = conditions or []
         conditions.extend(time_condition)
@@ -127,7 +124,7 @@ class SnubaEventStorage(EventStorage):
             start=datetime.utcfromtimestamp(0),
             conditions=conditions,
             filter_keys=filter_keys,
-            orderby=['-timestamp', '-event_id']
+            orderby=["-timestamp", "-event_id"],
         )
 
     def __get_columns(self, additional_columns):
@@ -141,15 +138,15 @@ class SnubaEventStorage(EventStorage):
     def __get_next_or_prev_event_id(self, **kwargs):
 
         result = snuba.raw_query(
-            selected_columns=['event_id', 'project_id'],
+            selected_columns=["event_id", "project_id"],
             limit=1,
-            referrer='eventstore.get_next_or_prev_event_id',
+            referrer="eventstore.get_next_or_prev_event_id",
             **kwargs
         )
 
-        if 'error' in result or len(result['data']) == 0:
+        if "error" in result or len(result["data"]) == 0:
             return None
 
-        row = result['data'][0]
+        row = result["data"][0]
 
-        return (six.text_type(row['project_id']), six.text_type(row['event_id']))
+        return (six.text_type(row["project_id"]), six.text_type(row["event_id"]))

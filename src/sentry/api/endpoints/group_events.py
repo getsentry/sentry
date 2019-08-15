@@ -19,10 +19,7 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Group
-from sentry.search.utils import (
-    InvalidQuery,
-    parse_query,
-)
+from sentry.search.utils import InvalidQuery, parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -104,7 +101,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         data_fn = partial(
             eventstore.get_events,
             additional_columns=snuba_cols,
-            referrer='api.group-events',
+            referrer="api.group-events",
             **snuba_args
         )
 
@@ -112,7 +109,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(results, request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
     def _get_search_query_and_tags(self, request, group, environments=None):

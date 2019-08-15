@@ -91,8 +91,16 @@ def merge_groups(
         )
     else:
         model_list = tuple(EXTRA_MERGE_MODELS) + (
-            Activity, GroupAssignee, GroupEnvironment, GroupHash, GroupRuleStatus,
-            GroupSubscription, Event, UserReport, GroupRedirect, GroupMeta,
+            Activity,
+            GroupAssignee,
+            GroupEnvironment,
+            GroupHash,
+            GroupRuleStatus,
+            GroupSubscription,
+            Event,
+            UserReport,
+            GroupRedirect,
+            GroupMeta,
         )
 
         has_more = merge_objects(

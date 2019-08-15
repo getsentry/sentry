@@ -10,7 +10,7 @@ from sentry.models.project import Project
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
-        query = request.GET.get('query')
+        query = request.GET.get("query")
         try:
             snuba_args = get_snuba_query_args(query=query, params=params)
         except InvalidSearchQuery as exc:
@@ -92,9 +92,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions provided. Ignores the project_id.
         """
         next_event = eventstore.get_next_event_id(
-            event,
-            conditions=snuba_args['conditions'],
-            filter_keys=snuba_args['filter_keys']
+            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
 
         if next_event:
@@ -106,9 +104,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions provided. Ignores the project_id.
         """
         prev_event = eventstore.get_prev_event_id(
-            event,
-            conditions=snuba_args['conditions'],
-            filter_keys=snuba_args['filter_keys']
+            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
 
         if prev_event:

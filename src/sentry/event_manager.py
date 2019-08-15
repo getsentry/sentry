@@ -42,10 +42,26 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventDict, EventError, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization,
+    Activity,
+    Environment,
+    Event,
+    EventDict,
+    EventError,
+    EventUser,
+    Group,
+    GroupEnvironment,
+    GroupHash,
+    GroupLink,
+    GroupRelease,
+    GroupResolution,
+    GroupStatus,
+    Project,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+    UserReport,
+    Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -696,10 +712,7 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        environment = Environment.get_or_create(
-            project=project,
-            name=environment,
-        )
+        environment = Environment.get_or_create(project=project, name=environment)
 
         if group:
             group_environment, is_new_group_environment = GroupEnvironment.get_or_create(

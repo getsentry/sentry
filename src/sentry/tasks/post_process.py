@@ -81,7 +81,7 @@ def _capture_stats(event, is_new):
     # case, using a stats will give us a sense of the magnitude of the problem.
     if event.group:
         if event.group.platform != event.platform:
-            metrics.incr('events.platform_mismatch', tags=tags)
+            metrics.incr("events.platform_mismatch", tags=tags)
 
 
 def check_event_already_post_processed(event):

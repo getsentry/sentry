@@ -17,12 +17,9 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
     if event_id:
         snuba_args = get_snuba_query_args(query=u"id:{}".format(event_id), params=snuba_params)
 
-        results = eventstore.get_events(
-            referrer=referrer,
-            **snuba_args
-        )
+        results = eventstore.get_events(referrer=referrer, **snuba_args)
 
         if len(results) == 1:
             response = Response(serialize(results, request.user))
-            response['X-Sentry-Direct-Hit'] = '1'
+            response["X-Sentry-Direct-Hit"] = "1"
             return response

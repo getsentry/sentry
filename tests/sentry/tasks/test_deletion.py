@@ -11,10 +11,32 @@ from sentry.tagstore.models import EventTag
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit, CommitAuthor,
-    Environment, EnvironmentProject, Event, Group, GroupAssignee, GroupHash, GroupMeta,
-    GroupRedirect, GroupResolution, GroupStatus, Organization, OrganizationStatus, Project,
-    ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment, Repository, Team, TeamStatus
+    ApiApplication,
+    ApiApplicationStatus,
+    ApiGrant,
+    ApiToken,
+    Commit,
+    CommitAuthor,
+    Environment,
+    EnvironmentProject,
+    Event,
+    Group,
+    GroupAssignee,
+    GroupHash,
+    GroupMeta,
+    GroupRedirect,
+    GroupResolution,
+    GroupStatus,
+    Organization,
+    OrganizationStatus,
+    Project,
+    ProjectStatus,
+    Release,
+    ReleaseCommit,
+    ReleaseEnvironment,
+    Repository,
+    Team,
+    TeamStatus,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
@@ -248,7 +270,7 @@ class DeleteGroupTest(TestCase):
         project = self.create_project()
         group = self.create_group(project=project, status=GroupStatus.PENDING_DELETION)
         event = self.create_event(group=group)
-        tv, _ = tagstore.get_or_create_tag_value(project.id, self.environment.id, 'key1', 'value1')
+        tv, _ = tagstore.get_or_create_tag_value(project.id, self.environment.id, "key1", "value1")
         tagstore.create_event_tags(
             event_id=event.id,
             group_id=group.id,

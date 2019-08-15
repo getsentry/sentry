@@ -5,8 +5,14 @@ from uuid import uuid4
 from sentry import tagstore
 from sentry.tagstore.models import EventTag
 from sentry.models import (
-    Event, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
-    ScheduledDeletion, UserReport
+    Event,
+    Group,
+    GroupAssignee,
+    GroupHash,
+    GroupMeta,
+    GroupRedirect,
+    ScheduledDeletion,
+    UserReport,
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -18,13 +24,9 @@ class DeleteGroupTest(TestCase):
         group = self.create_group(project=project)
         event = self.create_event(group=group)
 
-        UserReport.objects.create(
-            group_id=group.id,
-            project_id=event.project_id,
-            name='Jane Doe',
-        )
-        key = 'key'
-        value = 'value'
+        UserReport.objects.create(group_id=group.id, project_id=event.project_id, name="Jane Doe")
+        key = "key"
+        value = "value"
         tk = tagstore.create_tag_key(
             project_id=project.id, environment_id=self.environment.id, key=key
         )
