@@ -223,7 +223,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
-                                                  className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton e12ma6z0"
+                                                  className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -231,7 +231,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton e12ma6z0"
+                                                    className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -242,11 +242,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     >
                                                       <Component
                                                         align="center"
-                                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                                        className="css-1bqncjo-ButtonLabel edwq9my1"
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                                          className="css-1bqncjo-ButtonLabel edwq9my1"
                                                         >
                                                           Add Project
                                                           <StyledChevronDown>
@@ -628,7 +628,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -636,7 +636,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -647,11 +647,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <Component
                                 align="center"
-                                className="css-1h693nz-ButtonLabel e12ma6z1"
+                                className="css-1h693nz-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-1h693nz-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component
@@ -1000,7 +1000,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -1008,7 +1008,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -1019,11 +1019,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <Component
                                 align="center"
-                                className="css-1h693nz-ButtonLabel e12ma6z1"
+                                className="css-1h693nz-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-1h693nz-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component

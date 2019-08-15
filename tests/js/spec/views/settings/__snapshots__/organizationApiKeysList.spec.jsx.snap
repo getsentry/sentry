@@ -116,7 +116,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         <ForwardRef
                           aria-disabled={false}
                           aria-label="New API Key"
-                          className="css-1lua553-StyledButton-getColors e12ma6z0"
+                          className="css-1lua553-StyledButton-getColors edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -126,7 +126,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           <button
                             aria-disabled={false}
                             aria-label="New API Key"
-                            className="css-1lua553-StyledButton-getColors e12ma6z0"
+                            className="css-1lua553-StyledButton-getColors edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -138,24 +138,24 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             >
                               <Component
                                 align="center"
-                                className="css-1h693nz-ButtonLabel e12ma6z1"
+                                className="css-1h693nz-ButtonLabel edwq9my1"
                                 priority="primary"
                                 size="small"
                               >
                                 <span
-                                  className="css-1h693nz-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                 >
                                   <Icon
                                     hasChildren={true}
                                     size="small"
                                   >
                                     <Component
-                                      className="css-1vdnsie-Icon e12ma6z2"
+                                      className="css-1vdnsie-Icon edwq9my2"
                                       hasChildren={true}
                                       size="small"
                                     >
                                       <span
-                                        className="css-1vdnsie-Icon e12ma6z2"
+                                        className="css-1vdnsie-Icon edwq9my2"
                                         size="small"
                                       >
                                         <StyledInlineSvg
@@ -163,12 +163,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                           src="icon-circle-add"
                                         >
                                           <ForwardRef
-                                            className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
+                                            className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                             size="12px"
                                             src="icon-circle-add"
                                           >
                                             <svg
-                                              className="css-52zz4j-InlineSvg-StyledInlineSvg e12ma6z3"
+                                              className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
