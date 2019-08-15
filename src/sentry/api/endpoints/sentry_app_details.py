@@ -3,13 +3,13 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 import logging
-import json
 
 from sentry import features, analytics
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 

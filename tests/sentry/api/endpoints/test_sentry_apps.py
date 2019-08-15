@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import re
-import json
 
 from mock import patch
 from django.core.urlresolvers import reverse

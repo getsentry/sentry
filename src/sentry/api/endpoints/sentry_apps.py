@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 import logging
-import json
 
 from sentry import features, analytics
 from sentry.auth.superuser import is_active_superuser
@@ -15,6 +14,7 @@ from sentry.constants import SentryAppStatus
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
+from sentry.utils import json
 
 
 logger = logging.getLogger(__name__)
