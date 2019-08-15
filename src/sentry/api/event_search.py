@@ -651,10 +651,11 @@ def get_snuba_query_args(query=None, params=None):
 
 
 FIELD_ALIASES = {
-    "issue_title": {"aggregations": [["anyHeavy", "title", "issue_title"]]},
-    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
-    "latest_event": {
-        "aggregations": [
+    'last_seen': {
+        'aggregations': [['max', 'timestamp', 'last_seen']],
+    },
+    'latest_event': {
+        'aggregations': [
             # TODO(mark) This is a hack to work around jsonschema limitations
             # in snuba.
             ["argMax(event_id, timestamp)", "", "latest_event"]
