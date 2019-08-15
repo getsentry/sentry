@@ -68,7 +68,6 @@ def multiprocess_worker(task_queue):
             skip_models = [
                 # Handled by other parts of cleanup
                 models.Event,
-                models.EventMapping,
                 models.EventAttachment,
                 models.UserReport,
                 models.Group,
@@ -176,7 +175,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
-        (models.EventMapping, 'date_added', '-date_added'),
         (models.EventAttachment, 'date_added', None),
         (models.UserReport, 'date_added', None),
         (models.GroupEmailThread, 'date', None),
