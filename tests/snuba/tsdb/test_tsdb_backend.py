@@ -8,6 +8,7 @@ import requests
 import six
 
 from django.conf import settings
+from mock import patch
 
 from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
@@ -493,3 +494,32 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         results = self.db.get_distinct_counts_union(TSDBModel.users_affected_by_project,
                                                     [project_id], dts[0], dts[-1])
         assert has_shape(results, 1)
+
+    def test_calculated_limit(self):
+
+        with patch('sentry.tsdb.snuba.snuba') as snuba:
+            # 24h test
+            rollup = 3600
+            end = self.now
+            start = end + timedelta(days=-1, seconds=rollup)
+            self.db.get_data(TSDBModel.group,
+                             [1, 2, 3, 4, 5], start, end,
+                             rollup=rollup)
+            assert snuba.query.call_args[1]['limit'] == 120
+
+            # 14 day test
+            rollup = 86400
+            start = end + timedelta(days=-14, seconds=rollup)
+            self.db.get_data(TSDBModel.group,
+                             [1, 2, 3, 4, 5], start, end,
+                             rollup=rollup)
+            assert snuba.query.call_args[1]['limit'] == 70
+
+            # 1h test
+            rollup = 3600
+            end = self.now
+            start = end + timedelta(hours=-1, seconds=rollup)
+            self.db.get_data(TSDBModel.group,
+                             [1, 2, 3, 4, 5], start, end,
+                             rollup=rollup)
+            assert snuba.query.call_args[1]['limit'] == 5
