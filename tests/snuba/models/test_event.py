@@ -38,7 +38,6 @@ class SnubaEventTest(TestCase, SnubaTestCase):
                 "sentry:release": "release1",
             },
             "user": {"id": u"user1", "email": u"user1@sentry.io"},
-            "user": {"id": u"user1", "email": u"user1@sentry.io"},
         }
 
         # Create a regular django Event from the data, which will save the.
