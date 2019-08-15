@@ -754,6 +754,10 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
+        # save the event unless its been sampled
+        if not is_sample:
+            event.data.save()
+
         if event_user:
             counters = [
                 (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,))
