@@ -29,7 +29,7 @@ class Migration(DataMigration):
         # Cannot query the pending_deletion field in the config JSONfield object in Django 1.8
         # However, we can use a regex on the name to see if it matches a uuid since when we delete
         # a repository we give it a temporary name
-        repositories = SentryRepository.objects.filter(name__regex=r'[\w\d]{32}')
+        repositories = SentryRepository.objects.filter(name__regex=r'[0-9a-fA-F]{32}')
         for repository in repositories:
             if repository.config['pending_deletion_name'] is not None:
                 repository.delete()
