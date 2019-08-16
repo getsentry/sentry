@@ -11,7 +11,6 @@ import {
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
