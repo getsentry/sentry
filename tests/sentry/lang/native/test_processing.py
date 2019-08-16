@@ -60,11 +60,7 @@ def test_merge_symbolicator_image_basic_success():
 def test_merge_symbolicator_image_remove_unknown_arch():
     raw_image = {"instruction_addr": 0xFEEBEE}
     sdk_info = {"sdk_name": "linux"}
-    complete_image = {
-        "debug_status": "found",
-        "unwind_status": "found",
-        "arch": "unknown",
-    }
+    complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
     errors = []
 
     _merge_image(raw_image, complete_image, sdk_info, errors.append)
@@ -77,8 +73,10 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     "code_file,error",
     [
         ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
-        ("/var/containers/Bundle/Application/asdf/Frameworks/foo",
-         EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM),
+        (
+            "/var/containers/Bundle/Application/asdf/Frameworks/foo",
+            EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+        ),
     ],
 )
 def test_merge_symbolicator_image_errors(code_file, error):

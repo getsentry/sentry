@@ -12,8 +12,8 @@ from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
-ERR_INVITE_INVALID = _('The invite link you followed is not valid, or has expired.')
-PENDING_INVITE = 'pending-invite'
+ERR_INVITE_INVALID = _("The invite link you followed is not valid, or has expired.")
+PENDING_INVITE = "pending-invite"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
@@ -25,28 +25,21 @@ class AcceptOrganizationInviteView(BaseView):
     auth_required = False
 
     def get_form(self, request):
-        if request.method == 'POST':
+        if request.method == "POST":
             return AcceptInviteForm(request.POST)
         return AcceptInviteForm()
 
     def redirect_with_err_message(self, request):
-        messages.add_message(
-            request,
-            messages.ERROR,
-            ERR_INVITE_INVALID,
-        )
+        messages.add_message(request, messages.ERROR, ERR_INVITE_INVALID)
 
-        return self.redirect(reverse('sentry'))
+        return self.redirect(reverse("sentry"))
 
     def handle(self, request, member_id, token):
-        assert request.method in ('POST', 'GET')
+        assert request.method in ("POST", "GET")
 
         try:
             helper = WebInviteHelper(
-                instance=self,
-                request=request,
-                member_id=member_id,
-                token=token
+                instance=self, request=request, member_id=member_id, token=token
             )
         except OrganizationMember.DoesNotExist:
             return self.redirect_with_err_message(request)
@@ -58,52 +51,43 @@ class AcceptOrganizationInviteView(BaseView):
         organization = om.organization
 
         context = {
-            'org_name': organization.name,
-            'needs_authentication': not helper.user_authenticated,
-            'needs_2fa': helper.needs_2fa,
-            'logout_url': u'{}?next={}'.format(
-                reverse('sentry-logout'),
-                request.path,
-            ),
-            'login_url': u'{}?next={}'.format(
-                reverse('sentry-login'),
-                request.path,
-            ),
-            'register_url': u'{}?next={}'.format(
-                reverse('sentry-register'),
-                request.path,
-            ),
+            "org_name": organization.name,
+            "needs_authentication": not helper.user_authenticated,
+            "needs_2fa": helper.needs_2fa,
+            "logout_url": u"{}?next={}".format(reverse("sentry-logout"), request.path),
+            "login_url": u"{}?next={}".format(reverse("sentry-login"), request.path),
+            "register_url": u"{}?next={}".format(reverse("sentry-register"), request.path),
         }
 
         if not helper.user_authenticated:
             # Show login or register form
             auth.initiate_login(request, next_url=request.get_full_path())
-            request.session['can_register'] = True
-            request.session['invite_email'] = om.email
+            request.session["can_register"] = True
+            request.session["invite_email"] = om.email
 
-            return self.respond('sentry/accept-organization-invite.html', context)
+            return self.respond("sentry/accept-organization-invite.html", context)
 
         if helper.needs_2fa:
             # redirect to setup 2fa
-            response = self.respond('sentry/accept-organization-invite.html', context)
+            response = self.respond("sentry/accept-organization-invite.html", context)
             response.set_cookie(PENDING_INVITE, request.path, max_age=COOKIE_MAX_AGE)
             return response
 
         # if they're already a member of the organization its likely they're
         # using a shared account and either previewing this invite or
         # are incorrectly expecting this to create a new account for them
-        context['existing_member'] = helper.member_already_exists
+        context["existing_member"] = helper.member_already_exists
 
         form = self.get_form(request)
         if form.is_valid():
             helper.accept_invite()
 
-            request.session.pop('can_register', None)
+            request.session.pop("can_register", None)
             response = self.redirect(organization.get_url())
             return helper.remove_invite_cookie(response)
 
-        context['form'] = form
-        return self.respond('sentry/accept-organization-invite.html', context)
+        context["form"] = form
+        return self.respond("sentry/accept-organization-invite.html", context)
 
 
 class BaseInviteHelper(object):
@@ -122,7 +106,7 @@ class BaseInviteHelper(object):
         pass
 
     def get_organization_member(self):
-        return OrganizationMember.objects.select_related('organization').get(pk=self.member_id)
+        return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
 
     @property
     def member_pending(self):
@@ -170,7 +154,7 @@ class BaseInviteHelper(object):
             )
 
             self.handle_success()
-            metrics.incr('organization.invite-accepted', sample_rate=1.0)
+            metrics.incr("organization.invite-accepted", sample_rate=1.0)
 
     def remove_invite_cookie(self, response):
         if PENDING_INVITE in self.request.COOKIES:
@@ -181,36 +165,38 @@ class BaseInviteHelper(object):
 class WebInviteHelper(BaseInviteHelper):
     def handle_success(self):
         messages.add_message(
-            self.request, messages.SUCCESS,
-            _('You have been added to the %r organization.') %
-            (self.om.organization.name.encode('utf-8'), )
+            self.request,
+            messages.SUCCESS,
+            _("You have been added to the %r organization.")
+            % (self.om.organization.name.encode("utf-8"),),
         )
 
         member_joined.send_robust(
-            member=self.om, organization=self.om.organization, sender=self.instance)
+            member=self.om, organization=self.om.organization, sender=self.instance
+        )
 
     def handle_member_already_exists(self):
         messages.add_message(
-            self.request, messages.SUCCESS,
-            _('You are already a member of the %r organization.') %
-            (self.om.organization.name.encode('utf-8'), )
+            self.request,
+            messages.SUCCESS,
+            _("You are already a member of the %r organization.")
+            % (self.om.organization.name.encode("utf-8"),),
         )
 
 
 class ApiInviteHelper(BaseInviteHelper):
     def handle_member_already_exists(self):
         self.logger.info(
-            'Pending org invite not accepted - User already org member',
-            extra={
-                'organization_id': self.om.organization.id,
-                'user_id': self.request.user.id,
-            }
+            "Pending org invite not accepted - User already org member",
+            extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
         )
 
     def valid_request(self):
-        if (not self.member_pending or
-            not self.valid_token or
-            not self.user_authenticated or
-                self.needs_2fa):
+        if (
+            not self.member_pending
+            or not self.valid_token
+            or not self.user_authenticated
+            or self.needs_2fa
+        ):
             return False
         return True

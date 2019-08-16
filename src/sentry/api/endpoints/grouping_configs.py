@@ -11,7 +11,8 @@ class GroupingConfigsEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request):
-        return Response(serialize([
-            config.as_dict() for config in sorted(CONFIGURATIONS.values(),
-                                                  key=lambda x: x.id)
-        ]))
+        return Response(
+            serialize(
+                [config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)]
+            )
+        )

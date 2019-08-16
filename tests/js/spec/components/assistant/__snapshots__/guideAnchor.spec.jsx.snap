@@ -93,7 +93,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       href="#"
                     >
                       <svg
-                        class="e173w1i13 css-1v6op5i-StyledSvg-CloseIcon e2idor0"
+                        class="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
                         height="1em"
                         viewBox="[object Object]"
                         width="1em"
@@ -117,11 +117,11 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       <div>
                         <button
                           aria-disabled="false"
-                          class="css-1cle45c-StyledButton-getColors e12ma6z0"
+                          class="css-1cle45c-StyledButton-getColors edwq9my0"
                           role="button"
                         >
                           <span
-                            class="css-1h693nz-ButtonLabel e12ma6z1"
+                            class="css-1h693nz-ButtonLabel edwq9my1"
                           >
                             Next
                              →
@@ -245,14 +245,12 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                       className="css-1hopv4i-CloseIcon e173w1i13"
                                       src="icon-close-lg"
                                     >
-                                      <StyledSvg
-                                        className="css-1hopv4i-CloseIcon e173w1i13"
-                                        height="1em"
-                                        viewBox={Object {}}
-                                        width="1em"
+                                      <ForwardRef
+                                        className="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
+                                        src="icon-close-lg"
                                       >
                                         <svg
-                                          className="e173w1i13 css-1v6op5i-StyledSvg-CloseIcon e2idor0"
+                                          className="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
                                           height="1em"
                                           viewBox={Object {}}
                                           width="1em"
@@ -262,7 +260,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                             xlinkHref="#test"
                                           />
                                         </svg>
-                                      </StyledSvg>
+                                      </ForwardRef>
                                     </InlineSvg>
                                   </Component>
                                 </CloseIcon>
@@ -302,7 +300,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                   >
                                     <ForwardRef
                                       aria-disabled={false}
-                                      className="css-1cle45c-StyledButton-getColors e12ma6z0"
+                                      className="css-1cle45c-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       priority="success"
@@ -311,7 +309,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                     >
                                       <button
                                         aria-disabled={false}
-                                        className="css-1cle45c-StyledButton-getColors e12ma6z0"
+                                        className="css-1cle45c-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
@@ -323,12 +321,12 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                         >
                                           <Component
                                             align="center"
-                                            className="css-1h693nz-ButtonLabel e12ma6z1"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             priority="success"
                                             size="small"
                                           >
                                             <span
-                                              className="css-1h693nz-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Next
                                                →
@@ -460,11 +458,11 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                         <button
                           aria-disabled="false"
                           aria-label="Done"
-                          class="css-1cle45c-StyledButton-getColors e12ma6z0"
+                          class="css-1cle45c-StyledButton-getColors edwq9my0"
                           role="button"
                         >
                           <span
-                            class="css-1h693nz-ButtonLabel e12ma6z1"
+                            class="css-1h693nz-ButtonLabel edwq9my1"
                           >
                             Done
                           </span>
@@ -604,7 +602,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Done"
-                                      className="css-1cle45c-StyledButton-getColors e12ma6z0"
+                                      className="css-1cle45c-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       priority="success"
@@ -614,7 +612,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Done"
-                                        className="css-1cle45c-StyledButton-getColors e12ma6z0"
+                                        className="css-1cle45c-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
@@ -626,12 +624,12 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                         >
                                           <Component
                                             align="center"
-                                            className="css-1h693nz-ButtonLabel e12ma6z1"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             priority="success"
                                             size="small"
                                           >
                                             <span
-                                              className="css-1h693nz-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Done
                                             </span>

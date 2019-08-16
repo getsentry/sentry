@@ -14,27 +14,17 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(serialize(installation))
 
     def delete(self, request, installation):
-        Destroyer.run(
-            install=installation,
-            user=request.user,
-            request=request,
-        )
+        Destroyer.run(install=installation, user=request.user, request=request)
         return Response(status=204)
 
     def put(self, request, installation):
-        serializer = SentryAppInstallationSerializer(
-            installation,
-            data=request.data,
-            partial=True,
-        )
+        serializer = SentryAppInstallationSerializer(installation, data=request.data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data
 
             updated_installation = Updater.run(
-                user=request.user,
-                sentry_app_installation=installation,
-                status=result.get('status'),
+                user=request.user, sentry_app_installation=installation, status=result.get("status")
             )
 
             return Response(serialize(updated_installation, request.user))

@@ -22,10 +22,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group,
-                type=Activity.NOTE,
-                user=request.user,
-                id=note_id,
+                group=group, type=Activity.NOTE, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -40,10 +37,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group,
-                type=Activity.NOTE,
-                user=request.user,
-                id=note_id,
+                group=group, type=Activity.NOTE, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -54,7 +48,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(serializer.validated_data))
             note.save()
-            if note.data.get('external_id'):
+            if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
             return Response(serialize(note, request.user), status=200)
 

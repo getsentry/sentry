@@ -7,7 +7,7 @@ from django.db import models
 
 from sentry.utils import json
 
-SOUTH = 'south' in settings.INSTALLED_APPS
+SOUTH = "south" in settings.INSTALLED_APPS
 
 
 # Adapted from django-pgfields
@@ -25,6 +25,7 @@ class ArrayField(models.Field):
         # sub-field and hook into South to get the correct thing back.
         if isinstance(of, tuple) and SOUTH:
             from south.utils import ask_for_it_by_name as gf
+
             of = gf(of[0])(*of[1], **of[2])
 
         # Arrays in PostgreSQL are arrays of a particular type.
@@ -36,18 +37,18 @@ class ArrayField(models.Field):
         # Set "null" to True. Arrays don't have nulls, but null=True
         # in the ORM amounts to nothing in SQL (whereas null=False
         # corresponds to `NOT NULL`)
-        kwargs['null'] = True
+        kwargs["null"] = True
 
         super(ArrayField, self).__init__(**kwargs)
 
     def db_type(self, connection):
-        engine = connection.settings_dict['ENGINE']
-        if 'postgres' in engine:
-            return u'{}[]'.format(self.of.db_type(connection))
+        engine = connection.settings_dict["ENGINE"]
+        if "postgres" in engine:
+            return u"{}[]".format(self.of.db_type(connection))
         return super(ArrayField, self).db_type(connection)
 
     def get_internal_type(self):
-        return 'TextField'
+        return "TextField"
 
     def to_python(self, value):
         if not value:
@@ -58,18 +59,15 @@ class ArrayField(models.Field):
 
     def get_db_prep_value(self, value, connection, prepared=False):
         if not prepared:
-            engine = connection.settings_dict['ENGINE']
-            if 'postgres' in engine:
+            engine = connection.settings_dict["ENGINE"]
+            if "postgres" in engine:
                 return value
             return json.dumps(value) if value else None
         return value
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
     def south_field_triple(self):
@@ -86,22 +84,23 @@ class ArrayField(models.Field):
 
         # Return the appropriate South triple.
         return (
-            '%s.%s' % (self.__class__.__module__, self.__class__.__name__),
+            "%s.%s" % (self.__class__.__module__, self.__class__.__name__),
             [],
             {
                 # The `of` argument is *itself* another triple, of
                 #   the internal field.
                 # The ArrayField constructor understands how to resurrect
                 #   its internal field from this serialized state.
-                'of': (
-                    u'{module}.{class_name}'.format(
-                        module=self.of.__class__.__module__,
-                        class_name=self.of.__class__.__name__,
-                    ), double[0], double[1],
-                ),
+                "of": (
+                    u"{module}.{class_name}".format(
+                        module=self.of.__class__.__module__, class_name=self.of.__class__.__name__
+                    ),
+                    double[0],
+                    double[1],
+                )
             },
         )
 
 
-if hasattr(models, 'SubfieldBase'):
+if hasattr(models, "SubfieldBase"):
     ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)

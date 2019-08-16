@@ -17,18 +17,15 @@ class TestClientIdSecretAuthentication(TestCase):
         self.auth = ClientIdSecretAuthentication()
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = self.create_sentry_app(
-            name="foo",
-            organization=self.org,
-        )
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
 
         self.api_app = self.sentry_app.application
 
     def test_authenticate(self):
         request = HttpRequest()
         request.json_body = {
-            'client_id': self.api_app.client_id,
-            'client_secret': self.api_app.client_secret,
+            "client_id": self.api_app.client_id,
+            "client_secret": self.api_app.client_secret,
         }
 
         user, _ = self.auth.authenticate(request)
@@ -44,38 +41,28 @@ class TestClientIdSecretAuthentication(TestCase):
 
     def test_missing_client_id(self):
         request = HttpRequest()
-        request.json_body = {
-            'client_secret': self.api_app.client_secret,
-        }
+        request.json_body = {"client_secret": self.api_app.client_secret}
 
         with self.assertRaises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_missing_client_secret(self):
         request = HttpRequest()
-        request.json_body = {
-            'client_id': self.api_app.client_id,
-        }
+        request.json_body = {"client_id": self.api_app.client_id}
 
         with self.assertRaises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_incorrect_client_id(self):
         request = HttpRequest()
-        request.json_body = {
-            'client_id': 'notit',
-            'client_secret': self.api_app.client_secret,
-        }
+        request.json_body = {"client_id": "notit", "client_secret": self.api_app.client_secret}
 
         with self.assertRaises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_incorrect_client_secret(self):
         request = HttpRequest()
-        request.json_body = {
-            'client_id': self.api_app.client_id,
-            'client_secret': 'notit',
-        }
+        request.json_body = {"client_id": self.api_app.client_id, "client_secret": "notit"}
 
         with self.assertRaises(AuthenticationFailed):
             self.auth.authenticate(request)
@@ -92,7 +79,7 @@ class TestDSNAuthentication(TestCase):
 
     def test_authenticate(self):
         request = HttpRequest()
-        request.META['HTTP_AUTHORIZATION'] = u'DSN {}'.format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = u"DSN {}".format(self.project_key.dsn_public)
 
         result = self.auth.authenticate(request)
         assert result is not None
@@ -104,7 +91,7 @@ class TestDSNAuthentication(TestCase):
     def test_inactive_key(self):
         self.project_key.update(status=ProjectKeyStatus.INACTIVE)
         request = HttpRequest()
-        request.META['HTTP_AUTHORIZATION'] = u'DSN {}'.format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = u"DSN {}".format(self.project_key.dsn_public)
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)

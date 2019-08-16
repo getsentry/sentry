@@ -16,12 +16,11 @@ from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 # The order of these keys are significant to also indicate priority
 # when used in hashing and determining uniqueness. If you change the order
 # you will break stuff.
-KEYWORD_MAP = BidirectionalMapping(OrderedDict((
-    ('ident', 'id'),
-    ('username', 'username'),
-    ('email', 'email'),
-    ('ip_address', 'ip'),
-)))
+KEYWORD_MAP = BidirectionalMapping(
+    OrderedDict(
+        (("ident", "id"), ("username", "username"), ("email", "email"), ("ip_address", "ip"))
+    )
+)
 
 
 class EventUser(Model):
@@ -37,17 +36,16 @@ class EventUser(Model):
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_eventuser'
-        unique_together = (('project_id', 'ident'), ('project_id', 'hash'))
+        app_label = "sentry"
+        db_table = "sentry_eventuser"
+        unique_together = (("project_id", "ident"), ("project_id", "hash"))
         index_together = (
-            ('project_id', 'email'),
-            ('project_id', 'username'),
-            ('project_id', 'ip_address'),
+            ("project_id", "email"),
+            ("project_id", "username"),
+            ("project_id", "ip_address"),
         )
 
-    __repr__ = sane_repr('project_id', 'ident', 'email',
-                         'username', 'ip_address')
+    __repr__ = sane_repr("project_id", "ident", "email", "username", "ip_address")
 
     @classmethod
     def attr_from_keyword(cls, keyword):
@@ -55,7 +53,7 @@ class EventUser(Model):
 
     @classmethod
     def hash_from_tag(cls, value):
-        return md5_text(value.split(':', 1)[-1]).hexdigest()
+        return md5_text(value.split(":", 1)[-1]).hexdigest()
 
     @classmethod
     def for_tags(cls, project_id, values):
@@ -65,14 +63,12 @@ class EventUser(Model):
         Return a dictionary of {tag_value: event_user}.
         """
         hashes = [cls.hash_from_tag(v) for v in values]
-        return {e.tag_value: e for e in cls.objects.filter(
-            project_id=project_id,
-            hash__in=hashes,
-        )}
+        return {e.tag_value: e for e in cls.objects.filter(project_id=project_id, hash__in=hashes)}
 
     def save(self, *args, **kwargs):
-        assert self.ident or self.username or self.email or self.ip_address, \
-            'No identifying value found for user'
+        assert (
+            self.ident or self.username or self.email or self.ip_address
+        ), "No identifying value found for user"
         if not self.hash:
             self.set_hash()
         super(EventUser, self).save(*args, **kwargs)
@@ -92,7 +88,7 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return u'{}:{}'.format(KEYWORD_MAP[key], value)
+                return u"{}:{}".format(KEYWORD_MAP[key], value)
 
     def iter_attributes(self):
         """
@@ -108,7 +104,8 @@ class EventUser(Model):
         return self.name or self.email or self.username
 
     def find_similar_users(self, user):
-        from sentry.models import (OrganizationMemberTeam, Project)
+        from sentry.models import OrganizationMemberTeam, Project
+
         # limit to only teams user has opted into
         project_ids = list(
             Project.objects.filter(
@@ -116,8 +113,8 @@ class EventUser(Model):
                     organizationmember__user=user,
                     organizationmember__organization__project=self.project_id,
                     is_active=True,
-                ).values('team'),
-            ).values_list('id', flat=True)[:1000]
+                ).values("team")
+            ).values_list("id", flat=True)[:1000]
         )
         if not project_ids:
             return type(self).objects.none()
@@ -129,7 +126,8 @@ class EventUser(Model):
             filters.append(models.Q(ip_address=self.ip_address))
         if not filters:
             return type(self).objects.none()
-        return type(self).objects.exclude(id=self.id).filter(
-            reduce(or_, filters),
-            project_id__in=project_ids,
+        return (
+            type(self)
+            .objects.exclude(id=self.id)
+            .filter(reduce(or_, filters), project_id__in=project_ids)
         )

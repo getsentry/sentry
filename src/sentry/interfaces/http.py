@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Http', )
+__all__ = ("Http",)
 
 import re
 import six
@@ -17,7 +17,7 @@ from sentry.web.helpers import render_to_string
 
 # Instead of relying on a list of hardcoded methods, just loosly match
 # against a pattern.
-http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
+http_method_re = re.compile(r"^[A-Z\-_]{3,32}$")
 
 
 def format_headers(value):
@@ -35,9 +35,9 @@ def format_headers(value):
         # This is how most other libraries handle this.
         # See: urllib3._collections:HTTPHeaderDict.itermerged
         if isinstance(v, list):
-            v = ', '.join(v)
+            v = ", ".join(v)
 
-        if k.lower() == 'cookie':
+        if k.lower() == "cookie":
             cookie_header = v
         else:
             if not isinstance(v, six.string_types):
@@ -65,9 +65,9 @@ def fix_broken_encoding(value):
     in utf8. This prevents our parsers from breaking elsewhere.
     """
     if isinstance(value, six.text_type):
-        value = value.encode('utf8', errors='replace')
+        value = value.encode("utf8", errors="replace")
     if isinstance(value, six.binary_type):
-        value = value.decode('utf8', errors='replace')
+        value = value.decode("utf8", errors="replace")
     return value
 
 
@@ -105,15 +105,16 @@ class Http(Interface):
     .. note:: This interface can be passed as the 'request' key in addition
               to the full interface path.
     """
+
     display_score = 1000
     score = 800
-    path = 'request'
+    path = "request"
 
-    FORM_TYPE = 'application/x-www-form-urlencoded'
+    FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
     def to_python(cls, data):
-        data.setdefault('query_string', [])
+        data.setdefault("query_string", [])
         for key in (
             "method",
             "url",
@@ -128,42 +129,45 @@ class Http(Interface):
         return cls(**data)
 
     def to_json(self):
-        return prune_empty_keys({
-            'method': self.method,
-            'url': self.url,
-            'query_string': self.query_string or None,
-            'fragment': self.fragment or None,
-            'cookies': self.cookies or None,
-            'headers': self.headers or None,
-            'data': self.data,
-            'env': self.env or None,
-            'inferred_content_type': self.inferred_content_type,
-        })
+        return prune_empty_keys(
+            {
+                "method": self.method,
+                "url": self.url,
+                "query_string": self.query_string or None,
+                "fragment": self.fragment or None,
+                "cookies": self.cookies or None,
+                "headers": self.headers or None,
+                "data": self.data,
+                "env": self.env or None,
+                "inferred_content_type": self.inferred_content_type,
+            }
+        )
 
     @property
     def full_url(self):
         url = self.url
         if url:
             if self.query_string:
-                url = url + '?' + urlencode(get_path(self.query_string, filter=True))
+                url = url + "?" + urlencode(get_path(self.query_string, filter=True))
             if self.fragment:
-                url = url + '#' + self.fragment
+                url = url + "#" + self.fragment
         return url
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(
-            'sentry/partial/interfaces/http_email.html', {
-                'event': event,
-                'url': self.full_url,
-                'short_url': self.url,
-                'method': self.method,
-                'query_string': urlencode(get_path(self.query_string, filter=True)),
-                'fragment': self.fragment,
-            }
+            "sentry/partial/interfaces/http_email.html",
+            {
+                "event": event,
+                "url": self.full_url,
+                "short_url": self.url,
+                "method": self.method,
+                "query_string": urlencode(get_path(self.query_string, filter=True)),
+                "fragment": self.fragment,
+            },
         )
 
     def get_title(self):
-        return _('Request')
+        return _("Request")
 
     def get_api_context(self, is_public=False, platform=None):
         if is_public:
@@ -178,15 +182,15 @@ class Http(Interface):
             headers = sorted(self.headers.items())
 
         data = {
-            'method': self.method,
-            'url': self.url,
-            'query': self.query_string,
-            'fragment': self.fragment,
-            'data': self.data,
-            'headers': headers,
-            'cookies': cookies,
-            'env': self.env or None,
-            'inferredContentType': self.inferred_content_type,
+            "method": self.method,
+            "url": self.url,
+            "query": self.query_string,
+            "fragment": self.fragment,
+            "data": self.data,
+            "headers": headers,
+            "cookies": cookies,
+            "env": self.env or None,
+            "inferredContentType": self.inferred_content_type,
         }
         return data
 
@@ -194,27 +198,27 @@ class Http(Interface):
         if is_public:
             return None
 
-        headers = meta.get('headers')
+        headers = meta.get("headers")
         if headers:
-            headers_meta = headers.pop('', None)
-            headers = {six.text_type(i): {'1': h[1]} for i, h in enumerate(sorted(headers.items()))}
+            headers_meta = headers.pop("", None)
+            headers = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
             if headers_meta:
-                headers[''] = headers_meta
+                headers[""] = headers_meta
 
-        cookies = meta.get('cookies')
+        cookies = meta.get("cookies")
         if cookies:
-            cookies_meta = cookies.pop('', None)
-            cookies = {six.text_type(i): {'1': h[1]} for i, h in enumerate(sorted(cookies.items()))}
+            cookies_meta = cookies.pop("", None)
+            cookies = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
             if cookies_meta:
-                cookies[''] = cookies_meta
+                cookies[""] = cookies_meta
 
         return {
-            '': meta.get(''),
-            'method': meta.get('method'),
-            'url': meta.get('url'),
-            'query': meta.get('query_string'),
-            'data': meta.get('data'),
-            'headers': headers,
-            'cookies': cookies,
-            'env': meta.get('env'),
+            "": meta.get(""),
+            "method": meta.get("method"),
+            "url": meta.get("url"),
+            "query": meta.get("query_string"),
+            "data": meta.get("data"),
+            "headers": headers,
+            "cookies": cookies,
+            "env": meta.get("env"),
         }

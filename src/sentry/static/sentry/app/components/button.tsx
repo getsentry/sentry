@@ -9,8 +9,36 @@ import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
-class Button extends React.Component {
-  static propTypes = {
+/**
+ * The button can actually also be an anchor or React router Link (which seems
+ * to be poorly typed as `any`). So this is a bit of a workaround to recieve
+ * the proper html attributes.
+ */
+type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
+
+type Props = {
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
+  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'large';
+  align?: 'center' | 'left' | 'right';
+  disabled?: boolean;
+  busy?: boolean;
+  to?: string | object;
+  href?: string;
+  icon?: string;
+  title?: string;
+  external?: boolean;
+  borderless?: boolean;
+  label?: string;
+  tooltipProps?: any;
+  onClick?: (e: React.MouseEvent) => void;
+};
+
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+
+type Url = ButtonProps['to'] | ButtonProps['href'];
+
+class Button extends React.Component<ButtonProps, {}> {
+  static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'micro', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
@@ -56,13 +84,13 @@ class Button extends React.Component {
     onClick: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: ButtonProps = {
     disabled: false,
     align: 'center',
   };
 
   // Intercept onClick and propagate
-  handleClick = (...args) => {
+  handleClick = (e: React.MouseEvent) => {
     const {disabled, busy, onClick} = this.props;
 
     // Don't allow clicks when disabled or busy
@@ -74,16 +102,11 @@ class Button extends React.Component {
       return;
     }
 
-    onClick(...args);
+    onClick(e);
   };
 
-  getUrl = prop => {
-    const {disabled} = this.props;
-    if (disabled) {
-      return null;
-    }
-    return prop;
-  };
+  getUrl = <T extends Url>(prop: T): T | undefined =>
+    this.props.disabled ? undefined : prop;
 
   render() {
     const {
@@ -163,7 +186,9 @@ class Button extends React.Component {
 
 export default Button;
 
-const getFontSize = ({size, theme}) => {
+type StyledButtonProps = ButtonProps & {theme?: any};
+
+const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
     case 'micro':
     case 'xsmall':
@@ -176,10 +201,14 @@ const getFontSize = ({size, theme}) => {
   }
 };
 
-const getFontWeight = ({priority, borderless}) =>
+const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 400 : 600};`;
 
-const getBoxShadow = active => ({priority, borderless, disabled}) => {
+const getBoxShadow = (active: boolean) => ({
+  priority,
+  borderless,
+  disabled,
+}: StyledButtonProps) => {
   if (disabled || borderless || priority === 'link') {
     return 'box-shadow: none';
   }
@@ -187,7 +216,7 @@ const getBoxShadow = active => ({priority, borderless, disabled}) => {
   return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
 };
 
-const getColors = ({priority, disabled, borderless, theme}) => {
+const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {
     color,
@@ -227,24 +256,24 @@ const getColors = ({priority, disabled, borderless, theme}) => {
 const StyledButton = styled(
   // While props is the conventional name, we're using `prop` to trick
   // eslint as using `props` results in unfixable 'missing proptypes` warnings.
-  React.forwardRef((prop, ref) => {
+  React.forwardRef<ButtonElement, ButtonProps>((prop, ref) => {
     const forwardProps = pickBy(
       prop,
-      (value, key) => key !== 'disabled' && isPropValid(key)
+      (_value, key) => key !== 'disabled' && isPropValid(key)
     );
 
     // Get component to use based on existance of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (prop.to) {
-      return <Link ref={ref} {...forwardProps} />;
+      return <Link ref={ref} to={prop.to} {...forwardProps} />;
     }
 
     if (!prop.href) {
       return <button ref={ref} {...forwardProps} />;
     }
 
-    if (prop.external) {
-      return <ExternalLink ref={ref} {...forwardProps} />;
+    if (prop.external && prop.href) {
+      return <ExternalLink ref={ref} href={prop.href} {...forwardProps} />;
     }
 
     return <a ref={ref} {...forwardProps} />;
@@ -252,7 +281,7 @@ const StyledButton = styled(
 )`
   display: inline-block;
   line-height: 1;
-  border-radius: ${p => p.theme.button.borderRadius};
+  border-radius: ${(p: StyledButtonProps) => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
 
@@ -260,8 +289,8 @@ const StyledButton = styled(
   font-size: ${getFontSize};
   ${getColors};
   ${getBoxShadow(false)};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  cursor: ${(p: StyledButtonProps) => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${(p: StyledButtonProps) => (p.busy || p.disabled) && '0.65'};
 
   &:active {
     ${getBoxShadow(true)};
@@ -276,7 +305,7 @@ const StyledButton = styled(
 /**
  * Get label padding determined by size
  */
-const getLabelPadding = ({size, priority, borderless}) => {
+const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
   if (priority === 'link') {
     return '0';
   }
@@ -297,17 +326,24 @@ const getLabelPadding = ({size, priority, borderless}) => {
   }
 };
 
-const ButtonLabel = styled(({size, priority, borderless, align, ...props}) => (
-  <span {...props} />
-))`
+type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
+
+const ButtonLabel = styled(
+  ({size, priority, borderless, align, ...props}: ButtonLabelProps) => <span {...props} />
+)`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  justify-content: ${p => p.align};
+  justify-content: ${(p: StyledButtonProps) => p.align};
   padding: ${getLabelPadding};
 `;
 
-const getIconMargin = ({size, hasChildren}) => {
+type IconProps = Omit<React.HTMLProps<HTMLSpanElement>, 'size'> & {
+  size?: ButtonProps['size'];
+  hasChildren?: boolean;
+};
+
+const getIconMargin = ({size, hasChildren}: IconProps) => {
   // If button is only an icon, then it shouldn't have margin
   if (!hasChildren) {
     return '0';
@@ -316,7 +352,7 @@ const getIconMargin = ({size, hasChildren}) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled(({hasChildren, ...props}) => <span {...props} />)`
+const Icon = styled(({hasChildren, ...props}: IconProps) => <span {...props} />)`
   margin-right: ${getIconMargin};
 `;
 

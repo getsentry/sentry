@@ -10,15 +10,15 @@ def camel_to_snake_case(value):
     """
     Splits CamelCase and converts to lower case with underscores.
     """
-    return re_camel_case.sub(r'_\1', value).strip('_').lower()
+    return re_camel_case.sub(r"_\1", value).strip("_").lower()
 
 
 def snake_to_camel_case(value):
     """
     Converts a string from snake_case to camelCase
     """
-    words = value.strip('_').split('_')
-    return words[0].lower() + ''.join([word.capitalize() for word in words[1:]])
+    words = value.strip("_").split("_")
+    return words[0].lower() + "".join([word.capitalize() for word in words[1:]])
 
 
 def convert_dict_key_case(obj, converter):
@@ -54,6 +54,5 @@ class CamelSnakeModelSerializer(ModelSerializer):
     @property
     def errors(self):
         return convert_dict_key_case(
-            super(CamelSnakeModelSerializer, self).errors,
-            snake_to_camel_case,
+            super(CamelSnakeModelSerializer, self).errors, snake_to_camel_case
         )

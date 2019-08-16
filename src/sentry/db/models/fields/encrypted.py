@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 __all__ = (
-    'EncryptedCharField', 'EncryptedJsonField', 'EncryptedPickledObjectField', 'EncryptedTextField',
+    "EncryptedCharField",
+    "EncryptedJsonField",
+    "EncryptedPickledObjectField",
+    "EncryptedTextField",
 )
 
 import six
@@ -34,10 +37,7 @@ class EncryptedCharField(CharField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
@@ -53,17 +53,14 @@ class EncryptedJsonField(JSONField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedPickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, six.binary_type):
-            value = value.decode('utf-8')
+            value = value.decode("utf-8")
         value = super(EncryptedPickledObjectField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
@@ -74,10 +71,7 @@ class EncryptedPickledObjectField(PickledObjectField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
@@ -101,14 +95,11 @@ class EncryptedTextField(TextField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules(

@@ -11,16 +11,16 @@ class RedisSessionStoreTestCase(TestCase):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, 'test-store')
+        store = RedisSessionStore(request, "test-store")
         store.regenerate()
 
-        assert 'store:test-store' in request.session
+        assert "store:test-store" in request.session
 
-        store.some_value = 'test_value'
-        store2 = RedisSessionStore(request, 'test-store')
+        store.some_value = "test_value"
+        store2 = RedisSessionStore(request, "test-store")
 
         assert store2.is_valid()
-        assert store2.some_value == 'test_value'
+        assert store2.some_value == "test_value"
 
         with self.assertRaises(AttributeError):
             store.missing_key
@@ -31,14 +31,12 @@ class RedisSessionStoreTestCase(TestCase):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, 'test-store')
-        store.regenerate({
-            'some_value': {'deep_object': 'value'},
-        })
+        store = RedisSessionStore(request, "test-store")
+        store.regenerate({"some_value": {"deep_object": "value"}})
 
-        store2 = RedisSessionStore(request, 'test-store')
+        store2 = RedisSessionStore(request, "test-store")
 
-        assert store2.some_value['deep_object'] == 'value'
+        assert store2.some_value["deep_object"] == "value"
 
         store.clear()
 
@@ -46,13 +44,13 @@ class RedisSessionStoreTestCase(TestCase):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, 'test-store')
+        store = RedisSessionStore(request, "test-store")
 
         assert not store.is_valid()
         assert store.get_state() is None
         assert store.some_key is None
 
-        store.setting_but_no_state = 'anything'
+        store.setting_but_no_state = "anything"
         assert store.setting_but_no_state is None
 
         store.clear()

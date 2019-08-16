@@ -14,7 +14,7 @@ class RedisRateLimiter(RateLimiter):
     window = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options('SENTRY_RATELIMITER_OPTIONS', options)
+        self.cluster, options = get_cluster_from_options("SENTRY_RATELIMITER_OPTIONS", options)
 
     def validate(self):
         try:
@@ -31,9 +31,9 @@ class RedisRateLimiter(RateLimiter):
         bucket = int(time() / window)
 
         if project:
-            key = 'rl:%s:%s:%s' % (key_hex, project.id, bucket)
+            key = "rl:%s:%s:%s" % (key_hex, project.id, bucket)
         else:
-            key = 'rl:%s:%s' % (key_hex, bucket)
+            key = "rl:%s:%s" % (key_hex, bucket)
 
         with self.cluster.map() as client:
             result = client.incr(key)

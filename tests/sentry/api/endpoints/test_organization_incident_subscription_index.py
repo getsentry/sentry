@@ -8,7 +8,7 @@ from sentry.testutils import APITestCase
 
 
 class BaseOrganizationSubscriptionEndpointTest(object):
-    endpoint = 'sentry-api-0-organization-incident-subscription-index'
+    endpoint = "sentry-api-0-organization-incident-subscription-index"
 
     @fixture
     def organization(self):
@@ -27,74 +27,45 @@ class BaseOrganizationSubscriptionEndpointTest(object):
         self.login_as(other_user)
         other_team = self.create_team()
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='member',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
         other_project = self.create_project(teams=[other_team])
         incident = self.create_incident(projects=[other_project])
-        with self.feature('organizations:incidents'):
-            resp = self.get_response(
-                self.organization.slug,
-                incident.identifier,
-                comment='hi',
-            )
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, incident.identifier, comment="hi")
             assert resp.status_code == 403
 
 
 class OrganizationIncidentSubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest,
-    APITestCase,
+    BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
-    method = 'post'
+    method = "post"
 
     def test_simple(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         incident = self.create_incident()
-        with self.feature('organizations:incidents'):
-            self.get_valid_response(
-                self.organization.slug,
-                incident.identifier,
-                status_code=201,
-            )
-        sub = IncidentSubscription.objects.filter(
-            incident=incident,
-            user=self.user,
-        ).get()
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, incident.identifier, status_code=201)
+        sub = IncidentSubscription.objects.filter(incident=incident, user=self.user).get()
         assert sub.incident == incident
         assert sub.user == self.user
 
 
 class OrganizationIncidentUnsubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest,
-    APITestCase,
+    BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
-    method = 'delete'
+    method = "delete"
 
     def test_simple(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         incident = self.create_incident()
         subscribe_to_incident(incident, self.user)
-        with self.feature('organizations:incidents'):
-            self.get_valid_response(
-                self.organization.slug,
-                incident.identifier,
-                status_code=200,
-            )
-        assert not IncidentSubscription.objects.filter(
-            incident=incident,
-            user=self.user,
-        ).exists()
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, incident.identifier, status_code=200)
+        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()

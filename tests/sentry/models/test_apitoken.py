@@ -20,10 +20,10 @@ class ApiTokenTest(TestCase):
 
     def test_get_scopes(self):
         token = ApiToken(scopes=1)
-        assert token.get_scopes() == ['project:read']
+        assert token.get_scopes() == ["project:read"]
 
-        token = ApiToken(scopes=4, scope_list=['project:read'])
-        assert token.get_scopes() == ['project:read']
+        token = ApiToken(scopes=4, scope_list=["project:read"])
+        assert token.get_scopes() == ["project:read"]
 
-        token = ApiToken(scope_list=['project:read'])
-        assert token.get_scopes() == ['project:read']
+        token = ApiToken(scope_list=["project:read"])
+        assert token.get_scopes() == ["project:read"]

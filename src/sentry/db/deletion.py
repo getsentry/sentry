@@ -35,23 +35,20 @@ class BulkDeleteQuery(object):
             where.append(u"project_id = {}".format(self.project_id))
 
         if where:
-            where_clause = u'where {}'.format(' and '.join(where))
+            where_clause = u"where {}".format(" and ".join(where))
         else:
-            where_clause = ''
+            where_clause = ""
 
         if self.order_by:
-            if self.order_by[0] == '-':
-                direction = 'desc'
+            if self.order_by[0] == "-":
+                direction = "desc"
                 order_field = self.order_by[1:]
             else:
-                direction = 'asc'
+                direction = "asc"
                 order_field = self.order_by
-            order_clause = u'order by {} {}'.format(
-                quote_name(order_field),
-                direction,
-            )
+            order_clause = u"order by {} {}".format(quote_name(order_field), direction)
         else:
-            order_clause = ''
+            order_clause = ""
 
         query = u"""
             delete from {table}
@@ -87,9 +84,9 @@ class BulkDeleteQuery(object):
 
         if self.days:
             cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(**{u'{}__lte'.format(self.dtfield): cutoff})
+            qs = qs.filter(**{u"{}__lte".format(self.dtfield): cutoff})
         if self.project_id:
-            if 'project' in self.model._meta.get_all_field_names():
+            if "project" in self.model._meta.get_all_field_names():
                 qs = qs.filter(project=self.project_id)
             else:
                 qs = qs.filter(project_id=self.project_id)
@@ -142,33 +139,21 @@ class BulkDeleteQuery(object):
                 # large quantity of rows from postgres incrementally, without
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
-                    where = [(
-                        u"{} < %s".format(quote_name(self.dtfield)),
-                        [cutoff],
-                    )]
+                    where = [(u"{} < %s".format(quote_name(self.dtfield)), [cutoff])]
 
                     if self.project_id:
-                        where.append((
-                            "project_id = %s",
-                            [self.project_id],
-                        ))
+                        where.append(("project_id = %s", [self.project_id]))
 
-                    if self.order_by[0] == '-':
-                        direction = 'desc'
+                    if self.order_by[0] == "-":
+                        direction = "desc"
                         order_field = self.order_by[1:]
                         if position is not None:
-                            where.append((
-                                u'{} <= %s'.format(quote_name(order_field)),
-                                [position],
-                            ))
+                            where.append((u"{} <= %s".format(quote_name(order_field)), [position]))
                     else:
-                        direction = 'asc'
+                        direction = "asc"
                         order_field = self.order_by
                         if position is not None:
-                            where.append((
-                                u'{} >= %s'.format(quote_name(order_field)),
-                                [position],
-                            ))
+                            where.append((u"{} >= %s".format(quote_name(order_field)), [position]))
 
                     conditions, parameters = zip(*where)
                     parameters = list(itertools.chain.from_iterable(parameters))
@@ -181,7 +166,7 @@ class BulkDeleteQuery(object):
                         limit {batch_size}
                     """.format(
                         table=self.model._meta.db_table,
-                        conditions=' and '.join(conditions),
+                        conditions=" and ".join(conditions),
                         order_field=quote_name(order_field),
                         direction=direction,
                         batch_size=batch_size,
@@ -210,6 +195,7 @@ class BulkDeleteQuery(object):
 
     def iterator_generic(self, chunk_size):
         from sentry.utils.query import RangeQuerySetWrapper
+
         qs = self.get_generic_queryset()
 
         chunk = []

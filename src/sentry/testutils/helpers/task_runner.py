@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['TaskRunner']
+__all__ = ["TaskRunner"]
 
 from celery import current_app
 from contextlib import contextmanager

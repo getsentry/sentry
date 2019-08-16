@@ -3,9 +3,7 @@ from __future__ import absolute_import
 import six
 
 try:
-    from django.http import (
-        HttpResponse,
-        CompatibleStreamingHttpResponse as StreamingHttpResponse)
+    from django.http import HttpResponse, CompatibleStreamingHttpResponse as StreamingHttpResponse
 except ImportError:
     from django.http import HttpResponse, StreamingHttpResponse
 
@@ -18,7 +16,6 @@ from sentry.utils.safe import get_path
 
 
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
-
     def get(self, request, project, event_id):
         """
         Retrieve an Apple Crash Report from an event
@@ -31,38 +28,31 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], "data")
 
-        if event.platform not in ('cocoa', 'native'):
+        if event.platform not in ("cocoa", "native"):
             return HttpResponse(
-                {
-                    'message': 'Only cocoa events can return an apple crash report',
-                }, status=403
+                {"message": "Only cocoa events can return an apple crash report"}, status=403
             )
 
-        symbolicated = (request.GET.get('minified') not in ('1', 'true'))
+        symbolicated = request.GET.get("minified") not in ("1", "true")
 
         apple_crash_report_string = six.text_type(
             AppleCrashReport(
-                threads=get_path(event.data, 'threads', 'values', filter=True),
-                context=event.data.get('contexts'),
-                debug_images=get_path(event.data, 'debug_meta', 'images', filter=True),
-                exceptions=get_path(event.data, 'exception', 'values', filter=True),
+                threads=get_path(event.data, "threads", "values", filter=True),
+                context=event.data.get("contexts"),
+                debug_images=get_path(event.data, "debug_meta", "images", filter=True),
+                exceptions=get_path(event.data, "exception", "values", filter=True),
                 symbolicated=symbolicated,
             )
         )
 
-        response = HttpResponse(apple_crash_report_string,
-                                content_type='text/plain')
+        response = HttpResponse(apple_crash_report_string, content_type="text/plain")
 
-        if request.GET.get('download') is not None:
-            filename = u"{}{}.crash".format(
-                event.event_id, symbolicated and '-symbolicated' or '')
-            response = StreamingHttpResponse(
-                apple_crash_report_string,
-                content_type='text/plain',
-            )
-            response['Content-Length'] = len(apple_crash_report_string)
-            response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+        if request.GET.get("download") is not None:
+            filename = u"{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
+            response = StreamingHttpResponse(apple_crash_report_string, content_type="text/plain")
+            response["Content-Length"] = len(apple_crash_report_string)
+            response["Content-Disposition"] = 'attachment; filename="%s"' % filename
 
         return response

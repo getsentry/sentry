@@ -16,22 +16,22 @@ class ReleaseFile(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey("sentry.Organization")
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    release = FlexibleForeignKey('sentry.Release')
-    file = FlexibleForeignKey('sentry.File')
+    release = FlexibleForeignKey("sentry.Release")
+    file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    dist = FlexibleForeignKey('sentry.Distribution', null=True)
+    dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
-    __repr__ = sane_repr('release', 'ident')
+    __repr__ = sane_repr("release", "ident")
 
     class Meta:
-        unique_together = (('release', 'ident'), )
-        index_together = (('release', 'name'), )
-        app_label = 'sentry'
-        db_table = 'sentry_releasefile'
+        unique_together = (("release", "ident"),)
+        index_together = (("release", "name"),)
+        app_label = "sentry"
+        db_table = "sentry_releasefile"
 
     def save(self, *args, **kwargs):
         if not self.ident and self.name:
@@ -41,17 +41,17 @@ class ReleaseFile(Model):
 
     def update(self, *args, **kwargs):
         # If our name is changing, we must also change the ident
-        if 'name' in kwargs and 'ident' not in kwargs:
-            dist = kwargs.get('dist') or self.dist
-            kwargs['ident'] = self.ident = type(self).get_ident(
-                kwargs['name'], dist and dist.name or dist
+        if "name" in kwargs and "ident" not in kwargs:
+            dist = kwargs.get("dist") or self.dist
+            kwargs["ident"] = self.ident = type(self).get_ident(
+                kwargs["name"], dist and dist.name or dist
             )
         return super(ReleaseFile, self).update(*args, **kwargs)
 
     @classmethod
     def get_ident(cls, name, dist=None):
         if dist is not None:
-            return sha1_text(name + '\x00\x00' + dist).hexdigest()
+            return sha1_text(name + "\x00\x00" + dist).hexdigest()
         return sha1_text(name).hexdigest()
 
     @classmethod
@@ -73,7 +73,7 @@ class ReleaseFile(Model):
         urls = [urlunsplit(uri_without_fragment)]
         if query:
             urls.append(urlunsplit(uri_without_query))
-        urls.append('~' + urlunsplit(uri_relative))
+        urls.append("~" + urlunsplit(uri_relative))
         if query:
-            urls.append('~' + urlunsplit(uri_relative_without_query))
+            urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
