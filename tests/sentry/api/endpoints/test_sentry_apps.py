@@ -332,7 +332,7 @@ class PostSentryAppsTest(SentryAppsTest):
             organization_id=self.org.id,
             sentry_app_name="MyApp",
             error_message="['#general'] is too short",
-            schema='{"elements": [{"required_fields": [{"label": "Channel", "type": "select", "options": [["#general"]], "name": "channel"}], "type": "alert-rule-action"}]}',
+            schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
         )
 
     @with_feature(["organizations:sentry-apps", "organizations:integrations-event-hooks"])

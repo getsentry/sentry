@@ -258,7 +258,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="SampleApp", organization=self.org)
         url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
-        response = self.client.put(url, data={"schema": {"bad_key": "bad_value"}}, format="json")
+        schema = {"bad_key": "bad_value"}
+        response = self.client.put(url, data={"schema": schema}, format="json")
         assert response.status_code == 400
         assert response.data == {"schema": ["'elements' is a required property"]}
         record.assert_called_with(
@@ -268,7 +269,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             sentry_app_id=app.id,
             sentry_app_name="SampleApp",
             error_message="'elements' is a required property",
-            schema='{"bad_key": "bad_value"}',
+            schema=json.dumps(schema),
         )
 
 
