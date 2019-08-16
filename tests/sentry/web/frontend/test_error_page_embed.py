@@ -165,12 +165,12 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
     def make_event(self, **kwargs):
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         result = {
-            'event_id': 'a' * 32,
-            'message': 'foo',
-            'timestamp': min_ago,
-            'level': logging.ERROR,
-            'logger': 'default',
-            'tags': [],
+            "event_id": "a" * 32,
+            "message": "foo",
+            "timestamp": min_ago,
+            "level": logging.ERROR,
+            "logger": "default",
+            "tags": [],
         }
         result.update(kwargs)
         return self.store_event(data=result, project_id=self.project.id, assert_no_errors=False)

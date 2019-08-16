@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import (Event, ProjectKey, ProjectOption, UserReport)
+from sentry.models import Event, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
