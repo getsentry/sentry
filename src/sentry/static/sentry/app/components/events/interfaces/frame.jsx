@@ -15,9 +15,9 @@ import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
-import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
+import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -62,7 +62,7 @@ class FunctionName extends React.Component {
   }
 }
 
-const Frame = createReactClass({
+export const Frame = createReactClass({
   displayName: 'Frame',
 
   propTypes: {
@@ -75,6 +75,7 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
+    components: PropTypes.array.isRequired,
   },
 
   getDefaultProps() {
@@ -157,7 +158,7 @@ const Frame = createReactClass({
   },
 
   getSentryAppComponents() {
-    return SentryAppComponentsStore.getComponentByType('stacktrace-link');
+    return this.props.components;
   },
 
   renderDefaultTitle() {
@@ -174,10 +175,14 @@ const Frame = createReactClass({
         ? data.module || data.filename
         : data.filename || data.module;
 
+      const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName;
+
       title.push(
-        <code key="filename" className="filename">
-          <Truncate value={pathName} maxLength={100} leftTrim={true} />
-        </code>
+        <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
+          <code key="filename" className="filename">
+            <Truncate value={pathName} maxLength={100} leftTrim={true} />
+          </code>
+        </Tooltip>
       );
 
       // in case we prioritized the module name but we also have a filename info
@@ -443,6 +448,9 @@ const Frame = createReactClass({
   renderNativeLine() {
     const data = this.props.data;
     const hint = this.getFrameHint();
+
+    const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
@@ -459,13 +467,12 @@ const Frame = createReactClass({
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span
-                  className="filename"
-                  title={data.absPath !== data.filename ? data.absPath : null}
-                >
-                  {data.filename}
-                  {data.lineNo ? ':' + data.lineNo : ''}
-                </span>
+                <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
+                  <span className="filename">
+                    {data.filename}
+                    {data.lineNo ? ':' + data.lineNo : ''}
+                  </span>
+                </Tooltip>
               )}
               {hint !== null ? (
                 <Tooltip title={hint}>
@@ -556,4 +563,4 @@ const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
 `;
 
-export default Frame;
+export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

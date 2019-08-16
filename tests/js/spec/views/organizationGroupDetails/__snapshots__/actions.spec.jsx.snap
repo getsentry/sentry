@@ -2,7 +2,15 @@
 
 exports[`GroupActions render() renders correctly 1`] = `
 <WithOrganizationMockWrapper
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   group={
     Object {
       "activity": Array [],

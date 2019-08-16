@@ -65,7 +65,7 @@ describe('TeamSettings', function() {
     );
 
     await tick();
-    expect(router.push).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
+    expect(router.replace).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
   it('needs team:admin in order to see an enabled Remove Team button', function() {
@@ -90,7 +90,7 @@ describe('TeamSettings', function() {
   });
 
   it('can remove team', async function() {
-    const team = TestStubs.Team();
+    const team = TestStubs.Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'DELETE',
@@ -100,12 +100,13 @@ describe('TeamSettings', function() {
     TeamStore.loadInitialData([
       {
         slug: 'team-slug',
+        hasAccess: true,
       },
     ]);
 
     const wrapper = mount(
       <TeamSettings
-        router={{push: routerPushMock}}
+        router={{replace: routerPushMock}}
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
         team={team}

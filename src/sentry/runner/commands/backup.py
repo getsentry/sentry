@@ -4,13 +4,14 @@ import click
 from sentry.runner.decorators import configuration
 
 
-@click.command(name='import')
-@click.argument('src', type=click.File('rb'))
+@click.command(name="import")
+@click.argument("src", type=click.File("rb"))
 @configuration
 def import_(src):
     "Imports data from a Sentry export."
 
     from django.core import serializers
+
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
         obj.save()
 
@@ -32,17 +33,17 @@ def sort_dependencies(app_list):
         for model in model_list:
             models.add(model)
             # Add any explicitly defined dependencies
-            if hasattr(model, 'natural_key'):
-                deps = getattr(model.natural_key, 'dependencies', [])
+            if hasattr(model, "natural_key"):
+                deps = getattr(model.natural_key, "dependencies", [])
                 if deps:
-                    deps = [get_model(*d.split('.')) for d in deps]
+                    deps = [get_model(*d.split(".")) for d in deps]
             else:
                 deps = []
 
             # Now add a dependency for any FK relation with a model that
             # defines a natural key
             for field in model._meta.fields:
-                if hasattr(field.rel, 'to'):
+                if hasattr(field.rel, "to"):
                     rel_model = field.rel.to
                     if rel_model != model:
                         deps.append(rel_model)
@@ -86,8 +87,9 @@ def sort_dependencies(app_list):
                 skipped.append((model, deps))
         if not changed:
             raise RuntimeError(
-                "Can't resolve dependencies for %s in serialized app list." % ', '.join(
-                    '%s.%s' % (model._meta.app_label, model._meta.object_name)
+                "Can't resolve dependencies for %s in serialized app list."
+                % ", ".join(
+                    "%s.%s" % (model._meta.app_label, model._meta.object_name)
                     for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__)
                 )
             )
@@ -97,12 +99,12 @@ def sort_dependencies(app_list):
 
 
 @click.command()
-@click.argument('dest', default='-', type=click.File('wb'))
-@click.option('--silent', '-q', default=False, is_flag=True, help='Silence all debug output.')
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @click.option(
-    '--indent', default=2, help='Number of spaces to indent for the JSON output. (default: 2)'
+    "--indent", default=2, help="Number of spaces to indent for the JSON output. (default: 2)"
 )
-@click.option('--exclude', default=None, help='Models to exclude from export.', metavar='MODELS')
+@click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
 @configuration
 def export(dest, silent, indent, exclude):
     "Exports core metadata for the Sentry installation."
@@ -110,7 +112,7 @@ def export(dest, silent, indent, exclude):
     if exclude is None:
         exclude = ()
     else:
-        exclude = exclude.lower().split(',')
+        exclude = exclude.lower().split(",")
 
     from django.db.models import get_apps
     from django.core import serializers
@@ -121,12 +123,12 @@ def export(dest, silent, indent, exclude):
         # Collate the objects to be serialized.
         for model in sort_dependencies(app_list):
             if (
-                not getattr(model, '__core__', True) or
-                model.__name__.lower() in exclude or
-                model._meta.proxy
+                not getattr(model, "__core__", True)
+                or model.__name__.lower() in exclude
+                or model._meta.proxy
             ):
                 if not silent:
-                    click.echo(">> Skipping model <%s>" % (model.__name__, ), err=True)
+                    click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
@@ -134,7 +136,7 @@ def export(dest, silent, indent, exclude):
                 yield obj
 
     if not silent:
-        click.echo('>> Beginning export', err=True)
+        click.echo(">> Beginning export", err=True)
     serializers.serialize(
         "json", yield_objects(), indent=indent, stream=dest, use_natural_keys=True
     )

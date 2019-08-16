@@ -20,16 +20,17 @@ from sentry.models import (
 class Creator(Mediator):
     name = Param(six.string_types)
     author = Param(six.string_types)
-    organization = Param('sentry.models.Organization')
+    organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
+    verify_install = Param(bool, default=True)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
-    request = Param('rest_framework.request.Request', required=False)
-    user = Param('sentry.models.User')
+    request = Param("rest_framework.request.Request", required=False)
+    user = Param("sentry.models.User")
 
     def call(self):
         self.proxy = self._create_proxy_user()
@@ -40,15 +41,10 @@ class Creator(Mediator):
         return self.sentry_app
 
     def _create_proxy_user(self):
-        return User.objects.create(
-            username=self.name.lower(),
-            is_sentry_app=True,
-        )
+        return User.objects.create(username=self.name.lower(), is_sentry_app=True)
 
     def _create_api_application(self):
-        return ApiApplication.objects.create(
-            owner_id=self.proxy.id,
-        )
+        return ApiApplication.objects.create(owner_id=self.proxy.id)
 
     def _create_sentry_app(self):
         from sentry.mediators.service_hooks.creator import expand_events
@@ -65,17 +61,16 @@ class Creator(Mediator):
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
             is_alertable=self.is_alertable,
+            verify_install=self.verify_install,
             overview=self.overview,
         )
 
     def _create_ui_components(self):
         schema = self.schema or {}
 
-        for element in schema.get('elements', []):
+        for element in schema.get("elements", []):
             SentryAppComponent.objects.create(
-                type=element['type'],
-                sentry_app_id=self.sentry_app.id,
-                schema=element,
+                type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
             )
 
     def _create_integration_feature(self):
@@ -83,31 +78,25 @@ class Creator(Mediator):
         # defaults to 'integrations-api'
         try:
             with transaction.atomic():
-                IntegrationFeature.objects.create(
-                    sentry_app=self.sentry_app,
-                )
+                IntegrationFeature.objects.create(sentry_app=self.sentry_app)
         except IntegrityError as e:
-            self.log(
-                sentry_app=self.sentry_app.slug,
-                error_message=e.message,
-            )
+            self.log(sentry_app=self.sentry_app.slug, error_message=e.message)
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry
+
         if self.request:
             create_audit_entry(
                 request=self.request,
                 organization=self.organization,
                 target_object=self.organization.id,
                 event=AuditLogEntryEvent.SENTRY_APP_ADD,
-                data={
-                    'sentry_app': self.sentry_app.name,
-                },
+                data={"sentry_app": self.sentry_app.name},
             )
 
     def record_analytics(self):
         analytics.record(
-            'sentry_app.created',
+            "sentry_app.created",
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,

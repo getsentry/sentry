@@ -31,7 +31,7 @@ const DUMMY_COMMIT = {
   repository: {
     provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
   },
-  message: t('This commit accidentally broke something'),
+  message: t('This example commit broke something'),
 };
 
 class EventCauseEmpty extends React.Component {
@@ -124,8 +124,8 @@ class EventCauseEmpty extends React.Component {
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
-              <h3>{t('Suspect Commits')}</h3>
-              <p>{t('Identify which commit caused this issue')}</p>
+              <h3>{t('Configure Suspect Commits')}</h3>
+              <p>{t('To identify which commit caused this issue')}</p>
             </Description>
             <ButtonList>
               <DocsButton
@@ -175,13 +175,13 @@ class EventCauseEmpty extends React.Component {
               </div>
             </ButtonList>
           </BoxHeader>
-          <Panel>
+          <ExampleCommitPanel>
             <CommitRow
               key={DUMMY_COMMIT.id}
               commit={DUMMY_COMMIT}
               customAvatar={<CustomAvatar src={codesworth} />}
             />
-          </Panel>
+          </ExampleCommitPanel>
         </StyledPanel>
       </div>
     );
@@ -240,6 +240,28 @@ const SnoozeButton = styled(Button)`
 const DismissButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+`;
+
+const ExampleCommitPanel = styled(Panel)`
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+  padding-right: ${space(3)};
+
+  &:after {
+    display: block;
+    content: 'Example';
+    position: absolute;
+    top: 16px;
+    right: -24px;
+    text-transform: uppercase;
+    background: #e46187;
+    padding: 4px 26px;
+    line-height: 11px;
+    font-size: 11px;
+    color: ${p => p.theme.white};
+    transform: rotate(45deg);
+  }
 `;
 
 const CustomAvatar = styled('img')`

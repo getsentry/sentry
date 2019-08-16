@@ -229,21 +229,23 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                   size="lg"
                                   toggle={[Function]}
                                 >
-                                  <SwitchContainer
+                                  <SwitchButton
                                     aria-checked={true}
                                     data-test-id="switch"
                                     isActive={true}
                                     onClick={[Function]}
                                     role="checkbox"
                                     size="lg"
+                                    type="button"
                                   >
-                                    <div
+                                    <button
                                       aria-checked={true}
-                                      className="css-tg8hnx-SwitchContainer e1wgeblw0"
+                                      className="css-qiticg-SwitchButton e1wgeblw0"
                                       data-test-id="switch"
                                       onClick={[Function]}
                                       role="checkbox"
                                       size="lg"
+                                      type="button"
                                     >
                                       <Toggle
                                         isActive={true}
@@ -254,8 +256,8 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                           size="lg"
                                         />
                                       </Toggle>
-                                    </div>
-                                  </SwitchContainer>
+                                    </button>
+                                  </SwitchButton>
                                 </Switch>
                               </div>
                             </Base>
@@ -327,21 +329,23 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                   size="lg"
                                   toggle={[Function]}
                                 >
-                                  <SwitchContainer
+                                  <SwitchButton
                                     aria-checked={false}
                                     data-test-id="switch"
                                     isActive={false}
                                     onClick={[Function]}
                                     role="checkbox"
                                     size="lg"
+                                    type="button"
                                   >
-                                    <div
+                                    <button
                                       aria-checked={false}
-                                      className="css-tg8hnx-SwitchContainer e1wgeblw0"
+                                      className="css-qiticg-SwitchButton e1wgeblw0"
                                       data-test-id="switch"
                                       onClick={[Function]}
                                       role="checkbox"
                                       size="lg"
+                                      type="button"
                                     >
                                       <Toggle
                                         isActive={false}
@@ -352,8 +356,8 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                           size="lg"
                                         />
                                       </Toggle>
-                                    </div>
-                                  </SwitchContainer>
+                                    </button>
+                                  </SwitchButton>
                                 </Switch>
                               </div>
                             </Base>

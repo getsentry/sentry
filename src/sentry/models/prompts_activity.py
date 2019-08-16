@@ -9,12 +9,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    sane_repr
+    sane_repr,
 )
 
 
 class PromptsActivity(Model):
     """ Records user interaction with various feature prompts in product"""
+
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
@@ -28,8 +29,8 @@ class PromptsActivity(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_promptsactivity'
-        unique_together = (('user', 'feature', 'organization_id', 'project_id'), )
+        app_label = "sentry"
+        db_table = "sentry_promptsactivity"
+        unique_together = (("user", "feature", "organization_id", "project_id"),)
 
-    __repr__ = sane_repr('user_id', 'feature')
+    __repr__ = sane_repr("user_id", "feature")

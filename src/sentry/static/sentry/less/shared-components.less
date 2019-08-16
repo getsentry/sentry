@@ -922,99 +922,6 @@ ul.faces {
 }
 
 /**
-* Key value pill / lozenge
-* ============================================================================
-*/
-
-.pills {
-  .list-unstyled;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 13px;
-
-  li {
-    white-space: nowrap;
-    margin: 0 10px 10px 0;
-    border-radius: 1px;
-    display: flex;
-    border: 1px solid darken(@trim, 7);
-    border-radius: 3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    line-height: 1.2;
-    max-width: 100%;
-
-    &.true .value {
-      background: #fbfefa;
-      border: 1px solid #c7dbbd;
-      margin: -1px;
-      color: #6a726c;
-    }
-
-    &.false .value {
-      background: #fff9f9;
-      border: 1px solid #e5c4c4;
-      margin: -1px;
-      color: #766a6a;
-    }
-
-    &:last-child {
-      margin-right: 0;
-    }
-  }
-
-  .key,
-  .value {
-    padding: 4px 8px;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  .value {
-    background: @white-dark;
-    border-left: 1px solid darken(@trim, 4);
-    border-radius: 0 3px 3px 0;
-    font-family: Monaco, monospace;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    > a {
-      max-width: 100%;
-      .truncate;
-      display: inline-block;
-      vertical-align: text-bottom;
-    }
-
-    .pill-icon,
-    .external-icon {
-      .transition(0.1s linear color);
-      display: inline;
-      margin: 0 0 0 8px;
-      color: @gray-light;
-      line-height: 1.2;
-
-      &:hover {
-        color: @gray;
-      }
-    }
-
-    // Some pill icons are hovercard wrappers, so select the direct anchor
-    // element and correctly color that
-    .pill-icon > a {
-      color: @gray-light;
-
-      &:hover {
-        color: @gray;
-      }
-    }
-  }
-
-  &.no-margin {
-    margin-bottom: -10px;
-  }
-}
-
-/**
 * Box
 * ============================================================================
 */
@@ -1654,6 +1561,11 @@ header + .alert {
         background: none;
         color: @gray-darker;
       }
+
+      &.focus-visible {
+        text-decoration: underline;
+        outline: none;
+      }
     }
 
     .dropdown-menu {
@@ -1819,7 +1731,7 @@ ul.radio-inputs {
   .close {
     background: none;
     border: 0;
-    padding: 0;
+    padding: 0 6px;
     margin: 0;
     font-size: 24px;
     position: absolute;
@@ -1831,6 +1743,13 @@ ul.radio-inputs {
     .transition(color 0.1s linear);
 
     &:hover {
+      color: @gray;
+    }
+
+    &.focus-visible {
+      outline: none;
+      border-radius: 50%;
+      background: lighten(@gray, 60);
       color: @gray;
     }
   }

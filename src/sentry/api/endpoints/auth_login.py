@@ -25,64 +25,47 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         # Rate limit logins
         is_limited = ratelimiter.is_limited(
-            u'auth:login:username:{}'.
-            format(md5_text(request.DATA.get('username').lower()).hexdigest()),
+            u"auth:login:username:{}".format(
+                md5_text(request.DATA.get("username").lower()).hexdigest()
+            ),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
         )
 
         if is_limited:
-            errors = {
-                '__all__': [login_form.error_messages['rate_limited']]
-            }
+            errors = {"__all__": [login_form.error_messages["rate_limited"]]}
             metrics.incr(
-                'login.attempt',
-                instance='rate_limited',
-                skip_internal=True,
-                sample_rate=1.0
+                "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
             )
 
             return self.respond_with_error(errors)
 
         if not login_form.is_valid():
-            metrics.incr(
-                'login.attempt',
-                instance='failure',
-                skip_internal=True,
-                sample_rate=1.0
-            )
+            metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
             return self.respond_with_error(login_form.errors)
 
         user = login_form.get_user()
 
-        auth.login(
-            request,
-            user,
-            organization_id=organization.id if organization else None,
-        )
-        metrics.incr(
-            'login.attempt',
-            instance='success',
-            skip_internal=True,
-            sample_rate=1.0
-        )
+        auth.login(request, user, organization_id=organization.id if organization else None)
+        metrics.incr("login.attempt", instance="success", skip_internal=True, sample_rate=1.0)
 
         if not user.is_active:
-            return Response({
-                'nextUri': '/auth/reactivate/',
-                'user': serialize(user, user, DetailedUserSerializer()),
-            })
+            return Response(
+                {
+                    "nextUri": "/auth/reactivate/",
+                    "user": serialize(user, user, DetailedUserSerializer()),
+                }
+            )
 
         active_org = self.get_active_organization(request)
         redirect_url = auth.get_org_redirect_url(request, active_org)
 
-        return Response({
-            'nextUri': auth.get_login_redirect(request, redirect_url),
-            'user': serialize(user, user, DetailedUserSerializer()),
-        })
+        return Response(
+            {
+                "nextUri": auth.get_login_redirect(request, redirect_url),
+                "user": serialize(user, user, DetailedUserSerializer()),
+            }
+        )
 
     def respond_with_error(self, errors):
-        return Response({
-            'detail': 'Login attempt failed',
-            'errors': errors,
-        }, status=400)
+        return Response({"detail": "Login attempt failed", "errors": errors}, status=400)

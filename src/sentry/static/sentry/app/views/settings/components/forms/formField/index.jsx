@@ -50,7 +50,7 @@ const FormFieldErrorReason = styled('div')`
 
 const FormFieldError = styled('div')`
   color: ${p => p.theme.redDark};
-  animation: ${p => pulse(1.15)} 1s ease infinite;
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 const FormFieldIsSaved = styled('div')`
@@ -205,7 +205,7 @@ class FormField extends React.Component {
      * If saveOnBlur is false, then an optional saveMessage can be used to let
      * the user know what's going to happen when they save a field.
      */
-    saveMessage: PropTypes.node,
+    saveMessage: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 
     /**
      * The "alert type" to use for the save message.
@@ -261,7 +261,7 @@ class FormField extends React.Component {
     this.getModel().removeField(this.props.name);
   }
 
-  getError(props, context) {
+  getError(_props, _context) {
     return this.getModel().getError(this.props.name);
   }
 
@@ -350,14 +350,14 @@ class FormField extends React.Component {
   /**
    * Handle saving an individual field via UI button
    */
-  handleSaveField = (...args) => {
+  handleSaveField = () => {
     const {name} = this.props;
     const model = this.getModel();
 
     model.handleSaveField(name, model.getValue(name));
   };
 
-  handleCancelField = (...args) => {
+  handleCancelField = () => {
     const {name} = this.props;
     const model = this.getModel();
 
@@ -463,6 +463,7 @@ class FormField extends React.Component {
           <Observer>
             {() => {
               const showFieldSave = model.getFieldState(name, 'showSave');
+              const value = model.getValue(name);
 
               if (!showFieldSave) {
                 return null;
@@ -471,7 +472,11 @@ class FormField extends React.Component {
               return (
                 <PanelAlert type={saveMessageAlertType}>
                   <MessageAndActions>
-                    <div>{saveMessage}</div>
+                    <div>
+                      {typeof saveMessage === 'function'
+                        ? saveMessage({...props, value})
+                        : saveMessage}
+                    </div>
                     <Actions>
                       <CancelButton onClick={this.handleCancelField}>
                         {t('Cancel')}

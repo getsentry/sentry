@@ -45,21 +45,20 @@ export default class TeamSettings extends AsyncView {
     return [];
   }
 
-  handleSubmitSuccess = (resp, model, id, change) => {
+  handleSubmitSuccess = (resp, model, id) => {
     updateTeamSuccess(resp.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
-      this.props.router.push(
+      this.props.router.replace(
         `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
       this.setState({loading: true});
     }
   };
 
-  handleRemoveTeam = () => {
-    removeTeam(this.api, this.props.params).then(data => {
-      this.props.router.push(`/settings/${this.props.params.orgId}/teams/`);
-    });
+  handleRemoveTeam = async () => {
+    await removeTeam(this.api, this.props.params);
+    this.props.router.replace(`/settings/${this.props.params.orgId}/teams/`);
   };
 
   renderBody() {

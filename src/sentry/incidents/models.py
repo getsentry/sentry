@@ -1,23 +1,12 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.db import (
-    IntegrityError,
-    models,
-    transaction,
-)
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from enum import Enum
 
-from sentry.db.models import (
-    FlexibleForeignKey,
-    Model,
-    UUIDField,
-)
-from sentry.db.models import (
-    ArrayField,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField
+from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -25,48 +14,45 @@ from sentry.utils.retries import TimedRetryPolicy
 class IncidentProject(Model):
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey('sentry.Incident')
+    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    incident = FlexibleForeignKey("sentry.Incident")
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentproject'
-        unique_together = (('project', 'incident'), )
+        app_label = "sentry"
+        db_table = "sentry_incidentproject"
+        unique_together = (("project", "incident"),)
 
 
 class IncidentGroup(Model):
     __core__ = False
 
-    group = FlexibleForeignKey('sentry.Group', db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey('sentry.Incident')
+    group = FlexibleForeignKey("sentry.Group", db_index=False, db_constraint=False)
+    incident = FlexibleForeignKey("sentry.Incident")
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentgroup'
-        unique_together = (('group', 'incident'), )
+        app_label = "sentry"
+        db_table = "sentry_incidentgroup"
+        unique_together = (("group", "incident"),)
 
 
 class IncidentSeen(Model):
     __core__ = False
 
-    incident = FlexibleForeignKey('sentry.Incident')
+    incident = FlexibleForeignKey("sentry.Incident")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentseen'
-        unique_together = (('user', 'incident'), )
+        app_label = "sentry"
+        db_table = "sentry_incidentseen"
+        unique_together = (("user", "incident"),)
 
 
 class IncidentManager(BaseManager):
     def fetch_for_organization(self, organization, projects):
-        return self.filter(
-            organization=organization,
-            projects__in=projects,
-        ).distinct()
+        return self.filter(organization=organization, projects__in=projects).distinct()
 
-    @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError, ))
+    @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization, **kwargs):
         """
         Creates an Incident. Fetches the maximum identifier value for the org
@@ -77,23 +63,22 @@ class IncidentManager(BaseManager):
         Organization then we're likely failing at making Incidents useful.
         """
         with transaction.atomic():
-            result = self.filter(organization=organization).aggregate(models.Max('identifier'))
-            identifier = result['identifier__max']
+            result = self.filter(organization=organization).aggregate(models.Max("identifier"))
+            identifier = result["identifier__max"]
             if identifier is None:
                 identifier = 1
             else:
                 identifier += 1
 
             return super(IncidentManager, self).create(
-                organization=organization,
-                identifier=identifier,
-                **kwargs
+                organization=organization, identifier=identifier, **kwargs
             )
 
 
 class IncidentType(Enum):
     DETECTED = 0
     CREATED = 1
+    ALERT_TRIGGERED = 2
 
 
 class IncidentStatus(Enum):
@@ -106,17 +91,12 @@ class Incident(Model):
 
     objects = IncidentManager()
 
-    organization = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
-        'sentry.Project',
-        related_name='incidents',
-        through=IncidentProject,
+        "sentry.Project", related_name="incidents", through=IncidentProject
     )
-    groups = models.ManyToManyField(
-        'sentry.Group',
-        related_name='incidents',
-        through=IncidentGroup,
-    )
+    groups = models.ManyToManyField("sentry.Group", related_name="incidents", through=IncidentGroup)
+    alert_rule = models.ForeignKey("sentry.AlertRule", null=True, on_delete=models.SET_NULL)
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
@@ -134,9 +114,9 @@ class Incident(Model):
     date_closed = models.DateTimeField(null=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incident'
-        unique_together = (('organization', 'identifier'),)
+        app_label = "sentry"
+        db_table = "sentry_incident"
+        unique_together = (("organization", "identifier"),)
 
     @property
     def current_end_date(self):
@@ -154,15 +134,15 @@ class Incident(Model):
 class IncidentSnapshot(Model):
     __core__ = True
 
-    incident = models.OneToOneField('sentry.Incident')
-    event_stats_snapshot = FlexibleForeignKey('sentry.TimeSeriesSnapshot')
+    incident = models.OneToOneField("sentry.Incident")
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentsnapshot'
+        app_label = "sentry"
+        db_table = "sentry_incidentsnapshot"
 
 
 class TimeSeriesSnapshot(Model):
@@ -175,8 +155,8 @@ class TimeSeriesSnapshot(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_timeseriessnapshot'
+        app_label = "sentry"
+        db_table = "sentry_timeseriessnapshot"
 
     @property
     def snuba_values(self):
@@ -185,7 +165,7 @@ class TimeSeriesSnapshot(Model):
         and 'count' keys.
         :return:
         """
-        return {'data': [{'time': time, 'count': count} for time, count in self.values]}
+        return {"data": [{"time": time, "count": count} for time, count in self.values]}
 
 
 class IncidentActivityType(Enum):
@@ -198,43 +178,114 @@ class IncidentActivityType(Enum):
 class IncidentActivity(Model):
     __core__ = True
 
-    incident = FlexibleForeignKey('sentry.Incident')
-    user = FlexibleForeignKey('sentry.User', null=True)
+    incident = FlexibleForeignKey("sentry.Incident")
+    user = FlexibleForeignKey("sentry.User", null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
-    event_stats_snapshot = FlexibleForeignKey('sentry.TimeSeriesSnapshot', null=True)
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentactivity'
+        app_label = "sentry"
+        db_table = "sentry_incidentactivity"
 
 
 class IncidentSubscription(Model):
     __core__ = True
 
-    incident = FlexibleForeignKey('sentry.Incident', db_index=False)
+    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentsubscription'
-        unique_together = (('incident', 'user'), )
+        app_label = "sentry"
+        db_table = "sentry_incidentsubscription"
+        unique_together = (("incident", "user"),)
 
-    __repr__ = sane_repr('incident_id', 'user_id')
+    __repr__ = sane_repr("incident_id", "user_id")
 
 
 class IncidentSuspectCommit(Model):
     __core__ = True
 
-    incident = FlexibleForeignKey('sentry.Incident', db_index=False)
-    commit = FlexibleForeignKey('sentry.Commit', db_constraint=False)
+    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
+    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
     order = models.SmallIntegerField()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_incidentsuspectcommit'
-        unique_together = (('incident', 'commit'), )
+        app_label = "sentry"
+        db_table = "sentry_incidentsuspectcommit"
+        unique_together = (("incident", "commit"),)
+
+
+class AlertRuleStatus(Enum):
+    PENDING = 0
+    TRIGGERED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+
+class AlertRuleThresholdType(Enum):
+    ABOVE = 0
+    BELOW = 1
+
+
+class AlertRuleAggregations(Enum):
+    TOTAL = 0
+    UNIQUE_USERS = 1
+
+
+# TODO: This should probably live in the snuba app.
+class SnubaDatasets(Enum):
+    EVENTS = "events"
+
+
+class AlertRuleManager(BaseManager):
+    """
+    A manager that excludes all rows that are pending deletion.
+    """
+
+    def get_queryset(self):
+        return (
+            super(AlertRuleManager, self)
+            .get_queryset()
+            .exclude(
+                status__in=(
+                    AlertRuleStatus.PENDING_DELETION.value,
+                    AlertRuleStatus.DELETION_IN_PROGRESS.value,
+                )
+            )
+        )
+
+    def fetch_for_project(self, project):
+        return self.filter(project=project)
+
+
+class AlertRule(Model):
+    __core__ = True
+
+    objects = AlertRuleManager()
+    objects_with_deleted = BaseManager()
+
+    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    name = models.TextField()
+    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    subscription_id = models.UUIDField(db_index=True)
+    threshold_type = models.SmallIntegerField()
+    dataset = models.TextField()
+    query = models.TextField()
+    aggregations = ArrayField(of=models.IntegerField)
+    time_window = models.IntegerField()
+    resolution = models.IntegerField()
+    alert_threshold = models.IntegerField()
+    resolve_threshold = models.IntegerField()
+    threshold_period = models.IntegerField()
+    date_modified = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertrule"
+        unique_together = (("project", "name"),)

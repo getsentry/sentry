@@ -12,7 +12,7 @@ from sentry.mediators.external_requests.util import validate
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
-logger = logging.getLogger('sentry.mediators.external-requests')
+logger = logging.getLogger("sentry.mediators.external-requests")
 
 
 class IssueLinkRequester(Mediator):
@@ -45,25 +45,22 @@ class IssueLinkRequester(Mediator):
     issue in the UI (i.e. <project>#<identifier>)
     """
 
-    install = Param('sentry.models.SentryAppInstallation')
+    install = Param("sentry.models.SentryAppInstallation")
     uri = Param(six.string_types)
-    group = Param('sentry.models.Group')
+    group = Param("sentry.models.Group")
     fields = Param(object)
-    user = Param('sentry.models.User')
+    user = Param("sentry.models.User")
 
     def call(self):
         return self._make_request()
 
     def _build_url(self):
         urlparts = urlparse(self.sentry_app.webhook_url)
-        return u'{}://{}{}'.format(urlparts.scheme, urlparts.netloc, self.uri)
+        return u"{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
         req = safe_urlopen(
-            url=self._build_url(),
-            headers=self._build_headers(),
-            method='POST',
-            data=self.body,
+            url=self._build_url(), headers=self._build_headers(), method="POST", data=self.body
         )
 
         try:
@@ -71,14 +68,14 @@ class IssueLinkRequester(Mediator):
             response = json.loads(body)
         except Exception:
             logger.info(
-                'issue-link-requester.error',
+                "issue-link-requester.error",
                 extra={
-                    'sentry_app': self.sentry_app.slug,
-                    'install': self.install.uuid,
-                    'project': self.group.project.slug,
-                    'group': self.group.id,
-                    'uri': self.uri,
-                }
+                    "sentry_app": self.sentry_app.slug,
+                    "install": self.install.uuid,
+                    "project": self.group.project.slug,
+                    "group": self.group.id,
+                    "uri": self.uri,
+                },
             )
             response = {}
 
@@ -88,36 +85,29 @@ class IssueLinkRequester(Mediator):
         return response
 
     def _validate_response(self, resp):
-        return validate(instance=resp, schema_type='issue_link')
+        return validate(instance=resp, schema_type="issue_link")
 
     def _build_headers(self):
         request_uuid = uuid4().hex
 
         return {
-            'Content-Type': 'application/json',
-            'Request-ID': request_uuid,
-            'Sentry-App-Signature': self.sentry_app.build_signature(self.body)
+            "Content-Type": "application/json",
+            "Request-ID": request_uuid,
+            "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
         }
 
     @memoize
     def body(self):
-        body = {'fields': {}}
+        body = {"fields": {}}
         for name, value in six.iteritems(self.fields):
-            body['fields'][name] = value
+            body["fields"][name] = value
 
-        body['issueId'] = self.group.id
-        body['installationId'] = self.install.uuid
-        body['webUrl'] = self.group.get_absolute_url()
+        body["issueId"] = self.group.id
+        body["installationId"] = self.install.uuid
+        body["webUrl"] = self.group.get_absolute_url()
         project = self.group.project
-        body['project'] = {
-            'slug': project.slug,
-            'id': project.id,
-        }
-        body['actor'] = {
-            'type': 'user',
-            'id': self.user.id,
-            'name': self.user.name,
-        }
+        body["project"] = {"slug": project.slug, "id": project.id}
+        body["actor"] = {"type": "user", "id": self.user.id, "name": self.user.name}
         return json.dumps(body)
 
     @memoize

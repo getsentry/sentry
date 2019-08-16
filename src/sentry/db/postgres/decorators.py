@@ -60,10 +60,11 @@ def capture_transaction_exceptions(func):
     """
 
     def raise_the_exception(conn, exc):
-        if 'current transaction is aborted, commands ignored until end of transaction block' in six.text_type(
-            exc
+        if (
+            "current transaction is aborted, commands ignored until end of transaction block"
+            in six.text_type(exc)
         ):
-            exc_info = getattr(conn, '_last_exception', None)
+            exc_info = getattr(conn, "_last_exception", None)
             if exc_info is None:
                 raise
             new_exc = TransactionAborted(sys.exc_info(), exc_info)
@@ -94,10 +95,7 @@ def less_shitty_error_messages(func):
             return func(self, sql, *args, **kwargs)
         except Exception as e:
             exc_info = sys.exc_info()
-            msg = u'{}\nSQL: {}'.format(
-                repr(e),
-                sql,
-            )
+            msg = u"{}\nSQL: {}".format(repr(e), sql)
             six.reraise(exc_info[0], exc_info[0](msg), exc_info[2])
 
     return inner

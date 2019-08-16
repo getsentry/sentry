@@ -7,10 +7,7 @@ from six.moves.urllib.parse import parse_qsl
 from django.test.utils import override_settings
 
 from sentry import options
-from sentry.integrations.slack.utils import (
-    build_group_attachment,
-    build_incident_attachment,
-)
+from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
@@ -58,63 +55,52 @@ class BaseEventTest(APITestCase):
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.integration = Integration.objects.create(
-            provider='slack',
-            external_id='TXXXXXXX1',
-            metadata={
-                'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-            }
+            provider="slack",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        OrganizationIntegration.objects.create(
-            organization=self.org,
-            integration=self.integration,
-        )
+        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 
-    def post_webhook(self, event_data=None, type='event_callback', data=None,
-                     token=UNSET, team_id='TXXXXXXX1'):
+    def post_webhook(
+        self, event_data=None, type="event_callback", data=None, token=UNSET, team_id="TXXXXXXX1"
+    ):
         if token is UNSET:
-            token = options.get('slack.verification-token')
+            token = options.get("slack.verification-token")
         payload = {
-            'token': token,
-            'team_id': team_id,
-            'api_app_id': 'AXXXXXXXX1',
-            'type': type,
-            'authed_users': [],
-            'event_id': 'Ev08MFMKH6',
-            'event_time': 123456789,
+            "token": token,
+            "team_id": team_id,
+            "api_app_id": "AXXXXXXXX1",
+            "type": type,
+            "authed_users": [],
+            "event_id": "Ev08MFMKH6",
+            "event_time": 123456789,
         }
         if data:
             payload.update(data)
         if event_data:
-            payload.setdefault('event', {}).update(event_data)
-        return self.client.post(
-            '/extensions/slack/event/',
-            payload,
-        )
+            payload.setdefault("event", {}).update(event_data)
+        return self.client.post("/extensions/slack/event/", payload)
 
 
 class UrlVerificationEventTest(BaseEventTest):
-    challenge = '3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P'
+    challenge = "3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P"
 
     def test_valid_token(self):
         resp = self.client.post(
-            '/extensions/slack/event/',
+            "/extensions/slack/event/",
             {
-                'type': 'url_verification',
-                'challenge': self.challenge,
-                'token': options.get('slack.verification-token'),
-            }
+                "type": "url_verification",
+                "challenge": self.challenge,
+                "token": options.get("slack.verification-token"),
+            },
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data['challenge'] == self.challenge
+        assert resp.data["challenge"] == self.challenge
 
     def test_invalid_token(self):
         resp = self.client.post(
-            '/extensions/slack/event/',
-            {
-                'type': 'url_verification',
-                'challenge': self.challenge,
-                'token': 'fizzbuzz',
-            }
+            "/extensions/slack/event/",
+            {"type": "url_verification", "challenge": self.challenge, "token": "fizzbuzz"},
         )
         assert resp.status_code == 401, resp.content
 
@@ -122,30 +108,31 @@ class UrlVerificationEventTest(BaseEventTest):
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     def test_valid_token(self):
-        responses.add(responses.POST, 'https://slack.com/api/chat.unfurl',
-                      json={'ok': True})
-        org2 = self.create_organization(name='biz')
+        responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
+        org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
         incident = self.create_incident(organization=self.org, projects=[project1])
         incident.update(identifier=123)
-        resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT % {
-            'group1': group1.id,
-            'group2': group2.id,
-            'incident': incident.identifier,
-            'org1': self.org.slug,
-            'org2': org2.slug,
-        }))
+        resp = self.post_webhook(
+            event_data=json.loads(
+                LINK_SHARED_EVENT
+                % {
+                    "group1": group1.id,
+                    "group2": group2.id,
+                    "incident": incident.identifier,
+                    "org1": self.org.slug,
+                    "org2": org2.slug,
+                }
+            )
+        )
         assert resp.status_code == 200, resp.content
         data = dict(parse_qsl(responses.calls[0].request.body))
-        unfurls = json.loads(data['unfurls'])
-        issue_url = 'http://testserver/organizations/%s/issues/%s/bar/' % (
-            self.org.slug,
-            group1.id,
-        )
-        incident_url = 'http://testserver/organizations/%s/incidents/%s/' % (
+        unfurls = json.loads(data["unfurls"])
+        issue_url = "http://testserver/organizations/%s/issues/%s/bar/" % (self.org.slug, group1.id)
+        incident_url = "http://testserver/organizations/%s/incidents/%s/" % (
             self.org.slug,
             incident.identifier,
         )

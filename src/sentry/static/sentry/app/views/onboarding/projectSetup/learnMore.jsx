@@ -6,21 +6,26 @@ import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButto
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
 import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 const LEARN_MORE_VIDEO = 'https://player.vimeo.com/video/319554213';
 
+const learnMoveVideo = getDynamicText({
+  fixed: 'Video Demo Placeholder',
+  value: (
+    <iframe
+      src={LEARN_MORE_VIDEO}
+      frameBorder="0"
+      allow="autoplay; fullscreen"
+      allowFullScreen
+    />
+  ),
+});
+
 const LearnMore = ({project}) => (
   <React.Fragment>
-    <DemoVideo>
-      <iframe
-        src={LEARN_MORE_VIDEO}
-        frameBorder="0"
-        allow="autoplay; fullscreen"
-        allowFullScreen
-      />
-    </DemoVideo>
-
+    <DemoVideo>{learnMoveVideo}</DemoVideo>
     <Panel>
       <SampleEventPanelBody disablePadding={false}>
         {tct(
@@ -46,6 +51,8 @@ LearnMore.propTypes = {
 };
 
 const DemoVideo = styled(Panel)`
+  display: flex;
+  justify-content: center;
   overflow: hidden;
   margin-bottom: ${space(2)};
 

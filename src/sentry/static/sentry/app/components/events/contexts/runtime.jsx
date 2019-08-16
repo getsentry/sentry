@@ -21,8 +21,6 @@ class RuntimeContextType extends React.Component {
   }
 }
 
-RuntimeContextType.getTitle = function(value) {
-  return 'Runtime';
-};
+RuntimeContextType.getTitle = () => 'Runtime';
 
 export default RuntimeContextType;

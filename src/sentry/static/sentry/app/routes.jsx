@@ -13,8 +13,6 @@ import OrganizationContext from 'app/views/organizationContext';
 import OrganizationDetails from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
-import ProjectPluginDetails from 'app/views/projectPluginDetails';
-import ProjectPlugins from 'app/views/projectPlugins';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -43,12 +41,6 @@ const OrganizationMembersView = HookOrDefault({
   hookName: 'component:org-members-view',
   defaultComponentPromise: () =>
     import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers'),
-});
-
-const OnboardingNewProjectView = HookOrDefault({
-  hookName: 'component:onboarding-new-project',
-  defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OnboardingNewProject" */ 'app/views/onboarding/newProject'),
 });
 
 function routes() {
@@ -258,6 +250,39 @@ function routes() {
           />
         </Route>
       </Route>
+
+      <Route
+        name="Incident Rules"
+        path="incident-rules/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectIncidentRules" */ 'app/views/settings/projectIncidentRules')
+        }
+        component={errorHandler(LazyLoad)}
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/projectIncidentRules/list')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Incident Rule"
+          path="new/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesCreate" */ 'app/views/settings/projectIncidentRules/create')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="Edit Incident Rule"
+          path=":incidentRuleId/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "IncidentRulesDetails" */ 'app/views/settings/projectIncidentRules/details')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
       <Route
         name="Environments"
         path="environments/"
@@ -412,11 +437,19 @@ function routes() {
         />
       </Route>
       <Route path="plugins/" name="Legacy Integrations">
-        <IndexRoute component={errorHandler(ProjectPlugins)} />
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectPlugins" */ 'app/views/settings/projectPlugins')
+          }
+          component={errorHandler(LazyLoad)}
+        />
         <Route
           path=":pluginId/"
           name="Integration Details"
-          component={errorHandler(ProjectPluginDetails)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectPluginDetails" */ 'app/views/settings/projectPlugins/details')
+          }
+          component={errorHandler(LazyLoad)}
         />
       </Route>
       <Route path="install/" name="Configuration">
@@ -603,6 +636,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
+
       <Route name="Developer Settings" path="developer-settings/">
         <IndexRoute
           componentPromise={() =>
@@ -611,8 +645,16 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="New Integration"
-          path="new/"
+          name="New Public Integration"
+          path="new-public/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Internal Integration"
+          path="new-internal/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
           }
@@ -794,33 +836,14 @@ function routes() {
       />
 
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
-        {/* The current (old) version of the onboarding experience does not
-            route to anything here. So even though this is new, the route can
-            live where it will eventually live. */}
+        <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
           componentPromise={() =>
-            import(/* webpackChunkName: "OnboardingWizardNew" */ 'app/views/onboarding/wizardNew')
+            import(/* webpackChunkName: "Onboarding" */ 'app/views/onboarding/onboarding')
           }
           component={errorHandler(LazyLoad)}
         />
-        {/* TODO(epurkhiser): Old style onboarding experience routes. To be removed in the future */}
-        <Route
-          componentPromise={() =>
-            import(/* webpackChunkName: "OnboardingWizard" */ 'app/views/onboarding/wizard')
-          }
-          component={errorHandler(LazyLoad)}
-        >
-          <IndexRoute component={errorHandler(OnboardingNewProjectView)} />
-          <Route
-            path=":projectId/configure/:platform/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OnboardingConfigure" */ 'app/views/onboarding/configure')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          {hook('routes:onboarding')}
-        </Route>
       </Route>
       <Route component={errorHandler(OrganizationDetails)}>
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
@@ -917,13 +940,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDashboardContainer" */ 'app/views/organizationDashboard')
+              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/organizationDashboard/overviewDashboard')
+                import(/* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -931,7 +954,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDiscover" */ 'app/views/organizationDiscover')
+              import(/* webpackChunkName: "DiscoverContainer" */ 'app/views/discover')
             }
             component={errorHandler(LazyLoad)}
           >
@@ -941,17 +964,24 @@ function routes() {
           <Route
             path="/organizations/:orgId/events/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationEventsContainer" */ 'app/views/organizationEvents')
+              import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationEvents" */ 'app/views/organizationEvents/events')
+                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
               }
               component={errorHandler(LazyLoad)}
             />
           </Route>
+          <Route
+            path="/organizations/:orgId/eventsv2/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "EventsV2" */ 'app/views/organizationEventsV2')
+            }
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>

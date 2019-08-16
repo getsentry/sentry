@@ -1,6 +1,7 @@
 import {
   getCurrentView,
   getQuery,
+  getQueryString,
   getEventTagSearchUrl,
 } from 'app/views/organizationEventsV2/utils';
 import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
@@ -19,28 +20,6 @@ describe('getCurrentView()', function() {
 });
 
 describe('getQuery()', function() {
-  it('expands special "event" and "user" fields', function() {
-    const view = {
-      id: 'test',
-      name: 'test view',
-      data: {
-        fields: ['event', 'user', 'issue.id'],
-      },
-      tags: [],
-    };
-
-    expect(getQuery(view, {}).field).toEqual([
-      'title',
-      'id',
-      'project.name',
-      'user',
-      'user.name',
-      'user.email',
-      'user.ip',
-      'issue.id',
-    ]);
-  });
-
   it('appends any additional conditions defined for view', function() {
     const view = {
       id: 'test',
@@ -50,7 +29,65 @@ describe('getQuery()', function() {
     };
 
     expect(getQuery(view, {}).query).toEqual('event.type:csp');
-    expect(getQuery(view, {query: {query: 'test'}}).query).toEqual('test event.type:csp');
+  });
+
+  it('appends query conditions in location', function() {
+    const view = {
+      id: 'test',
+      name: 'test view',
+      data: {fields: ['id'], query: 'event.type:csp'},
+      tags: [],
+    };
+    const location = {
+      query: {
+        query: 'TypeError',
+      },
+    };
+    expect(getQuery(view, location).query).toEqual('event.type:csp TypeError');
+  });
+});
+
+describe('getQueryString()', function() {
+  it('excludes empty values', function() {
+    const view = {
+      data: {
+        query: 'event.type:transaction',
+      },
+    };
+    const location = {
+      query: {query: ''},
+    };
+    expect(getQueryString(view, location)).toEqual('event.type:transaction');
+  });
+
+  it('includes view, and location query data', function() {
+    const view = {
+      data: {
+        query: 'event.type:transaction',
+      },
+    };
+    const location = {
+      query: {query: 'TypeError'},
+    };
+    expect(getQueryString(view, location)).toEqual('event.type:transaction TypeError');
+  });
+
+  it('includes non-empty additional data', function() {
+    const view = {
+      data: {
+        query: 'event.type:transaction',
+      },
+    };
+    const location = {};
+    const additional = {
+      nope: '',
+      undef: undefined,
+      nullish: null,
+      yes: 'value',
+    };
+    expect(getQueryString(view, location, additional)).toEqual(
+      'event.type:transaction yes:value'
+    );
   });
 });
 

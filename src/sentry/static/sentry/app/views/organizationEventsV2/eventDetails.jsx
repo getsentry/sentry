@@ -17,11 +17,10 @@ import {getQuery} from './utils';
 const slugValidator = function(props, propName, componentName) {
   const value = props[propName];
   // Accept slugs that look like:
-  // * project-slug:123:latest
-  // * project-slug:123:oldest
-  // * project-slug:123:deadbeef
+  // * project-slug:deadbeef:latest
+  // * project-slug:deadbeef:oldest
   // * project-slug:deadbeef
-  if (value && !/^(?:[^:]+:)?(?:[^:]+):(?:[a-f0-9]+|latest|oldest)$/.test(value)) {
+  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)(?:\:latest|oldest)?$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -44,53 +43,36 @@ class EventDetails extends AsyncComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
-    groupSlug: slugValidator,
     location: PropTypes.object.isRequired,
     view: PropTypes.object.isRequired,
   };
 
   getEndpoints() {
-    const {organization, eventSlug, groupSlug, view, location} = this.props;
+    const {organization, eventSlug, view, location} = this.props;
     const query = getQuery(view, location);
 
-    // If we're getting an issue/group use the latest endpoint.
-    // We pass the current query/view state to the API so we get an
-    // event that matches the current list filters.
-    if (groupSlug) {
-      const [projectId, groupId, eventId] = groupSlug.toString().split(':');
+    // Check the eventid for the latest/oldest keyword and use that to choose
+    // the endpoint as oldest/latest have special endpoints.
+    const [projectId, eventId, keyword] = eventSlug.toString().split(':');
 
-      let url = `/organizations/${organization.slug}/events/`;
-      // latest / oldest have dedicated endpoints
-      if (['latest', 'oldest'].includes(eventId)) {
-        url += `${eventId}/`;
-      } else {
-        url += `${projectId}:${eventId}/`;
-      }
-      if (query.query) {
-        query.query += ` issue.id:${groupId}`;
-      } else {
-        query.query = `issue.id:${groupId}`;
-      }
-
-      return [['event', url, {query}]];
+    let url = `/organizations/${organization.slug}/events/`;
+    // TODO the latest/oldest links are currently broken as they require a
+    // new endpoint that works with the upcoming discover2 queries.
+    if (['latest', 'oldest'].includes(keyword)) {
+      url += `${keyword}/`;
+    } else {
+      url += `${projectId}:${eventId}/`;
     }
 
     // Get a specific event. This could be coming from
     // a paginated group or standalone event.
-    const [projectId, eventId] = eventSlug.toString().split(':');
-    return [
-      [
-        'event',
-        `/organizations/${organization.slug}/events/${projectId}:${eventId}/`,
-        {query},
-      ],
-    ];
+    return [['event', url, {query}]];
   }
 
   onDismiss = () => {
     const {location} = this.props;
     // Remove modal related query parameters.
-    const query = omit(location.query, ['groupSlug', 'eventSlug']);
+    const query = omit(location.query, ['eventSlug']);
 
     browserHistory.push({
       pathname: location.pathname,
@@ -99,15 +81,7 @@ class EventDetails extends AsyncComponent {
   };
 
   get projectId() {
-    if (this.props.eventSlug) {
-      const [projectId] = this.props.eventSlug.split(':');
-      return projectId;
-    }
-    if (this.props.groupSlug) {
-      const [projectId] = this.props.groupSlug.split(':');
-      return projectId;
-    }
-    throw new Error('Could not determine projectId');
+    return this.props.eventSlug.split(':')[0];
   }
 
   renderBody() {

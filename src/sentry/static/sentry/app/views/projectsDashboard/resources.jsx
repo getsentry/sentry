@@ -1,12 +1,10 @@
 import React from 'react';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
+import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
-import SentryTypes from 'app/sentryTypes';
-import ErrorRobot from 'app/components/errorRobot';
-import {Panel} from 'app/components/panels';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 import releasesImg from '../../../images/releases.svg';
@@ -14,47 +12,31 @@ import breadcrumbsImg from '../../../images/breadcrumbs-generic.svg';
 import docsImg from '../../../images/code-arguments-tags-mirrored.svg';
 
 export default class Resources extends React.Component {
-  static propTypes = {
-    org: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   componentDidMount() {
     analytics('orgdash.resources_shown');
   }
 
   render() {
     return (
-      <ResourcesWrapper>
-        <RobotPanel>
-          <ErrorRobot org={this.props.org} project={this.props.project} />
-        </RobotPanel>
-        <ResourcesSection>
-          <h4>{t('Resources')}</h4>
-          <Flex justify="space-between">
-            <Flex width={3 / 10}>
-              <ResourceCard
-                link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
-                imgUrl={releasesImg}
-                title="The Sentry Workflow"
-              />
-            </Flex>
-            <Flex width={3 / 10}>
-              <ResourceCard
-                link="https://sentry.io/vs/logging/"
-                imgUrl={breadcrumbsImg}
-                title="Sentry vs Logging"
-              />
-            </Flex>
-            <Flex width={3 / 10}>
-              <ResourceCard
-                link="https://docs.sentry.io/"
-                imgUrl={docsImg}
-                title="Docs"
-              />
-            </Flex>
-          </Flex>
-        </ResourcesSection>
+      <ResourcesWrapper data-test-id="resources">
+        <PageHeading>{t('Resources')}</PageHeading>
+        <ResourceCards>
+          <ResourceCard
+            link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
+            imgUrl={releasesImg}
+            title={t('The Sentry Workflow')}
+          />
+          <ResourceCard
+            link="https://sentry.io/vs/logging/"
+            imgUrl={breadcrumbsImg}
+            title={t('Sentry vs Logging')}
+          />
+          <ResourceCard
+            link="https://docs.sentry.io/"
+            imgUrl={docsImg}
+            title={t('Docs')}
+          />
+        </ResourceCards>
       </ResourcesWrapper>
     );
   }
@@ -62,12 +44,12 @@ export default class Resources extends React.Component {
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
+  padding: 25px 30px 10px 30px;
 `;
 
-const RobotPanel = styled(Panel)`
-  margin: 30px 30px 20px 30px;
-`;
-
-const ResourcesSection = styled('div')`
-  padding: 0 30px 20px 30px;
+const ResourceCards = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  grid-gap: ${space(4)};
+  margin-top: ${space(3)};
 `;

@@ -2,8 +2,9 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
+
+const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -12,6 +13,8 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+
+const babelConfig = require('./babel.config');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -164,7 +167,12 @@ const localeRestrictionPlugins = [
 const cacheGroups = {
   vendors: {
     name: 'vendor',
-    test: /[\\/]node_modules[\\/]/,
+    // This `platformicons` check is required otherwise it will get put into this chunk instead
+    // of `sentry.css` bundle
+    // TODO(platformicons): Simplify this if we move platformicons into repo
+    test: module =>
+      !/platformicons/.test(module.resource) &&
+      /[\\/]node_modules[\\/]/.test(module.resource),
     priority: -10,
     enforce: true,
     chunks: 'initial',
@@ -172,12 +180,31 @@ const cacheGroups = {
   ...localeChunkGroups,
 };
 
+const babelOptions = {...babelConfig, cacheDirectory: true};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
 const appConfig = {
   mode: WEBPACK_MODE,
-  entry: {app: 'app'},
+  entry: {
+    /**
+     * Main Sentry SPA
+     */
+    app: 'app',
+
+    /**
+     * Legacy CSS Webpack appConfig for Django-powered views.
+     * This generates a single "sentry.css" file that imports ALL component styles
+     * for use on Django-powered pages.
+     */
+    sentry: 'less/sentry.less',
+
+    /**
+     * old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
+     */
+    select2: 'less/select2.less',
+  },
   context: staticPrefix,
   module: {
     rules: [
@@ -187,14 +214,22 @@ const appConfig = {
         exclude: /(vendor|node_modules|dist)/,
         use: {
           loader: 'babel-loader',
-          options: {...babelConfig, cacheDirectory: true},
+          options: babelOptions,
         },
       },
       {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        loader: 'ts-loader',
+        use: [
+          {
+            loader: 'babel-loader',
+            options: babelOptions,
+          },
+          {
+            loader: 'ts-loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -213,6 +248,11 @@ const appConfig = {
       {
         test: /\.css/,
         use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.less$/,
+        include: [staticPrefix],
+        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -235,6 +275,7 @@ const appConfig = {
     ],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     /**
      * Used to make our lodash modules even smaller
      */
@@ -245,6 +286,7 @@ const appConfig = {
       shorthands: true,
       paths: true,
     }),
+
     /**
      * jQuery must be provided in the global scope specifically and only for
      * bootstrap, as it will not import jQuery itself.
@@ -252,16 +294,19 @@ const appConfig = {
      * We discourage the use of global jQuery through eslint rules
      */
     new webpack.ProvidePlugin({jQuery: 'jquery'}),
+
     /**
      * Extract CSS into separate files.
      */
     new ExtractTextPlugin(),
+
     /**
      * Generate a index.html file used for running the app in pure client mode.
      * This is currently used for PR deploy previews, where only the frontend
      * is deployed.
      */
     new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
+
     /**
      * Defines environemnt specific flags.
      */
@@ -273,21 +318,33 @@ const appConfig = {
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       },
     }),
+
     /**
      * See above for locale chunks. These plugins help with that
      * funcationality.
      */
     new OptionalLocaleChunkPlugin(),
+
+    /**
+     * This removes empty js files for style only entries (e.g. sentry.less)
+     */
+    new FixStyleOnlyEntriesPlugin(),
+
     ...localeRestrictionPlugins,
   ],
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
+
+      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
+      // to be resolved
+      less: path.join(staticPrefix, 'less'),
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
     },
+
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
     path: distPath,
@@ -315,51 +372,6 @@ if (IS_TEST || IS_STORYBOOK) {
   appConfig.plugins.push(plugin);
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
-
-/**
- * Legacy CSS Webpack appConfig for Django-powered views.
- * This generates a single "sentry.css" file that imports ALL component styles
- * for use on Django-powered pages.
- */
-const legacyCssConfig = {
-  mode: WEBPACK_MODE,
-  entry: {
-    sentry: 'less/sentry.less',
-
-    // Below is for old plugins that use select2 when creating a new issue for a plugin
-    // e.g. Trello, Teamwork
-    select2: 'less/select2.less',
-  },
-  context: staticPrefix,
-  output: {
-    path: distPath,
-  },
-  plugins: [new FixStyleOnlyEntriesPlugin(), new ExtractTextPlugin()],
-  resolve: {
-    extensions: ['.less', '.js'],
-    modules: [staticPrefix, 'node_modules'],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        include: [staticPrefix],
-        use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
-      },
-      {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
 
 // Dev only! Hot module reloading
 if (USE_HOT_MODULE_RELOAD) {
@@ -431,8 +443,7 @@ if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(function(plugin) {
     appConfig.plugins.push(plugin);
-    legacyCssConfig.plugins.push(plugin);
   });
 }
 
-module.exports = [appConfig, legacyCssConfig];
+module.exports = appConfig;

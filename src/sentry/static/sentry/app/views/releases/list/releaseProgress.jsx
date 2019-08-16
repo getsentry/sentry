@@ -26,7 +26,7 @@ const STEPS = {
   },
   commit: {
     desc: t('Associate commits'),
-    url: 'b-associate-commits-with-a-release',
+    url: 'associate-commits-with-a-release',
     msg: 'determining which commit caused an error, ',
   },
   deploy: {

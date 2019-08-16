@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import DetailedError from 'app/components/errors/detailedError';
 import {t} from 'app/locale';
 
 /**
@@ -18,9 +19,12 @@ class ProjectEventRedirect extends React.Component {
     router: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    const {router} = props;
+  state = {
+    error: null,
+  };
+
+  componentDidMount() {
+    const {router} = this.props;
 
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
@@ -39,6 +43,10 @@ class ProjectEventRedirect extends React.Component {
     xhr.send();
 
     xhr.onload = () => {
+      if (xhr.status === 404) {
+        this.setState({error: t('Could not find an issue for the provided event id')});
+        return;
+      }
       // responseURL is the URL of the document the browser ultimately loaded,
       // after following any redirects. It _should_ be the page we're trying
       // to reach; use the router to go there.
@@ -48,11 +56,20 @@ class ProjectEventRedirect extends React.Component {
       router.replace(xhr.responseURL);
     };
     xhr.onerror = () => {
-      throw new Error(t('An error occurred'));
+      this.setState({error: t('Could not load the requested event')});
     };
   }
 
   render() {
+    if (this.state.error) {
+      return (
+        <DetailedError
+          heading={t('Not found')}
+          message={this.state.error}
+          hideSupportLinks
+        />
+      );
+    }
     return null;
   }
 }

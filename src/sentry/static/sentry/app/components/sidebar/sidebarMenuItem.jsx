@@ -48,6 +48,33 @@ const MenuItemLabel = styled('span')`
         `};
 `;
 
+const getMenuItemStyles = p => css`
+  color: ${p.theme.gray5};
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  line-height: 32px;
+  padding: 0 ${p.theme.sidebar.menuSpacing};
+  position: relative;
+  transition: 0.1s all linear;
+  ${(!!p.to || !!p.href) && 'overflow: hidden'};
+
+  &:hover,
+  &:active,
+  &.focus-visible {
+    background: ${p.theme.offWhite};
+    color: ${p.theme.gray5};
+    outline: none;
+  }
+
+  ${OrgSummary} {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+export {getMenuItemStyles};
+
 const MenuItemLink = styled(({to, href, external, ...props}) => {
   if (to) {
     return <Link to={to} href={href} {...props} />;
@@ -58,27 +85,7 @@ const MenuItemLink = styled(({to, href, external, ...props}) => {
     return <Component href={href} {...props} />;
   }
 
-  return <div {...props} />;
+  return <div tabIndex="0" {...props} />;
 })`
-  color: ${p => p.theme.gray5};
-  cursor: pointer;
-  display: flex;
-  font-size: 14px;
-  line-height: 32px;
-  padding: 0 ${p => p.theme.sidebar.menuSpacing};
-  position: relative;
-  transition: 0.1s all linear;
-  ${p => (!!p.to || !!p.href) && 'overflow: hidden'};
-
-  &:hover,
-  &:active {
-    background: ${p => p.theme.offWhite};
-    color: ${p => p.theme.gray5};
-  }
-
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${OrgSummary} {
-    padding-left: 0;
-    padding-right: 0;
-  }
+  ${getMenuItemStyles}
 `;

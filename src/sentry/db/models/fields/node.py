@@ -19,9 +19,9 @@ from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField', 'NodeData')
+__all__ = ("NodeField", "NodeData")
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 class NodeIntegrityFailure(Exception):
@@ -57,17 +57,17 @@ class NodeData(collections.MutableMapping):
         # This is needed as older workers might not know about newer
         # collection types.  For isntance we have events where this is a
         # CanonicalKeyDict
-        data.pop('data', None)
-        data['_node_data_CANONICAL'] = isinstance(data['_node_data'], CANONICAL_TYPES)
-        data['_node_data'] = dict(data['_node_data'].items())
+        data.pop("data", None)
+        data["_node_data_CANONICAL"] = isinstance(data["_node_data"], CANONICAL_TYPES)
+        data["_node_data"] = dict(data["_node_data"].items())
         return data
 
     def __setstate__(self, state):
         # If there is a legacy pickled version that used to have data as a
         # duplicate, reject it.
-        state.pop('data', None)
-        if state.pop('_node_data_CANONICAL', False):
-            state['_node_data'] = CanonicalKeyDict(state['_node_data'])
+        state.pop("data", None)
+        if state.pop("_node_data_CANONICAL", False):
+            state["_node_data"] = CanonicalKeyDict(state["_node_data"])
         self.__dict__ = state
 
     def __getitem__(self, key):
@@ -88,8 +88,8 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return '<%s: id=%s data=%r>' % (cls_name, self.id, repr(self._node_data))
-        return '<%s: id=%s>' % (cls_name, self.id, )
+            return "<%s: id=%s data=%r>" % (cls_name, self.id, repr(self._node_data))
+        return "<%s: id=%s>" % (cls_name, self.id)
 
     def get_ref(self, instance):
         if not self.field or not self.field.ref_func:
@@ -109,7 +109,7 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         elif self.id:
-            warnings.warn('You should populate node data before accessing it.')
+            warnings.warn("You should populate node data before accessing it.")
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
@@ -119,11 +119,16 @@ class NodeData(collections.MutableMapping):
         return rv
 
     def bind_data(self, data, ref=None):
-        self.ref = data.pop('_ref', ref)
-        self.ref_version = data.pop('_ref_version', None)
-        if self.field is not None and self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
+        self.ref = data.pop("_ref", ref)
+        self.ref_version = data.pop("_ref_version", None)
+        if (
+            self.field is not None
+            and self.ref_version == self.field.ref_version
+            and ref is not None
+            and self.ref != ref
+        ):
             raise NodeIntegrityFailure(
-                'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
+                "Node reference for %s is invalid: %s != %s" % (self.id, ref, self.ref)
             )
         if self.wrapper is not None:
             data = self.wrapper(data)
@@ -132,8 +137,8 @@ class NodeData(collections.MutableMapping):
     def bind_ref(self, instance):
         ref = self.get_ref(instance)
         if ref:
-            self.data['_ref'] = ref
-            self.data['_ref_version'] = self.field.ref_version
+            self.data["_ref"] = ref
+            self.data["_ref_version"] = self.field.ref_version
 
     def save(self):
         """
@@ -161,10 +166,10 @@ class NodeField(GzippedDictField):
     """
 
     def __init__(self, *args, **kwargs):
-        self.ref_func = kwargs.pop('ref_func', None)
-        self.ref_version = kwargs.pop('ref_version', None)
-        self.wrapper = kwargs.pop('wrapper', None)
-        self.id_func = kwargs.pop('id_func', lambda: b64encode(uuid4().bytes))
+        self.ref_func = kwargs.pop("ref_func", None)
+        self.ref_version = kwargs.pop("ref_version", None)
+        self.wrapper = kwargs.pop("wrapper", None)
+        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -196,8 +201,8 @@ class NodeField(GzippedDictField):
                 value = None
 
         if value:
-            if 'node_id' in value:
-                node_id = value.pop('node_id')
+            if "node_id" in value:
+                node_id = value.pop("node_id")
                 # If the value is now empty, that means that it only had the
                 # node_id in it, which means that we should be looking to *load*
                 # the event body from nodestore. If it does have other stuff in
@@ -228,13 +233,13 @@ class NodeField(GzippedDictField):
             value.id = self.id_func()
 
         value.save()
-        return compress(pickle.dumps({'node_id': value.id}))
+        return compress(pickle.dumps({"node_id": value.id}))
 
 
-if hasattr(models, 'SubfieldBase'):
+if hasattr(models, "SubfieldBase"):
     NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

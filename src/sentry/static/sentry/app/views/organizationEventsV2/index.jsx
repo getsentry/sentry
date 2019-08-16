@@ -8,16 +8,18 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
+import Feature from 'app/components/acl/feature';
 import NavTabs from 'app/components/navTabs';
 import ListLink from 'app/components/links/listLink';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
 import {ALL_VIEWS} from './data';
 import {getCurrentView} from './utils';
 
-export default class OrganizationEventsV2 extends React.Component {
+class OrganizationEventsV2 extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
@@ -25,8 +27,8 @@ export default class OrganizationEventsV2 extends React.Component {
   };
 
   renderTabs() {
-    const {organization} = this.props;
-    const currentView = getCurrentView(this.props.location.query.view);
+    const {location} = this.props;
+    const currentView = getCurrentView(location.query.view);
 
     return (
       <NavTabs underlined={true}>
@@ -34,7 +36,7 @@ export default class OrganizationEventsV2 extends React.Component {
           <ListLink
             key={view.id}
             to={{
-              pathname: `/organizations/${organization.slug}/events/`,
+              pathname: location.pathname,
               query: {
                 ...this.props.location.query,
                 view: view.id,
@@ -53,42 +55,45 @@ export default class OrganizationEventsV2 extends React.Component {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventSlug, groupSlug} = location.query;
+    const {eventSlug} = location.query;
     const currentView = getCurrentView(location.query.view);
-    const showModal = groupSlug || eventSlug;
 
     return (
-      <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <PageContent>
-            <NoProjectMessage organization={organization}>
-              <PageHeader>
-                <PageHeading>
-                  {t('Events')} <BetaTag />
-                </PageHeading>
-              </PageHeader>
-              {this.renderTabs()}
-              <Events
-                organization={organization}
-                view={currentView}
-                location={location}
-                router={router}
-              />
-            </NoProjectMessage>
-            {showModal && (
-              <EventDetails
-                organization={organization}
-                params={this.props.params}
-                eventSlug={eventSlug}
-                groupSlug={groupSlug}
-                view={currentView}
-                location={location}
-              />
-            )}
-          </PageContent>
-        </React.Fragment>
-      </DocumentTitle>
+      <Feature features={['events-v2']} organization={organization} renderDisabled>
+        <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
+          <React.Fragment>
+            <GlobalSelectionHeader organization={organization} />
+            <PageContent>
+              <NoProjectMessage organization={organization}>
+                <PageHeader>
+                  <PageHeading>
+                    {t('Events')} <BetaTag />
+                  </PageHeading>
+                </PageHeader>
+                {this.renderTabs()}
+                <Events
+                  organization={organization}
+                  view={currentView}
+                  location={location}
+                  router={router}
+                />
+              </NoProjectMessage>
+              {eventSlug && (
+                <EventDetails
+                  organization={organization}
+                  params={this.props.params}
+                  eventSlug={eventSlug}
+                  view={currentView}
+                  location={location}
+                />
+              )}
+            </PageContent>
+          </React.Fragment>
+        </DocumentTitle>
+      </Feature>
     );
   }
 }
+
+export default withOrganization(OrganizationEventsV2);
+export {OrganizationEventsV2};

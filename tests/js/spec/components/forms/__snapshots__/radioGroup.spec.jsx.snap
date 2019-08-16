@@ -11,9 +11,10 @@ exports[`RadioGroup render() can select a different item 1`] = `
     key="0"
     onClick={[Function]}
     role="radio"
-    tabIndex={-1}
   >
-    <RadioLineButton />
+    <RadioLineButton
+      type="button"
+    />
     <RadioLineText>
       Choice One
     </RadioLineText>
@@ -24,9 +25,10 @@ exports[`RadioGroup render() can select a different item 1`] = `
     key="1"
     onClick={[Function]}
     role="radio"
-    tabIndex={-1}
   >
-    <RadioLineButton />
+    <RadioLineButton
+      type="button"
+    />
     <RadioLineText>
       Choice Two
     </RadioLineText>
@@ -37,9 +39,10 @@ exports[`RadioGroup render() can select a different item 1`] = `
     key="2"
     onClick={[Function]}
     role="radio"
-    tabIndex={0}
   >
-    <RadioLineButton>
+    <RadioLineButton
+      type="button"
+    >
       <RadioLineButtonFill
         animate={true}
       />
@@ -62,9 +65,10 @@ exports[`RadioGroup render() renders 1`] = `
     key="0"
     onClick={[Function]}
     role="radio"
-    tabIndex={0}
   >
-    <RadioLineButton>
+    <RadioLineButton
+      type="button"
+    >
       <RadioLineButtonFill
         animate={true}
       />
@@ -79,9 +83,10 @@ exports[`RadioGroup render() renders 1`] = `
     key="1"
     onClick={[Function]}
     role="radio"
-    tabIndex={-1}
   >
-    <RadioLineButton />
+    <RadioLineButton
+      type="button"
+    />
     <RadioLineText>
       Choice Two
     </RadioLineText>
@@ -92,9 +97,10 @@ exports[`RadioGroup render() renders 1`] = `
     key="2"
     onClick={[Function]}
     role="radio"
-    tabIndex={-1}
   >
-    <RadioLineButton />
+    <RadioLineButton
+      type="button"
+    />
     <RadioLineText>
       Choice Three
     </RadioLineText>
@@ -127,61 +133,42 @@ exports[`RadioGroup render() renders disabled 1`] = `
       key="0"
       onClick={[Function]}
       role="radio"
-      tabIndex={0}
     >
-      <Component
+      <div
         aria-checked={true}
-        className="css-1h3kzqs-RadioLineItem eeb3g7x1"
-        disabled={true}
-        index={0}
+        className="css-1ujnufh-RadioLineItem eeb3g7x1"
         onClick={[Function]}
         role="radio"
-        tabIndex={0}
       >
-        <div
-          aria-checked={true}
-          className="css-1h3kzqs-RadioLineItem eeb3g7x1"
-          index={0}
-          onClick={[Function]}
-          role="radio"
-          tabIndex={0}
+        <RadioLineButton
+          disabled={true}
+          type="button"
         >
-          <RadioLineButton>
-            <div
-              className="css-18yerb2-RadioLineButton eeb3g7x0"
-            >
-              <RadioLineButtonFill
-                animate={true}
-                disabled={true}
-              >
-                <Component
-                  animate={true}
-                  className="css-14bkqla-RadioLineButtonFill eeb3g7x2"
-                  disabled={true}
-                >
-                  <div
-                    className="css-14bkqla-RadioLineButtonFill eeb3g7x2"
-                  />
-                </Component>
-              </RadioLineButtonFill>
-            </div>
-          </RadioLineButton>
-          <RadioLineText
+          <button
+            className="css-1ovwgkh-RadioLineButton eeb3g7x0"
             disabled={true}
+            type="button"
           >
-            <Component
-              className="css-fr9tlv-RadioLineText eeb3g7x3"
+            <RadioLineButtonFill
+              animate={true}
               disabled={true}
             >
               <div
-                className="css-fr9tlv-RadioLineText eeb3g7x3"
-              >
-                Choice One
-              </div>
-            </Component>
-          </RadioLineText>
-        </div>
-      </Component>
+                className="css-14bkqla-RadioLineButtonFill eeb3g7x2"
+              />
+            </RadioLineButtonFill>
+          </button>
+        </RadioLineButton>
+        <RadioLineText
+          disabled={true}
+        >
+          <div
+            className="css-fr9tlv-RadioLineText eeb3g7x3"
+          >
+            Choice One
+          </div>
+        </RadioLineText>
+      </div>
     </RadioLineItem>
   </div>
 </RadioGroup>

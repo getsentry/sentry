@@ -9,7 +9,6 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import HookStore from 'app/stores/hookStore';
 import PageHeading from 'app/components/pageHeading';
 import PlatformIconTile from 'app/components/platformIconTile';
 import PlatformPicker from 'app/components/platformPicker';
@@ -28,12 +27,6 @@ class CreateProject extends React.Component {
     api: PropTypes.object,
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
-    nextStepUrl: PropTypes.func,
-  };
-
-  static defaultProps = {
-    nextStepUrl: ({slug, projectSlug, platform}) =>
-      `/onboarding/${slug}/${projectSlug}/configure/${platform}`,
   };
 
   static contextTypes = {
@@ -61,7 +54,7 @@ class CreateProject extends React.Component {
 
   createProject = e => {
     e.preventDefault();
-    const {organization, api, nextStepUrl} = this.props;
+    const {organization, api} = this.props;
     const {projectName, platform, team} = this.state;
     const {slug} = organization;
 
@@ -71,7 +64,7 @@ class CreateProject extends React.Component {
       Sentry.withScope(scope => {
         scope.setExtra('props', this.props);
         scope.setExtra('state', this.state);
-        Sentry.captureMessage('Onboarding no project name');
+        Sentry.captureMessage('No project name');
       });
     }
 
@@ -84,19 +77,12 @@ class CreateProject extends React.Component {
       success: data => {
         ProjectActions.createSuccess(data);
 
-        const urlData = {
-          slug: organization.slug,
-          projectSlug: data.slug,
-          platform: platform || 'other',
-        };
+        const platformKey = platform || 'other';
+        const nextUrl = `/${organization.slug}/${
+          data.slug
+        }/getting-started/${platformKey}/`;
 
-        const defaultNextUrl = nextStepUrl(urlData);
-        const hookNextUrl =
-          organization.projects.length === 0 &&
-          HookStore.get('utils:onboarding-survey-url').length &&
-          HookStore.get('utils:onboarding-survey-url')[0](urlData, organization);
-
-        browserHistory.push(hookNextUrl || defaultNextUrl);
+        browserHistory.push(nextUrl);
       },
       error: err => {
         this.setState({
@@ -112,7 +98,7 @@ class CreateProject extends React.Component {
             scope.setExtra('err', err);
             scope.setExtra('props', this.props);
             scope.setExtra('state', this.state);
-            Sentry.captureMessage('Onboarding project creation failed');
+            Sentry.captureMessage('Project creation failed');
           });
         }
       },
