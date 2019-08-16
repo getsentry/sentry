@@ -78,20 +78,19 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
 
-        event = eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
 
-        self.insta_snapshot({
-            'contexts': event.data.get('contexts'),
-            'exception': event.data.get('exception'),
-            'stacktrace': event.data.get('stacktrace'),
-            'threads': event.data.get('threads'),
-            'extra': event.data.get('extra')
-        })
+        self.insta_snapshot(
+            {
+                "contexts": event.data.get("contexts"),
+                "exception": event.data.get("exception"),
+                "stacktrace": event.data.get("stacktrace"),
+                "threads": event.data.get("threads"),
+                "extra": event.data.get("extra"),
+            }
+        )
 
-        return sorted(
-            EventAttachment.objects.filter(
-                event_id=event.event_id),
-            key=lambda x: x.name)
+        return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
     def test_unreal_crash_with_attachments(self):
         attachments = self.unreal_crash_test_impl(get_unreal_crash_file())

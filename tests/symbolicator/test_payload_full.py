@@ -56,7 +56,7 @@ REAL_RESOLVING_EVENT_DATA = {
 
 class ResolvingIntegrationTestBase(object):
     def get_event(self):
-        return eventstore.get_events(filter_keys={'project_id': [self.project.id]})[0]
+        return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
 
     def test_real_resolving(self):
         url = reverse(
@@ -91,7 +91,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = self.get_event()
 
-        assert event.data['culprit'] == 'main'
+        assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_debug_id_resolving(self):
@@ -151,7 +151,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = self.get_event()
-        assert event.data['culprit'] == 'main'
+        assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
@@ -161,7 +161,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = self.get_event()
-        assert event.data['culprit'] == 'unknown'
+        assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_debug_images(self):
@@ -174,7 +174,7 @@ class ResolvingIntegrationTestBase(object):
         assert resp.status_code == 200
 
         event = self.get_event()
-        assert event.data['culprit'] == 'unknown'
+        assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
 
