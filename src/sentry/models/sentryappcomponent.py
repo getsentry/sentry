@@ -2,23 +2,17 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import (
-    EncryptedJsonField,
-    FlexibleForeignKey,
-    Model,
-    UUIDField,
-)
+from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model, UUIDField
 
 
 class SentryAppComponent(Model):
     __core__ = True
 
     uuid = UUIDField(unique=True, auto_add=True)
-    sentry_app = FlexibleForeignKey('sentry.SentryApp',
-                                    related_name='components')
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="components")
     type = models.CharField(max_length=64)
     schema = EncryptedJsonField()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_sentryappcomponent'
+        app_label = "sentry"
+        db_table = "sentry_sentryappcomponent"

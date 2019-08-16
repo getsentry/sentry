@@ -5,7 +5,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 
 
-@instrumented_task(name='sentry.tasks.signal')
+@instrumented_task(name="sentry.tasks.signal")
 def signal(name, payload, project_id=None, **kwargs):
     from sentry.models import Project
 

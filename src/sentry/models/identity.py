@@ -6,8 +6,11 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
-    ArrayField, BoundedPositiveIntegerField, EncryptedJsonField,
-    FlexibleForeignKey, Model
+    ArrayField,
+    BoundedPositiveIntegerField,
+    EncryptedJsonField,
+    FlexibleForeignKey,
+    Model,
 )
 
 
@@ -28,6 +31,7 @@ class IdentityProvider(Model):
     A SAML identity provide might look like this, type: onelogin, instance:
     acme-org.onelogin.com.
     """
+
     __core__ = False
 
     type = models.CharField(max_length=64)
@@ -36,18 +40,19 @@ class IdentityProvider(Model):
     external_id = models.CharField(max_length=64, null=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_identityprovider'
-        unique_together = (('type', 'external_id'),)
+        app_label = "sentry"
+        db_table = "sentry_identityprovider"
+        unique_together = (("type", "external_id"),)
 
 
 class Identity(Model):
     """
     A verified link between a user and a third party identity.
     """
+
     __core__ = False
 
-    idp = FlexibleForeignKey('sentry.IdentityProvider')
+    idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.CharField(max_length=64)
     data = EncryptedJsonField()
@@ -57,12 +62,13 @@ class Identity(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_identity'
-        unique_together = (('idp', 'external_id'), ('idp', 'user'))
+        app_label = "sentry"
+        db_table = "sentry_identity"
+        unique_together = (("idp", "external_id"), ("idp", "user"))
 
     def get_provider(self):
         from sentry.identity import get
+
         return get(self.idp.type)
 
     @classmethod
@@ -74,9 +80,4 @@ class Identity(Model):
         lookup = Q(external_id=external_id) | Q(user=user)
         Identity.objects.filter(lookup, idp=idp).delete()
 
-        return Identity.objects.create(
-            idp=idp,
-            user=user,
-            external_id=external_id,
-            **defaults
-        )
+        return Identity.objects.create(idp=idp, user=user, external_id=external_id, **defaults)

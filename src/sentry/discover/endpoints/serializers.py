@@ -11,95 +11,73 @@ from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 
 class DiscoverQuerySerializer(serializers.Serializer):
-    projects = ListField(
-        child=serializers.IntegerField(),
-        required=True,
-        allow_null=False,
-    )
+    projects = ListField(child=serializers.IntegerField(), required=True, allow_null=False)
     start = serializers.CharField(required=False, allow_null=True)
     end = serializers.CharField(required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
     statsPeriod = serializers.CharField(required=False, allow_null=True)
     statsPeriodStart = serializers.CharField(required=False, allow_null=True)
     statsPeriodEnd = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(
-        child=serializers.CharField(),
-        required=False,
-        default=[],
-    )
-    conditionFields = ListField(
-        child=ListField(),
-        required=False,
-        allow_null=True,
-    )
+    fields = ListField(child=serializers.CharField(), required=False, default=[])
+    conditionFields = ListField(child=ListField(), required=False, allow_null=True)
     limit = EmptyIntegerField(min_value=0, max_value=10000, required=False, allow_null=True)
     rollup = EmptyIntegerField(required=False, allow_null=True)
     orderby = serializers.CharField(required=False, default="", allow_blank=True)
-    conditions = ListField(
-        child=ListField(),
-        required=False,
-        allow_null=True,
-    )
-    aggregations = ListField(
-        child=ListField(),
-        required=False,
-        default=[]
-    )
-    groupby = ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_null=True,
-    )
+    conditions = ListField(child=ListField(), required=False, allow_null=True)
+    aggregations = ListField(child=ListField(), required=False, default=[])
+    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
     turbo = serializers.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
 
-        data = kwargs['data']
+        data = kwargs["data"]
 
-        fields = data.get('fields') or []
+        fields = data.get("fields") or []
 
         match = next(
             (
                 self.get_array_field(field).group(1)
-                for field
-                in fields
+                for field in fields
                 if self.get_array_field(field) is not None
             ),
-            None
+            None,
         )
         self.arrayjoin = match if match else None
 
     def validate(self, data):
-        data['arrayjoin'] = self.arrayjoin
+        data["arrayjoin"] = self.arrayjoin
 
         # prevent conflicting date ranges from being supplied
-        date_fields = ['start', 'statsPeriod', 'range', 'statsPeriodStart']
+        date_fields = ["start", "statsPeriod", "range", "statsPeriodStart"]
         date_fields_provided = len([data.get(f) for f in date_fields if data.get(f) is not None])
         if date_fields_provided == 0:
-            raise serializers.ValidationError('You must specify a date filter')
+            raise serializers.ValidationError("You must specify a date filter")
         elif date_fields_provided > 1:
-            raise serializers.ValidationError('Conflicting date filters supplied')
+            raise serializers.ValidationError("Conflicting date filters supplied")
 
-        if not data.get('fields') and not data.get('aggregations'):
-            raise serializers.ValidationError('Specify at least one field or aggregation')
+        if not data.get("fields") and not data.get("aggregations"):
+            raise serializers.ValidationError("Specify at least one field or aggregation")
 
         try:
-            start, end = get_date_range_from_params({
-                'start': data.get('start'),
-                'end': data.get('end'),
-                'statsPeriod': data.get('statsPeriod') or data.get('range'),
-                'statsPeriodStart': data.get('statsPeriodStart'),
-                'statsPeriodEnd': data.get('statsPeriodEnd'),
-            }, optional=True)
+            start, end = get_date_range_from_params(
+                {
+                    "start": data.get("start"),
+                    "end": data.get("end"),
+                    "statsPeriod": data.get("statsPeriod") or data.get("range"),
+                    "statsPeriodStart": data.get("statsPeriodStart"),
+                    "statsPeriodEnd": data.get("statsPeriodEnd"),
+                },
+                optional=True,
+            )
         except InvalidParams as exc:
             raise serializers.ValidationError(exc.message)
 
         if start is None or end is None:
-            raise serializers.ValidationError('Either start and end dates or range is required')
+            raise serializers.ValidationError("Either start and end dates or range is required")
 
-        data['start'] = start
-        data['end'] = end
+        data["start"] = start
+        data["end"] = end
 
         return data
 
@@ -108,14 +86,14 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(['count()', 'uniq', 'avg'])
+        valid_functions = set(["count()", "uniq", "avg"])
         requested_functions = set(agg[0] for agg in value)
 
         if not requested_functions.issubset(valid_functions):
-            invalid_functions = ', '.join((requested_functions - valid_functions))
+            invalid_functions = ", ".join((requested_functions - valid_functions))
 
             raise serializers.ValidationError(
-                u'Invalid aggregate function - {}'.format(invalid_functions)
+                u"Invalid aggregate function - {}".format(invalid_functions)
             )
 
         return value
@@ -129,7 +107,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
     def get_condition(self, condition):
         array_field = self.get_array_field(condition[0])
-        has_equality_operator = condition[1] in ('=', '!=')
+        has_equality_operator = condition[1] in ("=", "!=")
 
         # Cast boolean values to 1 / 0
         if isinstance(condition[2], bool):
@@ -145,11 +123,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
             value = condition[2]
 
-            if (isinstance(value, six.string_types)):
+            if isinstance(value, six.string_types):
                 value = u"'{}'".format(value)
 
-            bool_value = 1 if condition[1] == '=' else 0
+            bool_value = 1 if condition[1] == "=" else 0
 
-            return [['has', [array_field.group(0), value]], '=', bool_value]
+            return [["has", [array_field.group(0), value]], "=", bool_value]
 
         return condition

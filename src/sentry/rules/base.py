@@ -37,13 +37,13 @@ from collections import namedtuple
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
-CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs', 'key'])
+CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleDescriptor(type):
     def __new__(cls, *args, **kwargs):
         new_cls = super(RuleDescriptor, cls).__new__(cls, *args, **kwargs)
-        new_cls.id = '%s.%s' % (new_cls.__module__, new_cls.__name__)
+        new_cls.id = "%s.%s" % (new_cls.__module__, new_cls.__name__)
         return new_cls
 
 
@@ -52,7 +52,7 @@ class RuleBase(object):
     label = None
     form_cls = None
 
-    logger = logging.getLogger('sentry.rules')
+    logger = logging.getLogger("sentry.rules")
 
     def __init__(self, project, data=None, rule=None):
         self.project = project
@@ -85,11 +85,7 @@ class RuleBase(object):
         return form.is_valid()
 
     def future(self, callback, key=None, **kwargs):
-        return CallbackFuture(
-            callback=callback,
-            key=key,
-            kwargs=kwargs,
-        )
+        return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
 class EventState(object):

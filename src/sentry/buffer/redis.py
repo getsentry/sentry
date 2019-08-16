@@ -42,17 +42,17 @@ class PendingBuffer(object):
         self.pointer = 0
 
     def flush(self):
-        rv = self.buffer[:self.pointer]
+        rv = self.buffer[: self.pointer]
         self.clear()
         return rv
 
 
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
-    pending_key = 'b:p'
+    pending_key = "b:p"
 
     def __init__(self, pending_partitions=1, incr_batch_size=2, **options):
-        self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
+        self.cluster, options = get_cluster_from_options("SENTRY_BUFFER_OPTIONS", options)
         self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
         assert self.pending_partitions > 0
@@ -68,16 +68,18 @@ class RedisBuffer(Buffer):
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
             value = value.pk
-        return force_bytes(value, errors='replace')
+        return force_bytes(value, errors="replace")
 
     def _make_key(self, model, filters):
         """
         Returns a Redis-compatible key for the model given filters.
         """
-        return 'b:k:%s:%s' % (
-            model._meta, md5_text(
-                '&'.
-                join('%s=%s' % (k, self._coerce_val(v)) for k, v in sorted(six.iteritems(filters)))
+        return "b:k:%s:%s" % (
+            model._meta,
+            md5_text(
+                "&".join(
+                    "%s=%s" % (k, self._coerce_val(v)) for k, v in sorted(six.iteritems(filters))
+                )
             ).hexdigest(),
         )
 
@@ -90,7 +92,7 @@ class RedisBuffer(Buffer):
         if partition is None:
             return self.pending_key
         assert partition >= 0
-        return '%s:%d' % (self.pending_key, partition)
+        return "%s:%d" % (self.pending_key, partition)
 
     def _make_pending_key_from_key(self, key):
         """
@@ -103,7 +105,7 @@ class RedisBuffer(Buffer):
         return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key):
-        return 'l:%s' % (key, )
+        return "l:%s" % (key,)
 
     def _dump_values(self, values):
         result = {}
@@ -113,14 +115,14 @@ class RedisBuffer(Buffer):
 
     def _dump_value(self, value):
         if isinstance(value, six.string_types):
-            type_ = 's'
+            type_ = "s"
         elif isinstance(value, datetime):
-            type_ = 'd'
-            value = value.strftime('%s.%f')
+            type_ = "d"
+            value = value.strftime("%s.%f")
         elif isinstance(value, int):
-            type_ = 'i'
+            type_ = "i"
         elif isinstance(value, float):
-            type_ = 'f'
+            type_ = "f"
         else:
             raise TypeError(type(value))
         return (type_, six.text_type(value))
@@ -133,18 +135,16 @@ class RedisBuffer(Buffer):
 
     def _load_value(self, payload):
         (type_, value) = payload
-        if type_ == 's':
+        if type_ == "s":
             return value
-        elif type_ == 'd':
-            return datetime.fromtimestamp(float(value)).replace(
-                tzinfo=timezone.utc
-            )
-        elif type_ == 'i':
+        elif type_ == "d":
+            return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
+        elif type_ == "i":
             return int(value)
-        elif type_ == 'f':
+        elif type_ == "f":
             return float(value)
         else:
-            raise TypeError('invalid type: {}'.format(type_))
+            raise TypeError("invalid type: {}".format(type_))
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -164,13 +164,13 @@ class RedisBuffer(Buffer):
         conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
-        pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
+        pipe.hsetnx(key, "m", "%s.%s" % (model.__module__, model.__name__))
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
-        pipe.hsetnx(key, 'f', pickle.dumps(filters))
+        pipe.hsetnx(key, "f", pickle.dumps(filters))
         # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
         for column, amount in six.iteritems(columns):
-            pipe.hincrby(key, 'i+' + column, amount)
+            pipe.hincrby(key, "i+" + column, amount)
 
         if extra:
             # Group tries to serialize 'score', so we'd need some kind of processing
@@ -179,23 +179,24 @@ class RedisBuffer(Buffer):
             for column, value in six.iteritems(extra):
                 # TODO(dcramer): once this goes live in production, we can kill the pickle path
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
-                pipe.hset(key, 'e+' + column, pickle.dumps(value))
+                pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
 
-        metrics.incr('buffer.incr', skip_internal=True, tags={
-            'module': model.__module__,
-            'model': model.__name__,
-        })
+        metrics.incr(
+            "buffer.incr",
+            skip_internal=True,
+            tags={"module": model.__module__, "model": model.__name__},
+        )
 
     def process_pending(self, partition=None):
         if partition is None and self.pending_partitions > 1:
             # If we're using partitions, this one task fans out into
             # N subtasks instead.
             for i in range(self.pending_partitions):
-                process_pending.apply_async(kwargs={'partition': i})
+                process_pending.apply_async(kwargs={"partition": i})
             # Explicitly also run over the unpartitioned buffer as well
             # to ease in transition. In practice, this should just be
             # super fast and is fine to do redundantly.
@@ -204,7 +205,7 @@ class RedisBuffer(Buffer):
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task
-        if not client.set(lock_key, '1', nx=True, ex=60):
+        if not client.set(lock_key, "1", nx=True, ex=60):
             return
 
         pending_buffer = PendingBuffer(self.incr_batch_size)
@@ -222,20 +223,14 @@ class RedisBuffer(Buffer):
                     for key in keys:
                         pending_buffer.append(key)
                         if pending_buffer.full():
-                            process_incr.apply_async(
-                                kwargs={
-                                    'batch_keys': pending_buffer.flush(),
-                                }
-                            )
+                            process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
                     conn.target([host_id]).zrem(pending_key, *keys)
 
             # queue up remainder of pending keys
             if not pending_buffer.empty():
-                process_incr.apply_async(kwargs={
-                    'batch_keys': pending_buffer.flush(),
-                })
+                process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
 
-            metrics.timing('buffer.pending-size', keycount)
+            metrics.timing("buffer.pending-size", keycount)
         finally:
             client.delete(lock_key)
 
@@ -254,9 +249,9 @@ class RedisBuffer(Buffer):
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
-        if not client.set(lock_key, '1', nx=True, ex=10):
-            metrics.incr('buffer.revoked', tags={'reason': 'locked'}, skip_internal=False)
-            self.logger.debug('buffer.revoked.locked', extra={'redis_key': key})
+        if not client.set(lock_key, "1", nx=True, ex=10):
+            metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
+            self.logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
 
         pending_key = self._make_pending_key_from_key(key)
@@ -270,24 +265,24 @@ class RedisBuffer(Buffer):
             values = pipe.execute()[0]
 
             if not values:
-                metrics.incr('buffer.revoked', tags={'reason': 'empty'}, skip_internal=False)
-                self.logger.debug('buffer.revoked.empty', extra={'redis_key': key})
+                metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
+                self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
-            model = import_string(values.pop('m'))
-            if values['f'].startswith('{'):
-                filters = self._load_values(json.loads(values.pop('f')))
+            model = import_string(values.pop("m"))
+            if values["f"].startswith("{"):
+                filters = self._load_values(json.loads(values.pop("f")))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                filters = pickle.loads(values.pop('f'))
+                filters = pickle.loads(values.pop("f"))
 
             incr_values = {}
             extra_values = {}
             for k, v in six.iteritems(values):
-                if k.startswith('i+'):
+                if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
-                elif k.startswith('e+'):
-                    if v.startswith('['):
+                elif k.startswith("e+"):
+                    if v.startswith("["):
                         extra_values[k[2:]] = self._load_value(json.loads(v))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1

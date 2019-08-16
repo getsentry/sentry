@@ -15,15 +15,14 @@ def has_team_permission(request, team, scope_map):
 
 class TeamPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['team:read', 'team:write', 'team:admin'],
-        'POST': ['team:write', 'team:admin'],
-        'PUT': ['team:write', 'team:admin'],
-        'DELETE': ['team:admin'],
+        "GET": ["team:read", "team:write", "team:admin"],
+        "POST": ["team:write", "team:admin"],
+        "PUT": ["team:write", "team:admin"],
+        "DELETE": ["team:admin"],
     }
 
     def has_object_permission(self, request, view, team):
-        result = super(TeamPermission,
-                       self).has_object_permission(request, view, team.organization)
+        result = super(TeamPermission, self).has_object_permission(request, view, team.organization)
         if not result:
             return result
 
@@ -31,14 +30,15 @@ class TeamPermission(OrganizationPermission):
 
 
 class TeamEndpoint(Endpoint):
-    permission_classes = (TeamPermission, )
+    permission_classes = (TeamPermission,)
 
     def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
         try:
-            team = Team.objects.filter(
-                organization__slug=organization_slug,
-                slug=team_slug,
-            ).select_related('organization').get()
+            team = (
+                Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
+                .select_related("organization")
+                .get()
+            )
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -52,5 +52,5 @@ class TeamEndpoint(Endpoint):
 
         request._request.organization = team.organization
 
-        kwargs['team'] = team
+        kwargs["team"] = team
         return (args, kwargs)

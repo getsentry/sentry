@@ -94,7 +94,7 @@ class _FakeORM(object):
         for name, data in self.models_source.items():
             # Make sure there's some kind of Meta
             if "Meta" not in data:
-                data['Meta'] = {}
+                data["Meta"] = {}
             try:
                 app_label, model_name = name.split(".", 1)
             except ValueError:
@@ -102,9 +102,9 @@ class _FakeORM(object):
                 model_name = name
 
             # If there's an object_name in the Meta, use it and remove it
-            if "object_name" in data['Meta']:
-                model_name = data['Meta']['object_name']
-                del data['Meta']['object_name']
+            if "object_name" in data["Meta"]:
+                model_name = data["Meta"]["object_name"]
+                del data["Meta"]["object_name"]
 
             name = "%s.%s" % (app_label, model_name)
             self.models[name.lower()] = name
@@ -150,8 +150,9 @@ class _FakeORM(object):
             return self.models[fullname]
         except KeyError:
             raise AttributeError(
-                "The model '%s' from the app '%s' is not available in this migration. (Did you use orm.ModelName, not orm['app.ModelName']?)" %
-                (key, self.default_app))
+                "The model '%s' from the app '%s' is not available in this migration. (Did you use orm.ModelName, not orm['app.ModelName']?)"
+                % (key, self.default_app)
+            )
 
     def __getitem__(self, key):
         # Detect if they asked for a field on a model or not.
@@ -170,8 +171,9 @@ class _FakeORM(object):
                 raise KeyError("The model '%s' is not in appname.modelname format." % key)
             else:
                 raise KeyError(
-                    "The model '%s' from the app '%s' is not available in this migration." %
-                    (model, app))
+                    "The model '%s' from the app '%s' is not available in this migration."
+                    % (model, app)
+                )
         # If they asked for a field, get it.
         if fname:
             return model._meta.get_field_by_name(fname)[0]
@@ -194,26 +196,29 @@ class _FakeORM(object):
         )
 
         # We add our models into the locals for the eval
-        fake_locals.update(dict([
-            (name.split(".")[-1], model)
-            for name, model in self.models.items()
-        ]))
+        fake_locals.update(
+            dict([(name.split(".")[-1], model) for name, model in self.models.items()])
+        )
 
         # Make sure the ones for this app override.
-        fake_locals.update(dict([
-            (name.split(".")[-1], model)
-            for name, model in self.models.items()
-            if name.split(".")[0] == app
-        ]))
+        fake_locals.update(
+            dict(
+                [
+                    (name.split(".")[-1], model)
+                    for name, model in self.models.items()
+                    if name.split(".")[0] == app
+                ]
+            )
+        )
 
         # Ourselves as orm, to allow non-fail cross-app referencing
-        fake_locals['orm'] = self
+        fake_locals["orm"] = self
 
         # And a fake _ function
-        fake_locals['_'] = lambda x: x
+        fake_locals["_"] = lambda x: x
 
         # Datetime; there should be no datetime direct accesses
-        fake_locals['datetime'] = datetime_utils
+        fake_locals["datetime"] = datetime_utils
 
         # Now, go through the requested imports and import them.
         for name, value in extra_imports.items():
@@ -235,7 +240,7 @@ class _FakeORM(object):
                 if name == "SouthFieldClass":
                     raise ValueError("Cannot import the required field '%s'" % value)
                 else:
-                    print("WARNING: Cannot import '%s'" % value)
+                    print ("WARNING: Cannot import '%s'" % value)
 
         # Use ModelsLocals to make lookups work right for CapitalisedModels
         fake_locals = ModelsLocals(fake_locals)
@@ -244,7 +249,7 @@ class _FakeORM(object):
 
     def make_meta(self, app, model, data, stub=False):
         "Makes a Meta class out of a dict of eval-able arguments."
-        results = {'app_label': app}
+        results = {"app_label": app}
         for key, code in data.items():
             # Some things we never want to use.
             if key in ["_bases", "_ormbases"]:
@@ -256,18 +261,19 @@ class _FakeORM(object):
             try:
                 results[key] = self.eval_in_context(code, app)
             except (NameError, AttributeError) as e:
-                raise ValueError("Cannot successfully create meta field '%s' for model '%s.%s': %s." % (
-                    key, app, model, e
-                ))
+                raise ValueError(
+                    "Cannot successfully create meta field '%s' for model '%s.%s': %s."
+                    % (key, app, model, e)
+                )
         return type("Meta", tuple(), results)
 
     def make_model(self, app, name, data):
         "Makes a Model class out of the given app name, model name and pickled data."
 
         # Extract any bases out of Meta
-        if "_ormbases" in data['Meta']:
+        if "_ormbases" in data["Meta"]:
             # Make sure everything we depend on is done already; otherwise, wait.
-            for key in data['Meta']['_ormbases']:
+            for key in data["Meta"]["_ormbases"]:
                 key = key.lower()
                 if key not in self.models:
                     raise ORMBaseNotIncluded("Cannot find ORM base %s" % key)
@@ -275,16 +281,16 @@ class _FakeORM(object):
                     # Then the other model hasn't been unfrozen yet.
                     # We postpone ourselves; the situation will eventually resolve.
                     raise UnfreezeMeLater()
-            bases = [self.models[key.lower()] for key in data['Meta']['_ormbases']]
+            bases = [self.models[key.lower()] for key in data["Meta"]["_ormbases"]]
         # Perhaps the old style?
-        elif "_bases" in data['Meta']:
-            bases = map(ask_for_it_by_name, data['Meta']['_bases'])
+        elif "_bases" in data["Meta"]:
+            bases = map(ask_for_it_by_name, data["Meta"]["_bases"])
         # Ah, bog standard, then.
         else:
             bases = [models.Model]
 
         # Turn the Meta dict into a basic class
-        meta = self.make_meta(app, name, data['Meta'], data.get("_stub", False))
+        meta = self.make_meta(app, name, data["Meta"], data.get("_stub", False))
 
         failed_fields = {}
         fields = {}
@@ -300,8 +306,8 @@ class _FakeORM(object):
                 continue
             elif not params:
                 raise ValueError(
-                    "Field '%s' on model '%s.%s' has no definition." %
-                    (fname, app, name))
+                    "Field '%s' on model '%s.%s' has no definition." % (fname, app, name)
+                )
             elif isinstance(params, string_types):
                 # It's a premade definition string! Let's hope it works...
                 code = params
@@ -313,14 +319,14 @@ class _FakeORM(object):
                 # There should be 3 parameters. Code is a tuple of (code, what-to-import)
                 if len(params) == 3:
                     code = "SouthFieldClass(%s)" % ", ".join(
-                        params[1] +
-                        ["%s=%s" % (n, v) for n, v in params[2].items()]
+                        params[1] + ["%s=%s" % (n, v) for n, v in params[2].items()]
                     )
                     extra_imports = {"SouthFieldClass": params[0]}
                 else:
                     raise ValueError(
-                        "Field '%s' on model '%s.%s' has a weird definition length (should be 1 or 3 items)." %
-                        (fname, app, name))
+                        "Field '%s' on model '%s.%s' has a weird definition length (should be 1 or 3 items)."
+                        % (fname, app, name)
+                    )
 
             try:
                 # Execute it in a probably-correct context.
@@ -333,25 +339,19 @@ class _FakeORM(object):
                 fields[fname] = field
 
         # Find the app in the Django core, and get its module
-        more_kwds = {
-            'Meta': meta,
-        }
+        more_kwds = {"Meta": meta}
         try:
             app_module = models.get_app(app)
-            more_kwds['__module__'] = app_module.__name__
+            more_kwds["__module__"] = app_module.__name__
         except ImproperlyConfigured:
             # the app this belonged to has vanished, but thankfully we can still
             # make a mock model, so ignore the error.
-            more_kwds['__module__'] = '_south_mock'
+            more_kwds["__module__"] = "_south_mock"
 
         # Make our model
         fields.update(more_kwds)
 
-        model = type(
-            str(name),
-            tuple(bases),
-            fields,
-        )
+        model = type(str(name), tuple(bases), fields)
 
         # If this is a stub model, change Objects to a whiny class
         if stub:
@@ -376,9 +376,10 @@ class _FakeORM(object):
                         field = self.eval_in_context(code, app, extra_imports)
                     except (NameError, AttributeError, AssertionError, KeyError) as e:
                         # It's failed again. Complain.
-                        raise ValueError("Cannot successfully create field '%s' for model '%s': %s." % (
-                            fname, modelname, e
-                        ))
+                        raise ValueError(
+                            "Cannot successfully create field '%s' for model '%s': %s."
+                            % (fname, modelname, e)
+                        )
                     else:
                         # Startup that field.
                         model.add_to_class(fname, field)
@@ -403,7 +404,8 @@ class NoDryRunManager(object):
     def __getattr__(self, name):
         if db.dry_run:
             raise AttributeError(
-                "You are in a dry run, and cannot access the ORM.\nWrap ORM sections in 'if not db.dry_run:', or if the whole migration is only a data migration, set no_dry_run = True on the Migration class.")
+                "You are in a dry run, and cannot access the ORM.\nWrap ORM sections in 'if not db.dry_run:', or if the whole migration is only a data migration, set no_dry_run = True on the Migration class."
+            )
         return getattr(self.real, name)
 
 

@@ -19,7 +19,7 @@ class SavedSearchSerializer(serializers.Serializer):
 
 
 class ProjectSearchesEndpoint(ProjectEndpoint):
-    permission_classes = (RelaxedSearchPermission, )
+    permission_classes = (RelaxedSearchPermission,)
 
     def get(self, request, project):
         """
@@ -33,7 +33,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
         results = list(
             SavedSearch.objects.filter(
                 Q(owner=request.user) | Q(owner__isnull=True), project=project
-            ).order_by('name')
+            ).order_by("name")
         )
 
         return Response(serialize(results, request.user))
@@ -60,39 +60,30 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                 try:
                     search = SavedSearch.objects.create(
                         project=project,
-                        name=result['name'],
-                        query=result['query'],
-                        is_default=result.get('isDefault', False),
-                        owner=(None if request.access.has_scope('project:write') else request.user)
+                        name=result["name"],
+                        query=result["query"],
+                        is_default=result.get("isDefault", False),
+                        owner=(None if request.access.has_scope("project:write") else request.user),
                     )
                     save_search_created.send_robust(project=project, user=request.user, sender=self)
 
                 except IntegrityError:
-                    return Response(
-                        {'detail': 'Search with same name already exists.'}, status=400)
+                    return Response({"detail": "Search with same name already exists."}, status=400)
 
                 if search.is_default:
-                    if request.access.has_scope('project:write'):
-                        SavedSearch.objects.filter(
-                            project=project,
-                        ).exclude(
-                            id=search.id,
-                        ).update(
-                            is_default=False,
+                    if request.access.has_scope("project:write"):
+                        SavedSearch.objects.filter(project=project).exclude(id=search.id).update(
+                            is_default=False
                         )
                     else:
                         return Response(
-                            {
-                                'detail': 'User doesn\'t have permission to set default view'
-                            },
-                            status=400
+                            {"detail": "User doesn't have permission to set default view"},
+                            status=400,
                         )
 
-                if result.get('isUserDefault'):
+                if result.get("isUserDefault"):
                     SavedSearchUserDefault.objects.create_or_update(
-                        savedsearch=search,
-                        user=request.user,
-                        project=project,
+                        savedsearch=search, user=request.user, project=project
                     )
 
             return Response(serialize(search, request.user), status=201)

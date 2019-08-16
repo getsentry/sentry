@@ -61,7 +61,7 @@ setup-git:
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	pip install "pre-commit>=1.10.1,<1.11.0"
-	pre-commit install
+	pre-commit install --install-hooks
 	@echo ""
 
 update-submodules:

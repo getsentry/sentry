@@ -12,19 +12,15 @@ if "audit_log" in settings.INSTALLED_APPS:
         from audit_log.models import fields
 
         # Make sure the `to` and `null` parameters will be ignored
-        rules = [(
-            (fields.LastUserField,),
-            [],
-            {
-                'to': ['rel.to', {'default': User}],
-                'null': ['null', {'default': True}],
-            },
-        )]
+        rules = [
+            (
+                (fields.LastUserField,),
+                [],
+                {"to": ["rel.to", {"default": User}], "null": ["null", {"default": True}]},
+            )
+        ]
 
         # Add the rules for the `LastUserField`
-        add_introspection_rules(
-            rules,
-            ['^audit_log\.models\.fields\.LastUserField'],
-        )
+        add_introspection_rules(rules, ["^audit_log\.models\.fields\.LastUserField"])
     except ImportError:
         pass

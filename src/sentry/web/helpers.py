@@ -12,7 +12,7 @@ from sentry.auth import access
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 def get_default_context(request, existing_context=None, team=None):
@@ -20,18 +20,18 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'URL_PREFIX': options.get('system.url-prefix'),
-        'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
-        'PLUGINS': plugins,
-        'ONPREMISE': settings.SENTRY_ONPREMISE,
+        "URL_PREFIX": options.get("system.url-prefix"),
+        "SINGLE_ORGANIZATION": settings.SENTRY_SINGLE_ORGANIZATION,
+        "PLUGINS": plugins,
+        "ONPREMISE": settings.SENTRY_ONPREMISE,
     }
 
     if existing_context:
-        if team is None and 'team' in existing_context:
-            team = existing_context['team']
+        if team is None and "team" in existing_context:
+            team = existing_context["team"]
 
-        if 'project' in existing_context:
-            project = existing_context['project']
+        if "project" in existing_context:
+            project = existing_context["project"]
         else:
             project = None
     else:
@@ -45,15 +45,11 @@ def get_default_context(request, existing_context=None, team=None):
         organization = None
 
     if request:
-        context.update({
-            'request': request,
-        })
+        context.update({"request": request})
 
-        if (not existing_context or 'TEAM_LIST' not in existing_context) and team:
-            context['TEAM_LIST'] = Team.objects.get_for_user(
-                organization=team.organization,
-                user=request.user,
-                with_projects=True,
+        if (not existing_context or "TEAM_LIST" not in existing_context) and team:
+            context["TEAM_LIST"] = Team.objects.get_for_user(
+                organization=team.organization, user=request.user, with_projects=True
             )
 
         user = request.user
@@ -61,22 +57,20 @@ def get_default_context(request, existing_context=None, team=None):
         user = AnonymousUser()
 
     if organization:
-        context['selectedOrganization'] = serialize(organization, user)
+        context["selectedOrganization"] = serialize(organization, user)
     if team:
-        context['selectedTeam'] = serialize(team, user)
+        context["selectedTeam"] = serialize(team, user)
     if project:
-        context['selectedProject'] = serialize(project, user)
+        context["selectedProject"] = serialize(project, user)
 
-    if not existing_context or 'ACCESS' not in existing_context:
+    if not existing_context or "ACCESS" not in existing_context:
         if request:
-            context['ACCESS'] = access.from_request(
-                request=request,
-                organization=organization,
+            context["ACCESS"] = access.from_request(
+                request=request, organization=organization
             ).to_django_context()
         else:
-            context['ACCESS'] = access.from_user(
-                user=user,
-                organization=organization,
+            context["ACCESS"] = access.from_user(
+                user=user, organization=organization
             ).to_django_context()
 
     return context
@@ -85,8 +79,8 @@ def get_default_context(request, existing_context=None, team=None):
 def render_to_string(template, context=None, request=None):
 
     # HACK: set team session value for dashboard redirect
-    if context and 'team' in context and isinstance(context['team'], Team):
-        team = context['team']
+    if context and "team" in context and isinstance(context["team"], Team):
+        team = context["team"]
     else:
         team = None
 
@@ -106,8 +100,8 @@ def render_to_string(template, context=None, request=None):
     return loader.render_to_string(template, context)
 
 
-def render_to_response(template, context=None, request=None, status=200, content_type='text/html'):
+def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
-    response['Content-Type'] = content_type
+    response["Content-Type"] = content_type
     return response

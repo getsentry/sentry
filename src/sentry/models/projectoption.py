@@ -19,7 +19,7 @@ class ProjectOptionManager(BaseManager):
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        d.pop('_ProjectOptionManager__cache', None)
+        d.pop("_ProjectOptionManager__cache", None)
         return d
 
     def __setstate__(self, state):
@@ -28,14 +28,11 @@ class ProjectOptionManager(BaseManager):
 
     def _make_key(self, instance_id):
         assert instance_id
-        return '%s:%s' % (self.model._meta.db_table, instance_id)
+        return "%s:%s" % (self.model._meta.db_table, instance_id)
 
     def get_value_bulk(self, instances, key):
         instance_map = dict((i.id, i) for i in instances)
-        queryset = self.filter(
-            project__in=instances,
-            key=key,
-        )
+        queryset = self.filter(project__in=instances, key=key)
         result = dict((i, None) for i in instances)
         for obj in queryset:
             result[instance_map[obj.project_id]] = obj.value
@@ -57,13 +54,7 @@ class ProjectOptionManager(BaseManager):
         self.reload_cache(project.id)
 
     def set_value(self, project, key, value):
-        inst, created = self.create_or_update(
-            project=project,
-            key=key,
-            values={
-                'value': value,
-            },
-        )
+        inst, created = self.create_or_update(project=project, key=key, values={"value": value})
         self.reload_cache(project.id)
         return created or inst > 0
 
@@ -111,17 +102,18 @@ class ProjectOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
+
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
     value = EncryptedPickledObjectField()
 
     objects = ProjectOptionManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_projectoptions'
-        unique_together = (('project', 'key', ), )
+        app_label = "sentry"
+        db_table = "sentry_projectoptions"
+        unique_together = (("project", "key"),)
 
-    __repr__ = sane_repr('project_id', 'key', 'value')
+    __repr__ = sane_repr("project_id", "key", "value")

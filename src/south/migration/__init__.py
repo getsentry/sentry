@@ -12,8 +12,7 @@ import south.db
 from south import exceptions
 from south.models import MigrationHistory
 from south.db import db, DEFAULT_DB_ALIAS
-from south.migration.migrators import (Backwards, Forwards,
-                                       DryRunMigrator, FakeMigrator)
+from south.migration.migrators import Backwards, Forwards, DryRunMigrator, FakeMigrator
 from south.migration.base import Migration, Migrations
 from south.migration.utils import SortedSet
 from south.migration.base import all_migrations
@@ -69,8 +68,12 @@ def inner_problem_check(problems, done, verbosity):
             if checking not in done:
                 # That's bad. Error.
                 if verbosity:
-                    print((" ! Migration %s should not have been applied "
-                           "before %s but was." % (last, checking)))
+                    print (
+                        (
+                            " ! Migration %s should not have been applied "
+                            "before %s but was." % (last, checking)
+                        )
+                    )
                 result.append((last, checking))
             else:
                 to_check.extend(checking.dependencies)
@@ -88,7 +91,7 @@ def check_migration_histories(histories, delete_ghosts=False, ignore_ghosts=Fals
         except (exceptions.UnknownMigration, exceptions.NoMigrations):
             ghosts.append(h)
         except ImproperlyConfigured:
-            pass                        # Ignore missing applications
+            pass  # Ignore missing applications
         else:
             exists.add(m)
     if ghosts:
@@ -157,16 +160,28 @@ def get_migrator(direction, db_dry_run, fake):
 
 
 def get_unapplied_migrations(migrations, applied_migrations):
-    applied_migration_names = ['%s.%s' % (mi.app_name, mi.migration) for mi in applied_migrations]
+    applied_migration_names = ["%s.%s" % (mi.app_name, mi.migration) for mi in applied_migrations]
 
     for migration in migrations:
-        is_applied = '%s.%s' % (migration.app_label(), migration.name()) in applied_migration_names
+        is_applied = "%s.%s" % (migration.app_label(), migration.name()) in applied_migration_names
         if not is_applied:
             yield migration
 
 
-def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_run=False, yes=False, verbosity=0,
-                skip=False, database=DEFAULT_DB_ALIAS, delete_ghosts=False, ignore_ghosts=False, interactive=False):
+def migrate_app(
+    migrations,
+    target_name=None,
+    merge=False,
+    fake=False,
+    db_dry_run=False,
+    yes=False,
+    verbosity=0,
+    skip=False,
+    database=DEFAULT_DB_ALIAS,
+    delete_ghosts=False,
+    ignore_ghosts=False,
+    interactive=False,
+):
     app_label = migrations.app_label()
 
     verbosity = int(verbosity)
@@ -175,33 +190,36 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
 
     # If there aren't any, quit quizically
     if not migrations:
-        print("? You have no migrations for the '%s' app. You might want some." % app_label)
+        print ("? You have no migrations for the '%s' app. You might want some." % app_label)
         return
 
     # Load the entire dependency graph
     Migrations.calculate_dependencies()
 
     # Check there's no strange ones in the database
-    applied_all = MigrationHistory.objects.filter(
-        applied__isnull=False).order_by('applied').using(database)
+    applied_all = (
+        MigrationHistory.objects.filter(applied__isnull=False).order_by("applied").using(database)
+    )
     applied = applied_all.filter(app_name=app_label).using(database)
     south.db.db = south.db.dbs[database]
     Migrations.invalidate_all_modules()
 
-    south.db.db.debug = (verbosity > 1)
+    south.db.db.debug = verbosity > 1
 
-    if target_name == 'current-1':
+    if target_name == "current-1":
         if applied.count() > 1:
             previous_migration = applied[applied.count() - 2]
             if verbosity:
-                print('previous_migration: %s (applied: %s)' %
-                      (previous_migration.migration, previous_migration.applied))
+                print (
+                    "previous_migration: %s (applied: %s)"
+                    % (previous_migration.migration, previous_migration.applied)
+                )
             target_name = previous_migration.migration
         else:
             if verbosity:
-                print('previous_migration: zero')
-            target_name = 'zero'
-    elif target_name == 'current+1':
+                print ("previous_migration: zero")
+            target_name = "zero"
+    elif target_name == "current+1":
         try:
             first_unapplied_migration = get_unapplied_migrations(migrations, applied).next()
             target_name = first_unapplied_migration.name()
@@ -213,14 +231,14 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
     # Guess the target_name
     target = migrations.guess_migration(target_name)
     if verbosity:
-        if target_name not in ('zero', None) and target.name() != target_name:
-            print(" - Soft matched migration %s to %s." % (target_name,
-                                                           target.name()))
-        print("Running migrations for %s:" % app_label)
+        if target_name not in ("zero", None) and target.name() != target_name:
+            print (" - Soft matched migration %s to %s." % (target_name, target.name()))
+        print ("Running migrations for %s:" % app_label)
 
     # Get the forwards and reverse dependencies for this target
-    direction, problems, workplan = get_direction(target, applied_all, migrations,
-                                                  verbosity, interactive)
+    direction, problems, workplan = get_direction(
+        target, applied_all, migrations, verbosity, interactive
+    )
     if problems and not (merge or skip):
         raise exceptions.InconsistentMigrationHistory(problems)
 
@@ -232,19 +250,13 @@ def migrate_app(migrations, target_name=None, merge=False, fake=False, db_dry_ru
         # Finally, fire off the post-migrate signal
         if success:
             post_migrate.send(
-                None,
-                app=app_label,
-                verbosity=verbosity,
-                interactive=verbosity,
-                db=database)
+                None, app=app_label, verbosity=verbosity, interactive=verbosity, db=database
+            )
     else:
         if verbosity:
             # Say there's nothing.
-            print('- Nothing to migrate.')
+            print ("- Nothing to migrate.")
         # Send signal.
         post_migrate.send(
-            None,
-            app=app_label,
-            verbosity=verbosity,
-            interactive=verbosity,
-            db=database)
+            None, app=app_label, verbosity=verbosity, interactive=verbosity, db=database
+        )

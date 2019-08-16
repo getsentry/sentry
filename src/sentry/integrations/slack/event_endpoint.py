@@ -14,33 +14,27 @@ from sentry.incidents.models import Incident
 from sentry.models import Group, Project
 
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import (
-    build_group_attachment,
-    build_incident_attachment,
-    logger,
-)
+from .utils import build_group_attachment, build_incident_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
-_link_regexp = re.compile(r'^https?\://[^/]+/[^/]+/[^/]+/(issues|incidents)/(\d+)')
-_org_slug_regexp = re.compile(r'^https?\://[^/]+/organizations/([^/]+)/')
+_link_regexp = re.compile(r"^https?\://[^/]+/[^/]+/[^/]+/(issues|incidents)/(\d+)")
+_org_slug_regexp = re.compile(r"^https?\://[^/]+/organizations/([^/]+)/")
 
 
 def unfurl_issues(integration, issue_map):
     results = {
-        g.id: g for g in Group.objects.filter(
+        g.id: g
+        for g in Group.objects.filter(
             id__in=set(issue_map.keys()),
-            project__in=Project.objects.filter(
-                organization__in=integration.organizations.all(),
-            )
+            project__in=Project.objects.filter(organization__in=integration.organizations.all()),
         )
     }
     if not results:
         return {}
 
     return {
-        v: build_group_attachment(results[k]) for k, v in six.iteritems(issue_map)
-        if k in results
+        v: build_group_attachment(results[k]) for k, v in six.iteritems(issue_map) if k in results
     }
 
 
@@ -54,7 +48,8 @@ def unfurl_incidents(integration, incident_map):
         filter_query |= Q(identifier=identifier, organization__slug=org_slug)
 
     results = {
-        i.identifier: i for i in Incident.objects.filter(
+        i.identifier: i
+        for i in Incident.objects.filter(
             filter_query,
             # Filter by integration organization here as well to make sure that
             # we have permission to access these incidents.
@@ -65,7 +60,8 @@ def unfurl_incidents(integration, incident_map):
         return {}
 
     return {
-        v: build_incident_attachment(results[k]) for k, v in six.iteritems(incident_map)
+        v: build_incident_attachment(results[k])
+        for k, v in six.iteritems(incident_map)
         if k in results
     }
 
@@ -73,10 +69,7 @@ def unfurl_incidents(integration, incident_map):
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
 class SlackEventEndpoint(Endpoint):
-    event_handlers = {
-        'issues': unfurl_issues,
-        'incidents': unfurl_incidents,
-    }
+    event_handlers = {"issues": unfurl_issues, "incidents": unfurl_incidents}
 
     authentication_classes = ()
     permission_classes = ()
@@ -97,17 +90,15 @@ class SlackEventEndpoint(Endpoint):
             return None, None
 
     def on_url_verification(self, request, data):
-        return self.respond({
-            'challenge': data['challenge'],
-        })
+        return self.respond({"challenge": data["challenge"]})
 
     def on_link_shared(self, request, integration, token, data):
         parsed_events = defaultdict(dict)
-        for item in data['links']:
-            event_type, instance_id = self._parse_url(item['url'])
+        for item in data["links"]:
+            event_type, instance_id = self._parse_url(item["url"])
             if not instance_id:
                 continue
-            parsed_events[event_type][instance_id] = item['url']
+            parsed_events[event_type][instance_id] = item["url"]
 
         if not parsed_events:
             return
@@ -120,23 +111,23 @@ class SlackEventEndpoint(Endpoint):
             return
 
         if settings.SLACK_INTEGRATION_USE_WST:
-            access_token = integration.metadata['access_token']
+            access_token = integration.metadata["access_token"]
         else:
-            access_token = integration.metadata['user_access_token']
+            access_token = integration.metadata["user_access_token"]
 
         payload = {
-            'token': access_token,
-            'channel': data['channel'],
-            'ts': data['message_ts'],
-            'unfurls': json.dumps(results),
+            "token": access_token,
+            "channel": data["channel"],
+            "ts": data["message_ts"],
+            "unfurls": json.dumps(results),
         }
 
         session = http.build_session()
-        req = session.post('https://slack.com/api/chat.unfurl', data=payload)
+        req = session.post("https://slack.com/api/chat.unfurl", data=payload)
         req.raise_for_status()
         resp = req.json()
-        if not resp.get('ok'):
-            logger.error('slack.event.unfurl-error', extra={'response': resp})
+        if not resp.get("ok"):
+            logger.error("slack.event.unfurl-error", extra={"response": resp})
 
         return self.respond()
 
@@ -151,12 +142,12 @@ class SlackEventEndpoint(Endpoint):
         if slack_request.is_challenge():
             return self.on_url_verification(request, slack_request.data)
 
-        if slack_request.type == 'link_shared':
+        if slack_request.type == "link_shared":
             resp = self.on_link_shared(
                 request,
                 slack_request.integration,
-                slack_request.data.get('token'),
-                slack_request.data.get('event'),
+                slack_request.data.get("token"),
+                slack_request.data.get("event"),
             )
 
             if resp:

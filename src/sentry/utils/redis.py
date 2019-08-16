@@ -28,10 +28,10 @@ _pool_lock = Lock()
 
 
 def _shared_pool(**opts):
-    if 'host' in opts:
-        key = '%s:%s/%s' % (opts['host'], opts['port'], opts['db'], )
+    if "host" in opts:
+        key = "%s:%s/%s" % (opts["host"], opts["port"], opts["db"])
     else:
-        key = '%s/%s' % (opts['path'], opts['db'])
+        key = "%s/%s" % (opts["path"], opts["db"])
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -51,9 +51,10 @@ def make_rb_cluster(*args, **kwargs):
     # This uses the standard library `warnings`, since this is provided for
     # plugin compatibility but isn't actionable by the system administrator.
     import warnings
+
     warnings.warn(
-        'Direct Redis cluster construction is deprecated, please use named clusters. '
-        'Direct cluster construction will be removed in Sentry 8.5.',
+        "Direct Redis cluster construction is deprecated, please use named clusters. "
+        "Direct cluster construction will be removed in Sentry 8.5.",
         DeprecationWarning,
     )
     return _make_rb_cluster(*args, **kwargs)
@@ -61,19 +62,19 @@ def make_rb_cluster(*args, **kwargs):
 
 class _RBCluster(object):
     def supports(self, config):
-        return not config.get('is_redis_cluster', False)
+        return not config.get("is_redis_cluster", False)
 
     def factory(self, **config):
         # rb expects a dict of { host, port } dicts where the key is the host
         # ID. Coerce the configuration into the correct format if necessary.
-        hosts = config['hosts']
+        hosts = config["hosts"]
         hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
-        config['hosts'] = hosts
+        config["hosts"] = hosts
 
         return _make_rb_cluster(**config)
 
     def __str__(self):
-        return 'Redis Blaster Cluster'
+        return "Redis Blaster Cluster"
 
 
 class RetryingStrictRedisCluster(StrictRedisCluster):
@@ -99,27 +100,25 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
 
 class _RedisCluster(object):
     def supports(self, config):
-        return config.get('is_redis_cluster', False)
+        return config.get("is_redis_cluster", False)
 
     def factory(self, **config):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
-        hosts = config.get('hosts')
+        hosts = config.get("hosts")
         hosts = hosts.values() if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             return RetryingStrictRedisCluster(
-                startup_nodes=hosts,
-                decode_responses=True,
-                skip_full_coverage_check=True,
+                startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
             )
 
         return SimpleLazyObject(cluster_factory)
 
     def __str__(self):
-        return 'Redis Cluster'
+        return "Redis Cluster"
 
 
 class ClusterManager(object):
@@ -136,12 +135,12 @@ class ClusterManager(object):
 
         # TODO: This would probably be safer with a lock, but I'm not sure
         # that it's necessary.
-        configuration = self.__options_manager.get('redis.clusters').get(key)
+        configuration = self.__options_manager.get("redis.clusters").get(key)
         if configuration is None:
-            raise KeyError(u'Invalid cluster name: {}'.format(key))
+            raise KeyError(u"Invalid cluster name: {}".format(key))
 
         if not self.__cluster_type.supports(configuration):
-            raise KeyError(u'Invalid cluster type, expected: {}'.format(self.__cluster_type))
+            raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
 
         cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
@@ -156,9 +155,9 @@ redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):
-    cluster_option_name = 'cluster'
-    default_cluster_name = 'default'
-    cluster_constructor_option_names = frozenset(('hosts', ))
+    cluster_option_name = "cluster"
+    default_cluster_name = "default"
+    cluster_constructor_option_names = frozenset(("hosts",))
 
     options = options.copy()
     cluster_options = {
@@ -168,26 +167,20 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(
-                u'Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.'.
-                format(
-                    cluster_option_name,
-                    ', '.join(map(repr, cluster_constructor_option_names)),
+                u"Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
+                    cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
-                    u'{} parameter of {}'.format(
-                        ', '.join(map(repr, cluster_constructor_option_names)),
-                        setting,
+                    u"{} parameter of {}".format(
+                        ", ".join(map(repr, cluster_constructor_option_names)), setting
                     ),
-                    u'{}["{}"]'.format(
-                        setting,
-                        cluster_option_name,
-                    ),
-                    removed_in_version='8.5',
+                    u'{}["{}"]'.format(setting, cluster_option_name),
+                    removed_in_version="8.5",
                 ),
-                stacklevel=2
+                stacklevel=2,
             )
         cluster = rb.Cluster(pool_cls=_shared_pool, **cluster_options)
     else:
@@ -209,19 +202,16 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         host = cluster.hosts[id]
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
-        key = u'{host}:{port}'.format(host=host.host, port=host.port)
-        versions[key] = Version(map(int, info['redis_version'].split('.', 3)))
+        key = u"{host}:{port}".format(host=host.host, port=host.port)
+        versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
 
     check_versions(
-        'Redis' if label is None else 'Redis (%s)' % (label, ),
-        versions,
-        required,
-        recommended,
+        "Redis" if label is None else "Redis (%s)" % (label,), versions, required, recommended
     )
 
 
 def load_script(path):
-    script = Script(None, resource_string('sentry', posixpath.join('scripts', path)))
+    script = Script(None, resource_string("sentry", posixpath.join("scripts", path)))
 
     # This changes the argument order of the ``Script.__call__`` method to
     # encourage using the script with a specific Redis client, rather
@@ -235,7 +225,9 @@ def load_script(path):
         Takes the client to execute the script on as the first argument,
         followed by the values that will be provided as ``KEYS`` and ``ARGV``
         to the script as two sequence arguments.
-        """.format(path)
+        """.format(
+            path
+        )
         return script(keys, args, client)
 
     return call_script
