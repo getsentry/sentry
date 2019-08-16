@@ -759,10 +759,7 @@ class EventManager(object):
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
                     try:
-                        event = Event.objects.get(
-                            project_id=project.id,
-                            event_id=data['event_id'],
-                        )
+                        event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
                     except Event.DoesNotExist:
                         event.save()
             except IntegrityError:
