@@ -9,14 +9,12 @@ from sentry.api.permissions import SuperuserPermission
 
 
 class InternalQuotasEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
         return Response(
             {
-                'backend': settings.SENTRY_QUOTAS,
-                'options': {
-                    'system.rate-limit': options.get('system.rate-limit'),
-                }
+                "backend": settings.SENTRY_QUOTAS,
+                "options": {"system.rate-limit": options.get("system.rate-limit")},
             }
         )

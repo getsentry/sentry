@@ -16,22 +16,22 @@ class SentryAppTest(TestCase):
 
         self.sentry_app = SentryApp(
             application=self.application,
-            name='NullDB',
+            name="NullDB",
             proxy_user=self.proxy,
             owner=self.org,
-            scope_list=('project:read', ),
-            webhook_url='http://example.com',
+            scope_list=("project:read",),
+            webhook_url="http://example.com",
         )
 
     def test_slug(self):
         self.sentry_app.save()
-        assert self.sentry_app.slug == 'nulldb'
+        assert self.sentry_app.slug == "nulldb"
 
     def test_internal_slug(self):
         self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.save()
 
-        assert self.sentry_app.slug == u'nulldb-{}'.format(
+        assert self.sentry_app.slug == u"nulldb-{}".format(
             hashlib.sha1(self.org.slug).hexdigest()[0:6]
         )
 
@@ -40,7 +40,7 @@ class SentryAppTest(TestCase):
         self.sentry_app.save()
         self.sentry_app.save()
 
-        assert self.sentry_app.slug == u'nulldb-{}'.format(
+        assert self.sentry_app.slug == u"nulldb-{}".format(
             hashlib.sha1(self.org.slug).hexdigest()[0:6]
         )
 

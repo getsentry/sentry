@@ -10,13 +10,10 @@ from sentry.models import Group, Environment
 from sentry.utils.apidocs import scenario
 
 
-@scenario('ListTagValues')
+@scenario("ListTagValues")
 def list_tag_values_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method='GET',
-        path='/issues/%s/tags/%s/values/' % (group.id, 'browser'),
-    )
+    runner.request(method="GET", path="/issues/%s/tags/%s/values/" % (group.id, "browser"))
 
 
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -39,7 +36,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             environment_id = self._get_environment_id_from_request(
-                request, group.project.organization_id)
+                request, group.project.organization_id
+            )
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
@@ -49,15 +47,15 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        sort = request.GET.get('sort')
-        if sort == 'date':
-            order_by = '-last_seen'
-        elif sort == 'age':
-            order_by = '-first_seen'
+        sort = request.GET.get("sort")
+        if sort == "date":
+            order_by = "-last_seen"
+        elif sort == "age":
+            order_by = "-first_seen"
         else:
-            order_by = '-id'
+            order_by = "-id"
 
-        if key == 'user':
+        if key == "user":
             serializer_cls = UserTagValueSerializer(group.project_id)
         else:
             serializer_cls = None

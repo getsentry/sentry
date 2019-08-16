@@ -31,24 +31,21 @@ class SocialAuthExceptionMiddleware(object):
             backend_name = get_backend_name(self.backend)
             message = self.get_message(request, exception)
             url = self.get_redirect_uri(request, exception)
-            tags = ['social-auth']
+            tags = ["social-auth"]
             if backend_name:
                 tags.append(backend_name)
 
-            messages.error(request, message, extra_tags=' '.join(tags))
+            messages.error(request, message, extra_tags=" ".join(tags))
             return redirect(url)
 
     def get_backend(self, request, exception):
-        if not hasattr(self, 'backend'):
-            self.backend = (
-                getattr(request, 'backend', None)
-                or getattr(exception, 'backend', None)
-            )
+        if not hasattr(self, "backend"):
+            self.backend = getattr(request, "backend", None) or getattr(exception, "backend", None)
         return self.backend
 
     def raise_exception(self, request, exception):
         backend = self.backend
-        return backend and backend_setting(backend, 'SOCIAL_AUTH_RAISE_EXCEPTIONS')
+        return backend and backend_setting(backend, "SOCIAL_AUTH_RAISE_EXCEPTIONS")
 
     def get_message(self, request, exception):
         return six.text_type(exception)
@@ -56,7 +53,7 @@ class SocialAuthExceptionMiddleware(object):
     def get_redirect_uri(self, request, exception):
         if self.backend is not None:
             return (
-                backend_setting(self.backend, 'SOCIAL_AUTH_BACKEND_ERROR_URL')
+                backend_setting(self.backend, "SOCIAL_AUTH_BACKEND_ERROR_URL")
                 or settings.LOGIN_ERROR_URL
             )
         return settings.LOGIN_ERROR_URL

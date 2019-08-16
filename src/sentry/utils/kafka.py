@@ -19,7 +19,7 @@ class ProducerManager(object):
         self.__producers = {}
 
     def get(self, key):
-        cluster_name = settings.KAFKA_TOPICS[key]['cluster']
+        cluster_name = settings.KAFKA_TOPICS[key]["cluster"]
         producer = self.__producers.get(cluster_name)
 
         if producer:

@@ -15,9 +15,9 @@ def expand_events(rolled_up_events):
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
     """
-    return set(chain.from_iterable(
-        [EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events]
-    ))
+    return set(
+        chain.from_iterable([EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events])
+    )
 
 
 def consolidate_events(raw_events):
@@ -26,15 +26,16 @@ def consolidate_events(raw_events):
     rolled up events ('issue', etc).
     """
     return set(
-        name for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
+        name
+        for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
         if any(set(raw_events) & set(rolled_up_events))
     )
 
 
 class Creator(Mediator):
-    application = Param('sentry.models.ApiApplication', required=False)
-    actor = Param('sentry.db.models.BaseModel')
-    organization = Param('sentry.models.Organization')
+    application = Param("sentry.models.ApiApplication", required=False)
+    actor = Param("sentry.db.models.BaseModel")
+    organization = Param("sentry.models.Organization")
     projects = Param(Iterable)
     events = Param(Iterable)
     url = Param(six.string_types)

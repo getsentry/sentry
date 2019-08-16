@@ -47,11 +47,11 @@ class RedisPipelineWrapper(FunctionWrapper):
             end = time()
 
             data = {
-                'name': 'pipeline',
-                'args': repr(command_stack),
-                'kwargs': repr({}),
-                'start': start,
-                'end': end,
+                "name": "pipeline",
+                "args": repr(command_stack),
+                "kwargs": repr({}),
+                "start": start,
+                "end": end,
             }
 
             self.record(data)
@@ -68,11 +68,11 @@ class RedisWrapper(FunctionWrapper):
             end = time()
 
             data = {
-                'name': args[1],
-                'args': repr(args[2:]),
-                'kwargs': repr(kwargs),
-                'start': start,
-                'end': end,
+                "name": args[1],
+                "args": repr(args[2:]),
+                "kwargs": repr(kwargs),
+                "start": start,
+                "end": end,
             }
             self.record(data)
 
@@ -83,8 +83,8 @@ class RedisPanel(CallRecordingPanel):
     @classmethod
     def get_context(cls, collector):
         return [
-            PatchContext('redis.client.StrictRedis.execute_command', RedisWrapper(collector)),
-            PatchContext('redis.client.BasePipeline.execute', RedisPipelineWrapper(collector)),
+            PatchContext("redis.client.StrictRedis.execute_command", RedisWrapper(collector)),
+            PatchContext("redis.client.BasePipeline.execute", RedisPipelineWrapper(collector)),
         ]
 
     @property
@@ -96,19 +96,16 @@ class RedisPanel(CallRecordingPanel):
         calls = []
         total_time = 0
         for call in self.calls:
-            duration = int((call['end'] - call['start']) * 1000)
+            duration = int((call["end"] - call["start"]) * 1000)
 
             total_time += duration
             calls.append(
                 {
-                    'duration': duration,
-                    'command': call['name'],
-                    'args': call['args'],
-                    'kwargs': call['kwargs'],
+                    "duration": duration,
+                    "command": call["name"],
+                    "args": call["args"],
+                    "kwargs": call["kwargs"],
                 }
             )
 
-        self.record_stats({
-            'calls': calls,
-            'total_time': total_time,
-        })
+        self.record_stats({"calls": calls, "total_time": total_time})

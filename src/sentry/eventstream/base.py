@@ -18,24 +18,31 @@ class ForwarderNotRequired(NotImplementedError):
 
 class EventStream(Service):
     __all__ = (
-        'insert',
-        'start_delete_groups',
-        'end_delete_groups',
-        'start_merge',
-        'end_merge',
-        'start_unmerge',
-        'end_unmerge',
-        'start_delete_tag',
-        'end_delete_tag',
-        'requires_post_process_forwarder',
-        'run_post_process_forwarder',
+        "insert",
+        "start_delete_groups",
+        "end_delete_groups",
+        "start_merge",
+        "end_merge",
+        "start_unmerge",
+        "end_unmerge",
+        "start_delete_tag",
+        "end_delete_tag",
+        "requires_post_process_forwarder",
+        "run_post_process_forwarder",
     )
 
-    def _dispatch_post_process_group_task(self, event, is_new, is_sample,
-                                          is_regression, is_new_group_environment,
-                                          primary_hash, skip_consume=False):
+    def _dispatch_post_process_group_task(
+        self,
+        event,
+        is_new,
+        is_sample,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        skip_consume=False,
+    ):
         if skip_consume:
-            logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
+            logger.info("post_process.skip.raw_event", extra={"event_id": event.id})
         else:
             post_process_group.delay(
                 event=event,
@@ -46,11 +53,26 @@ class EventStream(Service):
                 primary_hash=primary_hash,
             )
 
-    def insert(self, group, event, is_new, is_sample, is_regression,
-               is_new_group_environment, primary_hash, skip_consume=False):
-        self._dispatch_post_process_group_task(event, is_new, is_sample,
-                                               is_regression, is_new_group_environment,
-                                               primary_hash, skip_consume)
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_sample,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        skip_consume=False,
+    ):
+        self._dispatch_post_process_group_task(
+            event,
+            is_new,
+            is_sample,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
+        )
 
     def start_delete_groups(self, project_id, group_ids):
         pass
@@ -79,7 +101,13 @@ class EventStream(Service):
     def requires_post_process_forwarder(self):
         return False
 
-    def run_post_process_forwarder(self, consumer_group, commit_log_topic,
-                                   synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+    def run_post_process_forwarder(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        initial_offset_reset="latest",
+    ):
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

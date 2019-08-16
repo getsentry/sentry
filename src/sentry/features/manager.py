@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['FeatureManager']
+__all__ = ["FeatureManager"]
 
 from django.conf import settings
 
@@ -67,7 +67,7 @@ class FeatureManager(object):
 
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """
-        actor = kwargs.pop('actor', None)
+        actor = kwargs.pop("actor", None)
         feature = self.get(name, *args, **kwargs)
 
         # Check plugin feature handlers

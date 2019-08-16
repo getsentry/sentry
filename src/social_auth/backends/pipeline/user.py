@@ -8,32 +8,33 @@ from social_auth.utils import setting, module_member
 from social_auth.models import UserSocialAuth
 
 
-slugify = module_member(setting('SOCIAL_AUTH_SLUGIFY_FUNCTION',
-                                'django.template.defaultfilters.slugify'))
+slugify = module_member(
+    setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.template.defaultfilters.slugify")
+)
 
 
-def get_username(details, user=None,
-                 user_exists=UserSocialAuth.simple_user_exists,
-                 *args, **kwargs):
+def get_username(
+    details, user=None, user_exists=UserSocialAuth.simple_user_exists, *args, **kwargs
+):
     """Return an username for new user. Return current user username
     if user was given.
     """
     if user:
-        return {'username': UserSocialAuth.user_username(user)}
+        return {"username": UserSocialAuth.user_username(user)}
 
-    email_as_username = setting('SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL', False)
-    uuid_length = setting('SOCIAL_AUTH_UUID_LENGTH', 16)
-    do_slugify = setting('SOCIAL_AUTH_SLUGIFY_USERNAMES', False)
+    email_as_username = setting("SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL", False)
+    uuid_length = setting("SOCIAL_AUTH_UUID_LENGTH", 16)
+    do_slugify = setting("SOCIAL_AUTH_SLUGIFY_USERNAMES", False)
 
-    if email_as_username and details.get('email'):
-        username = details['email']
-    elif details.get('username'):
-        username = six.text_type(details['username'])
+    if email_as_username and details.get("email"):
+        username = details["email"]
+    elif details.get("username"):
+        username = six.text_type(details["username"])
     else:
         username = uuid4().get_hex()
 
     max_length = UserSocialAuth.username_max_length()
-    short_username = username[:max_length - uuid_length]
+    short_username = username[: max_length - uuid_length]
     final_username = UserSocialAuth.clean_username(username[:max_length])
     if do_slugify:
         final_username = slugify(final_username)
@@ -47,42 +48,40 @@ def get_username(details, user=None,
         final_username = UserSocialAuth.clean_username(username)
         if do_slugify:
             final_username = slugify(final_username)
-    return {'username': final_username}
+    return {"username": final_username}
 
 
-def create_user(backend, details, response, uid, username, user=None, *args,
-                **kwargs):
+def create_user(backend, details, response, uid, username, user=None, *args, **kwargs):
     """Create user. Depends on get_username pipeline."""
     if user:
-        return {'user': user}
+        return {"user": user}
     if not username:
         return None
 
     # Avoid hitting field max length
-    email = details.get('email')
+    email = details.get("email")
     original_email = None
     if email and UserSocialAuth.email_max_length() < len(email):
         original_email = email
-        email = ''
+        email = ""
 
     return {
-        'user': UserSocialAuth.create_user(username=username, email=email),
-        'original_email': original_email,
-        'is_new': True
+        "user": UserSocialAuth.create_user(username=username, email=email),
+        "original_email": original_email,
+        "is_new": True,
     }
 
 
 def _ignore_field(name, is_new=False):
-    if name in ('username', 'id', 'pk'):
+    if name in ("username", "id", "pk"):
         return True
 
-    if not is_new and name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []):
+    if not is_new and name in setting("SOCIAL_AUTH_PROTECTED_USER_FIELDS", []):
         return True
     return False
 
 
-def django_orm_maxlength_truncate(backend, details, user=None, is_new=False,
-                                  *args, **kwargs):
+def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *args, **kwargs):
     """Truncate any value in details that corresponds with a field in the user
     model. Add this entry to the pipeline before update_user_details"""
     if user is None:
@@ -98,11 +97,10 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False,
             except TypeError:
                 pass
         out[name] = value
-    return {'details': out}
+    return {"details": out}
 
 
-def update_user_details(backend, details, response, user=None, is_new=False,
-                        *args, **kwargs):
+def update_user_details(backend, details, response, user=None, is_new=False, *args, **kwargs):
     """Update user details using data from provider."""
     if user is None:
         return

@@ -42,6 +42,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         try:
             from sentry import eventstream
+
             eventstream_state = eventstream.start_delete_tag(project.id, key)
 
             deleted = tagstore.delete_tag_key(project.id, lookup_key)
@@ -59,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=getattr(tagkey, 'id', None),
+                target_object=getattr(tagkey, "id", None),
                 event=AuditLogEntryEvent.TAGKEY_REMOVE,
                 data=tagkey.get_audit_log_data(),
             )

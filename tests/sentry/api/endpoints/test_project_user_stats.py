@@ -15,30 +15,23 @@ class ProjectUserDetailsTest(APITestCase):
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org, teams=[self.team])
-        self.create_member(
-            user=self.user,
-            organization=self.org,
-            teams=[self.team],
-        )
+        self.create_member(user=self.user, organization=self.org, teams=[self.team])
 
         self.login_as(user=self.user)
 
         self.path = reverse(
-            'sentry-api-0-project-userstats', args=[
-                self.org.slug,
-                self.project.slug,
-            ]
+            "sentry-api-0-project-userstats", args=[self.org.slug, self.project.slug]
         )
 
     def test_simple(self):
-        euser1 = EventUser.objects.create(email='foo@example.com', project_id=self.project.id)
-        euser2 = EventUser.objects.create(email='bar@example.com', project_id=self.project.id)
+        euser1 = EventUser.objects.create(email="foo@example.com", project_id=self.project.id)
+        euser2 = EventUser.objects.create(email="bar@example.com", project_id=self.project.id)
         tsdb.record_multi(
             (
-                (tsdb.models.users_affected_by_project, self.project.id, (euser2.tag_value, )),
-                (tsdb.models.users_affected_by_project, self.project.id, (euser1.tag_value, )),
+                (tsdb.models.users_affected_by_project, self.project.id, (euser2.tag_value,)),
+                (tsdb.models.users_affected_by_project, self.project.id, (euser1.tag_value,)),
             ),
-            timestamp=timezone.now()
+            timestamp=timezone.now(),
         )
 
         response = self.client.get(self.path)

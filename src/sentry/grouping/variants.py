@@ -21,25 +21,18 @@ class BaseVariant(object):
         return {}
 
     def as_dict(self):
-        rv = {
-            'type': self.type,
-            'description': self.description,
-            'hash': self.get_hash(),
-        }
+        rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
         rv.update(self._get_metadata_as_dict())
         return rv
 
     def __repr__(self):
-        return '<%s %r (%s)>' % (
-            self.__class__.__name__,
-            self.get_hash(),
-            self.type,
-        )
+        return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
 
 
 class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
-    type = 'checksum'
+
+    type = "checksum"
 
     def __init__(self, hash, hashed=False):
         self.hash = hash
@@ -48,15 +41,15 @@ class ChecksumVariant(BaseVariant):
     @property
     def description(self):
         if self.hashed:
-            return 'hashed legacy checksum'
-        return 'legacy checksum'
+            return "hashed legacy checksum"
+        return "legacy checksum"
 
     def get_hash(self):
         return self.hash
 
 
 class FallbackVariant(BaseVariant):
-    id = 'fallback'
+    id = "fallback"
     contributes = True
 
     def get_hash(self):
@@ -67,7 +60,8 @@ class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
     `GroupComponent` it encloses.
     """
-    type = 'component'
+
+    type = "component"
 
     def __init__(self, component, config):
         self.component = component
@@ -85,35 +79,32 @@ class ComponentVariant(BaseVariant):
         return self.component.get_hash()
 
     def _get_metadata_as_dict(self):
-        return {
-            'component': self.component.as_dict(),
-            'config': self.config.as_dict(),
-        }
+        return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
 
 class CustomFingerprintVariant(BaseVariant):
     """A completely custom fingerprint."""
-    type = 'custom-fingerprint'
+
+    type = "custom-fingerprint"
 
     def __init__(self, values):
         self.values = values
 
     @property
     def description(self):
-        return 'custom fingerprint'
+        return "custom fingerprint"
 
     def get_hash(self):
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self):
-        return {
-            'values': self.values,
-        }
+        return {"values": self.values}
 
 
 class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
-    type = 'salted-component'
+
+    type = "salted-component"
 
     def __init__(self, values, component, config):
         ComponentVariant.__init__(self, component, config)
@@ -121,7 +112,7 @@ class SaltedComponentVariant(ComponentVariant):
 
     @property
     def description(self):
-        return 'modified ' + self.component.description
+        return "modified " + self.component.description
 
     def get_hash(self):
         if not self.component.contributes:
@@ -136,5 +127,5 @@ class SaltedComponentVariant(ComponentVariant):
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)
-        rv['values'] = self.values
+        rv["values"] = self.values
         return rv

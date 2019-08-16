@@ -17,8 +17,9 @@ from debug_toolbar.panels.sql import views
 
 
 def get_isolation_level_display(vendor, level):
-    if vendor == 'postgresql':
+    if vendor == "postgresql":
         import psycopg2.extensions
+
         choices = {
             psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT: _("Autocommit"),
             psycopg2.extensions.ISOLATION_LEVEL_READ_UNCOMMITTED: _("Read uncommitted"),
@@ -32,8 +33,9 @@ def get_isolation_level_display(vendor, level):
 
 
 def get_transaction_status_display(vendor, level):
-    if vendor == 'postgresql':
+    if vendor == "postgresql":
         import psycopg2.extensions
+
         choices = {
             psycopg2.extensions.TRANSACTION_STATUS_IDLE: _("Idle"),
             psycopg2.extensions.TRANSACTION_STATUS_ACTIVE: _("Active"),
@@ -69,7 +71,7 @@ class SQLPanel(Panel):
         if not conn:
             return
 
-        if conn.vendor == 'postgresql':
+        if conn.vendor == "postgresql":
             cur_status = conn.get_transaction_status()
         else:
             raise ValueError(conn.vendor)
@@ -92,14 +94,11 @@ class SQLPanel(Panel):
     def record(self, alias, **kwargs):
         self._queries.append((alias, kwargs))
         if alias not in self._databases:
-            self._databases[alias] = {
-                'time_spent': kwargs['duration'],
-                'num_queries': 1,
-            }
+            self._databases[alias] = {"time_spent": kwargs["duration"], "num_queries": 1}
         else:
-            self._databases[alias]['time_spent'] += kwargs['duration']
-            self._databases[alias]['num_queries'] += 1
-        self._sql_time += kwargs['duration']
+            self._databases[alias]["time_spent"] += kwargs["duration"]
+            self._databases[alias]["num_queries"] += 1
+        self._sql_time += kwargs["duration"]
         self._num_queries += 1
 
     # Implement the Panel API
@@ -108,26 +107,26 @@ class SQLPanel(Panel):
 
     @property
     def nav_subtitle(self):
-        return __("%d query in %.2fms", "%d queries in %.2fms", self._num_queries
-                  ) % (self._num_queries, self._sql_time)
+        return __("%d query in %.2fms", "%d queries in %.2fms", self._num_queries) % (
+            self._num_queries,
+            self._sql_time,
+        )
 
     @property
     def title(self):
         count = len(self._databases)
         return __(
-            'SQL queries from %(count)d connection', 'SQL queries from %(count)d connections', count
-        ) % {
-            'count': count
-        }
+            "SQL queries from %(count)d connection", "SQL queries from %(count)d connections", count
+        ) % {"count": count}
 
-    template = 'debug_toolbar/panels/sql.html'
+    template = "debug_toolbar/panels/sql.html"
 
     @classmethod
     def get_urls(cls):
         return [
-            url(r'^sql_select/$', views.sql_select, name='sql_select'),
-            url(r'^sql_explain/$', views.sql_explain, name='sql_explain'),
-            url(r'^sql_profile/$', views.sql_profile, name='sql_profile'),
+            url(r"^sql_select/$", views.sql_select, name="sql_select"),
+            url(r"^sql_explain/$", views.sql_explain, name="sql_explain"),
+            url(r"^sql_profile/$", views.sql_profile, name="sql_profile"),
         ]
 
     def enable_instrumentation(self):
@@ -159,7 +158,7 @@ class SQLPanel(Panel):
                     if nn > 2:
                         nn = 0
                     rgb[nn] = nc
-                db['rgb_color'] = rgb
+                db["rgb_color"] = rgb
 
             trans_ids = {}
             trans_id = None
@@ -167,60 +166,64 @@ class SQLPanel(Panel):
             for alias, query in self._queries:
                 query_duplicates[alias][query["raw_sql"]] += 1
 
-                trans_id = query.get('trans_id')
+                trans_id = query.get("trans_id")
                 last_trans_id = trans_ids.get(alias)
 
                 if trans_id != last_trans_id:
                     if last_trans_id:
-                        self._queries[(i - 1)][1]['ends_trans'] = True
+                        self._queries[(i - 1)][1]["ends_trans"] = True
                     trans_ids[alias] = trans_id
                     if trans_id:
-                        query['starts_trans'] = True
+                        query["starts_trans"] = True
                 if trans_id:
-                    query['in_trans'] = True
+                    query["in_trans"] = True
 
-                query['alias'] = alias
-                if 'iso_level' in query:
-                    query['iso_level'] = get_isolation_level_display(
-                        query['vendor'], query['iso_level']
+                query["alias"] = alias
+                if "iso_level" in query:
+                    query["iso_level"] = get_isolation_level_display(
+                        query["vendor"], query["iso_level"]
                     )
-                if 'trans_status' in query:
-                    query['trans_status'] = get_transaction_status_display(
-                        query['vendor'], query['trans_status']
+                if "trans_status" in query:
+                    query["trans_status"] = get_transaction_status_display(
+                        query["vendor"], query["trans_status"]
                     )
 
-                query['form'] = SQLSelectForm(auto_id=None, initial=copy(query))
+                query["form"] = SQLSelectForm(auto_id=None, initial=copy(query))
 
-                if query['sql']:
-                    query['sql'] = reformat_sql(query['sql'])
-                query['rgb_color'] = self._databases[alias]['rgb_color']
+                if query["sql"]:
+                    query["sql"] = reformat_sql(query["sql"])
+                query["rgb_color"] = self._databases[alias]["rgb_color"]
                 try:
-                    query['width_ratio'] = (query['duration'] / self._sql_time) * 100
-                    query['width_ratio_relative'
-                          ] = (100.0 * query['width_ratio'] / (100.0 - width_ratio_tally))
+                    query["width_ratio"] = (query["duration"] / self._sql_time) * 100
+                    query["width_ratio_relative"] = (
+                        100.0 * query["width_ratio"] / (100.0 - width_ratio_tally)
+                    )
                 except ZeroDivisionError:
-                    query['width_ratio'] = 0
-                    query['width_ratio_relative'] = 0
-                query['start_offset'] = width_ratio_tally
-                query['end_offset'] = query['width_ratio'] + query['start_offset']
-                width_ratio_tally += query['width_ratio']
-                query['stacktrace'] = render_stacktrace(query['stacktrace'])
+                    query["width_ratio"] = 0
+                    query["width_ratio_relative"] = 0
+                query["start_offset"] = width_ratio_tally
+                query["end_offset"] = query["width_ratio"] + query["start_offset"]
+                width_ratio_tally += query["width_ratio"]
+                query["stacktrace"] = render_stacktrace(query["stacktrace"])
                 i += 1
 
-                query['trace_color'] = trace_colors[query['stacktrace']]
+                query["trace_color"] = trace_colors[query["stacktrace"]]
 
             if trans_id:
-                self._queries[(i - 1)][1]['ends_trans'] = True
+                self._queries[(i - 1)][1]["ends_trans"] = True
 
         # Queries are duplicates only if there's as least 2 of them.
         # Also, to hide queries, we need to give all the duplicate groups an id
         query_duplicates = dict(
             (
-                alias, dict(
-                    (query, duplicate_count) for query, duplicate_count in queries.items()
+                alias,
+                dict(
+                    (query, duplicate_count)
+                    for query, duplicate_count in queries.items()
                     if duplicate_count >= 2
-                )
-            ) for alias, queries in query_duplicates.items()
+                ),
+            )
+            for alias, queries in query_duplicates.items()
         )
 
         for alias, query in self._queries:
@@ -238,8 +241,8 @@ class SQLPanel(Panel):
 
         self.record_stats(
             {
-                'databases': sorted(self._databases.items(), key=lambda x: -x[1]['time_spent']),
-                'queries': [q for a, q in self._queries],
-                'sql_time': self._sql_time,
+                "databases": sorted(self._databases.items(), key=lambda x: -x[1]["time_spent"]),
+                "queries": [q for a, q in self._queries],
+                "sql_time": self._sql_time,
             }
         )

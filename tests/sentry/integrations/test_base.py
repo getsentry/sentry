@@ -12,28 +12,22 @@ class IntegrationTestCase(TestCase):
         self.project = self.create_project()
 
         self.model = Integration.objects.create(
-            provider='integrations:base',
-            external_id='base_external_id',
-            name='base_name',
+            provider="integrations:base", external_id="base_external_id", name="base_name"
         )
 
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(
-                type='base',
-                config={}
-            ),
+            idp=IdentityProvider.objects.create(type="base", config={}),
             user=self.user,
-            external_id='base_id',
-            data={
-                'access_token': '11234567'
-            }
+            external_id="base_id",
+            data={"access_token": "11234567"},
         )
         self.org_integration = self.model.add_organization(
-            self.organization, self.user, self.identity.id)
+            self.organization, self.user, self.identity.id
+        )
 
     def test_no_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)
-        integration.name = 'Base'
+        integration.name = "Base"
 
     def test_with_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)

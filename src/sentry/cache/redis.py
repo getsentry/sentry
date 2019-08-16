@@ -22,7 +22,7 @@ class CommonRedisCache(BaseCache):
         key = self.make_key(key, version=version)
         v = json.dumps(value) if not raw else value
         if len(v) > self.max_size:
-            raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
+            raise ValueTooLarge("Cache key too large: %r %r" % (key, len(v)))
         if timeout:
             self.client.setex(key, int(timeout), v)
         else:
@@ -41,10 +41,8 @@ class CommonRedisCache(BaseCache):
 
 
 class RbCache(CommonRedisCache):
-
     def __init__(self, **options):
-        cluster, options = get_cluster_from_options(
-            'SENTRY_CACHE_OPTIONS', options)
+        cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
         client = cluster.get_routing_client()
         CommonRedisCache.__init__(self, client, **options)
 
@@ -54,7 +52,6 @@ RedisCache = RbCache
 
 
 class RedisClusterCache(CommonRedisCache):
-
     def __init__(self, cluster_id, **options):
         client = redis_clusters.get(cluster_id)
         CommonRedisCache.__init__(self, client=client, **options)

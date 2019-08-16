@@ -9,32 +9,27 @@ from sentry.testutils.helpers.faux import faux
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
-@patch('sentry.tasks.sentry_apps.workflow_notification.delay')
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
 
-        self.sentry_app = self.create_sentry_app(
-            events=['issue.resolved', 'issue.ignored'],
-        )
+        self.sentry_app = self.create_sentry_app(events=["issue.resolved", "issue.ignored"])
 
         self.install = self.create_sentry_app_installation(
-            organization=self.organization,
-            slug=self.sentry_app.slug,
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
-        self.url = u'/api/0/projects/{}/{}/issues/?id={}'.format(
-            self.organization.slug,
-            self.issue.project.slug,
-            self.issue.id,
+        self.url = u"/api/0/projects/{}/{}/issues/?id={}".format(
+            self.organization.slug, self.issue.project.slug, self.issue.id
         )
 
         self.login_as(self.user)
 
     def update_issue(self, _data=None):
-        data = {'status': 'resolved'}
+        data = {"status": "resolved"}
         data.update(_data or {})
-        self.client.put(self.url, data=data, format='json')
+        self.client.put(self.url, data=data, format="json")
 
     def test_notify_after_basic_resolved(self, delay):
         self.update_issue()
@@ -42,98 +37,73 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=self.user.id,
-            data={'resolution_type': 'now'},
+            data={"resolution_type": "now"},
         )
 
     def test_notify_after_resolve_in_commit(self, delay):
         repo = self.create_repo(project=self.project)
         commit = self.create_commit(repo=repo)
 
-        self.update_issue({
-            'statusDetails': {
-                'inCommit': {
-                    'repository': repo.name,
-                    'commit': commit.key,
-                }
-            }
-        })
+        self.update_issue(
+            {"statusDetails": {"inCommit": {"repository": repo.name, "commit": commit.key}}}
+        )
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=self.user.id,
-            data={'resolution_type': 'in_commit'},
+            data={"resolution_type": "in_commit"},
         )
 
     def test_notify_after_resolve_in_specific_release(self, delay):
         release = self.create_release(project=self.project)
 
-        self.update_issue({
-            'statusDetails': {
-                'inRelease': release.version,
-            },
-        })
+        self.update_issue({"statusDetails": {"inRelease": release.version}})
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=self.user.id,
-            data={'resolution_type': 'in_release'},
+            data={"resolution_type": "in_release"},
         )
 
     def test_notify_after_resolve_in_latest_release(self, delay):
         self.create_release(project=self.project)
 
-        self.update_issue({
-            'statusDetails': {
-                'inRelease': 'latest',
-            },
-        })
+        self.update_issue({"statusDetails": {"inRelease": "latest"}})
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=self.user.id,
-            data={'resolution_type': 'in_release'},
+            data={"resolution_type": "in_release"},
         )
 
     def test_notify_after_resolve_in_next_release(self, delay):
         self.create_release(project=self.project)
 
-        self.update_issue({
-            'statusDetails': {
-                'inNextRelease': True,
-            },
-        })
+        self.update_issue({"statusDetails": {"inNextRelease": True}})
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=self.user.id,
-            data={'resolution_type': 'in_next_release'},
+            data={"resolution_type": "in_next_release"},
         )
 
     def test_notify_after_resolve_from_set_commits(self, delay):
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name='test/repo',
-        )
+        repo = Repository.objects.create(organization_id=self.organization.id, name="test/repo")
 
-        release = Release.objects.create(
-            version='abcabc',
-            organization=self.organization,
-        )
+        release = Release.objects.create(version="abcabc", organization=self.organization)
 
         commit = Commit.objects.create(
-            repository_id=repo.id,
-            organization_id=self.organization.id,
-            key='b' * 40,
+            repository_id=repo.id, organization_id=self.organization.id, key="b" * 40
         )
 
         GroupLink.objects.create(
@@ -147,11 +117,11 @@ class TestIssueWorkflowNotifications(APITestCase):
         release.set_commits(
             [
                 {
-                    'id': 'b' * 40,
-                    'repository': repo.name,
-                    'author_email': 'foo@example.com',
-                    'author_name': 'Foo Bar',
-                    'message': u'FIXES {}'.format(self.issue.qualified_short_id),
+                    "id": "b" * 40,
+                    "repository": repo.name,
+                    "author_email": "foo@example.com",
+                    "author_name": "Foo Bar",
+                    "message": u"FIXES {}".format(self.issue.qualified_short_id),
                 }
             ]
         )
@@ -159,56 +129,51 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='resolved',
+            type="resolved",
             user_id=None,
-            data={'resolution_type': 'with_commit'},
+            data={"resolution_type": "with_commit"},
         )
 
     def test_notify_after_issue_ignored(self, delay):
-        self.update_issue({'status': 'ignored'})
+        self.update_issue({"status": "ignored"})
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='ignored',
+            type="ignored",
             user_id=self.user.id,
             data={},
         )
 
 
-@patch('sentry.tasks.sentry_apps.workflow_notification.delay')
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
 
-        self.sentry_app = self.create_sentry_app(events=['issue.assigned'])
+        self.sentry_app = self.create_sentry_app(events=["issue.assigned"])
 
         self.install = self.create_sentry_app_installation(
-            organization=self.organization,
-            slug=self.sentry_app.slug,
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
-        self.assignee = self.create_user(name='Bert', email='bert@example.com')
+        self.assignee = self.create_user(name="Bert", email="bert@example.com")
 
     def test_after_issue_assigned(self, delay):
-        GroupAssignee.objects.assign(
-            self.issue,
-            self.assignee,
-            self.user,
-        )
+        GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='assigned',
+            type="assigned",
             user_id=self.user.id,
             data={
-                'assignee': {
-                    'type': 'user',
-                    'name': self.assignee.name,
-                    'email': self.assignee.email,
-                    'id': self.assignee.id,
-                },
+                "assignee": {
+                    "type": "user",
+                    "name": self.assignee.name,
+                    "email": self.assignee.email,
+                    "id": self.assignee.id,
+                }
             },
         )
 
@@ -217,23 +182,15 @@ class TestIssueAssigned(APITestCase):
         org.flags.enhanced_privacy = True
         org.save()
 
-        GroupAssignee.objects.assign(
-            self.issue,
-            self.assignee,
-            self.user,
-        )
+        GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
         assert faux(delay).called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type='assigned',
+            type="assigned",
             user_id=self.user.id,
             data={
                 # Excludes email address
-                'assignee': {
-                    'type': 'user',
-                    'name': self.assignee.name,
-                    'id': self.assignee.id,
-                },
+                "assignee": {"type": "user", "name": self.assignee.name, "id": self.assignee.id}
             },
         )

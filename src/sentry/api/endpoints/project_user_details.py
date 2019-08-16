@@ -12,8 +12,5 @@ class ProjectUserDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project, user_hash):
-        euser = EventUser.objects.get(
-            project_id=project.id,
-            hash=user_hash,
-        )
+        euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))

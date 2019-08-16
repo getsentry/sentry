@@ -15,7 +15,7 @@ class PluginService(object):
 
     @property
     def service_type(self):
-        return 'plugin'
+        return "plugin"
 
 
 class LegacyPluginService(PluginService):
@@ -25,7 +25,7 @@ class LegacyPluginService(PluginService):
 
     @property
     def service_type(self):
-        return 'legacy_plugin'
+        return "legacy_plugin"
 
 
 class SentryAppService(PluginService):
@@ -39,4 +39,4 @@ class SentryAppService(PluginService):
 
     @property
     def service_type(self):
-        return 'sentry_app'
+        return "sentry_app"

@@ -24,7 +24,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='id',
+            order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

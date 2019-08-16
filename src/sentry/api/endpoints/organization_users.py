@@ -11,19 +11,24 @@ from sentry.models import OrganizationMember
 class OrganizationUsersEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         projects = self.get_projects(request, organization)
-        qs = OrganizationMember.objects.filter(
-            user__is_active=True,
-            organization=organization,
-            teams__projectteam__project__in=projects,
-        ).select_related('user').prefetch_related(
-            'teams',
-            'teams__projectteam_set',
-            'teams__projectteam_set__project',
-        ).order_by('user__email').distinct()
+        qs = (
+            OrganizationMember.objects.filter(
+                user__is_active=True,
+                organization=organization,
+                teams__projectteam__project__in=projects,
+            )
+            .select_related("user")
+            .prefetch_related("teams", "teams__projectteam_set", "teams__projectteam_set__project")
+            .order_by("user__email")
+            .distinct()
+        )
 
-        return Response(serialize(
-            list(qs),
-            request.user,
-            serializer=OrganizationMemberWithProjectsSerializer(
-                project_ids=[p.id for p in projects]),
-        ))
+        return Response(
+            serialize(
+                list(qs),
+                request.user,
+                serializer=OrganizationMemberWithProjectsSerializer(
+                    project_ids=[p.id for p in projects]
+                ),
+            )
+        )

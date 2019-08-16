@@ -9,17 +9,19 @@ from django.db import connections, DEFAULT_DB_ALIAS
 try:
     from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 except ImportError:
-    from django.db.models.fields.related import SingleRelatedObjectDescriptor as ReverseOneToOneDescriptor
+    from django.db.models.fields.related import (
+        SingleRelatedObjectDescriptor as ReverseOneToOneDescriptor,
+    )
 
 
-def get_db_engine(alias='default'):
-    value = settings.DATABASES[alias]['ENGINE']
-    return value.rsplit('.', 1)[-1]
+def get_db_engine(alias="default"):
+    value = settings.DATABASES[alias]["ENGINE"]
+    return value.rsplit(".", 1)[-1]
 
 
-def is_postgres(alias='default'):
+def is_postgres(alias="default"):
     engine = get_db_engine(alias)
-    return 'postgres' in engine
+    return "postgres" in engine
 
 
 def attach_foreignkey(objects, field, related=(), database=None):
@@ -41,9 +43,9 @@ def attach_foreignkey(objects, field, related=(), database=None):
 
     if not is_foreignkey:
         field = field.field
-        accessor = '_%s_cache' % field.name
+        accessor = "_%s_cache" % field.name
         model = field.rel.to
-        lookup = 'pk'
+        lookup = "pk"
         column = field.column
         key = lookup
     else:
@@ -51,7 +53,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
         field = field.related.field
         model = field.model
         lookup = field.name
-        column = 'pk'
+        column = "pk"
         key = field.column
 
     objects = [o for o in objects if (related or getattr(o, accessor, False) is False)]
@@ -70,7 +72,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
             qs = qs.select_related(*related)
 
         if len(values) > 1:
-            qs = qs.filter(**{'%s__in' % lookup: values})
+            qs = qs.filter(**{"%s__in" % lookup: values})
         else:
             qs = [qs.get(**{lookup: six.next(iter(values))})]
 

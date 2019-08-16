@@ -41,10 +41,10 @@ class TransactionAborted(psycopg2.DatabaseError):
         self.cur_exc_info = cur_exc_info
 
     def __repr__(self):
-        return '\n'.join(traceback.format_exception(self.__class__, self, self.get_traceback()))
+        return "\n".join(traceback.format_exception(self.__class__, self, self.get_traceback()))
 
     def __str__(self):
-        return u'(%s) %s' % (self.cur_exc_info[0].__name__, self.cur_exc_info[1])
+        return u"(%s) %s" % (self.cur_exc_info[0].__name__, self.cur_exc_info[1])
 
     def get_traceback(self):
         return CompositeTraceback([self.exc_info[2], self.cur_exc_info[2]])

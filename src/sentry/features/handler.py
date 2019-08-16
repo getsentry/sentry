@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['FeatureHandler']
+__all__ = ["FeatureHandler"]
 
 
 class FeatureHandler(object):

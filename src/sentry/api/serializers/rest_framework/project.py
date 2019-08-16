@@ -13,16 +13,9 @@ class ProjectField(serializers.Field):
 
     def to_internal_value(self, data):
         try:
-            project = Project.objects.get(
-                organization=self.context['organization'],
-                slug=data,
-            )
+            project = Project.objects.get(organization=self.context["organization"], slug=data)
         except Project.DoesNotExist:
-            raise ValidationError(
-                'Invalid project'
-            )
-        if not self.context['access'].has_project_scope(project, 'project:write'):
-            raise ValidationError(
-                'Insufficient access to project'
-            )
+            raise ValidationError("Invalid project")
+        if not self.context["access"].has_project_scope(project, "project:write"):
+            raise ValidationError("Insufficient access to project")
         return project

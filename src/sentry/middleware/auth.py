@@ -10,7 +10,7 @@ from sentry.utils.auth import AuthUserPasswordExpired, logger
 
 
 def get_user(request):
-    if not hasattr(request, '_cached_user'):
+    if not hasattr(request, "_cached_user"):
         user = auth_get_user(request)
         # If the user bound to this request matches a real user,
         # we need to validate the session's nonce. This nonce is
@@ -24,18 +24,15 @@ def get_user(request):
             # currently set on the User. By default, the value will
             # be None until the first action has been taken, at
             # which point, a nonce will always be required.
-            if user.session_nonce and request.session.get('_nonce', '') != user.session_nonce:
+            if user.session_nonce and request.session.get("_nonce", "") != user.session_nonce:
                 # If the nonces don't match, this session is anonymous.
                 logger.info(
-                    'user.auth.invalid-nonce',
-                    extra={
-                        'ip_address': request.META['REMOTE_ADDR'],
-                        'user_id': user.id,
-                    }
+                    "user.auth.invalid-nonce",
+                    extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
                 )
                 user = AnonymousUser()
             else:
-                UserIP.log(user, request.META['REMOTE_ADDR'])
+                UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
 
@@ -56,4 +53,5 @@ class AuthenticationMiddleware(object):
     def process_exception(self, request, exception):
         if isinstance(exception, AuthUserPasswordExpired):
             from sentry.web.frontend.accounts import expired
+
             return expired(request, exception.user)

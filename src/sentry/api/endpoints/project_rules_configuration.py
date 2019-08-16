@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    permission_classes = (StrictProjectPermission, )
+    permission_classes = (StrictProjectPermission,)
 
     def get(self, request, project):
         """
@@ -20,23 +20,16 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
-            context = {
-                'id': node.id,
-                'label': node.label,
-                'enabled': node.is_enabled(),
-            }
+            context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
 
-            if hasattr(node, 'form_fields'):
-                context['formFields'] = node.form_fields
+            if hasattr(node, "form_fields"):
+                context["formFields"] = node.form_fields
 
-            if rule_type.startswith('condition/'):
+            if rule_type.startswith("condition/"):
                 condition_list.append(context)
-            elif rule_type.startswith('action/'):
+            elif rule_type.startswith("action/"):
                 action_list.append(context)
 
-        context = {
-            'actions': action_list,
-            'conditions': condition_list
-        }
+        context = {"actions": action_list, "conditions": condition_list}
 
         return Response(context)

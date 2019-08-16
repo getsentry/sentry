@@ -42,7 +42,7 @@ toolbar_cache = ToolbarCache()
 
 
 class DebugMiddleware(object):
-    _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
+    _body_regexp = re.compile(re.escape("</body>"), flags=re.IGNORECASE)
 
     def show_toolbar_for_request(self, request):
         # This avoids touching user session, which means we avoid
@@ -54,13 +54,13 @@ class DebugMiddleware(object):
             return False
         if not is_active_superuser(request):
             return False
-        if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
+        if "text/html" not in request.META.get("HTTP_ACCEPT", "*/*"):
             return False
         return True
 
     def show_toolbar_for_response(self, response):
-        content_type = response['Content-Type']
-        for type in ('text/html', 'application/json'):
+        content_type = response["Content-Type"]
+        for type in ("text/html", "application/json"):
             if type in content_type:
                 return True
         return False
@@ -117,26 +117,24 @@ class DebugMiddleware(object):
             panel.disable_instrumentation()
 
         try:
-            content = force_text(response.content, encoding='utf-8')
+            content = force_text(response.content, encoding="utf-8")
         except UnicodeDecodeError:
             # Make sure we at least just return a response on an encoding issue
             return response
 
-        if 'text/html' not in response['Content-Type']:
-            if 'application/json' in response['Content-Type']:
+        if "text/html" not in response["Content-Type"]:
+            if "application/json" in response["Content-Type"]:
                 content = json.dumps(json.loads(content), indent=2)
 
-            content = WRAPPER.format(
-                content=escape(content),
-            )
-            response['Content-Type'] = 'text/html'
+            content = WRAPPER.format(content=escape(content))
+            response["Content-Type"] = "text/html"
 
         # Insert the toolbar in the response.
         bits = self._body_regexp.split(content)
         if len(bits) > 1:
             bits[-2] += toolbar.render_toolbar()
-            content = '</body>'.join(bits)
+            content = "</body>".join(bits)
 
         response.content = content
-        response['Content-Length'] = len(content)
+        response["Content-Length"] = len(content)
         return response

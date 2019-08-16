@@ -10,43 +10,24 @@ from sentry.db.models import ArrayField
 
 
 class ApiScopes(Sequence):
-    project = (
-        ('project:read'),
-        ('project:write'),
-        ('project:admin'),
-        ('project:releases'),
-    )
+    project = (("project:read"), ("project:write"), ("project:admin"), ("project:releases"))
 
-    team = (
-        ('team:read'),
-        ('team:write'),
-        ('team:admin'),
-    )
+    team = (("team:read"), ("team:write"), ("team:admin"))
 
-    event = (
-        ('event:read'),
-        ('event:write'),
-        ('event:admin'),
-    )
+    event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (
-        ('org:read'),
-        ('org:write'),
-        ('org:admin'),
-    )
+    org = (("org:read"), ("org:write"), ("org:admin"))
 
-    member = (
-        ('member:read'),
-        ('member:write'),
-        ('member:admin'),
-    )
+    member = (("member:read"), ("member:write"), ("member:admin"))
 
     def __init__(self):
-        self.scopes = self.__class__.project \
-            + self.__class__.team \
-            + self.__class__.event \
-            + self.__class__.org \
+        self.scopes = (
+            self.__class__.project
+            + self.__class__.team
+            + self.__class__.event
+            + self.__class__.org
             + self.__class__.member
+        )
 
     def to_bitfield(self):
         return tuple((s, s) for s in self.scopes)

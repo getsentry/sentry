@@ -9,8 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name='sentry.tasks.process_buffer.process_pending',
-    queue='buffers.process_pending',
+    name="sentry.tasks.process_buffer.process_pending", queue="buffers.process_pending"
 )
 def process_pending(partition=None):
     """
@@ -20,9 +19,9 @@ def process_pending(partition=None):
     from sentry.app import locks
 
     if partition is None:
-        lock_key = 'buffer:process_pending'
+        lock_key = "buffer:process_pending"
     else:
-        lock_key = 'buffer:process_pending:%d' % partition
+        lock_key = "buffer:process_pending:%d" % partition
 
     lock = locks.get(lock_key, duration=60)
 
@@ -30,10 +29,10 @@ def process_pending(partition=None):
         with lock.acquire():
             buffer.process_pending(partition=partition)
     except UnableToAcquireLock as error:
-        logger.warning('process_pending.fail', extra={'error': error, 'partition': partition})
+        logger.warning("process_pending.fail", extra={"error": error, "partition": partition})
 
 
-@instrumented_task(name='sentry.tasks.process_buffer.process_incr')
+@instrumented_task(name="sentry.tasks.process_buffer.process_incr")
 def process_incr(**kwargs):
     """
     Processes a buffer event.

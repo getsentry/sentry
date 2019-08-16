@@ -113,6 +113,7 @@ class Executor(object):
     similar), and ``submit`` passes all additional arguments to ``queue.put``
     to allow controlling whether or not queue insertion should be blocking.
     """
+
     Future = TimedFuture
 
     def submit(self, callable, priority=0, block=True, timeout=None):
@@ -246,9 +247,7 @@ class FutureSet(object):
         try:
             callback(self)
         except Exception as error:
-            logger.warning(
-                'Error when calling callback %r: %s',
-                callback, error, exc_info=True)
+            logger.warning("Error when calling callback %r: %s", callback, error, exc_info=True)
 
     def __mark_completed(self, future):
         with self.__lock:

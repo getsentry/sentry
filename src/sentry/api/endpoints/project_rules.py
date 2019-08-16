@@ -21,14 +21,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         """
         queryset = Rule.objects.filter(
-            project=project,
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
-        ).select_related('project')
+            project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+        ).select_related("project")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by="-id",
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -47,10 +46,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(
-            context={'project': project},
-            data=request.data,
-        )
+        serializer = RuleSerializer(context={"project": project}, data=request.data)
 
         if serializer.is_valid():
             rule = serializer.save(rule=Rule())
@@ -62,7 +58,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
             alert_rule_created.send_robust(
-                user=request.user, project=project, rule=rule, sender=self)
+                user=request.user, project=project, rule=rule, sender=self
+            )
 
             return Response(serialize(rule, request.user))
 

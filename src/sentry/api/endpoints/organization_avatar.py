@@ -6,9 +6,9 @@ from sentry.models import OrganizationAvatar
 
 
 class OrganizationAvatarEndpoint(AvatarMixin, OrganizationEndpoint):
-    object_type = 'organization'
+    object_type = "organization"
     model = OrganizationAvatar
 
     def get_avatar_filename(self, obj):
         # for consistency with organization details endpoint
-        return u'{}.png'.format(obj.slug)
+        return u"{}.png".format(obj.slug)

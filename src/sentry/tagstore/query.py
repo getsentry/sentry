@@ -23,14 +23,14 @@ class NoTransactionUpdateQuerySet(QuerySet):
         # block. The effect of this is we now can perform a simple `UPDATE` query without
         # incurring the overhead of 4 statements and an explicit transaction. This is a safe
         # assumption made by Django, but we can forego it for performance.
-        assert self.query.can_filter(), \
-            "Cannot update a query once a slice has been taken."
+        assert self.query.can_filter(), "Cannot update a query once a slice has been taken."
         self._for_write = True
         query = self.query.clone(sql.UpdateQuery)
         query.add_update_values(kwargs)
         rows = query.get_compiler(self.db).execute_sql(CURSOR)
         self._result_cache = None
         return rows
+
     update.alters_data = True
 
 

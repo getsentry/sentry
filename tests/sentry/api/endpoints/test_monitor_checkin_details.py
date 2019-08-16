@@ -19,20 +19,19 @@ class UpdateMonitorCheckInTest(APITestCase):
             project_id=project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={'schedule': '* * * * *'},
+            config={"schedule": "* * * * *"},
             date_added=timezone.now() - timedelta(minutes=1),
         )
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            project_id=project.id,
-            date_added=monitor.date_added,
+            monitor=monitor, project_id=project.id, date_added=monitor.date_added
         )
 
         self.login_as(user=user)
-        with self.feature({'organizations:monitors': True}):
-            resp = self.client.put('/api/0/monitors/{}/checkins/{}/'.format(monitor.guid, checkin.guid), data={
-                'status': 'ok'
-            })
+        with self.feature({"organizations:monitors": True}):
+            resp = self.client.put(
+                "/api/0/monitors/{}/checkins/{}/".format(monitor.guid, checkin.guid),
+                data={"status": "ok"},
+            )
 
         assert resp.status_code == 200, resp.content
 
@@ -55,20 +54,19 @@ class UpdateMonitorCheckInTest(APITestCase):
             project_id=project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={'schedule': '* * * * *'},
+            config={"schedule": "* * * * *"},
             date_added=timezone.now() - timedelta(minutes=1),
         )
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            project_id=project.id,
-            date_added=monitor.date_added,
+            monitor=monitor, project_id=project.id, date_added=monitor.date_added
         )
 
         self.login_as(user=user)
-        with self.feature({'organizations:monitors': True}):
-            resp = self.client.put('/api/0/monitors/{}/checkins/{}/'.format(monitor.guid, checkin.guid), data={
-                'status': 'error'
-            })
+        with self.feature({"organizations:monitors": True}):
+            resp = self.client.put(
+                "/api/0/monitors/{}/checkins/{}/".format(monitor.guid, checkin.guid),
+                data={"status": "error"},
+            )
 
         assert resp.status_code == 200, resp.content
 

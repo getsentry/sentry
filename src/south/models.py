@@ -17,18 +17,13 @@ class MigrationHistory(models.Model):
             else:
                 # Django <= 1.1
                 objects = cls.objects
-            return objects.get(
-                app_name=migration.app_label(),
-                migration=migration.name(),
-            )
+            return objects.get(app_name=migration.app_label(), migration=migration.name())
         except cls.DoesNotExist:
-            return cls(
-                app_name=migration.app_label(),
-                migration=migration.name(),
-            )
+            return cls(app_name=migration.app_label(), migration=migration.name())
 
     def get_migrations(self):
         from south.migration.base import Migrations
+
         return Migrations(self.app_name)
 
     def get_migration(self):

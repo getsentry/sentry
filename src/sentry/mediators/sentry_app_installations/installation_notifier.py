@@ -10,8 +10,8 @@ from sentry.utils.cache import memoize
 
 
 class InstallationNotifier(Mediator):
-    install = Param('sentry.models.SentryAppInstallation')
-    user = Param('sentry.models.User')
+    install = Param("sentry.models.SentryAppInstallation")
+    user = Param("sentry.models.User")
     action = Param(six.string_types)
 
     def call(self):
@@ -19,7 +19,7 @@ class InstallationNotifier(Mediator):
         self._send_webhook()
 
     def _verify_action(self):
-        if self.action not in ['created', 'deleted']:
+        if self.action not in ["created", "deleted"]:
             raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
 
     def _send_webhook(self):
@@ -36,20 +36,18 @@ class InstallationNotifier(Mediator):
     def request(self):
         attrs = {}
 
-        if self.action == 'created' and self.api_grant:
-            attrs['code'] = self.api_grant.code
+        if self.action == "created" and self.api_grant:
+            attrs["code"] = self.api_grant.code
 
         data = SentryAppInstallationSerializer().serialize(
-            self.install,
-            attrs=attrs,
-            user=self.user,
+            self.install, attrs=attrs, user=self.user
         )
 
         return AppPlatformEvent(
-            resource='installation',
+            resource="installation",
             action=self.action,
             install=self.install,
-            data={'installation': data},
+            data={"installation": data},
             actor=self.user,
         )
 

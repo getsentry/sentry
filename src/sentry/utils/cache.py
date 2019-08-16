@@ -58,7 +58,7 @@ class cached_for_request(memoize):
         if not request:
             return self.func(*args, **kwargs)
 
-        if not hasattr(request, '__func_cache'):
+        if not hasattr(request, "__func_cache"):
             data = request.__func_cache = {}
         else:
             data = request.__func_cache

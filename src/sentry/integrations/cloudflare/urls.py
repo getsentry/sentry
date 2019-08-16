@@ -7,7 +7,7 @@ from .webhook import CloudflareWebhookEndpoint
 
 
 urlpatterns = patterns(
-    '',
-    url(r'^metadata/$', CloudflareMetadataEndpoint.as_view()),
-    url(r'^webhook/$', CloudflareWebhookEndpoint.as_view()),
+    "",
+    url(r"^metadata/$", CloudflareMetadataEndpoint.as_view()),
+    url(r"^webhook/$", CloudflareWebhookEndpoint.as_view()),
 )

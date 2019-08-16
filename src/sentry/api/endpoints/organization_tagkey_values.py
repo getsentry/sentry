@@ -10,15 +10,14 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
-
     def get(self, request, organization, key):
         if not TAG_KEY_RE.match(key):
-            return Response({'detail': 'Invalid tag key format for "%s"' % (key,)}, status=400)
+            return Response({"detail": 'Invalid tag key format for "%s"' % (key,)}, status=400)
 
         try:
             filter_params = self.get_filter_params(request, organization)
         except OrganizationEventsError as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({"detail": exc.message}, status=400)
         except NoProjects:
             paginator = SequencePaginator([])
         else:
@@ -26,12 +25,12 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             tagstore = SnubaTagStorage()
 
             paginator = tagstore.get_tag_value_paginator_for_projects(
-                filter_params['project_id'],
-                filter_params.get('environment'),
+                filter_params["project_id"],
+                filter_params.get("environment"),
                 key,
-                filter_params['start'],
-                filter_params['end'],
-                query=request.GET.get('query'),
+                filter_params["start"],
+                filter_params["end"],
+                query=request.GET.get("query"),
             )
 
         return self.paginate(

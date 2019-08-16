@@ -23,8 +23,7 @@ class ParanoidManager(BaseManager):
     """
 
     def get_queryset(self):
-        return ParanoidQuerySet(self.model, using=self._db).filter(
-            date_deleted__isnull=True)
+        return ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True)
 
 
 class ParanoidModel(Model):

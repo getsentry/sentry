@@ -31,13 +31,13 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = ReleaseCommit.objects.filter(
-            release=release,
-        ).select_related('commit', 'commit__author')
+        queryset = ReleaseCommit.objects.filter(release=release).select_related(
+            "commit", "commit__author"
+        )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='order',
+            order_by="order",
             on_results=lambda x: serialize([rc.commit for rc in x], request.user),
         )

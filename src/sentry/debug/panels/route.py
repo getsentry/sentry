@@ -28,30 +28,26 @@ TEMPLATE = Template(
 class RoutePanel(Panel):
     title = "Route"
 
-    template = 'sentry/debug/panels/route.html'
+    template = "sentry/debug/panels/route.html"
 
     has_content = True
 
     def _get_func_name(self, func):
-        if hasattr(func, 'im_class'):
-            return u'{}.{}.{}'.format(
-                func.__module__,
-                func.im_class.__name__,
-                func.__name__,
-            )
-        return u'{}.{}'.format(func.__module__, func.__name__)
+        if hasattr(func, "im_class"):
+            return u"{}.{}.{}".format(func.__module__, func.im_class.__name__, func.__name__)
+        return u"{}.{}".format(func.__module__, func.__name__)
 
     def _get_func_argspec(self, args, kwargs):
         result = []
         for arg in args:
             result.append(arg)
         for pair in kwargs.items():
-            result.append(u'%s=%s' % tuple(pair))
-        return u', '.join(result)
+            result.append(u"%s=%s" % tuple(pair))
+        return u", ".join(result)
 
     def nav_subtitle(self):
         stats = self.get_stats()
-        return stats['view_name']
+        return stats["view_name"]
 
     @property
     def content(self):
@@ -63,10 +59,10 @@ class RoutePanel(Panel):
 
     def process_response(self, request, response):
         stats = {}
-        if hasattr(self, '_view'):
+        if hasattr(self, "_view"):
             view_func, view_args, view_kwargs = self._view
-            stats['response_code'] = response.status_code
-            stats['view_name'] = view_func.__name__
-            stats['view_path'] = self._get_func_name(view_func)
-            stats['view_argspec'] = self._get_func_argspec(view_args, view_kwargs)
+            stats["response_code"] = response.status_code
+            stats["view_name"] = view_func.__name__
+            stats["view_path"] = self._get_func_name(view_func)
+            stats["view_argspec"] = self._get_func_argspec(view_args, view_kwargs)
         self.record_stats(stats)

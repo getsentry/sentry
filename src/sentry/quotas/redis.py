@@ -9,11 +9,11 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
 from sentry.utils.redis import get_cluster_from_options, load_script
 
-is_rate_limited = load_script('quotas/is_rate_limited.lua')
+is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
 
 class BasicRedisQuota(object):
-    __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
+    __slots__ = ["key", "limit", "window", "reason_code", "enforce"]
 
     def __init__(self, key, limit=0, window=60, reason_code=None, enforce=True):
         self.key = key
@@ -34,9 +34,9 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options('SENTRY_QUOTA_OPTIONS', options)
+        self.cluster, options = get_cluster_from_options("SENTRY_QUOTA_OPTIONS", options)
         super(RedisQuota, self).__init__(**options)
-        self.namespace = 'quota'
+        self.namespace = "quota"
 
     def validate(self):
         try:
@@ -46,15 +46,12 @@ class RedisQuota(Quota):
             raise InvalidConfiguration(six.text_type(e))
 
     def __get_redis_key(self, key, timestamp, interval, shift):
-        return u'{}:{}:{}'.format(
-            self.namespace,
-            key,
-            int((timestamp - shift) // interval),
-        )
+        return u"{}:{}:{}".format(self.namespace, key, int((timestamp - shift) // interval))
 
     def get_quotas_with_limits(self, project, key=None):
         return [
-            quota for quota in self.get_quotas(project, key=key)
+            quota
+            for quota in self.get_quotas(project, key=key)
             # x = (key, limit, interval)
             if quota.limit > 0  # a zero limit means "no limit", not "reject all"
         ]
@@ -66,26 +63,26 @@ class RedisQuota(Quota):
         oquota = self.get_organization_quota(project.organization)
         results = [
             BasicRedisQuota(
-                key=u'p:{}'.format(project.id),
+                key=u"p:{}".format(project.id),
                 limit=pquota[0],
                 window=pquota[1],
-                reason_code='project_quota',
+                reason_code="project_quota",
             ),
             BasicRedisQuota(
-                key=u'o:{}'.format(project.organization_id),
+                key=u"o:{}".format(project.organization_id),
                 limit=oquota[0],
                 window=oquota[1],
-                reason_code='org_quota',
+                reason_code="org_quota",
             ),
         ]
         if key:
             kquota = self.get_key_quota(key)
             results.append(
                 BasicRedisQuota(
-                    key=u'k:{}'.format(key.id),
+                    key=u"k:{}".format(key.id),
                     limit=kquota[0],
                     window=kquota[1],
-                    reason_code='key_quota',
+                    reason_code="key_quota",
                 )
             )
         return results
@@ -114,20 +111,15 @@ class RedisQuota(Quota):
         with self.cluster.fanout() as client:
             results = map(
                 functools.partial(
-                    get_usage_for_quota,
-                    client.target_key(
-                        six.text_type(organization_id),
-                    ),
+                    get_usage_for_quota, client.target_key(six.text_type(organization_id))
                 ),
                 quotas,
             )
 
-        return [
-            get_value_for_result(*r) for r in results
-        ]
+        return [get_value_for_result(*r) for r in results]
 
     def get_refunded_quota_key(self, key):
-        return u'r:{}'.format(key)
+        return u"r:{}".format(key)
 
     def refund(self, project, key=None, timestamp=None):
         if timestamp is None:
@@ -147,7 +139,7 @@ class RedisQuota(Quota):
             # sure the window is over?
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
-                self.__get_redis_key(quota.key, timestamp, quota.window, shift),
+                self.__get_redis_key(quota.key, timestamp, quota.window, shift)
             )
             pipe.incr(return_key, 1)
             pipe.expireat(return_key, int(expiry))
@@ -193,8 +185,5 @@ class RedisQuota(Quota):
                     if delay > worst_case[0]:
                         worst_case = (delay, quota.reason_code)
             if enforce:
-                return RateLimited(
-                    retry_after=worst_case[0],
-                    reason_code=worst_case[1],
-                )
+                return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])
         return NotRateLimited()

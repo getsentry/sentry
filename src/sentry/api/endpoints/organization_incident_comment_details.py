@@ -5,16 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases.incident import (
-    IncidentEndpoint,
-    IncidentPermission,
-)
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
-from sentry.incidents.logic import (
-    delete_comment,
-    update_comment,
-)
+from sentry.incidents.logic import delete_comment, update_comment
 
 
 class CommentSerializer(serializers.Serializer):
@@ -31,17 +25,13 @@ class CommentDetailsEndpoint(IncidentEndpoint):
         if not request.user.is_authenticated():
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
-        args, kwargs = super(CommentDetailsEndpoint, self).convert_args(
-            request,
-            *args,
-            **kwargs
-        )
+        args, kwargs = super(CommentDetailsEndpoint, self).convert_args(request, *args, **kwargs)
 
         try:
-            kwargs['activity'] = IncidentActivity.objects.get(
+            kwargs["activity"] = IncidentActivity.objects.get(
                 id=activity_id,
                 user=request.user,
-                incident=kwargs['incident'],
+                incident=kwargs["incident"],
                 # Only allow modifying comments
                 type=IncidentActivityType.COMMENT.value,
             )
@@ -52,7 +42,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 
 
 class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
-    permission_classes = (IncidentPermission, )
+    permission_classes = (IncidentPermission,)
 
     def delete(self, request, organization, incident, activity):
         """
@@ -80,10 +70,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
             result = serializer.validated_data
 
             try:
-                comment = update_comment(
-                    activity=activity,
-                    comment=result.get('comment'),
-                )
+                comment = update_comment(activity=activity, comment=result.get("comment"))
             except IncidentActivity.DoesNotExist:
                 raise ResourceDoesNotExist
 

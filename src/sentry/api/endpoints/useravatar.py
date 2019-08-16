@@ -9,11 +9,11 @@ from sentry.models import UserAvatar
 
 
 class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
-    object_type = 'user'
+    object_type = "user"
     model = UserAvatar
 
     def put(self, request, **kwargs):
-        user = kwargs['user']
+        user = kwargs["user"]
         if user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
 

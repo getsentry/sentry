@@ -12,13 +12,13 @@ from time import time
 
 from sentry.models import User, Authenticator
 
-logger = logging.getLogger('sentry.auth')
+logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
 
-SSO_SESSION_KEY = 'sso'
+SSO_SESSION_KEY = "sso"
 
-MFA_SESSION_KEY = 'mfa'
+MFA_SESSION_KEY = "mfa"
 
 
 class AuthUserPasswordExpired(Exception):
@@ -27,27 +27,28 @@ class AuthUserPasswordExpired(Exception):
 
 
 def _make_key_value(val):
-    return val.strip().split(u'=', 1)
+    return val.strip().split(u"=", 1)
 
 
 def parse_auth_header(header):
     if isinstance(header, bytes):
-        header = header.decode('latin1')
+        header = header.decode("latin1")
     try:
-        return dict(map(_make_key_value, header.split(u' ', 1)[1].split(u',')))
+        return dict(map(_make_key_value, header.split(u" ", 1)[1].split(u",")))
     except Exception:
         return {}
 
 
 def get_auth_providers():
     return [
-        key for key, cfg_names in six.iteritems(settings.AUTH_PROVIDERS)
+        key
+        for key, cfg_names in six.iteritems(settings.AUTH_PROVIDERS)
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
 
 
 def get_pending_2fa_user(request):
-    rv = request.session.get('_pending_2fa')
+    rv = request.session.get("_pending_2fa")
     if rv is None:
         return
 
@@ -62,7 +63,7 @@ def get_pending_2fa_user(request):
 
 
 def has_pending_2fa(request):
-    return request.session.get('_pending_2fa') is not None
+    return request.session.get("_pending_2fa") is not None
 
 
 def get_login_url(reset=False):
@@ -79,21 +80,21 @@ def get_login_url(reset=False):
             _LOGIN_URL = settings.LOGIN_URL
 
         if _LOGIN_URL is None:
-            _LOGIN_URL = reverse('sentry-login')
+            _LOGIN_URL = reverse("sentry-login")
         # ensure type is coerced to string (to avoid lazy proxies)
         _LOGIN_URL = six.text_type(_LOGIN_URL)
     return _LOGIN_URL
 
 
 def initiate_login(request, next_url=None):
-    for key in ('_next', '_after_2fa', '_pending_2fa'):
+    for key in ("_next", "_after_2fa", "_pending_2fa"):
         try:
             del request.session[key]
         except KeyError:
             pass
 
     if next_url:
-        request.session['_next'] = next_url
+        request.session["_next"] = next_url
 
 
 def get_org_redirect_url(request, active_organization):
@@ -102,9 +103,9 @@ def get_org_redirect_url(request, active_organization):
     # TODO(dcramer): deal with case when the user cannot create orgs
     if active_organization:
         return active_organization.get_url()
-    if not features.has('organizations:create'):
-        return '/auth/login/'
-    return '/organizations/new/'
+    if not features.has("organizations:create"):
+        return "/auth/login/"
+    return "/organizations/new/"
 
 
 def get_login_redirect(request, default=None):
@@ -114,15 +115,15 @@ def get_login_redirect(request, default=None):
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        return reverse('sentry-2fa-dialog')
+        return reverse("sentry-2fa-dialog")
 
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.
-    after_2fa = request.session.pop('_after_2fa', None)
+    after_2fa = request.session.pop("_after_2fa", None)
     if after_2fa is not None:
         return after_2fa
 
-    login_url = request.session.pop('_next', None)
+    login_url = request.session.pop("_next", None)
     if not login_url:
         return default
 
@@ -143,18 +144,18 @@ def is_valid_redirect(url, host=None):
 def mark_sso_complete(request, organization_id):
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso = request.session.get(SSO_SESSION_KEY, '')
+    sso = request.session.get(SSO_SESSION_KEY, "")
     if sso:
-        sso = sso.split(',')
+        sso = sso.split(",")
     else:
         sso = []
     sso.append(six.text_type(organization_id))
-    request.session[SSO_SESSION_KEY] = ','.join(sso)
+    request.session[SSO_SESSION_KEY] = ",".join(sso)
     request.session.modified = True
 
 
 def has_completed_sso(request, organization_id):
-    sso = request.session.get(SSO_SESSION_KEY, '').split(',')
+    sso = request.session.get(SSO_SESSION_KEY, "").split(",")
     return six.text_type(organization_id) in sso
 
 
@@ -169,7 +170,7 @@ def find_users(username, with_valid_password=True, is_active=None):
         qs = qs.filter(is_active=is_active)
 
     if with_valid_password:
-        qs = qs.exclude(password='!')
+        qs = qs.exclude(password="!")
 
     try:
         # First, assume username is an iexact match for username
@@ -177,7 +178,7 @@ def find_users(username, with_valid_password=True, is_active=None):
         return [user]
     except User.DoesNotExist:
         # If not, we can take a stab at guessing it's an email address
-        if '@' in username:
+        if "@" in username:
             # email isn't guaranteed unique
             return list(qs.filter(email__iexact=username))
     return []
@@ -201,13 +202,12 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if passed_2fa is None:
-        passed_2fa = (request.session.get(MFA_SESSION_KEY, '')
-                      == six.text_type(user.id))
+        passed_2fa = request.session.get(MFA_SESSION_KEY, "") == six.text_type(user.id)
 
     if has_2fa and not passed_2fa:
-        request.session['_pending_2fa'] = [user.id, time(), organization_id]
+        request.session["_pending_2fa"] = [user.id, time(), organization_id]
         if after_2fa is not None:
-            request.session['_after_2fa'] = after_2fa
+            request.session["_after_2fa"] = after_2fa
         request.session.modified = True
         return False
 
@@ -216,7 +216,7 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
         request.session[MFA_SESSION_KEY] = six.text_type(user.id)
         request.session.modified = True
 
-    mfa_state = request.session.pop('_pending_2fa', ())
+    mfa_state = request.session.pop("_pending_2fa", ())
     if organization_id is None and len(mfa_state) == 3:
         organization_id = mfa_state[2]
 
@@ -232,13 +232,13 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
 
     # If this User has a nonce value, we need to bind into the session.
     if user.session_nonce is not None:
-        request.session['_nonce'] = user.session_nonce
+        request.session["_nonce"] = user.session_nonce
 
     # If there is no authentication backend, just attach the first
     # one and hope it goes through.  This apparently is a thing we
     # have been doing for a long time, just moved it to a more
     # reasonable place.
-    if not hasattr(user, 'backend'):
+    if not hasattr(user, "backend"):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
     _login(request, user)
     if organization_id:
@@ -249,29 +249,26 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
 
 def log_auth_success(request, username, organization_id=None, source=None):
     logger.info(
-        'user.auth.success',
+        "user.auth.success",
         extra={
-            'ip_address': request.META['REMOTE_ADDR'],
-            'username': username,
-            'organization_id': organization_id,
-            'source': source,
-        }
+            "ip_address": request.META["REMOTE_ADDR"],
+            "username": username,
+            "organization_id": organization_id,
+            "source": source,
+        },
     )
 
 
 def log_auth_failure(request, username=None):
     logger.info(
-        'user.auth.fail', extra={
-            'ip_address': request.META['REMOTE_ADDR'],
-            'username': username,
-        }
+        "user.auth.fail", extra={"ip_address": request.META["REMOTE_ADDR"], "username": username}
     )
 
 
 def has_user_registration():
     from sentry import features, options
 
-    return features.has('auth:register') and options.get('auth.allow-registration')
+    return features.has("auth:register") and options.get("auth.allow-registration")
 
 
 def is_user_signed_request(request):

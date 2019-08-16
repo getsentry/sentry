@@ -28,16 +28,14 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                               match on: ``id``, ``email``, ``username``, ``ip``.
                               For example, ``query=email:foo@example.com``
         """
-        queryset = EventUser.objects.filter(
-            project_id=project.id,
-        )
-        if request.GET.get('query'):
-            pieces = request.GET['query'].strip().split(':', 1)
+        queryset = EventUser.objects.filter(project_id=project.id)
+        if request.GET.get("query"):
+            pieces = request.GET["query"].strip().split(":", 1)
             if len(pieces) != 2:
                 return Response([])
             try:
                 queryset = queryset.filter(
-                    **{u'{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                    **{u"{}__icontains".format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
                 )
             except KeyError:
                 return Response([])
@@ -45,7 +43,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_added',
+            order_by="-date_added",
             paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request.user),
         )

@@ -23,28 +23,28 @@ def catchable_atomic():
 
 
 def sync_docs():
-    click.echo('Forcing documentation sync')
+    click.echo("Forcing documentation sync")
     from sentry.utils.integrationdocs import sync_docs, DOC_FOLDER
+
     if os.access(DOC_FOLDER, os.W_OK):
         try:
             sync_docs()
         except Exception as e:
-            click.echo(' - skipping, failure: %s' % e)
+            click.echo(" - skipping, failure: %s" % e)
     elif os.path.isdir(DOC_FOLDER):
-        click.echo(' - skipping, path cannot be written to: %r' % DOC_FOLDER)
+        click.echo(" - skipping, path cannot be written to: %r" % DOC_FOLDER)
     else:
-        click.echo(' - skipping, path does not exist: %r' % DOC_FOLDER)
+        click.echo(" - skipping, path does not exist: %r" % DOC_FOLDER)
 
 
 def create_missing_dsns():
     from sentry.models import Project, ProjectKey
-    click.echo('Creating missing DSNs')
+
+    click.echo("Creating missing DSNs")
     queryset = Project.objects.filter(key_set__isnull=True)
     for project in queryset:
         try:
-            ProjectKey.objects.get_or_create(
-                project=project,
-            )
+            ProjectKey.objects.get_or_create(project=project)
         except ProjectKey.MultipleObjectsReturned:
             pass
 
@@ -52,7 +52,8 @@ def create_missing_dsns():
 def fix_group_counters():
     from sentry.models import Activity
     from django.db import connection
-    click.echo('Correcting Group.num_comments counter')
+
+    click.echo("Correcting Group.num_comments counter")
     cursor = connection.cursor()
     cursor.execute(
         """
@@ -60,16 +61,16 @@ def fix_group_counters():
             SELECT COUNT(*) from sentry_activity
             WHERE type = %s and group_id = sentry_groupedmessage.id
         )
-    """, [Activity.NOTE]
+    """,
+        [Activity.NOTE],
     )
 
 
 @click.command()
 @click.option(
-    '--with-docs/--without-docs',
+    "--with-docs/--without-docs",
     default=False,
-    help='Synchronize and repair embedded documentation. This '
-    'is disabled by default.'
+    help="Synchronize and repair embedded documentation. This " "is disabled by default.",
 )
 @configuration
 def repair(with_docs):

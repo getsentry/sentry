@@ -16,7 +16,7 @@ from functools import reduce
 class ProjectOwnership(Model):
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project', unique=True)
+    project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
     schema = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
@@ -29,10 +29,10 @@ class ProjectOwnership(Model):
     Everyone = object()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_projectownership'
+        app_label = "sentry"
+        db_table = "sentry_projectownership"
 
-    __repr__ = sane_repr('project_id', 'is_active')
+    __repr__ = sane_repr("project_id", "is_active")
 
     @classmethod
     def get_owners(cls, project_id, data):
@@ -48,9 +48,7 @@ class ProjectOwnership(Model):
         try:
             ownership = cls.objects.get(project_id=project_id)
         except cls.DoesNotExist:
-            ownership = cls(
-                project_id=project_id,
-            )
+            ownership = cls(project_id=project_id)
 
         rules = cls._matching_ownership_rules(ownership, project_id, data)
         if not rules:
@@ -123,37 +121,36 @@ def resolve_actors(owners, project_id):
         # aren't allowed to have non-lowercase in slugs, so
         # this kinda works itself out correctly since they won't match
         owners_lookup[(owner.type, owner.identifier.lower())] = owner
-        if owner.type == 'user':
+        if owner.type == "user":
             users.append(owner)
-        elif owner.type == 'team':
+        elif owner.type == "team":
             teams.append(owner)
 
     actors = {}
     if users:
-        actors.update({
-            ('user', email.lower()): Actor(u_id, User)
-            for u_id, email in User.objects.filter(
-                reduce(
-                    operator.or_,
-                    [Q(emails__email__iexact=o.identifier) for o in users]
-                ),
-                # We don't require verified emails
-                # emails__is_verified=True,
-                is_active=True,
-                sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-            ).distinct().values_list('id', 'emails__email')
-        })
+        actors.update(
+            {
+                ("user", email.lower()): Actor(u_id, User)
+                for u_id, email in User.objects.filter(
+                    reduce(operator.or_, [Q(emails__email__iexact=o.identifier) for o in users]),
+                    # We don't require verified emails
+                    # emails__is_verified=True,
+                    is_active=True,
+                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
+                )
+                .distinct()
+                .values_list("id", "emails__email")
+            }
+        )
 
     if teams:
-        actors.update({
-            ('team', slug): Actor(t_id, Team)
-            for t_id, slug in Team.objects.filter(
-                slug__in=[o.identifier for o in teams],
-                projectteam__project_id=project_id,
-            ).values_list('id', 'slug')
-        })
+        actors.update(
+            {
+                ("team", slug): Actor(t_id, Team)
+                for t_id, slug in Team.objects.filter(
+                    slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
+                ).values_list("id", "slug")
+            }
+        )
 
-    return {
-        o: actors.get((o.type, o.identifier.lower()))
-        for o in owners
-    }
+    return {o: actors.get((o.type, o.identifier.lower())) for o in owners}

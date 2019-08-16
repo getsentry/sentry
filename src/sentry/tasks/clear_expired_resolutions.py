@@ -2,12 +2,11 @@ from __future__ import absolute_import, print_function
 
 from django.db.models import Q
 
-from sentry.models import (Activity, GroupResolution, Release)
+from sentry.models import Activity, GroupResolution, Release
 from sentry.tasks.base import instrumented_task
 
 
-@instrumented_task(name='sentry.tasks.clear_expired_resolutions',
-                   time_limit=15, soft_time_limit=10)
+@instrumented_task(name="sentry.tasks.clear_expired_resolutions", time_limit=15, soft_time_limit=10)
 def clear_expired_resolutions(release_id):
     """
     This should be fired when ``release_id`` is created, and will indicate to
@@ -17,9 +16,7 @@ def clear_expired_resolutions(release_id):
     This is currenlty only used for ``in_next_release`` resolutions.
     """
     try:
-        release = Release.objects.get_from_cache(
-            id=release_id,
-        )
+        release = Release.objects.get_from_cache(id=release_id)
     except Release.DoesNotExist:
         return
 
@@ -29,9 +26,7 @@ def clear_expired_resolutions(release_id):
             release__projects=release.projects.all(),
             release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,
-        ).exclude(
-            release=release,
-        )
+        ).exclude(release=release)
     )
 
     if not resolution_list:
@@ -49,10 +44,8 @@ def clear_expired_resolutions(release_id):
                 group=resolution.group_id,
                 type=Activity.SET_RESOLVED_IN_RELEASE,
                 ident=resolution.id,
-            ).order_by('-datetime')[0]
+            ).order_by("-datetime")[0]
         except IndexError:
             continue
 
-        activity.update(data={
-            'version': release.version,
-        })
+        activity.update(data={"version": release.version})

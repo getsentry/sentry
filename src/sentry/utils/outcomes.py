@@ -42,9 +42,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     global outcomes_publisher
     if outcomes_publisher is None:
         outcomes_publisher = QueuedPublisherService(
-            KafkaPublisher(
-                settings.KAFKA_CLUSTERS[outcomes['cluster']]
-            )
+            KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
         )
 
     assert isinstance(org_id, six.integer_types)
@@ -58,24 +56,30 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     if outcome != Outcome.INVALID:
         # This simply preserves old behavior. We never counted invalid events
         # (too large, duplicate, CORS) toward regular `received` counts.
-        increment_list.extend([
-            (tsdb.models.project_total_received, project_id),
-            (tsdb.models.organization_total_received, org_id),
-            (tsdb.models.key_total_received, key_id),
-        ])
+        increment_list.extend(
+            [
+                (tsdb.models.project_total_received, project_id),
+                (tsdb.models.organization_total_received, org_id),
+                (tsdb.models.key_total_received, key_id),
+            ]
+        )
 
     if outcome == Outcome.FILTERED:
-        increment_list.extend([
-            (tsdb.models.project_total_blacklisted, project_id),
-            (tsdb.models.organization_total_blacklisted, org_id),
-            (tsdb.models.key_total_blacklisted, key_id),
-        ])
+        increment_list.extend(
+            [
+                (tsdb.models.project_total_blacklisted, project_id),
+                (tsdb.models.organization_total_blacklisted, org_id),
+                (tsdb.models.key_total_blacklisted, key_id),
+            ]
+        )
     elif outcome == Outcome.RATE_LIMITED:
-        increment_list.extend([
-            (tsdb.models.project_total_rejected, project_id),
-            (tsdb.models.organization_total_rejected, org_id),
-            (tsdb.models.key_total_rejected, key_id),
-        ])
+        increment_list.extend(
+            [
+                (tsdb.models.project_total_rejected, project_id),
+                (tsdb.models.organization_total_rejected, org_id),
+                (tsdb.models.key_total_rejected, key_id),
+            ]
+        )
 
     if reason in FILTER_STAT_KEYS_TO_VALUES:
         increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
@@ -85,25 +89,24 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
         tsdb.incr_multi(increment_list, timestamp=timestamp)
 
     # Send a snuba metrics payload.
-    if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
+    if random.random() <= options.get("snuba.track-outcomes-sample-rate"):
         outcomes_publisher.publish(
-            outcomes['topic'],
-            json.dumps({
-                'timestamp': timestamp,
-                'org_id': org_id,
-                'project_id': project_id,
-                'key_id': key_id,
-                'outcome': outcome.value,
-                'reason': reason,
-                'event_id': event_id,
-            })
+            outcomes["topic"],
+            json.dumps(
+                {
+                    "timestamp": timestamp,
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "key_id": key_id,
+                    "outcome": outcome.value,
+                    "reason": reason,
+                    "event_id": event_id,
+                }
+            ),
         )
 
     metrics.incr(
-        'events.outcomes',
+        "events.outcomes",
         skip_internal=True,
-        tags={
-            'outcome': outcome.name.lower(),
-            'reason': reason,
-        },
+        tags={"outcome": outcome.name.lower(), "reason": reason},
     )

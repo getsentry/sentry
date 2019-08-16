@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.query import TagStoreManager
 from sentry.constants import MAX_TAG_KEY_LENGTH
-from sentry.db.models import (Model, BoundedPositiveIntegerField, BoundedBigIntegerField, sane_repr)
+from sentry.db.models import Model, BoundedPositiveIntegerField, BoundedBigIntegerField, sane_repr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -15,6 +15,7 @@ class TagKey(Model):
     """
     Stores references to available filters keys.
     """
+
     __core__ = False
 
     project_id = BoundedBigIntegerField(db_index=True)
@@ -23,20 +24,20 @@ class TagKey(Model):
     values_seen = BoundedPositiveIntegerField(default=0)
     status = BoundedPositiveIntegerField(
         choices=(
-            (TagKeyStatus.VISIBLE, _('Visible')),
-            (TagKeyStatus.PENDING_DELETION, _('Pending Deletion')),
-            (TagKeyStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+            (TagKeyStatus.VISIBLE, _("Visible")),
+            (TagKeyStatus.PENDING_DELETION, _("Pending Deletion")),
+            (TagKeyStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),
-        default=TagKeyStatus.VISIBLE
+        default=TagKeyStatus.VISIBLE,
     )
 
     objects = TagStoreManager()
 
     class Meta:
-        app_label = 'tagstore'
-        unique_together = (('project_id', 'environment_id', 'key'), )
+        app_label = "tagstore"
+        unique_together = (("project_id", "environment_id", "key"),)
 
-    __repr__ = sane_repr('project_id', 'environment_id', 'key')
+    __repr__ = sane_repr("project_id", "environment_id", "key")
 
     def delete(self):
         using = router.db_for_read(TagKey)
@@ -46,7 +47,8 @@ class TagKey(Model):
             DELETE FROM tagstore_tagkey
             WHERE project_id = %s
               AND id = %s
-        """, [self.project_id, self.id]
+        """,
+            [self.project_id, self.id],
         )
 
     def get_label(self):
@@ -55,13 +57,11 @@ class TagKey(Model):
         return tagstore.get_tag_key_label(self.key)
 
     def get_audit_log_data(self):
-        return {
-            'key': self.key,
-        }
+        return {"key": self.key}
 
     @classmethod
     def get_cache_key(cls, project_id, environment_id, key):
-        return 'tagkey:1:%s:%s:%s' % (project_id, environment_id, md5_text(key).hexdigest())
+        return "tagkey:1:%s:%s:%s" % (project_id, environment_id, md5_text(key).hexdigest())
 
     @classmethod
     def get_or_create(cls, project_id, environment_id, key, **kwargs):
@@ -71,10 +71,7 @@ class TagKey(Model):
         created = False
         if rv is None:
             rv, created = cls.objects.get_or_create(
-                project_id=project_id,
-                environment_id=environment_id,
-                key=key,
-                **kwargs
+                project_id=project_id, environment_id=environment_id, key=key, **kwargs
             )
             cache.set(cache_key, rv, 3600)
 
@@ -106,12 +103,11 @@ class TagKey(Model):
         # already in one bulk query.
         to_cache = {}
         for model in cls.objects.filter(
-            project_id=project_id,
-            environment_id=environment_id,
-            key__in=remaining_keys,
+            project_id=project_id, environment_id=environment_id, key__in=remaining_keys
         ):
-            key_to_model[model.key] = to_cache[cls.get_cache_key(
-                project_id, environment_id, model.key)] = model
+            key_to_model[model.key] = to_cache[
+                cls.get_cache_key(project_id, environment_id, model.key)
+            ] = model
             remaining_keys.remove(model.key)
 
         # If we have found them all, cache all these misses
@@ -126,26 +122,23 @@ class TagKey(Model):
         # First attempt to create them all in one bulk query
         try:
             with transaction.atomic():
-                cls.objects.bulk_create([
-                    cls(
-                        project_id=project_id,
-                        environment_id=environment_id,
-                        key=key,
-                    )
-                    for key in remaining_keys
-                ])
+                cls.objects.bulk_create(
+                    [
+                        cls(project_id=project_id, environment_id=environment_id, key=key)
+                        for key in remaining_keys
+                    ]
+                )
         except IntegrityError:
             pass
         else:
             # If we succeed, the shitty part is we need one
             # more query to get back the actual rows with their ids.
             for model in cls.objects.filter(
-                project_id=project_id,
-                environment_id=environment_id,
-                key__in=remaining_keys
+                project_id=project_id, environment_id=environment_id, key__in=remaining_keys
             ):
-                key_to_model[model.key] = to_cache[cls.get_cache_key(
-                    project_id, environment_id, model.key)] = model
+                key_to_model[model.key] = to_cache[
+                    cls.get_cache_key(project_id, environment_id, model.key)
+                ] = model
                 remaining_keys.remove(model.key)
 
             cache.set_many(to_cache, 3600)

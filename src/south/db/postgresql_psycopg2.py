@@ -24,8 +24,8 @@ class DatabaseOperations(generic.DatabaseOperations):
 
         if len(column_names) == 1:
             return truncate_name(
-                '%s_%s%s' % (table_name, column_names[0], suffix),
-                self._get_connection().ops.max_name_length()
+                "%s_%s%s" % (table_name, column_names[0], suffix),
+                self._get_connection().ops.max_name_length(),
             )
         return super(DatabaseOperations, self).create_index_name(table_name, column_names, suffix)
 
@@ -35,11 +35,10 @@ class DatabaseOperations(generic.DatabaseOperations):
         if old == new:
             # Short-circuit out
             return []
-        self.execute('ALTER TABLE %s RENAME COLUMN %s TO %s;' % (
-            self.quote_name(table_name),
-            self.quote_name(old),
-            self.quote_name(new),
-        ))
+        self.execute(
+            "ALTER TABLE %s RENAME COLUMN %s TO %s;"
+            % (self.quote_name(table_name), self.quote_name(old), self.quote_name(new))
+        )
 
     @generic.invalidate_table_constraints
     def rename_table(self, old_table_name, table_name):
@@ -55,10 +54,11 @@ class DatabaseOperations(generic.DatabaseOperations):
             FROM information_schema.sequences
             WHERE sequence_name = %s
             """,
-            [old_table_name + '_id_seq']
+            [old_table_name + "_id_seq"],
         ):
             generic.DatabaseOperations.rename_table(
-                self, old_table_name + "_id_seq", table_name + "_id_seq")
+                self, old_table_name + "_id_seq", table_name + "_id_seq"
+            )
 
         # Rename primary key index, will not rename other indices on
         # the table that are used by django (e.g. foreign keys). Until
@@ -74,11 +74,12 @@ class DatabaseOperations(generic.DatabaseOperations):
               pg_attribute.attnum = any(pg_index.indkey)
               AND indisprimary
             """,
-            [table_name]
+            [table_name],
         )
         if old_table_name + "_pkey" in pkey_index_names:
             generic.DatabaseOperations.rename_table(
-                self, old_table_name + "_pkey", table_name + "_pkey")
+                self, old_table_name + "_pkey", table_name + "_pkey"
+            )
 
     def rename_index(self, old_index_name, index_name):
         "Rename an index individually"

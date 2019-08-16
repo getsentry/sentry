@@ -4,7 +4,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, FlexibleForeignKey, GzippedDictField, sane_repr
+    BoundedPositiveIntegerField,
+    Model,
+    FlexibleForeignKey,
+    GzippedDictField,
+    sane_repr,
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -21,56 +25,49 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
-    DEFAULT_ACTION_MATCH = 'all'  # any, all
+    DEFAULT_ACTION_MATCH = "all"  # any, all
     DEFAULT_FREQUENCY = 30  # minutes
 
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=64)
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,
-        choices=((RuleStatus.ACTIVE, 'Active'), (RuleStatus.INACTIVE, 'Inactive'), ),
-        db_index=True
+        choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
+        db_index=True,
     )
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=('pk', ))
+    objects = BaseManager(cache_fields=("pk",))
 
     class Meta:
-        db_table = 'sentry_rule'
-        app_label = 'sentry'
+        db_table = "sentry_rule"
+        app_label = "sentry"
 
-    __repr__ = sane_repr('project_id', 'label')
+    __repr__ = sane_repr("project_id", "label")
 
     @classmethod
     def get_for_project(cls, project_id):
-        cache_key = u'project:{}:rules'.format(project_id)
+        cache_key = u"project:{}:rules".format(project_id)
         rules_list = cache.get(cache_key)
         if rules_list is None:
-            rules_list = list(cls.objects.filter(
-                project=project_id,
-                status=RuleStatus.ACTIVE,
-            ))
+            rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
         return rules_list
 
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)
-        cache_key = u'project:{}:rules'.format(self.project_id)
+        cache_key = u"project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv
 
     def save(self, *args, **kwargs):
         rv = super(Rule, self).save(*args, **kwargs)
-        cache_key = u'project:{}:rules'.format(self.project_id)
+        cache_key = u"project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv
 
     def get_audit_log_data(self):
-        return {
-            'label': self.label,
-            'data': self.data,
-            'status': self.status,
-        }
+        return {"label": self.label, "data": self.data, "status": self.status}

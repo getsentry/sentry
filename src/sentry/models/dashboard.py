@@ -11,20 +11,20 @@ class Dashboard(Model):
     """
     A dashboard.
     """
+
     __core__ = True
 
     title = models.CharField(max_length=255)
-    created_by = FlexibleForeignKey('sentry.User')
-    organization = FlexibleForeignKey('sentry.Organization')
+    created_by = FlexibleForeignKey("sentry.User")
+    organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE,
-        choices=ObjectStatus.as_choices(),
+        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_dashboard'
-        unique_together = (('organization', 'title'), )
+        app_label = "sentry"
+        db_table = "sentry_dashboard"
+        unique_together = (("organization", "title"),)
 
-    __repr__ = sane_repr('organization', 'title')
+    __repr__ = sane_repr("organization", "title")

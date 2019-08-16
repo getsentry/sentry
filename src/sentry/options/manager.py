@@ -11,7 +11,7 @@ from sentry.utils.types import type_from_value, Any
 # Prevent outselves from clobbering the builtin
 _type = type
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 NoneType = type(None)
 
@@ -75,17 +75,18 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
         # Enforce immutability on key
-        assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
         # Enforce immutability if value is already set on disk
-        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)
-                    ), '%r cannot be changed at runtime because it is configured on disk' % key
+        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
+            "%r cannot be changed at runtime because it is configured on disk" % key
+        )
 
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
-            raise TypeError('got %r, expected %r' % (_type(value), opt.type))
+            raise TypeError("got %r, expected %r" % (_type(value), opt.type))
 
         return self.store.set(opt, value)
 
@@ -96,11 +97,11 @@ class OptionsManager(object):
             # HACK: Historically, Options were used for random adhoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
-            if key.startswith(('sentry:', 'getsentry:')):
-                logger.debug('Using legacy key: %s', key, exc_info=True)
+            if key.startswith(("sentry:", "getsentry:")):
+                logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.store.make_key(key, lambda: '', Any, DEFAULT_FLAGS, 0, 0)
+                return self.store.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
 
     def isset(self, key):
@@ -147,7 +148,7 @@ class OptionsManager(object):
                 # HACK(mattrobenolt): SENTRY_URL_PREFIX must be kept in sync
                 # when reading values from the database. This should
                 # be replaced by a signal.
-                if key == 'system.url-prefix':
+                if key == "system.url-prefix":
                     settings.SENTRY_URL_PREFIX = result
                 return result
 
@@ -178,9 +179,9 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
         # Enforce immutability on key
-        assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
 
         return self.store.delete(opt)
 
@@ -191,12 +192,12 @@ class OptionsManager(object):
         type=None,
         flags=DEFAULT_FLAGS,
         ttl=DEFAULT_KEY_TTL,
-        grace=DEFAULT_KEY_GRACE
+        grace=DEFAULT_KEY_GRACE,
     ):
-        assert key not in self.registry, 'Option already registered: %r' % key
+        assert key not in self.registry, "Option already registered: %r" % key
 
         if len(key) > 64:
-            raise ValueError('Option key has max length of 64 characters')
+            raise ValueError("Option key has max length of 64 characters")
 
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
@@ -205,6 +206,7 @@ class OptionsManager(object):
 
             def default():
                 return default_value
+
         else:
             default_value = default()
 
@@ -213,7 +215,7 @@ class OptionsManager(object):
             # the default value would be equivilent to '' if no type / default
             # is specified and we assume six.text_type for safety
             if default_value is None:
-                default_value = u''
+                default_value = u""
 
                 def default():
                     return default_value
@@ -224,11 +226,11 @@ class OptionsManager(object):
         # really make sense as config options. There should be a sensible default
         # value instead that matches the type expected, rather than relying on None.
         if type is NoneType:
-            raise TypeError('Options must not be None')
+            raise TypeError("Options must not be None")
 
         # Make sure the type is correct at registration time
         if default_value is not None and not type.test(default_value):
-            raise TypeError('got %r, expected %r' % (_type(default), type))
+            raise TypeError("got %r, expected %r" % (_type(default), type))
 
         # If we don't have a default, but we have a type, pull the default
         # value from the type
@@ -259,13 +261,13 @@ class OptionsManager(object):
             except UnknownOption as e:
                 if not warn:
                     raise
-                sys.stderr.write('* Unknown config option found: %s\n' % e)
+                sys.stderr.write("* Unknown config option found: %s\n" % e)
 
     def validate_option(self, key, value):
         opt = self.lookup_key(key)
-        assert not (opt.flags & FLAG_STOREONLY), '%r is not allowed to be loaded from config' % key
+        assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
         if not opt.type.test(value):
-            raise TypeError('%r: got %r, expected %r' % (key, _type(value), opt.type))
+            raise TypeError("%r: got %r, expected %r" % (key, _type(value), opt.type))
 
     def all(self):
         """

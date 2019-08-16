@@ -11,10 +11,24 @@ from django.core import mail
 from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change, clean_series, colorize,
-    deliver_organization_user_report, get_calendar_range, get_percentile, has_valid_aggregates,
-    index_to_month, merge_mappings, merge_sequences, merge_series, month_to_index, prepare_reports,
-    safe_add, user_subscribed_to_organization_reports
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+    Report,
+    Skipped,
+    change,
+    clean_series,
+    colorize,
+    deliver_organization_user_report,
+    get_calendar_range,
+    get_percentile,
+    has_valid_aggregates,
+    index_to_month,
+    merge_mappings,
+    merge_sequences,
+    merge_series,
+    month_to_index,
+    prepare_reports,
+    safe_add,
+    user_subscribed_to_organization_reports,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -43,124 +57,63 @@ def test_safe_add():
 
 
 def test_merge_mappings():
-    assert merge_mappings(
-        {
-            'a': 1,
-            'b': 2,
-            'c': 3
-        },
-        {'a': 0,
-         'b': 1,
-         'c': 2},
-    ) == {
-        'a': 1,
-        'b': 3,
-        'c': 5
+    assert merge_mappings({"a": 1, "b": 2, "c": 3}, {"a": 0, "b": 1, "c": 2}) == {
+        "a": 1,
+        "b": 3,
+        "c": 5,
     }
 
 
 def test_merge_mappings_custom_operator():
     assert merge_mappings(
-        {
-            'a': {
-                'x': 1,
-                'y': 1
-            },
-            'b': {
-                'x': 2,
-                'y': 2
-            },
-        },
-        {
-            'a': {
-                'x': 1,
-                'y': 1
-            },
-            'b': {
-                'x': 2,
-                'y': 2
-            },
-        },
+        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
+        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
         lambda left, right: merge_mappings(left, right),
-    ) == {
-        'a': {
-            'x': 2,
-            'y': 2
-        },
-        'b': {
-            'x': 4,
-            'y': 4
-        },
-    }
+    ) == {"a": {"x": 2, "y": 2}, "b": {"x": 4, "y": 4}}
 
 
 def test_merge_mapping_different_keys():
     with pytest.raises(AssertionError):
-        merge_mappings({'a': 1}, {'b': 2})
+        merge_mappings({"a": 1}, {"b": 2})
 
 
 def test_merge_sequences():
-    assert merge_sequences(
-        range(0, 4),
-        range(0, 4),
-    ) == [i * 2 for i in xrange(0, 4)]
+    assert merge_sequences(range(0, 4), range(0, 4)) == [i * 2 for i in xrange(0, 4)]
 
 
 def test_merge_sequences_custom_operator():
     assert merge_sequences(
-        [{
-            chr(65 + i): i
-        } for i in xrange(0, 26)],
-        [{
-            chr(65 + i): i
-        } for i in xrange(0, 26)],
+        [{chr(65 + i): i} for i in xrange(0, 26)],
+        [{chr(65 + i): i} for i in xrange(0, 26)],
         merge_mappings,
-    ) == [{
-        chr(65 + i): i * 2
-    } for i in xrange(0, 26)]
+    ) == [{chr(65 + i): i * 2} for i in xrange(0, 26)]
 
 
 def test_merge_series():
-    assert merge_series(
-        [(i, i) for i in xrange(0, 10)],
-        [(i, i) for i in xrange(0, 10)],
-    ) == [(i, i * 2) for i in xrange(0, 10)]
+    assert merge_series([(i, i) for i in xrange(0, 10)], [(i, i) for i in xrange(0, 10)]) == [
+        (i, i * 2) for i in xrange(0, 10)
+    ]
 
 
 def test_merge_series_custom_operator():
     assert merge_series(
-        [(i, {
-            chr(65 + i): i
-        }) for i in xrange(0, 26)],
-        [(i, {
-            chr(65 + i): i
-        }) for i in xrange(0, 26)],
+        [(i, {chr(65 + i): i}) for i in xrange(0, 26)],
+        [(i, {chr(65 + i): i}) for i in xrange(0, 26)],
         merge_mappings,
-    ) == [(i, {
-        chr(65 + i): i * 2
-    }) for i in xrange(0, 26)]
+    ) == [(i, {chr(65 + i): i * 2}) for i in xrange(0, 26)]
 
 
 def test_merge_series_offset_timestamps():
     with pytest.raises(AssertionError):
-        merge_series(
-            [(i, i) for i in xrange(0, 10)],
-            [(i + 1, i) for i in xrange(0, 10)],
-        )
+        merge_series([(i, i) for i in xrange(0, 10)], [(i + 1, i) for i in xrange(0, 10)])
 
 
 def test_merge_series_different_lengths():
     with pytest.raises(AssertionError):
-        merge_series(
-            [(i, i) for i in xrange(0, 1)],
-            [(i, i) for i in xrange(0, 10)],
-        )
+        merge_series([(i, i) for i in xrange(0, 1)], [(i, i) for i in xrange(0, 10)])
 
     with pytest.raises(AssertionError):
-        merge_series(
-            [(i, i) for i in xrange(0, 10)],
-            [(i, i) for i in xrange(0, 1)],
-        )
+        merge_series([(i, i) for i in xrange(0, 10)], [(i, i) for i in xrange(0, 1)])
 
 
 def test_clean_series():
@@ -169,12 +122,7 @@ def test_clean_series():
     start = to_datetime(rollup * 0)
     stop = to_datetime(rollup * n)
     series = [(rollup * i, i) for i in xrange(0, n)]
-    assert clean_series(
-        start,
-        stop,
-        rollup,
-        series,
-    ) == series
+    assert clean_series(start, stop, rollup, series) == series
 
 
 def test_clean_series_trims_extra():
@@ -183,12 +131,7 @@ def test_clean_series_trims_extra():
     start = to_datetime(rollup * 0)
     stop = to_datetime(rollup * n)
     series = [(rollup * i, i) for i in xrange(0, n + 1)]
-    assert clean_series(
-        start,
-        stop,
-        rollup,
-        series,
-    ) == series[:n]
+    assert clean_series(start, stop, rollup, series) == series[:n]
 
 
 def test_clean_series_rejects_offset_timestamp():
@@ -198,12 +141,7 @@ def test_clean_series_rejects_offset_timestamp():
     stop = to_datetime(rollup * n)
     series = [(rollup * (i * 1.1), i) for i in xrange(0, n)]
     with pytest.raises(AssertionError):
-        clean_series(
-            start,
-            stop,
-            rollup,
-            series,
-        )
+        clean_series(start, stop, rollup, series)
 
 
 def test_has_valid_aggregates(interval):
@@ -212,20 +150,11 @@ def test_has_valid_aggregates(interval):
     def make_report(aggregates):
         return Report(None, aggregates, None, None, None)
 
-    assert has_valid_aggregates(
-        interval,
-        (project, make_report([None] * 4)),
-    ) is False
+    assert has_valid_aggregates(interval, (project, make_report([None] * 4))) is False
 
-    assert has_valid_aggregates(
-        interval,
-        (project, make_report([0] * 4)),
-    ) is False
+    assert has_valid_aggregates(interval, (project, make_report([0] * 4))) is False
 
-    assert has_valid_aggregates(
-        interval,
-        (project, make_report([1, 0, 0, 0])),
-    ) is True
+    assert has_valid_aggregates(interval, (project, make_report([1, 0, 0, 0]))) is True
 
 
 def test_percentiles():
@@ -238,18 +167,18 @@ def test_percentiles():
 
 
 def test_colorize():
-    colors = ['green', 'yellow', 'red']
+    colors = ["green", "yellow", "red"]
     values = [2, 5, 1, 3, 4, 0]
 
     legend, results = colorize(colors, values)
 
     assert results == [
-        (2, 'yellow'),
-        (5, 'red'),
-        (1, 'green'),
-        (3, 'yellow'),
-        (4, 'red'),
-        (0, 'green'),
+        (2, "yellow"),
+        (5, "red"),
+        (1, "green"),
+        (3, "yellow"),
+        (4, "red"),
+        (0, "green"),
     ]
 
 
@@ -258,10 +187,10 @@ def test_month_indexing():
 
 
 def test_calendar_range():
-    assert get_calendar_range(
-        (None, datetime(2016, 2, 1, tzinfo=pytz.utc)),
-        months=3,
-    ) == (month_to_index(2015, 11), month_to_index(2016, 1), )
+    assert get_calendar_range((None, datetime(2016, 2, 1, tzinfo=pytz.utc)), months=3) == (
+        month_to_index(2015, 11),
+        month_to_index(2016, 1),
+    )
 
 
 class ReportTestCase(TestCase):
@@ -271,21 +200,16 @@ class ReportTestCase(TestCase):
         now = datetime(2016, 9, 12, tzinfo=pytz.utc)
 
         project = self.create_project(
-            organization=self.organization,
-            teams=[self.team],
-            date_added=now - timedelta(days=90),
+            organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
         )
 
-        tsdb.incr(
-            tsdb.models.project,
-            project.id,
-            now - timedelta(days=1),
-        )
+        tsdb.incr(tsdb.models.project, project.id, now - timedelta(days=1))
 
         member_set = set(project.teams.first().member_set.all())
 
-        with self.tasks(), \
-                mock.patch.object(tsdb, 'get_earliest_timestamp') as get_earliest_timestamp:
+        with self.tasks(), mock.patch.object(
+            tsdb, "get_earliest_timestamp"
+        ) as get_earliest_timestamp:
             # Ensure ``get_earliest_timestamp`` is relative to the fixed
             # "current" timestamp -- this prevents filtering out data points
             # that would be considered expired relative to the *actual* current
@@ -303,17 +227,11 @@ class ReportTestCase(TestCase):
         organization = self.organization
 
         set_option_value = functools.partial(
-            UserOption.objects.set_value,
-            user,
-            DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+            UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
         )
 
         deliver_report = functools.partial(
-            deliver_organization_user_report,
-            0,
-            60 * 60 * 24 * 7,
-            organization.id,
-            user.id,
+            deliver_organization_user_report, 0, 60 * 60 * 24 * 7, organization.id, user.id
         )
 
         set_option_value([])
@@ -327,9 +245,7 @@ class ReportTestCase(TestCase):
         organization = self.organization
 
         set_option_value = functools.partial(
-            UserOption.objects.set_value,
-            user,
-            DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+            UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
         )
 
         set_option_value([])

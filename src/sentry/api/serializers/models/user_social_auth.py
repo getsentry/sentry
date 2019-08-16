@@ -12,7 +12,7 @@ from sentry.api.serializers import Serializer, register
 class UserSocialAuthSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'id': six.text_type(obj.id),
-            'provider': obj.provider,
-            'providerLabel': settings.AUTH_PROVIDER_LABELS[obj.provider],
+            "id": six.text_type(obj.id),
+            "provider": obj.provider,
+            "providerLabel": settings.AUTH_PROVIDER_LABELS[obj.provider],
         }

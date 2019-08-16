@@ -13,17 +13,15 @@ class VstsExtensionConfigurationView(BaseView):
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
-            configure_uri = u'{}?{}'.format(
-                reverse('vsts-extension-configuration'),
-                urlencode({
-                    'targetId': request.GET['targetId'],
-                    'targetName': request.GET['targetName'],
-                }),
+            configure_uri = u"{}?{}".format(
+                reverse("vsts-extension-configuration"),
+                urlencode(
+                    {"targetId": request.GET["targetId"], "targetName": request.GET["targetName"]}
+                ),
             )
 
-            redirect_uri = u'{}?{}'.format(
-                reverse('sentry-login'),
-                urlencode({'next': configure_uri}),
+            redirect_uri = u"{}?{}".format(
+                reverse("sentry-login"), urlencode({"next": configure_uri})
             )
 
             return self.redirect(redirect_uri)
@@ -32,47 +30,38 @@ class VstsExtensionConfigurationView(BaseView):
             org = request.user.get_orgs()[0]
 
             pipeline = self.init_pipeline(
-                request,
-                org,
-                request.GET['targetId'],
-                request.GET['targetName'],
+                request, org, request.GET["targetId"], request.GET["targetName"]
             )
 
             return pipeline.current_step()
         else:
-            return self.redirect(u'/extensions/vsts/link/?{}'.format(
-                urlencode({
-                    'targetId': request.GET['targetId'],
-                    'targetName': request.GET['targetName'],
-                })
-            ))
+            return self.redirect(
+                u"/extensions/vsts/link/?{}".format(
+                    urlencode(
+                        {
+                            "targetId": request.GET["targetId"],
+                            "targetName": request.GET["targetName"],
+                        }
+                    )
+                )
+            )
 
     def post(self, request, *args, **kwargs):
         # Update Integration with Organization chosen
-        org = Organization.objects.get(
-            slug=request.POST['organization'],
-        )
+        org = Organization.objects.get(slug=request.POST["organization"])
 
         pipeline = self.init_pipeline(
-            request,
-            org,
-            request.POST['vsts_id'],
-            request.POST['vsts_name'],
+            request, org, request.POST["vsts_id"], request.POST["vsts_name"]
         )
 
         return pipeline.current_step()
 
     def init_pipeline(self, request, organization, id, name):
         pipeline = IntegrationPipeline(
-            request=request,
-            organization=organization,
-            provider_key='vsts-extension',
+            request=request, organization=organization, provider_key="vsts-extension"
         )
 
         pipeline.initialize()
-        pipeline.bind_state('vsts', {
-            'accountId': id,
-            'accountName': name,
-        })
+        pipeline.bind_state("vsts", {"accountId": id, "accountName": name})
 
         return pipeline

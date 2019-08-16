@@ -16,13 +16,13 @@ class RecentSearchSerializerTest(TestCase):
             organization=self.organization,
             user=self.user,
             type=SearchType.ISSUE.value,
-            query='some query'
+            query="some query",
         )
         result = serialize(search)
 
-        assert result['id'] == six.text_type(search.id)
-        assert result['organizationId'] == six.text_type(search.organization_id)
-        assert result['type'] == search.type
-        assert result['query'] == search.query
-        assert result['lastSeen'] == search.last_seen
-        assert result['dateCreated'] == search.date_added
+        assert result["id"] == six.text_type(search.id)
+        assert result["organizationId"] == six.text_type(search.organization_id)
+        assert result["type"] == search.type
+        assert result["query"] == search.query
+        assert result["lastSeen"] == search.last_seen
+        assert result["dateCreated"] == search.date_added

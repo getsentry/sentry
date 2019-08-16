@@ -16,109 +16,98 @@ from .serializers import DiscoverQuerySerializer
 
 
 class DiscoverQueryPermission(OrganizationPermission):
-    scope_map = {
-        'POST': ['org:read', 'project:read'],
-    }
+    scope_map = {"POST": ["org:read", "project:read"]}
 
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
-    permission_classes = (DiscoverQueryPermission, )
+    permission_classes = (DiscoverQueryPermission,)
 
     def handle_results(self, snuba_results, requested_query, projects):
-        if 'project.name' in requested_query['selected_columns']:
-            project_name_index = requested_query['selected_columns'].index('project.name')
-            snuba_results['meta'].insert(
-                project_name_index, {
-                    'name': 'project.name', 'type': 'String'})
-            if 'project.id' not in requested_query['selected_columns']:
-                snuba_results['meta'] = [
-                    field for field in snuba_results['meta'] if field['name'] != 'project.id'
+        if "project.name" in requested_query["selected_columns"]:
+            project_name_index = requested_query["selected_columns"].index("project.name")
+            snuba_results["meta"].insert(
+                project_name_index, {"name": "project.name", "type": "String"}
+            )
+            if "project.id" not in requested_query["selected_columns"]:
+                snuba_results["meta"] = [
+                    field for field in snuba_results["meta"] if field["name"] != "project.id"
                 ]
 
-            for result in snuba_results['data']:
-                if 'project.id' in result:
-                    result['project.name'] = projects[result['project.id']]
-                    if 'project.id' not in requested_query['selected_columns']:
-                        del result['project.id']
+            for result in snuba_results["data"]:
+                if "project.id" in result:
+                    result["project.name"] = projects[result["project.id"]]
+                    if "project.id" not in requested_query["selected_columns"]:
+                        del result["project.id"]
 
-        if 'project.name' in requested_query['groupby']:
-            project_name_index = requested_query['groupby'].index('project.name')
-            snuba_results['meta'].insert(
-                project_name_index, {
-                    'name': 'project.name', 'type': 'String'})
-            if 'project.id' not in requested_query['groupby']:
-                snuba_results['meta'] = [
-                    field for field in snuba_results['meta'] if field['name'] != 'project.id'
+        if "project.name" in requested_query["groupby"]:
+            project_name_index = requested_query["groupby"].index("project.name")
+            snuba_results["meta"].insert(
+                project_name_index, {"name": "project.name", "type": "String"}
+            )
+            if "project.id" not in requested_query["groupby"]:
+                snuba_results["meta"] = [
+                    field for field in snuba_results["meta"] if field["name"] != "project.id"
                 ]
 
-            for result in snuba_results['data']:
-                if 'project.id' in result:
-                    result['project.name'] = projects[result['project.id']]
-                    if 'project.id' not in requested_query['groupby']:
-                        del result['project.id']
+            for result in snuba_results["data"]:
+                if "project.id" in result:
+                    result["project.name"] = projects[result["project.id"]]
+                    if "project.id" not in requested_query["groupby"]:
+                        del result["project.id"]
 
         # Convert snuba types to json types
-        for col in snuba_results['meta']:
-            col['type'] = snuba.get_json_type(col.get('type'))
+        for col in snuba_results["meta"]:
+            col["type"] = snuba.get_json_type(col.get("type"))
 
         return snuba_results
 
     def do_query(self, projects, request, **kwargs):
         requested_query = deepcopy(kwargs)
 
-        selected_columns = kwargs['selected_columns']
-        groupby_columns = kwargs['groupby']
+        selected_columns = kwargs["selected_columns"]
+        groupby_columns = kwargs["groupby"]
 
-        if 'project.name' in requested_query['selected_columns']:
-            selected_columns.remove('project.name')
-            if 'project.id' not in selected_columns:
-                selected_columns.append('project.id')
+        if "project.name" in requested_query["selected_columns"]:
+            selected_columns.remove("project.name")
+            if "project.id" not in selected_columns:
+                selected_columns.append("project.id")
 
-        if 'project.name' in requested_query['groupby']:
-            groupby_columns.remove('project.name')
-            if 'project.id' not in groupby_columns:
-                groupby_columns.append('project.id')
+        if "project.name" in requested_query["groupby"]:
+            groupby_columns.remove("project.name")
+            if "project.id" not in groupby_columns:
+                groupby_columns.append("project.id")
 
-        for aggregation in kwargs['aggregations']:
-            if aggregation[1] == 'project.name':
-                aggregation[1] = 'project.id'
+        for aggregation in kwargs["aggregations"]:
+            if aggregation[1] == "project.name":
+                aggregation[1] = "project.id"
 
-        if not kwargs['aggregations']:
+        if not kwargs["aggregations"]:
 
-            data_fn = partial(
-                snuba.transform_aliases_and_query,
-                referrer='discover',
-                **kwargs
-            )
+            data_fn = partial(snuba.transform_aliases_and_query, referrer="discover", **kwargs)
             return self.paginate(
                 request=request,
                 on_results=lambda results: self.handle_results(results, requested_query, projects),
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
-                max_per_page=1000
+                max_per_page=1000,
             )
         else:
-            snuba_results = snuba.transform_aliases_and_query(
-                referrer='discover',
-                **kwargs
+            snuba_results = snuba.transform_aliases_and_query(referrer="discover", **kwargs)
+            return Response(
+                self.handle_results(snuba_results, requested_query, projects), status=200
             )
-            return Response(self.handle_results(
-                snuba_results,
-                requested_query,
-                projects,
-            ), status=200)
 
     def post(self, request, organization):
 
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not features.has("organizations:discover", organization, actor=request.user):
             return Response(status=404)
 
-        requested_projects = request.data['projects']
+        requested_projects = request.data["projects"]
 
-        projects = list(Project.objects.filter(
-            id__in=requested_projects,
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ))
+        projects = list(
+            Project.objects.filter(
+                id__in=requested_projects, organization=organization, status=ProjectStatus.VISIBLE
+            )
+        )
 
         has_invalid_projects = len(projects) < len(requested_projects)
 
@@ -132,10 +121,13 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
 
         serialized = serializer.validated_data
 
-        has_aggregations = len(serialized.get('aggregations')) > 0
+        has_aggregations = len(serialized.get("aggregations")) > 0
 
-        selected_columns = serialized.get(
-            'conditionFields', []) + [] if has_aggregations else serialized.get('fields', [])
+        selected_columns = (
+            serialized.get("conditionFields", []) + []
+            if has_aggregations
+            else serialized.get("fields", [])
+        )
 
         projects_map = {}
         for project in projects:
@@ -143,8 +135,8 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
 
         # Make sure that all selected fields are in the group by clause if there
         # are aggregations
-        groupby = serialized.get('groupby') or []
-        fields = serialized.get('fields') or []
+        groupby = serialized.get("groupby") or []
+        fields = serialized.get("fields") or []
         if has_aggregations:
             for field in fields:
                 if field not in groupby:
@@ -152,17 +144,17 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
 
         return self.do_query(
             projects=projects_map,
-            start=serialized.get('start'),
-            end=serialized.get('end'),
+            start=serialized.get("start"),
+            end=serialized.get("end"),
             groupby=groupby,
             selected_columns=selected_columns,
-            conditions=serialized.get('conditions'),
-            orderby=serialized.get('orderby'),
-            limit=serialized.get('limit'),
-            aggregations=serialized.get('aggregations'),
-            rollup=serialized.get('rollup'),
-            filter_keys={'project.id': serialized.get('projects')},
-            arrayjoin=serialized.get('arrayjoin'),
+            conditions=serialized.get("conditions"),
+            orderby=serialized.get("orderby"),
+            limit=serialized.get("limit"),
+            aggregations=serialized.get("aggregations"),
+            rollup=serialized.get("rollup"),
+            filter_keys={"project.id": serialized.get("projects")},
+            arrayjoin=serialized.get("arrayjoin"),
             request=request,
-            turbo=serialized.get('turbo'),
+            turbo=serialized.get("turbo"),
         )

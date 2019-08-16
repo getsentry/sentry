@@ -13,17 +13,14 @@ class SentryAppInstallationTest(TestCase):
 
         self.sentry_app = SentryApp.objects.create(
             application=self.application,
-            name='NullDB',
+            name="NullDB",
             proxy_user=self.proxy,
             owner=self.org,
-            scope_list=('project:read', ),
-            webhook_url='http://example.com',
+            scope_list=("project:read",),
+            webhook_url="http://example.com",
         )
 
-        self.install = SentryAppInstallation(
-            sentry_app=self.sentry_app,
-            organization=self.org,
-        )
+        self.install = SentryAppInstallation(sentry_app=self.sentry_app, organization=self.org)
 
     def test_paranoid(self):
         self.install.save()
@@ -40,5 +37,4 @@ class SentryAppInstallationTest(TestCase):
     def test_related_names(self):
         self.install.save()
         assert self.install in self.install.sentry_app.installations.all()
-        assert self.install in \
-            self.install.organization.sentry_app_installations.all()
+        assert self.install in self.install.organization.sentry_app_installations.all()

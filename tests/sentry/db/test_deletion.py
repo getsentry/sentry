@@ -16,10 +16,7 @@ class BulkDeleteQueryTest(TestCase):
         project2 = self.create_project()
         group2_1 = self.create_group(project2)
         group2_2 = self.create_group(project2)
-        BulkDeleteQuery(
-            model=Group,
-            project_id=project1.id,
-        ).execute()
+        BulkDeleteQuery(model=Group, project_id=project1.id).execute()
         assert Project.objects.filter(id=project1.id).exists()
         assert Project.objects.filter(id=project2.id).exists()
         assert Group.objects.filter(id=group2_1.id).exists()
@@ -33,11 +30,7 @@ class BulkDeleteQueryTest(TestCase):
         group1_1 = self.create_group(project1, last_seen=now - timedelta(days=1))
         group1_2 = self.create_group(project1, last_seen=now - timedelta(days=1))
         group1_3 = self.create_group(project1, last_seen=now)
-        BulkDeleteQuery(
-            model=Group,
-            dtfield='last_seen',
-            days=1,
-        ).execute()
+        BulkDeleteQuery(model=Group, dtfield="last_seen", days=1).execute()
         assert not Group.objects.filter(id=group1_1.id).exists()
         assert not Group.objects.filter(id=group1_2.id).exists()
         assert Group.objects.filter(id=group1_3.id).exists()
@@ -55,8 +48,8 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
         iterator = BulkDeleteQuery(
             model=Group,
             project_id=target_project.id,
-            dtfield='last_seen',
-            order_by='last_seen',
+            dtfield="last_seen",
+            order_by="last_seen",
             days=0,
         ).iterator(1)
 

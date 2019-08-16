@@ -10,9 +10,9 @@ from sentry.db.models.utils import Creator
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
-__all__ = ('GzippedDictField', )
+__all__ = ("GzippedDictField",)
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 class GzippedDictField(TextField):
@@ -55,7 +55,7 @@ class GzippedDictField(TextField):
         return self.get_prep_value(value)
 
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.gzippeddict\.GzippedDictField"])

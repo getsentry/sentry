@@ -42,7 +42,7 @@ class InstanceManager(object):
 
         results = []
         for cls_path in class_list:
-            module_name, class_name = cls_path.rsplit('.', 1)
+            module_name, class_name = cls_path.rsplit(".", 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)
                 cls = getattr(module, class_name)
@@ -51,8 +51,8 @@ class InstanceManager(object):
                 else:
                     results.append(cls)
             except Exception:
-                logger = logging.getLogger('sentry.errors')
-                logger.exception('Unable to import %s', cls_path)
+                logger = logging.getLogger("sentry.errors")
+                logger.exception("Unable to import %s", cls_path)
                 continue
         self.cache = results
 

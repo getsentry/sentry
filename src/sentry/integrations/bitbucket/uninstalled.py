@@ -6,7 +6,10 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.base import Endpoint
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_jwt
+from sentry.integrations.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
 
 
 class BitbucketUninstalledEndpoint(Endpoint):
@@ -19,13 +22,13 @@ class BitbucketUninstalledEndpoint(Endpoint):
 
     def post(self, request, *args, **kwargs):
         try:
-            token = request.META['HTTP_AUTHORIZATION'].split(' ', 1)[1]
+            token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
         except (KeyError, IndexError):
             return self.respond(status=400)
 
         try:
             integration = get_integration_from_jwt(
-                token, request.path, 'bitbucket', request.GET, method='POST'
+                token, request.path, "bitbucket", request.GET, method="POST"
             )
         except AtlassianConnectValidationError:
             return self.respond(status=400)
@@ -34,8 +37,8 @@ class BitbucketUninstalledEndpoint(Endpoint):
         organizations = integration.organizations.all()
 
         Repository.objects.filter(
-            organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:bitbucket',
+            organization_id__in=organizations.values_list("id", flat=True),
+            provider="integrations:bitbucket",
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 

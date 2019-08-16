@@ -11,10 +11,10 @@ from sentry.models import Environment, Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('RetrieveEventCountsTeam')
+@scenario("RetrieveEventCountsTeam")
 def retrieve_event_counts_team(runner):
     runner.request(
-        method='GET', path='/teams/%s/%s/stats/' % (runner.org.slug, runner.default_team.slug)
+        method="GET", path="/teams/%s/%s/stats/" % (runner.org.slug, runner.default_team.slug)
     )
 
 
@@ -49,17 +49,11 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         :auth: required
         """
         try:
-            environment_id = self._get_environment_id_from_request(
-                request,
-                team.organization_id,
-            )
+            environment_id = self._get_environment_id_from_request(request, team.organization_id)
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        projects = Project.objects.get_for_user(
-            team=team,
-            user=request.user,
-        )
+        projects = Project.objects.get_for_user(team=team, user=request.user)
 
         if not projects:
             return Response([])

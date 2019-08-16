@@ -10,14 +10,9 @@ from .mail import MailPreview
 
 class DebugUnableToFetchCommitsEmailView(View):
     def get(self, request):
-        release = Release(version='abcdef')
+        release = Release(version="abcdef")
 
-        email = generate_fetch_commits_error_email(
-            release,
-            'An internal server error occurred'
-        )
+        email = generate_fetch_commits_error_email(release, "An internal server error occurred")
         return MailPreview(
-            html_template=email.html_template,
-            text_template=email.template,
-            context=email.context,
+            html_template=email.html_template, text_template=email.template, context=email.context
         ).render(request)

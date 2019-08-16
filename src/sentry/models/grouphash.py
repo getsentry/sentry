@@ -13,18 +13,15 @@ class GroupHash(Model):
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
-    group = FlexibleForeignKey('sentry.Group', null=True)
+    group = FlexibleForeignKey("sentry.Group", null=True)
     group_tombstone_id = BoundedPositiveIntegerField(db_index=True, null=True)
     state = BoundedPositiveIntegerField(
-        choices=[
-            (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
-        ],
-        null=True,
+        choices=[(State.LOCKED_IN_MIGRATION, _("Locked (Migration in Progress)"))], null=True
     )
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_grouphash'
-        unique_together = (('project', 'hash'), )
+        app_label = "sentry"
+        db_table = "sentry_grouphash"
+        unique_together = (("project", "hash"),)

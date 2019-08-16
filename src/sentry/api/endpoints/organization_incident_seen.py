@@ -2,17 +2,12 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.incident import (
-    IncidentEndpoint,
-    IncidentPermission,
-)
-from sentry.incidents.logic import (
-    set_incident_seen,
-)
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
+from sentry.incidents.logic import set_incident_seen
 
 
 class OrganizationIncidentSeenEndpoint(IncidentEndpoint):
-    permission_classes = (IncidentPermission, )
+    permission_classes = (IncidentPermission,)
 
     def post(self, request, organization, incident):
         """

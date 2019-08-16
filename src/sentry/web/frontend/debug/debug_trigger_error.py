@@ -9,7 +9,7 @@ from sentry.utils.sdk import capture_exception
 class DebugTriggerErrorView(View):
     def get(self, request):
         try:
-            raise ValueError('An example error')
+            raise ValueError("An example error")
         except Exception:
             capture_exception()
 

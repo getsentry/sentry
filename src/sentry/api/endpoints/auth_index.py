@@ -24,10 +24,7 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [
-        QuietBasicAuthentication,
-        SessionAuthentication,
-    ]
+    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
 
@@ -66,10 +63,10 @@ class AuthIndexEndpoint(Endpoint):
         if Authenticator.objects.user_has_2fa(request.user):
             return Response(
                 {
-                    '2fa_required': True,
-                    'message': 'Cannot sign-in with password authentication when 2fa is enabled.'
+                    "2fa_required": True,
+                    "message": "Cannot sign-in with password authentication when 2fa is enabled.",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         try:
@@ -78,9 +75,9 @@ class AuthIndexEndpoint(Endpoint):
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
-                    'message': 'Cannot sign-in with password authentication because password has expired.',
+                    "message": "Cannot sign-in with password authentication because password has expired."
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         request.user = request._request.user
@@ -106,14 +103,14 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = False
 
         # See if we have a u2f challenge/response
-        if 'challenge' in validator.validated_data and 'response' in validator.validated_data:
+        if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface = Authenticator.objects.get_interface(request.user, 'u2f')
+                interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled:
                     raise LookupError()
 
-                challenge = json.loads(validator.validated_data['challenge'])
-                response = json.loads(validator.validated_data['response'])
+                challenge = json.loads(validator.validated_data["challenge"])
+                response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
             except ValueError:
                 pass
@@ -122,11 +119,11 @@ class AuthIndexEndpoint(Endpoint):
 
         # attempt password authentication
         else:
-            authenticated = request.user.check_password(validator.validated_data['password'])
+            authenticated = request.user.check_password(validator.validated_data["password"])
 
         # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
-            return Response({'detail': {'code': 'ignore'}}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the real request object that Django knows about
@@ -134,10 +131,10 @@ class AuthIndexEndpoint(Endpoint):
         except auth.AuthUserPasswordExpired:
             return Response(
                 {
-                    'code': 'password-expired',
-                    'message': 'Cannot sign-in with basic auth because password has expired.',
+                    "code": "password-expired",
+                    "message": "Cannot sign-in with basic auth because password has expired.",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         request.user = request._request.user
@@ -152,7 +149,7 @@ class AuthIndexEndpoint(Endpoint):
         Deauthenticate the currently active session. Can also deactivate
         all sessions for a user if the ``all`` parameter is sent.
         """
-        if request.data.get('all'):
+        if request.data.get("all"):
             # Rotate the session nonce to invalidate all other sessions.
             request.user.refresh_session_nonce()
             request.user.save()

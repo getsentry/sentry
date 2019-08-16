@@ -30,13 +30,10 @@ class DataForwardingPlugin(Plugin):
         return serialize(event)
 
     def get_plugin_type(self):
-        return 'data-forwarding'
+        return "data-forwarding"
 
     def post_process(self, event, **kwargs):
-        rl_key = u'{}:{}'.format(
-            self.conf_key,
-            event.project.organization_id,
-        )
+        rl_key = u"{}:{}".format(self.conf_key, event.project.organization_id)
         # limit segment to 50 requests/second
         limit, window = self.get_rate_limit()
         if limit and window and ratelimits.is_limited(rl_key, limit=limit, window=window):

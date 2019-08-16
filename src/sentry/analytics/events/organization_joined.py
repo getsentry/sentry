@@ -4,12 +4,9 @@ from sentry import analytics
 
 
 class OrganizationJoinedEvent(analytics.Event):
-    type = 'organization.joined'
+    type = "organization.joined"
 
-    attributes = (
-        analytics.Attribute('user_id'),
-        analytics.Attribute('organization_id'),
-    )
+    attributes = (analytics.Attribute("user_id"), analytics.Attribute("organization_id"))
 
 
 analytics.register(OrganizationJoinedEvent)

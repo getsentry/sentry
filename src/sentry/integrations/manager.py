@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IntegrationManager']
+__all__ = ["IntegrationManager"]
 
 import six
 

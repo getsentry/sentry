@@ -22,7 +22,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
 
         safe_execute(self.load_user_conf, request, _with_transaction=False)
 
-        lang_code = request.GET.get('lang')
+        lang_code = request.GET.get("lang")
         # user is explicitly forcing language
         if lang_code:
             try:
@@ -39,11 +39,11 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if not request.user.is_authenticated():
             return
 
-        language = UserOption.objects.get_value(user=request.user, key='language')
+        language = UserOption.objects.get_value(user=request.user, key="language")
         if language:
             request.session[LANGUAGE_SESSION_KEY] = language
 
-        timezone = UserOption.objects.get_value(user=request.user, key='timezone')
+        timezone = UserOption.objects.get_value(user=request.user, key="timezone")
         if timezone:
             request.timezone = pytz.timezone(timezone)
 

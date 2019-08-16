@@ -6,11 +6,11 @@ from sentry.testutils import TestCase
 
 
 class CsrfFailureTest(TestCase):
-    urls = 'sentry.conf.urls'
+    urls = "sentry.conf.urls"
 
     def test_simple(self):
-        path = reverse('error-403-csrf-failure')
+        path = reverse("error-403-csrf-failure")
 
         resp = self.client.get(path)
         assert resp.status_code == 403
-        self.assertTemplateUsed(resp, 'sentry/403-csrf-failure.html')
+        self.assertTemplateUsed(resp, "sentry/403-csrf-failure.html")

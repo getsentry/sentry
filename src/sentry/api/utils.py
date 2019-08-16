@@ -20,7 +20,7 @@ def get_datetime_from_stats_period(stats_period, now=None):
         now = timezone.now()
     stats_period = parse_stats_period(stats_period)
     if stats_period is None:
-        raise InvalidParams('Invalid statsPeriod')
+        raise InvalidParams("Invalid statsPeriod")
     return now - stats_period
 
 
@@ -49,31 +49,31 @@ def get_date_range_from_params(params, optional=False):
     end = now
     start = now - MAX_STATS_PERIOD
 
-    stats_period = params.get('statsPeriod')
-    stats_period_start = params.get('statsPeriodStart')
-    stats_period_end = params.get('statsPeriodEnd')
+    stats_period = params.get("statsPeriod")
+    stats_period_start = params.get("statsPeriodStart")
+    stats_period_end = params.get("statsPeriodEnd")
 
     if stats_period is not None:
         start = get_datetime_from_stats_period(stats_period, now)
 
     elif stats_period_start or stats_period_end:
         if not all([stats_period_start, stats_period_end]):
-            raise InvalidParams('statsPeriodStart and statsPeriodEnd are both required')
+            raise InvalidParams("statsPeriodStart and statsPeriodEnd are both required")
         start = get_datetime_from_stats_period(stats_period_start, now)
         end = get_datetime_from_stats_period(stats_period_end, now)
 
-    elif params.get('start') or params.get('end'):
-        if not all([params.get('start'), params.get('end')]):
-            raise InvalidParams('start and end are both required')
+    elif params.get("start") or params.get("end"):
+        if not all([params.get("start"), params.get("end")]):
+            raise InvalidParams("start and end are both required")
         try:
-            start = parse_datetime_string(params['start'])
-            end = parse_datetime_string(params['end'])
+            start = parse_datetime_string(params["start"])
+            end = parse_datetime_string(params["end"])
         except InvalidQuery as exc:
             raise InvalidParams(exc.message)
     elif optional:
         return None, None
 
     if start > end:
-        raise InvalidParams('start must be before end')
+        raise InvalidParams("start must be before end")
 
     return start, end

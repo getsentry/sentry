@@ -8,14 +8,20 @@ from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
-from sentry.utils.concurrent import FutureSet, SynchronousExecutor, ThreadedExecutor, TimedFuture, execute
+from sentry.utils.concurrent import (
+    FutureSet,
+    SynchronousExecutor,
+    ThreadedExecutor,
+    TimedFuture,
+    execute,
+)
 
 
 def test_execute():
     assert execute(thread.get_ident).result() != thread.get_ident()
 
     with pytest.raises(Exception):
-        assert execute(mock.Mock(side_effect=Exception('Boom!'))).result()
+        assert execute(mock.Mock(side_effect=Exception("Boom!"))).result()
 
 
 def test_future_set_callback_success():
@@ -71,12 +77,12 @@ def test_future_set_callback_empty():
 def test_future_broken_callback():
     future_set = FutureSet([])
 
-    callback = mock.Mock(side_effect=Exception('Boom!'))
+    callback = mock.Mock(side_effect=Exception("Boom!"))
 
     try:
         future_set.add_done_callback(callback)
     except Exception:
-        assert False, 'should not raise'
+        assert False, "should not raise"
 
     assert callback.call_count == 1
     assert callback.call_args == mock.call(future_set)
@@ -84,7 +90,7 @@ def test_future_broken_callback():
 
 @contextmanager
 def timestamp(t):
-    with mock.patch('sentry.utils.concurrent.time') as mock_time:
+    with mock.patch("sentry.utils.concurrent.time") as mock_time:
         mock_time.return_value = t
         yield
 
@@ -159,7 +165,7 @@ def test_sychronous_executor():
     except Exception as e:
         assert e.message is mock.sentinel.MESSAGE
     else:
-        assert False, 'expected future to raise'
+        assert False, "expected future to raise"
 
 
 def test_threaded_executor():
@@ -173,14 +179,12 @@ def test_threaded_executor():
     initial_ready = Event()
     initial_waiting = Event()
     initial_future = executor.submit(
-        lambda: waiter(initial_ready, initial_waiting, 1),
-        block=True,
-        timeout=1,
+        lambda: waiter(initial_ready, initial_waiting, 1), block=True, timeout=1
     )
 
     # wait until the worker has removed this item from the queue
-    assert initial_ready.wait(timeout=1), 'waiter not ready'
-    assert initial_future.running(), 'waiter did not get marked as started'
+    assert initial_ready.wait(timeout=1), "waiter not ready"
+    assert initial_future.running(), "waiter did not get marked as started"
 
     low_priority_ready = Event()
     low_priority_waiting = Event()
@@ -190,17 +194,12 @@ def test_threaded_executor():
         timeout=1,
         priority=10,
     )
-    assert not low_priority_future.done(), 'future should not be done (indicative of a full queue)'
+    assert not low_priority_future.done(), "future should not be done (indicative of a full queue)"
 
-    cancelled_future = executor.submit(
-        lambda: None,
-        block=True,
-        timeout=1,
-        priority=5,
-    )
-    assert not cancelled_future.done(), 'future should not be done (indicative of a full queue)'
-    assert cancelled_future.cancel(), 'future should be able to be cancelled'
-    assert cancelled_future.done(), 'future should be completed'
+    cancelled_future = executor.submit(lambda: None, block=True, timeout=1, priority=5)
+    assert not cancelled_future.done(), "future should not be done (indicative of a full queue)"
+    assert cancelled_future.cancel(), "future should be able to be cancelled"
+    assert cancelled_future.done(), "future should be completed"
     with pytest.raises(CancelledError):
         cancelled_future.result()
 
@@ -212,7 +211,7 @@ def test_threaded_executor():
         timeout=1,
         priority=0,
     )
-    assert not high_priority_future.done(), 'future should not be done (indicative of a full queue)'
+    assert not high_priority_future.done(), "future should not be done (indicative of a full queue)"
 
     queue_full_future = executor.submit(lambda: None, block=False)
     assert queue_full_future.done()

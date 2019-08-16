@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ('Attribute', 'Event', 'Map')
+__all__ = ("Attribute", "Event", "Map")
 
 import six
 from uuid import uuid1
@@ -55,24 +55,20 @@ class Map(Attribute):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u'{} is required (cannot be None)'.format(
-                    attr.name,
-                ))
+                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
 
             data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(
-                u'Unknown attributes: {}'.format(
-                    ', '.join(map(six.text_type, six.iterkeys(items))),
-                )
+                u"Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
             )
 
         return data
 
 
 class Event(object):
-    __slots__ = ['uuid', 'attributes', 'data', 'datetime', 'type']
+    __slots__ = ["uuid", "attributes", "data", "datetime", "type"]
 
     type = None
 
@@ -86,30 +82,26 @@ class Event(object):
             self.type = type
 
         if self.type is None:
-            raise ValueError('Event is missing type')
+            raise ValueError("Event is missing type")
 
         data = {}
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u'{} is required (cannot be None)'.format(
-                    attr.name,
-                ))
+                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(six.iterkeys(items)),
-            ))
+            raise ValueError(u"Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
 
         self.data = data
 
     def serialize(self):
         return {
-            'uuid': b64encode(self.uuid.bytes),
-            'timestamp': to_timestamp(self.datetime),
-            'type': self.type,
-            'data': self.data,
+            "uuid": b64encode(self.uuid.bytes),
+            "timestamp": to_timestamp(self.datetime),
+            "type": self.type,
+            "data": self.data,
         }
 
     @classmethod

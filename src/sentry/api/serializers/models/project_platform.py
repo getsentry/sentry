@@ -12,4 +12,4 @@ class ProjectPlatformSerializer(Serializer):
     """
 
     def serialize(self, obj, attrs, user):
-        return {'platform': obj.platform, 'dateCreated': obj.date_added}
+        return {"platform": obj.platform, "dateCreated": obj.date_added}

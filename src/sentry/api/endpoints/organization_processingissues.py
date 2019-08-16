@@ -22,6 +22,6 @@ class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
         data = get_processing_issues(
             request.user,
             self.get_projects(request, organization),
-            request.GET.get('detailed') == '1',
+            request.GET.get("detailed") == "1",
         )
         return Response(serialize(data, request.user))

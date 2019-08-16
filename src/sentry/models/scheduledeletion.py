@@ -6,11 +6,7 @@ from django.db.models import get_model
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    JSONField,
-    Model
-)
+from sentry.db.models import BoundedBigIntegerField, JSONField, Model
 
 
 def default_guid():
@@ -36,9 +32,9 @@ class ScheduledDeletion(Model):
     aborted = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = (('app_label', 'model_name', 'object_id'), )
-        app_label = 'sentry'
-        db_table = 'sentry_scheduleddeletion'
+        unique_together = (("app_label", "model_name", "object_id"),)
+        app_label = "sentry"
+        db_table = "sentry_scheduleddeletion"
 
     @classmethod
     def schedule(cls, instance, days=30, data=None, actor=None):

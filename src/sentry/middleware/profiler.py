@@ -15,7 +15,7 @@ from six import StringIO
 
 from sentry.auth.superuser import is_active_superuser
 
-words_re = re.compile(r'\s+')
+words_re = re.compile(r"\s+")
 
 group_prefix_re = [
     re.compile(r"^.*/django/[^/]+"),
@@ -38,7 +38,7 @@ class ProfileMiddleware(object):
     """
 
     def can(self, request):
-        if 'prof' not in request.GET:
+        if "prof" not in request.GET:
             return False
         if settings.DEBUG:
             return True
@@ -79,7 +79,7 @@ class ProfileMiddleware(object):
         def rel_filename(filename):
             for path in python_paths:
                 if filename.startswith(path):
-                    return filename[len(path) + 1:]
+                    return filename[len(path) + 1 :]
             return os.path.basename(filename)
 
         def func_strip_path(func_name):
@@ -136,10 +136,15 @@ class ProfileMiddleware(object):
                     mygroups[group] = 0
                 mygroups[group] += time
 
-        return "\n" + \
-               " ---- By file ----\n\n" + self.get_summary(mystats, total) + "\n" + \
-               " ---- By group ---\n\n" + self.get_summary(mygroups, total) + \
-               "\n"
+        return (
+            "\n"
+            + " ---- By file ----\n\n"
+            + self.get_summary(mystats, total)
+            + "\n"
+            + " ---- By group ---\n\n"
+            + self.get_summary(mygroups, total)
+            + "\n"
+        )
 
     def process_response(self, request, response):
         if not self.can(request):
@@ -151,7 +156,7 @@ class ProfileMiddleware(object):
 
         stats = pstats.Stats(self.prof)
         self.normalize_paths(stats)
-        stats.sort_stats('time', 'calls')
+        stats.sort_stats("time", "calls")
         stats.print_stats()
 
         sys.stdout = old_stdout
@@ -161,4 +166,4 @@ class ProfileMiddleware(object):
         content += "\n\n"
         content += self.summary_for_files(stats_str)
 
-        return HttpResponse(content, 'text/plain')
+        return HttpResponse(content, "text/plain")

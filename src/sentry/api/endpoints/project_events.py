@@ -9,11 +9,11 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ListProjectAvailableSamples')
+@scenario("ListProjectAvailableSamples")
 def list_project_available_samples_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/events/' % (runner.org.slug, runner.default_project.slug)
+        method="GET",
+        path="/projects/%s/%s/events/" % (runner.org.slug, runner.default_project.slug),
     )
 
 
@@ -37,26 +37,27 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         """
         from sentry.api.paginator import GenericOffsetPaginator
 
-        query = request.GET.get('query')
+        query = request.GET.get("query")
         conditions = []
         if query:
             conditions.append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
+                [["positionCaseInsensitive", ["message", "'%s'" % (query,)]], "!=", 0]
+            )
 
-        full = request.GET.get('full', False)
+        full = request.GET.get("full", False)
         cols = None if full else eventstore.full_columns
 
         data_fn = partial(
             eventstore.get_events,
             conditions=conditions,
-            filter_keys={'project_id': [project.id]},
+            filter_keys={"project_id": [project.id]},
             additional_columns=cols,
-            referrer='api.project-events',
+            referrer="api.project-events",
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(results, request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )

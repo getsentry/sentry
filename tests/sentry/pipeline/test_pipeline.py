@@ -9,11 +9,11 @@ from sentry.pipeline import PipelineProvider, PipelineView, Pipeline
 class PipelineStep(PipelineView):
     def dispatch(self, request, pipeline):
         pipeline.dispatch_count += 1
-        pipeline.bind_state('some_state', 'value')
+        pipeline.bind_state("some_state", "value")
 
 
 class DummyProvider(PipelineProvider):
-    key = 'dummy'
+    key = "dummy"
     pipeline_views = [PipelineStep(), PipelineStep()]
 
     def get_pipeline_views(self):
@@ -21,10 +21,10 @@ class DummyProvider(PipelineProvider):
 
 
 class DummyPipeline(Pipeline):
-    pipeline_name = 'test_pipeline'
+    pipeline_name = "test_pipeline"
 
     # Simplify tests, the manager can just be a dict.
-    provider_manager = {'dummy': DummyProvider()}
+    provider_manager = {"dummy": DummyProvider()}
 
     def finish_pipeline(self):
         self.finished = True
@@ -37,12 +37,12 @@ class PipelineTestCase(TestCase):
         request.session = {}
         request.user = self.user
 
-        pipeline = DummyPipeline(request, 'dummy', org, config={'some_config': True})
+        pipeline = DummyPipeline(request, "dummy", org, config={"some_config": True})
         pipeline.initialize()
 
         assert pipeline.is_valid()
 
-        assert 'some_config' in pipeline.provider.config
+        assert "some_config" in pipeline.provider.config
 
         # Test state
         pipeline.finished = False
@@ -53,7 +53,7 @@ class PipelineTestCase(TestCase):
         # next_step methods after it determines if it can move forward a step.
         pipeline.current_step()
         assert pipeline.dispatch_count == 1
-        assert pipeline.fetch_state('some_state') == 'value'
+        assert pipeline.fetch_state("some_state") == "value"
 
         pipeline.next_step()
         assert pipeline.dispatch_count == 2
@@ -71,7 +71,7 @@ class PipelineTestCase(TestCase):
         request.session = {}
         request.user = self.user
 
-        pipeline = DummyPipeline(request, 'dummy', org)
+        pipeline = DummyPipeline(request, "dummy", org)
         pipeline.initialize()
 
         assert pipeline.is_valid()

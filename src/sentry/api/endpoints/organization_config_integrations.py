@@ -13,9 +13,7 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         providers.sort(key=lambda i: i.key)
 
         serialized = serialize(
-            providers,
-            organization=organization,
-            serializer=IntegrationProviderSerializer(),
+            providers, organization=organization, serializer=IntegrationProviderSerializer()
         )
 
-        return Response({'providers': serialized})
+        return Response({"providers": serialized})

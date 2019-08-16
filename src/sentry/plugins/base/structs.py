@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ('Annotation', 'Notification')
+__all__ = ("Annotation", "Notification")
 
 import warnings
 
@@ -23,6 +23,6 @@ class Notification(object):
     @property
     def rule(self):
         warnings.warn(
-            'Notification.rule is deprecated. Switch to Notification.rules.', DeprecationWarning
+            "Notification.rule is deprecated. Switch to Notification.rules.", DeprecationWarning
         )
         return self.rules[0]

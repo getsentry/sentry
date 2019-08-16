@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import (
-    OrganizationEndpoint, SentryAppBaseEndpoint, add_integration_platform_metric_tag,
+    OrganizationEndpoint,
+    SentryAppBaseEndpoint,
+    add_integration_platform_metric_tag,
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -27,8 +29,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         try:
             project = Project.objects.get(
-                id=request.GET['projectId'],
-                organization_id=organization.id,
+                id=request.GET["projectId"], organization_id=organization.id
             )
         except Project.DoesNotExist:
             return Response([], status=404)
@@ -36,19 +37,15 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
         components = []
 
         for install in organization.sentry_app_installations.all():
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id,
-            )
+            _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
 
-            if 'filter' in request.GET:
-                _components = _components.filter(type=request.GET['filter'])
+            if "filter" in request.GET:
+                _components = _components.filter(type=request.GET["filter"])
 
             for component in _components:
                 try:
                     sentry_app_components.Preparer.run(
-                        component=component,
-                        install=install,
-                        project=project,
+                        component=component, install=install, project=project
                     )
                     components.append(component)
                 except APIError:

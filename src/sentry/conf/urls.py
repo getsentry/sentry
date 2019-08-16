@@ -27,15 +27,16 @@ handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()
 
 urlpatterns = patterns(
-    '',
-    url(r'^500/', handler500, name='error-500'),
-    url(r'^404/', handler404, name='error-404'),
-    url(r'^403-csrf-failure/', CsrfFailureView.as_view(), name='error-403-csrf-failure'),
-    url(r'^__debug__/', include(debug_toolbar.urls)),
+    "",
+    url(r"^500/", handler500, name="error-500"),
+    url(r"^404/", handler404, name="error-404"),
+    url(r"^403-csrf-failure/", CsrfFailureView.as_view(), name="error-403-csrf-failure"),
+    url(r"^__debug__/", include(debug_toolbar.urls)),
 )
 
-if 'django.contrib.admin' in settings.INSTALLED_APPS:
+if "django.contrib.admin" in settings.INSTALLED_APPS:
     from sentry import django_admin
+
     urlpatterns += django_admin.urlpatterns
 
 urlpatterns += web_urlpatterns

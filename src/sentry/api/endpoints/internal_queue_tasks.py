@@ -8,7 +8,7 @@ from sentry.api.permissions import SuperuserPermission
 
 
 class InternalQueueTasksEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
         return Response(sorted(app.tasks.keys()))

@@ -12,41 +12,34 @@ from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
 
 
 class ApiAuthorizationsEndpoint(Endpoint):
-    authentication_classes = (SessionAuthentication, )
-    permission_classes = (IsAuthenticated, )
+    authentication_classes = (SessionAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         queryset = ApiAuthorization.objects.filter(
-            user=request.user,
-            application__status=ApiApplicationStatus.active,
-        ).select_related('application')
+            user=request.user, application__status=ApiApplicationStatus.active
+        ).select_related("application")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='application__name',
+            order_by="application__name",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
     def delete(self, request):
-        authorization = request.data.get('authorization')
+        authorization = request.data.get("authorization")
         if not authorization:
-            return Response({'authorization': ''}, status=400)
+            return Response({"authorization": ""}, status=400)
 
         try:
-            auth = ApiAuthorization.objects.get(
-                user=request.user,
-                id=authorization,
-            )
+            auth = ApiAuthorization.objects.get(user=request.user, id=authorization)
         except ApiAuthorization.DoesNotExist:
             return Response(status=404)
 
         with transaction.atomic():
-            ApiToken.objects.filter(
-                user=request.user,
-                application=auth.application_id,
-            ).delete()
+            ApiToken.objects.filter(user=request.user, application=auth.application_id).delete()
 
             auth.delete()
 

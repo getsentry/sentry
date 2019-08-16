@@ -9,8 +9,8 @@ from six.moves import xrange
 
 class MergeIntoTest(TestCase):
     def test_all_the_things(self):
-        user_1 = self.create_user('foo@example.com')
-        user_2 = self.create_user('bar@example.com')
+        user_1 = self.create_user("foo@example.com")
+        user_2 = self.create_user("bar@example.com")
 
         merge_into(user_1, user_2)
 

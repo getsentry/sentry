@@ -3,12 +3,7 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    Model,
-    BaseManager,
-    UUIDField,
-    sane_repr,
-)
+from sentry.db.models import Model, BaseManager, UUIDField, sane_repr
 
 
 class MonitorLocation(Model):
@@ -17,10 +12,10 @@ class MonitorLocation(Model):
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
     date_added = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=('guid', ))
+    objects = BaseManager(cache_fields=("guid",))
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_monitorlocation'
+        app_label = "sentry"
+        db_table = "sentry_monitorlocation"
 
-    __repr__ = sane_repr('guid', 'name')
+    __repr__ = sane_repr("guid", "name")

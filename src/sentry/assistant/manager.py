@@ -11,7 +11,7 @@ class AssistantManager(object):
             self._guides[k] = v
 
     def get_valid_ids(self):
-        return list(v['id'] for k, v in six.iteritems(self._guides))
+        return list(v["id"] for k, v in six.iteritems(self._guides))
 
     def all(self):
         return self._guides

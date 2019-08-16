@@ -82,7 +82,7 @@ class Param(object):
 
     def setup(self, target, name):
         delattr(target, name)
-        setattr(target, u'_{}'.format(name), self)
+        setattr(target, u"_{}".format(name), self)
 
     def validate(self, target, name, value):
         """
@@ -93,12 +93,10 @@ class Param(object):
             value = self.default(target)
 
         if self._missing_value(value):
-            raise AttributeError(u'Missing required param: `{}`'.format(name))
+            raise AttributeError(u"Missing required param: `{}`".format(name))
 
         if self.is_required and not isinstance(value, self.type):
-            raise TypeError(u'`{}` must be a {}, received {}'.format(
-                name, self.type, type(value)
-            ))
+            raise TypeError(u"`{}` must be a {}, received {}".format(name, self.type, type(value)))
 
         return True
 
@@ -106,7 +104,7 @@ class Param(object):
         """
         Evaluated default value, when given.
         """
-        default = value = self.kwargs.get('default')
+        default = value = self.kwargs.get("default")
 
         if self.is_lambda_default:
             value = default(target)
@@ -121,15 +119,15 @@ class Param(object):
 
     @memoize
     def has_default(self):
-        return 'default' in self.kwargs
+        return "default" in self.kwargs
 
     @memoize
     def is_lambda_default(self):
-        return isinstance(self.kwargs.get('default'), types.LambdaType)
+        return isinstance(self.kwargs.get("default"), types.LambdaType)
 
     @memoize
     def is_required(self):
-        if self.kwargs.get('required') is False:
+        if self.kwargs.get("required") is False:
             return False
         return True
 
@@ -142,7 +140,7 @@ class Param(object):
             >>> self._eval_string_type()
             sentry.models.project.Project
         """
-        mod, klass = self._type.rsplit('.', 1)
+        mod, klass = self._type.rsplit(".", 1)
         return getattr(sys.modules[mod], klass)
 
     def _missing_value(self, value):
@@ -155,5 +153,7 @@ def if_param(name):
             if not hasattr(self, name) or getattr(self, name) is None:
                 return
             return func(self, *args)
+
         return wrapper
+
     return _if_param

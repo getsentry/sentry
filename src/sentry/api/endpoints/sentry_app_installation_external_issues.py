@@ -12,27 +12,25 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
     def post(self, request, installation):
         data = request.data.copy()
 
-        if not set(['groupId', 'action', 'uri']).issubset(data.keys()):
+        if not set(["groupId", "action", "uri"]).issubset(data.keys()):
             return Response(status=400)
 
-        group_id = data.get('groupId')
-        del data['groupId']
+        group_id = data.get("groupId")
+        del data["groupId"]
 
         try:
             group = Group.objects.get(
                 id=group_id,
-                project_id__in=Project.objects.filter(
-                    organization_id=installation.organization_id,
-                )
+                project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
             return Response(status=404)
 
-        action = data['action']
-        del data['action']
+        action = data["action"]
+        del data["action"]
 
-        uri = data.get('uri')
-        del data['uri']
+        uri = data.get("uri")
+        del data["uri"]
 
         try:
             external_issue = IssueLinkCreator.run(
@@ -44,6 +42,6 @@ class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpo
                 user=request.user,
             )
         except Exception:
-            return Response({'error': 'Error communicating with Sentry App service'}, status=400)
+            return Response({"error": "Error communicating with Sentry App service"}, status=400)
 
         return Response(serialize(external_issue))

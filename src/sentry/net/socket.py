@@ -14,8 +14,7 @@ from sentry.exceptions import RestrictedIPAddress
 
 
 DISALLOWED_IPS = frozenset(
-    ipaddress.ip_network(six.text_type(i), strict=False)
-    for i in settings.SENTRY_DISALLOWED_IPS
+    ipaddress.ip_network(six.text_type(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
 
@@ -74,11 +73,12 @@ def is_safe_hostname(hostname):
 
 
 # Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/util/connection.py#L36
-def safe_create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-                           source_address=None, socket_options=None):
+def safe_create_connection(
+    address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, socket_options=None
+):
     host, port = address
-    if host.startswith('['):
-        host = host.strip('[]')
+    if host.startswith("["):
+        host = host.strip("[]")
     err = None
 
     # Using the value from allowed_gai_family() in the context of getaddrinfo lets
@@ -98,8 +98,8 @@ def safe_create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
             # are safe, but if one record is straddling safe and unsafe IPs, it's
             # suspicious.
             if host == ip:
-                raise RestrictedIPAddress('(%s) matches the URL blacklist' % ip)
-            raise RestrictedIPAddress('(%s/%s) matches the URL blacklist' % (host, ip))
+                raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
+            raise RestrictedIPAddress("(%s/%s) matches the URL blacklist" % (host, ip))
 
         sock = None
         try:

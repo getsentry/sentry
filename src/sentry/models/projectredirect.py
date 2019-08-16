@@ -10,14 +10,14 @@ class ProjectRedirect(Model):
     __core__ = True
 
     redirect_slug = models.SlugField(db_index=True)
-    project = FlexibleForeignKey('sentry.Project')
-    organization = FlexibleForeignKey('sentry.Organization')
+    project = FlexibleForeignKey("sentry.Project")
+    organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_projectredirect'
-        unique_together = (('organization', 'redirect_slug'),)
+        app_label = "sentry"
+        db_table = "sentry_projectredirect"
+        unique_together = (("organization", "redirect_slug"),)
 
     @classmethod
     def record(cls, project, historic_slug):
@@ -28,7 +28,7 @@ class ProjectRedirect(Model):
         redirect, created = cls.objects.get_or_create(
             redirect_slug=historic_slug,
             organization=project.organization,
-            defaults={'project': project},
+            defaults={"project": project},
         )
 
         if not created:

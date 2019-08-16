@@ -8,12 +8,10 @@ from sentry.utils.samples import create_sample_event
 
 
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectPermission, )
+    permission_classes = (ProjectPermission,)
 
     def post(self, request, project):
-        event = create_sample_event(
-            project, platform=project.platform, default='javascript',
-        )
+        event = create_sample_event(project, platform=project.platform, default="javascript")
 
         data = serialize(event, request.user)
 

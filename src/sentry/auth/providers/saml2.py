@@ -14,9 +14,7 @@ from six.moves.urllib.parse import urlparse
 from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import (
-    AuthProvider, Organization, OrganizationStatus
-)
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
@@ -25,27 +23,28 @@ from sentry.web.frontend.base import BaseView
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
     from onelogin.saml2.constants import OneLogin_Saml2_Constants
+
     HAS_SAML2 = True
 except ImportError:
     HAS_SAML2 = False
 
     def OneLogin_Saml2_Auth(*args, **kwargs):
-        raise NotImplementedError('Missing SAML libraries')
+        raise NotImplementedError("Missing SAML libraries")
 
     def OneLogin_Saml2_Settings(*args, **kwargs):
-        raise NotImplementedError('Missing SAML libraries')
+        raise NotImplementedError("Missing SAML libraries")
 
     class OneLogin_Saml2_ConstantsType(type):
         def __getattr__(self, attr):
-            raise NotImplementedError('Missing SAML libraries')
+            raise NotImplementedError("Missing SAML libraries")
 
     @add_metaclass(OneLogin_Saml2_ConstantsType)
     class OneLogin_Saml2_Constants(object):
         pass
 
 
-ERR_NO_SAML_SSO = _('The organization does not exist or does not have SAML SSO enabled.')
-ERR_SAML_FAILED = _('SAML SSO failed, {reason}')
+ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
+ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 
 def get_provider(organization_slug):
@@ -70,7 +69,7 @@ def get_provider(organization_slug):
 
 class SAML2LoginView(AuthView):
     def dispatch(self, request, helper):
-        if 'SAMLResponse' in request.POST:
+        if "SAMLResponse" in request.POST:
             return helper.next_step()
 
         provider = helper.provider
@@ -95,11 +94,13 @@ class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
         from sentry.auth.helper import AuthHelper
+
         helper = AuthHelper.get_for_request(request)
 
         # SP initiated authentication, request helper is provided
         if helper:
             from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+
             sso_login = AuthProviderLoginView()
             return sso_login.handle(request)
 
@@ -110,13 +111,13 @@ class SAML2AcceptACSView(BaseView):
             organization = Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
-            return self.redirect(reverse('sentry-login'))
+            return self.redirect(reverse("sentry-login"))
 
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
-            return self.redirect(reverse('sentry-login'))
+            return self.redirect(reverse("sentry-login"))
 
         helper = AuthHelper(
             request=request,
@@ -148,7 +149,7 @@ class SAML2ACSView(AuthView):
         if auth.get_errors():
             return helper.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
-        helper.bind_state('auth_attributes', auth.get_attributes())
+        helper.bind_state("auth_attributes", auth.get_attributes())
 
         return helper.next_step()
 
@@ -159,7 +160,7 @@ class SAML2SLSView(BaseView):
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
-            return self.redirect('/')
+            return self.redirect("/")
 
         saml_config = build_saml_config(provider.config, organization_slug)
         auth = build_auth(request, saml_config)
@@ -173,8 +174,7 @@ class SAML2SLSView(BaseView):
             logout(request)
 
         redirect_to = auth.process_slo(
-            delete_session_cb=force_logout,
-            keep_local_session=not should_logout,
+            delete_session_cb=force_logout, keep_local_session=not should_logout
         )
 
         if not redirect_to:
@@ -194,17 +194,17 @@ class SAML2MetadataView(BaseView):
         errors = saml_settings.validate_metadata(metadata)
 
         if len(errors) > 0:
-            message = '\n'.join(errors)
-            return HttpResponseServerError(content=message, content_type='plain/text')
+            message = "\n".join(errors)
+            return HttpResponseServerError(content=message, content_type="plain/text")
 
-        return HttpResponse(content=metadata, content_type='text/xml')
+        return HttpResponse(content=metadata, content_type="text/xml")
 
 
 class Attributes(object):
-    IDENTIFIER = 'identifier'
-    USER_EMAIL = 'user_email'
-    FIRST_NAME = 'first_name'
-    LAST_NAME = 'last_name'
+    IDENTIFIER = "identifier"
+    USER_EMAIL = "user_email"
+    FIRST_NAME = "first_name"
+    LAST_NAME = "last_name"
 
 
 class SAML2Provider(Provider):
@@ -251,7 +251,8 @@ class SAML2Provider(Provider):
       state during setup. The attribute mapping should map the `Attributes`
       constants to the Identity Provider attribute keys.
     """
-    required_feature = 'organizations:sso-saml2'
+
+    required_feature = "organizations:sso-saml2"
 
     def get_auth_pipeline(self):
         return [SAML2LoginView(), SAML2ACSView()]
@@ -282,30 +283,30 @@ class SAML2Provider(Provider):
         config = state
 
         # Default attriute mapping if none bound
-        if 'attribute_mapping' not in config:
-            config['attribute_mapping'] = self.attribute_mapping()
+        if "attribute_mapping" not in config:
+            config["attribute_mapping"] = self.attribute_mapping()
 
         return config
 
     def build_identity(self, state):
-        raw_attributes = state['auth_attributes']
+        raw_attributes = state["auth_attributes"]
         attributes = {}
 
         # map configured provider attributes
-        for key, provider_key in iteritems(self.config['attribute_mapping']):
-            attributes[key] = raw_attributes.get(provider_key, [''])[0]
+        for key, provider_key in iteritems(self.config["attribute_mapping"]):
+            attributes[key] = raw_attributes.get(provider_key, [""])[0]
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
             raise IdentityNotValid
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = ' '.join(filter(None, name))
+        name = " ".join(filter(None, name))
 
         return {
-            'id': attributes[Attributes.IDENTIFIER],
-            'email': attributes[Attributes.USER_EMAIL],
-            'name': name,
+            "id": attributes[Attributes.IDENTIFIER],
+            "email": attributes[Attributes.USER_EMAIL],
+            "name": name,
         }
 
     def refresh_identity(self, auth_identity):
@@ -321,61 +322,61 @@ def build_saml_config(provider_config, org):
     For more details about the structure of this object see the
     SAML2Provider.build_config method.
     """
-    avd = provider_config.get('advanced', {})
+    avd = provider_config.get("advanced", {})
 
     security_config = {
-        'authnRequestsSigned': avd.get('authn_request_signed', False),
-        'logoutRequestSigned': avd.get('logout_request_signed', False),
-        'logoutResponseSigned': avd.get('logout_response_signed', False),
-        'signMetadata': avd.get('metadata_signed', False),
-        'wantMessagesSigned': avd.get('want_message_signed', False),
-        'wantAssertionsSigned': avd.get('want_assertion_signed', False),
-        'wantAssertionsEncrypted': avd.get('want_assertion_encrypted', False),
-        'signatureAlgorithm': avd.get('signature_algorithm', OneLogin_Saml2_Constants.RSA_SHA256),
-        'digestAlgorithm': avd.get('digest_algorithm', OneLogin_Saml2_Constants.SHA256),
-        'wantNameId': False,
-        'requestedAuthnContext': [
-            'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
-            'urn:federation:authentication:windows',
+        "authnRequestsSigned": avd.get("authn_request_signed", False),
+        "logoutRequestSigned": avd.get("logout_request_signed", False),
+        "logoutResponseSigned": avd.get("logout_response_signed", False),
+        "signMetadata": avd.get("metadata_signed", False),
+        "wantMessagesSigned": avd.get("want_message_signed", False),
+        "wantAssertionsSigned": avd.get("want_assertion_signed", False),
+        "wantAssertionsEncrypted": avd.get("want_assertion_encrypted", False),
+        "signatureAlgorithm": avd.get("signature_algorithm", OneLogin_Saml2_Constants.RSA_SHA256),
+        "digestAlgorithm": avd.get("digest_algorithm", OneLogin_Saml2_Constants.SHA256),
+        "wantNameId": False,
+        "requestedAuthnContext": [
+            "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+            "urn:federation:authentication:windows",
         ],
     }
 
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
-    acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org]))
-    sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org]))
-    metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org]))
+    acs_url = absolute_uri(reverse("sentry-auth-organization-saml-acs", args=[org]))
+    sls_url = absolute_uri(reverse("sentry-auth-organization-saml-sls", args=[org]))
+    metadata_url = absolute_uri(reverse("sentry-auth-organization-saml-metadata", args=[org]))
 
     saml_config = {
-        'strict': True,
-        'sp': {
-            'entityId': metadata_url,
-            'assertionConsumerService': {
-                'url': acs_url,
-                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_POST,
+        "strict": True,
+        "sp": {
+            "entityId": metadata_url,
+            "assertionConsumerService": {
+                "url": acs_url,
+                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_POST,
             },
-            'singleLogoutService': {
-                'url': sls_url,
-                'binding': OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
+            "singleLogoutService": {
+                "url": sls_url,
+                "binding": OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT,
             },
         },
-        'security': security_config,
+        "security": security_config,
     }
 
-    idp = provider_config.get('idp')
+    idp = provider_config.get("idp")
 
     if idp is not None:
-        saml_config['idp'] = {
-            'entityId': idp['entity_id'],
-            'x509cert': idp['x509cert'],
-            'singleSignOnService': {'url': idp['sso_url']},
-            'singleLogoutService': {'url': idp['slo_url']},
+        saml_config["idp"] = {
+            "entityId": idp["entity_id"],
+            "x509cert": idp["x509cert"],
+            "singleSignOnService": {"url": idp["sso_url"]},
+            "singleLogoutService": {"url": idp["slo_url"]},
         }
 
-    if avd.get('x509cert') is not None:
-        saml_config['sp']['x509cert'] = avd['x509cert']
+    if avd.get("x509cert") is not None:
+        saml_config["sp"]["x509cert"] = avd["x509cert"]
 
-    if avd.get('private_key') is not None:
-        saml_config['sp']['privateKey'] = avd['private_key']
+    if avd.get("private_key") is not None:
+        saml_config["sp"]["privateKey"] = avd["private_key"]
 
     return saml_config
 
@@ -384,14 +385,14 @@ def build_auth(request, saml_config):
     """
     Construct a OneLogin_Saml2_Auth object for the current request.
     """
-    url = urlparse(options.get('system.url-prefix'))
+    url = urlparse(options.get("system.url-prefix"))
     saml_request = {
-        'https': 'on' if url.scheme == 'https' else 'off',
-        'http_host': url.hostname,
-        'script_name': request.META['PATH_INFO'],
-        'server_port': url.port,
-        'get_data': request.GET.copy(),
-        'post_data': request.POST.copy()
+        "https": "on" if url.scheme == "https" else "off",
+        "http_host": url.hostname,
+        "script_name": request.META["PATH_INFO"],
+        "server_port": url.port,
+        "get_data": request.GET.copy(),
+        "post_data": request.POST.copy(),
     }
 
     return OneLogin_Saml2_Auth(saml_request, saml_config)

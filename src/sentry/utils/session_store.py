@@ -41,17 +41,17 @@ class RedisSessionStore(object):
     """
 
     def __init__(self, request, prefix, ttl=EXPIRATION_TTL):
-        self.__dict__['request'] = request
-        self.__dict__['prefix'] = prefix
-        self.__dict__['ttl'] = ttl
+        self.__dict__["request"] = request
+        self.__dict__["prefix"] = prefix
+        self.__dict__["ttl"] = ttl
 
     @property
     def _client(self):
-        return clusters.get('default').get_local_client_for_key(self.redis_key)
+        return clusters.get("default").get_local_client_for_key(self.redis_key)
 
     @property
     def session_key(self):
-        return u'store:{}'.format(self.prefix)
+        return u"store:{}".format(self.prefix)
 
     @property
     def redis_key(self):
@@ -61,7 +61,7 @@ class RedisSessionStore(object):
         if initial_state is None:
             initial_state = {}
 
-        redis_key = u'session-cache:{}:{}'.format(self.prefix, uuid4().hex)
+        redis_key = u"session-cache:{}:{}".format(self.prefix, uuid4().hex)
 
         self.request.session[self.session_key] = redis_key
 

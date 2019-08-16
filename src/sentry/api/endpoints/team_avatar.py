@@ -6,5 +6,5 @@ from sentry.models import TeamAvatar
 
 
 class TeamAvatarEndpoint(AvatarMixin, TeamEndpoint):
-    object_type = 'team'
+    object_type = "team"
     model = TeamAvatar

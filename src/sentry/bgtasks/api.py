@@ -10,18 +10,18 @@ from contextlib import contextmanager
 from django.conf import settings
 
 
-logger = logging.getLogger('sentry.bgtasks')
+logger = logging.getLogger("sentry.bgtasks")
 tasks = {}
 
 
 def bgtask(roles=None, interval=60):
     def decorator(f):
         return BgTask(callback=f, roles=roles, interval=interval)
+
     return decorator
 
 
 class BgTask(object):
-
     def __init__(self, callback, roles=None, interval=60):
         self.callback = callback
         self.roles = roles or []
@@ -30,10 +30,7 @@ class BgTask(object):
 
     @property
     def name(self):
-        return '%s:%s' % (
-            self.callback.__module__,
-            self.callback.__name__,
-        )
+        return "%s:%s" % (self.callback.__module__, self.callback.__name__)
 
     def run(self):
         if self.running:
@@ -47,32 +44,31 @@ class BgTask(object):
                 try:
                     self.callback()
                 except Exception:
-                    logging.error('bgtask.failed', exc_info=True,
-                                  extra=dict(task_name=self.name))
+                    logging.error("bgtask.failed", exc_info=True, extra=dict(task_name=self.name))
                 next_run = now + self.interval
             time.sleep(1.0)
 
     def reconfigure(self, cfg):
-        if 'roles' in cfg:
-            self.roles = cfg['roles']
-        if 'interval' in cfg:
-            self.interval = cfg['interval']
+        if "roles" in cfg:
+            self.roles = cfg["roles"]
+        if "interval" in cfg:
+            self.interval = cfg["interval"]
 
     def spawn_daemon(self):
         if self.running:
             return
-        logger.info('bgtask.spawn', extra=dict(task_name=self.name))
+        logger.info("bgtask.spawn", extra=dict(task_name=self.name))
         t = threading.Thread(target=self.run)
         t.setDaemon(True)
         t.start()
 
     def stop(self):
-        logger.info('bgtask.stop', extra=dict(task_name=self.name))
+        logger.info("bgtask.stop", extra=dict(task_name=self.name))
         self.running = False
 
 
 def get_task(task_name):
-    module, task_cls = task_name.split(':', 1)
+    module, task_cls = task_name.split(":", 1)
     mod = __import__(module, None, None, [task_cls])
     return getattr(mod, task_cls)
 

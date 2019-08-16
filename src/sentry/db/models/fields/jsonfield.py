@@ -14,19 +14,19 @@ from sentry.db.models.utils import Creator
 
 
 def default(o):
-    if hasattr(o, 'to_json'):
+    if hasattr(o, "to_json"):
         return o.to_json()
     if isinstance(o, Decimal):
         return six.text_type(o)
     if isinstance(o, datetime.datetime):
         if o.tzinfo:
-            return o.strftime('%Y-%m-%dT%H:%M:%S%z')
+            return o.strftime("%Y-%m-%dT%H:%M:%S%z")
         return o.strftime("%Y-%m-%dT%H:%M:%S")
     if isinstance(o, datetime.date):
         return o.strftime("%Y-%m-%d")
     if isinstance(o, datetime.time):
         if o.tzinfo:
-            return o.strftime('%H:%M:%S%z')
+            return o.strftime("%H:%M:%S%z")
         return o.strftime("%H:%M:%S")
 
     raise TypeError(repr(o) + " is not JSON serializable")
@@ -43,16 +43,15 @@ class JSONField(models.TextField):
     - being able to serialize dates/decimals
     - not emitting deprecation warnings
     """
-    default_error_messages = {
-        'invalid': _("'%s' is not a valid JSON string.")
-    }
+
+    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
 
     def __init__(self, *args, **kwargs):
-        if not kwargs.get('null', False):
-            kwargs['default'] = kwargs.get('default', dict)
+        if not kwargs.get("null", False):
+            kwargs["default"] = kwargs.get("default", dict)
         self.encoder_kwargs = {
-            'indent': kwargs.pop('indent', getattr(settings, 'JSONFIELD_INDENT', None))
+            "indent": kwargs.pop("indent", getattr(settings, "JSONFIELD_INDENT", None))
         }
         super(JSONField, self).__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
@@ -67,11 +66,11 @@ class JSONField(models.TextField):
 
     def validate(self, value, model_instance):
         if not self.null and value is None:
-            raise ValidationError(self.error_messages['null'])
+            raise ValidationError(self.error_messages["null"])
         try:
             self.get_prep_value(value)
         except BaseException:
-            raise ValidationError(self.error_messages['invalid'] % value)
+            raise ValidationError(self.error_messages["invalid"] % value)
 
     def get_default(self):
         if self.has_default():
@@ -84,10 +83,10 @@ class JSONField(models.TextField):
         return super(JSONField, self).get_default()
 
     def get_internal_type(self):
-        return 'TextField'
+        return "TextField"
 
     def db_type(self, connection):
-        return 'text'
+        return "text"
 
     def to_python(self, value):
         if isinstance(value, six.string_types):
@@ -99,7 +98,7 @@ class JSONField(models.TextField):
             try:
                 value = json.loads(value)
             except ValueError:
-                msg = self.error_messages['invalid'] % value
+                msg = self.error_messages["invalid"] % value
                 raise ValidationError(msg)
         # TODO: Look for date/time/datetime objects within the structure?
         return value
@@ -123,20 +122,22 @@ class JSONField(models.TextField):
             return value
         if lookup_type in ["contains", "icontains"]:
             if isinstance(value, (list, tuple)):
-                raise TypeError("Lookup type %r not supported with argument of %s" % (
-                    lookup_type, type(value).__name__
-                ))
+                raise TypeError(
+                    "Lookup type %r not supported with argument of %s"
+                    % (lookup_type, type(value).__name__)
+                )
                 # Need a way co combine the values with '%', but don't escape that.
-                return self.get_prep_value(value)[1:-1].replace(', ', r'%')
+                return self.get_prep_value(value)[1:-1].replace(", ", r"%")
             if isinstance(value, dict):
                 return self.get_prep_value(value)[1:-1]
             return self.to_python(self.get_prep_value(value))
-        raise TypeError('Lookup type %r not supported' % lookup_type)
+        raise TypeError("Lookup type %r not supported" % lookup_type)
 
     def value_to_string(self, obj):
         return self._get_val_from_obj(obj)
 
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ['^sentry\.db\.models\.fields\.jsonfield.JSONField'])
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.jsonfield.JSONField"])

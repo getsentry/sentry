@@ -4,7 +4,7 @@ from sentry.mediators import Mediator, Param
 
 
 class Destroyer(Mediator):
-    external_issue = Param('sentry.models.PlatformExternalIssue')
+    external_issue = Param("sentry.models.PlatformExternalIssue")
 
     def call(self):
         self._delete_external_issue()

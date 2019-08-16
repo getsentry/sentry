@@ -18,7 +18,7 @@ class BasicPreprocessorPlugin(NotificationPlugin):
 class ActivityNotificationsTest(PluginTestCase):
     plugin = BasicPreprocessorPlugin
 
-    @mock.patch('sentry.tasks.activity.send_activity_notifications')
+    @mock.patch("sentry.tasks.activity.send_activity_notifications")
     def test_simple(self, mock_func):
         group = self.create_group()
 
@@ -27,9 +27,7 @@ class ActivityNotificationsTest(PluginTestCase):
             group=group,
             type=Activity.ASSIGNED,
             user=self.user,
-            data={
-                'assignee': None,
-            }
+            data={"assignee": None},
         )
         activity.send_notification()
 

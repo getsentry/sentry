@@ -11,24 +11,19 @@ from sentry.api.serializers import serialize
 class AvatarSerializer(serializers.Serializer):
     avatar_photo = AvatarField(required=False)
     avatar_type = serializers.ChoiceField(
-        choices=(
-            ('upload', 'upload'), ('gravatar', 'gravatar'), ('letter_avatar', 'letter_avatar'),
-        )
+        choices=(("upload", "upload"), ("gravatar", "gravatar"), ("letter_avatar", "letter_avatar"))
     )
 
     def validate(self, attrs):
         attrs = super(AvatarSerializer, self).validate(attrs)
-        if attrs.get('avatar_type') == 'upload':
-            model_type = self.context['type']
+        if attrs.get("avatar_type") == "upload":
+            model_type = self.context["type"]
             has_existing_file = model_type.objects.filter(
-                file__isnull=False,
-                **self.context['kwargs']
+                file__isnull=False, **self.context["kwargs"]
             ).exists()
-            if not has_existing_file and not attrs.get('avatar_photo'):
+            if not has_existing_file and not attrs.get("avatar_photo"):
                 raise serializers.ValidationError(
-                    {
-                        'avatar_type': 'Cannot set avatar_type to upload without avatar_photo',
-                    }
+                    {"avatar_type": "Cannot set avatar_type to upload without avatar_photo"}
                 )
         return attrs
 
@@ -42,20 +37,14 @@ class AvatarMixin(object):
         return Response(serialize(obj, request.user))
 
     def get_serializer_context(self, obj, **kwargs):
-        return {
-            'type': self.model,
-            'kwargs': {self.object_type: obj},
-        }
+        return {"type": self.model, "kwargs": {self.object_type: obj}}
 
     def get_avatar_filename(self, obj):
-        return u'{}.png'.format(obj.id)
+        return u"{}.png".format(obj.id)
 
     def put(self, request, **kwargs):
         obj = kwargs[self.object_type]
-        serializer = AvatarSerializer(
-            data=request.data,
-            context=self.get_serializer_context(obj),
-        )
+        serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -63,8 +52,8 @@ class AvatarMixin(object):
 
         self.model.save_avatar(
             relation={self.object_type: obj},
-            type=result['avatar_type'],
-            avatar=result.get('avatar_photo'),
+            type=result["avatar_type"],
+            avatar=result.get("avatar_photo"),
             filename=self.get_avatar_filename(obj),
         )
 

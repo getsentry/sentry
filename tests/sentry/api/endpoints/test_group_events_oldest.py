@@ -19,28 +19,20 @@ class GroupEventsOldestTest(APITestCase):
         two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
 
         self.event1 = self.store_event(
-            data={
-                'environment': 'staging',
-                'fingerprint': ['group_1'],
-                'timestamp': two_min_ago
-            },
+            data={"environment": "staging", "fingerprint": ["group_1"], "timestamp": two_min_ago},
             project_id=project.id,
         )
 
         self.event2 = self.store_event(
-            data={
-                'environment': 'production',
-                'fingerprint': ['group_1'],
-                'timestamp': min_ago
-            },
+            data={"environment": "production", "fingerprint": ["group_1"], "timestamp": min_ago},
             project_id=project.id,
         )
 
         self.group = Group.objects.first()
 
     def test_simple(self):
-        url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/events/oldest/".format(self.group.id)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event1.event_id)
+        assert response.data["id"] == six.text_type(self.event1.event_id)

@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 from django.db import models
-from sentry.db.models import (
-    sane_repr, BoundedBigIntegerField
-)
+from sentry.db.models import sane_repr, BoundedBigIntegerField
 from sentry.models.deletedentry import DeletedEntry
 
 
@@ -15,6 +13,7 @@ class DeletedProject(DeletedEntry):
     unable to log deletions that occur implicity (i.e. when the sole parent object
     is deleted, the child is also marked for deletion as well).
     """
+
     slug = models.CharField(max_length=50, null=True)
     name = models.CharField(max_length=200, null=True)
 
@@ -25,7 +24,7 @@ class DeletedProject(DeletedEntry):
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_deletedproject'
+        app_label = "sentry"
+        db_table = "sentry_deletedproject"
 
-    __repr__ = sane_repr('date_deleted', 'slug', 'reason')
+    __repr__ = sane_repr("date_deleted", "slug", "reason")

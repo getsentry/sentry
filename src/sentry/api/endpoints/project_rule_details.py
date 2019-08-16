@@ -22,9 +22,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
 
         """
         rule = Rule.objects.get(
-            project=project,
-            id=rule_id,
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+            project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
         )
         return Response(serialize(rule, request.user))
 
@@ -43,16 +41,9 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             }}
 
         """
-        rule = Rule.objects.get(
-            project=project,
-            id=rule_id,
-        )
+        rule = Rule.objects.get(project=project, id=rule_id)
 
-        serializer = RuleSerializer(
-            context={'project': project},
-            data=request.data,
-            partial=True
-        )
+        serializer = RuleSerializer(context={"project": project}, data=request.data, partial=True)
 
         if serializer.is_valid():
             rule = serializer.save(rule=rule)
@@ -73,9 +64,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         Delete a rule
         """
         rule = Rule.objects.get(
-            project=project,
-            id=rule_id,
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+            project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
         )
 
         rule.update(status=RuleStatus.PENDING_DELETION)

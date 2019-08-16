@@ -19,13 +19,10 @@ class RetryException(Exception):
         self.exception = exception
 
     def __str__(self):
-        return force_bytes(self.message, errors='replace')
+        return force_bytes(self.message, errors="replace")
 
     def __repr__(self):
-        return u'<{}: {!r}>'.format(
-            type(self).__name__,
-            self.message,
-        )
+        return u"<{}: {!r}>".format(type(self).__name__, self.message)
 
 
 class RetryPolicy(object):
@@ -46,6 +43,7 @@ class RetryPolicy(object):
                 return retrier(functools.partial(fn, *args, **kwargs))
 
             return execute_with_retry
+
         return decorator
 
 
@@ -58,8 +56,9 @@ class TimedRetryPolicy(RetryPolicy):
     number of this attempt (starting at 1.)
     """
 
-    def __init__(self, timeout, delay=None, exceptions=(
-            Exception, ), metric_instance=None, metric_tags=None):
+    def __init__(
+        self, timeout, delay=None, exceptions=(Exception,), metric_instance=None, metric_tags=None
+    ):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
             def delay(i):
@@ -83,13 +82,13 @@ class TimedRetryPolicy(RetryPolicy):
                     now = self.clock.time()
                     if (now + delay) > (start + self.timeout):
                         raise RetryException(
-                            'Could not successfully execute %r within %.3f seconds (%s attempts.)' %
-                            (function, now - start, i),
+                            "Could not successfully execute %r within %.3f seconds (%s attempts.)"
+                            % (function, now - start, i),
                             error,
                         )
                     else:
                         logger.debug(
-                            'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',
+                            "Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...",
                             function,
                             error,
                             i,
@@ -99,7 +98,7 @@ class TimedRetryPolicy(RetryPolicy):
         finally:
             if self.metric_instance:
                 metrics.timing(
-                    'timedretrypolicy.duration',
+                    "timedretrypolicy.duration",
                     self.clock.time() - start,
                     instance=self.metric_instance,
                     tags=self.metric_tags,

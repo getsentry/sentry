@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['Feature', 'with_feature']
+__all__ = ["Feature", "with_feature"]
 
 import six
 import collections
@@ -36,7 +36,7 @@ def Feature(names):
     elif not isinstance(names, collections.Mapping):
         names = {k: True for k in names}
 
-    with patch('sentry.features.has') as features_has:
+    with patch("sentry.features.has") as features_has:
         features_has.side_effect = lambda x, *a, **k: names.get(x, False)
         yield
 
@@ -46,5 +46,7 @@ def with_feature(feature):
         def wrapped(self, *args, **kwargs):
             with Feature(feature):
                 return func(self, *args, **kwargs)
+
         return wrapped
+
     return decorator

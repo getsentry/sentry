@@ -7,7 +7,7 @@ from debug_toolbar import settings as dt_settings
 
 
 class DebugToolbarConfig(AppConfig):
-    name = 'debug_toolbar'
+    name = "debug_toolbar"
     verbose_name = _("Debug Toolbar")
 
     def ready(self):

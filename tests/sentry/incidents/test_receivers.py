@@ -10,30 +10,26 @@ from sentry.testutils import TestCase
 
 
 class HandleReleaseCommitsUpdatedTest(TestCase):
-
     def test(self):
-        release = self.create_release(project=self.project, version='something')
+        release = self.create_release(project=self.project, version="something")
         self.repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name=self.organization.id,
+            organization_id=self.organization.id, name=self.organization.id
         )
-        release.set_commits([
-            {
-                'id': 'a' * 40,
-                'repository': self.repo.name,
-                'author_email': 'bob@example.com',
-                'author_name': 'Bob',
-            },
-        ])
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                }
+            ]
+        )
         commit = Commit.objects.get(releasecommit__release=release)
 
         incident = self.create_incident()
         ReleaseCommit.objects.filter(release=release).delete()
-        IncidentSuspectCommit.objects.create(
-            incident=incident,
-            commit=commit,
-            order=1,
-        )
+        IncidentSuspectCommit.objects.create(incident=incident, commit=commit, order=1)
         with self.tasks():
             release_commits_updated.send_robust(
                 release=release,

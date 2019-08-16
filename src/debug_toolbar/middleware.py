@@ -15,7 +15,7 @@ from debug_toolbar.toolbar import DebugToolbar
 from debug_toolbar import settings as dt_settings
 from debug_toolbar.compat import import_module
 
-_HTML_TYPES = ('text/html', 'application/xhtml+xml')
+_HTML_TYPES = ("text/html", "application/xhtml+xml")
 # Handles python threading module bug - http://bugs.python.org/issue14308
 threading._DummyThread._Thread__stop = lambda x: 1
 
@@ -24,7 +24,7 @@ def show_toolbar(request):
     """
     Default function to determine whether to show the toolbar on a given page.
     """
-    if request.META.get('REMOTE_ADDR', None) not in settings.INTERNAL_IPS:
+    if request.META.get("REMOTE_ADDR", None) not in settings.INTERNAL_IPS:
         return False
 
     if request.is_ajax():
@@ -38,15 +38,16 @@ class DebugToolbarMiddleware(object):
     Middleware to set up Debug Toolbar on incoming request and render toolbar
     on outgoing response.
     """
+
     debug_toolbars = {}
 
     def __init__(self):
         # If SHOW_TOOLBAR_CALLBACK is a string, which is the recommended
         # setup, resolve it to the corresponding callable.
-        func_or_path = dt_settings.CONFIG['SHOW_TOOLBAR_CALLBACK']
+        func_or_path = dt_settings.CONFIG["SHOW_TOOLBAR_CALLBACK"]
         if isinstance(func_or_path, six.string_types):
             # Replace this with import_by_path in Django >= 1.6.
-            mod_path, func_name = func_or_path.rsplit('.', 1)
+            mod_path, func_name = func_or_path.rsplit(".", 1)
             self.show_toolbar = getattr(import_module(mod_path), func_name)
         else:
             self.show_toolbar = func_or_path
@@ -102,35 +103,36 @@ class DebugToolbarMiddleware(object):
             panel.disable_instrumentation()
 
         # Check for responses where the toolbar can't be inserted.
-        content_encoding = response.get('Content-Encoding', '')
-        content_type = response.get('Content-Type', '').split(';')[0]
+        content_encoding = response.get("Content-Encoding", "")
+        content_type = response.get("Content-Type", "").split(";")[0]
         if any(
             (
-                getattr(response, 'streaming', False), 'gzip' in content_encoding,
-                content_type not in _HTML_TYPES
+                getattr(response, "streaming", False),
+                "gzip" in content_encoding,
+                content_type not in _HTML_TYPES,
             )
         ):
             return response
 
         # Collapse the toolbar by default if SHOW_COLLAPSED is set.
-        if toolbar.config['SHOW_COLLAPSED'] and 'djdt' not in request.COOKIES:
-            response.set_cookie('djdt', 'hide', 864000)
+        if toolbar.config["SHOW_COLLAPSED"] and "djdt" not in request.COOKIES:
+            response.set_cookie("djdt", "hide", 864000)
 
         # Insert the toolbar in the response.
         content = force_text(response.content, encoding=settings.DEFAULT_CHARSET)
-        insert_before = dt_settings.CONFIG['INSERT_BEFORE']
+        insert_before = dt_settings.CONFIG["INSERT_BEFORE"]
         try:  # Python >= 2.7
             pattern = re.escape(insert_before)
             bits = re.split(pattern, content, flags=re.IGNORECASE)
         except TypeError:  # Python < 2.7
-            pattern = '(.+?)(%s|$)' % re.escape(insert_before)
+            pattern = "(.+?)(%s|$)" % re.escape(insert_before)
             matches = re.findall(pattern, content, flags=re.DOTALL | re.IGNORECASE)
             bits = [m[0] for m in matches if m[1] == insert_before]
             # When the body ends with a newline, there's two trailing groups.
-            bits.append(''.join(m[0] for m in matches if m[1] == ''))
+            bits.append("".join(m[0] for m in matches if m[1] == ""))
         if len(bits) > 1:
             bits[-2] += toolbar.render_toolbar()
             response.content = insert_before.join(bits)
-            if response.get('Content-Length', None):
-                response['Content-Length'] = len(response.content)
+            if response.get("Content-Length", None):
+                response["Content-Length"] = len(response.content)
         return response

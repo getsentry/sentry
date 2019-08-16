@@ -20,12 +20,12 @@ from urllib3.exceptions import HTTPError
 from sentry.net.http import UnixHTTPConnectionPool
 
 
-DEFAULT_NODES = ({'host': '127.0.0.1', 'port': 8098}, )
+DEFAULT_NODES = ({"host": "127.0.0.1", "port": 8098},)
 
 
 def encode_basic_auth(auth):
-    auth = ':'.join(auth)
-    return 'Basic ' + b64encode(auth).decode('utf-8')
+    auth = ":".join(auth)
+    return "Basic " + b64encode(auth).decode("utf-8")
 
 
 class SimpleThreadedWorkerPool(object):
@@ -35,7 +35,7 @@ class SimpleThreadedWorkerPool(object):
     """
 
     def __init__(self, size):
-        assert size > 0, 'pool must have at laest one worker thread'
+        assert size > 0, "pool must have at laest one worker thread"
 
         self.__started = False
         self.__size = size
@@ -82,40 +82,29 @@ class RiakClient(object):
         self.pool = SimpleThreadedWorkerPool(multiget_pool_size)
 
     def build_url(self, bucket, key, qs):
-        url = '/buckets/%s/keys/%s' % tuple(map(quote_plus, (bucket, key)))
+        url = "/buckets/%s/keys/%s" % tuple(map(quote_plus, (bucket, key)))
         if qs:
-            url += '?' + urlencode(qs)
+            url += "?" + urlencode(qs)
         return url
 
     def put(self, bucket, key, data, headers=None, **kwargs):
         if headers is None:
             headers = {}
-        headers['content-type'] = 'application/json'
+        headers["content-type"] = "application/json"
 
         return self.manager.urlopen(
-            'PUT',
-            self.build_url(bucket, key, kwargs),
-            headers=headers,
-            body=data,
+            "PUT", self.build_url(bucket, key, kwargs), headers=headers, body=data
         )
 
     def delete(self, bucket, key, headers=None, **kwargs):
-        return self.manager.urlopen(
-            'DELETE',
-            self.build_url(bucket, key, kwargs),
-            headers=headers,
-        )
+        return self.manager.urlopen("DELETE", self.build_url(bucket, key, kwargs), headers=headers)
 
     def get(self, bucket, key, headers=None, **kwargs):
         if headers is None:
             headers = {}
-        headers['accept-encoding'] = 'gzip'  # urllib3 will automatically decompress
+        headers["accept-encoding"] = "gzip"  # urllib3 will automatically decompress
 
-        return self.manager.urlopen(
-            'GET',
-            self.build_url(bucket, key, kwargs),
-            headers=headers,
-        )
+        return self.manager.urlopen("GET", self.build_url(bucket, key, kwargs), headers=headers)
 
     def multiget(self, bucket, keys, headers=None, **kwargs):
         """
@@ -136,15 +125,9 @@ class RiakClient(object):
             self.pool.submit(
                 (
                     self.manager.urlopen,  # func
-                    ('GET', url),  # args
-                    {
-                        'headers': headers
-                    },  # kwargs
-                    functools.partial(
-                        callback,
-                        key,
-                        event,
-                    ),  # callback
+                    ("GET", url),  # args
+                    {"headers": headers},  # kwargs
+                    functools.partial(callback, key, event),  # callback
                 )
             )
 
@@ -185,7 +168,7 @@ class ConnectionManager(object):
         timeout=3,
         cooldown=5,
         max_retries=None,
-        tcp_keepalive=True
+        tcp_keepalive=True,
     ):
         assert hosts
         self.dead_connections = []
@@ -222,48 +205,49 @@ class ConnectionManager(object):
         Create a new HTTP(S)ConnectionPool for a (host, port) tuple
         """
         options = {
-            'timeout': self.timeout,
-            'strict': True,
-            'retries': host.get('retries', 2),
+            "timeout": self.timeout,
+            "strict": True,
+            "retries": host.get("retries", 2),
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
             # above 5 if needed becuase we're also setting
             # block=False
-            'maxsize': host.get('maxsize', 5),
-            'block': False,
-            'headers': host.get('headers', {})
+            "maxsize": host.get("maxsize", 5),
+            "block": False,
+            "headers": host.get("headers", {}),
         }
 
-        if 'basic_auth' in host:
-            options['headers']['authorization'] = encode_basic_auth(host['basic_auth'])
+        if "basic_auth" in host:
+            options["headers"]["authorization"] = encode_basic_auth(host["basic_auth"])
 
         # Support backwards compatibility with `http_port`
-        if 'http_port' in host:
+        if "http_port" in host:
             import warnings
-            warnings.warn("'http_port' has been deprecated. Use 'port'.", DeprecationWarning)
-            host['port'] = host.pop('http_port')
 
-        addr = host.get('host', '127.0.0.1')
-        port = int(host.get('port', 8098))
-        secure = host.get('secure', False)
-        if addr[:1] == '/':
+            warnings.warn("'http_port' has been deprecated. Use 'port'.", DeprecationWarning)
+            host["port"] = host.pop("http_port")
+
+        addr = host.get("host", "127.0.0.1")
+        port = int(host.get("port", 8098))
+        secure = host.get("secure", False)
+        if addr[:1] == "/":
             pool_cls = UnixHTTPConnectionPool
         elif not secure:
             pool_cls = HTTPConnectionPool
         else:
             pool_cls = HTTPSConnectionPool
-            verify_ssl = host.get('verify_ssl', False)
+            verify_ssl = host.get("verify_ssl", False)
             if verify_ssl:
                 options.extend(
                     {
-                        'cert_reqs': host.get('cert_reqs', 'CERT_REQUIRED'),
-                        'ca_certs': host.get('ca_certs', ca_certs())
+                        "cert_reqs": host.get("cert_reqs", "CERT_REQUIRED"),
+                        "ca_certs": host.get("ca_certs", ca_certs()),
                     }
                 )
 
         if self.tcp_keepalive:
-            options['socket_options'] = pool_cls.ConnectionCls.default_socket_options + [
-                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+            options["socket_options"] = pool_cls.ConnectionCls.default_socket_options + [
+                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             ]
 
         return pool_cls(addr, port, **options)
@@ -280,7 +264,7 @@ class ConnectionManager(object):
 
         # We don't need strict host checking since our client is enforcing
         # the correct behavior anyways
-        kwargs.setdefault('assert_same_host', False)
+        kwargs.setdefault("assert_same_host", False)
 
         # Keep track of the last exception, so we can raise it if needed
         last_error = None

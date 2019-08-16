@@ -10,9 +10,10 @@ class AuthVerifyValidator(serializers.Serializer):
     response = serializers.CharField(required=False)
 
     def validate(self, data):
-        if 'password' in data:
+        if "password" in data:
             return data
-        if 'challenge' in data and 'response' in data:
+        if "challenge" in data and "response" in data:
             return data
         raise serializers.ValidationError(
-            'You must provide `password` or `challenge` and `response`.')
+            "You must provide `password` or `challenge` and `response`."
+        )

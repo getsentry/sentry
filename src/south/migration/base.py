@@ -52,9 +52,9 @@ class MigrationsMetaclass(type):
         else:
             app_label = get_app_label(application_or_app_label)
         if app_label not in self.instances:
-            self.instances[app_label] = super(
-                MigrationsMetaclass, self).__call__(
-                application_or_app_label, **kwds)
+            self.instances[app_label] = super(MigrationsMetaclass, self).__call__(
+                application_or_app_label, **kwds
+            )
         return self.instances[app_label]
 
     def _clear_cache(self):
@@ -68,17 +68,21 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
     """
 
     if getattr(settings, "SOUTH_USE_PYC", False):
-        MIGRATION_FILENAME = re.compile(r'(?!__init__)'  # Don't match __init__.py
-                                        # Don't match dotfiles, or names with dots/invalid chars in
-                                        # them
-                                        r'[0-9a-zA-Z_]*'
-                                        r'(\.pyc?)?$')     # Match .py or .pyc files, or module dirs
+        MIGRATION_FILENAME = re.compile(
+            r"(?!__init__)"  # Don't match __init__.py
+            # Don't match dotfiles, or names with dots/invalid chars in
+            # them
+            r"[0-9a-zA-Z_]*"
+            r"(\.pyc?)?$"
+        )  # Match .py or .pyc files, or module dirs
     else:
-        MIGRATION_FILENAME = re.compile(r'(?!__init__)'  # Don't match __init__.py
-                                        # Don't match dotfiles, or names with dots/invalid chars in
-                                        # them
-                                        r'[0-9a-zA-Z_]*'
-                                        r'(\.py)?$')       # Match only .py files, or module dirs
+        MIGRATION_FILENAME = re.compile(
+            r"(?!__init__)"  # Don't match __init__.py
+            # Don't match dotfiles, or names with dots/invalid chars in
+            # them
+            r"[0-9a-zA-Z_]*"
+            r"(\.py)?$"
+        )  # Match only .py files, or module dirs
 
     def __init__(self, application_or_app_label, force_creation=False, verbose_creation=True):
         "Constructor. Takes the module of the app, NOT its models (like get_app returns)"
@@ -86,9 +90,7 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
         self.set_application(application_or_app_label, force_creation, verbose_creation)
 
     def __repr__(self):
-        return u'<Migrations: {}>'.format(
-            self.app_label(),
-        )
+        return u"<Migrations: {}>".format(self.app_label())
 
     def create_migrations_directory(self, verbose=True):
         "Given an application, ensures that the migrations directory is ready."
@@ -96,14 +98,14 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
         # Make the directory if it's not already there
         if not os.path.isdir(migrations_dir):
             if verbose:
-                print("Creating migrations directory at '%s'..." % migrations_dir)
+                print ("Creating migrations directory at '%s'..." % migrations_dir)
             os.mkdir(migrations_dir)
         # Same for __init__.py
         init_path = os.path.join(migrations_dir, "__init__.py")
         if not os.path.isfile(init_path):
             # Touch the init py file
             if verbose:
-                print("Creating __init__.py in '%s'..." % migrations_dir)
+                print ("Creating __init__.py in '%s'..." % migrations_dir)
             open(init_path, "w").close()
 
     def migrations_dir(self):
@@ -117,10 +119,10 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
 
     def migrations_module(self):
         "Returns the module name of the migrations module for this"
-        full_name = '{}.south_migrations'.format(self._application.__name__)
+        full_name = "{}.south_migrations".format(self._application.__name__)
         if full_name in sys.modules:
             return sys.modules[full_name]
-        return __import__(full_name, {}, {}, ['south_migrations'], -1)
+        return __import__(full_name, {}, {}, ["south_migrations"], -1)
 
     def get_application(self):
         return self._application
@@ -137,7 +139,7 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
                 application = app_label_to_app_module(application)
 
         self._application = application
-        if not hasattr(application, 'south_migrations'):
+        if not hasattr(application, "south_migrations"):
             try:
                 module = self.migrations_module()
                 self._migrations = application.south_migrations = module
@@ -148,7 +150,7 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
                     self._migrations = application.south_migrations = module
                 else:
                     six.reraise(exceptions.NoMigrations, exceptions.NoMigrations(application))
-        if hasattr(application, 'south_migrations'):
+        if hasattr(application, "south_migrations"):
             self._load_migrations_module(application.south_migrations)
 
     application = property(get_application, set_application)
@@ -165,9 +167,13 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
                     continue
                 # If it's a module directory, only append if it contains __init__.py[c].
                 if os.path.isdir(full_path):
-                    if not (os.path.isfile(os.path.join(full_path, "__init__.py")) or
-                            (getattr(settings, "SOUTH_USE_PYC", False) and
-                             os.path.isfile(os.path.join(full_path, "__init__.pyc")))):
+                    if not (
+                        os.path.isfile(os.path.join(full_path, "__init__.py"))
+                        or (
+                            getattr(settings, "SOUTH_USE_PYC", False)
+                            and os.path.isfile(os.path.join(full_path, "__init__.pyc"))
+                        )
+                    ):
                         continue
                 filenames.append(f)
         filenames.sort()
@@ -195,7 +201,7 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
             raise exceptions.UnknownMigration(prefix, None)
 
     def guess_migration(self, target_name):
-        if target_name == 'zero' or not self:
+        if target_name == "zero" or not self:
             return
         elif target_name is None:
             return self[-1]
@@ -235,10 +241,7 @@ class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
             except ValueError:
                 pass
         # Work out the new filename
-        return "%04i_%s.py" % (
-            highest_number + 1,
-            name,
-        )
+        return "%04i_%s.py" % (highest_number + 1, name)
 
 
 class Migration(object):
@@ -257,10 +260,10 @@ class Migration(object):
         self.dependents = set()
 
     def __str__(self):
-        return self.app_label() + ':' + self.name()
+        return self.app_label() + ":" + self.name()
 
     def __repr__(self):
-        return '<Migration: %s>' % str(self)
+        return "<Migration: %s>" % str(self)
 
     def __eq__(self, other):
         return self.app_label() == other.app_label() and self.name() == other.name()
@@ -279,7 +282,7 @@ class Migration(object):
         return self.strip_filename(os.path.basename(self.filename))
 
     def full_name(self):
-        return self.migrations.full_name() + '.' + self.name()
+        return self.migrations.full_name() + "." + self.name()
 
     def migration(self):
         "Tries to load the actual migration module"
@@ -288,7 +291,7 @@ class Migration(object):
             migration = sys.modules[full_name]
         except KeyError:
             try:
-                migration = __import__(full_name, {}, {}, ['Migration'])
+                migration = __import__(full_name, {}, {}, ["Migration"])
             except ImportError as e:
                 raise exceptions.UnknownMigration(self, sys.exc_info())
             except Exception as e:
@@ -297,6 +300,7 @@ class Migration(object):
         migration._ = lambda x: x  # Fake i18n
         migration.datetime = datetime_utils
         return migration
+
     migration = memoize(migration)
 
     def migration_class(self):
@@ -306,6 +310,7 @@ class Migration(object):
     def migration_instance(self):
         "Instantiates the migration_class"
         return self.migration_class()()
+
     migration_instance = memoize(migration_instance)
 
     def previous(self):
@@ -314,6 +319,7 @@ class Migration(object):
         if index < 0:
             return None
         return self.migrations[index]
+
     previous = memoize(previous)
 
     def next(self):
@@ -322,6 +328,7 @@ class Migration(object):
         if index >= len(self.migrations):
             return None
         return self.migrations[index]
+
     next = memoize(next)
 
     def _get_dependency_objects(self, attrname):
@@ -408,17 +415,19 @@ class Migration(object):
             return False
 
     def prev_orm(self):
-        if getattr(self.migration_class(), 'symmetrical', False):
+        if getattr(self.migration_class(), "symmetrical", False):
             return self.orm()
         previous = self.previous()
         if previous is None:
             # First migration? The 'previous ORM' is empty.
             return FakeORM(None, self.app_label())
         return previous.orm()
+
     prev_orm = memoize(prev_orm)
 
     def orm(self):
         return FakeORM(self.migration_class(), self.app_label())
+
     orm = memoize(orm)
 
     def no_dry_run(self):

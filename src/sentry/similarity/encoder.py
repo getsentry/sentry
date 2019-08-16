@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from collections import (Mapping, Set, Sequence)
+from collections import Mapping, Set, Sequence
 
 import six
 
@@ -22,29 +22,14 @@ class Encoder(object):
         if isinstance(value, six.binary_type):
             return value
         elif isinstance(value, six.text_type):
-            return value.encode('utf8')
+            return value.encode("utf8")
         elif isinstance(value, self.number_types):
-            return six.text_type(value).encode('utf8')
+            return six.text_type(value).encode("utf8")
         elif isinstance(value, Set):
-            return '\x00'.join(sorted(
-                map(
-                    self.dumps,
-                    value,
-                ),
-            ))
+            return "\x00".join(sorted(map(self.dumps, value)))
         elif isinstance(value, Sequence):
-            return '\x01'.join(
-                map(
-                    self.dumps,
-                    value,
-                ),
-            )
+            return "\x01".join(map(self.dumps, value))
         elif isinstance(value, Mapping):
-            return '\x02'.join(
-                sorted('\x01'.join(map(
-                    self.dumps,
-                    item,
-                )) for item in value.items()),
-            )
+            return "\x02".join(sorted("\x01".join(map(self.dumps, item)) for item in value.items()))
         else:
-            raise TypeError(u'Unsupported type: {}'.format(type(value)))
+            raise TypeError(u"Unsupported type: {}".format(type(value)))

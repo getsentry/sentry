@@ -13,7 +13,7 @@ def template_source(request):
     Return the source of a template, syntax-highlighted by Pygments if
     it's available.
     """
-    template_name = request.GET.get('template', None)
+    template_name = request.GET.get("template", None)
     if template_name is None:
         return HttpResponseBadRequest('"template" key is required')
 
@@ -25,7 +25,7 @@ def template_source(request):
             # When the loader has loaders associated with it,
             # append those loaders to the list. This occurs with
             # django.template.loaders.cached.Loader
-            if hasattr(loader, 'loaders'):
+            if hasattr(loader, "loaders"):
                 final_loaders += loader.loaders
             else:
                 final_loaders.append(loader)
@@ -35,7 +35,7 @@ def template_source(request):
             source, display_name = loader.load_template_source(template_name)
             break
         except TemplateDoesNotExist:
-            source = "Template Does Not Exist: %s" % (template_name, )
+            source = "Template Does Not Exist: %s" % (template_name,)
 
     try:
         from pygments import highlight
@@ -50,7 +50,6 @@ def template_source(request):
 
     # Using render_to_response avoids running global context processors.
     return render_to_response(
-        'debug_toolbar/panels/template_source.html',
-        {'source': source,
-         'template_name': template_name}
+        "debug_toolbar/panels/template_source.html",
+        {"source": source, "template_name": template_name},
     )

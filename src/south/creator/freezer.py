@@ -45,15 +45,17 @@ def freeze_apps(apps):
                 missing_fields = True
                 model_class = model_classes[key]
                 field_class = model_class._meta.get_field_by_name(field_name)[0]
-                print(" ! Cannot freeze field '%s.%s'" % (key, field_name))
-                print(" ! (this field has class %s.%s)" %
-                      (field_class.__class__.__module__, field_class.__class__.__name__))
+                print (" ! Cannot freeze field '%s.%s'" % (key, field_name))
+                print (
+                    " ! (this field has class %s.%s)"
+                    % (field_class.__class__.__module__, field_class.__class__.__name__)
+                )
     if missing_fields:
-        print("")
-        print(" ! South cannot introspect some fields; this is probably because they are custom")
-        print(" ! fields. If they worked in 0.6 or below, this is because we have removed the")
-        print(" ! models parser (it often broke things).")
-        print(" ! To fix this, read http://south.aeracode.org/wiki/MyFieldsDontWork")
+        print ("")
+        print (" ! South cannot introspect some fields; this is probably because they are custom")
+        print (" ! fields. If they worked in 0.6 or below, this is because we have removed the")
+        print (" ! models parser (it often broke things).")
+        print (" ! To fix this, read http://south.aeracode.org/wiki/MyFieldsDontWork")
         sys.exit(1)
 
     return model_defs
@@ -61,6 +63,7 @@ def freeze_apps(apps):
 
 def freeze_apps_to_string(apps):
     return pprint_frozen_models(freeze_apps(apps))
+
 
 ###
 
@@ -80,12 +83,13 @@ def prep_for_freeze(model):
     for name, field in fields.items():
         fields[name] = remove_useless_attributes(field)
     # See if there's a Meta
-    fields['Meta'] = remove_useless_meta(modelsinspector.get_model_meta(model))
+    fields["Meta"] = remove_useless_meta(modelsinspector.get_model_meta(model))
     # Add in our own special items to track the object name and managed
-    fields['Meta']['object_name'] = model._meta.object_name  # Special: not eval'able.
+    fields["Meta"]["object_name"] = model._meta.object_name  # Special: not eval'able.
     if not getattr(model._meta, "managed", True):
-        fields['Meta']['managed'] = repr(model._meta.managed)
+        fields["Meta"]["managed"] = repr(model._meta.managed)
     return fields
+
 
 # Dependency resolvers
 
@@ -102,7 +106,7 @@ def model_dependencies(model, checked_models=None):
         depends.update(field_dependencies(field, checked_models))
     # Add in any non-abstract bases
     for base in model.__bases__:
-        if issubclass(base, models.Model) and hasattr(base, '_meta') and not base._meta.abstract:
+        if issubclass(base, models.Model) and hasattr(base, "_meta") and not base._meta.abstract:
             depends.add(base)
     # Now recurse
     new_to_check = depends - checked_models
@@ -130,7 +134,7 @@ def field_dependencies(field, checked_models=None):
             continue
         if options.get("is_value", False):
             value = attrname
-        elif attrname == 'rel.through' and hasattr(getattr(field, 'rel', None), 'through_model'):
+        elif attrname == "rel.through" and hasattr(getattr(field, "rel", None), "through_model"):
             # Hack for django 1.1 and below, where the through model is stored
             # in rel.through_model while rel.through stores only the model name.
             value = field.rel.through_model
@@ -155,21 +159,21 @@ def field_dependencies(field, checked_models=None):
 
     return depends
 
+
 # Prettyprinters
 
 
 def pprint_frozen_models(models):
-    return "{\n        %s\n    }" % ",\n        ".join([
-        "%r: %s" % (name, pprint_fields(fields))
-        for name, fields in sorted(models.items())
-    ])
+    return "{\n        %s\n    }" % ",\n        ".join(
+        ["%r: %s" % (name, pprint_fields(fields)) for name, fields in sorted(models.items())]
+    )
 
 
 def pprint_fields(fields):
-    return "{\n            %s\n        }" % ",\n            ".join([
-        "%r: %r" % (name, defn)
-        for name, defn in sorted(fields.items())
-    ])
+    return "{\n            %s\n        }" % ",\n            ".join(
+        ["%r: %r" % (name, defn) for name, defn in sorted(fields.items())]
+    )
+
 
 # Output sanitisers
 

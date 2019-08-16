@@ -6,12 +6,13 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError  # noqa
 from sentry.utils.safe import get_path
 
-__all__ = ('parse_rules', 'dump_schema', 'load_schema')
+__all__ = ("parse_rules", "dump_schema", "load_schema")
 
 VERSION = 1
 
 # Grammar is defined in EBNF syntax.
-ownership_grammar = Grammar(r"""
+ownership_grammar = Grammar(
+    r"""
 
 ownership = line+
 
@@ -38,33 +39,28 @@ empty   = ""
 newline = ~r"[\r\n]"
 _       = space*
 
-""")
+"""
+)
 
 
-class Rule(namedtuple('Rule', 'matcher owners')):
+class Rule(namedtuple("Rule", "matcher owners")):
     """
     A Rule represents a single line in an Ownership file.
     This line contains a Matcher and a list of Owners.
     """
 
     def dump(self):
-        return {
-            'matcher': self.matcher.dump(),
-            'owners': [o.dump() for o in self.owners],
-        }
+        return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
     def load(cls, data):
-        return cls(
-            Matcher.load(data['matcher']),
-            [Owner.load(o) for o in data['owners']],
-        )
+        return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
     def test(self, data):
         return self.matcher.test(data)
 
 
-class Matcher(namedtuple('Matcher', 'type pattern')):
+class Matcher(namedtuple("Matcher", "type pattern")):
     """
     A Matcher represents a type:pattern pairing for use in
     comparing with an Event.
@@ -80,31 +76,25 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
     """
 
     def dump(self):
-        return {
-            'type': self.type,
-            'pattern': self.pattern,
-        }
+        return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
     def load(cls, data):
-        return cls(
-            data['type'],
-            data['pattern'],
-        )
+        return cls(data["type"], data["pattern"])
 
     def test(self, data):
-        return getattr(self, 'test_%s' % self.type)(data)
+        return getattr(self, "test_%s" % self.type)(data)
 
     def test_url(self, data):
         try:
-            url = data['request']['url']
+            url = data["request"]["url"]
         except KeyError:
             return False
         return fnmatch(url, self.pattern)
 
     def test_path(self, data):
         for frame in _iter_frames(data):
-            filename = frame.get('filename') or frame.get('abs_path')
+            filename = frame.get("filename") or frame.get("abs_path")
 
             if not filename:
                 continue
@@ -119,7 +109,7 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
         return False
 
 
-class Owner(namedtuple('Owner', 'type identifier')):
+class Owner(namedtuple("Owner", "type identifier")):
     """
     An Owner represents a User or Team who owns this Rule.
 
@@ -131,17 +121,11 @@ class Owner(namedtuple('Owner', 'type identifier')):
     """
 
     def dump(self):
-        return {
-            'type': self.type,
-            'identifier': self.identifier,
-        }
+        return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
     def load(cls, data):
-        return cls(
-            data['type'],
-            data['identifier'],
-        )
+        return cls(data["type"], data["identifier"])
 
 
 class OwnershipVisitor(NodeVisitor):
@@ -166,7 +150,7 @@ class OwnershipVisitor(NodeVisitor):
 
     def visit_matcher_tag(self, node, children):
         if not children:
-            return 'path'
+            return "path"
         tag, = children
         type, _ = tag
         return type[0].text
@@ -177,10 +161,10 @@ class OwnershipVisitor(NodeVisitor):
 
     def visit_owner(self, node, children):
         _, is_team, pattern = children
-        type = 'team' if is_team else 'user'
+        type = "team" if is_team else "user"
         # User emails are case insensitive, so coerce them
         # to lowercase, so they can be de-duped, etc.
-        if type == 'user':
+        if type == "user":
             pattern = pattern.lower()
         return Owner(type, pattern)
 
@@ -196,19 +180,19 @@ class OwnershipVisitor(NodeVisitor):
 
 def _iter_frames(data):
     try:
-        for frame in get_path(data, 'stacktrace', 'frames', filter=True) or ():
+        for frame in get_path(data, "stacktrace", "frames", filter=True) or ():
             yield frame
     except KeyError:
         pass
 
     try:
-        values = get_path(data, 'exception', 'values', filter=True) or ()
+        values = get_path(data, "exception", "values", filter=True) or ()
     except KeyError:
         return
 
     for value in values:
         try:
-            for frame in get_path(value, 'stacktrace', 'frames', filter=True) or ():
+            for frame in get_path(value, "stacktrace", "frames", filter=True) or ():
                 yield frame
         except KeyError:
             continue
@@ -222,14 +206,11 @@ def parse_rules(data):
 
 def dump_schema(rules):
     """Convert a Rule tree into a JSON schema"""
-    return {
-        '$version': VERSION,
-        'rules': [r.dump() for r in rules],
-    }
+    return {"$version": VERSION, "rules": [r.dump() for r in rules]}
 
 
 def load_schema(schema):
     """Convert a JSON schema into a Rule tree"""
-    if schema['$version'] != VERSION:
-        raise RuntimeError('Invalid schema $version: %r' % schema['$version'])
-    return [Rule.load(r) for r in schema['rules']]
+    if schema["$version"] != VERSION:
+        raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
+    return [Rule.load(r) for r in schema["rules"]]

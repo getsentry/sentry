@@ -9,15 +9,15 @@ if "tagging" in settings.INSTALLED_APPS:
     else:
         rules = [
             (
-                (TagField, ),
+                (TagField,),
                 [],
                 {
                     "blank": ["blank", {"default": True}],
                     "max_length": ["max_length", {"default": 255}],
                 },
-            ),
+            )
         ]
-        add_introspection_rules(rules, ["^tagging\.fields", ])
+        add_introspection_rules(rules, ["^tagging\.fields"])
 
 if "tagging_autocomplete" in settings.INSTALLED_APPS:
     add_introspection_rules([], ["^tagging_autocomplete\.models\.TagAutocompleteField"])

@@ -12,7 +12,8 @@ class SettingsPanel(Panel):
     """
     A panel to display all variables in django.conf.settings
     """
-    template = 'debug_toolbar/panels/settings.html'
+
+    template = "debug_toolbar/panels/settings.html"
 
     nav_title = _("Settings")
 
@@ -21,7 +22,5 @@ class SettingsPanel(Panel):
 
     def process_response(self, request, response):
         self.record_stats(
-            {
-                'settings': OrderedDict(sorted(get_safe_settings().items(), key=lambda s: s[0])),
-            }
+            {"settings": OrderedDict(sorted(get_safe_settings().items(), key=lambda s: s[0]))}
         )

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
-from django.db.models.signals import (post_save, post_delete, post_init, class_prepared)
+from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils.encoding import smart_text
 
 from sentry import nodestore
@@ -18,9 +18,9 @@ from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
 
-__all__ = ('BaseManager', )
+__all__ = ("BaseManager",)
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 def __prep_value(model, key, value):
@@ -32,7 +32,7 @@ def __prep_value(model, key, value):
 
 
 def __prep_key(model, key):
-    if key == 'pk':
+    if key == "pk":
         return model._meta.pk.name
     return key
 
@@ -42,10 +42,10 @@ def make_key(model, prefix, kwargs):
     for k, v in sorted(six.iteritems(kwargs)):
         k = __prep_key(model, k)
         v = smart_text(__prep_value(model, k, v))
-        kwargs_bits.append('%s=%s' % (k, v))
-    kwargs_bits = ':'.join(kwargs_bits)
+        kwargs_bits.append("%s=%s" % (k, v))
+    kwargs_bits = ":".join(kwargs_bits)
 
-    return '%s:%s:%s' % (prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
+    return "%s:%s:%s" % (prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
 
 
 class BaseQuerySet(QuerySet):
@@ -55,29 +55,27 @@ class BaseQuerySet(QuerySet):
     #     raise NotImplementedError('Use ``values_list`` instead [performance].')
 
     def defer(self, *args, **kwargs):
-        raise NotImplementedError('Use ``values_list`` instead [performance].')
+        raise NotImplementedError("Use ``values_list`` instead [performance].")
 
     def only(self, *args, **kwargs):
-        raise NotImplementedError('Use ``values_list`` instead [performance].')
+        raise NotImplementedError("Use ``values_list`` instead [performance].")
 
 
 class BaseManager(Manager):
-    lookup_handlers = {
-        'iexact': lambda x: x.upper(),
-    }
+    lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
     _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
-        self.cache_fields = kwargs.pop('cache_fields', [])
-        self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
-        self.cache_version = kwargs.pop('cache_version', None)
+        self.cache_fields = kwargs.pop("cache_fields", [])
+        self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
+        self.cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
     def _get_cache(self):
-        if not hasattr(self.__local_cache, 'value'):
+        if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = weakref.WeakKeyDictionary()
         return self.__local_cache.value
 
@@ -85,16 +83,17 @@ class BaseManager(Manager):
         self.__local_cache.value = value
 
     def _generate_cache_version(self):
-        return md5_text('&'.join(sorted(f.attname
-                                        for f in self.model._meta.fields))).hexdigest()[:3]
+        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
+            :3
+        ]
 
     __cache = property(_get_cache, _set_cache)
 
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        d.pop('_BaseManager__cache', None)
-        d.pop('_BaseManager__local_cache', None)
+        d.pop("_BaseManager__cache", None)
+        d.pop("_BaseManager__local_cache", None)
         return d
 
     def __setstate__(self, state):
@@ -139,7 +138,7 @@ class BaseManager(Manager):
         lookup values.
         """
         pk_name = instance._meta.pk.name
-        pk_names = ('pk', pk_name)
+        pk_names = ("pk", pk_name)
         pk_val = instance.pk
         for key in self.cache_fields:
             if key in pk_names:
@@ -177,8 +176,7 @@ class BaseManager(Manager):
                 current_value = self.__value_for_field(instance, key)
                 if value != current_value:
                     cache.delete(
-                        key=self.__get_lookup_cache_key(**{key: value}),
-                        version=self.cache_version,
+                        key=self.__get_lookup_cache_key(**{key: value}), version=self.cache_version
                     )
 
         self.__cache_state(instance)
@@ -189,22 +187,20 @@ class BaseManager(Manager):
         """
         pk_name = instance._meta.pk.name
         for key in self.cache_fields:
-            if key in ('pk', pk_name):
+            if key in ("pk", pk_name):
                 continue
             # remove pointers
             value = self.__value_for_field(instance, key)
             cache.delete(
-                key=self.__get_lookup_cache_key(**{key: value}),
-                version=self.cache_version,
+                key=self.__get_lookup_cache_key(**{key: value}), version=self.cache_version
             )
         # remove actual object
         cache.delete(
-            key=self.__get_lookup_cache_key(**{pk_name: instance.pk}),
-            version=self.cache_version,
+            key=self.__get_lookup_cache_key(**{pk_name: instance.pk}), version=self.cache_version
         )
 
     def __get_lookup_cache_key(self, **kwargs):
-        return make_key(self.model, 'modelcache', kwargs)
+        return make_key(self.model, "modelcache", kwargs)
 
     def __value_for_field(self, instance, key):
         """
@@ -214,7 +210,7 @@ class BaseManager(Manager):
         instance ref. This is needed due to the way lifecycle of models works
         as otherwise we end up doing wasteful queries.
         """
-        if key == 'pk':
+        if key == "pk":
             return instance.pk
         field = instance._meta.get_field(key)
         return getattr(instance, field.attname)
@@ -234,7 +230,7 @@ class BaseManager(Manager):
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
-        if key == 'pk':
+        if key == "pk":
             key = pk_name
 
         # We store everything by key references (vs instances)
@@ -242,8 +238,8 @@ class BaseManager(Manager):
             value = value.pk
 
         # Kill __exact since it's the default behavior
-        if key.endswith('__exact'):
-            key = key.split('__exact', 1)[0]
+        if key.endswith("__exact"):
+            key = key.split("__exact", 1)[0]
 
         if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
@@ -262,14 +258,14 @@ class BaseManager(Manager):
 
             if not isinstance(retval, self.model):
                 if settings.DEBUG:
-                    raise ValueError('Unexpected value type returned from cache')
-                logger.error('Cache response returned invalid value %r', retval)
+                    raise ValueError("Unexpected value type returned from cache")
+                logger.error("Cache response returned invalid value %r", retval)
                 return self.get(**kwargs)
 
             if key == pk_name and int(value) != retval.pk:
                 if settings.DEBUG:
-                    raise ValueError('Unexpected value returned from cache')
-                logger.error('Cache response returned invalid value %r', retval)
+                    raise ValueError("Unexpected value returned from cache")
+                logger.error("Cache response returned invalid value %r", retval)
                 return self.get(**kwargs)
 
             retval._state.db = router.db_for_read(self.model, **kwargs)
@@ -301,7 +297,7 @@ class BaseManager(Manager):
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.
         """
-        if hasattr(self, '_hints'):
+        if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
 

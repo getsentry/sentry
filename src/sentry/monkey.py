@@ -12,8 +12,8 @@ def register_scheme(name):
             use.append(name)
 
 
-register_scheme('app')
-register_scheme('chrome-extension')
+register_scheme("app")
+register_scheme("chrome-extension")
 
 
 def patch_httprequest_repr():
@@ -29,7 +29,7 @@ def patch_httprequest_repr():
     # logged. This was yanked out of Django master anyhow.
     # https://code.djangoproject.com/ticket/12098
     def safe_httprequest_repr(self):
-        return '<%s: %s %r>' % (self.__class__.__name__, self.method, self.get_full_path())
+        return "<%s: %s %r>" % (self.__class__.__name__, self.method, self.get_full_path())
 
     HttpRequest.__repr__ = safe_httprequest_repr
 
@@ -54,13 +54,13 @@ def patch_parse_cookie():
         cookiedict = {}
         if six.PY2:
             cookie = force_str(cookie)
-        for chunk in cookie.split(';'):
-            if '=' in chunk:
-                key, val = chunk.split('=', 1)
+        for chunk in cookie.split(";"):
+            if "=" in chunk:
+                key, val = chunk.split("=", 1)
             else:
                 # Assume an empty name per
                 # https://bugzilla.mozilla.org/show_bug.cgi?id=169091
-                key, val = '', chunk
+                key, val = "", chunk
             key, val = key.strip(), val.strip()
             if key or val:
                 # unquote using Python's algorithm.
