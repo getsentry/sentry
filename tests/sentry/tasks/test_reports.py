@@ -31,7 +31,7 @@ from sentry.tasks.reports import (
     user_subscribed_to_organization_reports,
     prepare_project_issue_summaries,
 )
-from sentry.testutils.cases import (TestCase, SnubaTestCase)
+from sentry.testutils.cases import TestCase, SnubaTestCase
 from sentry.utils.dates import to_datetime, to_timestamp
 from six.moves import xrange
 
@@ -258,7 +258,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
 
-    @mock.patch('sentry.tasks.reports.BATCH_SIZE', 1)
+    @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
     def test_paginates_and_reassumbles_result(self):
         import copy
         from datetime import timedelta
@@ -274,22 +274,22 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'message': 'message',
-                'timestamp': min_ago,
-                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
-                'fingerprint': ['group-1']
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         )
 
         self.store_event(
             data={
-                'event_id': 'b' * 32,
-                'message': 'message',
-                'timestamp': min_ago,
-                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
-                'fingerprint': ['group-2']
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         )

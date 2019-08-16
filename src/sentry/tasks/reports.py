@@ -224,9 +224,10 @@ def chunk_event_counts(func):
     So, with this decorator, we will chunk up the issue IDs and ask for the issue count in those chunks.
     Then, we will stitch the responses back together.
     """
+
     def chunks(arr, chunk_size):
         for i in range(0, len(arr), chunk_size):
-            yield arr[i:i + chunk_size]
+            yield arr[i : i + chunk_size]
 
     def wrapper(issue_ids, start, stop, rollup):
         combined = {}
@@ -236,18 +237,13 @@ def chunk_event_counts(func):
             combined.update(single)
 
         return combined
+
     return wrapper
 
 
 @chunk_event_counts
 def get_event_counts(issue_ids, start, stop, rollup):
-    return tsdb.get_sums(
-        tsdb.models.group,
-        issue_ids,
-        start,
-        stop,
-        rollup=rollup,
-    )
+    return tsdb.get_sums(tsdb.models.group, issue_ids, start, stop, rollup=rollup)
 
 
 def prepare_project_issue_summaries(interval, project):
