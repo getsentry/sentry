@@ -46,10 +46,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # Scope the pagination related event ids to the current event
         # This ensure that if a field list/groupby conditions were provided
         # that we constrain related events to the query + current event values
-        snuba_args['conditions'].extend(get_reference_event_conditions(
-            snuba_args,
-            event.snuba_data
-        ))
+        snuba_args["conditions"].extend(
+            get_reference_event_conditions(snuba_args, event.snuba_data)
+        )
         next_event = eventstore.get_next_event_id(
             event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
@@ -58,11 +57,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         )
 
         data = serialize(event)
-        data['nextEventID'] = next_event[1] if next_event else None
-        data['previousEventID'] = prev_event[1] if prev_event else None
-        data['oldestEventID'] = self.oldest_event_id(snuba_args, event)
-        data['latestEventID'] = self.latest_event_id(snuba_args, event)
-        data['projectSlug'] = project_slug
+        data["nextEventID"] = next_event[1] if next_event else None
+        data["previousEventID"] = prev_event[1] if prev_event else None
+        data["oldestEventID"] = self.oldest_event_id(snuba_args, event)
+        data["latestEventID"] = self.latest_event_id(snuba_args, event)
+        data["projectSlug"] = project_slug
 
         return Response(data)
 

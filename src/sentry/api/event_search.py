@@ -651,11 +651,9 @@ def get_snuba_query_args(query=None, params=None):
 
 
 FIELD_ALIASES = {
-    'last_seen': {
-        'aggregations': [['max', 'timestamp', 'last_seen']],
-    },
-    'latest_event': {
-        'aggregations': [
+    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
+    "latest_event": {
+        "aggregations": [
             # TODO(mark) This is a hack to work around jsonschema limitations
             # in snuba.
             ["argMax(event_id, timestamp)", "", "latest_event"]
@@ -806,20 +804,19 @@ def resolve_field_list(fields, snuba_args):
 
 def find_reference_event(snuba_args, reference_event_id):
     try:
-        project_slug, event_id = reference_event_id.split(':')
+        project_slug, event_id = reference_event_id.split(":")
     except ValueError:
-        raise InvalidSearchQuery('Invalid reference event')
+        raise InvalidSearchQuery("Invalid reference event")
     try:
         project = Project.objects.get(
-            slug=project_slug,
-            id__in=snuba_args['filter_keys']['project_id']
+            slug=project_slug, id__in=snuba_args["filter_keys"]["project_id"]
         )
     except Project.DoesNotExist:
-        raise InvalidSearchQuery('Invalid reference event')
+        raise InvalidSearchQuery("Invalid reference event")
 
     reference_event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
     if not reference_event:
-        raise InvalidSearchQuery('Invalid reference event')
+        raise InvalidSearchQuery("Invalid reference event")
 
     return reference_event
 
@@ -838,9 +835,9 @@ def get_reference_event_conditions(snuba_args, reference_event):
     # conditions using that event and the non-aggregated columns
     # we received in the querystring. This lets us find the oldest/newest.
     # This only handles simple fields on the snuba_data dict.
-    for field in snuba_args.get('groupby', []):
+    for field in snuba_args.get("groupby", []):
         prop = get_snuba_column_name(field)
         value = reference_event.get(prop, None)
         if value:
-            conditions.append([prop, '=', value])
+            conditions.append([prop, "=", value])
     return conditions
