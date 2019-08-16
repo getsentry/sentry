@@ -1368,7 +1368,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1377,7 +1377,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
@@ -1388,11 +1388,11 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                         >
                                           <Component
                                             align="center"
-                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                            className="css-1bqncjo-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                              className="css-1bqncjo-ButtonLabel edwq9my1"
                                             >
                                               Show
                                             </span>
