@@ -224,6 +224,7 @@ const Title = styled('p')`
   font-weight: bold;
 `;
 
-const Indicator = styled(({...p}) => <CircleIndicator size={7} color="#57BE8C" {...p} />)`
+const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
+  color: ${p => p.theme.success};
 `;
