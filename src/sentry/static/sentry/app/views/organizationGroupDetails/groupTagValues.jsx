@@ -2,7 +2,6 @@ import {Link} from 'react-router';
 import {sortBy, property, isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -17,35 +16,31 @@ import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
 import withOrganization from 'app/utils/withOrganization';
 
-const GroupTagValues = createReactClass({
-  displayName: 'GroupTagValues',
-
-  propTypes: {
+class GroupTagValues extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     query: PropTypes.object,
-  },
+  };
 
-  getInitialState() {
-    return {
-      tagKey: null,
-      tagValueList: null,
-      loading: true,
-      error: false,
-      pageLinks: '',
-    };
-  },
+  state = {
+    tagKey: null,
+    tagValueList: null,
+    loading: true,
+    error: false,
+    pageLinks: '',
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate(prevProps) {
     const queryHasChanged = !isEqual(prevProps.query, this.props.query);
     if (queryHasChanged || prevProps.params.tagKey !== this.props.params.tagKey) {
       this.fetchData();
     }
-  },
+  }
 
   async fetchData() {
     const {params, query} = this.props;
@@ -86,11 +81,11 @@ const GroupTagValues = createReactClass({
         loading: false,
       });
     }
-  },
+  }
 
   getUserDisplayName(item) {
     return item.email || item.username || item.identifier || item.ipAddress || item.value;
-  },
+  }
 
   render() {
     if (this.state.loading) {
@@ -189,8 +184,8 @@ const GroupTagValues = createReactClass({
         </p>
       </div>
     );
-  },
-});
+  }
+}
 
 export {GroupTagValues};
 export default withApi(withOrganization(GroupTagValues));
