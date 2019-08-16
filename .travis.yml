@@ -26,7 +26,8 @@ addons:
 env:
   global:
     - NODE_ENV=development
-    - PIP_VERSION=19.1.1
+    # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
+    - PYTHON_PIP_VERSION=19.1.1
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
@@ -38,7 +39,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - pip install "pip==${PIP_VERSION}"
+  - pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
