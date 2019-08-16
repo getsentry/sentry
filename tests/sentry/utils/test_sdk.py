@@ -8,6 +8,7 @@ from sentry.app import raven
 
 from sentry.models import Event
 from sentry.testutils import TestCase
+from sentry import nodestore
 
 
 class SentryInternalClientTest(TestCase):
@@ -18,10 +19,11 @@ class SentryInternalClientTest(TestCase):
         with self.tasks():
             event_id = raven.captureMessage("internal client test")
 
-        event = Event.objects.get()
-        assert event.project_id == settings.SENTRY_PROJECT
-        assert event.event_id == event_id
-        assert event.data["logentry"]["formatted"] == "internal client test"
+        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+
+        assert event["project"] == settings.SENTRY_PROJECT
+        assert event["event_id"] == event_id
+        assert event["logentry"]["formatted"] == "internal client test"
 
     def test_encoding(self):
         configure_sdk()
@@ -31,9 +33,12 @@ class SentryInternalClientTest(TestCase):
             pass
 
         with self.tasks():
-            raven.captureMessage("check the req", extra={"request": NotJSONSerializable()})
+            event_id = raven.captureMessage(
+                "check the req", extra={"request": NotJSONSerializable()}
+            )
 
-        event = Event.objects.get()
-        assert event.project_id == settings.SENTRY_PROJECT
-        assert event.data["logentry"]["formatted"] == "check the req"
-        assert "NotJSONSerializable" in event.data["extra"]["request"]
+        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+
+        assert event["project"] == settings.SENTRY_PROJECT
+        assert event["logentry"]["formatted"] == "check the req"
+        assert "NotJSONSerializable" in event["extra"]["request"]
