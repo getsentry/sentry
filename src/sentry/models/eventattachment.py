@@ -11,17 +11,17 @@ class EventAttachment(Model):
 
     project_id = BoundedBigIntegerField()
     event_id = models.CharField(max_length=32, db_index=True)
-    file = FlexibleForeignKey('sentry.File')
+    file = FlexibleForeignKey("sentry.File")
     name = models.TextField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_eventattachment'
-        index_together = (('project_id', 'date_added'),)
-        unique_together = (('project_id', 'event_id', 'file'),)
+        app_label = "sentry"
+        db_table = "sentry_eventattachment"
+        index_together = (("project_id", "date_added"),)
+        unique_together = (("project_id", "event_id", "file"),)
 
-    __repr__ = sane_repr('event_id', 'name', 'file_id')
+    __repr__ = sane_repr("event_id", "name", "file_id")
 
     def delete(self, *args, **kwargs):
         super(EventAttachment, self).delete(*args, **kwargs)

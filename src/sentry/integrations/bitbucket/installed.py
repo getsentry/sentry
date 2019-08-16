@@ -20,6 +20,6 @@ class BitbucketInstalledEndpoint(Endpoint):
     def post(self, request, *args, **kwargs):
         state = request.data
         data = BitbucketIntegrationProvider().build_integration(state)
-        ensure_integration('bitbucket', data)
+        ensure_integration("bitbucket", data)
 
         return self.respond()

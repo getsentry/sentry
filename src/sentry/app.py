@@ -27,4 +27,4 @@ from sentry.utils.sdk import RavenShim
 
 raven = client = RavenShim()  # NOQA
 
-locks = LockManager(RedisLockBackend(redis.clusters.get('default')))
+locks = LockManager(RedisLockBackend(redis.clusters.get("default")))

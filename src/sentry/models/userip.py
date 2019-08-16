@@ -19,11 +19,11 @@ class UserIP(Model):
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_userip'
-        unique_together = (('user', 'ip_address'), )
+        app_label = "sentry"
+        db_table = "sentry_userip"
+        unique_together = (("user", "ip_address"),)
 
-    __repr__ = sane_repr('user_id', 'ip_address')
+    __repr__ = sane_repr("user_id", "ip_address")
 
     @classmethod
     def log(cls, user, ip_address):
@@ -32,17 +32,8 @@ class UserIP(Model):
         except Exception:
             geo = None
 
-        values = {
-            'last_seen': timezone.now(),
-        }
+        values = {"last_seen": timezone.now()}
         if geo:
-            values.update({
-                'country_code': geo['country_code'],
-                'region_code': geo['region'],
-            })
+            values.update({"country_code": geo["country_code"], "region_code": geo["region"]})
 
-        UserIP.objects.create_or_update(
-            user=user,
-            ip_address=ip_address,
-            values=values,
-        )
+        UserIP.objects.create_or_update(user=user, ip_address=ip_address, values=values)

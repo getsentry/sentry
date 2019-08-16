@@ -9,7 +9,7 @@ from sentry.api.permissions import SuperuserPermission
 
 
 class RelayDetailsEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def delete(self, request, relay_id):
         """
@@ -18,9 +18,7 @@ class RelayDetailsEndpoint(Endpoint):
         :auth: required
         """
         try:
-            relay = Relay.objects.get(
-                id=relay_id,
-            )
+            relay = Relay.objects.get(id=relay_id)
         except Relay.DoesNotExist:
             raise ResourceDoesNotExist
 

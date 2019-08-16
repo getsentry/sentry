@@ -9,10 +9,11 @@ except ImportError:
 from social_auth.views import auth, complete
 
 
-urlpatterns = patterns('',
-                       # authentication
-                       url(r'^associate/complete/(?P<backend>[^/]+)/$', complete,
-                           name='socialauth_associate_complete'),
-                       url(r'^associate/(?P<backend>[^/]+)/$', auth,
-                           name='socialauth_associate'),
-                       )
+urlpatterns = patterns(
+    "",
+    # authentication
+    url(
+        r"^associate/complete/(?P<backend>[^/]+)/$", complete, name="socialauth_associate_complete"
+    ),
+    url(r"^associate/(?P<backend>[^/]+)/$", auth, name="socialauth_associate"),
+)

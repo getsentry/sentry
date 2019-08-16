@@ -4,7 +4,7 @@ from sentry.utils.services import Service
 
 
 class RateLimiter(Service):
-    __all__ = ('is_limited', 'validate')
+    __all__ = ("is_limited", "validate")
 
     window = 60
 

@@ -8,14 +8,9 @@ from .util import invalid_schema, validate_component
 class TestIssueMediaSchemaValidation(TestCase):
     def setUp(self):
         self.schema = {
-            'type': 'issue-media',
-            'title': 'Video Playback',
-            'elements': [
-                {
-                    'type': 'video',
-                    'url': 'https://example.com/video.mov',
-                },
-            ]
+            "type": "issue-media",
+            "title": "Video Playback",
+            "elements": [{"type": "video", "url": "https://example.com/video.mov"}],
         }
 
     def test_valid_schema(self):
@@ -23,30 +18,27 @@ class TestIssueMediaSchemaValidation(TestCase):
 
     @invalid_schema
     def test_missing_title(self):
-        del self.schema['title']
+        del self.schema["title"]
         validate_component(self.schema)
 
     @invalid_schema
     def test_invalid_title_type(self):
-        self.schema['title'] = 1
+        self.schema["title"] = 1
         validate_component(self.schema)
 
     @invalid_schema
     def test_missing_elements(self):
-        del self.schema['elements']
+        del self.schema["elements"]
         validate_component(self.schema)
 
     @invalid_schema
     def test_no_elements(self):
-        self.schema['elements'] = []
+        self.schema["elements"] = []
         validate_component(self.schema)
 
     @invalid_schema
     def test_invalid_element(self):
-        self.schema['elements'].append({
-            'type': 'select',
-            'name': 'thing',
-            'label': 'Thing',
-            'options': [['a', 'a']],
-        })
+        self.schema["elements"].append(
+            {"type": "select", "name": "thing", "label": "Thing", "options": [["a", "a"]]}
+        )
         validate_component(self.schema)

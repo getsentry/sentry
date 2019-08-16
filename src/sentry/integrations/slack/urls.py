@@ -8,12 +8,12 @@ from .link_identity import SlackLinkIdentitiyView
 
 
 urlpatterns = patterns(
-    '',
-    url(r'^action/$', SlackActionEndpoint.as_view()),
-    url(r'^event/$', SlackEventEndpoint.as_view()),
+    "",
+    url(r"^action/$", SlackActionEndpoint.as_view()),
+    url(r"^event/$", SlackEventEndpoint.as_view()),
     url(
-        r'^link-identity/(?P<signed_params>[^\/]+)/$',
+        r"^link-identity/(?P<signed_params>[^\/]+)/$",
         SlackLinkIdentitiyView.as_view(),
-        name='sentry-integration-slack-link-identity'
+        name="sentry-integration-slack-link-identity",
     ),
 )

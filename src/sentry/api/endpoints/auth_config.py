@@ -41,16 +41,14 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
             org = Organization.get_default()
-            return Response({
-                'nextUri': reverse('sentry-auth-organization', args=[org.slug]),
-            })
+            return Response({"nextUri": reverse("sentry-auth-organization", args=[org.slug])})
 
-        session_expired = 'session_expired' in request.COOKIES
+        session_expired = "session_expired" in request.COOKIES
         payload = self.prepare_login_context(request, *args, **kwargs)
         response = Response(payload)
 
         if session_expired:
-            response.delete_cookie('session_expired')
+            response.delete_cookie("session_expired")
 
         return response
 
@@ -61,28 +59,25 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
             active_org = self.get_active_organization(request)
             next_uri = auth.get_org_redirect_url(request, active_org)
 
-        return Response({
-            'nextUri': next_uri,
-        })
+        return Response({"nextUri": next_uri})
 
     def get_next_uri(self, request):
         next_uri_fallback = None
-        if request.session.get('_next') is not None:
-            next_uri_fallback = request.session.pop('_next')
+        if request.session.get("_next") is not None:
+            next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def prepare_login_context(self, request, *args, **kwargs):
-        can_register = bool(
-            auth.has_user_registration() or request.session.get('can_register'))
+        can_register = bool(auth.has_user_registration() or request.session.get("can_register"))
 
         context = {
-            'serverHostname': get_server_hostname(),
-            'canRegister': can_register,
-            'hasNewsletter': newsletter.is_enabled(),
+            "serverHostname": get_server_hostname(),
+            "canRegister": can_register,
+            "hasNewsletter": newsletter.is_enabled(),
         }
 
-        if 'session_expired' in request.COOKIES:
-            context['warning'] = WARN_SESSION_EXPIRED
+        if "session_expired" in request.COOKIES:
+            context["warning"] = WARN_SESSION_EXPIRED
 
         context.update(additional_context.run_callbacks(request))
 

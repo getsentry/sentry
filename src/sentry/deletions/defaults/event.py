@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry import nodestore
 
-from ..base import (BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation)
+from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
 
 class NodeDeletionTask(BaseDeletionTask):
@@ -18,12 +18,12 @@ class NodeDeletionTask(BaseDeletionTask):
 class EventDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
+
         relations = super(EventDeletionTask, self).get_child_relations(instance)
-        key = {'project_id': instance.project_id, 'event_id': instance.event_id}
-        relations.extend([
-            ModelRelation(models.EventAttachment, key),
-            ModelRelation(models.UserReport, key),
-        ])
+        key = {"project_id": instance.project_id, "event_id": instance.event_id}
+        relations.extend(
+            [ModelRelation(models.EventAttachment, key), ModelRelation(models.UserReport, key)]
+        )
         return relations
 
     def get_child_relations_bulk(self, instance_list):
@@ -35,4 +35,4 @@ class EventDeletionTask(ModelDeletionTask):
             # runs, when the Event itself is deleted.
             i.data = None
 
-        return [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]
+        return [BaseRelation({"nodes": node_ids}, NodeDeletionTask)]

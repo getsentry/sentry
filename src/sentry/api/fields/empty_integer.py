@@ -12,11 +12,11 @@ class EmptyIntegerField(serializers.IntegerField):
     """
 
     def to_internal_value(self, data):
-        if data == '':
+        if data == "":
             return None
         return super(EmptyIntegerField, self).to_internal_value(data)
 
     def run_validation(self, data=empty):
-        if data == '':
+        if data == "":
             return None
         return super(EmptyIntegerField, self).run_validation(data)

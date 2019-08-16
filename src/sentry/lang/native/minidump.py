@@ -9,10 +9,10 @@ from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
 from sentry.utils.safe import setdefault_path
 
-minidumps_logger = logging.getLogger('sentry.minidumps')
+minidumps_logger = logging.getLogger("sentry.minidumps")
 
 # Attachment type used for minidump files
-MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
+MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 
 MAX_MSGPACK_BREADCRUMB_SIZE_BYTES = 50000
 MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
@@ -20,27 +20,23 @@ MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
 
 def write_minidump_placeholder(data):
     # Minidump events must be native platform.
-    data['platform'] = 'native'
+    data["platform"] = "native"
 
     # Assume that this minidump is the result of a crash and assign the fatal
     # level. Note that the use of `setdefault` here doesn't generally allow the
     # user to override the minidump's level as processing will overwrite it
     # later.
-    setdefault_path(data, 'level', value='fatal')
+    setdefault_path(data, "level", value="fatal")
 
     # Create a placeholder exception. This signals normalization that this is an
     # error event and also serves as a placeholder if processing of the minidump
     # fails.
     exception = {
-        'type': 'Minidump',
-        'value': 'Invalid Minidump',
-        'mechanism': {
-            'type': 'minidump',
-            'handled': False,
-            'synthetic': True,
-        }
+        "type": "Minidump",
+        "value": "Invalid Minidump",
+        "mechanism": {"type": "minidump", "handled": False, "synthetic": True},
     }
-    data['exception'] = {'values': [exception]}
+    data["exception"] = {"values": [exception]}
 
 
 def merge_attached_event(mpack_event, data):
@@ -75,28 +71,40 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     if not breadcrumbs:
         return
 
-    current_crumbs = data.get('breadcrumbs')
+    current_crumbs = data.get("breadcrumbs")
     if not current_crumbs:
-        data['breadcrumbs'] = breadcrumbs
+        data["breadcrumbs"] = breadcrumbs
         return
 
-    current_crumb = next((c for c in reversed(current_crumbs)
-                          if isinstance(c, dict) and c.get('timestamp') is not None), None)
-    new_crumb = next((c for c in reversed(breadcrumbs) if isinstance(
-        c, dict) and c.get('timestamp') is not None), None)
+    current_crumb = next(
+        (
+            c
+            for c in reversed(current_crumbs)
+            if isinstance(c, dict) and c.get("timestamp") is not None
+        ),
+        None,
+    )
+    new_crumb = next(
+        (
+            c
+            for c in reversed(breadcrumbs)
+            if isinstance(c, dict) and c.get("timestamp") is not None
+        ),
+        None,
+    )
 
     # cap the breadcrumbs to the highest count of either file
     cap = max(len(current_crumbs), len(breadcrumbs))
 
     if current_crumb is not None and new_crumb is not None:
-        if dp.parse(current_crumb['timestamp']) > dp.parse(new_crumb['timestamp']):
-            data['breadcrumbs'] = breadcrumbs + current_crumbs
+        if dp.parse(current_crumb["timestamp"]) > dp.parse(new_crumb["timestamp"]):
+            data["breadcrumbs"] = breadcrumbs + current_crumbs
         else:
-            data['breadcrumbs'] = current_crumbs + breadcrumbs
+            data["breadcrumbs"] = current_crumbs + breadcrumbs
     else:
-        data['breadcrumbs'] = current_crumbs + breadcrumbs
+        data["breadcrumbs"] = current_crumbs + breadcrumbs
 
-    data['breadcrumbs'] = data['breadcrumbs'][-cap:]
+    data["breadcrumbs"] = data["breadcrumbs"][-cap:]
 
 
 def get_attached_minidump(data):

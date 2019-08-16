@@ -12,9 +12,10 @@ class Validator(Mediator):
     """
     Validates general authorization params for all types of token exchanges.
     """
-    install = Param('sentry.models.SentryAppInstallation')
+
+    install = Param("sentry.models.SentryAppInstallation")
     client_id = Param(six.string_types)
-    user = Param('sentry.models.User')
+    user = Param("sentry.models.User")
 
     def call(self):
         self._validate_is_sentry_app_making_request()

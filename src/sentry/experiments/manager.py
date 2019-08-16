@@ -15,15 +15,12 @@ class ExperimentManager(object):
         """
         >>> ExperimentManager.add(ExperimentClass, param='name_of_param')
         """
-        self._experiments[experiment.__name__] = {
-            'experiment': experiment, 'param': param}
+        self._experiments[experiment.__name__] = {"experiment": experiment, "param": param}
 
     def all(self, org, actor):
         """Returns an object with all the experiment assignments for the org."""
         assignments = {}
         for k, v in six.iteritems(self._experiments):
-            cls = v['experiment']
-            assignments[k] = cls(
-                org=org, actor=actor).get_variant(
-                v['param'], log_exposure=False)
+            cls = v["experiment"]
+            assignments[k] = cls(org=org, actor=actor).get_variant(v["param"], log_exposure=False)
         return assignments

@@ -13,6 +13,7 @@ from debug_toolbar import settings as dt_settings
 
 class SQLQueryTriggered(Exception):
     """Thrown when template panel triggers a query"""
+
     pass
 
 
@@ -35,7 +36,7 @@ recording = state.recording  # export function
 
 
 def wrap_cursor(connection, panel):
-    if not hasattr(connection, '_djdt_cursor'):
+    if not hasattr(connection, "_djdt_cursor"):
         connection._djdt_cursor = connection.cursor
 
         def cursor():
@@ -46,7 +47,7 @@ def wrap_cursor(connection, panel):
 
 
 def unwrap_cursor(connection):
-    if hasattr(connection, '_djdt_cursor'):
+    if hasattr(connection, "_djdt_cursor"):
         del connection._djdt_cursor
         del connection.cursor
 
@@ -93,7 +94,7 @@ class NormalCursorWrapper(object):
         try:
             return force_text(param, strings_only=True)
         except UnicodeDecodeError:
-            return '(encoded string)'
+            return "(encoded string)"
 
     def _record(self, method, sql, params):
         start_time = time()
@@ -102,11 +103,11 @@ class NormalCursorWrapper(object):
         finally:
             stop_time = time()
             duration = (stop_time - start_time) * 1000
-            if dt_settings.CONFIG['ENABLE_STACKTRACES']:
+            if dt_settings.CONFIG["ENABLE_STACKTRACES"]:
                 stacktrace = tidy_stacktrace(reversed(get_stack()))
             else:
                 stacktrace = []
-            _params = ''
+            _params = ""
             try:
                 _params = json.dumps(list(map(self._decode, params)))
             except Exception:
@@ -114,40 +115,41 @@ class NormalCursorWrapper(object):
 
             template_info = get_template_info()
 
-            alias = getattr(self.db, 'alias', 'default')
+            alias = getattr(self.db, "alias", "default")
             conn = self.db.connection
-            vendor = getattr(conn, 'vendor', 'unknown')
+            vendor = getattr(conn, "vendor", "unknown")
 
             params = {
-                'vendor': vendor,
-                'alias': alias,
-                'sql':
-                self.db.ops.last_executed_query(self.cursor, sql, self._quote_params(params)),
-                'duration': duration,
-                'raw_sql': sql,
-                'params': _params,
-                'stacktrace': stacktrace,
-                'start_time': start_time,
-                'stop_time': stop_time,
-                'is_slow': duration > dt_settings.CONFIG['SQL_WARNING_THRESHOLD'],
-                'is_select': sql.lower().strip().startswith('select'),
-                'template_info': template_info,
+                "vendor": vendor,
+                "alias": alias,
+                "sql": self.db.ops.last_executed_query(
+                    self.cursor, sql, self._quote_params(params)
+                ),
+                "duration": duration,
+                "raw_sql": sql,
+                "params": _params,
+                "stacktrace": stacktrace,
+                "start_time": start_time,
+                "stop_time": stop_time,
+                "is_slow": duration > dt_settings.CONFIG["SQL_WARNING_THRESHOLD"],
+                "is_select": sql.lower().strip().startswith("select"),
+                "template_info": template_info,
             }
 
-            if vendor == 'postgresql':
+            if vendor == "postgresql":
                 # If an erroneous query was ran on the connection, it might
                 # be in a state where checking isolation_level raises an
                 # exception.
                 try:
                     iso_level = conn.isolation_level
                 except conn.InternalError:
-                    iso_level = 'unknown'
+                    iso_level = "unknown"
                 params.update(
                     {
-                        'trans_id': self.logger.get_transaction_id(alias),
-                        'trans_status': conn.get_transaction_status(),
-                        'iso_level': iso_level,
-                        'encoding': conn.encoding,
+                        "trans_id": self.logger.get_transaction_id(alias),
+                        "trans_status": conn.get_transaction_status(),
+                        "iso_level": iso_level,
+                        "encoding": conn.encoding,
                     }
                 )
 

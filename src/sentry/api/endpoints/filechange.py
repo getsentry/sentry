@@ -24,10 +24,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization=organization,
-                version=version,
-            )
+            release = Release.objects.get(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -36,9 +33,9 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = list(
             CommitFileChange.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(
-                    release=release,
-                ).values_list('commit_id', flat=True)
+                commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
+                    "commit_id", flat=True
+                )
             )
         )
 

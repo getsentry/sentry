@@ -22,7 +22,7 @@ class BitFieldCheckboxSelectMultiple(CheckboxSelectMultiple):
             for (k, v) in self.choices:
                 if value % div != 0:
                     real_value.append(k)
-                    value -= (value % div)
+                    value -= value % div
                 div *= 2
             value = real_value
         return super(BitFieldCheckboxSelectMultiple, self).render(name, value, attrs=attrs)
@@ -41,13 +41,13 @@ class BitFieldCheckboxSelectMultiple(CheckboxSelectMultiple):
 
 class BitFormField(IntegerField):
     def __init__(self, choices=(), widget=BitFieldCheckboxSelectMultiple, *args, **kwargs):
-        if isinstance(kwargs['initial'], int):
-            iv = kwargs['initial']
+        if isinstance(kwargs["initial"], int):
+            iv = kwargs["initial"]
             L = []
             for i in range(0, 63):
                 if (1 << i) & iv > 0:
                     L += [choices[i][0]]
-            kwargs['initial'] = L
+            kwargs["initial"] = L
         self.widget = widget
         super(BitFormField, self).__init__(widget=widget, *args, **kwargs)
         self.choices = self.widget.choices = choices
@@ -62,5 +62,5 @@ class BitFormField(IntegerField):
             try:
                 setattr(result, six.text_type(k), True)
             except AttributeError:
-                raise ValidationError('Unknown choice: %r' % (k, ))
+                raise ValidationError("Unknown choice: %r" % (k,))
         return int(result)

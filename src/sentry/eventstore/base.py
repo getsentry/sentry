@@ -7,45 +7,40 @@ from sentry.utils.services import Service
 
 
 class Columns(Enum):
-    EVENT_ID = 'event_id'
-    GROUP_ID = 'group_id'
-    PROJECT_ID = 'project_id'
-    TIMESTAMP = 'timestamp'
-    CULPRIT = 'culprit'
-    LOCATION = 'location'
-    MESSAGE = 'message'
-    PLATFORM = 'platform'
-    TITLE = 'title'
-    TYPE = 'type'
-    TAGS_KEY = 'tags.key'
-    TAGS_VALUE = 'tags.value'
-    EMAIL = 'email'
-    IP_ADDRESS = 'ip_address'
-    USER_ID = 'user_id'
-    USERNAME = 'username'
+    EVENT_ID = "event_id"
+    GROUP_ID = "group_id"
+    PROJECT_ID = "project_id"
+    TIMESTAMP = "timestamp"
+    CULPRIT = "culprit"
+    LOCATION = "location"
+    MESSAGE = "message"
+    PLATFORM = "platform"
+    TITLE = "title"
+    TYPE = "type"
+    TAGS_KEY = "tags.key"
+    TAGS_VALUE = "tags.value"
+    EMAIL = "email"
+    IP_ADDRESS = "ip_address"
+    USER_ID = "user_id"
+    USERNAME = "username"
 
 
 class EventStorage(Service):
     __all__ = (
-        'minimal_columns',
-        'full_columns',
-        'get_event_by_id',
-        'get_events',
-        'get_prev_event_id',
-        'get_next_event_id',
-        'bind_nodes',
+        "minimal_columns",
+        "full_columns",
+        "get_event_by_id",
+        "get_events",
+        "get_prev_event_id",
+        "get_next_event_id",
+        "bind_nodes",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [
-        Columns.EVENT_ID,
-        Columns.GROUP_ID,
-        Columns.PROJECT_ID,
-        Columns.TIMESTAMP,
-    ]
+    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
     # A list of all useful columns we can get from snuba.
     full_columns = minimal_columns + [
@@ -55,11 +50,9 @@ class EventStorage(Service):
         Columns.PLATFORM,
         Columns.TITLE,
         Columns.TYPE,
-
         # Required to provide snuba-only tags
         Columns.TAGS_KEY,
         Columns.TAGS_VALUE,
-
         # Required to provide snuba-only 'user' interface
         Columns.EMAIL,
         Columns.IP_ADDRESS,
@@ -78,8 +71,9 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_events(self, start, end, additional_columns,
-                   conditions, filter_keys, orderby, limit, offset):
+    def get_events(
+        self, start, end, additional_columns, conditions, filter_keys, orderby, limit, offset
+    ):
         """
         Fetches a list of events given a set of criteria.
 
@@ -123,15 +117,16 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def bind_nodes(self, object_list, node_name='data'):
+    def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
-        object_node_list = [(i, getattr(i, node_name))
-                            for i in object_list if getattr(i, node_name).id]
+        object_node_list = [
+            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+        ]
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:

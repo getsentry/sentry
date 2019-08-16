@@ -13,11 +13,11 @@ from sentry.models import Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ResolveEventId')
+@scenario("ResolveEventId")
 def resolve_event_id_scenario(runner):
     runner.request(
-        method='GET',
-        path='/organizations/%s/eventids/%s/' % (runner.org.slug, runner.default_event.event_id, )
+        method="GET",
+        path="/organizations/%s/eventids/%s/" % (runner.org.slug, runner.default_event.event_id),
     )
 
 
@@ -39,30 +39,26 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         """
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
-            return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
+            return Response({"detail": "Event ID must be 32 characters."}, status=400)
 
         project_slugs_by_id = dict(
-            Project.objects.filter(
-                organization=organization).values_list(
-                'id', 'slug'))
+            Project.objects.filter(organization=organization).values_list("id", "slug")
+        )
 
         try:
-            event = eventstore.get_events(filter_keys={
-                'project_id': project_slugs_by_id.keys(),
-                'event_id': event_id,
-            }, limit=1)[0]
+            event = eventstore.get_events(
+                filter_keys={"project_id": project_slugs_by_id.keys(), "event_id": event_id},
+                limit=1,
+            )[0]
         except IndexError:
             raise ResourceDoesNotExist()
         else:
             return Response(
                 {
-                    'organizationSlug': organization.slug,
-                    'projectSlug': project_slugs_by_id[event.project_id],
-                    'groupId': six.text_type(event.group_id),
-                    'eventId': six.text_type(event.id),
-                    'event': serialize(
-                        event,
-                        request.user,
-                    ),
+                    "organizationSlug": organization.slug,
+                    "projectSlug": project_slugs_by_id[event.project_id],
+                    "groupId": six.text_type(event.group_id),
+                    "eventId": six.text_type(event.id),
+                    "event": serialize(event, request.user),
                 }
             )

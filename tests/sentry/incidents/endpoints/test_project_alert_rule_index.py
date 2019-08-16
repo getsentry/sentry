@@ -5,16 +5,12 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleAggregations,
-    AlertRuleThresholdType,
-)
+from sentry.incidents.models import AlertRule, AlertRuleAggregations, AlertRuleThresholdType
 from sentry.testutils import APITestCase
 
 
 class AlertRuleListEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-project-alert-rules'
+    endpoint = "sentry-api-0-project-alert-rules"
 
     @fixture
     def organization(self):
@@ -35,9 +31,9 @@ class AlertRuleListEndpointTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = create_alert_rule(
             self.project,
-            'hello',
+            "hello",
             AlertRuleThresholdType.ABOVE,
-            'level:error',
+            "level:error",
             [AlertRuleAggregations.TOTAL],
             10,
             1000,
@@ -46,7 +42,7 @@ class AlertRuleListEndpointTest(APITestCase):
         )
 
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug, self.project.slug)
 
         assert resp.data == serialize([alert_rule])
@@ -60,8 +56,8 @@ class AlertRuleListEndpointTest(APITestCase):
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-project-alert-rules'
-    method = 'post'
+    endpoint = "sentry-api-0-project-alert-rules"
+    method = "post"
 
     @fixture
     def organization(self):
@@ -77,20 +73,17 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
     def test_simple(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        name = 'an alert'
+        name = "an alert"
         threshold_type = 1
-        query = 'hi'
+        query = "hi"
         aggregations = [0]
         time_window = 10
         alert_threshold = 1000
         resolve_threshold = 300
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
                 self.project.slug,
@@ -103,16 +96,13 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 resolveThreshold=resolve_threshold,
                 status_code=201,
             )
-        assert 'id' in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data['id'])
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_no_feature(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
@@ -120,10 +110,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
     def test_no_perms(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='member',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)

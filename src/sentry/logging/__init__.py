@@ -4,8 +4,8 @@ from structlog import get_logger
 
 
 class LoggingFormat(object):
-    HUMAN = 'human'
-    MACHINE = 'machine'
+    HUMAN = "human"
+    MACHINE = "machine"
 
 
 def bind(name, **kwargs):

@@ -2,29 +2,23 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.incident import (
-    IncidentEndpoint,
-    IncidentPermission,
-)
-from sentry.incidents.logic import (
-    subscribe_to_incident,
-    unsubscribe_from_incident,
-)
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
+from sentry.incidents.logic import subscribe_to_incident, unsubscribe_from_incident
 
 
 class IncidentSubscriptionPermission(IncidentPermission):
     scope_map = IncidentPermission.scope_map.copy()
-    scope_map['DELETE'] = [
-        'org:write',
-        'org:admin',
-        'project:read',
-        'project:write',
-        'project:admin',
+    scope_map["DELETE"] = [
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
     ]
 
 
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
-    permission_classes = (IncidentSubscriptionPermission, )
+    permission_classes = (IncidentSubscriptionPermission,)
 
     def post(self, request, organization, incident):
         """

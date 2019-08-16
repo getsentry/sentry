@@ -20,7 +20,7 @@ class ApiScopesField(serializers.Field):
 
         for scope in data:
             if scope not in valid_scopes:
-                raise ValidationError(u'{} not a valid scope'.format(scope))
+                raise ValidationError(u"{} not a valid scope".format(scope))
         return data
 
 
@@ -30,9 +30,11 @@ class EventListField(serializers.Field):
             return
 
         if not set(data).issubset(VALID_EVENT_RESOURCES):
-            raise ValidationError(u'Invalid event subscription: {}'.format(
-                ', '.join(set(data).difference(VALID_EVENT_RESOURCES))
-            ))
+            raise ValidationError(
+                u"Invalid event subscription: {}".format(
+                    ", ".join(set(data).difference(VALID_EVENT_RESOURCES))
+                )
+            )
         return data
 
 
@@ -41,7 +43,7 @@ class SchemaField(serializers.Field):
         if data is None:
             return
 
-        if data == '' or data == {}:
+        if data == "" or data == {}:
             return {}
 
         try:
@@ -56,8 +58,8 @@ class URLField(serializers.URLField):
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better
         # error message.
-        if url and not url.startswith('http'):
-            raise ValidationError('URL must start with http[s]://')
+        if url and not url.startswith("http"):
+            raise ValidationError("URL must start with http[s]://")
         return url
 
 
@@ -84,20 +86,22 @@ class SentryAppSerializer(Serializer):
             queryset = queryset.exclude(id=self.instance.id)
 
         if queryset.exists():
-            raise ValidationError(
-                u'Name {} is already taken, please use another.'.format(value)
-            )
+            raise ValidationError(u"Name {} is already taken, please use another.".format(value))
         return value
 
     def validate(self, attrs):
-        if not attrs.get('scopes'):
+        if not attrs.get("scopes"):
             return attrs
 
-        for resource in attrs.get('events'):
+        for resource in attrs.get("events"):
             needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
-            if needed_scope not in attrs['scopes']:
-                raise ValidationError({
-                    'events': u'{} webhooks require the {} permission.'.format(resource, needed_scope),
-                })
+            if needed_scope not in attrs["scopes"]:
+                raise ValidationError(
+                    {
+                        "events": u"{} webhooks require the {} permission.".format(
+                            resource, needed_scope
+                        )
+                    }
+                )
 
         return attrs

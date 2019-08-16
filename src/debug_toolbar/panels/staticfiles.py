@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from os.path import normpath, join
+
 try:
     import threading
 except ImportError:
@@ -41,7 +42,7 @@ class StaticFile(object):
 class FileCollector(ThreadCollector):
     def collect(self, path, thread=None):
         # handle the case of {% static "admin/" %}
-        if path.endswith('/'):
+        if path.endswith("/"):
             return
         super(FileCollector, self).collect(StaticFile(path), thread)
 
@@ -79,17 +80,16 @@ class StaticFilesPanel(panels.Panel):
     """
     A panel to display the found staticfiles.
     """
-    name = 'Static files'
-    template = 'debug_toolbar/panels/staticfiles.html'
+
+    name = "Static files"
+    template = "debug_toolbar/panels/staticfiles.html"
 
     @property
     def title(self):
-        return (
-            _("Static files (%(num_found)s found, %(num_used)s used)") % {
-                'num_found': self.num_found,
-                'num_used': self.num_used
-            }
-        )
+        return _("Static files (%(num_found)s found, %(num_used)s used)") % {
+            "num_found": self.num_found,
+            "num_used": self.num_used,
+        }
 
     def __init__(self, *args, **kwargs):
         super(StaticFilesPanel, self).__init__(*args, **kwargs)
@@ -106,13 +106,13 @@ class StaticFilesPanel(panels.Panel):
     def num_used(self):
         return len(self._paths[threading.currentThread()])
 
-    nav_title = _('Static files')
+    nav_title = _("Static files")
 
     @property
     def nav_subtitle(self):
         num_used = self.num_used
         return ungettext("%(num_used)s file used", "%(num_used)s files used", num_used) % {
-            'num_used': num_used
+            "num_used": num_used
         }
 
     def process_request(self, request):
@@ -124,12 +124,12 @@ class StaticFilesPanel(panels.Panel):
 
         self.record_stats(
             {
-                'num_found': self.num_found,
-                'num_used': self.num_used,
-                'staticfiles': used_paths,
-                'staticfiles_apps': self.get_staticfiles_apps(),
-                'staticfiles_dirs': self.get_staticfiles_dirs(),
-                'staticfiles_finders': self.get_staticfiles_finders(),
+                "num_found": self.num_found,
+                "num_used": self.num_used,
+                "staticfiles": used_paths,
+                "staticfiles_apps": self.get_staticfiles_apps(),
+                "staticfiles_dirs": self.get_staticfiles_dirs(),
+                "staticfiles_finders": self.get_staticfiles_finders(),
             }
         )
 
@@ -142,12 +142,12 @@ class StaticFilesPanel(panels.Panel):
         finders_mapping = OrderedDict()
         for finder in finders.get_finders():
             for path, finder_storage in finder.list([]):
-                if getattr(finder_storage, 'prefix', None):
+                if getattr(finder_storage, "prefix", None):
                     prefixed_path = join(finder_storage.prefix, path)
                 else:
                     prefixed_path = path
                 finder_cls = finder.__class__
-                finder_path = '.'.join([finder_cls.__module__, finder_cls.__name__])
+                finder_path = ".".join([finder_cls.__module__, finder_cls.__name__])
                 real_path = finder_storage.path(path)
                 payload = (prefixed_path, real_path)
                 finders_mapping.setdefault(finder_path, []).append(payload)

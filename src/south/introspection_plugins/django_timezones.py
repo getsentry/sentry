@@ -9,12 +9,12 @@ if "timezones" in settings.INSTALLED_APPS:
     else:
         rules = [
             (
-                (TimeZoneField, ),
+                (TimeZoneField,),
                 [],
                 {
                     "blank": ["blank", {"default": True}],
                     "max_length": ["max_length", {"default": 100}],
                 },
-            ),
+            )
         ]
-        add_introspection_rules(rules, ["^timezones\.fields", ])
+        add_introspection_rules(rules, ["^timezones\.fields"])
