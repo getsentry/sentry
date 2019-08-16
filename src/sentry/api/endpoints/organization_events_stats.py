@@ -17,7 +17,7 @@ from sentry.utils.snuba import raw_query, SnubaTSResult
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         try:
-            if features.has('organizations:events-v2', organization, actor=request.user):
+            if features.has("organizations:events-v2", organization, actor=request.user):
                 params = self.get_filter_params(request, organization)
                 snuba_args = self.get_snuba_query_args(request, organization, params)
             else:
@@ -35,8 +35,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         snuba_args = self.get_field(request, snuba_args)
 
         result = raw_query(
-            orderby='time',
-            groupby=['time'],
+            orderby="time",
+            groupby=["time"],
             rollup=rollup,
             referrer="api.organization-events-stats",
             limit=10000,
@@ -51,19 +51,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def get_field(self, request, snuba_args):
-        y_axis = request.GET.get('yAxis', None)
+        y_axis = request.GET.get("yAxis", None)
         # These aliases are used by v1 of events.
-        if not y_axis or y_axis == 'event_count':
-            y_axis = 'count()'
-        elif y_axis == 'user_count':
-            y_axis = 'count_unique(user)'
+        if not y_axis or y_axis == "event_count":
+            y_axis = "count()"
+        elif y_axis == "user_count":
+            y_axis = "count_unique(user)"
 
         try:
             resolved = resolve_field_list([y_axis], {})
         except InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
-        aggregate = resolved['aggregations'][0]
-        aggregate[2] = 'count'
-        snuba_args['aggregations'] = [aggregate]
+        aggregate = resolved["aggregations"][0]
+        aggregate[2] = "count"
+        snuba_args["aggregations"] = [aggregate]
 
         return snuba_args

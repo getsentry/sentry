@@ -1128,26 +1128,26 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_aggregate_function_expansion(self):
-        fields = ['count_unique(user)', 'count(id)', 'min(timestamp)']
+        fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
-        assert result['selected_columns'] == []
-        assert result['aggregations'] == [
-            ['uniq', 'tags[sentry:user]', 'count_unique_user'],
-            ['count', 'event_id', 'count_id'],
-            ['min', 'timestamp', 'min_timestamp'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["uniq", "tags[sentry:user]", "count_unique_user"],
+            ["count", "event_id", "count_id"],
+            ["min", "timestamp", "min_timestamp"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
         assert result["groupby"] == []
 
     def test_aggregate_function_dotted_argument(self):
-        fields = ['count_unique(user.id)']
+        fields = ["count_unique(user.id)"]
         result = resolve_field_list(fields, {})
-        assert result['aggregations'] == [
-            ['uniq', 'user_id', 'count_unique_user_id'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["aggregations"] == [
+            ["uniq", "user_id", "count_unique_user_id"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1188,11 +1188,9 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["count_unique(user)"]
         snuba_args = {"rollup": 15}
         result = resolve_field_list(fields, snuba_args)
-        assert result['aggregations'] == [
-            ['uniq', 'tags[sentry:user]', 'count_unique_user']
-        ]
-        assert result['selected_columns'] == []
-        assert result['groupby'] == []
+        assert result["aggregations"] == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+        assert result["selected_columns"] == []
+        assert result["groupby"] == []
 
     def test_orderby_unselected_field(self):
         fields = ["message"]
@@ -1225,11 +1223,11 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["count(id)", "count_unique(user)"]
         snuba_args = {"orderby": "-count(id)"}
         result = resolve_field_list(fields, snuba_args)
-        assert result['orderby'] == ['-count_id']
-        assert result['aggregations'] == [
-            ['count', 'event_id', 'count_id'],
-            ['uniq', 'tags[sentry:user]', 'count_unique_user'],
-            ['argMax(event_id, timestamp)', '', 'latest_event'],
-            ['argMax(project_id, timestamp)', '', 'projectid'],
+        assert result["orderby"] == ["-count_id"]
+        assert result["aggregations"] == [
+            ["count", "event_id", "count_id"],
+            ["uniq", "tags[sentry:user]", "count_unique_user"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
         ]
         assert result["groupby"] == []

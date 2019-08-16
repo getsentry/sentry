@@ -301,7 +301,7 @@ def get_snuba_column_name(name):
     if TAGKEY_RE.match(name):
         return name
 
-    return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+    return SENTRY_SNUBA_MAP.get(name, u"tags[{}]".format(name))
 
 
 def get_function_index(column_expr, depth=0):

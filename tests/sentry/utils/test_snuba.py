@@ -5,12 +5,7 @@ import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.utils.snuba import (
-    get_snuba_translators,
-    zerofill,
-    get_json_type,
-    get_snuba_column_name
-)
+from sentry.utils.snuba import get_snuba_translators, zerofill, get_json_type, get_snuba_column_name
 
 
 class SnubaUtilsTest(TestCase):
@@ -152,23 +147,23 @@ class SnubaUtilsTest(TestCase):
         assert results[7]["time"] == 1546992000
 
     def test_get_json_type(self):
-        assert get_json_type('UInt8') == 'boolean'
-        assert get_json_type('UInt16') == 'integer'
-        assert get_json_type('UInt32') == 'integer'
-        assert get_json_type('UInt64') == 'integer'
-        assert get_json_type('Float32') == 'number'
-        assert get_json_type('Float64') == 'number'
-        assert get_json_type('Nullable(Float64)') == 'number'
-        assert get_json_type('Array(String)') == 'array'
-        assert get_json_type('Char') == 'string'
-        assert get_json_type('unknown') == 'string'
-        assert get_json_type('') == 'string'
+        assert get_json_type("UInt8") == "boolean"
+        assert get_json_type("UInt16") == "integer"
+        assert get_json_type("UInt32") == "integer"
+        assert get_json_type("UInt64") == "integer"
+        assert get_json_type("Float32") == "number"
+        assert get_json_type("Float64") == "number"
+        assert get_json_type("Nullable(Float64)") == "number"
+        assert get_json_type("Array(String)") == "array"
+        assert get_json_type("Char") == "string"
+        assert get_json_type("unknown") == "string"
+        assert get_json_type("") == "string"
 
     def test_get_snuba_column_name(self):
-        assert get_snuba_column_name('project_id') == 'project_id'
-        assert get_snuba_column_name('start') == 'start'
+        assert get_snuba_column_name("project_id") == "project_id"
+        assert get_snuba_column_name("start") == "start"
         assert get_snuba_column_name("'thing'") == "'thing'"
-        assert get_snuba_column_name('id') == 'event_id'
-        assert get_snuba_column_name('geo.region') == 'geo_region'
-        assert get_snuba_column_name('tags[sentry:user]') == 'tags[sentry:user]'
-        assert get_snuba_column_name('organization') == 'tags[organization]'
+        assert get_snuba_column_name("id") == "event_id"
+        assert get_snuba_column_name("geo.region") == "geo_region"
+        assert get_snuba_column_name("tags[sentry:user]") == "tags[sentry:user]"
+        assert get_snuba_column_name("organization") == "tags[organization]"

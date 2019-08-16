@@ -665,35 +665,14 @@ FIELD_ALIASES = {
 }
 
 VALID_AGGREGATES = {
-    'count_unique': {
-        'snuba_name': 'uniq',
-        'fields': '*',
-    },
-    'count': {
-        'snuba_name': 'count',
-        'fields': '*'
-    },
-    'min': {
-        'snuba_name': 'min',
-        'fields': ['timestamp', 'duration'],
-    },
-    'max': {
-        'snuba_name': 'max',
-        'fields': ['timestamp', 'duration'],
-    },
-    'sum': {
-        'snuba_name': 'sum',
-        'fields': ['duration'],
-    },
+    "count_unique": {"snuba_name": "uniq", "fields": "*"},
+    "count": {"snuba_name": "count", "fields": "*"},
+    "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
+    "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
+    "sum": {"snuba_name": "sum", "fields": ["duration"]},
     # These don't entirely work yet but are intended to be illustrative
-    'avg': {
-        'snuba_name': 'avg',
-        'fields': ['duration'],
-    },
-    'p75': {
-        'snuba_name': 'quantileTiming(0.75)',
-        'fields': ['duration'],
-    },
+    "avg": {"snuba_name": "avg", "fields": ["duration"]},
+    "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
@@ -740,8 +719,8 @@ def resolve_orderby(orderby, fields, aggregations):
 
 
 def get_aggregate_alias(match):
-    column = match.group('column').replace('.', '_')
-    return u'{}_{}'.format(match.group('function'), column).rstrip('_')
+    column = match.group("column").replace(".", "_")
+    return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
 def resolve_field_list(fields, snuba_args):
@@ -780,11 +759,13 @@ def resolve_field_list(fields, snuba_args):
             continue
 
         validate_aggregate(field, match)
-        aggregations.append([
-            VALID_AGGREGATES[match.group('function')]['snuba_name'],
-            get_snuba_column_name(match.group('column')),
-            get_aggregate_alias(match)
-        ])
+        aggregations.append(
+            [
+                VALID_AGGREGATES[match.group("function")]["snuba_name"],
+                get_snuba_column_name(match.group("column")),
+                get_aggregate_alias(match),
+            ]
+        )
 
     rollup = snuba_args.get("rollup")
     if not rollup:
