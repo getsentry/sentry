@@ -237,8 +237,6 @@ export const getHumanDuration = (duration: number): string => {
 };
 
 const COLORS = [
-  // TODO: these look way too dull
-
   // row 1
 
   // '#1E1F33',
@@ -252,14 +250,14 @@ const COLORS = [
 
   // row 2
 
-  '#444674',
-  '#694E86',
-  '#955389',
-  '#C15584',
-  '#E65D73',
-  '#F27A58',
-  '#F6983B',
-  '#F2B712',
+  // '#444674',
+  // '#694E86',
+  // '#955389',
+  // '#C15584',
+  // '#E65D73',
+  // '#F27A58',
+  // '#F6983B',
+  // '#F2B712',
 
   // row 3
 
@@ -271,17 +269,27 @@ const COLORS = [
   '#F6A189',
   '#F8B26D',
   '#F7D36E',
+
+  // reverse fade of row 3
+
+  '#F8B26D',
+  '#F6A189',
+  '#ED8898',
+  '#CF7CA0',
+  '#BF8CB6',
+  '#9D85B8',
 ];
-export const pickSpanBarColour = (input: string): string => {
-  const firstThreeChars = input.substring(0, 3);
-  const lastThreeChars = input.substring(input.length - 3);
+export const pickSpanBarColour = (input: number): string => {
+  // TODO: idea: map parts of the string (which is already random) to colours
+  // const firstThreeChars = input.substring(0, 3);
+  // const lastThreeChars = input.substring(input.length - 3);
 
-  const num = (firstThreeChars + lastThreeChars).split('').reduce((sum, char) => {
-    const charCode = char.charCodeAt(0);
-    return sum + (isFinite(charCode) ? charCode : 0);
-  }, 0);
+  // const num = (firstThreeChars + lastThreeChars).split('').reduce((sum, char) => {
+  //   const charCode = char.charCodeAt(0);
+  //   return sum + (isFinite(charCode) ? charCode : 0);
+  // }, 0);
 
-  const index = num % COLORS.length;
+  const index = input % COLORS.length;
 
   return COLORS[index];
 };
