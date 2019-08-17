@@ -29,14 +29,16 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
+from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce
+
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 30000
 
 
 def _get_organization_queryset():
@@ -213,37 +215,13 @@ def prepare_project_aggregates(ignore__stop, project):
     ]
 
 
-def chunk_event_counts(func):
-    """
-    Chunks queries for getting event counts
-
-    We are chunking up the issue ids and querying because Snuba produces SQL for Clickhouse.
-    There is a max limit on how long the SQL can be. We cross this limit for large accounts
-    and as a result, they cannot produce the weekly report.
-
-    So, with this decorator, we will chunk up the issue IDs and ask for the issue count in those chunks.
-    Then, we will stitch the responses back together.
-    """
-
-    def chunks(arr, chunk_size):
-        for i in range(0, len(arr), chunk_size):
-            yield arr[i : i + chunk_size]
-
-    def wrapper(issue_ids, start, stop, rollup):
-        combined = {}
-
-        for chunk in chunks(list(issue_ids), BATCH_SIZE):
-            single = func(chunk, start, stop, rollup)
-            combined.update(single)
-
-        return combined
-
-    return wrapper
-
-
-@chunk_event_counts
 def get_event_counts(issue_ids, start, stop, rollup):
-    return tsdb.get_sums(tsdb.models.group, issue_ids, start, stop, rollup=rollup)
+    combined = {}
+
+    for chunk in chunked(issue_ids, BATCH_SIZE):
+        combined.update(tsdb.get_sums(tsdb.models.group, chunk, start, stop, rollup=rollup))
+
+    return combined
 
 
 def prepare_project_issue_summaries(interval, project):
