@@ -29,8 +29,9 @@ from sentry.tasks.reports import (
     prepare_reports,
     safe_add,
     user_subscribed_to_organization_reports,
+    prepare_project_issue_summaries,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, SnubaTestCase
 from sentry.utils.dates import to_datetime, to_timestamp
 from six.moves import xrange
 
@@ -193,7 +194,7 @@ def test_calendar_range():
     )
 
 
-class ReportTestCase(TestCase):
+class ReportTestCase(TestCase, SnubaTestCase):
     def test_integration(self):
         Project.objects.all().delete()
 
@@ -256,3 +257,41 @@ class ReportTestCase(TestCase):
 
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
+
+    @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
+    def test_paginates_and_reassumbles_result(self):
+        import copy
+        from datetime import timedelta
+        from django.utils import timezone
+
+        from sentry.testutils.factories import DEFAULT_EVENT_DATA
+
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        min_ago = (now - timedelta(minutes=1)).isoformat()[:19]
+        two_min_ago = now - timedelta(minutes=2)
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        assert prepare_project_issue_summaries([two_min_ago, now], self.project) == [2, 0, 0]
