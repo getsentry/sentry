@@ -352,7 +352,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     spanTree: JSX.Element;
     nextSpanNumber: number;
   } => {
-    const spanBarColour: string = pickSpanBarColour(spanNumber);
+    const spanBarColour: string = pickSpanBarColour(span.span_id);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
