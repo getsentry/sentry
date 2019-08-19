@@ -1,6 +1,7 @@
 import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
@@ -9,6 +10,7 @@ import {t} from 'app/locale';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -202,18 +204,21 @@ class RuleForm extends React.Component<Props, State> {
           }
           includePrevious={false}
         >
-          {({loading, timeseriesData}) =>
+          {({loading, reloading, timeseriesData}) =>
             loading ? (
               <Placeholder height="200px" bottomGutter={1} />
             ) : (
-              <IncidentRulesChart
-                onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
-                alertThreshold={alertThreshold}
-                onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
-                resolveThreshold={resolveThreshold}
-                isInverted={isInverted}
-                data={timeseriesData}
-              />
+              <React.Fragment>
+                <TransparentLoadingMask visible={reloading} />
+                <IncidentRulesChart
+                  onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
+                  alertThreshold={alertThreshold}
+                  onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
+                  resolveThreshold={resolveThreshold}
+                  isInverted={isInverted}
+                  data={timeseriesData}
+                />
+              </React.Fragment>
             )
           }
         </EventsRequest>
@@ -372,5 +377,12 @@ function RuleFormContainer({
     </Form>
   );
 }
+
+// TODO(ts): emotion
+const TransparentLoadingMask = styled(LoadingMask)`
+  ${(p: any) => !p.visible && 'display: none;'};
+  opacity: 0.4;
+  z-index: 1;
+`;
 
 export default withApi(withOrganization(withProject(RuleFormContainer)));

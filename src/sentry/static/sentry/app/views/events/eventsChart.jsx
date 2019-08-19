@@ -6,7 +6,8 @@ import styled from 'react-emotion';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
-import LoadingPanel, {LoadingMask} from 'app/views/events/loadingPanel';
+import LoadingMask from 'app/components/loadingMask';
+import LoadingPanel from 'app/views/events/loadingPanel';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
@@ -219,6 +220,7 @@ export default EventsChartContainer;
 export {EventsChart};
 
 const TransparentLoadingMask = styled(LoadingMask)`
-  ${p => !p.visible && 'display: none;'} opacity: 0.4;
+  ${p => !p.visible && 'display: none;'};
+  opacity: 0.4;
   z-index: 1;
 `;
