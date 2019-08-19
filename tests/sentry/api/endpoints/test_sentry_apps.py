@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import re
 
+from mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.constants import SentryAppStatus
@@ -296,8 +297,9 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
+    @patch("sentry.analytics.record")
     @with_feature("organizations:sentry-apps")
-    def test_wrong_schema_format(self):
+    def test_wrong_schema_format(self, record):
         self.login_as(user=self.user)
         kwargs = {
             "schema": {
@@ -323,6 +325,15 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(**kwargs)
         assert response.status_code == 400
         assert response.data == {"schema": ["['#general'] is too short"]}
+
+        record.assert_called_with(
+            "sentry_app.schema_validation_error",
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app_name="MyApp",
+            error_message="['#general'] is too short",
+            schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
+        )
 
     @with_feature(["organizations:sentry-apps", "organizations:integrations-event-hooks"])
     def test_can_create_with_error_created_hook_with_flag(self):
