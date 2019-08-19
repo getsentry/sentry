@@ -1,52 +1,53 @@
-// import React from 'react';
-// import PropTypes from 'prop-types';
-// import styled from 'react-emotion';
+import React from 'react';
+import PropTypes from 'prop-types';
+import styled from 'react-emotion';
 
-// export type Props = {
-//   columns: Column[];
-//   disabled: boolean;
-// };
+export type Props = {
+  enabled: boolean;
+  size: number;
+  color: string;
+};
 
-// const getBackgroundColor = p => {
-//   if (p.color) {
-//     return `background: ${p.color};`;
-//   }
+const getBackgroundColor = (p: Props): string => {
+  if (p.color) {
+    return `background: ${p.color};`;
+  }
 
-//   return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
-// };
+  return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
+};
 
-// const getSize = p => `
-//   height: ${p.size}px;
-//   width: ${p.size}px;
-// `;
+const getSize = (p: any): string => `
+  height: ${p.size}px;
+  width: ${p.size}px;
+`;
 
-// const Circle = styled('div')`
-//   display: inline-block;
-//   position: relative;
-//   border-radius: 50%;
-//   ${getSize};
-//   ${getBackgroundColor};
-// `;
+const Circle = styled('div')`
+  display: inline-block;
+  position: relative;
+  border-radius: 50%;
+  ${getSize};
+  ${getBackgroundColor};
+`;
 
-// class CircleIndicator extends React.Component {
-//   static propTypes = {
-//     enabled: PropTypes.bool.isRequired,
-//     size: PropTypes.number.isRequired,
-//     color: PropTypes.string,
-//   };
+class CircleIndicator extends React.Component<Props> {
+  static propTypes = {
+    enabled: PropTypes.bool.isRequired,
+    size: PropTypes.number.isRequired,
+    color: PropTypes.string,
+  };
 
-//   static defaultProps = {
-//     enabled: true,
-//     size: 14,
-//   };
+  static defaultProps = {
+    enabled: true,
+    size: 14,
+  };
 
-//   constructor(props) {
-//     super(props);
-//   }
+  constructor(props: Props) {
+    super(props);
+  }
 
-//   render() {
-//     return <Circle {...this.props} />;
-//   }
-// }
+  render() {
+    return <Circle {...this.props} />;
+  }
+}
 
-// export default CircleIndicator;
+export default CircleIndicator;
