@@ -345,13 +345,12 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
+                <ForwardRef
+                  className="css-qmmkxg-InlineSvg enyz4ql0"
+                  src="icon-search"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-qmmkxg-InlineSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -361,7 +360,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </ForwardRef>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -1526,7 +1525,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                className="css-15prtgk-StyledButton-getColors edwq9my0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1535,7 +1534,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                  className="css-15prtgk-StyledButton-getColors edwq9my0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -1548,49 +1547,42 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                     <Component
                                       align="center"
                                       borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel edwq9my1"
                                     >
                                       <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel edwq9my1"
                                       >
                                         <Icon
                                           hasChildren={false}
                                         >
                                           <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
+                                            className="css-ljhpxy-Icon edwq9my2"
                                             hasChildren={false}
                                           >
                                             <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                              className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
                                                 size="16px"
                                                 src="icon-circle-add"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                <ForwardRef
+                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                  <svg
+                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef>
                                               </StyledInlineSvg>
                                             </span>
                                           </Component>
@@ -1623,33 +1615,27 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               aria-label="Create Project"
               data-test-id="create-project"
               disabled={true}
-              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
-              to={null}
             >
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors edwq9my0"
                 data-test-id="create-project"
                 disabled={true}
-                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors edwq9my0"
                   data-test-id="create-project"
-                  href={null}
                   onClick={[Function]}
                   role="button"
-                  to={null}
                 >
                   <ButtonLabel
                     align="center"
@@ -1657,11 +1643,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel e12ma6z1"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
                       >
                         Create Project
                       </span>
@@ -1933,13 +1919,12 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
+                <ForwardRef
+                  className="css-qmmkxg-InlineSvg enyz4ql0"
+                  src="icon-search"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-qmmkxg-InlineSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -1949,7 +1934,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </ForwardRef>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -2141,7 +2126,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2149,7 +2134,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2162,53 +2147,46 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <Component
                                 align="center"
                                 borderless={true}
-                                className="css-17lag4c-ButtonLabel e12ma6z1"
+                                className="css-17lag4c-ButtonLabel edwq9my1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-17lag4c-ButtonLabel e12ma6z1"
+                                  className="css-17lag4c-ButtonLabel edwq9my1"
                                 >
                                   <Icon
                                     hasChildren={false}
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-ljhpxy-Icon e12ma6z2"
+                                      className="css-ljhpxy-Icon edwq9my2"
                                       hasChildren={false}
                                       size="xsmall"
                                     >
                                       <span
-                                        className="css-ljhpxy-Icon e12ma6z2"
+                                        className="css-ljhpxy-Icon edwq9my2"
                                         size="xsmall"
                                       >
                                         <StyledInlineSvg
                                           size="12px"
                                           src="icon-circle-close"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                          <ForwardRef
+                                            className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                             size="12px"
                                             src="icon-circle-close"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                            <svg
+                                              className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
-                                              <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
-                                              >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </ForwardRef>
                                         </StyledInlineSvg>
                                       </span>
                                     </Component>
@@ -2523,7 +2501,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                className="css-15prtgk-StyledButton-getColors edwq9my0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -2532,7 +2510,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                  className="css-15prtgk-StyledButton-getColors edwq9my0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -2545,49 +2523,42 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                     <Component
                                       align="center"
                                       borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel edwq9my1"
                                     >
                                       <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel edwq9my1"
                                       >
                                         <Icon
                                           hasChildren={false}
                                         >
                                           <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
+                                            className="css-ljhpxy-Icon edwq9my2"
                                             hasChildren={false}
                                           >
                                             <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                              className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
                                                 size="16px"
                                                 src="icon-circle-add"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                <ForwardRef
+                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                  <svg
+                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef>
                                               </StyledInlineSvg>
                                             </span>
                                           </Component>
@@ -2620,33 +2591,27 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               aria-label="Create Project"
               data-test-id="create-project"
               disabled={true}
-              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
-              to={null}
             >
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors edwq9my0"
                 data-test-id="create-project"
                 disabled={true}
-                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors edwq9my0"
                   data-test-id="create-project"
-                  href={null}
                   onClick={[Function]}
                   role="button"
-                  to={null}
                 >
                   <ButtonLabel
                     align="center"
@@ -2654,11 +2619,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel e12ma6z1"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
                       >
                         Create Project
                       </span>
@@ -2930,13 +2895,12 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
+                <ForwardRef
+                  className="css-qmmkxg-InlineSvg enyz4ql0"
+                  src="icon-search"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-qmmkxg-InlineSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -2946,7 +2910,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </ForwardRef>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -3038,7 +3002,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -3046,7 +3010,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1mo3p70-StyledButton-getColors-ClearButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -3059,53 +3023,46 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <Component
                                 align="center"
                                 borderless={true}
-                                className="css-17lag4c-ButtonLabel e12ma6z1"
+                                className="css-17lag4c-ButtonLabel edwq9my1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-17lag4c-ButtonLabel e12ma6z1"
+                                  className="css-17lag4c-ButtonLabel edwq9my1"
                                 >
                                   <Icon
                                     hasChildren={false}
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-ljhpxy-Icon e12ma6z2"
+                                      className="css-ljhpxy-Icon edwq9my2"
                                       hasChildren={false}
                                       size="xsmall"
                                     >
                                       <span
-                                        className="css-ljhpxy-Icon e12ma6z2"
+                                        className="css-ljhpxy-Icon edwq9my2"
                                         size="xsmall"
                                       >
                                         <StyledInlineSvg
                                           size="12px"
                                           src="icon-circle-close"
                                         >
-                                          <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                          <ForwardRef
+                                            className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                             size="12px"
                                             src="icon-circle-close"
                                           >
-                                            <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                            <svg
+                                              className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
-                                              <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                height="12px"
-                                                viewBox={Object {}}
-                                                width="12px"
-                                              >
-                                                <use
-                                                  href="#test"
-                                                  xlinkHref="#test"
-                                                />
-                                              </svg>
-                                            </StyledSvg>
-                                          </InlineSvg>
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </ForwardRef>
                                         </StyledInlineSvg>
                                       </span>
                                     </Component>
@@ -4220,7 +4177,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                className="css-15prtgk-StyledButton-getColors edwq9my0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -4229,7 +4186,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-15prtgk-StyledButton-getColors e12ma6z0"
+                                  className="css-15prtgk-StyledButton-getColors edwq9my0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -4242,49 +4199,42 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                     <Component
                                       align="center"
                                       borderless={true}
-                                      className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                      className="css-1bqncjo-ButtonLabel edwq9my1"
                                     >
                                       <span
-                                        className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                        className="css-1bqncjo-ButtonLabel edwq9my1"
                                       >
                                         <Icon
                                           hasChildren={false}
                                         >
                                           <Component
-                                            className="css-ljhpxy-Icon e12ma6z2"
+                                            className="css-ljhpxy-Icon edwq9my2"
                                             hasChildren={false}
                                           >
                                             <span
-                                              className="css-ljhpxy-Icon e12ma6z2"
+                                              className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
                                                 size="16px"
                                                 src="icon-circle-add"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                <ForwardRef
+                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                  <svg
+                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
-                                                    <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="16px"
-                                                      viewBox={Object {}}
-                                                      width="16px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef>
                                               </StyledInlineSvg>
                                             </span>
                                           </Component>
@@ -4317,33 +4267,27 @@ exports[`CreateProject should fill in project name if its empty when platform is
               aria-label="Create Project"
               data-test-id="create-project"
               disabled={true}
-              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
-              to={null}
             >
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                className="css-pbzt2j-StyledButton-getColors edwq9my0"
                 data-test-id="create-project"
                 disabled={true}
-                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
+                  className="css-pbzt2j-StyledButton-getColors edwq9my0"
                   data-test-id="create-project"
-                  href={null}
                   onClick={[Function]}
                   role="button"
-                  to={null}
                 >
                   <ButtonLabel
                     align="center"
@@ -4351,11 +4295,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel e12ma6z1"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
                       >
                         Create Project
                       </span>

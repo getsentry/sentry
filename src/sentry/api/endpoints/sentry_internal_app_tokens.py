@@ -14,7 +14,6 @@ from sentry.exceptions import ApiTokenLimitError
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 
-    @requires_feature("organizations:sentry-apps", any_org=True)
     def get(self, request, sentry_app):
         if not sentry_app.is_internal:
             return Response([])
@@ -25,7 +24,6 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
             ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens
         )
 
-    @requires_feature("organizations:sentry-apps", any_org=True)
     def post(self, request, sentry_app):
         if not sentry_app.is_internal:
             return Response(

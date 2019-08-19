@@ -17,7 +17,7 @@ import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['issue_title', 'last_seen', 'latest_event'];
+export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'];
 
 export const ALL_VIEWS = deepFreeze([
   {
@@ -42,9 +42,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: t('Errors'),
     data: {
-      fields: ['issue_title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
       columnNames: ['error', 'events', 'users', 'project', 'last seen'],
-      sort: ['-last_seen', '-issue_title'],
+      sort: ['-last_seen', '-title'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
@@ -54,9 +54,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: t('CSP'),
     data: {
-      fields: ['issue_title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
       columnNames: ['csp', 'events', 'users', 'project', 'last seen'],
-      sort: ['-last_seen', '-issue_title'],
+      sort: ['-last_seen', '-title'],
       query: 'event.type:csp',
     },
     tags: [
@@ -164,11 +164,12 @@ export const SPECIAL_FIELDS = {
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {
+      const id = data.id || data.latest_event;
       const target = {
         pathname: location.pathname,
         query: {
           ...location.query,
-          eventSlug: `${data['project.name']}:${data.latest_event}`,
+          eventSlug: `${data['project.name']}:${id}`,
         },
       };
       return (
@@ -183,9 +184,10 @@ export const SPECIAL_FIELDS = {
   title: {
     sortField: 'title',
     renderFunc: (data, {location}) => {
+      const id = data.id || data.latest_event;
       const target = {
         pathname: location.pathname,
-        query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
+        query: {...location.query, eventSlug: `${data['project.name']}:${id}`},
       };
       return (
         <Container>
@@ -253,25 +255,6 @@ export const SPECIAL_FIELDS = {
       };
 
       return <QueryLink to={target}>{badge}</QueryLink>;
-    },
-  },
-  issue_title: {
-    sortField: 'issue_title',
-    renderFunc: (data, {location}) => {
-      const target = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          eventSlug: `${data['project.name']}:${data.latest_event}`,
-        },
-      };
-      return (
-        <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.issue_title}>
-            {data.issue_title}
-          </Link>
-        </Container>
-      );
     },
   },
   last_seen: {

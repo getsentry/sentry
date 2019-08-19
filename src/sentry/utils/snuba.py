@@ -60,6 +60,7 @@ SENTRY_SNUBA_MAP = {
     "issue.id": "issue",
     "timestamp": "timestamp",
     "time": "time",
+    "transaction": "transaction",
     # We support type as both tag and a real column
     "event.type": "type",
     # user

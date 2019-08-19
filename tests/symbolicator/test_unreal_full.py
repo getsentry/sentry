@@ -10,8 +10,8 @@ from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TransactionTestCase
-from sentry.models import Event, EventAttachment
-
+from sentry.models import EventAttachment
+from sentry import eventstore
 
 from tests.symbolicator import get_fixture_path
 
@@ -78,7 +78,8 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+
         self.insta_snapshot(
             {
                 "contexts": event.data.get("contexts"),

@@ -6,6 +6,7 @@ from sentry.models import SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+from mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -220,7 +221,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.client.put(url, data={"events": ("error",)}, format="json")
         assert response.status_code == 403
 
-    @with_feature('organizations:integrations-event-hooks')
+    @with_feature("organizations:integrations-event-hooks")
     def test_can_add_error_created_hook_with_flag(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="SampleApp", organization=self.org)
@@ -230,9 +231,28 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.status_code == 200
 
+    @patch("sentry.analytics.record")
+    @with_feature("organizations:sentry-apps")
+    def test_bad_schema(self, record):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(name="SampleApp", organization=self.org)
+        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        schema = {"bad_key": "bad_value"}
+        response = self.client.put(url, data={"schema": schema}, format="json")
+        assert response.status_code == 400
+        assert response.data == {"schema": ["'elements' is a required property"]}
+        record.assert_called_with(
+            "sentry_app.schema_validation_error",
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app_id=app.id,
+            sentry_app_name="SampleApp",
+            error_message="'elements' is a required property",
+            schema=json.dumps(schema),
+        )
+
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
-
     def test_delete_unpublished_app(self):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])

@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 import IndicatorActions from 'app/actions/indicatorActions';
 import space from 'app/styles/space';
 
-// RFormValueoves a single indicator
+// Removes a single indicator
 export function removeIndicator(indicator) {
   IndicatorActions.remove(indicator);
 }

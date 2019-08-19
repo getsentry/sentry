@@ -2,11 +2,16 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import features
+import logging
+
+from sentry import features, analytics
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
@@ -14,13 +19,18 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serialize(sentry_app, request.user))
 
     def put(self, request, sentry_app):
-        if self._has_hook_events(request) and not features.has('organizations:integrations-event-hooks',
-                                                               sentry_app.owner,
-                                                               actor=request.user):
+        if self._has_hook_events(request) and not features.has(
+            "organizations:integrations-event-hooks", sentry_app.owner, actor=request.user
+        ):
 
-            return Response({"non_field_errors": [
-                "Your organization does not have access to the 'error' resource subscription.",
-            ]}, status=403)
+            return Response(
+                {
+                    "non_field_errors": [
+                        "Your organization does not have access to the 'error' resource subscription."
+                    ]
+                },
+                status=403,
+            )
 
         serializer = SentryAppSerializer(sentry_app, data=request.data, partial=True)
 
@@ -44,6 +54,22 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             )
 
             return Response(serialize(updated_app, request.user))
+
+        # log any errors with schema
+        if "schema" in serializer.errors:
+            for error_message in serializer.errors["schema"]:
+                name = "sentry_app.schema_validation_error"
+                log_info = {
+                    "schema": json.dumps(request.data["schema"]),
+                    "user_id": request.user.id,
+                    "sentry_app_id": sentry_app.id,
+                    "sentry_app_name": sentry_app.name,
+                    "organization_id": sentry_app.owner.id,
+                    "error_message": error_message,
+                }
+                logger.info(name, extra=log_info)
+                analytics.record(name, **log_info)
+
         return Response(serializer.errors, status=400)
 
     def delete(self, request, sentry_app):

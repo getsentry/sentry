@@ -29,12 +29,16 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
+from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce
+
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
+
+BATCH_SIZE = 30000
 
 
 def _get_organization_queryset():
@@ -211,6 +215,15 @@ def prepare_project_aggregates(ignore__stop, project):
     ]
 
 
+def get_event_counts(issue_ids, start, stop, rollup):
+    combined = {}
+
+    for chunk in chunked(issue_ids, BATCH_SIZE):
+        combined.update(tsdb.get_sums(tsdb.models.group, chunk, start, stop, rollup=rollup))
+
+    return combined
+
+
 def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
@@ -244,10 +257,7 @@ def prepare_project_issue_summaries(interval, project):
     )
 
     rollup = 60 * 60 * 24
-
-    event_counts = tsdb.get_sums(
-        tsdb.models.group, new_issue_ids | reopened_issue_ids, start, stop, rollup=rollup
-    )
+    event_counts = get_event_counts(new_issue_ids | reopened_issue_ids, start, stop, rollup)
 
     new_issue_count = sum(event_counts[id] for id in new_issue_ids)
     reopened_issue_count = sum(event_counts[id] for id in reopened_issue_ids)
