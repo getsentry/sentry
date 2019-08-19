@@ -176,3 +176,31 @@ def test_add_no_dotnet_sdk(some_dotnet_sdk):
 
     suggestions = list(get_suggested_updates(setup, DOTNET_INDEX_STATE))
     assert suggestions == []
+
+
+def test_more_specific_dotnet_sdk(some_dotnet_sdk):
+    setup = SdkSetupState(
+        sdk_name=some_dotnet_sdk,
+        sdk_version="1.2.0",
+        integrations=[],
+        modules={
+            "Microsoft.AspNetCore.Hosting": "2.1.0",
+            "Microsoft.Extensions.Logging.Configuration": "2.1.0",
+        },
+    )
+
+    suggestions = list(get_suggested_updates(setup, DOTNET_INDEX_STATE))
+    if some_dotnet_sdk == "sentry.dotnet.aspnetcore":
+        assert not suggestions
+    else:
+        # Do not show suggestion for sentry.dotnet.extensions.logging. The user
+        # has a aspnetcore application and the aspnetcore SDK instruments
+        # logging too.
+        assert suggestions == [
+            {
+                "enables": [],
+                "newSdkName": "sentry.dotnet.aspnetcore",
+                "sdkUrl": None,
+                "type": "changeSdk",
+            }
+        ]
