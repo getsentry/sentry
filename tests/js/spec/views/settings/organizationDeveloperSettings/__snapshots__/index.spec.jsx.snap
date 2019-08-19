@@ -185,10 +185,10 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </AlertLink>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-10qfvek-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
@@ -367,10 +367,10 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </Panel>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-10qfvek-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
