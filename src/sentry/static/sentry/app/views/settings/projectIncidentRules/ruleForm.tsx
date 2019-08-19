@@ -255,7 +255,6 @@ class RuleForm extends React.Component<Props, State> {
       timeWindow,
     } = this.state;
 
-    console.log(config);
     return (
       <React.Fragment>
         <EventsRequest
@@ -284,7 +283,9 @@ class RuleForm extends React.Component<Props, State> {
                           timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
                             ? 'LT'
                             : 'MMM Do';
-                        return getFormattedDate(value, format);
+                        return getFormattedDate(value, format, {
+                          local: config.user.options.timezone !== 'UTC',
+                        });
                       },
                     },
                   }}
@@ -402,6 +403,7 @@ class RuleForm extends React.Component<Props, State> {
 
 type RuleFormContainerProps = {
   api: any;
+  config: Config;
   organization: Organization;
   project: Project;
   orgId: string;
