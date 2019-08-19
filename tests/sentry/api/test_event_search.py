@@ -1133,8 +1133,8 @@ class ResolveFieldListTest(unittest.TestCase):
         # Automatic fields should be inserted
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["uniq", "tags[sentry:user]", "count_unique_user"],
-            ["count", "event_id", "count_id"],
+            ["uniq", "user", "count_unique_user"],
+            ["count", "id", "count_id"],
             ["min", "timestamp", "min_timestamp"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
@@ -1145,7 +1145,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["count_unique(user.id)"]
         result = resolve_field_list(fields, {})
         assert result["aggregations"] == [
-            ["uniq", "user_id", "count_unique_user_id"],
+            ["uniq", "user.id", "count_unique_user_id"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
@@ -1188,7 +1188,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["count_unique(user)"]
         snuba_args = {"rollup": 15}
         result = resolve_field_list(fields, snuba_args)
-        assert result["aggregations"] == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+        assert result["aggregations"] == [["uniq", "user", "count_unique_user"]]
         assert result["selected_columns"] == []
         assert result["groupby"] == []
 
@@ -1225,8 +1225,8 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, snuba_args)
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
-            ["count", "event_id", "count_id"],
-            ["uniq", "tags[sentry:user]", "count_unique_user"],
+            ["count", "id", "count_id"],
+            ["uniq", "user", "count_unique_user"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
