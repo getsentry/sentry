@@ -63,26 +63,13 @@ export default class SentryAppInstallation extends AsyncView {
   };
 
   getOptions() {
-    return this.state.organizations.map(org => ({label: org.slug, value: org.slug}));
-    // return this.state.organizations.map(org => ({
-    //   label: org.slug,
-    //   value: (
-    //     <div>
-    //       <Avatar organization={org} />
-    //       {org.slug}
-    //     </div>
-    //   ),
-    // }));
-  }
-
-  getSelectComponents() {
-    // return this.state.organizations.map(org => (
-    //   <div>
-    //     <Avatar organization={org} />
-    //     {org.slug}
-    //   </div>
-    // ));
-    return {Option: CustomOption};
+    return this.state.organizations.map(org => [
+      org.slug,
+      <ChoiceHolder>
+        <Avatar organization={org} />
+        <OrgNameHolder>{org.slug}</OrgNameHolder>
+      </ChoiceHolder>,
+    ]);
   }
 
   hasAccess = org => org.access.includes('org:integrations');
@@ -172,8 +159,7 @@ export default class SentryAppInstallation extends AsyncView {
               onChange={this.onSelectOrg}
               value={selectedOrg}
               placeholder={t('Select an organization')}
-              options={this.getOptions()}
-              components={this.getSelectComponents()}
+              choices={this.getOptions()}
             />
           )}
         </Field>
@@ -189,5 +175,8 @@ const InstallLink = styled('pre')`
   background: #fbe3e1;
 `;
 
-const CustomOption = ({innerProps, isDisabled}) =>
-  !isDisabled ? <div {...innerProps}>test ll</div> : null;
+const ChoiceHolder = styled('div')``;
+
+const OrgNameHolder = styled('span')`
+  margin-left: 5px;
+`;
