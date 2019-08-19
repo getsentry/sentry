@@ -20,9 +20,9 @@ class GroupReleaseChart extends React.Component {
     title: PropTypes.string,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = this.getNextState(props);
+  constructor(...args) {
+    super(...args);
+    this.state = this.getNextState(args[0]);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -52,7 +52,7 @@ class GroupReleaseChart extends React.Component {
     };
   }
 
-  renderTooltip(point, _pointIdx, chart) {
+  renderTooltip = (point, _pointIdx, chart) => {
     const timeLabel = chart.getTimeLabel(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -99,7 +99,7 @@ class GroupReleaseChart extends React.Component {
         </dl>
       </div>
     );
-  }
+  };
 
   render() {
     const className = 'bar-chart group-chart ' + (this.props.className || '');
@@ -163,7 +163,7 @@ class GroupReleaseChart extends React.Component {
           label={t('events')}
           markers={markers}
           barClasses={['release', 'environment', 'inactive']}
-          tooltip={this.renderTooltip.bind(this)}
+          tooltip={this.renderTooltip}
           gap={0.75}
           minHeights={[0, 0, 5]}
         />
