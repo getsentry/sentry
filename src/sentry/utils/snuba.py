@@ -35,7 +35,6 @@ MAX_HASHES = 5000
 
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
-TAGKEY_RE = re.compile(r"^tags\[[^\]]+\]$")
 
 
 # Global Snuba request option override dictionary. Only intended
@@ -298,9 +297,6 @@ def get_snuba_column_name(name):
     if not name or QUOTED_LITERAL_RE.match(name):
         return name
 
-    if TAGKEY_RE.match(name):
-        return name
-
     return SENTRY_SNUBA_MAP.get(name, u"tags[{}]".format(name))
 
 
@@ -457,8 +453,9 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         aggregation[1] = get_snuba_column_name(aggregation[1])
 
     for (col, _value) in six.iteritems(filter_keys):
-        name = get_snuba_column_name(col)
-        filter_keys[name] = filter_keys.pop(col)
+        if not skip_conditions:
+            name = get_snuba_column_name(col)
+            filter_keys[name] = filter_keys.pop(col)
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):

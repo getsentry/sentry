@@ -11,7 +11,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsE
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.snuba import raw_query, SnubaTSResult
+from sentry.utils import snuba
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
@@ -34,7 +34,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         snuba_args = self.get_field(request, snuba_args)
 
-        result = raw_query(
+        result = snuba.transform_aliases_and_query(
+            skip_conditions=True,
             orderby="time",
             groupby=["time"],
             rollup=rollup,
@@ -45,7 +46,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
         return Response(
             serializer.serialize(
-                SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
+                snuba.SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
             ),
             status=200,
         )

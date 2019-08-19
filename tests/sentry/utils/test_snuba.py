@@ -165,5 +165,6 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("'thing'") == "'thing'"
         assert get_snuba_column_name("id") == "event_id"
         assert get_snuba_column_name("geo.region") == "geo_region"
-        assert get_snuba_column_name("tags[sentry:user]") == "tags[sentry:user]"
+        # This is odd behavior but captures what we do currently.
+        assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
         assert get_snuba_column_name("organization") == "tags[organization]"

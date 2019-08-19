@@ -762,7 +762,7 @@ def resolve_field_list(fields, snuba_args):
         aggregations.append(
             [
                 VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                get_snuba_column_name(match.group("column")),
+                match.group("column"),
                 get_aggregate_alias(match),
             ]
         )
