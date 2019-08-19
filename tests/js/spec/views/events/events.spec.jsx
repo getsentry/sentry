@@ -49,6 +49,10 @@ describe('EventsErrors', function() {
 
   beforeAll(function() {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
