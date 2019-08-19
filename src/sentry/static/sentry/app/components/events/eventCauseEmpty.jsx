@@ -14,7 +14,6 @@ import {snoozedDays} from 'app/utils/promptsActivity';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
-import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
@@ -138,28 +137,26 @@ class EventCauseEmpty extends React.Component {
                     eventName: 'Event Cause Docs Clicked',
                   })
                 }
-                data-test-id="read-the-docs"
               >
                 {t('Read the docs')}
               </DocsButton>
 
               <div>
-                <Tooltip title={t('Remind me next week')}>
-                  <SnoozeButton
-                    size="small"
-                    onClick={() =>
-                      this.handleClick({
-                        action: 'snoozed',
-                        eventKey: 'event_cause.snoozed',
-                        eventName: 'Event Cause Snoozed',
-                      })
-                    }
-                    data-test-id="snoozed"
-                  >
-                    {t('Snooze')}
-                  </SnoozeButton>
-                </Tooltip>
+                <SnoozeButton
+                  title={t('Remind me next week')}
+                  size="small"
+                  onClick={() =>
+                    this.handleClick({
+                      action: 'snoozed',
+                      eventKey: 'event_cause.snoozed',
+                      eventName: 'Event Cause Snoozed',
+                    })
+                  }
+                >
+                  {t('Snooze')}
+                </SnoozeButton>
                 <DismissButton
+                  title={t('Dismiss for this project')}
                   size="small"
                   onClick={() =>
                     this.handleClick({
@@ -168,7 +165,6 @@ class EventCauseEmpty extends React.Component {
                       eventName: 'Event Cause Dismissed',
                     })
                   }
-                  data-test-id="dismissed"
                 >
                   {t('Dismiss')}
                 </DismissButton>

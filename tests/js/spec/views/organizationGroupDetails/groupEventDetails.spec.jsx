@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {GroupEventDetails} from 'app/views/organizationGroupDetails/groupEventDetails';
+import HookStore from 'app/stores/hookStore';
 
 describe('groupEventDetails', () => {
   let org;
@@ -212,64 +213,133 @@ describe('groupEventDetails', () => {
     });
   });
 
-  it('does not render suspect commit empty state', async function() {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: false,
-        },
-      ],
+  describe('EventCauseEmpty', () => {
+    let hookFn;
+
+    beforeEach(function() {
+      hookFn = jest.fn(() => null);
+      HookStore.hooks['component:event-cause-empty'] = [hookFn];
     });
 
-    const wrapper = mount(
-      <GroupEventDetails
-        api={new MockApiClient()}
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
-        location={{query: {environment: 'dev'}}}
-      />,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
-    expect(wrapper.find('EventCause').exists()).toBe(false);
-  });
-
-  it('renders suspect commit', async function() {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: true,
-        },
-      ],
+    afterEach(function() {
+      // clear HookStore
+      HookStore.init();
     });
 
-    const wrapper = mount(
-      <GroupEventDetails
-        api={new MockApiClient()}
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
-        location={{query: {environment: 'dev'}}}
-      />,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
+    it('calls event cause empty state hook', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [
+          {
+            step: 'commit',
+            complete: false,
+          },
+        ],
+      });
 
-    expect(wrapper.find('EventCause').exists()).toBe(true);
-    expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(hookFn).toHaveBeenCalledWith({organization: org, project});
+      expect(wrapper.find('EventCause').exists()).toBe(false);
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [
+          {
+            step: 'commit',
+            complete: true,
+          },
+        ],
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit if `releasesCompletion` empty', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [],
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit if `releasesCompletion` null', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: null,
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
   });
 
   describe('Platform Integrations', () => {
