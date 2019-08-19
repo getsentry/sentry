@@ -245,6 +245,15 @@ SDK_SUPPORTED_MODULES = [
         ),
     },
     {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "0.11.0",
+        "module_name": "sqlalchemy",
+        "module_version_min": "1.2.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "sqlalchemy", "https://docs.sentry.io/platforms/python/sqlalchemy/"
+        ),
+    },
+    {
         "sdk_name": "sentry.dotnet",
         "sdk_version_added": "0.0.0",
         "module_name": "Microsoft.AspNetCore.Hosting",
