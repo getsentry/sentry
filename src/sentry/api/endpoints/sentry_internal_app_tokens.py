@@ -5,7 +5,6 @@ from rest_framework import status
 
 from sentry.api.bases import SentryInternalAppTokenPermission, SentryAppBaseEndpoint
 from sentry.models import ApiToken, SentryAppInstallation
-from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError

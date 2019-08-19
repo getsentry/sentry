@@ -6,7 +6,6 @@ from django.http import Http404
 
 from sentry.api.bases import SentryInternalAppTokenPermission, SentryAppBaseEndpoint
 from sentry.models import ApiToken
-from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
 
 

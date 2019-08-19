@@ -39,10 +39,10 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         assert self.browser.find_element_by_link_text("Tesla")
 
-    def test_create_new_integration(self):
+    def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
 
-        self.browser.click('[aria-label="Create New Integration"]')
+        self.browser.click('[aria-label="New Internal Integration"]')
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
         self.browser.element('input[name="author"]').send_keys("Elon Musk")
@@ -99,3 +99,27 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         schema = self.browser.element('textarea[name="schema"]')
         assert schema.text == ""
+
+    def test_remove_tokens_internal_app(self):
+        internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
+        url = u"/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+
+        self.load_page(url)
+
+        self.browser.click('[data-test-id="token-delete"]')
+        self.browser.wait_until(".ref-success")
+
+        assert self.browser.find_element_by_xpath(
+            "//div[contains(text(), 'No tokens created yet.')]"
+        )
+
+    def test_add_tokens_internal_app(self):
+        internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
+        url = u"/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+
+        self.load_page(url)
+
+        self.browser.click('[data-test-id="token-add"]')
+        self.browser.wait_until(".ref-success")
+
+        assert len(self.browser.find_elements_by_css_selector('[data-test-id="token-delete"]')) == 2
