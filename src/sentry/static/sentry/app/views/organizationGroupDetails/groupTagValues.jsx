@@ -42,7 +42,7 @@ class GroupTagValues extends React.Component {
     }
   }
 
-  async fetchData() {
+  fetchData = async () => {
     const {params, query} = this.props;
 
     this.setState({
@@ -81,7 +81,7 @@ class GroupTagValues extends React.Component {
         loading: false,
       });
     }
-  }
+  };
 
   getUserDisplayName(item) {
     return item.email || item.username || item.identifier || item.ipAddress || item.value;

@@ -22,7 +22,7 @@ class GroupReleaseChart extends React.Component {
 
   constructor(...args) {
     super(...args);
-    this.state = this.getNextState(args[0]);
+    this.state = this.getNextState(this.props);
   }
 
   componentWillReceiveProps(nextProps) {
