@@ -236,11 +236,29 @@ export const getHumanDuration = (duration: number): string => {
   return `${durationMS.toFixed(3)} ms`;
 };
 
-const COLORS = ['#8B7FD7', '#F2BE7C', '#ffe066', '#74c0fc'];
-export const pickSpanBarColour = (spanNumberIndex: number) => {
-  spanNumberIndex = spanNumberIndex % COLORS.length;
+const COLORS = [
+  '#7274AC',
+  '#9D85B8',
+  '#BF8CB6',
+  '#CF7CA0',
+  '#ED8898',
+  '#F6A189',
+  '#F8B26D',
+  '#F7D36E',
 
-  return COLORS[spanNumberIndex];
+  // reverse fade
+
+  '#F8B26D',
+  '#F6A189',
+  '#ED8898',
+  '#CF7CA0',
+  '#BF8CB6',
+  '#9D85B8',
+];
+export const pickSpanBarColour = (input: number): string => {
+  const index = input % COLORS.length;
+
+  return COLORS[index];
 };
 
 export type UserSelectValues = {
