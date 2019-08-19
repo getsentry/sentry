@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {EventsStatsData, Organization, Project} from 'app/types';
+import {Config, EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getFormattedDate} from 'app/utils/dates';
@@ -14,6 +14,7 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import withApi from 'app/utils/withApi';
+import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
@@ -27,6 +28,7 @@ import IncidentRulesChart from './chart';
 
 type Props = {
   api: any;
+  config: Config;
   data: EventsStatsData;
   organization: Organization;
   project: Project;
@@ -244,7 +246,7 @@ class RuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, organization, project} = this.props;
+    const {api, config, organization, project} = this.props;
     const {
       aggregations,
       alertThreshold,
@@ -253,6 +255,7 @@ class RuleForm extends React.Component<Props, State> {
       timeWindow,
     } = this.state;
 
+    console.log(config);
     return (
       <React.Fragment>
         <EventsRequest
@@ -451,4 +454,4 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   z-index: 1;
 `;
 
-export default withApi(withOrganization(withProject(RuleFormContainer)));
+export default withConfig(withApi(withOrganization(withProject(RuleFormContainer))));
