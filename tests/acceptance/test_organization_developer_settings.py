@@ -25,38 +25,34 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading-indicator")
 
     def test_create_new_public_integration(self):
-        with self.feature("organizations:sentry-apps"):
-            self.load_page(self.org_developer_settings_path)
+        self.load_page(self.org_developer_settings_path)
 
-            self.browser.click('[aria-label="New Public Integration"]')
+        self.browser.click('[aria-label="New Public Integration"]')
 
-            self.browser.element('input[name="name"]').send_keys("Tesla")
-            self.browser.element('input[name="author"]').send_keys("Elon Musk")
-            self.browser.element('input[name="webhookUrl"]').send_keys(
-                "https://example.com/webhook"
-            )
+        self.browser.element('input[name="name"]').send_keys("Tesla")
+        self.browser.element('input[name="author"]').send_keys("Elon Musk")
+        self.browser.element('input[name="webhookUrl"]').send_keys("https://example.com/webhook")
 
-            self.browser.click('[aria-label="Save Changes"]')
+        self.browser.click('[aria-label="Save Changes"]')
 
-            self.browser.wait_until(".ref-success")
+        self.browser.wait_until(".ref-success")
 
-            assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_link_text("Tesla")
 
     def test_create_new_integration(self):
         self.load_page(self.org_developer_settings_path)
 
         self.browser.click('[aria-label="Create New Integration"]')
 
-        self.browser.element('input[name="name"]').send_keys('Tesla')
-        self.browser.element('input[name="author"]').send_keys('Elon Musk')
-        self.browser.element('input[name="webhookUrl"]').send_keys(
-            'https://example.com/webhook')
+        self.browser.element('input[name="name"]').send_keys("Tesla")
+        self.browser.element('input[name="author"]').send_keys("Elon Musk")
+        self.browser.element('input[name="webhookUrl"]').send_keys("https://example.com/webhook")
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until('.ref-success')
+        self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text('Tesla')
+        assert self.browser.find_element_by_link_text("Tesla")
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
@@ -90,16 +86,16 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         textarea = self.browser.element('textarea[name="schema"]')
         textarea.clear()
-        textarea.send_keys('{}')
+        textarea.send_keys("{}")
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until('.ref-success')
+        self.browser.wait_until(".ref-success")
 
-        link = self.browser.find_element_by_link_text('Tesla App')
+        link = self.browser.find_element_by_link_text("Tesla App")
         link.click()
 
-        self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until_not(".loading-indicator")
 
         schema = self.browser.element('textarea[name="schema"]')
         assert schema.text == ""

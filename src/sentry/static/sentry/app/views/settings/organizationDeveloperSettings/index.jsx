@@ -103,8 +103,26 @@ class OrganizationDeveloperSettings extends AsyncView {
       </Button>
     );
 
-    const isEmpty = this.state.applications.length === 0;
+    return (
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          {t('Public Integrations')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {!isEmpty ? (
+            integrations.map(this.renderApplicationRow)
+          ) : (
+            <EmptyMessage>
+              {t('No public integrations have been created yet.')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
 
+  renderBody() {
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} />

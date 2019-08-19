@@ -232,7 +232,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 200
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:sentry-apps")
     def test_bad_schema(self, record):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="SampleApp", organization=self.org)
