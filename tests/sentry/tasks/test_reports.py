@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 import mock
 import pytest
 import pytz
+import copy
 from django.core import mail
+from django.utils import timezone
 
 from sentry.app import tsdb
-from sentry.models import Project, UserOption
+from sentry.models import Project, UserOption, GroupStatus
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
     Report,
@@ -30,9 +32,12 @@ from sentry.tasks.reports import (
     safe_add,
     user_subscribed_to_organization_reports,
     prepare_project_issue_summaries,
+    prepare_project_series,
 )
 from sentry.testutils.cases import TestCase, SnubaTestCase
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.utils.dates import to_datetime, to_timestamp, floor_to_utc_day
+
 from six.moves import xrange
 
 
@@ -258,14 +263,8 @@ class ReportTestCase(TestCase, SnubaTestCase):
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
 
-    @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
-    def test_paginates_and_reassumbles_result(self):
-        import copy
-        from datetime import timedelta
-        from django.utils import timezone
-
-        from sentry.testutils.factories import DEFAULT_EVENT_DATA
-
+    @mock.patch("sentry.tasks.reports.GET_SUMS_BATCH_SIZE", 1)
+    def test_paginates_project_issue_summaries_and_reassembles_result(self):
         self.login_as(user=self.user)
 
         now = timezone.now()
@@ -295,3 +294,53 @@ class ReportTestCase(TestCase, SnubaTestCase):
         )
 
         assert prepare_project_issue_summaries([two_min_ago, now], self.project) == [2, 0, 0]
+
+    @mock.patch("sentry.tasks.reports.GET_RANGE_BATCH_SIZE", 1)
+    def test_paginates_project_series_and_reassembles_result(self):
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        three_days_ago = (now - timedelta(days=3)).isoformat()[:19]
+        seven_days_back = now - timedelta(days=7)
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": three_days_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": three_days_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        group1 = event1.group
+        group2 = event2.group
+
+        group1.status = GroupStatus.RESOLVED
+        group1.resolved_at = two_days_ago
+        group1.save()
+
+        group2.status = GroupStatus.RESOLVED
+        group2.resolved_at = two_days_ago
+        group2.save()
+
+        response = prepare_project_series(
+            [floor_to_utc_day(seven_days_back), floor_to_utc_day(now)], self.project
+        )
+
+        assert any(
+            map(lambda x: x[1] == (2, 0), response)
+        ), "must show two issues resolved in one rollup window"
