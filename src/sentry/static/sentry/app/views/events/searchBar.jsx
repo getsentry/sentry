@@ -3,7 +3,7 @@ import {flatten, memoize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
+import {NEGATION_OPERATOR, SEARCH_TYPES, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
@@ -31,25 +31,25 @@ class SearchBar extends React.PureComponent {
     organization: SentryTypes.Organization,
   };
 
-  constructor() {
-    super();
-
-    this.state = {
-      tags: {},
-    };
-  }
+  state = {
+    tags: {},
+  };
 
   componentDidMount() {
-    const {api, organization} = this.props;
-    fetchOrganizationTags(api, organization.slug).then(
-      results => {
-        this.setState({
-          tags: this.getAllTags(results.map(({key}) => key)),
-        });
-      },
-      () => addErrorMessage(t('There was a problem fetching tags'))
-    );
+    this.fetchData();
   }
+
+  fetchData = async () => {
+    const {api, organization} = this.props;
+    try {
+      const tags = await fetchOrganizationTags(api, organization.slug);
+      this.setState({
+        tags: this.getAllTags(tags.map(({key}) => key)),
+      });
+    } catch (_) {
+      addErrorMessage(t('There was a problem fetching tags'));
+    }
+  };
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
@@ -83,6 +83,8 @@ class SearchBar extends React.PureComponent {
     return (
       <SmartSearchBar
         {...this.props}
+        hasRecentSearches
+        savedSearchType={SEARCH_TYPES.EVENT}
         onGetTagValues={this.getEventFieldValues}
         supportedTags={this.state.tags}
         prepareQuery={this.prepareQuery}

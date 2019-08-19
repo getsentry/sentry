@@ -99,7 +99,7 @@ class IssueListFilters extends React.Component {
           />
 
           <IssueListSearchBar
-            orgId={organization.slug}
+            organization={organization}
             query={query || ''}
             onSearch={onSearch}
             disabled={isSearchDisabled}
