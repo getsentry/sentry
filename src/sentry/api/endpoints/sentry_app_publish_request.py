@@ -3,17 +3,12 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import options
-from sentry import features
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.utils import email
 
 
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
     def post(self, request, sentry_app):
-        if not features.has("organizations:sentry-apps", sentry_app.owner, actor=request.user):
-
-            return Response(status=404)
-
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:
             return Response({"detail": "Cannot publish already published integration"}, status=400)

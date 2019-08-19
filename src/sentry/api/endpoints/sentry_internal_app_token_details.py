@@ -6,7 +6,6 @@ from django.http import Http404
 
 from sentry.api.bases import SentryInternalAppTokenPermission, SentryAppBaseEndpoint
 from sentry.models import ApiToken
-from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
 
 
@@ -26,7 +25,6 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
         return (args, kwargs)
 
-    @requires_feature("organizations:sentry-apps", any_org=True)
     def delete(self, request, sentry_app, api_token):
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
