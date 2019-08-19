@@ -5,7 +5,6 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.models import ApiToken
 
@@ -26,7 +25,6 @@ class SentryInternalAppTokenTest(APITestCase):
 
 
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
-    @with_feature("organizations:sentry-apps")
     def test_create_token(self):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
@@ -34,7 +32,6 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert ApiToken.objects.get(token=response.data["token"])
 
-    @with_feature("organizations:sentry-apps")
     def test_non_internal_app(self):
         sentry_app = self.create_sentry_app(name="My External App", organization=self.org)
 
@@ -46,7 +43,6 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.status_code == 403
         assert response.data == "This route is limited to internal integrations only"
 
-    @with_feature("organizations:sentry-apps")
     def test_sentry_app_not_found(self):
 
         url = reverse("sentry-api-0-sentry-internal-app-tokens", args=["not_a_slug"])
@@ -56,7 +52,6 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert response.status_code == 404
 
-    @with_feature("organizations:sentry-apps")
     def test_token_limit(self):
         self.login_as(user=self.user)
 
@@ -71,7 +66,6 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
 
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
-    @with_feature("organizations:sentry-apps")
     def test_get_tokens(self):
         self.login_as(self.user)
 

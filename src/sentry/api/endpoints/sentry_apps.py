@@ -11,7 +11,6 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
-from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
 from sentry.utils import json
@@ -49,7 +48,6 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @requires_feature("organizations:sentry-apps", any_org=True)
     def post(self, request, organization):
         data = {
             "name": request.json_body.get("name"),

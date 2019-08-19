@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.models import ApiToken
 from sentry.mediators.token_exchange import GrantExchanger
 
@@ -25,14 +24,12 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             args=[self.internal_sentry_app.slug, self.api_token.token],
         )
 
-    @with_feature("organizations:sentry-apps")
     def test_delete_token(self):
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format="json")
         assert response.status_code == 204
         assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
 
-    @with_feature("organizations:sentry-apps")
     def test_delete_invalid_token(self):
         self.login_as(user=self.user)
 
@@ -44,7 +41,6 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         response = self.client.delete(url, format="json")
         assert response.status_code == 404
 
-    @with_feature("organizations:sentry-apps")
     def test_delete_token_another_app(self):
 
         another_app = self.create_internal_integration(name="Another app", organization=self.org)
@@ -59,7 +55,6 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         response = self.client.delete(url, format="json")
         assert response.status_code == 404
 
-    @with_feature("organizations:sentry-apps")
     def test_non_internal_app(self):
         sentry_app = self.create_sentry_app(name="My External App", organization=self.org)
 
@@ -85,7 +80,6 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         assert response.status_code == 403
         assert response.data == "This route is limited to internal integrations only"
 
-    @with_feature("organizations:sentry-apps")
     def test_sentry_app_not_found(self):
 
         url = reverse(

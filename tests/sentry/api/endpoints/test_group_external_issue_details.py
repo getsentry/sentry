@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class GroupExternalIssueDetailsEndpointTest(APITestCase):
@@ -21,14 +20,12 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
             self.group.id, self.external_issue.id
         )
 
-    @with_feature("organizations:sentry-apps")
     def test_deletes_external_issue(self):
         response = self.client.delete(self.url, format="json")
 
         assert response.status_code == 204, response.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
-    @with_feature("organizations:sentry-apps")
     def test_handles_non_existing_external_issue(self):
         url = u"/api/0/issues/{}/external-issues/{}/".format(self.group.id, 99999)
 
@@ -36,7 +33,6 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
 
         assert response.status_code == 404, response.content
 
-    @with_feature("organizations:sentry-apps")
     def test_forbids_deleting_an_inaccessible_issue(self):
         group = self.create_group(
             project=self.create_project(

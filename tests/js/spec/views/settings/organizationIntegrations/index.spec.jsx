@@ -108,8 +108,6 @@ describe('OrganizationIntegrations', () => {
     let sentryAppInstall;
 
     beforeEach(() => {
-      org = {...org, features: ['sentry-apps']};
-
       installedSentryApp = TestStubs.SentryApp({
         name: 'An Integration',
         slug: 'an-integration',

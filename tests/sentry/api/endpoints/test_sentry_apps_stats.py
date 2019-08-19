@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils import json
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class SentryAppsStatsTest(APITestCase):
@@ -45,7 +44,6 @@ class SentryAppsStatsTest(APITestCase):
             "installs": 1,
         } in json.loads(response.content)
 
-    @with_feature("organizations:sentry-apps")
     def test_nonsuperusers_have_no_access(self):
         self.login_as(user=self.user)
 

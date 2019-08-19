@@ -123,25 +123,6 @@ class OrganizationDeveloperSettings extends AsyncView {
   }
 
   renderBody() {
-    const {organization} = this.props;
-
-    if (!organization.features.includes('sentry-apps')) {
-      return (
-        <div>
-          <SettingsPageHeader title={t('Developer Settings')} />
-          <Panel>
-            <PanelBody>
-              <EmptyMessage>
-                {t(
-                  "Want to build on top of the Sentry Integration Platform? We're working closely with early adopters. Please reach out to us by contacting partners@sentry.io"
-                )}
-              </EmptyMessage>
-            </PanelBody>
-          </Panel>
-        </div>
-      );
-    }
-
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} />
