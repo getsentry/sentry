@@ -690,6 +690,14 @@ function routes() {
       />
 
       <Route
+        path="/extensions/external-install/:providerId"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppInstallation')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="/extensions/vsts/link/"
         getComponent={(_loc, cb) =>
           import(/* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink').then(

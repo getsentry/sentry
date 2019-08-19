@@ -54,9 +54,9 @@
   },
 
   "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
+  "python.linting.flake8Enabled": false,
   // https://github.com/DonJayamanne/pythonVSCode/issues/992
-  "python.pythonPath": "${workspaceFolder}/.venv/bin/python",
+  "python.pythonPath": "/usr/local/opt/python@2/bin/python2.7",
   // test discovery is sluggish and the UI around running
   // tests is often in your way and misclicked
   "python.testing.pytestEnabled": false,
@@ -67,5 +67,6 @@
   "python.linting.enabled": true,
   "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
   "python.linting.pep8Path": "${workspaceFolder}/.venv/bin/pep8",
-  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest"
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "python.linting.banditEnabled": true
 }
