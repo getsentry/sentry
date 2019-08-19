@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import StackedBarChart from 'app/components/stackedBarChart';
 import SentryTypes from 'app/sentryTypes';
@@ -8,10 +7,8 @@ import {t} from 'app/locale';
 import {intcomma} from 'app/utils';
 import theme from 'app/utils/theme';
 
-const GroupReleaseChart = createReactClass({
-  displayName: 'GroupReleaseChart',
-
-  propTypes: {
+class GroupReleaseChart extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     release: PropTypes.shape({
       version: PropTypes.string.isRequired,
@@ -21,15 +18,16 @@ const GroupReleaseChart = createReactClass({
     firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
     title: PropTypes.string,
-  },
+  };
 
-  getInitialState() {
-    return this.getNextState(this.props);
-  },
+  constructor(...args) {
+    super(...args);
+    this.state = this.getNextState(this.props);
+  }
 
   componentWillReceiveProps(nextProps) {
     this.setState(this.getNextState(nextProps));
-  },
+  }
 
   getNextState(props) {
     const releaseStats = props.releaseStats;
@@ -52,9 +50,9 @@ const GroupReleaseChart = createReactClass({
       releasePoints,
       envPoints,
     };
-  },
+  }
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip = (point, _pointIdx, chart) => {
     const timeLabel = chart.getTimeLabel(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -101,7 +99,7 @@ const GroupReleaseChart = createReactClass({
         </dl>
       </div>
     );
-  },
+  };
 
   render() {
     const className = 'bar-chart group-chart ' + (this.props.className || '');
@@ -171,7 +169,7 @@ const GroupReleaseChart = createReactClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
 export default GroupReleaseChart;

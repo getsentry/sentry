@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
@@ -8,16 +7,14 @@ import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
 import {t} from 'app/locale';
 
-const GroupReleaseStats = createReactClass({
-  displayName: 'GroupReleaseStats',
-
-  propTypes: {
+class GroupReleaseStats extends React.PureComponent {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
     environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
     allEnvironments: PropTypes.object,
-  },
+  };
 
   render() {
     const {group, organization, project, environments, allEnvironments} = this.props;
@@ -113,7 +110,7 @@ const GroupReleaseStats = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default GroupReleaseStats;
