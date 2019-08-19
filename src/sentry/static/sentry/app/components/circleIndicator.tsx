@@ -43,10 +43,6 @@ class CircleIndicator extends React.Component<Props> {
     size: 14,
   };
 
-  constructor(props: Props) {
-    super(props);
-  }
-
   render() {
     return <Circle {...this.props} />;
   }
