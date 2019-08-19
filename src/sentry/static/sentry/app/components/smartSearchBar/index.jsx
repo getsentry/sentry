@@ -807,7 +807,7 @@ class SmartSearchBar extends React.Component {
         isOpen={this.state.dropdownVisible}
       >
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <SearchSvg src="icon-search" size="14" />
+          <SearchSvg src="icon-search" />
         </SearchLabel>
 
         <StyledForm onSubmit={this.onSubmit}>
@@ -1090,9 +1090,8 @@ const SearchLabel = styled('label')`
 `;
 
 const SearchSvg = styled(InlineSvg)`
-  height: 14px;
-  width: 14px;
-  margin-top: 3px;
+  margin-top: ${space(0.25)};
+  margin-left: ${space(0.25)};
 `;
 
 function getTitleForType(type) {
