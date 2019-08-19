@@ -604,7 +604,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               }}
             />
           )}
-          <Duration>{durationString}</Duration>
+          <Duration>
+            <DurationPill>{durationString}</DurationPill>
+          </Duration>
           {this.renderWarningText({warningText: bounds.warning})}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
@@ -809,6 +811,21 @@ const Duration = styled('div')`
   padding-right: ${space(1)};
 
   user-select: none;
+
+  display: flex;
+  align-items: center;
+`;
+
+const DurationPill = styled('div')`
+  height: ${SPAN_ROW_HEIGHT - 10}px;
+  line-height: ${SPAN_ROW_HEIGHT - 10}px;
+
+  border-radius: 99px;
+
+  padding-left: 10px;
+  padding-right: 10px;
+
+  background-color: rgba(255, 255, 255, 0.6);
 `;
 
 const SpanBarRectangle = styled('div')`
