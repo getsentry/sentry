@@ -2,13 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-export type Props = {
+type Props = {
   enabled: boolean;
   size: number;
   color: string;
 };
 
-const getBackgroundColor = (p: Props): string => {
+type StyledProps = Props & {theme?: any};
+
+const getBackgroundColor = (p: StyledProps): string => {
   if (p.color) {
     return `background: ${p.color};`;
   }
@@ -16,7 +18,7 @@ const getBackgroundColor = (p: Props): string => {
   return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
 };
 
-const getSize = (p: any): string => `
+const getSize = (p: StyledProps): string => `
   height: ${p.size}px;
   width: ${p.size}px;
 `;
