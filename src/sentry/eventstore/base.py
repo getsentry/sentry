@@ -23,6 +23,7 @@ class Columns(Enum):
     IP_ADDRESS = "ip_address"
     USER_ID = "user_id"
     USERNAME = "username"
+    TRANSACTION = "transaction"
 
 
 class EventStorage(Service):
@@ -50,6 +51,7 @@ class EventStorage(Service):
         Columns.PLATFORM,
         Columns.TITLE,
         Columns.TYPE,
+        Columns.TRANSACTION,
         # Required to provide snuba-only tags
         Columns.TAGS_KEY,
         Columns.TAGS_VALUE,

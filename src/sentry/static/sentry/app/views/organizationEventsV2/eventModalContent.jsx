@@ -17,8 +17,8 @@ import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
-import {AGGREGATE_ALIASES} from './data';
 import TransanctionView from './transactionView';
+import {hasAggregateField} from './utils';
 
 /**
  * Render the columns and navigation elements inside the event modal view.
@@ -27,10 +27,8 @@ import TransanctionView from './transactionView';
 const EventModalContent = props => {
   const {event, projectId, organization, location, view} = props;
 
-  // Known aggregate aliases and functions indicated grouped views.
-  const isGroupedView = !!view.data.fields.find(
-    field => AGGREGATE_ALIASES.includes(field) || field.match(/[a-z_]+\([a-z_\.]+\)/)
-  );
+  // Having an aggregate field means we want to show pagination/graphs
+  const isGroupedView = hasAggregateField(view);
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
     event.eventID
   }/json/`;
@@ -39,9 +37,7 @@ const EventModalContent = props => {
     <ColumnGrid>
       <HeaderBox>
         <EventHeader event={event} />
-        {isGroupedView && (
-          <ModalPagination view={view} event={event} location={location} />
-        )}
+        {isGroupedView && <ModalPagination event={event} location={location} />}
         {isGroupedView &&
           getDynamicText({
             value: (

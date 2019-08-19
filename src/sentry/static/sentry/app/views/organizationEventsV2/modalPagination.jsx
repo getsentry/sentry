@@ -22,10 +22,8 @@ function buildTargets(event, location) {
   const urlMap = {
     previous: event.previousEventID,
     next: event.nextEventID,
-    // TODO(mark) Make latest, oldest work once we have new endpoints.
-    // `${event.eventID}:latest`,
-    latest: null,
-    oldest: null,
+    oldest: event.oldestEventID,
+    latest: event.latestEventID,
   };
 
   const links = {};

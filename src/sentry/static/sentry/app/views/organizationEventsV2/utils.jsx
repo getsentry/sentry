@@ -2,7 +2,7 @@ import {partial, pick, get} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {ALL_VIEWS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 
 /**
  * Given a view id, return the corresponding view object
@@ -16,7 +16,23 @@ export function getCurrentView(requestedView) {
 }
 
 /**
+ * Takes a view and determines if there are any aggregate fields in it.
+ *
+ * TODO(mark) This function should be part of an EventView abstraction
+ *
+ * @param {Object} view
+ * @returns {Boolean}
+ */
+export function hasAggregateField(view) {
+  return view.data.fields.some(
+    field => AGGREGATE_ALIASES.includes(field) || field.match(/[a-z_]+\([a-z_\.]+\)/)
+  );
+}
+
+/**
  * Takes a view and converts it into the format required for the events API
+ *
+ * TODO(mark) This function should be part of an EventView abstraction
  *
  * @param {Object} view
  * @returns {Object}
@@ -50,6 +66,8 @@ export function getQuery(view, location) {
 /**
  * Generate a querystring based on the view defaults, current
  * location and any additional parameters
+ *
+ * TODO(mark) This function should be part of an EventView abstraction
  *
  * @param {Object} view defaults containing `.data.query`
  * @param {Location} browser location
