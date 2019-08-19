@@ -115,3 +115,78 @@ export type GlobalSelection = {
     utc: boolean;
   };
 };
+
+type Authenticator = {
+  dateUsed: string | null;
+  dateCreated: string;
+  type: string; // i.e. 'u2f'
+  id: string;
+  name: string;
+};
+
+export type Config = {
+  languageCode: string;
+  csrfCookieName: string;
+  features: string[];
+  singleOrganization: boolean;
+  urlPrefix: string;
+  needsUpgrade: boolean;
+  supportEmail: string;
+  user: {
+    username: string;
+    lastLogin: string;
+    isSuperuser: boolean;
+    emails: {
+      is_verified: boolean;
+      id: string;
+      email: string;
+    }[];
+    isManaged: boolean;
+    lastActive: string;
+    isStaff: boolean;
+    identities: any[];
+    id: string;
+    isActive: boolean;
+    has2fa: boolean;
+    canReset2fa: boolean;
+    name: string;
+    avatarUrl: string;
+    authenticators: Authenticator[];
+    dateJoined: string;
+    options: {
+      timezone: string;
+      stacktraceOrder: number;
+      language: string;
+      clock24Hours: boolean;
+    };
+    flags: {newsletter_consent_prompt: boolean};
+    avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
+    hasPasswordAuth: boolean;
+    permissions: string[];
+    email: string;
+  };
+
+  invitesEnabled: boolean;
+  privacyUrl: string | null;
+  isOnPremise: boolean;
+  lastOrganization: string;
+  gravatarBaseUrl: string;
+  messages: string[];
+  dsn: string;
+  userIdentity: {ip_address: string; email: string; id: number};
+  termsUrl: string | null;
+  isAuthenticated: boolean;
+  version: {
+    current: string;
+    build: string;
+    upgradeAvailable: boolean;
+    latest: string;
+  };
+  statuspage: string | null;
+  sentryConfig: {
+    dsn: string;
+    release: string;
+    whitelistUrls: string[];
+  };
+  distPrefix: string;
+};
