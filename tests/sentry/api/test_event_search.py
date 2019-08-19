@@ -1088,21 +1088,22 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_automatic_fields_with_aggregate_aliases(self):
-        fields = ["issue_title", "message"]
+        fields = ["title", "last_seen"]
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
-        assert result["selected_columns"] == ["message"]
+        assert result["selected_columns"] == ["title"]
         assert result["aggregations"] == [
-            ["anyHeavy", "title", "issue_title"],
+            ["max", "timestamp", "last_seen"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
-        assert result["groupby"] == ["message"]
+        assert result["groupby"] == ["title"]
 
     def test_field_alias_expansion(self):
-        fields = ["issue_title", "last_seen", "latest_event", "project", "user", "message"]
+        fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == [
+            "title",
             "project.id",
             "user.id",
             "user.name",
@@ -1112,11 +1113,11 @@ class ResolveFieldListTest(unittest.TestCase):
             "message",
         ]
         assert result["aggregations"] == [
-            ["anyHeavy", "title", "issue_title"],
             ["max", "timestamp", "last_seen"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
         ]
         assert result["groupby"] == [
+            "title",
             "project.id",
             "user.id",
             "user.name",
@@ -1198,12 +1199,12 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_orderby_field_alias(self):
-        fields = ["issue_title"]
-        snuba_args = {"orderby": "-issue_title"}
+        fields = ["last_seen"]
+        snuba_args = {"orderby": "-last_seen"}
         result = resolve_field_list(fields, snuba_args)
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["anyHeavy", "title", "issue_title"],
+            ["max", "timestamp", "last_seen"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]

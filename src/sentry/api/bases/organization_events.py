@@ -8,6 +8,11 @@ from sentry.api.event_search import get_snuba_query_args, resolve_field_list, In
 from sentry.models.project import Project
 
 
+class Direction(object):
+    NEXT = 0
+    PREV = 1
+
+
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
         query = request.GET.get("query")
@@ -109,3 +114,36 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         if prev_event:
             return prev_event[1]
+
+    def oldest_event_id(self, snuba_args, event):
+        """
+        Returns the oldest event ID if there is a subsequent event matching the
+        conditions provided
+        """
+        return self._get_terminal_event_id(Direction.PREV, snuba_args, event)
+
+    def latest_event_id(self, snuba_args, event):
+        """
+        Returns the latest event ID if there is a newer event matching the
+        conditions provided
+        """
+        return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
+
+    def _get_terminal_event_id(self, direction, snuba_args, event):
+        if direction == Direction.NEXT:
+            time_condition = [["timestamp", ">", event.timestamp]]
+            orderby = ["-timestamp", "-event_id"]
+        else:
+            time_condition = [["timestamp", "<", event.timestamp]]
+            orderby = ["timestamp", "event_id"]
+
+        conditions = snuba_args["conditions"][:]
+        conditions.extend(time_condition)
+
+        result = eventstore.get_events(
+            conditions=conditions, filter_keys=snuba_args["filter_keys"], orderby=orderby, limit=1
+        )
+        if not result:
+            return None
+
+        return result[0].event_id
