@@ -38,7 +38,7 @@ class GroupEventDetails extends React.Component {
       error: false,
       event: null,
       eventNavLinks: '',
-      setupReleases: [],
+      releasesCompletion: null,
     };
   }
 
@@ -118,7 +118,7 @@ class GroupEventDetails extends React.Component {
       .requestPromise(`/projects/${orgSlug}/${projSlug}/releases/completion/`)
       .then(data => {
         this.setState({
-          setupReleases: data,
+          releasesCompletion: data,
         });
       });
 
@@ -142,9 +142,12 @@ class GroupEventDetails extends React.Component {
     fetchSentryAppComponents(api, orgSlug, projectId);
   };
 
-  get hasSetupCommits() {
-    const {setupReleases} = this.state;
-    return setupReleases.some(({step, complete}) => step === 'commit' && complete);
+  get showExampleCommit() {
+    const {releasesCompletion} = this.state;
+    return (
+      releasesCompletion &&
+      releasesCompletion.some(({step, complete}) => step === 'commit' && !complete)
+    );
   }
 
   render() {
@@ -192,7 +195,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 project={project}
-                showExampleCommit={!this.hasSetupCommits}
+                showExampleCommit={this.showExampleCommit}
               />
             )}
           </div>

@@ -82,7 +82,10 @@ class EventEntries extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    return this.props.event.id !== nextProps.event.id;
+    return (
+      this.props.event.id !== nextProps.event.id ||
+      this.props.showExampleCommit !== nextProps.showExampleCommit
+    );
   }
 
   recordIssueError(errorTypes, errorMessages) {
