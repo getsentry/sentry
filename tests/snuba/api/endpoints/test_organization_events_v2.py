@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 import pytest
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2EndpointTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
         self.url = reverse(
             "sentry-api-0-organization-eventsv2",
             kwargs={"organization_slug": self.organization.slug},

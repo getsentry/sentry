@@ -1,22 +1,17 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Group
-
-
-def create_timestamp(delta):
-    return (timezone.now() - delta).isoformat()[:19]
 
 
 class OrganizationEventDetailsTestBase(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventDetailsTestBase, self).setUp()
-        min_ago = create_timestamp(timedelta(minutes=1))
-        two_min_ago = create_timestamp(timedelta(minutes=2))
-        three_min_ago = create_timestamp(timedelta(minutes=3))
+        min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
+        three_min_ago = iso_format(before_now(minutes=3))
 
         self.login_as(user=self.user)
         self.project = self.create_project()
@@ -102,27 +97,27 @@ class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
 
     def test_event_links_with_field_parameter(self):
         # Create older and newer events
-        ten_sec_ago = create_timestamp(timedelta(seconds=10))
+        ten_sec_ago = iso_format(before_now(seconds=10))
         self.store_event(
             data={"event_id": "2" * 32, "message": "no match", "timestamp": ten_sec_ago},
             project_id=self.project.id,
         )
-        thirty_sec_ago = create_timestamp(timedelta(seconds=30))
+        thirty_sec_ago = iso_format(before_now(seconds=30))
         self.store_event(
             data={"event_id": "1" * 32, "message": "very bad", "timestamp": thirty_sec_ago},
             project_id=self.project.id,
         )
-        five_min_ago = create_timestamp(timedelta(minutes=5))
+        five_min_ago = iso_format(before_now(minutes=5))
         self.store_event(
             data={"event_id": "d" * 32, "message": "very bad", "timestamp": five_min_ago},
             project_id=self.project.id,
         )
-        seven_min_ago = create_timestamp(timedelta(minutes=7))
+        seven_min_ago = iso_format(before_now(minutes=7))
         self.store_event(
             data={"event_id": "e" * 32, "message": "very bad", "timestamp": seven_min_ago},
             project_id=self.project.id,
         )
-        eight_min_ago = create_timestamp(timedelta(minutes=8))
+        eight_min_ago = iso_format(before_now(minutes=8))
         self.store_event(
             data={"event_id": "f" * 32, "message": "no match", "timestamp": eight_min_ago},
             project_id=self.project.id,

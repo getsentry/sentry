@@ -2,18 +2,18 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import urlencode
 
-from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsEndpointTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
-        self.day_ago = timezone.now() - timedelta(days=1)
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
 
     def assert_events_in_response(self, response, event_ids):
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(event_ids)
@@ -229,24 +229,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         # test swapped order of start/end
         url = "%s?%s" % (
             base_url,
-            urlencode(
-                {
-                    "end": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "start": now.strftime("%Y-%m-%dT%H:%M:%S"),
-                }
-            ),
+            urlencode({"end": iso_format(before_now(hours=2)), "start": iso_format(now)}),
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 400
 
         url = "%s?%s" % (
             base_url,
-            urlencode(
-                {
-                    "start": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": now.strftime("%Y-%m-%dT%H:%M:%S"),
-                }
-            ),
+            urlencode({"start": iso_format(before_now(hours=2)), "end": iso_format(now)}),
         )
         response = self.client.get(url, format="json")
 
@@ -278,7 +268,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.store_event(
                     data={
                         "event_id": event_id,
-                        "timestamp": self.min_ago.isoformat()[:19],
+                        "timestamp": iso_format(self.min_ago),
                         "fingerprint": ["put-me-in-group1"],
                         "environment": env.name or None,
                     },
@@ -568,7 +558,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.store_event(
                     data={
                         "event_id": event_id,
-                        "timestamp": self.min_ago.isoformat()[:19],
+                        "timestamp": iso_format(self.min_ago),
                         "fingerprint": [fingerprint],
                     },
                     project_id=project.id,
