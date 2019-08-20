@@ -15,6 +15,7 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
+import * as CursorGuideHandler from './cursorGuideHandler';
 import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from './types';
 import {zIndex} from './styles';
 
@@ -31,21 +32,17 @@ type PropType = {
   trace: ParsedTraceType;
 };
 
-type StateType = {
-  showCursorGuide: boolean;
-  mousePageX: number | undefined;
-  startViewHandleX: number;
-};
-
-class Minimap extends React.Component<PropType, StateType> {
-  state: StateType = {
-    showCursorGuide: false,
-    mousePageX: void 0,
-    startViewHandleX: 100,
-  };
-
-  renderCursorGuide = (cursorGuideHeight: number) => {
-    if (!this.state.showCursorGuide || !this.state.mousePageX) {
+class Minimap extends React.Component<PropType> {
+  renderCursorGuide = ({
+    cursorGuideHeight,
+    showCursorGuide,
+    mousePageX,
+  }: {
+    cursorGuideHeight: number;
+    showCursorGuide: boolean;
+    mousePageX: number | undefined;
+  }) => {
+    if (!showCursorGuide || !mousePageX) {
       return null;
     }
 
@@ -58,7 +55,7 @@ class Minimap extends React.Component<PropType, StateType> {
     const rect = rectOfContent(interactiveLayer);
 
     // clamp mouseLeft to be within [0, 1]
-    const mouseLeft = clamp((this.state.mousePageX - rect.x) / rect.width, 0, 1);
+    const mouseLeft = clamp((mousePageX - rect.x) / rect.width, 0, 1);
 
     return (
       <CursorGuide
@@ -136,8 +133,14 @@ class Minimap extends React.Component<PropType, StateType> {
     );
   };
 
-  renderDurationGuide = () => {
-    if (!this.state.showCursorGuide || !this.state.mousePageX) {
+  renderDurationGuide = ({
+    showCursorGuide,
+    mousePageX,
+  }: {
+    showCursorGuide: boolean;
+    mousePageX: number | undefined;
+  }) => {
+    if (!showCursorGuide || !mousePageX) {
       return null;
     }
 
@@ -150,7 +153,7 @@ class Minimap extends React.Component<PropType, StateType> {
     const rect = rectOfContent(interactiveLayer);
 
     // clamp mouseLeft to be within [0, 1]
-    const mouseLeft = clamp((this.state.mousePageX - rect.x) / rect.width, 0, 1);
+    const mouseLeft = clamp((mousePageX - rect.x) / rect.width, 0, 1);
 
     const {trace} = this.props;
 
@@ -168,7 +171,13 @@ class Minimap extends React.Component<PropType, StateType> {
     );
   };
 
-  renderTimeAxis = () => {
+  renderTimeAxis = ({
+    showCursorGuide,
+    mousePageX,
+  }: {
+    showCursorGuide: boolean;
+    mousePageX: number | undefined;
+  }) => {
     const {trace} = this.props;
 
     const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
@@ -229,8 +238,15 @@ class Minimap extends React.Component<PropType, StateType> {
         {thirdTick}
         {fourthTick}
         {lastTick}
-        {this.renderCursorGuide(TIME_AXIS_HEIGHT)}
-        {this.renderDurationGuide()}
+        {this.renderCursorGuide({
+          showCursorGuide,
+          mousePageX,
+          cursorGuideHeight: TIME_AXIS_HEIGHT,
+        })}
+        {this.renderDurationGuide({
+          showCursorGuide,
+          mousePageX,
+        })}
       </TimeAxis>
     );
   };
@@ -239,38 +255,45 @@ class Minimap extends React.Component<PropType, StateType> {
     return (
       <MinimapContainer>
         <ActualMinimap trace={this.props.trace} />
-        <div
-          ref={this.props.minimapInteractiveRef}
-          style={{
-            width: '100%',
-            height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-            position: 'absolute',
-            left: 0,
-            top: 0,
+        <CursorGuideHandler.Consumer>
+          {({displayCursorGuide, hideCursorGuide, mousePageX, showCursorGuide}) => {
+            return (
+              <div
+                ref={this.props.minimapInteractiveRef}
+                style={{
+                  width: '100%',
+                  height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                }}
+                onMouseEnter={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+                onMouseLeave={() => {
+                  hideCursorGuide();
+                }}
+                onMouseMove={event => {
+                  displayCursorGuide(event.pageX);
+                }}
+              >
+                <InteractiveLayer>
+                  {this.renderFog(this.props.dragProps)}
+                  {this.renderCursorGuide({
+                    showCursorGuide,
+                    mousePageX,
+                    cursorGuideHeight: MINIMAP_HEIGHT,
+                  })}
+                  {this.renderViewHandles(this.props.dragProps)}
+                </InteractiveLayer>
+                {this.renderTimeAxis({
+                  showCursorGuide,
+                  mousePageX,
+                })}
+              </div>
+            );
           }}
-          onMouseEnter={event => {
-            this.setState({
-              showCursorGuide: true,
-              mousePageX: event.pageX,
-            });
-          }}
-          onMouseLeave={() => {
-            this.setState({showCursorGuide: false, mousePageX: void 0});
-          }}
-          onMouseMove={event => {
-            this.setState({
-              showCursorGuide: true,
-              mousePageX: event.pageX,
-            });
-          }}
-        >
-          <InteractiveLayer>
-            {this.renderFog(this.props.dragProps)}
-            {this.renderCursorGuide(MINIMAP_HEIGHT)}
-            {this.renderViewHandles(this.props.dragProps)}
-          </InteractiveLayer>
-          {this.renderTimeAxis()}
-        </div>
+        </CursorGuideHandler.Consumer>
       </MinimapContainer>
     );
   }
