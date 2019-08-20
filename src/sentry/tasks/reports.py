@@ -38,8 +38,7 @@ date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
-GET_SUMS_BATCH_SIZE = 30000
-GET_RANGE_BATCH_SIZE = 30000
+BATCH_SIZE = 30000
 
 
 def _get_organization_queryset():
@@ -161,11 +160,11 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
-def __get_range_chunked(issue_ids, start, stop, rollup):
+def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
     combined = {}
 
-    for chunk in chunked(issue_ids, GET_RANGE_BATCH_SIZE):
-        combined.update(tsdb.get_range(tsdb.models.group, list(chunk), start, stop, rollup=rollup))
+    for chunk in chunked(issue_ids, BATCH_SIZE):
+        combined.update(func(tsdb.models.group, list(chunk), start, stop, rollup=rollup))
 
     return combined
 
@@ -179,7 +178,7 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
 
-    tsdb_range = __get_range_chunked(issue_ids, start, stop, rollup)
+    tsdb_range = _query_tsdb_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
 
     return merge_series(
         reduce(
@@ -216,15 +215,6 @@ def prepare_project_aggregates(ignore__stop, project):
     ]
 
 
-def __get_sums_chunked(issue_ids, start, stop, rollup):
-    combined = {}
-
-    for chunk in chunked(issue_ids, GET_SUMS_BATCH_SIZE):
-        combined.update(tsdb.get_sums(tsdb.models.group, chunk, start, stop, rollup=rollup))
-
-    return combined
-
-
 def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
@@ -258,7 +248,9 @@ def prepare_project_issue_summaries(interval, project):
     )
 
     rollup = 60 * 60 * 24
-    event_counts = __get_sums_chunked(new_issue_ids | reopened_issue_ids, start, stop, rollup)
+    event_counts = _query_tsdb_chunked(
+        tsdb.get_sums, new_issue_ids | reopened_issue_ids, start, stop, rollup
+    )
 
     new_issue_count = sum(event_counts[id] for id in new_issue_ids)
     reopened_issue_count = sum(event_counts[id] for id in reopened_issue_ids)
