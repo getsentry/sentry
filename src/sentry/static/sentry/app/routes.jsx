@@ -690,7 +690,7 @@ function routes() {
       />
 
       <Route
-        path="/extensions/external-install/:providerId"
+        path="/extensions/external-install/:sentryAppSlug"
         componentPromise={() =>
           import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppInstallation')
         }

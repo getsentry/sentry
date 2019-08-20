@@ -1,158 +1,184 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {singleLineRenderer} from 'app/utils/marked';
 import {t, tct} from 'app/locale';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
-import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import Avatar from 'app/components/avatar';
+import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
 export default class SentryAppInstallation extends AsyncView {
   state = {
     selectedOrg: null,
     organization: null,
-    providers: [],
     reloading: false,
   };
 
   getEndpoints() {
-    return [['organizations', '/organizations/']];
+    return [
+      ['organizations', '/organizations/'],
+      ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],
+    ];
   }
 
   getTitle() {
     return t('Choose Installation Organization');
   }
 
-  get provider() {
-    return this.state.providers.find(p => p.key === this.props.params.providerId);
+  get sentryAppSlug() {
+    return this.props.params.sentryAppSlug;
   }
 
-  onInstall = data => {
-    const orgId = this.state.organization.slug;
-    this.props.router.push(
-      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}`
+  get isSentryAppInternal() {
+    const {sentryApp} = this.state;
+    return sentryApp && sentryApp.status === 'internal';
+  }
+
+  get isSentryAppUnavailableForOrg() {
+    const {sentryApp, selectedOrg} = this.state;
+    //if the app is unpublished for a different org
+    return (
+      selectedOrg &&
+      sentryApp.owner.slug !== selectedOrg &&
+      sentryApp.status === 'unpublished'
     );
+  }
+
+  get disableInstall() {
+    return this.state.isInstalled || this.isSentryAppUnavailableForOrg;
+  }
+
+  onClose = () => {
+    //if we came from somewhere, go back there. Otherwise, back to the root
+    const newUrl = document.referrer || '/';
+    window.location.assign(newUrl);
   };
 
-  onSelectOrg = ({value: orgId}) => {
+  onInstall = async () => {
+    const {organization, sentryApp} = this.state;
+    const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    if (sentryApp.redirectUrl) {
+      const queryParams = {
+        installationId: install.uuid,
+        code: install.code,
+        orgSlug: organization.slug,
+      };
+      const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
+      return window.location.assign(redirectUrl);
+    }
+    return this.onClose();
+  };
+
+  onSelectOrg = async ({value: orgId}) => {
     this.setState({selectedOrg: orgId, reloading: true});
-    const reloading = false;
 
-    this.api.request(`/organizations/${orgId}/`, {
-      success: organization => this.setState({organization, reloading}),
-      error: () => {
-        this.setState({reloading});
-        IndicatorStore.addError(t('Failed to retrieve organization details'));
-      },
-    });
-
-    this.api.request(`/organizations/${orgId}/config/integrations/`, {
-      success: providers => this.setState({providers: providers.providers, reloading}),
-      error: () => {
-        this.setState({reloading});
-        IndicatorStore.addError(t('Failed to retrieve integration provider details'));
-      },
-    });
+    try {
+      const [organization, installations] = await Promise.all([
+        this.api.requestPromise(`/organizations/${orgId}/`),
+        this.api.requestPromise(`/organizations/${orgId}/sentry-app-installations/`),
+      ]);
+      const isInstalled = installations
+        .map(install => install.app.slug)
+        .includes(this.sentryAppSlug);
+      this.setState({organization, isInstalled});
+    } catch (err) {
+      IndicatorStore.addError(
+        t('Failed to retrieve organization or integration details')
+      );
+    }
+    this.setState({reloading: false});
   };
 
   getOptions() {
     return this.state.organizations.map(org => [
       org.slug,
-      <ChoiceHolder>
+      <ChoiceHolder key={org.slug}>
         <Avatar organization={org} />
         <OrgNameHolder>{org.slug}</OrgNameHolder>
       </ChoiceHolder>,
     ]);
   }
 
-  hasAccess = org => org.access.includes('org:integrations');
-
-  renderAddButton() {
-    const {organization, reloading} = this.state;
-    const {installationId} = this.props.params;
-
-    const AddButton = p => (
-      <Button priority="primary" busy={reloading} {...p}>
-        Install Integration
-      </Button>
-    );
-
-    if (!this.provider) {
-      return <AddButton disabled />;
-    }
-
+  renderInternalAppError() {
+    const {sentryApp} = this.state;
     return (
-      <AddIntegration provider={this.provider} onInstall={this.onInstall}>
-        {addIntegration => (
-          <AddButton
-            disabled={organization && !this.hasAccess(organization)}
-            onClick={() => addIntegration({installation_id: installationId})}
-          />
+      <Alert type="error" icon="icon-circle-exclamation">
+        {tct(
+          'Integration [sentryAppName] is an internal integration. Internal integrations are automatically installed',
+          {
+            sentryAppName: <strong>{sentryApp.name}</strong>,
+          }
         )}
-      </AddIntegration>
+      </Alert>
     );
   }
 
-  renderBody() {
-    const {organization, selectedOrg} = this.state;
-    const choices = this.state.organizations.map(org => [org.slug, org.slug]);
+  checkAndRenderError() {
+    const {organization, selectedOrg, isInstalled, sentryApp} = this.state;
+    if (selectedOrg && organization && !this.hasAccess(organization)) {
+      return (
+        <Alert type="error" icon="icon-circle-exclamation">
+          <p>
+            {tct(
+              `You do not have permission to install integrations in
+          [organization]. Ask an organization owner or manager to
+          visit this page to finish installing this integration.`,
+              {organization: <strong>{organization.slug}</strong>}
+            )}
+          </p>
+          <InstallLink>{window.location.href}</InstallLink>
+        </Alert>
+      );
+    }
+    if (isInstalled) {
+      return (
+        <Alert type="error" icon="icon-circle-exclamation">
+          {tct('Integration [sentryAppName] already installed for [organization]', {
+            organization: <strong>{organization.name}</strong>,
+            sentryAppName: <strong>{sentryApp.name}</strong>,
+          })}
+        </Alert>
+      );
+    }
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => ({FeatureList: null}));
+    if (this.isSentryAppUnavailableForOrg) {
+      return (
+        <Alert type="error" icon="icon-circle-exclamation">
+          {tct(
+            'Integration [sentryAppName] is an unpublished integration for a different organization',
+            {
+              sentryAppName: <strong>{sentryApp.name}</strong>,
+            }
+          )}
+        </Alert>
+      );
+    }
 
-    const {FeatureList} = featureListHooks[0]();
+    return null;
+  }
 
+  hasAccess = org => org.access.includes('org:integrations');
+
+  renderMainContent() {
+    const {organization, selectedOrg, sentryApp} = this.state;
     return (
-      <NarrowLayout>
-        <h3>{t('Finish integration installation')}</h3>
+      <div>
         <p>
           {tct(
-            `Please pick a specific [organization:organization] to link with
-            your integration installation.`,
+            'Please pick a specific [organization:organization] to install [sentryAppName]',
             {
               organization: <strong />,
+              sentryAppName: <strong>{sentryApp.name}</strong>,
             }
           )}
         </p>
-
-        {selectedOrg && organization && !this.hasAccess(organization) && (
-          <Alert type="error" icon="icon-circle-exclamation">
-            <p>
-              {tct(
-                `You do not have permission to install integrations in
-                  [organization]. Ask an organization owner or manager to
-                  visit this page to finish installing this integration.`,
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <InstallLink>{window.location.href}</InstallLink>
-          </Alert>
-        )}
-
-        {this.provider && organization && this.hasAccess(organization) && FeatureList && (
-          <React.Fragment>
-            <p>
-              {tct(
-                'The following features will be availble for [organization] when installed.',
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <FeatureList
-              organization={organization}
-              features={this.provider.metadata.features}
-              formatter={singleLineRenderer}
-              provider={this.provider}
-            />
-          </React.Fragment>
-        )}
-
+        {this.checkAndRenderError()}
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
@@ -163,8 +189,29 @@ export default class SentryAppInstallation extends AsyncView {
             />
           )}
         </Field>
+        {organization && (
+          <SentryAppDetailsModal
+            sentryApp={sentryApp}
+            organization={organization}
+            onInstall={this.onInstall}
+            closeModal={this.onClose}
+            isInstalled={this.disableInstall}
+            closeOnInstall={false}
+          />
+        )}
+      </div>
+    );
+  }
 
-        <div className="form-actions">{this.renderAddButton()}</div>
+  renderBody() {
+    return (
+      <NarrowLayout>
+        <Content>
+          <h3>{t('Finish integration installation')}</h3>
+          {this.isSentryAppInternal
+            ? this.renderInternalAppError()
+            : this.renderMainContent()}
+        </Content>
       </NarrowLayout>
     );
   }
@@ -179,4 +226,8 @@ const ChoiceHolder = styled('div')``;
 
 const OrgNameHolder = styled('span')`
   margin-left: 5px;
+`;
+
+const Content = styled('div')`
+  margin-bottom: 40px;
 `;
