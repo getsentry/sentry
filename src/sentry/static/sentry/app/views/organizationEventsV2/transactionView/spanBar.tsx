@@ -486,19 +486,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <CursorGuideHandler.Consumer>
         {({
           showCursorGuide,
-          mouseLeft,
+          traceViewMouseLeft,
         }: {
           showCursorGuide: boolean;
-          mouseLeft: number | undefined;
+          traceViewMouseLeft: number | undefined;
         }) => {
-          if (!showCursorGuide || !mouseLeft) {
+          if (!showCursorGuide || !traceViewMouseLeft) {
             return null;
           }
 
           return (
             <CursorGuide
               style={{
-                left: toPercent(mouseLeft),
+                left: toPercent(traceViewMouseLeft),
               }}
             />
           );

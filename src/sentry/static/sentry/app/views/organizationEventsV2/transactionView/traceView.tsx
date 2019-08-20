@@ -152,7 +152,11 @@ class TraceView extends React.Component<PropType> {
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
         {(dragProps: DragManagerChildrenProps) => {
           return (
-            <CursorGuideHandler.Provider interactiveLayerRef={this.minimapInteractiveRef}>
+            <CursorGuideHandler.Provider
+              interactiveLayerRef={this.minimapInteractiveRef}
+              dragProps={dragProps}
+              trace={parsedTrace}
+            >
               {this.renderMinimap(dragProps, parsedTrace)}
               <SpanTree trace={parsedTrace} dragProps={dragProps} />
             </CursorGuideHandler.Provider>
