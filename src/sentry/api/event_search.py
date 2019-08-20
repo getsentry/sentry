@@ -667,11 +667,11 @@ FIELD_ALIASES = {
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "avg": {"snuba_name": "avg", "fields": ["duration"]},
     "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
     "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
     "sum": {"snuba_name": "sum", "fields": ["duration"]},
-    # This doesn't work yet, but is an illustration of how it could work
+    # These don't entirely work yet but are intended to be illustrative
+    "avg": {"snuba_name": "avg", "fields": ["duration"]},
     "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
 }
 
@@ -719,7 +719,8 @@ def resolve_orderby(orderby, fields, aggregations):
 
 
 def get_aggregate_alias(match):
-    return u"{}_{}".format(match.group("function"), match.group("column")).rstrip("_")
+    column = match.group("column").replace(".", "_")
+    return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
 def resolve_field_list(fields, snuba_args):

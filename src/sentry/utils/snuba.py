@@ -452,9 +452,10 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         derived_columns.add(aggregation[2])
         aggregation[1] = get_snuba_column_name(aggregation[1])
 
-    for (col, _value) in six.iteritems(filter_keys):
-        name = get_snuba_column_name(col)
-        filter_keys[name] = filter_keys.pop(col)
+    if not skip_conditions:
+        for (col, _value) in six.iteritems(filter_keys):
+            name = get_snuba_column_name(col)
+            filter_keys[name] = filter_keys.pop(col)
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):

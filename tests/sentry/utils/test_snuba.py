@@ -5,7 +5,7 @@ import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.utils.snuba import get_snuba_translators, zerofill, get_json_type
+from sentry.utils.snuba import get_snuba_translators, zerofill, get_json_type, get_snuba_column_name
 
 
 class SnubaUtilsTest(TestCase):
@@ -158,3 +158,13 @@ class SnubaUtilsTest(TestCase):
         assert get_json_type("Char") == "string"
         assert get_json_type("unknown") == "string"
         assert get_json_type("") == "string"
+
+    def test_get_snuba_column_name(self):
+        assert get_snuba_column_name("project_id") == "project_id"
+        assert get_snuba_column_name("start") == "start"
+        assert get_snuba_column_name("'thing'") == "'thing'"
+        assert get_snuba_column_name("id") == "event_id"
+        assert get_snuba_column_name("geo.region") == "geo_region"
+        # This is odd behavior but captures what we do currently.
+        assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
+        assert get_snuba_column_name("organization") == "tags[organization]"
