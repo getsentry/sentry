@@ -144,22 +144,10 @@ exports[`ProjectPluginRow renders 1`] = `
                     pluginId="amazon-sqs"
                     size={48}
                   >
-                    <PluginIcon
-                      className="css-228l0j-StyledPluginIcon e1y7j6vq2"
-                      pluginId="amazon-sqs"
+                    <div
+                      className="css-188xbn-PluginIcon-StyledPluginIcon e1y7j6vq2"
                       size={48}
-                    >
-                      <IntegrationIcon
-                        className="css-228l0j-StyledPluginIcon e1y7j6vq2"
-                        image={Object {}}
-                        size={48}
-                      >
-                        <div
-                          className="e1y7j6vq2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e7e65lm0"
-                          size={48}
-                        />
-                      </IntegrationIcon>
-                    </PluginIcon>
+                    />
                   </StyledPluginIcon>
                   <Flex
                     direction="column"

@@ -637,15 +637,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                     pluginId="amazon-sqs"
                                                     size={20}
                                                   >
-                                                    <IntegrationIcon
-                                                      image={Object {}}
+                                                    <div
+                                                      className="css-1f9d6f6-PluginIcon e7e65lm0"
                                                       size={20}
-                                                    >
-                                                      <div
-                                                        className="css-1sk2vxu-IntegrationIcon e7e65lm0"
-                                                        size={20}
-                                                      />
-                                                    </IntegrationIcon>
+                                                    />
                                                   </PluginIcon>
                                                 </div>
                                               </Base>

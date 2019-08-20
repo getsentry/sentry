@@ -85,15 +85,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           pluginId="github"
           size={50}
         >
-          <IntegrationIcon
-            image={Object {}}
+          <div
+            className="css-6ynrd7-PluginIcon e7e65lm0"
             size={50}
-          >
-            <div
-              className="css-1x3ikxe-IntegrationIcon e7e65lm0"
-              size={50}
-            />
-          </IntegrationIcon>
+          />
         </PluginIcon>
         <Flex
           align="flex-start"
