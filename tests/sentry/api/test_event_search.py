@@ -1128,18 +1128,27 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_aggregate_function_expansion(self):
-        fields = ["count_unique(user)", "count(id)", "avg(duration)"]
+        fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
         result = resolve_field_list(fields, {})
         # Automatic fields should be inserted
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
             ["count", "id", "count_id"],
-            ["avg", "duration", "avg_duration"],
+            ["min", "timestamp", "min_timestamp"],
             ["argMax(event_id, timestamp)", "", "latest_event"],
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
         assert result["groupby"] == []
+
+    def test_aggregate_function_dotted_argument(self):
+        fields = ["count_unique(user.id)"]
+        result = resolve_field_list(fields, {})
+        assert result["aggregations"] == [
+            ["uniq", "user.id", "count_unique_user_id"],
+            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax(project_id, timestamp)", "", "projectid"],
+        ]
 
     def test_aggregate_function_invalid_name(self):
         with pytest.raises(InvalidSearchQuery) as err:

@@ -45,16 +45,16 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             datetime=self.day_ago + timedelta(hours=1, minutes=2),
             tags={"sentry:user": self.user2.email},
         )
-
-    def test_simple(self):
-        url = reverse(
+        self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
+
+    def test_simple(self):
         response = self.client.get(
             "%s?%s"
             % (
-                url,
+                self.url,
                 urlencode(
                     {
                         "start": self.day_ago.isoformat()[:19],
@@ -86,12 +86,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_groupid_filter(self):
-        url = reverse(
-            "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.organization.slug},
-        )
         url = "%s?%s" % (
-            url,
+            self.url,
             urlencode(
                 {
                     "start": self.day_ago.isoformat()[:19],
@@ -107,11 +103,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"])
 
     def test_groupid_filter_invalid_value(self):
-        url = reverse(
-            "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.organization.slug},
-        )
-        url = "%s?group=not-a-number" % (url,)
+        url = "%s?group=not-a-number" % (self.url,)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 400, response.content
@@ -123,14 +115,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             datetime=self.day_ago + timedelta(minutes=2),
             tags={"sentry:user": self.user2.email},
         )
-        url = reverse(
-            "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
-        )
         response = self.client.get(
             "%s?%s"
             % (
-                url,
+                self.url,
                 urlencode(
                     {
                         "start": self.day_ago.isoformat()[:19],
@@ -142,9 +130,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             ),
             format="json",
         )
-
         assert response.status_code == 200, response.content
-
         assert [attrs for time, attrs in response.data["data"]] == [
             [],
             [{"count": 2}],
@@ -152,14 +138,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_with_event_count_flag(self):
-        url = reverse(
-            "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
-        )
         response = self.client.get(
             "%s?%s"
             % (
-                url,
+                self.url,
                 urlencode(
                     {
                         "start": self.day_ago.isoformat()[:19],
@@ -178,3 +160,55 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 2}],
         ]
+
+    def test_aggregate_function_count(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": self.day_ago.isoformat()[:19],
+                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "interval": "1h",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [],
+            [{"count": 1}],
+            [{"count": 2}],
+        ]
+
+    def test_aggregate_function_user_count(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": self.day_ago.isoformat()[:19],
+                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "interval": "1h",
+                    "yAxis": "count_unique(user)",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [],
+            [{"count": 1}],
+            [{"count": 1}],
+        ]
+
+    def test_aggregate_invalid(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": self.day_ago.isoformat()[:19],
+                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "interval": "1h",
+                    "yAxis": "nope(lol)",
+                },
+            )
+        assert response.status_code == 400, response.content
