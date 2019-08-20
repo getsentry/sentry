@@ -1,11 +1,10 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 type Props = {
   enabled: boolean;
   size: number;
-  color: string;
+  color?: string;
 };
 
 type StyledProps = Props & {theme?: any};
@@ -23,7 +22,7 @@ const getSize = (p: StyledProps): string => `
   width: ${p.size}px;
 `;
 
-const Circle = styled('div')`
+const CircleIndicator = styled('div')`
   display: inline-block;
   position: relative;
   border-radius: 50%;
@@ -31,21 +30,15 @@ const Circle = styled('div')`
   ${getBackgroundColor};
 `;
 
-class CircleIndicator extends React.Component<Props> {
-  static propTypes = {
-    enabled: PropTypes.bool.isRequired,
-    size: PropTypes.number.isRequired,
-    color: PropTypes.string,
-  };
+CircleIndicator.propTypes = {
+  enabled: PropTypes.bool.isRequired,
+  size: PropTypes.number.isRequired,
+  color: PropTypes.string,
+};
 
-  static defaultProps = {
-    enabled: true,
-    size: 14,
-  };
-
-  render() {
-    return <Circle {...this.props} />;
-  }
-}
+CircleIndicator.defaultProps = {
+  enabled: true,
+  size: 14,
+};
 
 export default CircleIndicator;
