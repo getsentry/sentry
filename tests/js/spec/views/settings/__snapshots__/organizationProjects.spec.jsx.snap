@@ -235,10 +235,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
           </SettingsPageHeading>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-10qfvek-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}

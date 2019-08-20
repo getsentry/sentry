@@ -81,10 +81,10 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </Title>
       <Panel>
         <Component
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <div
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e119nu470"
           >
             <PanelItem
               key="read"
@@ -319,10 +319,10 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </Title>
       <Panel>
         <Component
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <div
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e119nu470"
           >
             <PanelItem
               key="read"

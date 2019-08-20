@@ -6,7 +6,15 @@ import PanelBody from 'app/components/panels/panelBody';
 import PanelHeader from 'app/components/panels/panelHeader';
 import space from 'app/styles/space';
 
-const Panel = styled(({title, body, dashedBorder, ...props}) => {
+type Props = {
+  title?: React.ReactNode;
+  body?: React.ReactNode;
+  dashedBorder?: boolean;
+};
+
+type PanelProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+
+const Panel = styled(({title, body, dashedBorder, ...props}: PanelProps) => {
   const hasHeaderAndBody = !!title && !!body;
 
   return !hasHeaderAndBody ? (
@@ -17,7 +25,7 @@ const Panel = styled(({title, body, dashedBorder, ...props}) => {
       <PanelBody>{body}</PanelBody>
     </div>
   );
-})`
+})<PanelProps>`
   background: ${p => (p.dashedBorder ? p.theme.offWhite : '#fff')};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px

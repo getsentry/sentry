@@ -36,10 +36,10 @@ exports[`ReleaseCommits organization release commits 1`] = `
         key="example/repo-name"
       >
         <Component
-          className="css-1bjezgp-Panel e1laxa7d0"
+          className="css-1bjezgp-Panel e119nu470"
         >
           <div
-            className="css-1bjezgp-Panel e1laxa7d0"
+            className="css-1bjezgp-Panel e119nu470"
           >
             <PanelHeader>
               <Component
@@ -408,10 +408,10 @@ exports[`ReleaseCommits project release commits 1`] = `
         key="example/repo-name"
       >
         <Component
-          className="css-1bjezgp-Panel e1laxa7d0"
+          className="css-1bjezgp-Panel e119nu470"
         >
           <div
-            className="css-1bjezgp-Panel e1laxa7d0"
+            className="css-1bjezgp-Panel e119nu470"
           >
             <PanelHeader>
               <Component

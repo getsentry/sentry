@@ -225,10 +225,10 @@ exports[`ProjectTags renders 1`] = `
       </TextBlock>
       <Panel>
         <Component
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <div
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e119nu470"
           >
             <PanelHeader>
               <Component
