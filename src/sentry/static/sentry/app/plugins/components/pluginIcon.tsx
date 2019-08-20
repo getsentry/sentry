@@ -73,10 +73,15 @@ export const ICON_PATHS = {
   youtrack,
 };
 
+type IntegrationIconProps = {
+  image: string;
+  size: number;
+};
+
 const IntegrationIcon = styled('div')`
   position: relative;
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
+  height: ${(p: IntegrationIconProps) => p.size}px;
+  width: ${(p: IntegrationIconProps) => p.size}px;
   border-radius: 2px;
   border: 0;
   /* this is so that there aren't gray boxes before load */
@@ -85,13 +90,18 @@ const IntegrationIcon = styled('div')`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${p => p.image});
+  background-image: url(${(p: IntegrationIconProps) => p.image});
 `;
 
-class PluginIcon extends React.Component {
+type Props = {
+  pluginId?: string;
+  size: number;
+};
+
+class PluginIcon extends React.Component<Props> {
   static propTypes = {
     pluginId: PropTypes.string,
-    size: PropTypes.number,
+    size: PropTypes.number.isRequired,
   };
 
   static defaultProps = {
@@ -101,7 +111,7 @@ class PluginIcon extends React.Component {
 
   render() {
     const {pluginId, size, ...props} = this.props;
-    const src = ICON_PATHS[pluginId] || DEFAULT_ICON;
+    const src = (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON;
 
     return <IntegrationIcon {...props} image={src} size={size} />;
   }
