@@ -160,30 +160,30 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
+def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
+    combined = {}
+
+    for chunk in chunked(issue_ids, BATCH_SIZE):
+        combined.update(func(tsdb.models.group, chunk, start, stop, rollup=rollup))
+
+    return combined
+
+
 def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     start, stop = start__stop
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, "resolution does not match requested value"
     clean = functools.partial(clean_series, start, stop, rollup)
+    issue_ids = project.group_set.filter(
+        status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
+    ).values_list("id", flat=True)
+
+    tsdb_range = _query_tsdb_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
+
     return merge_series(
         reduce(
             merge_series,
-            map(
-                clean,
-                tsdb.get_range(
-                    tsdb.models.group,
-                    list(
-                        project.group_set.filter(
-                            status=GroupStatus.RESOLVED,
-                            resolved_at__gte=start,
-                            resolved_at__lt=stop,
-                        ).values_list("id", flat=True)
-                    ),
-                    start,
-                    stop,
-                    rollup=rollup,
-                ).values(),
-            ),
+            map(clean, tsdb_range.values()),
             clean([(timestamp, 0) for timestamp in series]),
         ),
         clean(
@@ -213,15 +213,6 @@ def prepare_project_aggregates(ignore__stop, project):
         get_aggregate_value(start + (period * i), start + (period * (i + 1) - timedelta(seconds=1)))
         for i in range(segments)
     ]
-
-
-def get_event_counts(issue_ids, start, stop, rollup):
-    combined = {}
-
-    for chunk in chunked(issue_ids, BATCH_SIZE):
-        combined.update(tsdb.get_sums(tsdb.models.group, chunk, start, stop, rollup=rollup))
-
-    return combined
 
 
 def prepare_project_issue_summaries(interval, project):
@@ -257,7 +248,9 @@ def prepare_project_issue_summaries(interval, project):
     )
 
     rollup = 60 * 60 * 24
-    event_counts = get_event_counts(new_issue_ids | reopened_issue_ids, start, stop, rollup)
+    event_counts = _query_tsdb_chunked(
+        tsdb.get_sums, new_issue_ids | reopened_issue_ids, start, stop, rollup
+    )
 
     new_issue_count = sum(event_counts[id] for id in new_issue_ids)
     reopened_issue_count = sum(event_counts[id] for id in reopened_issue_ids)
