@@ -17,10 +17,8 @@ import {getQuery} from './utils';
 const slugValidator = function(props, propName, componentName) {
   const value = props[propName];
   // Accept slugs that look like:
-  // * project-slug:deadbeef:latest
-  // * project-slug:deadbeef:oldest
   // * project-slug:deadbeef
-  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)(?:\:latest|oldest)?$/.test(value)) {
+  if (value && !/^(?:[^:]+):(?:[a-f0-9]+)$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -50,19 +48,7 @@ class EventDetails extends AsyncComponent {
   getEndpoints() {
     const {organization, eventSlug, view, location} = this.props;
     const query = getQuery(view, location);
-
-    // Check the eventid for the latest/oldest keyword and use that to choose
-    // the endpoint as oldest/latest have special endpoints.
-    const [projectId, eventId, keyword] = eventSlug.toString().split(':');
-
-    let url = `/organizations/${organization.slug}/events/`;
-    // TODO the latest/oldest links are currently broken as they require a
-    // new endpoint that works with the upcoming discover2 queries.
-    if (['latest', 'oldest'].includes(keyword)) {
-      url += `${keyword}/`;
-    } else {
-      url += `${projectId}:${eventId}/`;
-    }
+    const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
     // a paginated group or standalone event.

@@ -71,22 +71,14 @@ export function getQuery(view, location) {
  *
  * @param {Object} view defaults containing `.data.query`
  * @param {Location} browser location
- * @param {Object} additional parameters to merge into the query string.
  */
-export function getQueryString(view, location, additional) {
+export function getQueryString(view, location) {
   const queryParts = [];
   if (view.data.query) {
     queryParts.push(view.data.query);
   }
   if (location.query && location.query.query) {
     queryParts.push(location.query.query);
-  }
-  if (additional) {
-    Object.entries(additional).forEach(([key, value]) => {
-      if (value) {
-        queryParts.push(`${key}:${value}`);
-      }
-    });
   }
 
   return queryParts.join(' ');
