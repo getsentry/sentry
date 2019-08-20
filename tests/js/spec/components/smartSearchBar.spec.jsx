@@ -42,11 +42,12 @@ describe('SmartSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = {};
+    supportedTags = TagStore.getAllTags();
     organization = TestStubs.Organization({id: '123'});
 
     options = TestStubs.routerContext([{organization}]);
 
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -419,10 +420,34 @@ describe('SmartSearchBar', function() {
         organization,
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(mock).not.toHaveBeenCalled();
+    });
+
+    it('requests values when tag is `firstRelease`', function() {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      const props = {
+        orgId: 'org-slug',
+        projectId: '1',
+        query: 'firstRelease:',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
+      searchBar.updateAutoCompleteItems();
+      jest.advanceTimersByTime(301);
+      expect(mock).toHaveBeenCalled();
     });
   });
 
