@@ -270,6 +270,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
         repo.integration_id = integration_id
         repo.provider = "integrations:%s" % (integration.provider,)
         # check against disabled specifically -- don't want to accidentally un-delete repos
+        original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
             repo.status = ObjectStatus.VISIBLE
         repo.save()
@@ -279,6 +280,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
                 "integration_id": integration_id,
                 "organization_id": organization_id,
                 "repo_id": repo.id,
+                "original_status": original_status,
             },
         )
 

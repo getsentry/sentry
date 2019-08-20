@@ -29,12 +29,16 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
+from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce
+
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
+
+BATCH_SIZE = 30000
 
 
 def _get_organization_queryset():
@@ -156,30 +160,30 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
+def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
+    combined = {}
+
+    for chunk in chunked(issue_ids, BATCH_SIZE):
+        combined.update(func(tsdb.models.group, chunk, start, stop, rollup=rollup))
+
+    return combined
+
+
 def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     start, stop = start__stop
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, "resolution does not match requested value"
     clean = functools.partial(clean_series, start, stop, rollup)
+    issue_ids = project.group_set.filter(
+        status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
+    ).values_list("id", flat=True)
+
+    tsdb_range = _query_tsdb_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
+
     return merge_series(
         reduce(
             merge_series,
-            map(
-                clean,
-                tsdb.get_range(
-                    tsdb.models.group,
-                    list(
-                        project.group_set.filter(
-                            status=GroupStatus.RESOLVED,
-                            resolved_at__gte=start,
-                            resolved_at__lt=stop,
-                        ).values_list("id", flat=True)
-                    ),
-                    start,
-                    stop,
-                    rollup=rollup,
-                ).values(),
-            ),
+            map(clean, tsdb_range.values()),
             clean([(timestamp, 0) for timestamp in series]),
         ),
         clean(
@@ -244,9 +248,8 @@ def prepare_project_issue_summaries(interval, project):
     )
 
     rollup = 60 * 60 * 24
-
-    event_counts = tsdb.get_sums(
-        tsdb.models.group, new_issue_ids | reopened_issue_ids, start, stop, rollup=rollup
+    event_counts = _query_tsdb_chunked(
+        tsdb.get_sums, new_issue_ids | reopened_issue_ids, start, stop, rollup
     )
 
     new_issue_count = sum(event_counts[id] for id in new_issue_ids)

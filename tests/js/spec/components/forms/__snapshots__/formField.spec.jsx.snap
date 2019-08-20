@@ -331,7 +331,7 @@ exports[`FormField + model renders with Form 1`] = `
     </div>
     <StyledFooter>
       <div
-        className="css-1nstjwf-StyledFooter e1jxgbzp0"
+        className="css-1g4ne7-StyledFooter e1jxgbzp0"
       >
         <Observer>
           <Button

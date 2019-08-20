@@ -12,6 +12,8 @@ from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
+from sentry import eventstore
+from sentry.models import Project
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -19,8 +21,7 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import SENTRY_SNUBA_MAP
-from sentry.models import Project
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, get_snuba_column_name
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -650,7 +651,6 @@ def get_snuba_query_args(query=None, params=None):
 
 
 FIELD_ALIASES = {
-    "issue_title": {"aggregations": [["anyHeavy", "title", "issue_title"]]},
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {
         "aggregations": [
@@ -667,11 +667,11 @@ FIELD_ALIASES = {
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "avg": {"snuba_name": "avg", "fields": ["duration"]},
     "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
     "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
     "sum": {"snuba_name": "sum", "fields": ["duration"]},
-    # This doesn't work yet, but is an illustration of how it could work
+    # These don't entirely work yet but are intended to be illustrative
+    "avg": {"snuba_name": "avg", "fields": ["duration"]},
     "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
 }
 
@@ -719,7 +719,8 @@ def resolve_orderby(orderby, fields, aggregations):
 
 
 def get_aggregate_alias(match):
-    return u"{}_{}".format(match.group("function"), match.group("column")).rstrip("_")
+    column = match.group("column").replace(".", "_")
+    return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
 def resolve_field_list(fields, snuba_args):
@@ -800,3 +801,43 @@ def resolve_field_list(fields, snuba_args):
         "groupby": groupby,
         "orderby": orderby,
     }
+
+
+def find_reference_event(snuba_args, reference_event_slug):
+    try:
+        project_slug, event_id = reference_event_slug.split(":")
+    except ValueError:
+        raise InvalidSearchQuery("Invalid reference event")
+    try:
+        project = Project.objects.get(
+            slug=project_slug, id__in=snuba_args["filter_keys"]["project_id"]
+        )
+    except Project.DoesNotExist:
+        raise InvalidSearchQuery("Invalid reference event")
+    reference_event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
+    if not reference_event:
+        raise InvalidSearchQuery("Invalid reference event")
+
+    return reference_event
+
+
+def get_reference_event_conditions(snuba_args, reference_event):
+    """
+    Returns a list of additional conditions/filter_keys to
+    scope a query by the groupby fields using values from the reference event
+
+    This is a key part of pagination in the event details modal and
+    summary graph navigation.
+    """
+    conditions = []
+
+    # If we were given an project/event to use build additional
+    # conditions using that event and the non-aggregated columns
+    # we received in the querystring. This lets us find the oldest/newest.
+    # This only handles simple fields on the snuba_data dict.
+    for field in snuba_args.get("groupby", []):
+        prop = get_snuba_column_name(field)
+        value = reference_event.get(prop, None)
+        if value:
+            conditions.append([prop, "=", value])
+    return conditions

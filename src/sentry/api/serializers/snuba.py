@@ -303,7 +303,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         for k, v in data:
             row = []
             for r in v:
-                item = {"count": r["count"]}
+                item = {"count": r.get("count", 0)}
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)
