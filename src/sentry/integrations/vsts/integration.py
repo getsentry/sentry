@@ -467,13 +467,13 @@ class AccountConfigView(PipelineView):
                 "accounts": accounts,
             },
         )
-        accounts = accounts["value"]
-        if not len(accounts):
+        if not accounts or not accounts.get("value"):
             return render_to_response(
                 template="sentry/integrations/vsts-config.html",
                 context={"no_accounts": True},
                 request=request,
             )
+        accounts = accounts["value"]
         pipeline.bind_state("accounts", accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
