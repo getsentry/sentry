@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import NarrowLayout from 'app/components/narrowLayout';
-import callIfFunction from 'app/utils/callIfFunction';
 
 export default class NewsletterConsent extends React.Component {
   static propTypes = {
