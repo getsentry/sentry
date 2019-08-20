@@ -22,6 +22,7 @@ import {
 } from './minimap';
 import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
+import * as CursorGuideHandler from './cursorGuideHandler';
 import SpanDetail from './spanDetail';
 
 // TODO: maybe use babel-plugin-preval
@@ -480,6 +481,32 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
+  renderCursorGuide = () => {
+    return (
+      <CursorGuideHandler.Consumer>
+        {({
+          showCursorGuide,
+          traceViewMouseLeft,
+        }: {
+          showCursorGuide: boolean;
+          traceViewMouseLeft: number | undefined;
+        }) => {
+          if (!showCursorGuide || !traceViewMouseLeft) {
+            return null;
+          }
+
+          return (
+            <CursorGuide
+              style={{
+                left: toPercent(traceViewMouseLeft),
+              }}
+            />
+          );
+        }}
+      </CursorGuideHandler.Consumer>
+    );
+  };
+
   renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
@@ -608,6 +635,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             <DurationPill>{durationString}</DurationPill>
           </Duration>
           {this.renderWarningText({warningText: bounds.warning})}
+          {this.renderCursorGuide()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
       </SpanRowCellContainer>
@@ -656,6 +684,17 @@ const SpanRowCell = styled('div')`
   height: ${SPAN_ROW_HEIGHT}px;
 
   overflow: hidden;
+`;
+
+const CursorGuide = styled('div')`
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background-color: #e03e2f;
+
+  transform: translateX(-50%);
+
+  height: ${SPAN_ROW_HEIGHT}px;
 `;
 
 export const DividerLine = styled('div')`
