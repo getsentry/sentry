@@ -148,7 +148,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                     size={36}
                   >
                     <div
-                      className="css-1c5rb9q-IntegrationIcon e1bhjds90"
+                      className="css-1c5rb9q-IntegrationIcon e7e65lm0"
                       size={36}
                     />
                   </IntegrationIcon>

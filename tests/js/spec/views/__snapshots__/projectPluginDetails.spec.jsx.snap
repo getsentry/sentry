@@ -642,7 +642,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                       size={20}
                                                     >
                                                       <div
-                                                        className="css-1sk2vxu-IntegrationIcon e1bhjds90"
+                                                        className="css-1sk2vxu-IntegrationIcon e7e65lm0"
                                                         size={20}
                                                       />
                                                     </IntegrationIcon>
