@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsMetaEndpoint, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
 
     def test_simple(self):
         self.login_as(user=self.user)

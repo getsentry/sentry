@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
@@ -13,8 +12,8 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super(OrganizationTagKeyValuesTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
-        self.day_ago = timezone.now() - timedelta(days=1)
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
         user = self.create_user()
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
@@ -82,13 +81,13 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         self.create_event(
             event_id="c" * 32,
             group=self.group,
-            datetime=timezone.now() - timedelta(seconds=10),
+            datetime=before_now(seconds=10),
             user={"email": "baz@example.com"},
         )
         self.create_event(
             event_id="d" * 32,
             group=self.group,
-            datetime=timezone.now() - timedelta(seconds=10),
+            datetime=before_now(seconds=10),
             user={"email": "baz@example.com"},
         )
         self.run_test(
@@ -118,7 +117,7 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         self.create_event(
             event_id="d" * 32,
             group=self.group,
-            datetime=timezone.now() - timedelta(seconds=10),
+            datetime=before_now(seconds=10),
             tags={"sentry:release": "5.1.2"},
         )
         self.run_test("release", expected=[("5.1.2", 1), ("4.1.2", 1), ("3.1.2", 2)])
@@ -136,7 +135,7 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         self.create_event(
             event_id="d" * 32,
             group=self.group,
-            datetime=timezone.now() - timedelta(seconds=10),
+            datetime=before_now(seconds=10),
             tags={"sentry:user": "3"},
         )
         self.run_test("user", expected=[("3", 1), ("2", 1), ("1", 2)])

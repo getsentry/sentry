@@ -7,6 +7,10 @@ from uuid import uuid4
 
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import (
+    before_now,
+    iso_format
+)
 
 
 class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
@@ -14,8 +18,8 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super(OrganizationEventsDistributionEndpointTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).replace(microsecond=0)
-        self.day_ago = (timezone.now() - timedelta(days=1)).replace(microsecond=0)
+        self.min_ago = before_now(minutes=1).replace(microsecond=0)
+        self.day_ago = before_now(days=1).replace(microsecond=0)
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.project2 = self.create_project()
@@ -25,7 +29,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
                 'organization_slug': self.project.organization.slug,
             }
         )
-        self.min_ago_iso = self.min_ago.isoformat()
+        self.min_ago_iso = iso_format(self.min_ago)
 
     def test_simple(self):
         self.store_event(
@@ -181,7 +185,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': two_days_ago.isoformat(),
+                'timestamp': iso_format(two_days_ago),
                 'tags': {'color': 'red'},
             },
             project_id=self.project.id
@@ -189,7 +193,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': hour_ago.isoformat(),
+                'timestamp': iso_format(hour_ago),
                 'tags': {'color': 'red'},
             },
             project_id=self.project.id
@@ -197,7 +201,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': two_hours_ago.isoformat(),
+                'timestamp': iso_format(two_hours_ago),
                 'tags': {'color': 'red'},
             },
             project_id=self.project.id
@@ -205,7 +209,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': timezone.now().isoformat(),
+                'timestamp': iso_format(timezone.now()),
                 'tags': {'color': 'red'},
             },
             project_id=self.project2.id
@@ -215,8 +219,8 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 {
-                    'start': self.day_ago.isoformat()[:19],
-                    'end': self.min_ago.isoformat()[:19],
+                    'start': iso_format(self.day_ago),
+                    'end': iso_format(self.min_ago),
                     'key': ['color'],
                 },
                 format='json'
@@ -240,7 +244,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.day_ago.isoformat(),
+                'timestamp': iso_format(self.day_ago),
                 'tags': {'sentry:user': self.user.email},
             },
             project_id=self.project.id
@@ -248,7 +252,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.day_ago.isoformat(),
+                'timestamp': iso_format(self.day_ago),
                 'tags': {'sentry:user': self.user2.email},
             },
             project_id=self.project.id
@@ -256,7 +260,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.day_ago.isoformat(),
+                'timestamp': iso_format(self.day_ago),
                 'tags': {'sentry:user': self.user2.email},
             },
             project_id=self.project.id
