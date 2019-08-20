@@ -61,29 +61,31 @@ enum TimeWindow {
   ONE_DAY = 86400,
 }
 
-const TIME_WINDOW_MAP: Map<TimeWindow, string> = new Map([
-  [TimeWindow.ONE_MINUTE, t('1 minute')],
-  [TimeWindow.FIVE_MINUTES, t('5 minutes')],
-  [TimeWindow.TEN_MINUTES, t('10 minutes')],
-  [TimeWindow.FIFTEEN_MINUTES, t('15 minutes')],
-  [TimeWindow.THIRTY_MINUTES, t('30 minutes')],
-  [TimeWindow.ONE_HOUR, t('1 hour')],
-  [TimeWindow.TWO_HOURS, t('2 hours')],
-  [TimeWindow.FOUR_HOURS, t('4 hours')],
-  [TimeWindow.ONE_DAY, t('24 hours')],
-]);
+type TimeWindowMapType = {[key in TimeWindow]: string};
 
-const TIME_WINDOW_TO_PERIOD: Map<number, string> = new Map([
-  [TimeWindow.ONE_MINUTE, '12h'],
-  [TimeWindow.FIVE_MINUTES, '12h'],
-  [TimeWindow.TEN_MINUTES, '1d'],
-  [TimeWindow.FIFTEEN_MINUTES, '3d'],
-  [TimeWindow.THIRTY_MINUTES, '3d'],
-  [TimeWindow.ONE_HOUR, '7d'],
-  [TimeWindow.TWO_HOURS, '7d'],
-  [TimeWindow.FOUR_HOURS, '7d'],
-  [TimeWindow.ONE_DAY, '14d'],
-]);
+const TIME_WINDOW_MAP: TimeWindowMapType = {
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
+  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hours'),
+  [TimeWindow.FOUR_HOURS]: t('4 hours'),
+  [TimeWindow.ONE_DAY]: t('24 hours'),
+};
+
+const TIME_WINDOW_TO_PERIOD: TimeWindowMapType = {
+  [TimeWindow.ONE_MINUTE]: '12h',
+  [TimeWindow.FIVE_MINUTES]: '12h',
+  [TimeWindow.TEN_MINUTES]: '1d',
+  [TimeWindow.FIFTEEN_MINUTES]: '3d',
+  [TimeWindow.THIRTY_MINUTES]: '3d',
+  [TimeWindow.ONE_HOUR]: '7d',
+  [TimeWindow.TWO_HOURS]: '7d',
+  [TimeWindow.FOUR_HOURS]: '7d',
+  [TimeWindow.ONE_DAY]: '14d',
+};
 
 const DEFAULT_TIME_WINDOW = 60;
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
@@ -125,7 +127,7 @@ class RuleForm extends React.Component<Props, State> {
    * @return period The period string to use (e.g. 14d)
    */
   getPeriodForTimeWindow = (timeWindow: TimeWindow): string =>
-    TIME_WINDOW_TO_PERIOD.get(timeWindow) || `${timeWindow * 60}s`;
+    TIME_WINDOW_TO_PERIOD[timeWindow];
 
   /**
    * Checks to see if threshold is valid given target value, and state of
@@ -334,7 +336,7 @@ class RuleForm extends React.Component<Props, State> {
                   label: t('Time Window'),
                   help: t('The time window to use when evaluating the Metric'),
                   onChange: this.handleTimeWindowChange,
-                  choices: [...TIME_WINDOW_MAP.entries()],
+                  choices: Object.entries(TIME_WINDOW_MAP),
                   required: true,
                 },
                 {
