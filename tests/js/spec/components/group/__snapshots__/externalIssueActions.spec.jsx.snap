@@ -127,7 +127,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   >
     <IssueSyncListElementContainer>
       <div
-        className="css-lh3vnw-IssueSyncListElementContainer e1vaar1z0"
+        className="css-lh3vnw-IssueSyncListElementContainer euat0et0"
       >
         <Hovercard
           body={
@@ -172,11 +172,11 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                     src="icon-github"
                   >
                     <ForwardRef
-                      className="css-txtxza-InlineSvg-IntegrationIcon e1vaar1z1"
+                      className="css-txtxza-InlineSvg-IntegrationIcon euat0et1"
                       src="icon-github"
                     >
                       <svg
-                        className="css-txtxza-InlineSvg-IntegrationIcon e1vaar1z1"
+                        className="css-txtxza-InlineSvg-IntegrationIcon euat0et1"
                         height="1em"
                         viewBox={Object {}}
                         width="1em"
@@ -189,12 +189,10 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                     </ForwardRef>
                   </IntegrationIcon>
                   <IntegrationLink
-                    href={null}
                     onClick={[Function]}
                   >
                     <a
-                      className="css-1g8yzea-IntegrationLink e1vaar1z2"
-                      href={null}
+                      className="css-1g8yzea-IntegrationLink euat0et2"
                       onClick={[Function]}
                     >
                       Link GitHub Issue
@@ -206,18 +204,18 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           </Manager>
         </Hovercard>
         <OpenCloseIcon
-          isLinked={null}
+          isLinked={false}
           onClick={[Function]}
           src="icon-close"
         >
           <ForwardRef
-            className="css-6dwiog-InlineSvg-OpenCloseIcon e1vaar1z3"
-            isLinked={null}
+            className="css-6dwiog-InlineSvg-OpenCloseIcon euat0et3"
+            isLinked={false}
             onClick={[Function]}
             src="icon-close"
           >
             <svg
-              className="css-6dwiog-InlineSvg-OpenCloseIcon e1vaar1z3"
+              className="css-6dwiog-InlineSvg-OpenCloseIcon euat0et3"
               height="1em"
               onClick={[Function]}
               viewBox={Object {}}

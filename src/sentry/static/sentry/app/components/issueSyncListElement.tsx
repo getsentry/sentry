@@ -5,6 +5,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {capitalize} from 'lodash';
 import Hovercard from 'app/components/hovercard';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 const hoverCardContainer = css`
   display: flex;
@@ -12,7 +13,19 @@ const hoverCardContainer = css`
   min-width: 0; /* flex-box overflow workaround */
 `;
 
-class IssueSyncListElement extends React.Component {
+type Props = {
+  externalIssueLink: string | null;
+  externalIssueId?: string | null;
+  externalIssueKey?: string | null;
+  externalIssueDisplayName?: string | null;
+  onOpen?: () => void;
+  onClose?: (externalIssueId?: string | null) => void;
+  integrationType?: string;
+  hoverCardHeader?: React.ReactNode;
+  hoverCardBody?: React.ReactNode;
+};
+
+class IssueSyncListElement extends React.Component<Props> {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -25,15 +38,15 @@ class IssueSyncListElement extends React.Component {
     hoverCardBody: PropTypes.node,
   };
 
-  isLinked() {
-    return this.props.externalIssueLink && this.props.externalIssueId;
+  isLinked(): boolean {
+    return !!(this.props.externalIssueLink && this.props.externalIssueId);
   }
 
-  handleDelete = evt => {
-    return this.props.onClose(this.props.externalIssueId);
+  handleDelete = (): void => {
+    callIfFunction(this.props.onClose, this.props.externalIssueId);
   };
 
-  getIcon() {
+  getIcon(): React.ReactNode {
     switch (this.props.integrationType) {
       case 'bitbucket':
         return <IntegrationIcon src="icon-bitbucket" />;
@@ -53,7 +66,7 @@ class IssueSyncListElement extends React.Component {
     }
   }
 
-  getPrettyName() {
+  getPrettyName(): string {
     const type = this.props.integrationType;
     switch (type) {
       case 'gitlab':
@@ -71,10 +84,10 @@ class IssueSyncListElement extends React.Component {
     }
   }
 
-  getLink() {
+  getLink(): React.ReactElement {
     return (
       <IntegrationLink
-        href={this.props.externalIssueLink}
+        href={this.props.externalIssueLink || undefined}
         onClick={!this.isLinked() ? this.props.onOpen : undefined}
       >
         {this.getText()}
@@ -82,7 +95,7 @@ class IssueSyncListElement extends React.Component {
     );
   }
 
-  getText() {
+  getText(): React.ReactNode {
     if (this.props.children) {
       return this.props.children;
     }
@@ -164,7 +177,7 @@ export const OpenCloseIcon = styled(InlineSvg)`
   box-sizing: content-box;
   padding: ${space(1)};
   margin: -${space(1)};
-  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
+  ${(p: any) => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default IssueSyncListElement;
