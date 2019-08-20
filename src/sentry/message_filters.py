@@ -269,6 +269,8 @@ _EXTENSION_EXC_SOURCES = re.compile(
             r"metrics\.itunes\.apple\.com\.edgesuite\.net\/",
             # Kaspersky Protection browser extension
             r"kaspersky-labs\.com",
+            # Google ad server (see http://whois.domaintools.com/2mdn.net)
+            r"2mdn\.net",
         )
     ),
     re.I,
