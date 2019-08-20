@@ -1,19 +1,16 @@
 from __future__ import absolute_import
 
 import six
-from datetime import timedelta
-from django.utils import timezone
-
 from django.core.urlresolvers import reverse
 
-
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(EventIdLookupEndpointTest, self).setUp()
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
