@@ -635,9 +635,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             <DurationPill>{durationString}</DurationPill>
           </Duration>
           {this.renderWarningText({warningText: bounds.warning})}
+          {this.renderCursorGuide()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
-        {this.renderCursorGuide()}
       </SpanRowCellContainer>
     );
   };
