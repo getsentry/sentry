@@ -60,6 +60,12 @@ export default class SentryAppDetailsModal extends AsyncComponent {
     return new ConsolidatedScopes(this.props.sentryApp.scopes).toPermissions();
   }
 
+  onInstall() {
+    const {onInstall, closeModal} = this.props;
+    onInstall();
+    closeModal();
+  }
+
   renderPermissions() {
     const permissions = this.permissions;
     return (
@@ -99,7 +105,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
   }
 
   renderBody() {
-    const {sentryApp, closeModal, onInstall, isInstalled, organization} = this.props;
+    const {sentryApp, closeModal, isInstalled, organization} = this.props;
     const {featureData} = this.state;
     // Prepare the features list
     const features = (featureData || []).map(f => ({
@@ -149,7 +155,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
                           size="small"
                           priority="primary"
                           disabled={isInstalled || disabled}
-                          onClick={onInstall}
+                          onClick={() => this.onInstall()}
                           style={{marginLeft: space(1)}}
                         >
                           {t('Accept & Install')}
