@@ -78,10 +78,10 @@ type IntegrationIconProps = {
   size: number;
 };
 
-const IntegrationIcon = styled('div')`
+const IntegrationIcon = styled('div')<IntegrationIconProps>`
   position: relative;
-  height: ${(p: IntegrationIconProps) => p.size}px;
-  width: ${(p: IntegrationIconProps) => p.size}px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   /* this is so that there aren't gray boxes before load */
@@ -90,7 +90,7 @@ const IntegrationIcon = styled('div')`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${(p: IntegrationIconProps) => p.image});
+  background-image: url(${p => p.image});
 `;
 
 type Props = {
