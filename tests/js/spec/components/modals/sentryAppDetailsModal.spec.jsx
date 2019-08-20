@@ -10,6 +10,7 @@ describe('SentryAppDetailsModal', function() {
   let onInstall;
   let isInstalled;
   let closeModal;
+  const installButton = 'Button[data-test-id="install"]';
 
   function render() {
     return mount(
@@ -54,7 +55,7 @@ describe('SentryAppDetailsModal', function() {
   });
 
   it('installs the Integration when Install is clicked', () => {
-    wrapper.find({onClick: onInstall}).simulate('click');
+    wrapper.find(installButton).simulate('click');
     expect(onInstall).toHaveBeenCalled();
   });
 
@@ -65,7 +66,7 @@ describe('SentryAppDetailsModal', function() {
     });
 
     it('does not display the Install button', () => {
-      expect(wrapper.find({onClick: onInstall}).length).toBe(0);
+      expect(wrapper.find(installButton).length).toBe(0);
     });
   });
 
@@ -76,7 +77,7 @@ describe('SentryAppDetailsModal', function() {
     });
 
     it('disabled the Install button', () => {
-      expect(wrapper.find({onClick: onInstall}).prop('disabled')).toBe(true);
+      expect(wrapper.find(installButton).prop('disabled')).toBe(true);
     });
   });
 });

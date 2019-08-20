@@ -2,14 +2,10 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
-import {
-  openSentryAppPermissionModal,
-  openSentryAppDetailsModal,
-} from 'app/actionCreators/modal';
+import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 
 jest.mock('app/actionCreators/modal', () => ({
-  openSentryAppPermissionModal: jest.fn(),
   openSentryAppDetailsModal: jest.fn(),
 }));
 
@@ -102,10 +98,6 @@ describe('Sentry App Installations', function() {
             onInstall: expect.any(Function),
             isInstalled: false,
           })
-        );
-        wrapper.instance().openModal(sentryApp);
-        expect(openSentryAppPermissionModal).toHaveBeenCalledWith(
-          expect.objectContaining({app: sentryApp, orgId: org.slug})
         );
       });
 
