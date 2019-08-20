@@ -237,8 +237,6 @@ class Minimap extends React.Component<PropType> {
   };
 
   render() {
-    console.log('foo');
-
     return (
       <MinimapContainer>
         <ActualMinimap trace={this.props.trace} />
