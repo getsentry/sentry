@@ -452,17 +452,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           enabled={true}
                                           size={6}
                                         >
-                                          <Circle
+                                          <div
+                                            className="css-ghzigi-CircleIndicator exfjg1y0"
                                             color="#9585A3"
-                                            enabled={true}
                                             size={6}
-                                          >
-                                            <div
-                                              className="css-xhz9xw-Circle exfjg1y0"
-                                              color="#9585A3"
-                                              size={6}
-                                            />
-                                          </Circle>
+                                          />
                                         </CircleIndicator>
                                         <div
                                           className="css-lk5f1o-Status eac2pqx8"
