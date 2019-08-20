@@ -27,14 +27,11 @@ class ReleaseLandingCard extends React.Component {
 
   render() {
     const {card, cardsLength, step} = this.props;
-    const CardComponent = card.component;
     const finalStep = step === cardsLength - 1;
     return (
       <Container>
         <IllustrationContainer>
-          <CardComponentContainer>
-            <CardComponent />
-          </CardComponentContainer>
+          <CardComponentContainer>{card.svg}</CardComponentContainer>
         </IllustrationContainer>
 
         <StyledBox>
@@ -60,13 +57,14 @@ const Container = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 450px;
+  flex-wrap: wrap;
+  min-height: 450px;
   padding: ${space(1)};
 `;
 
 const StyledBox = styled('div')`
   flex: 1;
-  padding: 40px;
+  padding: 20px;
 `;
 
 const IllustrationContainer = styled(StyledBox)`
@@ -76,7 +74,8 @@ const IllustrationContainer = styled(StyledBox)`
 `;
 
 const CardComponentContainer = styled('div')`
-  width: 450px;
+  width: 550px;
+  height: 340px;
 
   img {
     vertical-align: baseline;
@@ -84,12 +83,13 @@ const CardComponentContainer = styled('div')`
 
   @media (max-width: 1150px) {
     font-size: 14px;
-    width: 350px;
+    width: 450px;
   }
 
   @media (max-width: 1000px) {
     font-size: 12px;
-    width: 280px;
+    width: 320px;
+    max-height: 180px;
   }
 `;
 

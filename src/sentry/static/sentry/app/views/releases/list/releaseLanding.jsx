@@ -2,13 +2,11 @@ import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
-import {
-  BashCard,
-  Issues,
-  SuggestedAssignees,
-  Emails,
-  Contributors,
-} from 'sentry-dreamy-components';
+import minified from 'sentry-dreamy-components/dist/minified.svg';
+import emails from 'sentry-dreamy-components/dist/emails.svg';
+import issues from 'sentry-dreamy-components/dist/issues.svg';
+import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
+import contributors from 'sentry-dreamy-components/dist/contributors.svg';
 
 import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
@@ -16,14 +14,9 @@ import withApi from 'app/utils/withApi';
 
 import ReleaseLandingCard from './releaseLandingCard';
 
-const StyledSuggestedAssignees = styled(SuggestedAssignees)`
-  width: 70px;
-  height: 70px;
-  margin-left: 250px;
-
-  @media (max-width: 1150px) {
-    margin-left: 100px;
-  }
+const Illustration = styled('object')`
+  width: 100%;
+  height: 100%;
 `;
 
 const cards = [
@@ -32,33 +25,33 @@ const cards = [
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),
-    component: Contributors,
+    svg: <Illustration type="image/svg+xml" data={contributors} />,
   },
   {
     title: t('Suspect Commits'),
     message: t(
       'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
     ),
-    component: StyledSuggestedAssignees,
+    svg: <Illustration type="image/svg+xml" data={suggestedAssignees} />,
   },
   {
     title: t('Release Stats'),
     message: t(
       'See the commits in each release, and which issues were introduced or fixed in the release'
     ),
-    component: Issues,
+    svg: <Illustration type="image/svg+xml" data={issues} />,
   },
   {
     title: t('Easy Resolution'),
     message: t(
       'Automatically resolve issues by including the issue number in your commit message'
     ),
-    component: BashCard,
+    svg: <Illustration type="image/svg+xml" data={minified} />,
   },
   {
     title: t('Deploy Emails'),
     message: t('Receive email notifications when your code gets deployed'),
-    component: Emails,
+    svg: <Illustration type="image/svg+xml" data={emails} />,
   },
 ];
 
