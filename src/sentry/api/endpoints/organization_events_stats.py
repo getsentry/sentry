@@ -22,7 +22,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 snuba_args = self.get_snuba_query_args(request, organization, params)
             else:
                 snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as exc:
+        except (OrganizationEventsError, InvalidSearchQuery) as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response({"data": []})
@@ -36,12 +36,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         result = snuba.transform_aliases_and_query(
             skip_conditions=True,
+            aggregations=snuba_args.get("aggregations"),
+            conditions=snuba_args.get("conditions"),
+            filter_keys=snuba_args.get("filter_keys"),
+            start=snuba_args.get("start"),
+            end=snuba_args.get("end"),
             orderby="time",
             groupby=["time"],
             rollup=rollup,
             referrer="api.organization-events-stats",
             limit=10000,
-            **snuba_args
         )
         serializer = SnubaTSResultSerializer(organization, None, request.user)
         return Response(

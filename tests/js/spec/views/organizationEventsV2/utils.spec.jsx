@@ -71,24 +71,6 @@ describe('getQueryString()', function() {
     };
     expect(getQueryString(view, location)).toEqual('event.type:transaction TypeError');
   });
-
-  it('includes non-empty additional data', function() {
-    const view = {
-      data: {
-        query: 'event.type:transaction',
-      },
-    };
-    const location = {};
-    const additional = {
-      nope: '',
-      undef: undefined,
-      nullish: null,
-      yes: 'value',
-    };
-    expect(getQueryString(view, location, additional)).toEqual(
-      'event.type:transaction yes:value'
-    );
-  });
 });
 
 describe('eventTagSearchUrl()', function() {

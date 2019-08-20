@@ -803,9 +803,9 @@ def resolve_field_list(fields, snuba_args):
     }
 
 
-def find_reference_event(snuba_args, reference_event_id):
+def find_reference_event(snuba_args, reference_event_slug):
     try:
-        project_slug, event_id = reference_event_id.split(":")
+        project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
     try:
@@ -814,7 +814,6 @@ def find_reference_event(snuba_args, reference_event_id):
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
-
     reference_event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
     if not reference_event:
         raise InvalidSearchQuery("Invalid reference event")

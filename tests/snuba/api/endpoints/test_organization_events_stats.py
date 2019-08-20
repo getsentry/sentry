@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlencode
-
 from datetime import timedelta
 from django.utils import timezone
 
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+
+
+def iso_timestamp(date):
+    return date.isoformat()[:19]
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
@@ -21,29 +23,37 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         self.project = self.create_project()
         self.project2 = self.create_project()
-
-        self.group = self.create_group(project=self.project)
-        self.group2 = self.create_group(project=self.project2)
-
         self.user = self.create_user()
         self.user2 = self.create_user()
-        self.create_event(
-            event_id="a" * 32,
-            group=self.group,
-            datetime=self.day_ago + timedelta(minutes=1),
-            tags={"sentry:user": self.user.email},
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            project_id=self.project.id,
         )
-        self.create_event(
-            event_id="b" * 32,
-            group=self.group2,
-            datetime=self.day_ago + timedelta(hours=1, minutes=1),
-            tags={"sentry:user": self.user2.email},
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "oh my",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=1)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
         )
-        self.create_event(
-            event_id="c" * 32,
-            group=self.group2,
-            datetime=self.day_ago + timedelta(hours=1, minutes=2),
-            tags={"sentry:user": self.user2.email},
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "very bad",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=2)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
         )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -52,17 +62,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_simple(self):
         response = self.client.get(
-            "%s?%s"
-            % (
-                self.url,
-                urlencode(
-                    {
-                        "start": self.day_ago.isoformat()[:19],
-                        "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-                        "interval": "1h",
-                    }
-                ),
-            ),
+            self.url,
+            data={
+                "start": iso_timestamp(self.day_ago),
+                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "interval": "1h",
+            },
             format="json",
         )
 
@@ -86,18 +91,16 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_groupid_filter(self):
-        url = "%s?%s" % (
+        response = self.client.get(
             self.url,
-            urlencode(
-                {
-                    "start": self.day_ago.isoformat()[:19],
-                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-                    "interval": "1h",
-                    "group": self.group.id,
-                }
-            ),
+            data={
+                "start": iso_timestamp(self.day_ago),
+                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "interval": "1h",
+                "group": self.group.id,
+            },
+            format="json",
         )
-        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"])
@@ -109,25 +112,24 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_user_count(self):
-        self.create_event(
-            event_id="d" * 32,
-            group=self.group2,
-            datetime=self.day_ago + timedelta(minutes=2),
-            tags={"sentry:user": self.user2.email},
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "something",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "tags": {"sentry:user": self.user2.email},
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project2.id,
         )
         response = self.client.get(
-            "%s?%s"
-            % (
-                self.url,
-                urlencode(
-                    {
-                        "start": self.day_ago.isoformat()[:19],
-                        "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-                        "interval": "1h",
-                        "yAxis": "user_count",
-                    }
-                ),
-            ),
+            self.url,
+            data={
+                "start": iso_timestamp(self.day_ago),
+                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "interval": "1h",
+                "yAxis": "user_count",
+            },
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -139,18 +141,13 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_with_event_count_flag(self):
         response = self.client.get(
-            "%s?%s"
-            % (
-                self.url,
-                urlencode(
-                    {
-                        "start": self.day_ago.isoformat()[:19],
-                        "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
-                        "interval": "1h",
-                        "yAxis": "event_count",
-                    }
-                ),
-            ),
+            self.url,
+            data={
+                "start": iso_timestamp(self.day_ago),
+                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "interval": "1h",
+                "yAxis": "event_count",
+            },
             format="json",
         )
 
@@ -167,8 +164,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": self.day_ago.isoformat()[:19],
-                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
                 },
@@ -186,8 +183,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": self.day_ago.isoformat()[:19],
-                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count_unique(user)",
                 },
@@ -205,10 +202,90 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": self.day_ago.isoformat()[:19],
-                    "end": (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "nope(lol)",
                 },
             )
         assert response.status_code == 400, response.content
+
+    def test_with_field_and_reference_event_invalid(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "referenceEvent": "nope-invalid",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "reference" in response.content
+
+    def test_only_reference_event(self):
+        # Create a new event that message matches events made in setup
+        event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "oh my",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "tags": {"sentry:user": "bob@example.com"},
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200, response.content
+        # Because we didn't send fields, the reference event is not applied
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [],
+            [{"count": 2}],
+            [{"count": 2}],
+        ]
+
+    def test_field_and_reference_event(self):
+        # Create a new event that message matches events made in setup
+        event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "oh my",
+                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "tags": {"sentry:user": "bob@example.com"},
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_timestamp(self.day_ago),
+                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "field": ["message", "count()"],
+                    "interval": "1h",
+                    "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [],
+            [{"count": 1}],
+            [{"count": 1}],
+        ]
