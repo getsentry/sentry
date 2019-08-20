@@ -164,7 +164,7 @@ def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
     combined = {}
 
     for chunk in chunked(issue_ids, BATCH_SIZE):
-        combined.update(func(tsdb.models.group, list(chunk), start, stop, rollup=rollup))
+        combined.update(func(tsdb.models.group, chunk, start, stop, rollup=rollup))
 
     return combined
 
