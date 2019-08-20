@@ -157,6 +157,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
                           disabled={isInstalled || disabled}
                           onClick={() => this.onInstall()}
                           style={{marginLeft: space(1)}}
+                          data-test-id="install"
                         >
                           {t('Accept & Install')}
                         </Button>
