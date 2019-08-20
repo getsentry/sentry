@@ -6,7 +6,6 @@ import {get} from 'lodash';
 
 import {
   rectOfContent,
-  clamp,
   toPercent,
   getHumanDuration,
   pickSpanBarColour,
@@ -36,26 +35,15 @@ class Minimap extends React.Component<PropType> {
   renderCursorGuide = ({
     cursorGuideHeight,
     showCursorGuide,
-    mousePageX,
+    mouseLeft,
   }: {
     cursorGuideHeight: number;
     showCursorGuide: boolean;
-    mousePageX: number | undefined;
+    mouseLeft: number | undefined;
   }) => {
-    if (!showCursorGuide || !mousePageX) {
+    if (!showCursorGuide || !mouseLeft) {
       return null;
     }
-
-    const interactiveLayer = this.props.minimapInteractiveRef.current;
-
-    if (!interactiveLayer) {
-      return null;
-    }
-
-    const rect = rectOfContent(interactiveLayer);
-
-    // clamp mouseLeft to be within [0, 1]
-    const mouseLeft = clamp((mousePageX - rect.x) / rect.width, 0, 1);
 
     return (
       <CursorGuide
@@ -135,12 +123,12 @@ class Minimap extends React.Component<PropType> {
 
   renderDurationGuide = ({
     showCursorGuide,
-    mousePageX,
+    mouseLeft,
   }: {
     showCursorGuide: boolean;
-    mousePageX: number | undefined;
+    mouseLeft: number | undefined;
   }) => {
-    if (!showCursorGuide || !mousePageX) {
+    if (!showCursorGuide || !mouseLeft) {
       return null;
     }
 
@@ -151,9 +139,6 @@ class Minimap extends React.Component<PropType> {
     }
 
     const rect = rectOfContent(interactiveLayer);
-
-    // clamp mouseLeft to be within [0, 1]
-    const mouseLeft = clamp((mousePageX - rect.x) / rect.width, 0, 1);
 
     const {trace} = this.props;
 
@@ -173,10 +158,10 @@ class Minimap extends React.Component<PropType> {
 
   renderTimeAxis = ({
     showCursorGuide,
-    mousePageX,
+    mouseLeft,
   }: {
     showCursorGuide: boolean;
-    mousePageX: number | undefined;
+    mouseLeft: number | undefined;
   }) => {
     const {trace} = this.props;
 
@@ -240,23 +225,25 @@ class Minimap extends React.Component<PropType> {
         {lastTick}
         {this.renderCursorGuide({
           showCursorGuide,
-          mousePageX,
+          mouseLeft,
           cursorGuideHeight: TIME_AXIS_HEIGHT,
         })}
         {this.renderDurationGuide({
           showCursorGuide,
-          mousePageX,
+          mouseLeft,
         })}
       </TimeAxis>
     );
   };
 
   render() {
+    console.log('foo');
+
     return (
       <MinimapContainer>
         <ActualMinimap trace={this.props.trace} />
         <CursorGuideHandler.Consumer>
-          {({displayCursorGuide, hideCursorGuide, mousePageX, showCursorGuide}) => {
+          {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => {
             return (
               <div
                 ref={this.props.minimapInteractiveRef}
@@ -281,14 +268,14 @@ class Minimap extends React.Component<PropType> {
                   {this.renderFog(this.props.dragProps)}
                   {this.renderCursorGuide({
                     showCursorGuide,
-                    mousePageX,
+                    mouseLeft,
                     cursorGuideHeight: MINIMAP_HEIGHT,
                   })}
                   {this.renderViewHandles(this.props.dragProps)}
                 </InteractiveLayer>
                 {this.renderTimeAxis({
                   showCursorGuide,
-                  mousePageX,
+                  mouseLeft,
                 })}
               </div>
             );
