@@ -378,9 +378,8 @@ function RuleFormContainer({
   );
 }
 
-// TODO(ts): emotion
-const TransparentLoadingMask = styled(LoadingMask)`
-  ${(p: any) => !p.visible && 'display: none;'};
+const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
+  ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
 `;
