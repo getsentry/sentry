@@ -75,7 +75,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         # have a proxy/load-balancer in front in dev mode.
         'http': '%s:%s' % (parsed_url.hostname, parsed_url.port),
         'protocol': 'uwsgi',
-        # This is need to prevent https://git.io/fj7Lw
+        # This is needed to prevent https://git.io/fj7Lw
         'uwsgi-socket': None,
         'http-keepalive': True,
         # Make sure we reload really quickly for local dev in case it
