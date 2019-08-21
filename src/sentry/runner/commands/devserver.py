@@ -71,12 +71,6 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
             )
 
     uwsgi_overrides = {
-        # Make sure uWSGI spawns an HTTP server for us as we don't
-        # have a proxy/load-balancer in front in dev mode.
-        'http': '%s:%s' % (parsed_url.hostname, parsed_url.port),
-        'protocol': 'uwsgi',
-        # This is needed to prevent https://git.io/fj7Lw
-        'uwsgi-socket': None,
         'http-keepalive': True,
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
@@ -177,6 +171,15 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         uwsgi_overrides["log-format"] = '"%(method) %(uri) %(proto)" %(status) %(size)'
     else:
         uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size)'
+
+    uwsgi_overrides.update({
+        # Make sure uWSGI spawns an HTTP server for us as we don't
+        # have a proxy/load-balancer in front in dev mode.
+        'http': '%s:%s' % (host, port),
+        'protocol': 'uwsgi',
+        # This is needed to prevent https://git.io/fj7Lw
+        'uwsgi-socket': None,
+    })
 
     server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 
