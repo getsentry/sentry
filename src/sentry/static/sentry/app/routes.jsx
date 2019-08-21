@@ -690,20 +690,20 @@ function routes() {
       />
 
       <Route
-        path="/extensions/external-install/:sentryAppSlug"
-        componentPromise={() =>
-          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppInstallation')
-        }
-        component={errorHandler(LazyLoad)}
-      />
-
-      <Route
         path="/extensions/vsts/link/"
         getComponent={(_loc, cb) =>
           import(/* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink').then(
             lazyLoad(cb)
           )
         }
+      />
+
+      <Route
+        path="/sentry-apps/:sentryAppSlug/external-install/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppInstallation')
+        }
+        component={errorHandler(LazyLoad)}
       />
 
       {EXPERIMENTAL_SPA && (
