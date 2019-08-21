@@ -225,7 +225,7 @@ class RuleForm extends React.Component<Props, State> {
         <JsonForm
           renderHeader={() => {
             return (
-              <PanelAlert type="warning">
+              <PanelAlert type="info">
                 {t(
                   'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. Use the sliders to control frequency.'
                 )}

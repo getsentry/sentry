@@ -162,7 +162,7 @@ class OrganizationIncidentsListContainer extends React.Component {
           </PageHeader>
 
           <AlertLink
-            priority="warning"
+            priority="info"
             to={`/organizations/${orgId}/issues/`}
             icon="icon-circle-info"
           >
