@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 
@@ -7,6 +8,7 @@ import Count from 'app/components/count';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import PageHeading from 'app/components/pageHeading';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
@@ -43,12 +45,13 @@ export default class ReleaseHeader extends React.Component {
       <div className="release-details">
         <div className="row">
           <div className="col-sm-4 col-xs-12">
-            <h3>
-              {t('Release')}{' '}
-              <strong>
-                <Version orgId={orgId} version={release.version} anchor={false} />
-              </strong>
-            </h3>
+            <PageHeading>{t('Release')} </PageHeading>
+            <StyledVersion
+              orgId={orgId}
+              version={release.version}
+              showShortVersion={false}
+              anchor={false}
+            />
             {!!release.url && (
               <div>
                 <ExternalLink href={release.url}>
@@ -113,3 +116,11 @@ export default class ReleaseHeader extends React.Component {
     );
   }
 }
+
+const StyledVersion = styled(Version)`
+  font-weight: 600;
+  word-break: break-all;
+  line-height: 1.2;
+  display: block;
+  margin: 6px 0;
+`;

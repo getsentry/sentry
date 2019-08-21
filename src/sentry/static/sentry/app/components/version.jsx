@@ -21,7 +21,7 @@ class Version extends React.Component {
 
   static defaultProps = {
     anchor: true,
-    showShortVersion: true,
+    showShortVersion: false,
   };
 
   render() {
@@ -48,7 +48,11 @@ class Version extends React.Component {
       );
     }
 
-    return <span title={version}>{versionTitle}</span>;
+    return (
+      <span title={version} className={className}>
+        {versionTitle}
+      </span>
+    );
   }
 }
 

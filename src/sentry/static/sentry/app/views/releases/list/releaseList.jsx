@@ -27,6 +27,7 @@ const ReleaseList = props => {
                   <Version
                     orgId={orgId}
                     version={release.version}
+                    showShortVersion={false}
                     preserveGlobalSelection
                   />
                 </VersionWrapper>
