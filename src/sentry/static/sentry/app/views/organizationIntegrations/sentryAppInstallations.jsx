@@ -11,6 +11,9 @@ import {
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {openModal} from 'app/actionCreators/modal';
+
+import InstallationIdModal from 'app/views/organizationIntegrations/installationIdModal';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
@@ -44,6 +47,17 @@ class SentryAppInstallations extends React.Component {
       };
       const redirectUrl = addQueryParamsToExistingUrl(app.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
+    }
+
+    //hack for split
+    if (organization.slug === 'split') {
+      openModal(({closeModal}) => (
+        <InstallationIdModal
+          installationId={install.uuid}
+          link="https://split.com/stuff"
+          closeModal={closeModal}
+        />
+      ));
     }
   };
 
