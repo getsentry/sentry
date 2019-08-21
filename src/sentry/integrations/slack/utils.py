@@ -79,22 +79,16 @@ def get_assignee(group):
 def build_attachment_title(group, event=None):
     # XXX(mitsuhiko): This is all super event specific and ideally could just use a
     # combination of `group.title` and `group.title + group.culprit`.
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        if "type" in ev_metadata:
-            if group.culprit:
-                return u"{} - {}".format(ev_metadata["type"][:40], group.culprit)
-            return ev_metadata["type"]
-        if group.culprit:
-            return u"{} - {}".format(group.title, group.culprit)
-        return group.title
+    obj = event if event is not None else group
+    ev_metadata = obj.get_event_metadata()
+    ev_type = obj.get_event_type()
+
+    if ev_type == "error" and "type" in ev_metadata:
+        return ev_metadata["type"]
     elif ev_type == "csp":
         return u"{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
     else:
-        if group.culprit:
-            return u"{} - {}".format(group.title, group.culprit)
-        return group.title
+        return obj.title
 
 
 def build_attachment_text(group, event=None):
@@ -159,6 +153,8 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     members = get_member_assignees(group)
     teams = get_team_assignees(group)
+    if event is None:
+        event = group.get_latest_event()
 
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     color = (
@@ -254,8 +250,9 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)
 
+    fallback_title = event.title if event is not None else group.title
     return {
-        "fallback": u"[{}] {}".format(group.project.slug, group.title),
+        "fallback": u"[{}] {}".format(group.project.slug, fallback_title),
         "title": build_attachment_title(group, event),
         "title_link": group.get_absolute_url(params={"referrer": "slack"}),
         "text": text,
