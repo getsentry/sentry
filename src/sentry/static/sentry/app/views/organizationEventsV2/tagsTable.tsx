@@ -2,8 +2,8 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {withRouter} from 'react-router';
+import {Location} from 'history';
 
-import {ReactRouterLocation} from 'app/types/reactRouter';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -14,7 +14,7 @@ import {EventTag} from 'app/types';
 import {getEventTagSearchUrl} from './utils';
 
 type Props = {
-  location: ReactRouterLocation;
+  location: Location;
   tags: Array<EventTag>;
 };
 
