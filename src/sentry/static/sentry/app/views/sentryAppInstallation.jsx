@@ -15,7 +15,7 @@ import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
 export default class SentryAppInstallation extends AsyncView {
   state = {
-    selectedOrg: null,
+    selectedOrgSlug: null,
     organization: null,
     reloading: false,
   };
@@ -35,17 +35,21 @@ export default class SentryAppInstallation extends AsyncView {
     return this.props.params.sentryAppSlug;
   }
 
+  get isSingleOrg() {
+    return this.state.organizations.length === 1;
+  }
+
   get isSentryAppInternal() {
     const {sentryApp} = this.state;
     return sentryApp && sentryApp.status === 'internal';
   }
 
   get isSentryAppUnavailableForOrg() {
-    const {sentryApp, selectedOrg} = this.state;
+    const {sentryApp, selectedOrgSlug} = this.state;
     //if the app is unpublished for a different org
     return (
-      selectedOrg &&
-      sentryApp.owner.slug !== selectedOrg &&
+      selectedOrgSlug &&
+      sentryApp.owner.slug !== selectedOrgSlug &&
       sentryApp.status === 'unpublished'
     );
   }
@@ -53,6 +57,8 @@ export default class SentryAppInstallation extends AsyncView {
   get disableInstall() {
     return this.state.isInstalled || this.isSentryAppUnavailableForOrg;
   }
+
+  hasAccess = org => org.access.includes('org:integrations');
 
   onClose = () => {
     //if we came from somewhere, go back there. Otherwise, back to the root
@@ -75,13 +81,13 @@ export default class SentryAppInstallation extends AsyncView {
     return this.onClose();
   };
 
-  onSelectOrg = async ({value: orgId}) => {
-    this.setState({selectedOrg: orgId, reloading: true});
+  onSelectOrg = async orgSlug => {
+    this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
       const [organization, installations] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgId}/`),
-        this.api.requestPromise(`/organizations/${orgId}/sentry-app-installations/`),
+        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
       ]);
       const isInstalled = installations
         .map(install => install.app.slug)
@@ -95,13 +101,20 @@ export default class SentryAppInstallation extends AsyncView {
     this.setState({reloading: false});
   };
 
+  onRequestSuccess = ({stateKey, data}) => {
+    //if only one org, we can immediately update our selected org
+    if (stateKey === 'organizations' && data.length === 1) {
+      this.onSelectOrg(data[0].slug);
+    }
+  };
+
   getOptions() {
     return this.state.organizations.map(org => [
       org.slug,
-      <ChoiceHolder key={org.slug}>
+      <div key={org.slug}>
         <Avatar organization={org} />
         <OrgNameHolder>{org.slug}</OrgNameHolder>
-      </ChoiceHolder>,
+      </div>,
     ]);
   }
 
@@ -120,8 +133,8 @@ export default class SentryAppInstallation extends AsyncView {
   }
 
   checkAndRenderError() {
-    const {organization, selectedOrg, isInstalled, sentryApp} = this.state;
-    if (selectedOrg && organization && !this.hasAccess(organization)) {
+    const {organization, selectedOrgSlug, isInstalled, sentryApp} = this.state;
+    if (selectedOrgSlug && organization && !this.hasAccess(organization)) {
       return (
         <Alert type="error" icon="icon-circle-exclamation">
           <p>
@@ -163,10 +176,8 @@ export default class SentryAppInstallation extends AsyncView {
     return null;
   }
 
-  hasAccess = org => org.access.includes('org:integrations');
-
-  renderMainContent() {
-    const {organization, selectedOrg, sentryApp} = this.state;
+  renderMultiOrgView() {
+    const {selectedOrgSlug, sentryApp} = this.state;
     return (
       <div>
         <p>
@@ -178,17 +189,44 @@ export default class SentryAppInstallation extends AsyncView {
             }
           )}
         </p>
-        {this.checkAndRenderError()}
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
-              onChange={this.onSelectOrg}
-              value={selectedOrg}
+              onChange={({value}) => this.onSelectOrg(value)}
+              value={selectedOrgSlug}
               placeholder={t('Select an organization')}
               choices={this.getOptions()}
             />
           )}
         </Field>
+      </div>
+    );
+  }
+
+  renderSingleOrgView() {
+    const {organizations, sentryApp} = this.state;
+    //pull the name out of organizations since state.organization won't be loaded initially
+    const organizationName = organizations[0].name;
+    return (
+      <div>
+        <p>
+          {tct('You are installing [sentryAppName] for organization [organization]', {
+            organization: <strong>{organizationName}</strong>,
+            sentryAppName: <strong>{sentryApp.name}</strong>,
+          })}
+        </p>
+      </div>
+    );
+  }
+
+  renderMainContent() {
+    const {organization, sentryApp} = this.state;
+    return (
+      <div>
+        <OrgViewHolder>
+          {this.isSingleOrg ? this.renderSingleOrgView() : this.renderMultiOrgView()}
+        </OrgViewHolder>
+        {this.checkAndRenderError()}
         {organization && (
           <SentryAppDetailsModal
             sentryApp={sentryApp}
@@ -222,12 +260,14 @@ const InstallLink = styled('pre')`
   background: #fbe3e1;
 `;
 
-const ChoiceHolder = styled('div')``;
-
 const OrgNameHolder = styled('span')`
   margin-left: 5px;
 `;
 
 const Content = styled('div')`
   margin-bottom: 40px;
+`;
+
+const OrgViewHolder = styled('div')`
+  margin-bottom: 20px;
 `;
