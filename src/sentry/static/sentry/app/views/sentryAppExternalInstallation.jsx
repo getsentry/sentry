@@ -13,7 +13,7 @@ import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
-export default class SentryAppExernalInstallation extends AsyncView {
+export default class SentryAppExternalInstallation extends AsyncView {
   state = {
     selectedOrgSlug: null,
     organization: null,
