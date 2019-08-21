@@ -60,9 +60,11 @@ class OrganizationReleases extends AsyncView {
     const targetQueryParams = {};
     if (query !== '') {
       targetQueryParams.query = query;
+      targetQueryParams.project = this.props.location.query.project;
     }
 
     const {orgId} = this.props.params;
+
     browserHistory.push({
       pathname: `/organizations/${orgId}/releases/`,
       query: targetQueryParams,
