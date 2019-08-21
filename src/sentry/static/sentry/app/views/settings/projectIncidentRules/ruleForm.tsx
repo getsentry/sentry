@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Client} from 'app/api';
 import {Config, EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -27,7 +28,7 @@ import {IncidentRule} from './types';
 import IncidentRulesChart from './chart';
 
 type Props = {
-  api: any;
+  api: Client;
   config: Config;
   data: EventsStatsData;
   organization: Organization;
@@ -404,7 +405,7 @@ class RuleForm extends React.Component<Props, State> {
 }
 
 type RuleFormContainerProps = {
-  api: any;
+  api: Client;
   config: Config;
   organization: Organization;
   project: Project;
