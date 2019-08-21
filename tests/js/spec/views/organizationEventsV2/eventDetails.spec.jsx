@@ -66,6 +66,14 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       },
     });
 
+    // Missing event
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/project-slug:abad1/',
+      method: 'GET',
+      statusCode: 404,
+      body: {},
+    });
+
     // Error event
     MockApiClient.addMockResponse(
       {
@@ -154,6 +162,20 @@ describe('OrganizationEventsV2 > EventDetails', function() {
 
     const graph = wrapper.find('ModalLineGraph');
     expect(graph).toHaveLength(0);
+  });
+
+  it('renders a 404', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        eventSlug="project-slug:abad1"
+        location={{query: {eventSlug: 'project-slug:abad1'}}}
+        view={allEventsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('NotFound');
+    expect(content).toHaveLength(1);
   });
 
   it('renders a chart in grouped view', function() {
