@@ -701,7 +701,7 @@ function routes() {
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
         componentPromise={() =>
-          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppInstallation')
+          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppExternalInstallation')
         }
         component={errorHandler(LazyLoad)}
       />
