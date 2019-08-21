@@ -105,11 +105,26 @@ class RuleForm extends React.Component<Props, State> {
       : value >= otherValue;
   };
 
-  revertThresholdUpdate = () => {
-    addErrorMessage(t('Invalid threshold value'));
+  revertThresholdUpdate = (type: AlertRuleThreshold) => {
+    const isIncident = type === AlertRuleThreshold.INCIDENT;
+    const typeDisplay = isIncident ? t('Incident boundary') : t('Resolution boundary');
+    const otherTypeDisplay = !isIncident
+      ? t('Incident boundary')
+      : t('Resolution boundary');
+
+    // if incident and not inverted: incident required to be >
+    // if resolution and inverted: resolution required to be >
+    const direction = isIncident !== this.state.isInverted ? 'greater' : 'less';
+
+    addErrorMessage(t(`${typeDisplay} must be ${direction} than ${otherTypeDisplay}`));
+
     // Need to a re-render so that our chart re-renders and moves the draggable line back
     // to its original position (since the drag update is not valid)
     this.forceUpdate();
+
+    // Reset form value
+    const thresholdKey = this.getThresholdKey(type);
+    this.context.form.setValue(thresholdKey, this.state[thresholdKey]);
   };
 
   updateThresholdInput = (type: AlertRuleThreshold, value: number) => {
@@ -119,7 +134,7 @@ class RuleForm extends React.Component<Props, State> {
         [this.getThresholdKey(type)]: value,
       }));
     } else {
-      this.revertThresholdUpdate();
+      this.revertThresholdUpdate(type);
     }
   };
 
@@ -133,7 +148,7 @@ class RuleForm extends React.Component<Props, State> {
       }));
       this.context.form.setValue(thresholdKey, Math.round(newValue));
     } else {
-      this.revertThresholdUpdate();
+      this.revertThresholdUpdate(type);
     }
   };
 
@@ -289,19 +304,22 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeIncidentThresholdInput,
                   showCustomInput: true,
                   required: true,
+                  min: 1,
                 },
                 {
                   name: 'resolveThreshold',
                   type: 'range',
-                  label: t('Resolution Threshold'),
+                  label: t('Resolution Boundary'),
                   help: !isInverted
                     ? t('Anything trending below this limit will resolve an Incident')
                     : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   placeholder: resolveThreshold === null ? t('Off') : '',
-                  ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
-                  ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
+                  ...(!isInverted &&
+                    alertThreshold !== null && {min: 1, max: alertThreshold}),
+                  ...(isInverted &&
+                    alertThreshold !== null && {min: alertThreshold || 1}),
                 },
                 {
                   name: 'thresholdType',
