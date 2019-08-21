@@ -18,11 +18,10 @@ const withApi = <P extends object>(WrappedComponent: React.ComponentType<P>) => 
       this.api.clear();
     }
 
-    // TODO(ts): Update this when API client is typed
-    private api: any;
+    private api: Client;
 
     render() {
-      return <WrappedComponent api={this.api as any} {...this.props as P} />;
+      return <WrappedComponent api={this.api} {...this.props as P} />;
     }
   };
 };
