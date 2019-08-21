@@ -14,7 +14,7 @@ YARN = ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
-develop: setup-git ensure-venv develop-only
+develop: setup-git ensure-venv ensure-latest-pip develop-only
 
 develop-only: update-submodules install-yarn-pkgs install-sentry-dev
 
@@ -28,6 +28,9 @@ test: develop lint test-js test-python test-cli
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
+
+ensure-latest-pip:
+	python -m pip install -U pip
 
 build: locale
 
