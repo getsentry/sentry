@@ -11,7 +11,7 @@ import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
 import {Event, Organization, EventView} from 'app/types';
-import {Location} from 'history';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -27,7 +27,7 @@ type EventModalContentProps = {
   event: Event;
   projectId: string;
   organization: Organization;
-  location: Location;
+  location: ReactRouterLocation;
   view: EventView;
 };
 

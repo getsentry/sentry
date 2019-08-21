@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {omit, isEqual} from 'lodash';
 import * as ReactRouter from 'react-router';
-import {Location} from 'history';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {Organization, EventView} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
@@ -29,7 +29,7 @@ const CHART_AXIS_OPTIONS = [
 
 type EventsProps = {
   router: ReactRouter.InjectedRouter;
-  location: Location;
+  location: ReactRouterLocation;
   organization: Organization;
   view: EventView;
 };
@@ -93,7 +93,7 @@ export default class Events extends React.Component<EventsProps> {
 }
 
 type EventsTableProps = {
-  location: Location;
+  location: ReactRouterLocation;
   organization: Organization;
   view: EventView;
 };

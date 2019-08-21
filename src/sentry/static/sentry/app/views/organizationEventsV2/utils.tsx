@@ -1,5 +1,5 @@
 import {partial, pick, get} from 'lodash';
-import {Location} from 'history';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {Client} from 'app/api';
 import {EventView} from 'app/types';
@@ -47,7 +47,7 @@ export function hasAggregateField(view) {
  * @param {Object} view
  * @returns {Object}
  */
-export function getQuery(view: EventView, location: Location) {
+export function getQuery(view: EventView, location: ReactRouterLocation) {
   const fields: Array<string> = get(view, 'data.fields', []);
 
   type LocationQuery = {
@@ -91,7 +91,7 @@ export function getQuery(view: EventView, location: Location) {
  * @param {Object} view defaults containing `.data.query`
  * @param {Location} browser location
  */
-export function getQueryString(view: EventView, location: Location): string {
+export function getQueryString(view: EventView, location: ReactRouterLocation): string {
   const queryParts: Array<string> = [];
   if (view.data.query) {
     queryParts.push(view.data.query);
@@ -125,7 +125,7 @@ export function getQueryString(view: EventView, location: Location): string {
 export function getEventTagSearchUrl(
   tagKey: string,
   tagValue: string,
-  location: Location
+  location: ReactRouterLocation
 ) {
   const query = {...location.query};
   // Add tag key/value to search

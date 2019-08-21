@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import {omit} from 'lodash';
 
 import {Client} from 'app/api';
@@ -21,6 +20,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, EventView} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import {getQueryString} from './utils';
@@ -133,7 +133,7 @@ const handleClick = async function(
 type ModalLineGraphProps = {
   api: Client;
   organization: Organization;
-  location: Location;
+  location: ReactRouterLocation;
   currentEvent: Event;
   view: EventView;
   // TODO(ts): adjust

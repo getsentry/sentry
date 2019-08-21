@@ -1,6 +1,5 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
@@ -14,6 +13,7 @@ import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {Organization, EventView, Event} from 'app/types';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import EventModalContent from './eventModalContent';
 import {EventQuery, getQuery} from './utils';
@@ -47,7 +47,7 @@ const modalStyles = css`
 
 type Props = {
   organization: Organization;
-  location: Location;
+  location: ReactRouterLocation;
   eventSlug: string;
   view: EventView;
   params: Params;

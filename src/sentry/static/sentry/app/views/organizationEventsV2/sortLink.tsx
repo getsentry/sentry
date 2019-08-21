@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Location} from 'history';
+import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
@@ -10,7 +10,7 @@ type Props = {
   title: string;
   sortKey: string;
   defaultSort: string | null;
-  location: Location;
+  location: ReactRouterLocation;
 };
 
 class SortLink extends React.Component<Props> {
