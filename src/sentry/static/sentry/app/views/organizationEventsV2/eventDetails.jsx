@@ -7,6 +7,7 @@ import {css} from 'react-emotion';
 import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
 import ModalDialog from 'app/components/modalDialog';
+import NotFound from 'app/components/errors/notFound';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
@@ -84,6 +85,24 @@ class EventDetails extends AsyncComponent {
           view={view}
           location={location}
         />
+      </ModalDialog>
+    );
+  }
+
+  renderError(error) {
+    const notFound = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 404
+    );
+    if (notFound) {
+      return (
+        <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
+          <NotFound />
+        </ModalDialog>
+      );
+    }
+    return (
+      <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
+        {super.renderError(error, true, true)}
       </ModalDialog>
     );
   }
