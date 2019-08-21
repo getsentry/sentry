@@ -202,7 +202,6 @@ type SpecialFields = {
   type: SpecialField;
   project: SpecialField;
   user: SpecialField;
-  issue_title: SpecialField;
   last_seen: SpecialField;
 };
 
