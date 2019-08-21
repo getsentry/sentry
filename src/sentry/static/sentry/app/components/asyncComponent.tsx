@@ -437,7 +437,7 @@ export default class AsyncComponent<
       : this.renderBody();
   }
 
-  renderBody(): React.ReactElement {
+  renderBody(): React.ReactNode {
     // Allow children to implement this
     throw new Error('Not implemented');
   }

@@ -9,6 +9,7 @@ import SpanTree from './spanTree';
 import {SpanType, SpanEntry, SentryEvent, ParsedTraceType} from './types';
 import {isValidSpanID} from './utils';
 import TraceViewMinimap from './minimap';
+import * as CursorGuideHandler from './cursorGuideHandler';
 
 type TraceContextType = {
   type: 'trace';
@@ -151,10 +152,14 @@ class TraceView extends React.Component<PropType> {
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
         {(dragProps: DragManagerChildrenProps) => {
           return (
-            <React.Fragment>
+            <CursorGuideHandler.Provider
+              interactiveLayerRef={this.minimapInteractiveRef}
+              dragProps={dragProps}
+              trace={parsedTrace}
+            >
               {this.renderMinimap(dragProps, parsedTrace)}
               <SpanTree trace={parsedTrace} dragProps={dragProps} />
-            </React.Fragment>
+            </CursorGuideHandler.Provider>
           );
         }}
       </DragManager>

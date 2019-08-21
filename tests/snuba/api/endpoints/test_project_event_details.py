@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
@@ -14,10 +13,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
 
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
-        three_min_ago = (timezone.now() - timedelta(minutes=3)).isoformat()[:19]
-        four_min_ago = (timezone.now() - timedelta(minutes=4)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
+        three_min_ago = iso_format(before_now(minutes=3))
+        four_min_ago = iso_format(before_now(minutes=4))
 
         self.prev_event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
@@ -128,7 +127,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.event_id = "c" * 32
         self.fingerprint = ["group_2"]
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
         self.event = self.store_event(
             data={
                 "event_id": self.event_id,

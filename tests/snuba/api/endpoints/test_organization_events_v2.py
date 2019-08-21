@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 import pytest
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2EndpointTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
         self.url = reverse(
             "sentry-api-0-organization-eventsv2",
             kwargs={"organization_slug": self.organization.slug},
@@ -503,3 +502,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
+
+    def test_reference_event(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        reference = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make more faster?",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "transaction": "/nomatch",
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "count()"],
+                    "query": "",
+                    "referenceEvent": "{}:{}".format(project.slug, reference.event_id),
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == "/example"
+        assert data[0]["latest_event"] == "b" * 32

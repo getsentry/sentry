@@ -4,8 +4,19 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry import eventstore, features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, resolve_field_list, InvalidSearchQuery
+from sentry.api.event_search import (
+    get_snuba_query_args,
+    resolve_field_list,
+    InvalidSearchQuery,
+    find_reference_event,
+    get_reference_event_conditions,
+)
 from sentry.models.project import Project
+
+
+class Direction(object):
+    NEXT = 0
+    PREV = 1
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -38,6 +49,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 snuba_args.update(resolve_field_list(fields, snuba_args))
             except InvalidSearchQuery as exc:
                 raise OrganizationEventsError(exc.message)
+
+        reference_event_id = request.GET.get("referenceEvent")
+        if reference_event_id:
+            reference_event = find_reference_event(snuba_args, reference_event_id)
+            snuba_args["conditions"] = get_reference_event_conditions(
+                snuba_args, reference_event.snuba_data
+            )
 
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(
@@ -109,3 +127,36 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         if prev_event:
             return prev_event[1]
+
+    def oldest_event_id(self, snuba_args, event):
+        """
+        Returns the oldest event ID if there is a subsequent event matching the
+        conditions provided
+        """
+        return self._get_terminal_event_id(Direction.PREV, snuba_args, event)
+
+    def latest_event_id(self, snuba_args, event):
+        """
+        Returns the latest event ID if there is a newer event matching the
+        conditions provided
+        """
+        return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
+
+    def _get_terminal_event_id(self, direction, snuba_args, event):
+        if direction == Direction.NEXT:
+            time_condition = [["timestamp", ">", event.timestamp]]
+            orderby = ["-timestamp", "-event_id"]
+        else:
+            time_condition = [["timestamp", "<", event.timestamp]]
+            orderby = ["timestamp", "event_id"]
+
+        conditions = snuba_args["conditions"][:]
+        conditions.extend(time_condition)
+
+        result = eventstore.get_events(
+            conditions=conditions, filter_keys=snuba_args["filter_keys"], orderby=orderby, limit=1
+        )
+        if not result:
+            return None
+
+        return result[0].event_id

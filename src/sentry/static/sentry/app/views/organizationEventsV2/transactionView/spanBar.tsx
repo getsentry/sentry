@@ -22,6 +22,7 @@ import {
 } from './minimap';
 import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
+import * as CursorGuideHandler from './cursorGuideHandler';
 import SpanDetail from './spanDetail';
 
 // TODO: maybe use babel-plugin-preval
@@ -480,6 +481,32 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
+  renderCursorGuide = () => {
+    return (
+      <CursorGuideHandler.Consumer>
+        {({
+          showCursorGuide,
+          traceViewMouseLeft,
+        }: {
+          showCursorGuide: boolean;
+          traceViewMouseLeft: number | undefined;
+        }) => {
+          if (!showCursorGuide || !traceViewMouseLeft) {
+            return null;
+          }
+
+          return (
+            <CursorGuide
+              style={{
+                left: toPercent(traceViewMouseLeft),
+              }}
+            />
+          );
+        }}
+      </CursorGuideHandler.Consumer>
+    );
+  };
+
   renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
@@ -604,8 +631,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               }}
             />
           )}
-          <Duration>{durationString}</Duration>
+          <Duration>
+            <DurationPill>{durationString}</DurationPill>
+          </Duration>
           {this.renderWarningText({warningText: bounds.warning})}
+          {this.renderCursorGuide()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
       </SpanRowCellContainer>
@@ -654,6 +684,17 @@ const SpanRowCell = styled('div')`
   height: ${SPAN_ROW_HEIGHT}px;
 
   overflow: hidden;
+`;
+
+const CursorGuide = styled('div')`
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background-color: #e03e2f;
+
+  transform: translateX(-50%);
+
+  height: ${SPAN_ROW_HEIGHT}px;
 `;
 
 export const DividerLine = styled('div')`
@@ -809,6 +850,21 @@ const Duration = styled('div')`
   padding-right: ${space(1)};
 
   user-select: none;
+
+  display: flex;
+  align-items: center;
+`;
+
+const DurationPill = styled('div')`
+  height: ${SPAN_ROW_HEIGHT - 10}px;
+  line-height: ${SPAN_ROW_HEIGHT - 10}px;
+
+  border-radius: 99px;
+
+  padding-left: 10px;
+  padding-right: 10px;
+
+  background-color: rgba(255, 255, 255, 0.6);
 `;
 
 const SpanBarRectangle = styled('div')`

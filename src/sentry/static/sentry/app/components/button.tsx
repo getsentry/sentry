@@ -278,10 +278,10 @@ const StyledButton = styled(
 
     return <a ref={ref} {...forwardProps} />;
   })
-)`
+)<Props>`
   display: inline-block;
   line-height: 1;
-  border-radius: ${(p: StyledButtonProps) => p.theme.button.borderRadius};
+  border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
 
@@ -289,8 +289,8 @@ const StyledButton = styled(
   font-size: ${getFontSize};
   ${getColors};
   ${getBoxShadow(false)};
-  cursor: ${(p: StyledButtonProps) => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${(p: StyledButtonProps) => (p.busy || p.disabled) && '0.65'};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${p => (p.busy || p.disabled) && '0.65'};
 
   &:active {
     ${getBoxShadow(true)};
@@ -330,11 +330,11 @@ type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | '
 
 const ButtonLabel = styled(
   ({size, priority, borderless, align, ...props}: ButtonLabelProps) => <span {...props} />
-)`
+)<Props>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  justify-content: ${(p: StyledButtonProps) => p.align};
+  justify-content: ${p => p.align};
   padding: ${getLabelPadding};
 `;
 

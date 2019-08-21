@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load sentry_api %}
 {% load sentry_avatars %}
 {% load sentry_assets %}
 {% load sentry_features %}
@@ -55,36 +54,6 @@
     {% if request.is_superuser %}
         {% show_system_status %}
     {% endif %}
-
-    {% block global_sidebar %}
-      {% if request.user.is_authenticated %}
-        <div id="blk_sidebar"></div>
-        <script>
-        $(function(){
-          var SidebarWrapper = createReactClass({
-            propTypes: {
-              organization: PropTypes.any.isRequired
-            },
-            getChildContext: function () {
-              return {
-                organization: this.props.organization,
-              }
-            },
-            render: function () {
-              return React.createElement(SentryApp.OrganizationsLoader, {},
-                React.createElement(SentryApp.Sidebar));
-            }
-          });
-          SidebarWrapper.childContextTypes = {
-            organization: PropTypes.any
-          };
-          ReactDOM.render(React.createFactory(SidebarWrapper)({
-            organization: {% serialize_detailed_org organization %},
-          }), document.getElementById('blk_sidebar'));
-        });
-        </script>
-      {% endif %}
-    {% endblock %}
 
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}

@@ -336,10 +336,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component
@@ -743,10 +743,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component
@@ -1150,10 +1150,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component

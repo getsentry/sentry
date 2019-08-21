@@ -16,6 +16,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins import plugins
+from six.moves.urllib.parse import urlparse, parse_qs
 from tests.sentry.plugins.testutils import (
     register_mock_plugins,
     unregister_mock_plugins,
@@ -75,12 +76,12 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
-    def setupPluginTest(self):
+    def setup_plugin_test(self):
         self.project = Project.objects.create(organization_id=self.organization.id)
         VstsPlugin().enable(project=self.project)
 
     def test_disabled_plugin_when_fully_migrated(self):
-        self.setupPluginTest()
+        self.setup_plugin_test()
 
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -103,7 +104,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert "vsts" not in [p.slug for p in plugins.for_project(self.project)]
 
     def test_doesnt_disable_plugin_when_partially_migrated(self):
-        self.setupPluginTest()
+        self.setup_plugin_test()
 
         # Repo accessible by new Integration
         Repository.objects.create(
@@ -124,11 +125,29 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             provider="visualstudio",
             external_id="123456789",
         )
-
         self.assert_installation()
 
         # Still enabled
         assert "vsts" in [p.slug for p in plugins.for_project(self.project)]
+
+    def test_accounts_list_failure(self):
+        responses.replace(
+            responses.GET,
+            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1"
+            % self.vsts_user_id,
+            status=403,
+            json={"$id": 1, "message": "Your account is not good"},
+        )
+        resp = self.make_init_request()
+        assert resp.status_code < 400, resp.content
+
+        redirect = urlparse(resp["Location"])
+        query = parse_qs(redirect.query)
+
+        # OAuth redirect back to Sentry (identity_pipeline_view)
+        resp = self.make_oauth_redirect_request(query["state"][0])
+        assert resp.status_code == 200, resp.content
+        assert "No accounts found" in resp.content
 
     def test_build_integration(self):
         state = {

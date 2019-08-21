@@ -6,10 +6,13 @@ import IssueListSearchBar from 'app/views/issueList/searchBar';
 import TagStore from 'app/stores/tagStore';
 
 describe('IssueListSearchBar', function() {
-  let options;
   let tagValuePromise;
   let supportedTags;
   let recentSearchMock;
+
+  const {routerContext, organization} = initializeOrg({
+    organization: {access: [], features: []},
+  });
 
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
@@ -17,10 +20,6 @@ describe('IssueListSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
-
-    options = TestStubs.routerContext([
-      {organization: {id: '123', access: [], features: []}},
-    ]);
 
     tagValuePromise = Promise.resolve([]);
 
@@ -51,13 +50,13 @@ describe('IssueListSearchBar', function() {
         return tagValuePromise;
       };
       const props = {
-        orgId: 'org-slug',
+        organization,
         query: 'url:"fu"',
         tagValueLoader: loader,
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mount(<IssueListSearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -72,7 +71,7 @@ describe('IssueListSearchBar', function() {
       };
 
       const props = {
-        orgId: 'org-slug',
+        organization,
         projectId: '456',
         query: 'url:"http://example.com"',
         tagValueLoader: loader,
@@ -80,7 +79,7 @@ describe('IssueListSearchBar', function() {
         onSearch: jest.fn(),
       };
 
-      const searchBar = mount(<IssueListSearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
@@ -95,14 +94,14 @@ describe('IssueListSearchBar', function() {
       const loader = jest.fn(x => x);
 
       const props = {
-        orgId: 'org-slug',
+        organization,
         projectId: '456',
         query: 'timesSeen:',
         tagValueLoader: loader,
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mount(<IssueListSearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(loader).not.toHaveBeenCalled();
@@ -124,13 +123,13 @@ describe('IssueListSearchBar', function() {
       };
       const onSearch = jest.fn();
       const props = {
-        orgId: 'org-slug',
+        organization,
         query: 'url:"fu"',
         onSearch,
         tagValueLoader: loader,
         supportedTags,
       };
-      const searchBar = mount(<IssueListSearchBar {...props} />, options);
+      const searchBar = mount(<IssueListSearchBar {...props} />, routerContext);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -155,7 +154,7 @@ describe('IssueListSearchBar', function() {
 
     it('queries for recent searches', async function() {
       const props = {
-        orgId: 'org-slug',
+        organization,
         query: 'timesSeen:',
         tagValueLoader: () => {},
         savedSearchType: 0,
@@ -163,7 +162,7 @@ describe('IssueListSearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<IssueListSearchBar {...props} />, options);
+      const wrapper = mount(<IssueListSearchBar {...props} />, routerContext);
 
       wrapper.find('input').simulate('change', {target: {value: 'is:'}});
       await tick();
@@ -183,7 +182,7 @@ describe('IssueListSearchBar', function() {
 
     it('cycles through keyboard navigation for selection', async function() {
       const props = {
-        orgId: 'org-slug',
+        organization,
         query: 'timesSeen:',
         tagValueLoader: () => {},
         savedSearchType: 0,
@@ -191,7 +190,7 @@ describe('IssueListSearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<IssueListSearchBar {...props} />, options);
+      const wrapper = mount(<IssueListSearchBar {...props} />, routerContext);
 
       wrapper.find('input').simulate('change', {target: {value: 'is:'}});
       await tick();
@@ -220,9 +219,6 @@ describe('IssueListSearchBar', function() {
   describe('Pinned Searches', function() {
     let pinSearch;
     let unpinSearch;
-    const {organization, routerContext} = initializeOrg({
-      organization: {access: [], features: []},
-    });
 
     beforeEach(function() {
       MockApiClient.clearMockResponses();
@@ -245,7 +241,6 @@ describe('IssueListSearchBar', function() {
 
     it('has pin icon', function() {
       const props = {
-        orgId: organization.slug,
         query: 'url:"fu"',
         onSearch: jest.fn(),
         tagValueLoader: () => Promise.resolve([]),
@@ -258,7 +253,6 @@ describe('IssueListSearchBar', function() {
 
     it('pins a search from the searchbar', function() {
       const props = {
-        orgId: organization.slug,
         query: 'url:"fu"',
         onSearch: jest.fn(),
         tagValueLoader: () => Promise.resolve([]),
@@ -282,7 +276,6 @@ describe('IssueListSearchBar', function() {
 
     it('unpins a search from the searchbar', function() {
       const props = {
-        orgId: organization.slug,
         query: 'url:"fu"',
         onSearch: jest.fn(),
         tagValueLoader: () => Promise.resolve([]),
