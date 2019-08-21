@@ -93,16 +93,9 @@ class EventDetails extends AsyncComponent {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
-    if (notFound) {
-      return (
-        <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
-          <NotFound />
-        </ModalDialog>
-      );
-    }
     return (
       <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
-        {super.renderError(error, true, true)}
+        {notFound ? <NotFound /> : super.renderError(error, true, true)}
       </ModalDialog>
     );
   }
