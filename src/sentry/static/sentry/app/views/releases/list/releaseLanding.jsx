@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
@@ -14,7 +15,30 @@ import withApi from 'app/utils/withApi';
 
 import ReleaseLandingCard from './releaseLandingCard';
 
-const Illustration = styled('object')`
+class Illustration extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
+
+  render() {
+    const {data} = this.props;
+
+    // Currently, we need a fallback because object doesn't work in msedge,
+    // and img doesn't work in safari. Hopefully we can choose one soon.
+    return (
+      <ObjectIllustration type="image/svg+xml" data={data}>
+        <ImgIllustration type="image/svg+xml" src={data} />
+      </ObjectIllustration>
+    );
+  }
+}
+
+const ObjectIllustration = styled('object')`
+  width: 100%;
+  height: 100%;
+`;
+
+const ImgIllustration = styled('img')`
   width: 100%;
   height: 100%;
 `;
@@ -25,33 +49,33 @@ const cards = [
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),
-    svg: <Illustration type="image/svg+xml" data={contributors} />,
+    svg: <Illustration data={contributors} />,
   },
   {
     title: t('Suspect Commits'),
     message: t(
       'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
     ),
-    svg: <Illustration type="image/svg+xml" data={suggestedAssignees} />,
+    svg: <Illustration data={suggestedAssignees} />,
   },
   {
     title: t('Release Stats'),
     message: t(
       'See the commits in each release, and which issues were introduced or fixed in the release'
     ),
-    svg: <Illustration type="image/svg+xml" data={issues} />,
+    svg: <Illustration data={issues} />,
   },
   {
     title: t('Easy Resolution'),
     message: t(
       'Automatically resolve issues by including the issue number in your commit message'
     ),
-    svg: <Illustration type="image/svg+xml" data={minified} />,
+    svg: <Illustration data={minified} />,
   },
   {
     title: t('Deploy Emails'),
     message: t('Receive email notifications when your code gets deployed'),
-    svg: <Illustration type="image/svg+xml" data={emails} />,
+    svg: <Illustration data={emails} />,
   },
 ];
 
