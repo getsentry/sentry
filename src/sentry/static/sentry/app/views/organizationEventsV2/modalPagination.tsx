@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {omit} from 'lodash';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 import {Event} from 'app/types';
 
 import {MODAL_QUERY_KEYS} from './data';
@@ -25,7 +25,7 @@ type LinksType = {
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event: Event, location: ReactRouterLocation): LinksType {
+function buildTargets(event: Event, location: Location): LinksType {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
@@ -58,7 +58,7 @@ function buildTargets(event: Event, location: ReactRouterLocation): LinksType {
 
 type Props = {
   event: Event;
-  location: ReactRouterLocation;
+  location: Location;
 };
 
 const ModalPagination = (props: Props) => {

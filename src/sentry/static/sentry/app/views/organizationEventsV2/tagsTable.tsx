@@ -3,7 +3,6 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import * as ReactRouter from 'react-router';
 
-import {ReactRouterLocation} from 'app/types/reactRouter';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';

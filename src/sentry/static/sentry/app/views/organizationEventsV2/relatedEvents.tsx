@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
-import {ReactRouterLocation} from 'app/types/reactRouter';
+import {Location} from 'history';
 
 import {Organization, EventView, Event, Project} from 'app/types';
 import {t} from 'app/locale';
@@ -22,7 +22,7 @@ import {MODAL_QUERY_KEYS} from './data';
 import {EventQuery} from './utils';
 
 type Props = {
-  location: ReactRouterLocation;
+  location: Location;
   organization: Organization;
   view: EventView;
   event: Event;

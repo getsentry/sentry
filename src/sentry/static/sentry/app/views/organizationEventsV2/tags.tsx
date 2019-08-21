@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isEqual, omit} from 'lodash';
+import {Location} from 'history';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
@@ -10,7 +11,6 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization, EventView} from 'app/types';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {
   fetchTagDistribution,
@@ -26,7 +26,7 @@ type Props = {
   api: Client;
   organization: Organization;
   view: EventView;
-  location: ReactRouterLocation;
+  location: Location;
 };
 
 type State = {

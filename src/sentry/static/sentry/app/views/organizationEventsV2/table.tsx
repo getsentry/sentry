@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 import {omit} from 'lodash';
+import {Location} from 'history';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -10,7 +11,6 @@ import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {EventView, Organization} from 'app/types';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {FIELD_FORMATTERS, SPECIAL_FIELDS} from './data';
 import {getFieldRenderer} from './utils';
@@ -19,7 +19,7 @@ import SortLink from './sortLink';
 type Props = {
   view: EventView;
   isLoading: boolean;
-  location: ReactRouterLocation;
+  location: Location;
   organization: Organization;
   // TODO(ts): adjust this type
   data: any;
