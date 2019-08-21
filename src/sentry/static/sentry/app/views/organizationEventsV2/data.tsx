@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {deepFreeze} from 'app/utils';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
@@ -25,7 +24,7 @@ export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'];
 
 // TODO(ts): eventually defer to TS compile-time check to ensure this is readonly instead
 //       of deepfreezing it in runtime
-export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
+export const ALL_VIEWS: Readonly<Array<EventView>> = [
   {
     id: 'all',
     name: t('All Events'),
@@ -93,7 +92,7 @@ export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
     ],
     columnWidths: ['3fr', '1fr', '70px'],
   },
-]);
+];
 
 type EventData = {[key: string]: any};
 
