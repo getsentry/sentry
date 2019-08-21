@@ -93,11 +93,13 @@ const handleClick = async function(
     start: getUtcDateString(value),
     end: getUtcDateString(value + intervalToMilliseconds(interval)),
     limit: 1,
-    sort: sortField,
     referenceEvent: `${currentEvent.projectSlug}:${currentEvent.eventID}`,
     query: queryString,
     field,
   };
+  if (sortField !== null) {
+    query.sort = sortField;
+  }
 
   const url = `/organizations/${organization.slug}/eventsv2/`;
   let response;
