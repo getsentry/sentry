@@ -1,12 +1,36 @@
+import {Manager, Reference, Popper} from 'react-popper';
+import * as PopperJS from 'popper.js';
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 
-import {Manager, Reference, Popper} from 'react-popper';
 import {domId} from 'app/utils/domId';
 
-class Tooltip extends React.Component {
+type Props = {
+  children: React.ReactElement;
+  disabled?: boolean;
+  title: React.ReactNode;
+  position: PopperJS.Placement;
+  popperStyle?: React.CSSProperties;
+  containerDisplayMode?: React.CSSProperties['display'];
+  delay?: number;
+};
+
+type State = {
+  isOpen: boolean;
+};
+
+// Using an inline-block solves the container being smaller
+// than the elements it is wrapping
+//
+// XXX(epurkhiser): We appease the typescript checker here by avoiding passing
+// props. I am not sure why this works.
+const Container = styled('span')`
+  display: ${(p: any) => p.containerDisplayMode};
+`;
+
+class Tooltip extends React.Component<Props, State> {
   static propTypes = {
     /**
      * Disable the tooltip display entirely
@@ -60,7 +84,7 @@ class Tooltip extends React.Component {
     containerDisplayMode: 'inline-block',
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     let portal = document.getElementById('tooltip-portal');
@@ -80,11 +104,15 @@ class Tooltip extends React.Component {
     this.tooltipId = domId('tooltip-');
   }
 
+  portalEl: HTMLElement;
+  tooltipId: string = '';
+  delayTimeout: number | null = null;
+
   setOpen = () => {
     this.setState({isOpen: true});
   };
 
-  handleOpen = evt => {
+  handleOpen = () => {
     const {delay} = this.props;
 
     if (delay) {
@@ -94,7 +122,7 @@ class Tooltip extends React.Component {
     }
   };
 
-  handleClose = evt => {
+  handleClose = () => {
     this.setState({isOpen: false});
 
     if (this.delayTimeout) {
@@ -103,8 +131,8 @@ class Tooltip extends React.Component {
     }
   };
 
-  renderTrigger(children, ref) {
-    const propList = {
+  renderTrigger(children: React.ReactElement, ref: React.Ref<HTMLElement>) {
+    const propList: Partial<React.ComponentProps<typeof Container>> = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
       onBlur: this.handleClose,
@@ -138,8 +166,8 @@ class Tooltip extends React.Component {
       return children;
     }
 
-    let tip = null;
-    const modifiers = {
+    let tip: React.ReactPortal | null = null;
+    const modifiers: PopperJS.Modifiers = {
       hide: {enabled: false},
       preventOverflow: {
         padding: 10,
@@ -156,7 +184,6 @@ class Tooltip extends React.Component {
               id={this.tooltipId}
               className="tooltip-content"
               aria-hidden={!isOpen}
-              isOpen={isOpen}
               innerRef={ref}
               style={style}
               data-placement={placement}
@@ -184,13 +211,7 @@ class Tooltip extends React.Component {
   }
 }
 
-// Using an inline-block solves the container being smaller
-// than the elements it is wrapping
-const Container = styled('span')`
-  display: ${p => p.containerDisplayMode};
-`;
-
-const TooltipContent = styled('div')`
+const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
   color: #fff;
   background: #000;
   opacity: 0.9;
@@ -207,7 +228,7 @@ const TooltipContent = styled('div')`
 
   margin: 6px;
   text-align: center;
-  ${props => props.popperStyle};
+  ${p => p.popperStyle as any};
 `;
 
 const TooltipArrow = styled('span')`
