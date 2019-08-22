@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db.models import F
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import Organization
+from sentry.models import Organization, AuthProvider
 
 
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
@@ -23,15 +23,30 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
     def test_invite_simple(self):
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
+        self.browser.wait_until('[data-test-id="accept-invite"]')
         self.browser.snapshot(name="accept organization invite")
-        assert self.browser.element_exists_by_test_id("join-organization")
+        assert self.browser.element_exists('[aria-label="join-organization"]')
 
     def test_invite_not_authenticated(self):
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        assert self.browser.element_exists_by_test_id("create-account")
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+        assert self.browser.element_exists('[aria-label="create-account"]')
 
     def test_invite_2fa_enforced_org(self):
+        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+        assert not self.browser.element_exists_by_test_id("2fa-warning")
+
         self.login_as(self.user)
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        assert self.browser.element_exists_by_test_id("setup-2fa")
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+        assert self.browser.element_exists_by_test_id("2fa-warning")
+
+    def test_invite_sso_org(self):
+        AuthProvider.objects.create(organization=self.org, provider="google")
+        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+        assert self.browser.element_exists_by_test_id("suggests-sso")
+        assert self.browser.element_exists('[aria-label="sso-login"]')

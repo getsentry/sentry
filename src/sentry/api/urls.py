@@ -8,6 +8,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
+from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
@@ -398,6 +399,12 @@ urlpatterns = patterns(
         r"^accept-transfer/$",
         AcceptProjectTransferEndpoint.as_view(),
         name="sentry-api-0-accept-project-transfer",
+    ),
+    # Organization invite
+    url(
+        r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        AcceptOrganizationInvite.as_view(),
+        name="sentry-api-0-accept-organization-invite",
     ),
     # Monitors
     url(
