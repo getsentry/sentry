@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 import Events from './events';
 import EventDetails from './eventDetails';
 import {ALL_VIEWS} from './data';
-import {getCurrentView} from './utils';
+import {getCurrentView, getFirstQueryString} from './utils';
 
 type Props = {
   organization: Organization;
@@ -39,7 +39,8 @@ class OrganizationEventsV2 extends React.Component<Props> {
 
   renderTabs(): React.ReactNode {
     const {location} = this.props;
-    const currentView = getCurrentView(location.query.view);
+    const firstView = getFirstQueryString(location.query, 'view');
+    const currentView = getCurrentView(firstView);
 
     return (
       <NavTabs underlined={true}>
@@ -66,8 +67,10 @@ class OrganizationEventsV2 extends React.Component<Props> {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventSlug} = location.query;
-    const currentView = getCurrentView(location.query.view);
+    const eventSlug = getFirstQueryString(location.query, 'eventSlug');
+    const view = getFirstQueryString(location.query, 'view');
+
+    const currentView = getCurrentView(view);
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
