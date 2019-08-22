@@ -92,6 +92,7 @@ const PluginIcon = styled('div')<Props>`
   background-image: url(${({pluginId}) =>
     (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
+
 PluginIcon.defaultProps = {
   pluginId: '_default',
   size: 20,
