@@ -106,9 +106,9 @@ ModalPagination.propTypes = {
 
 const StyledLink = styled(Link, {
   shouldForwardProp: isPropValid,
-})<{theme: any; disabled: boolean; fontSizeMedium: string; isLast: boolean}>`
+})<{theme: any; disabled: boolean; isLast: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
-  font-size: ${p => p.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
