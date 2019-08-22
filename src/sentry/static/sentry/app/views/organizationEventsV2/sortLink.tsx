@@ -1,11 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
+import {Location} from 'history';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 
-class SortLink extends React.Component {
+type Props = {
+  title: string;
+  sortKey: string;
+  defaultSort: string | null;
+  location: Location;
+};
+
+class SortLink extends React.Component<Props> {
   static propTypes = {
     title: PropTypes.string.isRequired,
     sortKey: PropTypes.string.isRequired,

@@ -318,7 +318,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       ? this.transformPreviousPeriodData(current, previous)
       : null;
     const timeAggregatedData = includeTimeAggregation
-      ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName)
+      ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
       : {};
     return {
       data: transformedData,

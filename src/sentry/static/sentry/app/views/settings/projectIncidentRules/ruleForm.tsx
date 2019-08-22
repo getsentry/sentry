@@ -11,6 +11,7 @@ import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
@@ -18,6 +19,7 @@ import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import SearchBar from 'app/views/events/searchBar';
 
 import {
   AlertRuleAggregations,
@@ -306,7 +308,7 @@ class RuleForm extends React.Component<Props, State> {
         <JsonForm
           renderHeader={() => {
             return (
-              <PanelAlert type="warning">
+              <PanelAlert type="info">
                 {t(
                   'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. Use the sliders to control frequency.'
                 )}
@@ -332,23 +334,31 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeMetric,
                 },
                 {
-                  name: 'timeWindow',
-                  type: 'select',
-                  label: t('Time Window'),
-                  help: t('The time window to use when evaluating the Metric'),
-                  onChange: this.handleTimeWindowChange,
-                  choices: Object.entries(TIME_WINDOW_MAP),
-                  required: true,
-                },
-                {
                   name: 'query',
-                  type: 'text',
+                  type: 'custom',
                   label: t('Filter'),
                   defaultValue: '',
                   placeholder: 'error.type:TypeError',
                   help: t(
                     'You can apply standard Sentry filter syntax to filter by status, user, etc.'
                   ),
+                  Component: props => {
+                    return (
+                      <FormField {...props}>
+                        {({onChange, onBlur, onKeyDown}) => {
+                          return (
+                            <SearchBar
+                              organization={organization}
+                              onChange={onChange}
+                              onBlur={onBlur}
+                              onKeyDown={onKeyDown}
+                              onSearch={query => onChange(query, {})}
+                            />
+                          );
+                        }}
+                      </FormField>
+                    );
+                  },
                 },
                 {
                   name: 'alertThreshold',
@@ -386,6 +396,15 @@ class RuleForm extends React.Component<Props, State> {
                     'This is a metric that needs to stay above a certain threshold'
                   ),
                   onChange: this.handleChangeThresholdType,
+                },
+                {
+                  name: 'timeWindow',
+                  type: 'select',
+                  label: t('Time Window'),
+                  help: t('The time window to use when evaluating the Metric'),
+                  onChange: this.handleTimeWindowChange,
+                  choices: Object.entries(TIME_WINDOW_MAP),
+                  required: true,
                 },
                 {
                   name: 'name',

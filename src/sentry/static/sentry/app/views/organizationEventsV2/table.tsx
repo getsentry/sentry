@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 import {omit} from 'lodash';
+import {Location} from 'history';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -9,12 +10,22 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {EventView, Organization} from 'app/types';
 
 import {FIELD_FORMATTERS, SPECIAL_FIELDS} from './data';
 import {getFieldRenderer} from './utils';
 import SortLink from './sortLink';
 
-export default class Table extends React.Component {
+type Props = {
+  view: EventView;
+  isLoading: boolean;
+  location: Location;
+  organization: Organization;
+  // TODO(ts): adjust this type
+  data: any;
+};
+
+export default class Table extends React.Component<Props> {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
     data: PropTypes.object,
@@ -61,14 +72,14 @@ export default class Table extends React.Component {
           {fields.map((field, i) => {
             const title = columnNames[i] || field;
 
-            let sortKey = field;
+            let sortKey: string | null = field;
             if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-              sortKey = SPECIAL_FIELDS[field].sortField;
+              sortKey = SPECIAL_FIELDS[field].sortField || null;
             } else if (FIELD_FORMATTERS.hasOwnProperty(field)) {
-              sortKey = FIELD_FORMATTERS[field].sortField ? field : false;
+              sortKey = FIELD_FORMATTERS[field].sortField ? field : null;
             }
 
-            if (sortKey === false) {
+            if (sortKey === null) {
               return <HeaderItem key={field}>{title}</HeaderItem>;
             }
 
@@ -123,9 +134,10 @@ const Cell = styled('div')`
   overflow: hidden;
 `;
 
+// TODO(ts): adjust types
 const StyledPanelBody = styled(props => {
   const otherProps = omit(props, 'isLoading');
   return <PanelBody {...otherProps} />;
 })`
-  ${p => p.isLoading && 'min-height: 240px;'};
+  ${(p: {isLoading: boolean}) => p.isLoading && 'min-height: 240px;'};
 `;
