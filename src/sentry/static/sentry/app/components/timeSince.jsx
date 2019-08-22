@@ -38,6 +38,10 @@ class TimeSince extends React.PureComponent {
 
   constructor(props) {
     super(props);
+
+    this.state = {
+      relative: '',
+    };
   }
 
   static getDerivedStateFromProps(props) {
