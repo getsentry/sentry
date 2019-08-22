@@ -396,7 +396,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                 instance, oauth_data, self.oauth_redirect_url
             )
         except ApiError as e:
-            if e.code == 400 or e.code == 403 or "permission" in e.message:
+            auth_codes = (400, 401, 403)
+            permission_error = "permission" in e.message or "not authorized" in e.message
+            if e.code in auth_codes or permission_error:
                 raise IntegrationError(
                     "You do not have sufficient account access to create webhooks "
                     "on the selected Azure DevOps organization.\n"

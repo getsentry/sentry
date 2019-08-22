@@ -12,7 +12,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator, OrganizationMember
 from sentry.security import capture_security_activity
-from sentry.web.frontend.accept_organization_invite import ApiInviteHelper
+from sentry.api.invite_helper import ApiInviteHelper
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +246,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 except OrganizationMember.DoesNotExist:
                     logger.error("Failed to accept pending org invite", exc_info=True)
                 else:
-                    if helper.valid_request():
+                    if helper.valid_request:
                         helper.accept_invite()
 
                         response = Response(status=status.HTTP_204_NO_CONTENT)

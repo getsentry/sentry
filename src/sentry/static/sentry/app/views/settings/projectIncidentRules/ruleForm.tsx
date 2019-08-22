@@ -3,18 +3,23 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {EventsStatsData, Organization, Project} from 'app/types';
+import {Client} from 'app/api';
+import {Config, EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import withApi from 'app/utils/withApi';
+import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import SearchBar from 'app/views/events/searchBar';
 
 import {
   AlertRuleAggregations,
@@ -25,7 +30,8 @@ import {IncidentRule} from './types';
 import IncidentRulesChart from './chart';
 
 type Props = {
-  api: any;
+  api: Client;
+  config: Config;
   data: EventsStatsData;
   organization: Organization;
   project: Project;
@@ -44,6 +50,44 @@ type State = {
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
   [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
+};
+
+enum TimeWindow {
+  ONE_MINUTE = 60,
+  FIVE_MINUTES = 300,
+  TEN_MINUTES = 600,
+  FIFTEEN_MINUTES = 900,
+  THIRTY_MINUTES = 1800,
+  ONE_HOUR = 3600,
+  TWO_HOURS = 7200,
+  FOUR_HOURS = 14400,
+  ONE_DAY = 86400,
+}
+
+type TimeWindowMapType = {[key in TimeWindow]: string};
+
+const TIME_WINDOW_MAP: TimeWindowMapType = {
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
+  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hours'),
+  [TimeWindow.FOUR_HOURS]: t('4 hours'),
+  [TimeWindow.ONE_DAY]: t('24 hours'),
+};
+
+const TIME_WINDOW_TO_PERIOD: TimeWindowMapType = {
+  [TimeWindow.ONE_MINUTE]: '12h',
+  [TimeWindow.FIVE_MINUTES]: '12h',
+  [TimeWindow.TEN_MINUTES]: '1d',
+  [TimeWindow.FIFTEEN_MINUTES]: '3d',
+  [TimeWindow.THIRTY_MINUTES]: '3d',
+  [TimeWindow.ONE_HOUR]: '7d',
+  [TimeWindow.TWO_HOURS]: '7d',
+  [TimeWindow.FOUR_HOURS]: '7d',
+  [TimeWindow.ONE_DAY]: '14d',
 };
 
 const DEFAULT_TIME_WINDOW = 60;
@@ -80,6 +124,15 @@ class RuleForm extends React.Component<Props, State> {
     type === AlertRuleThreshold.RESOLUTION ? 'resolveThreshold' : 'alertThreshold';
 
   /**
+   * Gets a reasonable period given a timewindow (in seconds)
+   *
+   * @param timeWindow The time window in seconds
+   * @return period The period string to use (e.g. 14d)
+   */
+  getPeriodForTimeWindow = (timeWindow: TimeWindow): string =>
+    TIME_WINDOW_TO_PERIOD[timeWindow];
+
+  /**
    * Checks to see if threshold is valid given target value, and state of
    * inverted threshold as well as the *other* threshold
    *
@@ -105,11 +158,26 @@ class RuleForm extends React.Component<Props, State> {
       : value >= otherValue;
   };
 
-  revertThresholdUpdate = () => {
-    addErrorMessage(t('Invalid threshold value'));
+  revertThresholdUpdate = (type: AlertRuleThreshold) => {
+    const isIncident = type === AlertRuleThreshold.INCIDENT;
+    const typeDisplay = isIncident ? t('Incident boundary') : t('Resolution boundary');
+    const otherTypeDisplay = !isIncident
+      ? t('Incident boundary')
+      : t('Resolution boundary');
+
+    // if incident and not inverted: incident required to be >
+    // if resolution and inverted: resolution required to be >
+    const direction = isIncident !== this.state.isInverted ? 'greater' : 'less';
+
+    addErrorMessage(t(`${typeDisplay} must be ${direction} than ${otherTypeDisplay}`));
+
     // Need to a re-render so that our chart re-renders and moves the draggable line back
     // to its original position (since the drag update is not valid)
     this.forceUpdate();
+
+    // Reset form value
+    const thresholdKey = this.getThresholdKey(type);
+    this.context.form.setValue(thresholdKey, this.state[thresholdKey]);
   };
 
   updateThresholdInput = (type: AlertRuleThreshold, value: number) => {
@@ -119,7 +187,7 @@ class RuleForm extends React.Component<Props, State> {
         [this.getThresholdKey(type)]: value,
       }));
     } else {
-      this.revertThresholdUpdate();
+      this.revertThresholdUpdate(type);
     }
   };
 
@@ -133,7 +201,7 @@ class RuleForm extends React.Component<Props, State> {
       }));
       this.context.form.setValue(thresholdKey, Math.round(newValue));
     } else {
-      this.revertThresholdUpdate();
+      this.revertThresholdUpdate(type);
     }
   };
 
@@ -153,7 +221,7 @@ class RuleForm extends React.Component<Props, State> {
     this.updateThreshold(AlertRuleThreshold.RESOLUTION, value);
   };
 
-  handleTimeWindowChange = (timeWindow: number) => {
+  handleTimeWindowChange = (timeWindow: TimeWindow) => {
     this.setState({timeWindow});
   };
 
@@ -183,7 +251,7 @@ class RuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, organization, project} = this.props;
+    const {api, config, organization, project} = this.props;
     const {
       aggregations,
       alertThreshold,
@@ -199,6 +267,7 @@ class RuleForm extends React.Component<Props, State> {
           organization={organization}
           project={[parseInt(project.id, 10)]}
           interval={`${timeWindow}s`}
+          period={this.getPeriodForTimeWindow(timeWindow)}
           yAxis={
             aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
           }
@@ -211,6 +280,20 @@ class RuleForm extends React.Component<Props, State> {
               <React.Fragment>
                 <TransparentLoadingMask visible={reloading} />
                 <IncidentRulesChart
+                  xAxis={{
+                    axisLabel: {
+                      formatter: (value, index) => {
+                        const firstItem = index === 0;
+                        const format =
+                          timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
+                            ? 'LT'
+                            : 'MMM Do';
+                        return getFormattedDate(value, format, {
+                          local: config.user.options.timezone !== 'UTC',
+                        });
+                      },
+                    },
+                  }}
                   onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
                   alertThreshold={alertThreshold}
                   onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
@@ -225,7 +308,7 @@ class RuleForm extends React.Component<Props, State> {
         <JsonForm
           renderHeader={() => {
             return (
-              <PanelAlert type="warning">
+              <PanelAlert type="info">
                 {t(
                   'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. Use the sliders to control frequency.'
                 )}
@@ -251,33 +334,31 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeMetric,
                 },
                 {
-                  name: 'timeWindow',
-                  type: 'select',
-                  label: t('Time Window'),
-                  help: t('The time window to use when evaluating the Metric'),
-                  onChange: this.handleTimeWindowChange,
-                  choices: [
-                    [60, t('1 minute')],
-                    [300, t('5 minutes')],
-                    [600, t('10 minutes')],
-                    [900, t('15 minutes')],
-                    [1800, t('30 minutes')],
-                    [3600, t('1 hour')],
-                    [7200, t('2 hours')],
-                    [14400, t('4 hours')],
-                    [86400, t('24 hours')],
-                  ],
-                  required: true,
-                },
-                {
                   name: 'query',
-                  type: 'text',
+                  type: 'custom',
                   label: t('Filter'),
                   defaultValue: '',
                   placeholder: 'error.type:TypeError',
                   help: t(
                     'You can apply standard Sentry filter syntax to filter by status, user, etc.'
                   ),
+                  Component: props => {
+                    return (
+                      <FormField {...props}>
+                        {({onChange, onBlur, onKeyDown}) => {
+                          return (
+                            <SearchBar
+                              organization={organization}
+                              onChange={onChange}
+                              onBlur={onBlur}
+                              onKeyDown={onKeyDown}
+                              onSearch={query => onChange(query, {})}
+                            />
+                          );
+                        }}
+                      </FormField>
+                    );
+                  },
                 },
                 {
                   name: 'alertThreshold',
@@ -289,19 +370,22 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeIncidentThresholdInput,
                   showCustomInput: true,
                   required: true,
+                  min: 1,
                 },
                 {
                   name: 'resolveThreshold',
                   type: 'range',
-                  label: t('Resolution Threshold'),
+                  label: t('Resolution Boundary'),
                   help: !isInverted
                     ? t('Anything trending below this limit will resolve an Incident')
                     : t('Anything trending above this limit will resolve an Incident'),
                   onChange: this.handleChangeResolutionThresholdInput,
                   showCustomInput: true,
                   placeholder: resolveThreshold === null ? t('Off') : '',
-                  ...(!isInverted && alertThreshold !== null && {max: alertThreshold}),
-                  ...(isInverted && alertThreshold !== null && {min: alertThreshold}),
+                  ...(!isInverted &&
+                    alertThreshold !== null && {min: 1, max: alertThreshold}),
+                  ...(isInverted &&
+                    alertThreshold !== null && {min: alertThreshold || 1}),
                 },
                 {
                   name: 'thresholdType',
@@ -312,6 +396,15 @@ class RuleForm extends React.Component<Props, State> {
                     'This is a metric that needs to stay above a certain threshold'
                   ),
                   onChange: this.handleChangeThresholdType,
+                },
+                {
+                  name: 'timeWindow',
+                  type: 'select',
+                  label: t('Time Window'),
+                  help: t('The time window to use when evaluating the Metric'),
+                  onChange: this.handleTimeWindowChange,
+                  choices: Object.entries(TIME_WINDOW_MAP),
+                  required: true,
                 },
                 {
                   name: 'name',
@@ -331,7 +424,8 @@ class RuleForm extends React.Component<Props, State> {
 }
 
 type RuleFormContainerProps = {
-  api: any;
+  api: Client;
+  config: Config;
   organization: Organization;
   project: Project;
   orgId: string;
@@ -384,4 +478,4 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   z-index: 1;
 `;
 
-export default withApi(withOrganization(withProject(RuleFormContainer)));
+export default withConfig(withApi(withOrganization(withProject(RuleFormContainer))));

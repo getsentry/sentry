@@ -5,11 +5,11 @@ import SentryTypes from 'app/sentryTypes';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 
-import {SentryEvent} from './types';
+import {SentryTransactionEvent} from './types';
 import TraceView from './traceView';
 
 type PropType = {
-  event: SentryEvent;
+  event: SentryTransactionEvent;
 };
 
 class TransanctionView extends React.Component<PropType> {
