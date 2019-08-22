@@ -4,34 +4,33 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
 /**
- * Fetch a subset of releases for an organization or project.
+ * Fetch a subset of releases for an organization or project. To fetch releases
+ * from multiple projects, leave `projectId` as undefined.
  *
- * @param {Object} api API client
- * @param {String} orgId Organization slug
- * @param {String} projectId Index of the project inside Organization object
- * @param {String} releaseVersion Partial or complete string of the release version
- * @param {Number} limit Number of results to return
+ * TODO(leedongwei): Replace `any` types.
  */
 export function fetchReleases(
-  api,
-  orgId,
-  projectId = null,
-  releaseVersion = '',
-  limit = ''
-) {
+  api: any,
+  orgId: string,
+  project?: string,
+  releaseVersion?: string,
+  pageSize?: number
+): Promise<any> {
   const url = `/organizations/${orgId}/releases/`;
-  const query = {};
+  const query: {
+    [key: string]: string | number;
+  } = {};
 
-  if (projectId) {
-    query.project = projectId;
+  if (project) {
+    query.project = project;
   }
 
   if (releaseVersion) {
     query.query = releaseVersion;
   }
 
-  if (limit) {
-    query.limit = limit;
+  if (pageSize) {
+    query.per_page = pageSize;
   }
 
   ReleaseActions.fetchReleases();

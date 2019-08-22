@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
-import {Client} from 'app/api';
 
+import {Client} from 'app/api';
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
 
@@ -45,7 +45,20 @@ describe('SmartSearchBar', function() {
     supportedTags = TagStore.getAllTags();
     organization = TestStubs.Organization({id: '123'});
 
-    options = TestStubs.routerContext([{organization}]);
+    const location = {
+      pathname: '/organizations/org-slug/recent-searches/',
+      query: {
+        projectId: '0',
+      },
+    };
+
+    options = TestStubs.routerContext([
+      {
+        organization,
+        location,
+        router: {location},
+      },
+    ]);
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -436,18 +449,28 @@ describe('SmartSearchBar', function() {
       });
       const props = {
         orgId: 'org-slug',
-        projectId: '1',
+        projectId: '0',
         query: 'firstRelease:',
         organization,
         supportedTags,
       };
+
       const searchBar = mount(
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
       searchBar.updateAutoCompleteItems();
+
       jest.advanceTimersByTime(301);
-      expect(mock).toHaveBeenCalled();
+      expect(mock).toHaveBeenCalledWith('/organizations/org-slug/releases/', {
+        method: 'GET',
+        query: {
+          project: '0',
+          per_page: 5, // Limit results to 5 for autocomplete
+        },
+        success: expect.any(Function), // Promise.then is added by Releases actionCreator
+        error: expect.any(Function), // Promise.catch is added by Releases actionCreator
+      });
     });
   });
 

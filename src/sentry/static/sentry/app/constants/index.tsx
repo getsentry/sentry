@@ -162,8 +162,8 @@ export const SEARCH_TYPES = {
   ISSUE: 0,
   EVENT: 1,
 };
-export const MAX_RECENT_SEARCHES = 3;
-export const MAX_RELEASES = 5;
+export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
+export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
 
