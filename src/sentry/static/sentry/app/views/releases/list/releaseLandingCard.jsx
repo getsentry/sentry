@@ -64,7 +64,7 @@ const Container = styled('div')`
 
 const StyledBox = styled('div')`
   flex: 1;
-  padding: 20px;
+  padding: ${space(3)};
 `;
 
 const IllustrationContainer = styled(StyledBox)`

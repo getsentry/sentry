@@ -7,15 +7,16 @@ import emails from 'sentry-dreamy-components/dist/emails.svg';
 import issues from 'sentry-dreamy-components/dist/issues.svg';
 import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
 import contributors from 'sentry-dreamy-components/dist/contributors.svg';
-import SentryTypes from 'app/sentryTypes';
+import {Project, Organization} from 'app/types';
 
 import {analytics} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import ReleaseLandingCard from './releaseLandingCard';
 
 type IllustrationProps = {
-  data: string;
+  data: string,
 };
 
 class Illustration extends React.Component<IllustrationProps> {
@@ -78,16 +79,17 @@ const cards = [
   },
 ];
 
-type State = {
-  stepId: number;
+type ReleaseLandingProps = {
+  organization: Organization,
+  project: Project,
 };
 
-const ReleaseLanding = withApi(
-  class ReleaseLanding extends React.Component<{}, State> {
-    static contextTypes = {
-      organization: SentryTypes.Organization,
-      project: SentryTypes.Project,
-    };
+type State = {
+  stepId: number,
+}
+
+const ReleaseLanding = withOrganization(withProject(
+  class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
 
     constructor(props) {
       super(props);
@@ -97,7 +99,7 @@ const ReleaseLanding = withApi(
     }
 
     componentDidMount() {
-      const {organization, project} = this.context;
+      const {organization, project} = this.props;
 
       analytics('releases.landing_card_viewed', {
         org_id: parseInt(organization.id, 10),
@@ -107,7 +109,7 @@ const ReleaseLanding = withApi(
 
     handleClick = () => {
       const {stepId} = this.state;
-      const {organization, project} = this.context;
+      const {organization, project} = this.props;
 
       const title = cards[stepId].title;
       if (stepId >= cards.length - 1) {
@@ -147,6 +149,6 @@ const ReleaseLanding = withApi(
       );
     }
   }
-);
+));
 
 export default ReleaseLanding;
