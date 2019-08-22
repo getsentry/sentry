@@ -19,13 +19,18 @@ export default class InstallationIdModal extends React.Component {
     closeModal: PropTypes.func.isRequired,
   };
 
+  onCopy = async () => {
+    //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
+    return await navigator.clipboard.writeText(this.props.installationId);
+  };
+
   render() {
     const {installationId, link, closeModal} = this.props;
     return (
       <div>
         <ItemHolder>{t('Installation ID to Copy:')}</ItemHolder>
         <ItemHolder>
-          <TextCopyInput value={installationId}>{installationId}</TextCopyInput>
+          <TextCopyInput onCopy={this.onCopy}>{installationId}</TextCopyInput>
         </ItemHolder>
         <ItemHolder>
           <ExternalLink href={link}>{t('Click here to continue')}</ExternalLink>
