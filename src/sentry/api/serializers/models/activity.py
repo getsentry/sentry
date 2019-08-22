@@ -91,8 +91,7 @@ class ActivitySerializer(Serializer):
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
-            if "mentions" in data:
-                del data["mentions"]
+            data.pop("mentions", None)
 
         return {
             "id": six.text_type(obj.id),
