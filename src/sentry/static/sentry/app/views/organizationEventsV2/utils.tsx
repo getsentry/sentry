@@ -226,3 +226,30 @@ export function getFieldRenderer(field: string, meta) {
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
+
+/**
+ * Get the first query string of a given name if there are multiple occurrences of it
+ * e.g. foo=42&foo=bar    ==>    foo=42 is the first occurrence for 'foo' and "42" will be returned.
+ *
+ * @param query     query string map
+ * @param name      name of the query string field
+ */
+export function getFirstQueryString(
+  query: {[key: string]: string | string[] | null | undefined},
+  name: string,
+  defaultValue?: string
+): string | undefined {
+  const needle = query[name];
+
+  if (typeof needle === 'string') {
+    return needle;
+  }
+
+  if (Array.isArray(needle) && needle.length > 0) {
+    if (typeof needle[0] === 'string') {
+      return needle[0];
+    }
+  }
+
+  return defaultValue;
+}
