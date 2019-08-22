@@ -23,6 +23,7 @@ export type EventQuery = {
   project?: string;
   sort?: string | string[];
   query: string;
+  per_page?: number;
 };
 
 /**
