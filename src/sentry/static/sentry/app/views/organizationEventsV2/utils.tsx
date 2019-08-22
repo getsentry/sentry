@@ -1,5 +1,8 @@
 import {partial, pick, get} from 'lodash';
+import {Location} from 'history';
 
+import {Client} from 'app/api';
+import {EventView} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
@@ -11,9 +14,17 @@ import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './
  * @returns {Object}
  *
  */
-export function getCurrentView(requestedView) {
+export function getCurrentView(requestedView?: string): EventView {
   return ALL_VIEWS.find(view => view.id === requestedView) || ALL_VIEWS[0];
 }
+
+export type EventQuery = {
+  field: Array<string>;
+  project?: string;
+  sort?: string | string[];
+  query: string;
+  per_page?: number;
+};
 
 /**
  * Takes a view and determines if there are any aggregate fields in it.
@@ -37,11 +48,21 @@ export function hasAggregateField(view) {
  * @param {Object} view
  * @returns {Object}
  */
-export function getQuery(view, location) {
-  const groupby = view.data.groupby ? [...view.data.groupby] : [];
-  const fields = get(view, 'data.fields', []);
+export function getQuery(view: EventView, location: Location) {
+  const fields: Array<string> = get(view, 'data.fields', []);
 
-  const data = pick(location.query, [
+  type LocationQuery = {
+    project?: string;
+    environment?: string;
+    start?: string;
+    end?: string;
+    utc?: string;
+    statsPeriod?: string;
+    cursor?: string;
+    sort?: string;
+  };
+
+  const picked = pick<LocationQuery>(location.query, [
     'project',
     'environment',
     'start',
@@ -52,13 +73,12 @@ export function getQuery(view, location) {
     'sort',
   ]);
 
-  data.field = [...new Set(fields)];
-  data.groupby = groupby;
-  if (!data.sort) {
-    data.sort = view.data.sort;
-  }
-  data.per_page = DEFAULT_PER_PAGE;
-  data.query = getQueryString(view, location);
+  const data: EventQuery = Object.assign(picked, {
+    field: [...new Set(fields)],
+    sort: picked.sort ? picked.sort : view.data.sort,
+    per_page: DEFAULT_PER_PAGE,
+    query: getQueryString(view, location),
+  });
 
   return data;
 }
@@ -72,13 +92,23 @@ export function getQuery(view, location) {
  * @param {Object} view defaults containing `.data.query`
  * @param {Location} browser location
  */
-export function getQueryString(view, location) {
-  const queryParts = [];
+export function getQueryString(view: EventView, location: Location): string {
+  const queryParts: Array<string> = [];
   if (view.data.query) {
     queryParts.push(view.data.query);
   }
   if (location.query && location.query.query) {
-    queryParts.push(location.query.query);
+    // there may be duplicate query in the query string
+    // e.g. query=hello&query=world
+    if (Array.isArray(location.query.query)) {
+      location.query.query.forEach(query => {
+        queryParts.push(query);
+      });
+    }
+
+    if (typeof location.query.query === 'string') {
+      queryParts.push(location.query.query);
+    }
   }
 
   return queryParts.join(' ');
@@ -93,7 +123,11 @@ export function getQueryString(view, location) {
  * @param {Object} browser location object.
  * @return {Object} router target
  */
-export function getEventTagSearchUrl(tagKey, tagValue, location) {
+export function getEventTagSearchUrl(
+  tagKey: string,
+  tagValue: string,
+  location: Location
+) {
   const query = {...location.query};
   // Add tag key/value to search
   if (query.query) {
@@ -110,20 +144,39 @@ export function getEventTagSearchUrl(tagKey, tagValue, location) {
   };
 }
 
+export type TagTopValue = {
+  url: {
+    pathname: string;
+    query: any;
+  };
+  value: string;
+};
+
+export type Tag = {
+  topValues: Array<TagTopValue>;
+};
+
 /**
  * Fetches tag distributions for a single tag key
  *
  * @param {Object} api
  * @param {String} orgSlug
  * @param {String} key
- * @param {string} query
+ * @param {String} query
  * @returns {Promise<Object>}
  */
-export function fetchTagDistribution(api, orgSlug, key, query) {
+export function fetchTagDistribution(
+  api: Client,
+  orgSlug: string,
+  key: string,
+  query: EventQuery
+): Promise<Tag> {
   const urlParams = pick(query, Object.values(URL_PARAM));
 
+  const queryOption = {...urlParams, key, query: query.query};
+
   return api.requestPromise(`/organizations/${orgSlug}/events-distribution/`, {
-    query: {...urlParams, key, query: query.query},
+    query: queryOption,
   });
 }
 
@@ -135,14 +188,24 @@ export function fetchTagDistribution(api, orgSlug, key, query) {
  * @param {string} query
  * @returns {Promise<Number>}
  */
-export function fetchTotalCount(api, orgSlug, query) {
+export function fetchTotalCount(
+  api: Client,
+  orgSlug: String,
+  query: EventQuery
+): Promise<number> {
   const urlParams = pick(query, Object.values(URL_PARAM));
+
+  const queryOption = {...urlParams, query: query.query};
+
+  type Response = {
+    count: number;
+  };
 
   return api
     .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
-      query: {...urlParams, query: query.query},
+      query: queryOption,
     })
-    .then(res => res.count);
+    .then((res: Response) => res.count);
 }
 
 /**
@@ -152,7 +215,7 @@ export function fetchTotalCount(api, orgSlug, query) {
  * @param {object} metadata mapping.
  * @returns {Function}
  */
-export function getFieldRenderer(field, meta) {
+export function getFieldRenderer(field: string, meta) {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
@@ -163,4 +226,31 @@ export function getFieldRenderer(field, meta) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+/**
+ * Get the first query string of a given name if there are multiple occurrences of it
+ * e.g. foo=42&foo=bar    ==>    foo=42 is the first occurrence for 'foo' and "42" will be returned.
+ *
+ * @param query     query string map
+ * @param name      name of the query string field
+ */
+export function getFirstQueryString(
+  query: {[key: string]: string | string[] | null | undefined},
+  name: string,
+  defaultValue?: string
+): string | undefined {
+  const needle = query[name];
+
+  if (typeof needle === 'string') {
+    return needle;
+  }
+
+  if (Array.isArray(needle) && needle.length > 0) {
+    if (typeof needle[0] === 'string') {
+      return needle[0];
+    }
+  }
+
+  return defaultValue;
 }

@@ -10,6 +10,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
+import {Event, Organization, EventView} from 'app/types';
+import {Location} from 'history';
 
 import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -19,12 +21,21 @@ import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 import TransanctionView from './transactionView';
 import {hasAggregateField} from './utils';
+import {SentryTransactionEvent} from './transactionView/types';
+
+type EventModalContentProps = {
+  event: Event;
+  projectId: string;
+  organization: Organization;
+  location: Location;
+  view: EventView;
+};
 
 /**
  * Render the columns and navigation elements inside the event modal view.
  * Controlled by the EventDetails View.
  */
-const EventModalContent = props => {
+const EventModalContent = (props: EventModalContentProps) => {
   const {event, projectId, organization, location, view} = props;
 
   // Having an aggregate field means we want to show pagination/graphs
@@ -53,7 +64,7 @@ const EventModalContent = props => {
       </HeaderBox>
       <ContentColumn>
         {event.type === 'transaction' ? (
-          <TransanctionView event={event} />
+          <TransanctionView event={event as SentryTransactionEvent} />
         ) : (
           <EventInterfaces event={event} projectId={projectId} />
         )}
@@ -100,7 +111,7 @@ EventHeader.propTypes = {
 /**
  * Render metadata about the event and provide a link to the JSON blob
  */
-const EventMetadata = props => {
+const EventMetadata = (props: {event: Event; eventJsonUrl: string}) => {
   const {event, eventJsonUrl} = props;
 
   return (
@@ -109,7 +120,7 @@ const EventMetadata = props => {
       <MetadataContainer>
         <DateTime
           date={getDynamicText({
-            value: event.dateCreated || event.endTimestamp * 1000,
+            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
             fixed: 'Dummy timestamp',
           })}
         />
@@ -166,7 +177,7 @@ const SidebarColumn = styled('div')`
   grid-column: 2 / 3;
 `;
 
-const SidebarBlock = styled('div')`
+const SidebarBlock = styled('div')<{withSeparator?: boolean; theme?: any}>`
   margin: 0 0 ${space(2)} 0;
   padding: 0 0 ${space(2)} 0;
   ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}

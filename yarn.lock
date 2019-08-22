@@ -2083,9 +2083,9 @@
     "@types/node" "*"
 
 "@types/history@^3":
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/@types/history/-/history-3.2.3.tgz#2416fee5cac641da2d05a905de5af5cb50162f60"
-  integrity sha512-s4SNWd31cmFP52ilv3LKCh344ayIXmfmcfExsegGspgnk/pQh75Yo6v49uzSE1oFMXp+Sz4GVnesL7rgybX9tQ==
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@types/history/-/history-3.2.4.tgz#0b6c62240d1fac020853aa5608758991d9f6ef3d"
+  integrity sha512-q7x8QeCRk2T6DR2UznwYW//mpN5uNlyajkewH2xd1s1ozCS4oHFRg2WMusxwLFlE57EkUYsd/gCapLBYzV3ffg==
 
 "@types/invariant@^2.2.29":
   version "2.2.29"
