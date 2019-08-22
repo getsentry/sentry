@@ -149,7 +149,7 @@ const GroupTitleIcon = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const SearchDropdownGroupTitle = styled('h4')`
+const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
@@ -179,7 +179,8 @@ const SearchItem = styled(ListItem)`
   }
 `;
 
-const SearchItemTitleWrapper = styled('h5')`
+const SearchItemTitleWrapper = styled('div')`
+  color: ${p => p.theme.textColor};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;

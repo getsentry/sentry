@@ -9,6 +9,7 @@ import styled, {css} from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -166,6 +167,12 @@ class SmartSearchBar extends React.Component {
 
     onSearch: PropTypes.func,
 
+    // Search input change event
+    onChange: PropTypes.func,
+
+    // Search input blur event
+    onBlur: PropTypes.func,
+
     onSavedRecentSearch: PropTypes.func,
 
     onSidebarToggle: PropTypes.func,
@@ -312,11 +319,13 @@ class SmartSearchBar extends React.Component {
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
       this.setState({dropdownVisible: false});
+      callIfFunction(this.props.onBlur);
     }, this.DROPDOWN_BLUR_DURATION);
   };
 
   onQueryChange = evt => {
     this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
+    callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
   onKeyUp = evt => {

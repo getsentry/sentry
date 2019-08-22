@@ -11,6 +11,7 @@ import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
@@ -18,6 +19,7 @@ import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import SearchBar from 'app/views/events/searchBar';
 
 import {
   AlertRuleAggregations,
@@ -342,13 +344,30 @@ class RuleForm extends React.Component<Props, State> {
                 },
                 {
                   name: 'query',
-                  type: 'text',
+                  type: 'custom',
                   label: t('Filter'),
                   defaultValue: '',
                   placeholder: 'error.type:TypeError',
                   help: t(
                     'You can apply standard Sentry filter syntax to filter by status, user, etc.'
                   ),
+                  Component: props => {
+                    return (
+                      <FormField {...props}>
+                        {({onChange, onBlur, onKeyDown}) => {
+                          return (
+                            <SearchBar
+                              organization={organization}
+                              onChange={onChange}
+                              onBlur={onBlur}
+                              onKeyDown={onKeyDown}
+                              onSearch={query => onChange(query, {})}
+                            />
+                          );
+                        }}
+                      </FormField>
+                    );
+                  },
                 },
                 {
                   name: 'alertThreshold',

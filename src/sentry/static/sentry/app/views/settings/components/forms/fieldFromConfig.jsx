@@ -24,6 +24,7 @@ export default class FieldFromConfig extends React.Component {
         'boolean',
         'choice',
         'choice_mapper',
+        'custom',
         'email',
         'hidden',
         'multichoice',
@@ -116,6 +117,8 @@ export default class FieldFromConfig extends React.Component {
         return <RadioField {...props} />;
       case 'rich_list':
         return <RichListField {...props} />;
+      case 'custom':
+        return field.Component(props);
       default:
         return null;
     }
