@@ -3,7 +3,6 @@ import React from 'react';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';
 
-import {getShortVersion} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
@@ -70,7 +69,7 @@ class Deploy extends React.Component {
               deploy.version
             }/?project=${project.id}`}
           >
-            {getShortVersion(deploy.version)}
+            {deploy.version}
           </StyledLink>
         </Version>
         <Flex w={90} justify="flex-end">

@@ -46,12 +46,7 @@ export default class ReleaseHeader extends React.Component {
         <div className="row">
           <div className="col-sm-4 col-xs-12">
             <PageHeading>{t('Release')} </PageHeading>
-            <StyledVersion
-              orgId={orgId}
-              version={release.version}
-              showShortVersion={false}
-              anchor={false}
-            />
+            <StyledVersion orgId={orgId} version={release.version} anchor={false} />
             {!!release.url && (
               <div>
                 <ExternalLink href={release.url}>

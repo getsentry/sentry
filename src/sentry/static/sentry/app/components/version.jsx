@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {getShortVersion} from 'app/utils';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
 import withOrganization from 'app/utils/withOrganization';
@@ -11,7 +10,6 @@ class Version extends React.Component {
     anchor: PropTypes.bool,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string,
-    showShortVersion: PropTypes.bool,
 
     /**
      * Should link to Release preserve user's global selection values
@@ -21,20 +19,11 @@ class Version extends React.Component {
 
   static defaultProps = {
     anchor: true,
-    showShortVersion: false,
   };
 
   render() {
-    const {
-      orgId,
-      showShortVersion,
-      version,
-      anchor,
-      className,
-      preserveGlobalSelection,
-    } = this.props;
+    const {orgId, version, anchor, className, preserveGlobalSelection} = this.props;
 
-    const versionTitle = showShortVersion ? getShortVersion(version) : version;
     const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
 
     if (anchor && orgId) {
@@ -43,14 +32,14 @@ class Version extends React.Component {
           to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}/`}
           className={className}
         >
-          <span title={version}>{versionTitle}</span>
+          <span title={version}>{version}</span>
         </LinkComponent>
       );
     }
 
     return (
       <span title={version} className={className}>
-        {versionTitle}
+        {version}
       </span>
     );
   }
