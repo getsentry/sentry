@@ -11,6 +11,7 @@ import EventExtraData from 'app/components/events/extraData';
 import EventPackageData from 'app/components/events/packageData';
 import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
+import {Event} from 'app/types';
 
 const OTHER_SECTIONS = {
   context: EventExtraData,
@@ -18,17 +19,23 @@ const OTHER_SECTIONS = {
   device: EventDevice,
 };
 
+type ActiveTabProps = {
+  projectId: string;
+  event: Event;
+  activeTab: string;
+};
+
 /**
  * Render the currently active event interface tab.
  * Some but not all interface elements require a projectId.
  */
-const ActiveTab = props => {
+const ActiveTab = (props: ActiveTabProps) => {
   const {projectId, event, activeTab} = props;
   if (!activeTab) {
     return null;
   }
   const entry = event.entries.find(item => item.type === activeTab);
-  if (INTERFACES[activeTab]) {
+  if (INTERFACES[activeTab] && entry) {
     const Component = INTERFACES[activeTab];
     return (
       <Component
@@ -50,7 +57,11 @@ const ActiveTab = props => {
       console.error('Unregistered interface: ' + activeTab);
 
     return (
-      <EventDataSection event={event} type={entry.type} title={entry.type}>
+      <EventDataSection
+        event={event}
+        type={entry && entry.type}
+        title={entry && entry.type}
+      >
         <p>{t('There was an error rendering this data.')}</p>
       </EventDataSection>
     );
@@ -62,13 +73,24 @@ ActiveTab.propTypes = {
   projectId: PropTypes.string.isRequired,
 };
 
-class EventInterfaces extends React.Component {
+type EventInterfacesProps = {
+  event: Event;
+  projectId: string;
+};
+type EventInterfacesState = {
+  activeTab: string;
+};
+
+class EventInterfaces extends React.Component<
+  EventInterfacesProps,
+  EventInterfacesState
+> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     projectId: PropTypes.string.isRequired,
   };
 
-  constructor(props) {
+  constructor(props: EventInterfacesProps) {
     super(props);
     this.state = {
       activeTab: props.event.entries[0].type,
@@ -89,7 +111,7 @@ class EventInterfaces extends React.Component {
               return null;
             }
             const type = entry.type;
-            const classname = type === activeTab ? 'active' : null;
+            const classname = type === activeTab ? 'active' : undefined;
             return (
               <li key={type} className={classname}>
                 <a
@@ -108,7 +130,7 @@ class EventInterfaces extends React.Component {
             if (objectIsEmpty(event[section])) {
               return null;
             }
-            const classname = section === activeTab ? 'active' : null;
+            const classname = section === activeTab ? 'active' : undefined;
             return (
               <li key={section} className={classname}>
                 <a

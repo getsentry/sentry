@@ -12,14 +12,19 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
+import {EventView} from 'app/types';
 
 import {QueryLink} from './styles';
 
+// TODO(ts): add as const after babel upgrade
 export const MODAL_QUERY_KEYS = ['eventSlug'];
 export const PIN_ICON = `image://${pinIcon}`;
+// TODO(ts): add as const after babel upgrade
 export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'];
 
-export const ALL_VIEWS = deepFreeze([
+// TODO(ts): eventually defer to TS compile-time check to ensure this is readonly instead
+//       of deepfreezing it in runtime
+export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
   {
     id: 'all',
     name: t('All Events'),

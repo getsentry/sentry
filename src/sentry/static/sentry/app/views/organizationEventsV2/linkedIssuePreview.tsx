@@ -13,14 +13,27 @@ import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
+import {Group} from 'app/types';
 
-class LinkedIssuePreview extends AsyncComponent {
+type Props = {
+  groupId: string;
+  eventId: string;
+};
+
+type State = {
+  group: Group;
+};
+
+class LinkedIssuePreview extends AsyncComponent<
+  Props & AsyncComponent['props'],
+  State & AsyncComponent['state']
+> {
   static propTypes = {
     groupId: PropTypes.string.isRequired,
     eventId: PropTypes.string.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string]> {
     const {groupId} = this.props;
     const groupUrl = `/issues/${groupId}/`;
 

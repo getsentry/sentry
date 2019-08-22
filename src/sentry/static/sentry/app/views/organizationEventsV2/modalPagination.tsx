@@ -3,30 +3,41 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {omit} from 'lodash';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {Event} from 'app/types';
 
 import {MODAL_QUERY_KEYS} from './data';
+
+type LinksType = {
+  oldest: null;
+  latest: null;
+
+  next: {};
+  previous: {};
+};
 
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event, location) {
+function buildTargets(event: Event, location: Location): LinksType {
   // Remove slug related keys as we need to create new ones
   const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
 
-  const urlMap = {
+  const urlMap: {[k in keyof LinksType]: string | undefined | null} = {
     previous: event.previousEventID,
     next: event.nextEventID,
     oldest: event.oldestEventID,
     latest: event.latestEventID,
   };
 
-  const links = {};
+  const links: {[k in keyof LinksType]?: any} = {};
+
   Object.entries(urlMap).forEach(([key, value]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
     if (!value) {
@@ -42,10 +53,15 @@ function buildTargets(event, location) {
     }
   });
 
-  return links;
+  return links as LinksType;
 }
 
-const ModalPagination = props => {
+type Props = {
+  event: Event;
+  location: Location;
+};
+
+const ModalPagination = (props: Props) => {
   const {event, location} = props;
   const links = buildTargets(event, location);
 
@@ -88,9 +104,11 @@ ModalPagination.propTypes = {
   event: SentryTypes.Event.isRequired,
 };
 
-const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
+const StyledLink = styled(Link, {
+  shouldForwardProp: isPropValid,
+})<{theme: any; disabled: boolean; isLast: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
-  font-size: ${p => p.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
