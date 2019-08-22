@@ -334,15 +334,6 @@ class RuleForm extends React.Component<Props, State> {
                   onChange: this.handleChangeMetric,
                 },
                 {
-                  name: 'timeWindow',
-                  type: 'select',
-                  label: t('Time Window'),
-                  help: t('The time window to use when evaluating the Metric'),
-                  onChange: this.handleTimeWindowChange,
-                  choices: Object.entries(TIME_WINDOW_MAP),
-                  required: true,
-                },
-                {
                   name: 'query',
                   type: 'custom',
                   label: t('Filter'),
@@ -405,6 +396,15 @@ class RuleForm extends React.Component<Props, State> {
                     'This is a metric that needs to stay above a certain threshold'
                   ),
                   onChange: this.handleChangeThresholdType,
+                },
+                {
+                  name: 'timeWindow',
+                  type: 'select',
+                  label: t('Time Window'),
+                  help: t('The time window to use when evaluating the Metric'),
+                  onChange: this.handleTimeWindowChange,
+                  choices: Object.entries(TIME_WINDOW_MAP),
+                  required: true,
                 },
                 {
                   name: 'name',
