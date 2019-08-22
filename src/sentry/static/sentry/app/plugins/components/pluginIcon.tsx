@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 import styled from 'react-emotion';
 
 import placeholder from 'app/../images/integrations/integration-default.png';
@@ -73,7 +72,12 @@ export const ICON_PATHS = {
   youtrack,
 };
 
-const IntegrationIcon = styled('div')`
+type Props = {
+  pluginId?: string;
+  size: number;
+};
+
+const PluginIcon = styled('div')<Props>`
   position: relative;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
@@ -85,26 +89,18 @@ const IntegrationIcon = styled('div')`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${p => p.image});
+  background-image: url(${({pluginId}) =>
+    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
 
-class PluginIcon extends React.Component {
-  static propTypes = {
-    pluginId: PropTypes.string,
-    size: PropTypes.number,
-  };
+PluginIcon.defaultProps = {
+  pluginId: '_default',
+  size: 20,
+};
 
-  static defaultProps = {
-    pluginId: '_default',
-    size: 20,
-  };
-
-  render() {
-    const {pluginId, size, ...props} = this.props;
-    const src = ICON_PATHS[pluginId] || DEFAULT_ICON;
-
-    return <IntegrationIcon {...props} image={src} size={size} />;
-  }
-}
+PluginIcon.propTypes = {
+  pluginId: PropTypes.string,
+  size: PropTypes.number.isRequired,
+};
 
 export default PluginIcon;

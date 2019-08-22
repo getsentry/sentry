@@ -143,15 +143,10 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                   pluginId="sample-app"
                   size={36}
                 >
-                  <IntegrationIcon
-                    image={Object {}}
+                  <div
+                    className="css-19ydruf-PluginIcon e7e65lm0"
                     size={36}
-                  >
-                    <div
-                      className="css-1c5rb9q-IntegrationIcon e1bhjds90"
-                      size={36}
-                    />
-                  </IntegrationIcon>
+                  />
                 </PluginIcon>
                 <SentryAppBox>
                   <Base

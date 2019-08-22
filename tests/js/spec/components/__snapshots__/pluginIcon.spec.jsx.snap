@@ -1,8 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`PluginIcon renders 1`] = `
-<IntegrationIcon
-  image="github"
+<div
+  className="css-18krkme-PluginIcon e7e65lm0"
   size={20}
 />
 `;
