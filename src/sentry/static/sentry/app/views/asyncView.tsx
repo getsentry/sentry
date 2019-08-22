@@ -1,13 +1,10 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
-import AsyncComponent, {
-  AsyncComponentProps,
-  AsyncComponentState,
-} from 'app/components/asyncComponent';
+import AsyncComponent from 'app/components/asyncComponent';
 
-export type AsyncViewState = AsyncComponentState;
-export type AsyncViewProps = AsyncComponentProps;
+type AsyncViewState = AsyncComponent['state'];
+type AsyncViewProps = AsyncComponent['props'];
 
 export default class AsyncView<
   P extends AsyncViewProps = AsyncViewProps,

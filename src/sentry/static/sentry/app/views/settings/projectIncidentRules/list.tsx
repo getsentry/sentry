@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import AsyncView, {AsyncViewState} from 'app/views/asyncView';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -18,7 +18,7 @@ import {deleteRule} from './actions';
 
 type State = {
   rules: IncidentRule[];
-} & AsyncViewState;
+} & AsyncView['state'];
 type RouteParams = {
   orgId: string;
   projectId: string;

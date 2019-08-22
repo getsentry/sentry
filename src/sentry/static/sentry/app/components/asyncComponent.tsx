@@ -14,13 +14,13 @@ import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-export type AsyncComponentProps = {
+type AsyncComponentProps = {
   location?: Location;
   router?: any;
   params?: any;
 };
 
-export type AsyncComponentState = {
+type AsyncComponentState = {
   loading: boolean;
   reloading: boolean;
   error: boolean;
