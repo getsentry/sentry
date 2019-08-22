@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
@@ -8,26 +7,26 @@ import emails from 'sentry-dreamy-components/dist/emails.svg';
 import issues from 'sentry-dreamy-components/dist/issues.svg';
 import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
 import contributors from 'sentry-dreamy-components/dist/contributors.svg';
+import SentryTypes from 'app/sentryTypes';
 
 import {analytics} from 'app/utils/analytics';
-import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
 import ReleaseLandingCard from './releaseLandingCard';
 
-class Illustration extends React.Component {
-  static propTypes = {
-    data: PropTypes.object.isRequired,
-  };
+type IllustrationProps = {
+  data: string;
+};
 
+class Illustration extends React.Component<IllustrationProps> {
   render() {
     const {data} = this.props;
 
-    // Currently, we need a fallback because object doesn't work in msedge,
-    // and img doesn't work in safari. Hopefully we can choose one soon.
+    // Currently, we need a fallback because <object> doesn't work in msedge,
+    // and <img> doesn't work in safari. Hopefully we can choose one soon.
     return (
-      <ObjectIllustration type="image/svg+xml" data={data}>
-        <ImgIllustration type="image/svg+xml" src={data} />
+      <ObjectIllustration data={data}>
+        <ImgIllustration src={data} />
       </ObjectIllustration>
     );
   }
@@ -79,8 +78,12 @@ const cards = [
   },
 ];
 
+type State = {
+  stepId: number;
+};
+
 const ReleaseLanding = withApi(
-  class ReleaseLanding extends React.Component {
+  class ReleaseLanding extends React.Component<{}, State> {
     static contextTypes = {
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,
@@ -95,6 +98,7 @@ const ReleaseLanding = withApi(
 
     componentDidMount() {
       const {organization, project} = this.context;
+
       analytics('releases.landing_card_viewed', {
         org_id: parseInt(organization.id, 10),
         project_id: project && parseInt(project.id, 10),
