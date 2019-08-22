@@ -49,12 +49,13 @@ class SentryAppInstallations extends React.Component {
       window.location.assign(redirectUrl);
     }
 
-    //hack for split
+    //hack for split so we can show the install ID to users for them to copy
+    //Will remove once the proper fix is in place
     if (organization.slug === 'split') {
       openModal(({closeModal}) => (
         <InstallationIdModal
           installationId={install.uuid}
-          link="https://split.com/stuff"
+          link="https://split.com/stuff" //TODO (Stephen): Get updated URL
           closeModal={closeModal}
         />
       ));

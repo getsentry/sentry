@@ -4,8 +4,14 @@ import styled from 'react-emotion';
 import Button from 'app/components/button';
 
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 
+/**
+ * This component is a short term hack for Split.
+ * It will display the installation ID after installation so users can copy it and paste it in Split's website.
+ * We also have a link for users to click so they can go to Split's website.
+ */
 export default class InstallationIdModal extends React.Component {
   static propTypes = {
     installationId: PropTypes.string.isRequired,
@@ -16,30 +22,28 @@ export default class InstallationIdModal extends React.Component {
   render() {
     const {installationId, link, closeModal} = this.props;
     return (
-      <Holder>
-        <div>{t('Installation ID to Copy:')}</div>
-        <div>
-          <TextCopyInput>{installationId}</TextCopyInput>
-        </div>
-        <div>
-          <a target="_blank" rel="noreferrer noopener" href={link}>
-            {t('Click here to continue')}
-          </a>
-        </div>
-        <Button size="small" onClick={closeModal}>
-          {t('Close')}
-        </Button>
-      </Holder>
+      <div>
+        <ItemHolder>{t('Installation ID to Copy:')}</ItemHolder>
+        <ItemHolder>
+          <TextCopyInput value={installationId}>{installationId}</TextCopyInput>
+        </ItemHolder>
+        <ItemHolder>
+          <ExternalLink href={link}>{t('Click here to continue')}</ExternalLink>
+        </ItemHolder>
+        <ButtonHolder>
+          <Button size="small" onClick={closeModal}>
+            {t('Close')}
+          </Button>
+        </ButtonHolder>
+      </div>
     );
   }
 }
 
-const Holder = styled('div')`
-  & > * {
-    margin: 10px;
-  }
-  & > button {
-    float: right;
-  }
-  padding-bottom: 40px;
+const ItemHolder = styled('div')`
+  margin: 10px;
+`;
+
+const ButtonHolder = styled(ItemHolder)`
+  text-align: right;
 `;
