@@ -76,10 +76,7 @@ def get_assignee(group):
         return None
 
 
-def build_attachment_title(group, event=None):
-    # XXX(mitsuhiko): This is all super event specific and ideally could just use a
-    # combination of `group.title` and `group.title + group.culprit`.
-    obj = event if event is not None else group
+def build_attachment_title(obj):
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
@@ -153,8 +150,6 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     members = get_member_assignees(group)
     teams = get_team_assignees(group)
-    if event is None:
-        event = group.get_latest_event()
 
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     color = (
@@ -250,10 +245,10 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)
 
-    fallback_title = event.title if event is not None else group.title
+    obj = event if event is not None else group
     return {
-        "fallback": u"[{}] {}".format(group.project.slug, fallback_title),
-        "title": build_attachment_title(group, event),
+        "fallback": u"[{}] {}".format(obj.project.slug, obj.title),
+        "title": build_attachment_title(obj),
         "title_link": group.get_absolute_url(params={"referrer": "slack"}),
         "text": text,
         "fields": fields,

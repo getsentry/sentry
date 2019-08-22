@@ -2,7 +2,11 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.integrations.slack.utils import build_incident_attachment, LEVEL_TO_COLOR
+from sentry.integrations.slack.utils import (
+    build_incident_attachment,
+    build_group_attachment,
+    LEVEL_TO_COLOR,
+)
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -39,4 +43,84 @@ class BuildIncidentAttachmentTest(TestCase):
             "ts": to_timestamp(incident.date_started),
             "color": LEVEL_TO_COLOR["error"],
             "actions": [],
+        }
+
+    def test_build_group_attachment(self):
+        self.user = self.create_user("foo@example.com")
+        self.org = self.create_organization(name="Rowdy Tiger", owner=None)
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.project = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
+        )
+        self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
+        group = self.create_group(project=self.project)
+
+        ts = group.last_seen
+        assert build_group_attachment(group) == {
+            "color": "#E03E2F",
+            "text": "",
+            "actions": [
+                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
+                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
+                {
+                    "option_groups": [
+                        {
+                            "text": "Teams",
+                            "options": [{"text": u"#mariachi-band", "value": u"team:25"}],
+                        },
+                        {
+                            "text": "People",
+                            "options": [{"text": u"foo@example.com", "value": u"user:35"}],
+                        },
+                    ],
+                    "text": "Select Assignee...",
+                    "selected_options": [None],
+                    "type": "select",
+                    "name": "assign",
+                },
+            ],
+            "mrkdwn_in": ["text"],
+            "title": group.title,
+            "fields": [],
+            "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
+            "ts": to_timestamp(ts),
+            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/23/?referrer=slack",
+            "callback_id": '{"issue":23}',
+            "fallback": u"[{}] {}".format(self.project.slug, group.title),
+            "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
+        }
+        event = self.create_event()
+        ts = event.datetime
+        assert build_group_attachment(group, event) == {
+            "color": "error",
+            "text": "",
+            "actions": [
+                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
+                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
+                {
+                    "option_groups": [
+                        {
+                            "text": "Teams",
+                            "options": [{"text": u"#mariachi-band", "value": u"team:25"}],
+                        },
+                        {
+                            "text": "People",
+                            "options": [{"text": u"foo@example.com", "value": u"user:35"}],
+                        },
+                    ],
+                    "text": "Select Assignee...",
+                    "selected_options": [None],
+                    "type": "select",
+                    "name": "assign",
+                },
+            ],
+            "mrkdwn_in": ["text"],
+            "title": event.title,
+            "fields": [],
+            "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
+            "ts": to_timestamp(ts),
+            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/23/?referrer=slack",
+            "callback_id": '{"issue":23}',
+            "fallback": u"[{}] {}".format(self.project.slug, event.title),
+            "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
