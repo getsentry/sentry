@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('Geo', )
+__all__ = ("Geo",)
 
 import six
 
@@ -22,9 +22,9 @@ class Geo(Interface):
     @classmethod
     def to_python(cls, data):
         data = {
-            'country_code': data.get('country_code'),
-            'city': data.get('city'),
-            'region': data.get('region'),
+            "country_code": data.get("country_code"),
+            "city": data.get("city"),
+            "region": data.get("region"),
         }
 
         return cls(**data)
@@ -40,11 +40,11 @@ class Geo(Interface):
             return None
 
         data = {}
-        for k in ('country_code', 'city', 'region'):
+        for k in ("country_code", "city", "region"):
             d = geo.get(k)
 
             if isinstance(d, six.binary_type):
-                d = d.decode('ISO-8859-1')
+                d = d.decode("ISO-8859-1")
 
             data[k] = d
 

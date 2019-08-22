@@ -12,13 +12,20 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
-const pageOneLinks =
-  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
+const generatePageLinks = (current, windowSize) => {
+  const previous = current - windowSize;
+  const hasPrevious = previous >= 0;
 
-const pageTwoLinks =
-  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
-  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
+  const next = current + windowSize;
+
+  return (
+    `<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:${previous}:1>; rel="previous"; results="${hasPrevious}"; cursor="0:${previous}:1", ` +
+    `<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:${next}:0>; rel="next"; results="true"; cursor="0:${next}:0"`
+  );
+};
+
+const pageOneLinks = generatePageLinks(0, 100);
+const pageTwoLinks = generatePageLinks(100, 100);
 
 const EventsWithRouter = withRouter(Events);
 
@@ -41,6 +48,10 @@ describe('EventsErrors', function() {
   let eventsMetaMock;
 
   beforeAll(function() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
@@ -431,5 +442,30 @@ describe('parseRowFromLinks', function() {
   it('calculates rows for the second page', function() {
     expect(parseRowFromLinks(pageTwoLinks, 10)).toBe('101-110');
     expect(parseRowFromLinks(pageTwoLinks, 100)).toBe('101-200');
+  });
+
+  it('calculates rows for variable number of pages and window sizes', function() {
+    let currentWindowSize = 1;
+
+    while (currentWindowSize <= 100) {
+      let currentPage = 1; // 1-based index
+
+      while (currentPage <= 100) {
+        const zeroBasedCurrentPage = currentPage - 1; // 0-based index
+
+        const expectedStart = zeroBasedCurrentPage * currentWindowSize + 1;
+        const expectedEnd = currentWindowSize + expectedStart - 1;
+
+        const expectedString = `${expectedStart}-${expectedEnd}`;
+
+        const pageLinks = generatePageLinks(expectedStart - 1, currentWindowSize);
+
+        expect(parseRowFromLinks(pageLinks, currentWindowSize)).toBe(expectedString);
+
+        currentPage += 1;
+      }
+
+      currentWindowSize += 1;
+    }
   });
 });

@@ -60,8 +60,9 @@ class Action(object):
         "Turns a single triple into a definition."
         return "self.gf(%r)(%s)" % (
             triple[0],  # Field full path
-            ", ".join(triple[1] + ["%s=%s" % (kwd, val)
-                                   for kwd, val in triple[2].items()]),  # args and kwds
+            ", ".join(
+                triple[1] + ["%s=%s" % (kwd, val) for kwd, val in triple[2].items()]
+            ),  # args and kwds
         )
 
 
@@ -70,16 +71,26 @@ class AddModel(Action):
     Addition of a model. Takes the Model subclass that is being created.
     """
 
-    FORWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = (
+        """
         # Adding model '%(model_name)s'
         db.create_table(%(table_name)r, (
             %(field_defs)s
         ))
-        db.send_create_signal(%(app_label)r, [%(model_name)r])'''[1:] + "\n"
+        db.send_create_signal(%(app_label)r, [%(model_name)r])"""[
+            1:
+        ]
+        + "\n"
+    )
 
-    BACKWARDS_TEMPLATE = '''
+    BACKWARDS_TEMPLATE = (
+        """
         # Deleting model '%(model_name)s'
-        db.delete_table(%(table_name)r)'''[1:] + "\n"
+        db.delete_table(%(table_name)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
     def __init__(self, model, model_def):
         self.model = model
@@ -87,17 +98,19 @@ class AddModel(Action):
 
     def console_line(self):
         "Returns the string to print on the console, e.g. ' + Added field foo'"
-        return " + Added model %s.%s" % (
-            self.model._meta.app_label,
-            self.model._meta.object_name,
-        )
+        return " + Added model %s.%s" % (self.model._meta.app_label, self.model._meta.object_name)
 
     def forwards_code(self):
         "Produces the code snippet that gets put into forwards()"
-        field_defs = ",\n            ".join([
-            "(%r, %s)" % (name, defn) for name, defn
-            in self.triples_to_defs(self.model_def).items()
-        ]) + ","
+        field_defs = (
+            ",\n            ".join(
+                [
+                    "(%r, %s)" % (name, defn)
+                    for name, defn in self.triples_to_defs(self.model_def).items()
+                ]
+            )
+            + ","
+        )
 
         return self.FORWARDS_TEMPLATE % {
             "model_name": self.model._meta.object_name,
@@ -121,10 +134,7 @@ class DeleteModel(AddModel):
 
     def console_line(self):
         "Returns the string to print on the console, e.g. ' + Added field foo'"
-        return " - Deleted model %s.%s" % (
-            self.model._meta.app_label,
-            self.model._meta.object_name,
-        )
+        return " - Deleted model %s.%s" % (self.model._meta.app_label, self.model._meta.object_name)
 
     def forwards_code(self):
         return AddModel.backwards_code(self)
@@ -141,29 +151,37 @@ class _NullIssuesField(object):
     issue_with_backward_migration = False
     irreversible = False
 
-    IRREVERSIBLE_TEMPLATE = '''
+    IRREVERSIBLE_TEMPLATE = """
         # User chose to not deal with backwards NULL issues for '%(model_name)s.%(field_name)s'
         raise RuntimeError("Cannot reverse this migration. '%(model_name)s.%(field_name)s' and its values cannot be restored.")
 
-        # The following code is provided here to aid in writing a correct migration'''
+        # The following code is provided here to aid in writing a correct migration"""
 
     def deal_with_not_null_no_default(self, field, field_def):
         # If it's a CharField or TextField that's blank, skip this step.
         if isinstance(field, (CharField, TextField)) and field.blank:
-            field_def[2]['default'] = repr("")
+            field_def[2]["default"] = repr("")
             return
         # Oh dear. Ask them what to do.
-        print(" ? The field '%s.%s' does not have a default specified, yet is NOT NULL." % (
-            self.model._meta.object_name,
-            field.name,
-        ))
-        print(" ? Since you are %s, you MUST specify a default" % self.null_reason)
-        print(" ? value to use for existing rows. Would you like to:")
-        print(" ?  1. Quit now" +
-              ("." if self.issue_with_backward_migration else ", and add a default to the field in models.py"))
-        print(" ?  2. Specify a one-off value to use for existing columns now")
+        print (
+            " ? The field '%s.%s' does not have a default specified, yet is NOT NULL."
+            % (self.model._meta.object_name, field.name)
+        )
+        print (" ? Since you are %s, you MUST specify a default" % self.null_reason)
+        print (" ? value to use for existing rows. Would you like to:")
+        print (
+            " ?  1. Quit now"
+            + (
+                "."
+                if self.issue_with_backward_migration
+                else ", and add a default to the field in models.py"
+            )
+        )
+        print (" ?  2. Specify a one-off value to use for existing columns now")
         if self.issue_with_backward_migration:
-            print(" ?  3. Disable the backwards migration by raising an exception; you can edit the migration to fix it later")
+            print (
+                " ?  3. Disable the backwards migration by raising an exception; you can edit the migration to fix it later"
+            )
         while True:
             choice = raw_input(" ? Please select a choice: ")
             if choice == "1":
@@ -173,7 +191,7 @@ class _NullIssuesField(object):
             elif choice == "3" and self.issue_with_backward_migration:
                 break
             else:
-                print(" ! Invalid choice.")
+                print (" ! Invalid choice.")
         if choice == "2":
             self.add_one_time_default(field, field_def)
         elif choice == "3":
@@ -181,23 +199,23 @@ class _NullIssuesField(object):
 
     def add_one_time_default(self, field, field_def):
         # OK, they want to pick their own one-time default. Who are we to refuse?
-        print(" ? Please enter Python code for your one-off default value.")
-        print(" ? The datetime module is available, so you can do e.g. datetime.date.today()")
+        print (" ? Please enter Python code for your one-off default value.")
+        print (" ? The datetime module is available, so you can do e.g. datetime.date.today()")
         while True:
             code = raw_input(" >>> ")
             if not code:
-                print(" ! Please enter some code, or 'exit' (with no quotes) to exit.")
+                print (" ! Please enter some code, or 'exit' (with no quotes) to exit.")
             elif code == "exit":
                 sys.exit(1)
             else:
                 try:
                     result = eval(code, {}, {"datetime": datetime_utils})
                 except (SyntaxError, NameError) as e:
-                    print(" ! Invalid input: %s" % e)
+                    print (" ! Invalid input: %s" % e)
                 else:
                     break
         # Right, add the default in.
-        field_def[2]['default'] = value_clean(result)
+        field_def[2]["default"] = value_clean(result)
 
     def irreversable_code(self, field):
         return self.IRREVERSIBLE_TEMPLATE % {
@@ -215,15 +233,25 @@ class AddField(Action, _NullIssuesField):
 
     null_reason = "adding this field"
 
-    FORWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = (
+        """
         # Adding field '%(model_name)s.%(field_name)s'
         db.add_column(%(table_name)r, %(field_name)r,
                       %(field_def)s,
-                      keep_default=False)'''[1:] + "\n"
+                      keep_default=False)"""[
+            1:
+        ]
+        + "\n"
+    )
 
-    BACKWARDS_TEMPLATE = '''
+    BACKWARDS_TEMPLATE = (
+        """
         # Deleting field '%(model_name)s.%(field_name)s'
-        db.delete_column(%(table_name)r, %(field_column)r)'''[1:] + "\n"
+        db.delete_column(%(table_name)r, %(field_column)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
     def __init__(self, model, field, field_def):
         self.model = model
@@ -297,13 +325,13 @@ class ChangeField(Action, _NullIssuesField):
 
     null_reason = "making this field non-nullable"
 
-    FORWARDS_TEMPLATE = BACKWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = BACKWARDS_TEMPLATE = """
         # Changing field '%(model_name)s.%(field_name)s'
-        db.alter_column(%(table_name)r, %(field_column)r, %(field_def)s)'''
+        db.alter_column(%(table_name)r, %(field_column)r, %(field_def)s)"""
 
-    RENAME_TEMPLATE = '''
+    RENAME_TEMPLATE = """
         # Renaming column for '%(model_name)s.%(field_name)s' to match new field type.
-        db.rename_column(%(table_name)r, %(old_column)r, %(new_column)r)'''
+        db.rename_column(%(table_name)r, %(old_column)r, %(new_column)r)"""
 
     def __init__(self, model, old_field, new_field, old_def, new_def):
         self.model = model
@@ -313,12 +341,12 @@ class ChangeField(Action, _NullIssuesField):
         self.new_def = new_def
 
         # See if they've changed a not-null field to be null
-        new_default = (
-            self.new_field.default is not None) and (
-            self.new_field.default is not NOT_PROVIDED)
-        old_default = (
-            self.old_field.default is not None) and (
-            self.old_field.default is not NOT_PROVIDED)
+        new_default = (self.new_field.default is not None) and (
+            self.new_field.default is not NOT_PROVIDED
+        )
+        old_default = (self.old_field.default is not None) and (
+            self.old_field.default is not NOT_PROVIDED
+        )
         if self.old_field.null and not self.new_field.null and not new_default:
             self.deal_with_not_null_no_default(self.new_field, self.new_def)
         if not self.old_field.null and self.new_field.null and not old_default:
@@ -373,13 +401,23 @@ class AddUnique(Action):
     Adds a unique constraint to a model. Takes a Model class and the field names.
     """
 
-    FORWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = (
+        """
         # Adding unique constraint on '%(model_name)s', fields %(field_names)s
-        db.create_unique(%(table_name)r, %(fields)r)'''[1:] + "\n"
+        db.create_unique(%(table_name)r, %(fields)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
-    BACKWARDS_TEMPLATE = '''
+    BACKWARDS_TEMPLATE = (
+        """
         # Removing unique constraint on '%(model_name)s', fields %(field_names)s
-        db.delete_unique(%(table_name)r, %(fields)r)'''[1:] + "\n"
+        db.delete_unique(%(table_name)r, %(fields)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
     prepend_backwards = True
 
@@ -441,13 +479,23 @@ class AddIndex(AddUnique):
     Adds an index to a model field[s]. Takes a Model class and the field names.
     """
 
-    FORWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = (
+        """
         # Adding index on '%(model_name)s', fields %(field_names)s
-        db.create_index(%(table_name)r, %(fields)r)'''[1:] + "\n"
+        db.create_index(%(table_name)r, %(fields)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
-    BACKWARDS_TEMPLATE = '''
+    BACKWARDS_TEMPLATE = (
+        """
         # Removing index on '%(model_name)s', fields %(field_names)s
-        db.delete_index(%(table_name)r, %(fields)r)'''[1:] + "\n"
+        db.delete_index(%(table_name)r, %(fields)r)"""[
+            1:
+        ]
+        + "\n"
+    )
 
     def console_line(self):
         "Returns the string to print on the console, e.g. ' + Added field foo'"
@@ -483,7 +531,8 @@ class AddM2M(Action):
     Adds a unique constraint to a model. Takes a Model class and the field names.
     """
 
-    FORWARDS_TEMPLATE = '''
+    FORWARDS_TEMPLATE = (
+        """
         # Adding M2M table for field %(field_name)s on '%(model_name)s'
         m2m_table_name = %(table_name)s
         db.create_table(m2m_table_name, (
@@ -491,11 +540,20 @@ class AddM2M(Action):
             (%(left_field)r, models.ForeignKey(orm[%(left_model_key)r], null=False)),
             (%(right_field)r, models.ForeignKey(orm[%(right_model_key)r], null=False))
         ))
-        db.create_unique(m2m_table_name, [%(left_column)r, %(right_column)r])'''[1:] + "\n"
+        db.create_unique(m2m_table_name, [%(left_column)r, %(right_column)r])"""[
+            1:
+        ]
+        + "\n"
+    )
 
-    BACKWARDS_TEMPLATE = '''
+    BACKWARDS_TEMPLATE = (
+        """
         # Removing M2M table for field %(field_name)s on '%(model_name)s'
-        db.delete_table(%(table_name)s)'''[1:] + "\n"
+        db.delete_table(%(table_name)s)"""[
+            1:
+        ]
+        + "\n"
+    )
 
     def __init__(self, model, field):
         self.model = model
@@ -519,7 +577,7 @@ class AddM2M(Action):
             return "%r" % explicit
         else:
             auto = "%s_%s" % (self.model._meta.db_table, f.name)
-            return 'db.shorten_name(%r)' % auto
+            return "db.shorten_name(%r)" % auto
 
     def forwards_code(self):
 

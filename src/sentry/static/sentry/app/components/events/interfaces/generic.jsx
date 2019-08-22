@@ -5,12 +5,11 @@ import SentryTypes from 'app/sentryTypes';
 import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {t} from 'app/locale';
-import {objectToArray} from 'app/utils';
 
 function getView(view, data) {
   switch (view) {
     case 'report':
-      return <KeyValueList data={objectToArray(data)} isContextData={true} />;
+      return <KeyValueList data={Object.entries(data)} isContextData={true} />;
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     default:

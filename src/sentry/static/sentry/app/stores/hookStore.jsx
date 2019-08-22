@@ -41,6 +41,7 @@ const validHookNames = new Set([
 
   // Onboarding experience
   'onboarding:invite-members',
+  'onboarding:extra-chrome',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',

@@ -6,7 +6,11 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
-    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption, Organization
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+    OrganizationOption,
+    Organization,
 )
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
@@ -30,9 +34,9 @@ def check_for_onboarding_complete(organization_id):
 
     completed = set(
         OrganizationOnboardingTask.objects.filter(
-            Q(organization_id=organization_id) &
-            (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
-        ).values_list('task', flat=True)
+            Q(organization_id=organization_id)
+            & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
+        ).values_list("task", flat=True)
     )
     if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
@@ -40,7 +44,7 @@ def check_for_onboarding_complete(organization_id):
                 OrganizationOption.objects.create(
                     organization_id=organization_id,
                     key="onboarding:complete",
-                    value={'updated': timezone.now()}
+                    value={"updated": timezone.now()},
                 )
         except IntegrityError:
             pass
@@ -52,11 +56,12 @@ def record_new_project(project, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user = user_id = None
-        default_user_id = Organization.objects.get(
-            id=project.organization_id).get_default_owner().id
+        default_user_id = (
+            Organization.objects.get(id=project.organization_id).get_default_owner().id
+        )
 
     analytics.record(
-        'project.created',
+        "project.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
@@ -107,20 +112,18 @@ def record_first_event(project, event, **kwargs):
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
         values={
-            'status': OnboardingTaskStatus.COMPLETE,
-            'project_id': project.id,
-            'date_completed': project.first_event,
-            'data': {
-                'platform': event.platform
-            },
-        }
+            "status": OnboardingTaskStatus.COMPLETE,
+            "project_id": project.id,
+            "date_completed": project.first_event,
+            "data": {"platform": event.platform},
+        },
     )
 
     user = Organization.objects.get(id=project.organization_id).get_default_owner()
 
     if rows_affected or created:
         analytics.record(
-            'first_event.sent',
+            "first_event.sent",
             user_id=user.id,
             organization_id=project.organization_id,
             project_id=project.id,
@@ -130,32 +133,27 @@ def record_first_event(project, event, **kwargs):
 
     try:
         oot = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id,
-            task=OnboardingTask.FIRST_EVENT,
+            organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
         )[0]
     except IndexError:
         return
 
     # Only counts if it's a new project and platform
-    if oot.project_id != project.id and oot.data.get(
-        'platform', event.platform
-    ) != event.platform:
+    if oot.project_id != project.id and oot.data.get("platform", event.platform) != event.platform:
         rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             status=OnboardingTaskStatus.PENDING,
             values={
-                'status': OnboardingTaskStatus.COMPLETE,
-                'project_id': project.id,
-                'date_completed': project.first_event,
-                'data': {
-                    'platform': event.platform
-                },
-            }
+                "status": OnboardingTaskStatus.COMPLETE,
+                "project_id": project.id,
+                "date_completed": project.first_event,
+                "data": {"platform": event.platform},
+            },
         )
         if rows_affected or created:
             analytics.record(
-                'second_platform.added',
+                "second_platform.added",
                 user_id=user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
@@ -170,14 +168,15 @@ def record_member_invited(member, user, **kwargs):
         task=OnboardingTask.INVITE_MEMBER,
         user=user,
         status=OnboardingTaskStatus.PENDING,
-        data={'invited_member_id': member.id}
+        data={"invited_member_id": member.id},
     )
     analytics.record(
-        'member.invited',
+        "member.invited",
         invited_member_id=member.id,
         inviter_user_id=user.id,
         organization_id=member.organization_id,
-        referrer=kwargs.get('referrer'))
+        referrer=kwargs.get("referrer"),
+    )
 
 
 @member_joined.connect(weak=False)
@@ -187,12 +186,10 @@ def record_member_joined(member, organization, **kwargs):
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
         values={
-            'status': OnboardingTaskStatus.COMPLETE,
-            'date_completed': timezone.now(),
-            'data': {
-                'invited_member_id': member.id
-            }
-        }
+            "status": OnboardingTaskStatus.COMPLETE,
+            "date_completed": timezone.now(),
+            "data": {"invited_member_id": member.id},
+        },
     )
     if created or rows_affected:
         check_for_onboarding_complete(member.organization_id)
@@ -200,7 +197,7 @@ def record_member_joined(member, organization, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_release_received(project, event, **kwargs):
-    if not event.get_tag('sentry:release'):
+    if not event.get_tag("sentry:release"):
         return
 
     success = OrganizationOnboardingTask.objects.record(
@@ -212,7 +209,7 @@ def record_release_received(project, event, **kwargs):
     if success:
         user = Organization.objects.get(id=project.organization_id).get_default_owner()
         analytics.record(
-            'first_release_tag.sent',
+            "first_release_tag.sent",
             user_id=user.id,
             project_id=project.id,
             organization_id=project.organization_id,
@@ -222,13 +219,13 @@ def record_release_received(project, event, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_user_context_received(project, event, **kwargs):
-    user_context = event.data.get('user')
+    user_context = event.data.get("user")
     if not user_context:
         return
     # checking to see if only ip address is being sent (our js library does this automatically)
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    elif list(user_context.keys()) != ['ip_address']:
+    elif list(user_context.keys()) != ["ip_address"]:
         success = OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.USER_CONTEXT,
@@ -238,7 +235,7 @@ def record_user_context_received(project, event, **kwargs):
         if success:
             user = Organization.objects.get(id=project.organization_id).get_default_owner()
             analytics.record(
-                'first_user_context.sent',
+                "first_user_context.sent",
                 user_id=user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
@@ -260,7 +257,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     if success:
         user = Organization.objects.get(id=project.organization_id).get_default_owner()
         analytics.record(
-            'first_sourcemaps.sent',
+            "first_sourcemaps.sent",
             user_id=user.id,
             organization_id=project.organization_id,
             project_id=project.id,
@@ -285,13 +282,13 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         status=status,
         user=user,
         project_id=project.id,
-        data={'plugin': plugin.slug},
+        data={"plugin": plugin.slug},
     )
     if success:
         check_for_onboarding_complete(project.organization_id)
 
     analytics.record(
-        'plugin.enabled',
+        "plugin.enabled",
         user_id=user.id,
         organization_id=project.organization_id,
         project_id=project.id,
@@ -306,14 +303,12 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         task=OnboardingTask.ISSUE_TRACKER,
         status=OnboardingTaskStatus.PENDING,
         values={
-            'status': OnboardingTaskStatus.COMPLETE,
-            'user': user,
-            'project_id': project.id,
-            'date_completed': timezone.now(),
-            'data': {
-                'plugin': plugin.slug
-            }
-        }
+            "status": OnboardingTaskStatus.COMPLETE,
+            "user": user,
+            "project_id": project.id,
+            "date_completed": timezone.now(),
+            "data": {"plugin": plugin.slug},
+        },
     )
 
     if rows_affected or created:
@@ -325,7 +320,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         user_id = None
         default_user_id = project.organization.get_default_owner().id
     analytics.record(
-        'issue_tracker.used',
+        "issue_tracker.used",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,

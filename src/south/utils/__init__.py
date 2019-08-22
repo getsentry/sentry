@@ -37,7 +37,7 @@ def get_attribute(item, attribute):
     """
     value = item
     for part in attribute.split("."):
-        part = 'model_name' if part == 'module_name' else part
+        part = "model_name" if part == "module_name" else part
         value = getattr(value, part)
     return value
 
@@ -61,7 +61,7 @@ def auto_model(model):
 def memoize(function):
     "Standard memoization decorator."
     name = function.__name__
-    _name = '_' + name
+    _name = "_" + name
 
     def method(self):
         if not hasattr(self, _name):

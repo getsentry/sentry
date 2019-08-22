@@ -5,6 +5,7 @@ import React from 'react';
 import {Organization, EventsStats, EventsStatsData} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 
+import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -27,11 +28,9 @@ type RenderProps = {
   timeAggregatedData?: Series | {};
 };
 
-type EventsRequestProps = {
-  // TODO(ts): Update when we type `app/api`
-  api: object;
+type EventsRequestPartialProps = {
+  api: Client;
   organization: Organization;
-  timeAggregationSeriesName: string;
 
   project?: number[];
   environment?: string[];
@@ -39,17 +38,24 @@ type EventsRequestProps = {
   start?: any;
   end?: any;
   interval?: string;
+  field?: string[];
+  referenceEvent?: string;
 
   limit?: number;
   query?: string;
   includePrevious?: boolean;
   includeTransformedData?: boolean;
-  includeTimeAggregation?: boolean;
   loading?: boolean;
   showLoading?: boolean;
   yAxis?: 'event_count' | 'user_count';
   children: (renderProps: RenderProps) => React.ReactNode;
 };
+
+type TimeAggregationProps =
+  | {includeTimeAggregation: true; timeAggregationSeriesName: string}
+  | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
+
+type EventsRequestProps = TimeAggregationProps & EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;
@@ -150,6 +156,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
      * The yAxis being plotted
      */
     yAxis: PropTypes.string,
+
+    field: PropTypes.arrayOf(PropTypes.string),
+    referenceEvent: PropTypes.string,
   };
 
   static defaultProps = {
@@ -266,7 +275,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries = (data: EventsStatsData, seriesName: string): Series => {
+  transformAggregatedTimeseries = (
+    data: EventsStatsData,
+    seriesName: string = ''
+  ): Series => {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),

@@ -114,10 +114,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <Panel>
           <Component
-            className="css-1bjezgp-Panel e1laxa7d0"
+            className="css-1bjezgp-Panel e119nu470"
           >
             <div
-              className="css-1bjezgp-Panel e1laxa7d0"
+              className="css-1bjezgp-Panel e119nu470"
             >
               <div>
                 <PanelHeader>

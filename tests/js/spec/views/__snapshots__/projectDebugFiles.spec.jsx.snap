@@ -87,10 +87,10 @@ exports[`ProjectDebugFiles renders 1`] = `
   </TextBlock>
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-10qfvek-Panel e119nu470"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <PanelHeader
           hasButtons={true}
@@ -152,7 +152,15 @@ exports[`ProjectDebugFiles renders 1`] = `
                         is={null}
                       >
                         <withRouter(AsyncComponentSearchInput)
-                          api={Client {}}
+                          api={
+                            Client {
+                              "_chain": [Function],
+                              "_wrapRequest": [Function],
+                              "bulkUpdate": [Function],
+                              "handleRequestError": [Function],
+                              "hasProjectBeenRenamed": [Function],
+                            }
+                          }
                           className="search"
                           onError={[Function]}
                           onSuccess={[Function]}
@@ -162,7 +170,15 @@ exports[`ProjectDebugFiles renders 1`] = `
                           url="/projects/org/project/"
                         >
                           <AsyncComponentSearchInput
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             className="search"
                             debounceWait={200}
                             location={
@@ -257,14 +273,13 @@ exports[`ProjectDebugFiles renders 1`] = `
                         size="54"
                         src="icon-circle-exclamation"
                       >
-                        <StyledSvg
-                          className="css-1j03cl-HeroIcon e1h7wyrq0"
-                          height="54"
-                          viewBox={Object {}}
-                          width="54"
+                        <ForwardRef
+                          className="e1h7wyrq0 css-16jcd98-InlineSvg-HeroIcon enyz4ql0"
+                          size="54"
+                          src="icon-circle-exclamation"
                         >
                           <svg
-                            className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                            className="e1h7wyrq0 css-16jcd98-InlineSvg-HeroIcon enyz4ql0"
                             height="54"
                             viewBox={Object {}}
                             width="54"
@@ -274,7 +289,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                               xlinkHref="#test"
                             />
                           </svg>
-                        </StyledSvg>
+                        </ForwardRef>
                       </InlineSvg>
                     </Component>
                   </HeroIcon>
@@ -328,7 +343,15 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       </Box>
       <Box>
         <withRouter(AsyncComponentSearchInput)
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           className="search"
           onError={[Function]}
           onSuccess={[Function]}

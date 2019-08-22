@@ -35,47 +35,47 @@ and c1.author_id IN (
 order by c1.date_added desc
 """
 
-quote_name = connections['default'].ops.quote_name
+quote_name = connections["default"].ops.quote_name
 
 
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
     def get(self, request, organization, member):
-        email_list = list(UserEmail.objects.filter(
-            user=member.user_id,
-            is_verified=True,
-        ).values_list('email', flat=True))
+        email_list = list(
+            UserEmail.objects.filter(user=member.user_id, is_verified=True).values_list(
+                "email", flat=True
+            )
+        )
         if not email_list:
-            return self.respond({
-                'commits': [],
-                'repositories': {},
-                'errors': {
-                    'missing_emails': True,
-                }
-            })
+            return self.respond(
+                {"commits": [], "repositories": {}, "errors": {"missing_emails": True}}
+            )
 
         params = [organization.id, organization.id]
         for e in email_list:
             params.append(e.upper())
 
-        queryset = Commit.objects.raw(query % (', '.join('%s' for _ in email_list),), params)
+        queryset = Commit.objects.raw(query % (", ".join("%s" for _ in email_list),), params)
 
         results = list(queryset)
 
         if results:
-            repos = list(Repository.objects.filter(
-                id__in=set([r.repository_id for r in results]),
-            ))
+            repos = list(Repository.objects.filter(id__in=set([r.repository_id for r in results])))
         else:
             repos = []
 
-        return self.respond({
-            'commits': [{
-                'id': c.key,
-                'message': c.message,
-                'dateCreated': c.date_added,
-                'repositoryID': six.text_type(c.repository_id),
-            } for c in results],
-            'repositories': {
-                six.text_type(r.id): d for r, d in izip(repos, serialize(repos, request.user))
+        return self.respond(
+            {
+                "commits": [
+                    {
+                        "id": c.key,
+                        "message": c.message,
+                        "dateCreated": c.date_added,
+                        "repositoryID": six.text_type(c.repository_id),
+                    }
+                    for c in results
+                ],
+                "repositories": {
+                    six.text_type(r.id): d for r, d in izip(repos, serialize(repos, request.user))
+                },
             }
-        })
+        )

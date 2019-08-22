@@ -49,65 +49,64 @@ from .manager import *  # NOQA
 default_manager = FeatureManager()  # NOQA
 
 # Unscoped features
-default_manager.add('auth:register')
-default_manager.add('organizations:create')
+default_manager.add("auth:register")
+default_manager.add("organizations:create")
 
 # Organization scoped features
-default_manager.add('organizations:advanced-search', OrganizationFeature)  # NOQA
-default_manager.add('organizations:boolean-search', OrganizationFeature)  # NOQA
-default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
-default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
-default_manager.add('organizations:events', OrganizationFeature)  # NOQA
-default_manager.add('organizations:events-v2', OrganizationFeature)  # NOQA
-default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
-default_manager.add('organizations:symbol-sources', OrganizationFeature)  # NOQA
-default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
-default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
-default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
-default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
-default_manager.add('organizations:integrations-event-hooks', OrganizationFeature)  # NOQA
-default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
-default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sentry-apps', OrganizationFeature)  # NOQA
-default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
-default_manager.add('organizations:large-debug-files', OrganizationFeature)  # NOQA
-default_manager.add('organizations:monitors', OrganizationFeature)  # NOQA
-default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
-default_manager.add('organizations:org-saved-searches', OrganizationFeature)  # NOQA
-default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
-default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sentry10', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sso-basic', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sso-rippling', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
-default_manager.add('organizations:grouping-info', OrganizationFeature)  # NOQA
-default_manager.add('organizations:tweak-grouping-config', OrganizationFeature)  # NOQA
-default_manager.add('organizations:set-grouping-config', OrganizationFeature)  # NOQA
+default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
+default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
+default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
+default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
+default_manager.add("organizations:events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
+default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
+default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
+default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
+default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
+default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
+default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
+default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
+default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
+default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
+default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
+default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
+default_manager.add("organizations:require-2fa", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sentry10", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:grouping-info", OrganizationFeature)  # NOQA
+default_manager.add("organizations:tweak-grouping-config", OrganizationFeature)  # NOQA
+default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 
 # Project scoped features
-default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
-default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA
-default_manager.add('projects:discard-groups', ProjectFeature)  # NOQA
-default_manager.add('projects:minidump', ProjectFeature)  # NOQA
-default_manager.add('projects:rate-limits', ProjectFeature)  # NOQA
-default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
-default_manager.add('projects:servicehooks', ProjectFeature)  # NOQA
-default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
-default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
+default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
+default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
+default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
+default_manager.add("projects:minidump", ProjectFeature)  # NOQA
+default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
+default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
+default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA
+default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
+default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 
 # Project plugin features
-default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
+default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
 # features themselves in the manager with detections like this.
 requires_snuba = (
-    'organizations:discover',
-    'organizations:events',
-    'organizations:events-v2',
-    'organizations:global-views',
-    'organizations:incidents',
-    'organizations:sentry10',
+    "organizations:discover",
+    "organizations:events",
+    "organizations:events-v2",
+    "organizations:global-views",
+    "organizations:incidents",
+    "organizations:sentry10",
 )
 
 # NOTE: Don't add features down here! Add them to their specific group and sort

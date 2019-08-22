@@ -11,7 +11,6 @@ import {
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
@@ -73,9 +72,7 @@ class SentryAppInstallations extends React.Component {
   };
 
   openModal = app => {
-    const {organization} = this.props;
-    const onInstall = () => this.install(app);
-    openSentryAppPermissionModal({app, onInstall, orgId: organization.slug});
+    this.install(app);
   };
 
   get installsByApp() {

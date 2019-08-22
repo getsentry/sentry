@@ -107,7 +107,7 @@ class EventsTable extends AsyncComponent {
     return [
       [
         'data',
-        `/organizations/${organization.slug}/events/`,
+        `/organizations/${organization.slug}/eventsv2/`,
         {
           query: getQuery(view, location),
         },

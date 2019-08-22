@@ -33,7 +33,7 @@ export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
-  static propTypes = {
+  static propTypes: any = {
     location: PropTypes.object,
     router: PropTypes.object,
   };
@@ -163,7 +163,7 @@ export default class AsyncComponent<
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
-  api: any;
+  api: Client = new Client();
   private _measurement: any;
 
   // XXX: cant call this getInitialState as React whines
@@ -437,7 +437,7 @@ export default class AsyncComponent<
       : this.renderBody();
   }
 
-  renderBody(): React.ReactElement {
+  renderBody(): React.ReactNode {
     // Allow children to implement this
     throw new Error('Not implemented');
   }

@@ -12,15 +12,23 @@ describe('OrganizationEventsV2 > EventDetails', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [
-        {
-          id: 'deadbeef',
-          title: 'Oh no something bad',
-          'project.name': 'project-slug',
-          timestamp: '2019-05-23T22:12:48+00:00',
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {
+          id: 'string',
+          title: 'string',
+          'project.name': 'string',
+          timestamp: 'date',
         },
-      ],
+        data: [
+          {
+            id: 'deadbeef',
+            title: 'Oh no something bad',
+            'project.name': 'project-slug',
+            timestamp: '2019-05-23T22:12:48+00:00',
+          },
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/project-slug:deadbeef/',
@@ -56,6 +64,14 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       body: {
         data: [[1234561700, [1]], [1234561800, [1]]],
       },
+    });
+
+    // Missing event
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/project-slug:abad1/',
+      method: 'GET',
+      statusCode: 404,
+      body: {},
     });
 
     // Error event
@@ -146,6 +162,20 @@ describe('OrganizationEventsV2 > EventDetails', function() {
 
     const graph = wrapper.find('ModalLineGraph');
     expect(graph).toHaveLength(0);
+  });
+
+  it('renders a 404', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        eventSlug="project-slug:abad1"
+        location={{query: {eventSlug: 'project-slug:abad1'}}}
+        view={allEventsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('NotFound');
+    expect(content).toHaveLength(1);
   });
 
   it('renders a chart in grouped view', function() {

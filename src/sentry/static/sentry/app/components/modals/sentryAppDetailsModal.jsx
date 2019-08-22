@@ -15,6 +15,8 @@ import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
+import ConsolidatedScopes from 'app/utils/consolidatedScopes';
+import CircleIndicator from 'app/components/circleIndicator';
 
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -54,8 +56,56 @@ export default class SentryAppDetailsModal extends AsyncComponent {
     });
   }
 
+  get permissions() {
+    return new ConsolidatedScopes(this.props.sentryApp.scopes).toPermissions();
+  }
+
+  onInstall() {
+    const {onInstall, closeModal} = this.props;
+    onInstall();
+    closeModal();
+  }
+
+  renderPermissions() {
+    const permissions = this.permissions;
+    return (
+      <React.Fragment>
+        <Title>Permissions</Title>
+        {permissions.read.length > 0 && (
+          <Permission>
+            <Indicator />
+            <Text key="read">
+              <strong>{t('Read')}</strong>
+              {t(' access to %s resources', permissions.read.join(', '))}
+            </Text>
+          </Permission>
+        )}
+        {permissions.write.length > 0 && (
+          <Permission>
+            <Indicator />
+            <Text key="write">
+              <strong>{t('Read')}</strong>
+              {t(' and ')}
+              <strong>{t('write')}</strong>
+              {t(' access to %s resources', permissions.write.join(', '))}
+            </Text>
+          </Permission>
+        )}
+        {permissions.admin.length > 0 && (
+          <Permission>
+            <Indicator />
+            <Text key="admin">
+              <strong>{t('Admin')}</strong>
+              {t(' access to %s resources', permissions.admin.join(', '))}
+            </Text>
+          </Permission>
+        )}
+      </React.Fragment>
+    );
+  }
+
   renderBody() {
-    const {sentryApp, closeModal, onInstall, isInstalled, organization} = this.props;
+    const {sentryApp, closeModal, isInstalled, organization} = this.props;
     const {featureData} = this.state;
     // Prepare the features list
     const features = (featureData || []).map(f => ({
@@ -86,34 +136,37 @@ export default class SentryAppDetailsModal extends AsyncComponent {
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
-        <Metadata>
-          <Author flex={1}>{t('By %s', sentryApp.author)}</Author>
-        </Metadata>
-
         <IntegrationFeatures {...featureProps}>
           {({disabled, disabledReason}) => (
-            <div className="modal-footer">
-              {disabled && <DisabledNotice reason={disabledReason} />}
-              <Button size="small" onClick={closeModal}>
-                {t('Cancel')}
-              </Button>
+            <React.Fragment>
+              {!disabled && this.renderPermissions()}
+              <Footer>
+                <Author>{t('Authored By %s', sentryApp.author)}</Author>
+                <div>
+                  {disabled && <DisabledNotice reason={disabledReason} />}
+                  <Button size="small" onClick={closeModal}>
+                    {t('Cancel')}
+                  </Button>
 
-              <Access organization={organization} access={['org:integrations']}>
-                {({hasAccess}) =>
-                  hasAccess && (
-                    <Button
-                      size="small"
-                      priority="primary"
-                      disabled={isInstalled || disabled}
-                      onClick={onInstall}
-                      style={{marginLeft: space(1)}}
-                    >
-                      {t('Install')}
-                    </Button>
-                  )
-                }
-              </Access>
-            </div>
+                  <Access organization={organization} access={['org:integrations']}>
+                    {({hasAccess}) =>
+                      hasAccess && (
+                        <Button
+                          size="small"
+                          priority="primary"
+                          disabled={isInstalled || disabled}
+                          onClick={() => this.onInstall()}
+                          style={{marginLeft: space(1)}}
+                          data-test-id="install"
+                        >
+                          {t('Accept & Install')}
+                        </Button>
+                      )
+                    }
+                  </Access>
+                </div>
+              </Footer>
+            </React.Fragment>
           )}
         </IntegrationFeatures>
       </React.Fragment>
@@ -137,15 +190,6 @@ const Description = styled('div')`
   }
 `;
 
-const Metadata = styled(Flex)`
-  font-size: 0.9em;
-  margin-bottom: ${space(2)};
-
-  a {
-    margin-left: ${space(1)};
-  }
-`;
-
 const Author = styled(Box)`
   color: ${p => p.theme.gray2};
 `;
@@ -164,4 +208,30 @@ const StyledTag = styled(Tag)`
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
+`;
+
+const Text = styled('p')`
+  margin: 0px 6px;
+`;
+
+const Permission = styled('div')`
+  display: flex;
+`;
+
+const Footer = styled('div')`
+  display: flex;
+  padding: 20px 30px;
+  border-top: 1px solid #e2dee6;
+  margin: 20px -30px -30px;
+  justify-content: space-between;
+`;
+
+const Title = styled('p')`
+  margin-bottom: ${space(1)};
+  font-weight: bold;
+`;
+
+const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
+  margin-top: 7px;
+  color: ${p => p.theme.success};
 `;

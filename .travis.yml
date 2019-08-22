@@ -26,6 +26,9 @@ addons:
 env:
   global:
     - NODE_ENV=development
+    # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
+    - PYTHON_PIP_VERSION=19.1.1
+    - PIP_USE_PEP517=off
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
@@ -35,6 +38,9 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
+
+before_install:
+  - pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -74,15 +80,15 @@ base_postgres: &postgres_default
     - memcached
     - redis-server
     - postgresql
+  before_install:
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - docker ps -a
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
-  before_install:
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
-    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-    - docker ps -a
 
 base_acceptance: &acceptance_default
   python: 2.7
@@ -101,7 +107,9 @@ base_acceptance: &acceptance_default
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
-    - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_75)/chromedriver_linux64.zip" -P ~/
+    - |
+      CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
+      wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/
@@ -141,15 +149,15 @@ matrix:
         - redis-server
         - postgresql
         - riak
+      before_install:
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
-      before_install:
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-        - docker ps -a
 
     - <<: *acceptance_default
       name: 'Acceptance'

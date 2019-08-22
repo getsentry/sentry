@@ -8,6 +8,7 @@ import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
 import OnboardingPlatform from 'app/views/onboarding/platform';
 import OnboardingProjectSetup from 'app/views/onboarding/projectSetup';
@@ -196,6 +197,7 @@ class Onboarding extends React.Component {
         <Container>
           <PoseGroup flipMove={false}>{this.renderOnboardingSteps()}</PoseGroup>
         </Container>
+        <Hook name="onboarding:extra-chrome" />
       </OnboardingWrapper>
     );
   }
@@ -229,7 +231,6 @@ const Header = styled('header')`
   z-index: 100;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${Container} {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

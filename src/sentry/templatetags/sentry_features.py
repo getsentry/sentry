@@ -18,11 +18,11 @@ def feature(parser, token):
     name = bits[1]
     params = bits[2:]
 
-    nodelist_true = parser.parse(('else', 'endfeature'))
+    nodelist_true = parser.parse(("else", "endfeature"))
     token = parser.next_token()
 
-    if token.contents == 'else':
-        nodelist_false = parser.parse(('endfeature', ))
+    if token.contents == "else":
+        nodelist_false = parser.parse(("endfeature",))
         parser.delete_first_token()
     else:
         nodelist_false = template.NodeList()
@@ -39,8 +39,8 @@ class FeatureNode(template.Node):
 
     def render(self, context):
         params = [i.resolve(context) for i in self.params]
-        if 'request' in context:
-            user = context['request'].user
+        if "request" in context:
+            user = context["request"].user
         else:
             user = None
 

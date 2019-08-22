@@ -5,6 +5,7 @@ import Adapter from 'enzyme-adapter-react-16';
 import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+import fromEntries from 'object.fromentries';
 
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
@@ -12,6 +13,10 @@ import theme from 'app/utils/theme';
 import {loadFixtures} from './helpers/loadFixtures';
 
 export * from './helpers/select';
+
+// We need this polyfill for testing only because
+// typescript handles it for main application
+fromEntries.shim();
 
 /**
  * Enzyme configuration

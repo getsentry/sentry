@@ -478,7 +478,15 @@ exports[`ProjectCard renders 1`] = `
                   }
                 >
                   <BookmarkStar
-                    api={Client {}}
+                    api={
+                      Client {
+                        "_chain": [Function],
+                        "_wrapRequest": [Function],
+                        "bulkUpdate": [Function],
+                        "handleRequestError": [Function],
+                        "hasProjectBeenRenamed": [Function],
+                      }
+                    }
                     organization={
                       Object {
                         "access": Array [
@@ -536,34 +544,25 @@ exports[`ProjectCard renders 1`] = `
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
-                      <InlineSvg
-                        className="css-fl9x15-Star e5ekdrk0"
+                      <ForwardRef
+                        className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
                         isBookmarked={false}
                         onClick={[Function]}
                         src="icon-star-small-filled"
                       >
-                        <StyledSvg
-                          className="css-fl9x15-Star e5ekdrk0"
+                        <svg
+                          className="css-1lg61nd-InlineSvg-Star e5ekdrk0"
                           height="1em"
-                          isBookmarked={false}
                           onClick={[Function]}
                           viewBox={Object {}}
                           width="1em"
                         >
-                          <svg
-                            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
-                            height="1em"
-                            onClick={[Function]}
-                            viewBox={Object {}}
-                            width="1em"
-                          >
-                            <use
-                              href="#test"
-                              xlinkHref="#test"
-                            />
-                          </svg>
-                        </StyledSvg>
-                      </InlineSvg>
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </ForwardRef>
                     </Star>
                   </BookmarkStar>
                 </withApi(BookmarkStar)>
@@ -977,7 +976,7 @@ exports[`ProjectCard renders 1`] = `
                                 <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                  className="css-z6hjis-StyledButton-getColors edwq9my0"
                                   disabled={false}
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
@@ -988,7 +987,7 @@ exports[`ProjectCard renders 1`] = `
                                   <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Track deploys"
-                                    className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
                                     rel="noreferrer noopener"
@@ -999,7 +998,7 @@ exports[`ProjectCard renders 1`] = `
                                     <a
                                       aria-disabled={false}
                                       aria-label="Track deploys"
-                                      className="css-1rrsmj1-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
                                       href="https://docs.sentry.io/learn/releases/"
                                       onClick={[Function]}
                                       rel="noreferrer noopener"
@@ -1013,11 +1012,11 @@ exports[`ProjectCard renders 1`] = `
                                       >
                                         <Component
                                           align="center"
-                                          className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                          className="css-1bqncjo-ButtonLabel edwq9my1"
                                           size="xsmall"
                                         >
                                           <span
-                                            className="css-1bqncjo-ButtonLabel e12ma6z1"
+                                            className="css-1bqncjo-ButtonLabel edwq9my1"
                                           >
                                             Track deploys
                                           </span>

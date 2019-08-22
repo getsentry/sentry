@@ -38,7 +38,7 @@ percy>=1.1.2
 petname>=2.6,<2.7
 Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
-psycopg2-binary>=2.6.0,<2.8.0
+psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
 pytest-django>=2.9.1,<2.10.0
 pytest-html>=1.9.0,<1.10.0
@@ -57,7 +57,7 @@ requests-oauthlib==0.3.3
 requests[security]>=2.20.0,<2.21.0
 selenium==3.141.0
 semaphore>=0.4.42,<0.5.0
-sentry-sdk>=0.10.2
+sentry-sdk>=0.11.0
 setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0
 six>=1.10.0,<1.11.0
@@ -65,7 +65,7 @@ sqlparse>=0.1.16,<0.2.0
 statsd>=3.1.0,<3.2.0
 strict-rfc3339>=0.7
 structlog==16.1.0
-symbolic>=6.0.6,<7.0.0
+symbolic>=6.1.4,<7.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.6.1,<0.8.0
 # for bitbucket client

@@ -10,12 +10,12 @@ from sentry.utils.html import escape
 
 
 class IssueLinkCreator(Mediator):
-    install = Param('sentry.models.SentryAppInstallation')
-    group = Param('sentry.models.Group')
+    install = Param("sentry.models.SentryAppInstallation")
+    group = Param("sentry.models.Group")
     action = Param(six.string_types)
     fields = Param(object)
     uri = Param(six.string_types)
-    user = Param('sentry.models.User')
+    user = Param("sentry.models.User")
 
     def call(self):
         self._verify_action()
@@ -24,24 +24,19 @@ class IssueLinkCreator(Mediator):
         return self.external_issue
 
     def _verify_action(self):
-        if self.action not in ['link', 'create']:
+        if self.action not in ["link", "create"]:
             return APIUnauthorized()
 
     def _make_external_request(self):
         self.response = external_requests.IssueLinkRequester.run(
-            install=self.install,
-            uri=self.uri,
-            group=self.group,
-            fields=self.fields,
-            user=self.user,
+            install=self.install, uri=self.uri, group=self.group, fields=self.fields, user=self.user
         )
 
     def _format_response_data(self):
-        web_url = self.response['webUrl']
+        web_url = self.response["webUrl"]
 
-        display_name = u'{}#{}'.format(
-            escape(self.response['project']),
-            escape(self.response['identifier']),
+        display_name = u"{}#{}".format(
+            escape(self.response["project"]), escape(self.response["identifier"])
         )
 
         return [web_url, display_name]

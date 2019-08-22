@@ -14,10 +14,10 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.snuba import raw_query
 
 
-@scenario('ListAvailableHashes')
+@scenario("ListAvailableHashes")
 def list_available_hashes_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method='GET', path='/issues/%s/hashes/' % group.id)
+    runner.request(method="GET", path="/issues/%s/hashes/" % group.id)
 
 
 class GroupHashesEndpoint(GroupEndpoint):
@@ -37,18 +37,15 @@ class GroupHashesEndpoint(GroupEndpoint):
         """
 
         data_fn = partial(
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+            lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
             aggregations=[
-                ('argMax(event_id, timestamp)', None, 'event_id'),
-                ('max', 'timestamp', 'latest_event_timestamp')
+                ("argMax(event_id, timestamp)", None, "event_id"),
+                ("max", "timestamp", "latest_event_timestamp"),
             ],
-            filter_keys={
-                'project_id': [group.project_id],
-                'group_id': [group.id]
-            },
-            groupby=['primary_hash'],
-            referrer='api.group-hashes',
-            orderby=['-latest_event_timestamp'],
+            filter_keys={"project_id": [group.project_id], "group_id": [group.id]},
+            groupby=["primary_hash"],
+            referrer="api.group-hashes",
+            orderby=["-latest_event_timestamp"],
         )
 
         handle_results = partial(self.__handle_results, group.project_id, group.id, request.user)
@@ -56,32 +53,24 @@ class GroupHashesEndpoint(GroupEndpoint):
         return self.paginate(
             request=request,
             on_results=handle_results,
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
     def delete(self, request, group):
-        id_list = request.GET.getlist('id')
+        id_list = request.GET.getlist("id")
         if id_list is None:
             return Response()
 
-        hash_list = GroupHash.objects.filter(
-            project_id=group.project_id,
-            group=group.id,
-            hash__in=id_list,
-        ).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION,
-        ).values_list(
-            'hash', flat=True
+        hash_list = (
+            GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .values_list("hash", flat=True)
         )
         if not hash_list:
             return Response()
 
         unmerge.delay(
-            group.project_id,
-            group.id,
-            None,
-            hash_list,
-            request.user.id if request.user else None,
+            group.project_id, group.id, None, hash_list, request.user.id if request.user else None
         )
 
         return Response(status=202)
@@ -91,13 +80,13 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(self, user, project_id, group_id, result):
         event = {
-            'timestamp': result['latest_event_timestamp'],
-            'event_id': result['event_id'],
-            'group_id': group_id,
-            'project_id': project_id
+            "timestamp": result["latest_event_timestamp"],
+            "event_id": result["event_id"],
+            "group_id": group_id,
+            "project_id": project_id,
         }
 
         return {
-            'id': result['primary_hash'],
-            'latestEvent': serialize(SnubaEvent(event), user, EventSerializer())
+            "id": result["primary_hash"],
+            "latestEvent": serialize(SnubaEvent(event), user, EventSerializer()),
         }

@@ -15,31 +15,11 @@ describe('Organization Developer Settings', function() {
     Client.clearMockResponses();
   });
 
-  describe('when not flagged in to sentry-apps', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [],
-    });
-
-    const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-      routerContext
-    );
-
-    it('displays contact us info', () => {
-      expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('[icon="icon-circle-add"]').exists()).toBe(false);
-      expect(wrapper.exists('EmptyMessage')).toBe(true);
-    });
-  });
-
   describe('when no Apps exist', () => {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [],
     });
-
-    org.features = ['sentry-apps'];
 
     const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
@@ -47,8 +27,10 @@ describe('Organization Developer Settings', function() {
     );
 
     it('displays empty state', () => {
+      expect(wrapper).toMatchSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
   });
 
@@ -61,11 +43,14 @@ describe('Organization Developer Settings', function() {
         body: [sentryApp],
       });
 
-      org.features = ['sentry-apps'];
       wrapper = mount(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
       );
+    });
+
+    it('internal integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No internal integrations have been created yet');
     });
 
     it('displays all Apps owned by the Org', () => {
@@ -90,7 +75,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.text()).toMatch('No integrations have been created yet');
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
     });
 
     it('can make a request to publish an integration', async () => {
@@ -114,8 +99,6 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [publishedSentryApp],
     });
-
-    org.features = ['sentry-apps'];
 
     const wrapper = mount(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
@@ -148,12 +131,16 @@ describe('Organization Developer Settings', function() {
       routerContext
     );
 
+    it('public integration list is empty', () => {
+      expect(wrapper.text()).toMatch('No public integrations have been created yet');
+    });
+
     it('allows deleting', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
     });
 
-    it('publish button is disabled', () => {
-      expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(true);
+    it('publish button does not exist', () => {
+      expect(wrapper.exists(publishButtonSelector)).toBe(false);
     });
   });
 
@@ -163,8 +150,6 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${newOrg.slug}/sentry-apps/`,
       body: [sentryApp],
     });
-
-    newOrg.features = ['sentry-apps'];
 
     const wrapper = mount(
       <OrganizationDeveloperSettings

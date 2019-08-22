@@ -4,9 +4,7 @@ from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
-from sentry.models import (
-    Environment, EventUser, Group, get_group_with_redirect
-)
+from sentry.models import Environment, EventUser, Group, get_group_with_redirect
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 
@@ -21,40 +19,52 @@ def attach_eventuser(project_id):
 
 
 class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
-    required_scope = 'event:read'
+    required_scope = "event:read"
 
     def get_header(self, key):
-        if key == 'user':
+        if key == "user":
             return self.get_user_header()
         return self.get_generic_header()
 
     def get_row(self, item, key):
-        if key == 'user':
+        if key == "user":
             return self.get_user_row(item)
         return self.get_generic_row(item)
 
     def get_generic_header(self):
-        return ('value', 'times_seen', 'last_seen', 'first_seen', )
+        return ("value", "times_seen", "last_seen", "first_seen")
 
     def get_generic_row(self, item):
         return (
-            item.value, item.times_seen, item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.value,
+            item.times_seen,
+            item.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            item.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         )
 
     def get_user_header(self):
         return (
-            'value', 'id', 'email', 'username', 'ip_address', 'times_seen', 'last_seen',
-            'first_seen',
+            "value",
+            "id",
+            "email",
+            "username",
+            "ip_address",
+            "times_seen",
+            "last_seen",
+            "first_seen",
         )
 
     def get_user_row(self, item):
         euser = item._eventuser
         return (
-            item.value, euser.ident if euser else '', euser.email if euser else '', euser.username
-            if euser else '', euser.ip_address
-            if euser else '', item.times_seen, item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.value,
+            euser.ident if euser else "",
+            euser.email if euser else "",
+            euser.username if euser else "",
+            euser.ip_address if euser else "",
+            item.times_seen,
+            item.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            item.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         )
 
     def get(self, request, organization, project, group_id, key):
@@ -62,14 +72,13 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
             group, _ = get_group_with_redirect(
-                group_id,
-                queryset=Group.objects.filter(project=project),
+                group_id, queryset=Group.objects.filter(project=project)
             )
         except Group.DoesNotExist:
             raise Http404
 
         if tagstore.is_reserved_key(key):
-            lookup_key = u'sentry:{0}'.format(key)
+            lookup_key = u"sentry:{0}".format(key)
         else:
             lookup_key = key
 
@@ -85,7 +94,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise Http404
 
-        if key == 'user':
+        if key == "user":
             callbacks = [attach_eventuser(project.id)]
         else:
             callbacks = []
@@ -94,9 +103,6 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
         )
 
-        filename = u'{}-{}'.format(
-            group.qualified_short_id or group.id,
-            key,
-        )
+        filename = u"{}-{}".format(group.qualified_short_id or group.id, key)
 
         return self.to_csv_response(gtv_iter, filename, key=key)

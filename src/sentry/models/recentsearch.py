@@ -16,10 +16,11 @@ class RecentSearch(Model):
     """
     Searches run by users recently.
     """
+
     __core__ = True
 
-    organization = FlexibleForeignKey('sentry.Organization')
-    user = FlexibleForeignKey('sentry.User', db_index=False)
+    organization = FlexibleForeignKey("sentry.Organization")
+    user = FlexibleForeignKey("sentry.User", db_index=False)
     type = models.PositiveSmallIntegerField()
     query = models.TextField()
     query_hash = models.CharField(max_length=32)
@@ -27,11 +28,11 @@ class RecentSearch(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_recentsearch'
-        unique_together = (('user', 'organization', 'type', 'query_hash'),)
+        app_label = "sentry"
+        db_table = "sentry_recentsearch"
+        unique_together = (("user", "organization", "type", "query_hash"),)
 
-    __repr__ = sane_repr('organization_id', 'user_id', 'type', 'query')
+    __repr__ = sane_repr("organization_id", "user_id", "type", "query")
 
 
 def remove_excess_recent_searches(organization, user, search_type):
@@ -41,10 +42,8 @@ def remove_excess_recent_searches(organization, user, search_type):
     practice this should only be removing a single row at most.
     """
     recent_searches_to_remove = RecentSearch.objects.filter(
-        organization=organization,
-        user=user,
-        type=search_type,
-    ).order_by('-last_seen')[MAX_RECENT_SEARCHES:]
+        organization=organization, user=user, type=search_type
+    ).order_by("-last_seen")[MAX_RECENT_SEARCHES:]
     RecentSearch.objects.filter(id__in=recent_searches_to_remove).delete()
 
 

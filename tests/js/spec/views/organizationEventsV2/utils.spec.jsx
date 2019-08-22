@@ -20,30 +20,6 @@ describe('getCurrentView()', function() {
 });
 
 describe('getQuery()', function() {
-  it('expands special "event" and "user" fields', function() {
-    const view = {
-      id: 'test',
-      name: 'test view',
-      data: {
-        fields: ['event', 'user', 'issue.id'],
-      },
-      tags: [],
-    };
-
-    expect(getQuery(view, {}).field).toEqual([
-      'title',
-      'id',
-      'project.name',
-      'user',
-      'user.name',
-      'user.username',
-      'user.email',
-      'user.ip',
-      'user.id',
-      'issue.id',
-    ]);
-  });
-
   it('appends any additional conditions defined for view', function() {
     const view = {
       id: 'test',
@@ -94,24 +70,6 @@ describe('getQueryString()', function() {
       query: {query: 'TypeError'},
     };
     expect(getQueryString(view, location)).toEqual('event.type:transaction TypeError');
-  });
-
-  it('includes non-empty additional data', function() {
-    const view = {
-      data: {
-        query: 'event.type:transaction',
-      },
-    };
-    const location = {};
-    const additional = {
-      nope: '',
-      undef: undefined,
-      nullish: null,
-      yes: 'value',
-    };
-    expect(getQueryString(view, location, additional)).toEqual(
-      'event.type:transaction yes:value'
-    );
   });
 });
 

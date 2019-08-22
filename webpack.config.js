@@ -2,8 +2,9 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
+
+const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -12,6 +13,8 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+
+const babelConfig = require('./babel.config');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -164,12 +167,12 @@ const localeRestrictionPlugins = [
 const cacheGroups = {
   vendors: {
     name: 'vendor',
-
-    /**
-     * Do not split platformicons into its own (css) bundle -- keep it in the `sentry` css bundle
-     * TODO: kill platformicons css completely
-     */
-    test: /[\\/]node_modules[\\/](!platformicons)[\\/]/,
+    // This `platformicons` check is required otherwise it will get put into this chunk instead
+    // of `sentry.css` bundle
+    // TODO(platformicons): Simplify this if we move platformicons into repo
+    test: module =>
+      !/platformicons/.test(module.resource) &&
+      /[\\/]node_modules[\\/]/.test(module.resource),
     priority: -10,
     enforce: true,
     chunks: 'initial',
@@ -272,6 +275,7 @@ const appConfig = {
     ],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     /**
      * Used to make our lodash modules even smaller
      */
@@ -338,6 +342,7 @@ const appConfig = {
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
     },
+
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },

@@ -14,7 +14,7 @@ MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 class BitFieldFlags(object):
     def __init__(self, flags):
         if len(flags) > MAX_FLAG_COUNT:
-            raise ValueError('Too many flags')
+            raise ValueError("Too many flags")
         self._flags = flags
 
     def __repr__(self):
@@ -90,12 +90,12 @@ class BitField(BigIntegerField):
                 k for k in flags.keys() if isinstance(k, int) and (0 <= k < MAX_FLAG_COUNT)
             )
             if not valid_keys:
-                raise ValueError('Wrong keys or empty dictionary')
+                raise ValueError("Wrong keys or empty dictionary")
             # Fill list with values from dict or with empty values
-            flags = [flags.get(i, '') for i in range(max(valid_keys) + 1)]
+            flags = [flags.get(i, "") for i in range(max(valid_keys) + 1)]
 
         if len(flags) > MAX_FLAG_COUNT:
-            raise ValueError('Too many flags')
+            raise ValueError("Too many flags")
 
         self._arg_flags = flags
         flags = list(flags)
@@ -120,6 +120,7 @@ class BitField(BigIntegerField):
     def south_field_triple(self):
         "Returns a suitable description of this field for South."
         from south.modelsinspector import introspector
+
         field_class = "django.db.models.fields.BigIntegerField"
         args, kwargs = introspector(self)
         return (field_class, args, kwargs)
@@ -140,10 +141,10 @@ class BitField(BigIntegerField):
         return int(value)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
-        if isinstance(getattr(value, 'expression', None), Bit):
+        if isinstance(getattr(value, "expression", None), Bit):
             value = value.expression
         if isinstance(value, (BitHandler, Bit)):
-            if hasattr(self, 'class_lookups'):
+            if hasattr(self, "class_lookups"):
                 # Django 1.7+
                 return [value.mask]
             else:
@@ -155,10 +156,10 @@ class BitField(BigIntegerField):
         )
 
     def get_prep_lookup(self, lookup_type, value):
-        if isinstance(getattr(value, 'expression', None), Bit):
+        if isinstance(getattr(value, "expression", None), Bit):
             value = value.expression
         if isinstance(value, Bit):
-            raise TypeError('Lookup type %r not supported with `Bit` type.' % lookup_type)
+            raise TypeError("Lookup type %r not supported with `Bit` type." % lookup_type)
         return BigIntegerField.get_prep_lookup(self, lookup_type, value)
 
     def to_python(self, value):

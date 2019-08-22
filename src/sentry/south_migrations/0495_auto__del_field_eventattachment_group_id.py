@@ -15,13 +15,12 @@ class Migration(SchemaMigration):
         # Deleting field 'EventAttachment.group_id'
         db.delete_column(u'sentry_eventattachment', 'group_id')
 
-
     def backwards(self, orm):
         # Adding field 'EventAttachment.group_id'
         db.add_column(u'sentry_eventattachment', 'group_id',
-                      self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True, db_index=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
+                          null=True, db_index=True),
                       keep_default=False)
-
 
     models = {
         'sentry.activity': {

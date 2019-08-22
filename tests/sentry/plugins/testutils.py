@@ -4,20 +4,20 @@ from sentry.plugins import plugins, IssueTrackingPlugin2
 
 
 class VstsPlugin(IssueTrackingPlugin2):
-    slug = 'vsts'
-    name = 'VSTS Mock Plugin'
+    slug = "vsts"
+    name = "VSTS Mock Plugin"
     conf_key = slug
 
 
 class GitHubPlugin(IssueTrackingPlugin2):
-    slug = 'github'
-    name = 'GitHub Mock Plugin'
+    slug = "github"
+    name = "GitHub Mock Plugin"
     conf_key = slug
 
 
 class BitbucketPlugin(IssueTrackingPlugin2):
-    slug = 'bitbucket'
-    name = 'Bitbucket Mock Plugin'
+    slug = "bitbucket"
+    name = "Bitbucket Mock Plugin"
     conf_key = slug
 
 

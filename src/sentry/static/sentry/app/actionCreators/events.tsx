@@ -1,3 +1,4 @@
+import {Client} from 'app/api';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 import {EventsStats, Organization} from 'app/types';
@@ -16,6 +17,8 @@ type Options = {
   limit?: number;
   query?: string;
   yAxis?: 'event_count' | 'user_count';
+  field?: string[];
+  referenceEvent?: string;
 };
 
 /**
@@ -33,8 +36,7 @@ type Options = {
  * @param {String} options.query Search query
  */
 export const doEventsRequest = (
-  // TODO(ts): Update when we type `app/api`
-  api: any,
+  api: Client,
   {
     organization,
     project,
@@ -46,16 +48,22 @@ export const doEventsRequest = (
     includePrevious,
     query,
     yAxis,
+    field,
+    referenceEvent,
   }: Options
 ): Promise<EventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
-  const urlQuery = {
-    interval,
-    project,
-    environment,
-    query,
-    yAxis,
-  };
+  const urlQuery = Object.fromEntries(
+    Object.entries({
+      interval,
+      project,
+      environment,
+      query,
+      yAxis,
+      field,
+      referenceEvent,
+    }).filter(([, value]) => typeof value !== 'undefined')
+  );
 
   // Doubling period for absolute dates is not accurate unless starting and
   // ending times are the same (at least for daily intervals). This is

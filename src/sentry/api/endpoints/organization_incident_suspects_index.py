@@ -1,16 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.incident import (
-    IncidentEndpoint,
-    IncidentPermission,
-)
+from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.incidents.logic import get_incident_suspects
 
 
 class OrganizationIncidentSuspectsIndexEndpoint(IncidentEndpoint):
-    permission_classes = (IncidentPermission, )
+    permission_classes = (IncidentPermission,)
 
     def get(self, request, organization, incident):
         """
@@ -23,7 +20,8 @@ class OrganizationIncidentSuspectsIndexEndpoint(IncidentEndpoint):
 
         # Only fetch suspects for projects that the user has access to
         projects = [
-            project for project in incident.projects.all()
+            project
+            for project in incident.projects.all()
             if request.access.has_project_access(project)
         ]
         commits = list(get_incident_suspects(incident, projects))
@@ -32,7 +30,6 @@ class OrganizationIncidentSuspectsIndexEndpoint(IncidentEndpoint):
 
         # TODO: For now just hard coding this format. As we add in more formats
         # we'll handle this in a more robust way.
-        return self.respond([
-            {'type': 'commit', 'data': suspect}
-            for suspect in serialized_suspects
-        ])
+        return self.respond(
+            [{"type": "commit", "data": suspect} for suspect in serialized_suspects]
+        )

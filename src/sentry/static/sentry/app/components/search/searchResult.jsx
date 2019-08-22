@@ -180,7 +180,6 @@ const ResultTypeIcon = styled(InlineSvg)`
   font-size: 1.2em;
   flex-shrink: 0;
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${SettingsSearch} & {
     color: inherit;
   }

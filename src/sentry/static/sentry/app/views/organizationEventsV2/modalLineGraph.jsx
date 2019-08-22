@@ -67,26 +67,41 @@ const getCurrentEventMarker = currentEvent => {
  *
  * When a user clicks on a marker we want to update the modal
  * to display an event from that time slice. While each graph slice
- * could contain thousands of events, we use the /latest endpoint
- * to pick one.
+ * could contain thousands of events, we do a search to get the latest
+ * event in the slice.
  */
 const handleClick = async function(
   series,
-  {api, organization, queryString, interval, selection, location}
+  {api, currentEvent, organization, queryString, field, interval, selection, location}
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
+
+  // If the current fieldlist has a timestamp column sort
+  // by that. If there are no timestamp fields we will get non-deterministic
+  // results.
+  const sortField = field.includes('timestamp')
+    ? 'timestamp'
+    : field.includes('last_seen')
+    ? 'last_seen'
+    : null;
 
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
   const query = {
     environment: selection.environments,
-    query: queryString,
     start: getUtcDateString(value),
     end: getUtcDateString(value + intervalToMilliseconds(interval)),
+    limit: 1,
+    referenceEvent: `${currentEvent.projectSlug}:${currentEvent.eventID}`,
+    query: queryString,
+    field,
   };
+  if (sortField !== null) {
+    query.sort = sortField;
+  }
 
-  const url = `/organizations/${organization.slug}/events/latest/`;
+  const url = `/organizations/${organization.slug}/eventsv2/`;
   let response;
   try {
     response = await api.requestPromise(url, {
@@ -97,12 +112,17 @@ const handleClick = async function(
     // Do nothing, user could have clicked on a blank space.
     return;
   }
+  if (!response.data || !response.data.length) {
+    // Did not find anything.
+    return;
+  }
 
+  const event = response.data[0];
   browserHistory.push({
     pathname: location.pathname,
     query: {
       ...omit(location.query, MODAL_QUERY_KEYS),
-      eventSlug: `${response.projectSlug}:${response.eventID}`,
+      eventSlug: `${event['project.name']}:${event.id || event.latest_event}`,
     },
   });
 };
@@ -136,15 +156,8 @@ const ModalLineGraph = props => {
     },
   };
 
-  // Generate a query string that finds events similar to our
-  // current event based on the type of view being used.
-  const eventConditions = {};
-  if (view.id === 'transactions') {
-    eventConditions.transaction = currentEvent.location;
-  } else {
-    eventConditions['issue.id'] = currentEvent.groupID;
-  }
-  const queryString = getQueryString(view, location, eventConditions);
+  const queryString = getQueryString(view, location);
+  const referenceEvent = `${currentEvent.projectSlug}:${currentEvent.eventID}`;
 
   return (
     <Panel>
@@ -159,6 +172,8 @@ const ModalLineGraph = props => {
         interval={interval}
         showLoading={true}
         query={queryString}
+        field={view.data.fields}
+        referenceEvent={referenceEvent}
         includePrevious={false}
       >
         {({loading, reloading, timeseriesData}) => (
@@ -171,12 +186,14 @@ const ModalLineGraph = props => {
             }}
             onClick={series =>
               handleClick(series, {
+                field: view.data.fields,
                 api,
                 organization,
-                queryString,
+                currentEvent,
                 interval,
                 selection,
                 location,
+                queryString,
               })
             }
             tooltip={tooltip}
