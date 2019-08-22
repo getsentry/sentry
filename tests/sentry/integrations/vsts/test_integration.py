@@ -176,13 +176,47 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             VSTSIdentityProvider.oauth_scopes
         )
 
-    def test_build_integration__create_subscription_error(self):
+    def test_build_integration__create_subscription_forbidden(self):
         responses.replace(
             responses.POST,
             u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
                 self.vsts_account_name.lower()
             ),
             status=403,
+            json={
+                "$id": 1,
+                "message": "The user bob is does not have permission to access this resource",
+                "typeKey": "UnauthorizedRequestException",
+                "errorCode": 0,
+                "eventId": 3000,
+            },
+        )
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+        }
+
+        integration = VstsIntegrationProvider()
+
+        with pytest.raises(IntegrationError) as err:
+            integration.build_integration(state)
+        assert "sufficient account access to create webhooks" in six.text_type(err)
+
+    def test_build_integration__create_subscription_unauthorized(self):
+        responses.replace(
+            responses.POST,
+            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+                self.vsts_account_name.lower()
+            ),
+            status=401,
             json={
                 "$id": 1,
                 "message": "The user bob is not authorized to access this resource",
