@@ -142,12 +142,23 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     end = serializers.DateTimeField(required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
     fields = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False, allow_null=True)
-    rollup = serializers.IntegerField(required=False, allow_null=True)
     orderby = serializers.CharField(required=False, allow_null=True)
-    conditions = ListField(child=ListField(), required=False, allow_null=True)
-    aggregations = ListField(child=ListField(), required=False, default=[])
+
+    # This block of fields is only accepted by discover 1 which omits the version
+    # attribute or has it set to 1
+    rollup = serializers.IntegerField(required=False, allow_null=True)
+    aggregations = ListField(child=ListField(), required=False, allow_null=True)
     groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    conditions = ListField(child=ListField(), required=False, allow_null=True)
+    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False, allow_null=True)
+
+    # There are multiple versions of saved queries supported.
+    version = serializers.IntegerField(min_value=1, max_value=2, required=False, allow_null=True)
+
+    # Attributes that are only accepted if version = 2
+    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    query = serializers.CharField(required=False, allow_null=True)
 
     def validate_projects(self, projects):
         organization = self.context["organization"]
@@ -166,6 +177,10 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     def validate(self, data):
         query = {}
         query_keys = [
+            "fieldnames",
+            "environment",
+            "query",
+            "version",
             "fields",
             "conditions",
             "aggregations",
@@ -179,5 +194,29 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         for key in query_keys:
             if data.get(key) is not None:
                 query[key] = data[key]
+
+        if query.get("version", 1) == 1:
+            not_allowed = set(query.keys()) & set(["environment", "fieldnames", "query"])
+            if not_allowed:
+                raise serializers.ValidationError(
+                    "You cannot use the %s attribute(s) in a v1 saved query"
+                    % ", ".join(not_allowed)
+                )
+
+        if query.get("version") == 2:
+            v1_fields = set(["groupby", "rollup", "aggregations", "conditions", "limit"])
+            not_allowed = set(query.keys()) & v1_fields
+            if not_allowed:
+                raise serializers.ValidationError(
+                    "You cannot use the %s attribute(s) in a v2 saved query"
+                    % ", ".join(not_allowed)
+                )
+            if len(query["fields"]) < 1:
+                raise serializers.ValidationError("You must include at least one field.")
+
+            if query.get("fieldnames") and len(query["fieldnames"]) != len(query["fields"]):
+                raise serializers.ValidationError(
+                    "You must provide an equal number of field names and fields"
+                )
 
         return {"name": data["name"], "project_ids": data["projects"], "query": query}
