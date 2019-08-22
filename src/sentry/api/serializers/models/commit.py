@@ -87,7 +87,6 @@ class CommitWithReleaseSerializer(CommitSerializer):
         data["releases"] = [
             {
                 "version": r.version,
-                "shortVersion": r.short_version,
                 "ref": r.ref,
                 "url": r.url,
                 "dateReleased": r.date_released,
