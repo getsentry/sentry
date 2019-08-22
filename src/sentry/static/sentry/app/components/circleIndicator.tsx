@@ -5,11 +5,10 @@ type Props = {
   enabled: boolean;
   size: number;
   color?: string;
+  theme?: any;
 };
 
-type StyledProps = Props & {theme?: any};
-
-const getBackgroundColor = (p: StyledProps): string => {
+const getBackgroundColor = (p: Props) => {
   if (p.color) {
     return `background: ${p.color};`;
   }
@@ -17,12 +16,12 @@ const getBackgroundColor = (p: StyledProps): string => {
   return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
 };
 
-const getSize = (p: StyledProps): string => `
+const getSize = (p: Props) => `
   height: ${p.size}px;
   width: ${p.size}px;
 `;
 
-const CircleIndicator = styled('div')`
+const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
