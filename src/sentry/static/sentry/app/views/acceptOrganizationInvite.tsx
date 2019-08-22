@@ -6,7 +6,7 @@ import {logout} from 'app/actionCreators/account';
 import {t, tct} from 'app/locale';
 import {urlEncode} from '@sentry/utils';
 import Alert from 'app/components/alert';
-import AsyncView, {AsyncViewProps, AsyncViewState} from 'app/views/asyncView';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Link from 'app/components/links/link';
@@ -23,13 +23,13 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
-type State = AsyncViewState & {
+type State = AsyncView['state'] & {
   inviteDetails: InviteDetails;
   accepting: boolean | undefined;
   acceptError: boolean | undefined;
 };
 
-class AcceptOrganizationInvite extends AsyncView<AsyncViewProps, State> {
+class AcceptOrganizationInvite extends AsyncView<AsyncView['props'], State> {
   getEndpoints(): [string, string][] {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
