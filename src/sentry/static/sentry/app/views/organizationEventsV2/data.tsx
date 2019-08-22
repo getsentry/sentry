@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import Count from 'app/components/count';
@@ -12,7 +13,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
 import {EventView, Organization} from 'app/types';
-import {ReactRouterLocation} from 'app/types/reactRouter';
 
 import {QueryLink} from './styles';
 
@@ -98,7 +98,7 @@ type EventData = {[key: string]: any};
 
 type RenderFunctionBaggage = {
   organization: Organization;
-  location: ReactRouterLocation;
+  location: Location;
 };
 
 type FieldFormatterRenderFunction = (
