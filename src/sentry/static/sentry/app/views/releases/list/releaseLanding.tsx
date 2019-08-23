@@ -16,29 +16,15 @@ import withProject from 'app/utils/withProject';
 import ReleaseLandingCard from './releaseLandingCard';
 
 type IllustrationProps = {
-  data: string,
+  data: string;
+  className?: string;
 };
 
-class Illustration extends React.Component<IllustrationProps> {
-  render() {
-    const {data} = this.props;
-
-    // Currently, we need a fallback because <object> doesn't work in msedge,
-    // and <img> doesn't work in safari. Hopefully we can choose one soon.
-    return (
-      <ObjectIllustration data={data}>
-        <ImgIllustration src={data} />
-      </ObjectIllustration>
-    );
-  }
-}
-
-const ObjectIllustration = styled('object')`
-  width: 100%;
-  height: 100%;
-`;
-
-const ImgIllustration = styled('img')`
+const Illustration = styled(({data, className}: IllustrationProps) => (
+  <object data={data} className={className}>
+    <img src={data} className={className} />
+  </object>
+))`
   width: 100%;
   height: 100%;
 `;
@@ -80,75 +66,76 @@ const cards = [
 ];
 
 type ReleaseLandingProps = {
-  organization: Organization,
-  project: Project,
+  organization: Organization;
+  project: Project;
 };
 
 type State = {
-  stepId: number,
-}
+  stepId: number;
+};
 
-const ReleaseLanding = withOrganization(withProject(
-  class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
-
-    constructor(props) {
-      super(props);
-      this.state = {
-        stepId: 0,
-      };
-    }
-
-    componentDidMount() {
-      const {organization, project} = this.props;
-
-      analytics('releases.landing_card_viewed', {
-        org_id: parseInt(organization.id, 10),
-        project_id: project && parseInt(project.id, 10),
-      });
-    }
-
-    handleClick = () => {
-      const {stepId} = this.state;
-      const {organization, project} = this.props;
-
-      const title = cards[stepId].title;
-      if (stepId >= cards.length - 1) {
-        return;
+const ReleaseLanding = withOrganization(
+  withProject(
+    class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
+      constructor(props) {
+        super(props);
+        this.state = {
+          stepId: 0,
+        };
       }
-      this.setState(state => ({
-        stepId: state.stepId + 1,
-      }));
 
-      analytics('releases.landing_card_clicked', {
-        org_id: parseInt(organization.id, 10),
-        project_id: project && parseInt(project.id, 10),
-        step_id: stepId,
-        step_title: title,
-      });
-    };
+      componentDidMount() {
+        const {organization, project} = this.props;
 
-    getCard = stepId => {
-      return cards[stepId];
-    };
+        analytics('releases.landing_card_viewed', {
+          org_id: parseInt(organization.id, 10),
+          project_id: project && parseInt(project.id, 10),
+        });
+      }
 
-    render() {
-      const {stepId} = this.state;
-      const card = this.getCard(stepId);
+      handleClick = () => {
+        const {stepId} = this.state;
+        const {organization, project} = this.props;
 
-      return (
-        <div className="container">
-          <div className="row">
-            <ReleaseLandingCard
-              onClick={this.handleClick}
-              card={card}
-              step={stepId}
-              cardsLength={cards.length}
-            />
+        const title = cards[stepId].title;
+        if (stepId >= cards.length - 1) {
+          return;
+        }
+        this.setState(state => ({
+          stepId: state.stepId + 1,
+        }));
+
+        analytics('releases.landing_card_clicked', {
+          org_id: parseInt(organization.id, 10),
+          project_id: project && parseInt(project.id, 10),
+          step_id: stepId,
+          step_title: title,
+        });
+      };
+
+      getCard = stepId => {
+        return cards[stepId];
+      };
+
+      render() {
+        const {stepId} = this.state;
+        const card = this.getCard(stepId);
+
+        return (
+          <div className="container">
+            <div className="row">
+              <ReleaseLandingCard
+                onClick={this.handleClick}
+                card={card}
+                step={stepId}
+                cardsLength={cards.length}
+              />
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
     }
-  }
-));
+  )
+);
 
 export default ReleaseLanding;
