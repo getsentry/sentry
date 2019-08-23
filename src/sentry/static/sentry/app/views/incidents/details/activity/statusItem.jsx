@@ -2,13 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {
-  INCIDENT_ACTIVITY_TYPE,
-  INCIDENT_STATUS,
-} from 'app/views/organizationIncidents/utils';
+import {IncidentActivityType, IncidentStatus} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
-import Chart from 'app/views/organizationIncidents/details/chart';
+import Chart from 'app/views/incidents/details/chart';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -30,15 +27,15 @@ class StatusItem extends React.Component {
   render() {
     const {activity, authorName, incident} = this.props;
 
-    const isCreated = activity.type === INCIDENT_ACTIVITY_TYPE.CREATED;
-    const isDetected = activity.type === INCIDENT_ACTIVITY_TYPE.DETECTED;
+    const isCreated = activity.type === IncidentActivityType.CREATED;
+    const isDetected = activity.type === IncidentActivityType.DETECTED;
     const isClosed =
-      activity.type === INCIDENT_ACTIVITY_TYPE.STATUS_CHANGE &&
-      activity.value === `${INCIDENT_STATUS.CLOSED}`;
+      activity.type === IncidentActivityType.STATUS_CHANGE &&
+      activity.value === `${IncidentStatus.CLOSED}`;
     const isReopened =
-      activity.type === INCIDENT_ACTIVITY_TYPE.STATUS_CHANGE &&
-      activity.value === `${INCIDENT_STATUS.CREATED}` &&
-      activity.previousValue === `${INCIDENT_STATUS.CLOSED}`;
+      activity.type === IncidentActivityType.STATUS_CHANGE &&
+      activity.value === `${IncidentStatus.CREATED}` &&
+      activity.previousValue === `${IncidentStatus.CLOSED}`;
 
     // Unknown activity, don't render anything
     if (!isCreated && !isDetected && !isClosed && !isReopened) {

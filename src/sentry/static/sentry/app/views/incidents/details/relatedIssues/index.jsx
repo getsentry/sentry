@@ -30,7 +30,7 @@ const RelatedIssues = styled(
       return (
         <div className={className}>
           <IssuesFetcher api={api} issueIds={incident && incident.groups}>
-            {({issues, loading, error}) => {
+            {({issues, loading}) => {
               // If loading is finished, and there are no issues, do not display anything
               if (!loading && issues && issues.length === 0) {
                 return null;

@@ -26,7 +26,7 @@ import SparkLine from './sparkLine';
 
 const DEFAULT_QUERY_STATUS = '';
 
-class OrganizationIncidentsList extends AsyncComponent {
+class IncidentsList extends AsyncComponent {
   getEndpoints() {
     const {params, location} = this.props;
     return [
@@ -116,7 +116,7 @@ class OrganizationIncidentsList extends AsyncComponent {
   }
 }
 
-class OrganizationIncidentsListContainer extends React.Component {
+class IncidentsListContainer extends React.Component {
   render() {
     const {params, location} = this.props;
     const {pathname, query} = location;
@@ -172,7 +172,7 @@ class OrganizationIncidentsListContainer extends React.Component {
             )}
           </AlertLink>
 
-          <OrganizationIncidentsList {...this.props} />
+          <IncidentsList {...this.props} />
         </PageContent>
       </DocumentTitle>
     );
@@ -208,4 +208,4 @@ const NumericColumn = styled('div')`
   text-align: right;
 `;
 
-export default OrganizationIncidentsListContainer;
+export default IncidentsListContainer;
