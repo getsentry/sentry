@@ -165,8 +165,9 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     Handles a subscription update for a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    sentry/snuba/json_schemas.py
+    sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
     :param subscription: The `QuerySubscription` that this update is for
     """
-    # TODO: Implement
-    pass
+    from sentry.incidents.subscription_processor import SubscriptionProcessor
+
+    SubscriptionProcessor(subscription).process_update(subscription_update)
