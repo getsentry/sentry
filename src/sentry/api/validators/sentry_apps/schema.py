@@ -215,7 +215,7 @@ def check_each_element_for_error(instance):
             raise SchemaValidationError("%s for element of type '%s'" % (e.message, found_type))
 
 
-def validateUiElementSchema(instance):
+def validate_ui_element_schema(instance):
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
