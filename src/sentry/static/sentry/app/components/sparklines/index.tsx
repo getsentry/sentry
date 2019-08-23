@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
  * have `children defined.
  * - typescript also won't let us access `Sparklines.propTypes`
  */
-class LolSparklines extends Sparklines {
+export default class SparklinesWithCustomPropTypes extends Sparklines {
   static propTypes = {
     children: PropTypes.node,
     data: PropTypes.array,
@@ -26,4 +26,3 @@ class LolSparklines extends Sparklines {
     onMouseMove: PropTypes.func,
   };
 }
-export default LolSparklines;
