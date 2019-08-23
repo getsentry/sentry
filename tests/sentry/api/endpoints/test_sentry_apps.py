@@ -319,14 +319,16 @@ class PostSentryAppsTest(SentryAppsTest):
         }
         response = self._post(**kwargs)
         assert response.status_code == 400
-        assert response.data == {"schema": ["['#general'] is too short"]}
+        assert response.data == {
+            "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
+        }
 
         record.assert_called_with(
             "sentry_app.schema_validation_error",
             user_id=self.user.id,
             organization_id=self.org.id,
             sentry_app_name="MyApp",
-            error_message="['#general'] is too short",
+            error_message="['#general'] is too short for element of type 'alert-rule-action'",
             schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
         )
 
