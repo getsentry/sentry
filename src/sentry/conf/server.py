@@ -529,6 +529,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
+    "sentry.incidents.tasks",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
@@ -847,8 +848,7 @@ SENTRY_FEATURES = {
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
-    'organizations:org-saved-searches': False,
-
+    "organizations:org-saved-searches": False,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
