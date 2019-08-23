@@ -25,6 +25,7 @@ import space from 'app/styles/space';
 
 import Status from '../status';
 import SparkLine from './sparkLine';
+import {Incident} from '../types';
 
 const DEFAULT_QUERY_STATUS = '';
 
@@ -33,7 +34,11 @@ type Props = {
   location: Location;
 };
 
-class IncidentsList extends AsyncComponent<Props> {
+type State = {
+  incidentList: Incident[];
+};
+
+class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
     return [
