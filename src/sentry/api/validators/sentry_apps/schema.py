@@ -181,8 +181,12 @@ SCHEMA = {
 element_types = ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']
 
 
+def checkElementsIsArray(instance):
+    if not isinstance(instance['elements'], list):
+        raise SchemaValidationError("'elements' should be an array of objects")
+
+
 def checkForElementTypeError(instance):
-    # schema validator will catch elements missing
     for element in instance['elements']:
         if 'type' not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
@@ -193,6 +197,8 @@ def checkForElementTypeError(instance):
 
 def validate(instance):
     try:
+        # schema validator will catch elements missing
+        checkElementsIsArray(instance)
         checkForElementTypeError(instance)
     except SchemaValidationError as e:
         raise e
