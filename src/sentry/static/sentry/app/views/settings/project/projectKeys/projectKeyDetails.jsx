@@ -77,7 +77,7 @@ class KeyStats extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  fetchData = () => {
     const {keyId, orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
       query: {
@@ -107,7 +107,7 @@ class KeyStats extends React.Component {
         this.setState({error: true, loading: false});
       },
     });
-  }
+  };
 
   renderTooltip = (point, _pointIdx, chart) => {
     const timeLabel = chart.getTimeLabel(point);

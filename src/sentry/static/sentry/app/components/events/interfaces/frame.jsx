@@ -29,12 +29,9 @@ class FunctionName extends React.Component {
     frame: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      rawFunction: false,
-    };
-  }
+  state = {
+    rawFunction: false,
+  };
 
   toggle = event => {
     event.stopPropagation();

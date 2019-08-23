@@ -39,7 +39,6 @@ export default class ServiceHookSettingsForm extends React.Component {
           apiEndpoint={endpoint}
           initialData={initialData}
           onSubmitSuccess={this.onSubmitSuccess}
-          onCancel={this.onCancel}
           footerStyle={{
             marginTop: 0,
             paddingRight: 20,

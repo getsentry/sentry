@@ -4,7 +4,6 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {omit} from 'lodash';
 
 import {
   addErrorMessage,
@@ -312,10 +311,9 @@ export default class ProjectKeys extends AsyncView {
   }
 }
 
-const ClientKeyItemPanel = styled(props => {
-  const otherProps = omit(props, ['disabled']);
-  return <Panel {...otherProps} />;
-})`
+const ClientKeyItemPanel = styled(({disabled: _disabled, ...props}) => (
+  <Panel {...props} />
+))`
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
 
   .box-clippable {
