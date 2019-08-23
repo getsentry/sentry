@@ -368,6 +368,7 @@ const KeySettings = createReactClass({
                     label={t('Name')}
                     disabled={!hasAccess}
                     required={false}
+                    maxLength={64}
                   />
                   <BooleanField
                     name="isActive"
