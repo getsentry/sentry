@@ -10,7 +10,6 @@ import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
-import Badge from 'app/components/badge';
 import Placeholder from 'app/components/placeholder';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import DateTime from 'app/components/dateTime';
@@ -53,6 +52,7 @@ class RelatedEvents extends AsyncComponent<Props> {
           'project.name',
           'title',
           'transaction',
+          'message',
           'id',
           'issue.id',
           'event.type',
@@ -94,16 +94,26 @@ class RelatedEvents extends AsyncComponent<Props> {
               },
             };
             const project = projects.find(p => p.slug === item['project.name']);
+
+            let iconSrc = 'icon-circle-exclamation';
+            if (item['event.type'] === 'transaction') {
+              iconSrc = 'icon-stats';
+            }
+
             return (
               <Card key={item.id} isCurrent={event.id === item.id}>
-                <EventLink to={eventUrl} data-test-id="linked-event">
-                  {item.title ? item.title : item.transaction}
-                </EventLink>
-                <StyledProjectBadge project={project} avatarSize={14} />
-                <div>
+                <CardHeader>
+                  <InlineSvg src={iconSrc} size="15" />
+                  <EventLink to={eventUrl} data-test-id="linked-event">
+                    {item.title ? item.title : item.transaction}
+                    {item.title !== item.transaction && <em>{item.transaction}</em>}
+                  </EventLink>
+                </CardHeader>
+                {item.message !== item.title && <ExtraInfo>{item.message}</ExtraInfo>}
+                <ExtraInfo>
+                  <StyledProjectBadge project={project} avatarSize={14} />
                   <StyledDateTime date={item.timestamp} />
-                  <Badge text={item['event.type']} />
-                </div>
+                </ExtraInfo>
               </Card>
             );
           })
@@ -120,15 +130,21 @@ const Container = styled('div')`
 const Card = styled('div')<{isCurrent?: boolean; theme?: any}>`
   display: flex;
   flex-direction: column;
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.4;
   border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(1)};
   padding: ${space(1)};
 `;
 
+const CardHeader = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
 const EventLink = styled(Link)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(0.5)};
+  margin-left: ${space(1)};
   ${overflowEllipsis};
 `;
 
@@ -143,14 +159,18 @@ const Title = styled('h4')`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.gray2};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(0.5)};
+  margin-right: ${space(1)};
+`;
+
+const ExtraInfo = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default withProjects(RelatedEvents);
