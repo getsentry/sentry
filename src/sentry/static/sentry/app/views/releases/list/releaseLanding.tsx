@@ -20,6 +20,8 @@ type IllustrationProps = {
   className?: string;
 };
 
+// Currently, we need a fallback because <object> doesn't work in msedge,
+// and <img> doesn't work in safari. Hopefully we can choose one soon.
 const Illustration = styled(({data, className}: IllustrationProps) => (
   <object data={data} className={className}>
     <img src={data} className={className} />
