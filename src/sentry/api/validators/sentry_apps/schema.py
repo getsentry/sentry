@@ -209,7 +209,7 @@ def validateUiElementSchema(instance):
         # pre-validators might have unexpected errors if the format is not what they expect in the check
         # if that happens, we should eat the error and let the main validator find the schema error
         pass
-    validateUiElementSchema(SCHEMA)
+    validate(instance, SCHEMA)
 
 
 def validate(instance, schema):
