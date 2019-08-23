@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
-from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry.api.bases import OrganizationEndpoint
 from sentry.discover.models import DiscoverSavedQuery
 from sentry import features
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
+from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 
 
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):

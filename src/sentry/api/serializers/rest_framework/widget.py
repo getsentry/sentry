@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db.models import Max
 from rest_framework import serializers
 
-from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
+from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.api.serializers.rest_framework import JSONField, ListField, ValidationError
 from sentry.models import Widget, WidgetDisplayTypes, WidgetDataSourceTypes
 
