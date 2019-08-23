@@ -2,10 +2,12 @@ import {Sparklines} from 'react-sparklines';
 import PropTypes from 'prop-types';
 
 /**
- * We need this because typescript complains that the library's `propTypes` does not
- * have `children defined.
+ * This is required because:
  *
- * typescript also won't let us access `Sparklines.propTypes`
+ * - React.Suspense only works with default exports
+ * - typescript complains that the library's `propTypes` does not
+ * have `children defined.
+ * - typescript also won't let us access `Sparklines.propTypes`
  */
 class LolSparklines extends Sparklines {
   static propTypes = {
