@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.testutils import TestCase
-from sentry.api.validators.sentry_apps.schema import validate
+from sentry.api.validators.sentry_apps.schema import validateUiElementSchema
 
 
 class TestSchemaValidation(TestCase):
@@ -71,4 +71,4 @@ class TestSchemaValidation(TestCase):
         }
 
     def test_valid_schema_with_options(self):
-        validate(self.schema)
+        validateUiElementSchema(self.schema)

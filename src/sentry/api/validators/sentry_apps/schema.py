@@ -178,24 +178,27 @@ SCHEMA = {
     "required": ["elements"],
 }
 
-element_types = ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']
+element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
 
 
 def checkElementsIsArray(instance):
-    if not isinstance(instance['elements'], list):
+    if not isinstance(instance["elements"], list):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
 def checkForElementTypeError(instance):
-    for element in instance['elements']:
-        if 'type' not in element:
+    for element in instance["elements"]:
+        if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
-        found_type = element['type']
-        if not found_type in element_types:
-            raise SchemaValidationError("Element has type '%s'. Type must be one of the following: %s" % (found_type, element_types))
+        found_type = element["type"]
+        if found_type not in element_types:
+            raise SchemaValidationError(
+                "Element has type '%s'. Type must be one of the following: %s"
+                % (found_type, element_types)
+            )
 
 
-def validate(instance):
+def validateUiElementSchema(instance):
     try:
         # schema validator will catch elements missing
         checkElementsIsArray(instance)
@@ -206,6 +209,10 @@ def validate(instance):
         # pre-validators might have unexpected errors if the format is not what they expect in the check
         # if that happens, we should eat the error and let the main validator find the schema error
         pass
-    v = Draft4Validator(SCHEMA)
+    validateUiElementSchema(SCHEMA)
+
+
+def validate(instance, schema):
+    v = Draft4Validator(schema)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))
