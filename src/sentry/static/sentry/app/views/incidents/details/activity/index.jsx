@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {INCIDENT_ACTIVITY_TYPE} from 'app/views/organizationIncidents/utils';
+import {IncidentActivityType} from 'app/views/incidents/utils';
 import {
   createIncidentNote,
   deleteIncidentNote,
@@ -76,7 +76,7 @@ class ActivityContainer extends React.PureComponent {
 
     const newActivity = {
       comment: note.text,
-      type: INCIDENT_ACTIVITY_TYPE.COMMENT,
+      type: IncidentActivityType.COMMENT,
       dateCreated: new Date(),
       user: ConfigStore.get('user'),
       id: uniqueId(),

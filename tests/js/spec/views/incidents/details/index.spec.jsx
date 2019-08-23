@@ -2,7 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import IncidentDetails from 'app/views/organizationIncidents/details';
+import IncidentDetails from 'app/views/incidents/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {

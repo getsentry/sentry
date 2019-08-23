@@ -3,18 +3,19 @@ import {mount} from 'enzyme';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 
-import OrganizationIncidentsList from 'app/views/organizationIncidents/list';
+import IncidentsList from 'app/views/incidents/list';
 
-describe('OrganizationIncidentsList', function() {
+describe('IncidentsList', function() {
   const {routerContext} = initializeOrg();
   let mock;
   let wrapper;
 
   const createWrapper = async props => {
     wrapper = mount(
-      <OrganizationIncidentsList
+      <IncidentsList
         params={{orgId: 'org-slug'}}
         location={{query: {}, search: ''}}
+        {...props}
       />,
       routerContext
     );

@@ -4,7 +4,7 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import {INCIDENT_ACTIVITY_TYPE} from 'app/views/organizationIncidents/utils';
+import {IncidentActivityType} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -127,7 +127,7 @@ class Activity extends React.Component {
                   activitiesForDate.map(activity => {
                     const authorName = activity.user ? activity.user.name : 'Sentry';
 
-                    if (activity.type === INCIDENT_ACTIVITY_TYPE.COMMENT) {
+                    if (activity.type === IncidentActivityType.COMMENT) {
                       return (
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <Note
