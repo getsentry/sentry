@@ -160,6 +160,11 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
 
+    disallowed_fields = {
+        1: set(["environment", "fieldnames", "query"]),
+        2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
+    }
+
     def validate_projects(self, projects):
         organization = self.context["organization"]
 
@@ -195,22 +200,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             if data.get(key) is not None:
                 query[key] = data[key]
 
-        if query.get("version", 1) == 1:
-            not_allowed = set(query.keys()) & set(["environment", "fieldnames", "query"])
-            if not_allowed:
-                raise serializers.ValidationError(
-                    "You cannot use the %s attribute(s) in a v1 saved query"
-                    % ", ".join(not_allowed)
-                )
-
-        if query.get("version") == 2:
-            v1_fields = set(["groupby", "rollup", "aggregations", "conditions", "limit"])
-            not_allowed = set(query.keys()) & v1_fields
-            if not_allowed:
-                raise serializers.ValidationError(
-                    "You cannot use the %s attribute(s) in a v2 saved query"
-                    % ", ".join(not_allowed)
-                )
+        version = query.get("version", 1)
+        self.validate_version_fields(version, query)
+        if version == 2:
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
 
@@ -220,3 +212,15 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
 
         return {"name": data["name"], "project_ids": data["projects"], "query": query}
+
+    def validate_version_fields(self, version, query):
+        try:
+            not_allowed = self.disallowed_fields[version]
+        except KeyError:
+            raise serializers.ValidationError("Invalid version requested.")
+        bad_fields = set(query.keys()) & not_allowed
+        if bad_fields:
+            raise serializers.ValidationError(
+                "You cannot use the %s attribute(s) with the selected version"
+                % ", ".join(bad_fields)
+            )
