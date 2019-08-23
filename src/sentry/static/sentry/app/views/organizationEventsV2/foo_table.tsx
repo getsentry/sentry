@@ -35,7 +35,7 @@ type Props = {
   organization: Organization;
 };
 
-class FooTable extends React.PureComponent<Props> {
+class Discover2Table extends React.PureComponent<Props> {
   getFields = (): Array<Field> => {
     const {query} = this.props.location;
 
@@ -144,7 +144,7 @@ class FooTable extends React.PureComponent<Props> {
       },
     });
 
-    console.log('footable', this.getFields());
+    console.log('Discover2Table', this.getFields());
   };
 
   render() {
@@ -162,4 +162,4 @@ class FooTable extends React.PureComponent<Props> {
   }
 }
 
-export default withApi(FooTable);
+export default withApi(Discover2Table);
