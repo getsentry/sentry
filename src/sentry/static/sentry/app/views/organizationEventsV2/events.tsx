@@ -18,7 +18,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/views/events/utils/getParams';
 
 import Table from './table';
-import FooTable from './foo_table';
+import Discover2Table from './discover2table';
 import Tags from './tags';
 import {getQuery, EventQuery} from './utils';
 import {MODAL_QUERY_KEYS} from './data';
@@ -80,7 +80,7 @@ export default class Events extends React.Component<EventsProps> {
           onSearch={this.handleSearch}
         />
         <Container>
-          <FooTable organization={organization} location={location} />
+          <Discover2Table organization={organization} location={location} />
           <EventsTable organization={organization} location={location} view={view} />
           <Tags view={view} organization={organization} location={location} />
         </Container>
@@ -95,7 +95,7 @@ type EventsTableProps = {
   view: EventView;
 };
 
-// TODO: delete this
+// TODO: refactor this
 export class EventsTable extends AsyncComponent<EventsTableProps> {
   static propTypes = {
     location: PropTypes.object.isRequired,
