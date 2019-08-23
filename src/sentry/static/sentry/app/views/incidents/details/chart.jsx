@@ -48,7 +48,7 @@ export default class Chart extends React.PureComponent {
   render() {
     const {data, detected, closed} = this.props;
 
-    const chartData = data.map(([ts, val], i) => {
+    const chartData = data.map(([ts, val]) => {
       return [
         ts * 1000,
         val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,

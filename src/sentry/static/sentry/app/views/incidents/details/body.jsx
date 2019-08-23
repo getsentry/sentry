@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Chart from 'app/views/organizationIncidents/details/chart';
+import Chart from 'app/views/incidents/details/chart';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
@@ -11,7 +11,7 @@ import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
-import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
+import SideHeader from 'app/views/incidents/details/sideHeader';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 

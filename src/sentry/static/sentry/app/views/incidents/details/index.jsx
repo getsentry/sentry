@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
 import {
-  INCIDENT_STATUS,
+  IncidentStatus,
   fetchIncident,
   updateSubscription,
   updateStatus,
@@ -81,8 +81,8 @@ class OrganizationIncidentDetails extends React.Component {
     const {status} = this.state.incident;
 
     const newStatus = isOpen(this.state.incident)
-      ? INCIDENT_STATUS.CLOSED
-      : INCIDENT_STATUS.CREATED;
+      ? IncidentStatus.CLOSED
+      : IncidentStatus.CREATED;
 
     this.setState(state => ({
       incident: {...state.incident, status: newStatus},

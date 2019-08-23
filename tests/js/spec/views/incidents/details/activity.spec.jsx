@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import IncidentActivity from 'app/views/organizationIncidents/details/activity';
+import IncidentActivity from 'app/views/incidents/details/activity';
 import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
 
 describe('IncidentDetails -> Activity', function() {

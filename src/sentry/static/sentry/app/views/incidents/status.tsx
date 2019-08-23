@@ -2,14 +2,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
 
+import {Incident} from './types';
 import {isOpen} from './utils';
 
-export default class Status extends React.Component {
+type Props = {
+  className: string;
+  incident: Incident;
+};
+
+export default class Status extends React.Component<Props> {
   static propTypes = {
     className: PropTypes.string,
     incident: SentryTypes.Incident,
@@ -23,20 +29,20 @@ export default class Status extends React.Component {
     const text = isIncidentOpen ? t('Open') : t('Closed');
 
     return (
-      <Container className={className}>
+      <Wrapper className={className}>
         <Icon src={icon} isOpen={isIncidentOpen} />
         {text}
-      </Container>
+      </Wrapper>
     );
   }
 }
 
-const Container = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const Icon = styled(InlineSvg)`
+const Icon = styled(InlineSvg)<{isOpen: boolean}>`
   color: ${p => (p.isOpen ? p.theme.error : p.theme.success)};
   margin-right: ${space(0.5)};
 `;
