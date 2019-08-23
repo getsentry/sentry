@@ -72,6 +72,31 @@ class GroupNotesDetailsTest(APITestCase):
         assert mock_update_comment.call_args[0][1] == self.user.id
         assert mock_update_comment.call_args[0][2] == activity
 
+    @responses.activate
+    def test_put_ignore_mentions(self):
+        GroupLink.objects.filter(group_id=self.group.id).delete()
+        self.login_as(user=self.user)
+
+        with self.tasks():
+            with self.feature("organizations:integrations-issue-sync"):
+                response = self.client.put(
+                    self.url,
+                    format="json",
+                    data={
+                        "text": "hi **@{}**".format(self.user.username),
+                        "mentions": ["user:{}".format(self.user.id)],
+                    },
+                )
+        assert response.status_code == 200, response.content
+
+        activity = Activity.objects.get(id=response.data["id"])
+        assert activity.user == self.user
+        assert activity.group == self.group
+        assert activity.data == {
+            "external_id": "123",
+            "text": "hi **@{}**".format(self.user.username),
+        }
+
     @patch("sentry.integrations.issues.IssueBasicMixin.update_comment")
     def test_put_no_external_id(self, mock_update_comment):
         del self.activity.data["external_id"]

@@ -87,6 +87,11 @@ class ActivitySerializer(Serializer):
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
         else:
             data = obj.data
+            # XXX: We had a problem where Users were embedded into the mentions
+            # attribute of group notes which needs to be removed
+            # While group_note update has been fixed there are still many skunky comments
+            # in the database.
+            data.pop("mentions", None)
 
         return {
             "id": six.text_type(obj.id),
