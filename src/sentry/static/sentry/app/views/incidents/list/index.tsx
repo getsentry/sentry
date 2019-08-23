@@ -1,3 +1,5 @@
+import {Location} from 'history';
+import {Params} from 'react-router/lib/Router';
 import {omit} from 'lodash';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
@@ -26,21 +28,26 @@ import SparkLine from './sparkLine';
 
 const DEFAULT_QUERY_STATUS = '';
 
-class IncidentsList extends AsyncComponent {
-  getEndpoints() {
+type Props = {
+  params: Params;
+  location: Location;
+};
+
+class IncidentsList extends AsyncComponent<Props> {
+  getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
     return [
       [
         'incidentList',
-        `/organizations/${params.orgId}/incidents/`,
+        `/organizations/${params && params.orgId}/incidents/`,
         {
-          query: location.query,
+          query: location && location.query,
         },
       ],
     ];
   }
 
-  renderListItem(incident) {
+  renderListItem(incident: Incident) {
     const {orgId} = this.props.params;
     const started = moment(incident.dateStarted);
     const duration = moment
@@ -116,7 +123,7 @@ class IncidentsList extends AsyncComponent {
   }
 }
 
-class IncidentsListContainer extends React.Component {
+class IncidentsListContainer extends React.Component<Props> {
   render() {
     const {params, location} = this.props;
     const {pathname, query} = location;
