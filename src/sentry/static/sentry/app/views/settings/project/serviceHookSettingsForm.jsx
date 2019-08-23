@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
-import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import ApiForm from 'app/views/settings/components/forms/apiForm';
@@ -13,20 +12,18 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
 
-export default createReactClass({
-  displayName: 'ServiceHookSettingsForm',
-
-  propTypes: {
+export default class ServiceHookSettingsForm extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     hookId: PropTypes.string,
     initialData: PropTypes.object.isRequired,
-  },
+  };
 
-  onSubmitSuccess() {
+  onSubmitSuccess = () => {
     const {orgId, projectId} = this.props;
     browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
-  },
+  };
 
   render() {
     const {initialData, orgId, projectId, hookId} = this.props;
@@ -77,5 +74,5 @@ export default createReactClass({
         </ApiForm>
       </Panel>
     );
-  },
-});
+  }
+}

@@ -3,8 +3,8 @@ import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import {omit} from 'lodash';
 
 import {
   addErrorMessage,
@@ -27,10 +27,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 
-const KeyRow = createReactClass({
-  displayName: 'KeyRow',
-
-  propTypes: {
+class KeyRow extends React.Component {
+  static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -38,16 +36,14 @@ const KeyRow = createReactClass({
     access: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-    };
-  },
+  state = {
+    loading: false,
+    error: false,
+  };
 
-  handleRemove() {
+  handleRemove = () => {
     if (this.state.loading) {
       return;
     }
@@ -56,7 +52,7 @@ const KeyRow = createReactClass({
     const {orgId, projectId, data} = this.props;
     this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'DELETE',
-      success: (d, _, jqXHR) => {
+      success: () => {
         this.props.onRemove();
         removeIndicator(loadingIndicator);
         addSuccessMessage(t('Revoked key'));
@@ -70,9 +66,9 @@ const KeyRow = createReactClass({
         addErrorMessage(t('Unable to revoke key'));
       },
     });
-  },
+  };
 
-  handleUpdate(params, cb) {
+  handleUpdate = (params, cb) => {
     if (this.state.loading) {
       return;
     }
@@ -81,7 +77,7 @@ const KeyRow = createReactClass({
     this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'PUT',
       data: params,
-      success: (d, _, jqXHR) => {
+      success: d => {
         removeIndicator(loadingIndicator);
         cb(d);
       },
@@ -93,25 +89,25 @@ const KeyRow = createReactClass({
         removeIndicator(loadingIndicator);
       },
     });
-  },
+  };
 
-  handleEnable() {
+  handleEnable = () => {
     this.handleUpdate(
       {
         isActive: true,
       },
       this.props.onToggle
     );
-  },
+  };
 
-  handleDisable() {
+  handleDisable = () => {
     this.handleUpdate(
       {
         isActive: false,
       },
       this.props.onToggle
     );
-  },
+  };
 
   render() {
     const {access, data} = this.props;
@@ -170,8 +166,8 @@ const KeyRow = createReactClass({
         </ClippedBox>
       </ClientKeyItemPanel>
     );
-  },
-});
+  }
+}
 
 export default class ProjectKeys extends AsyncView {
   static propTypes = {
@@ -219,7 +215,7 @@ export default class ProjectKeys extends AsyncView {
     const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/keys/`, {
       method: 'POST',
-      success: (data, _, jqXHR) => {
+      success: data => {
         this.setState(state => {
           return {
             keyList: [...state.keyList, data],
@@ -316,7 +312,10 @@ export default class ProjectKeys extends AsyncView {
   }
 }
 
-const ClientKeyItemPanel = styled(({disabled, ...props}) => <Panel {...props} />)`
+const ClientKeyItemPanel = styled(props => {
+  const otherProps = omit(props, ['disabled']);
+  return <Panel {...otherProps} />;
+})`
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
 
   .box-clippable {

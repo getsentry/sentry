@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
@@ -62,10 +61,8 @@ class FunctionName extends React.Component {
   }
 }
 
-export const Frame = createReactClass({
-  displayName: 'Frame',
-
-  propTypes: {
+export class Frame extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
     prevFrame: PropTypes.object,
@@ -76,43 +73,43 @@ export const Frame = createReactClass({
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
     components: PropTypes.array.isRequired,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      isExpanded: false,
-      emptySourceNotation: false,
-    };
-  },
+  static defaultProps = {
+    isExpanded: false,
+    emptySourceNotation: false,
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
+
     // isExpanded can be initialized to true via parent component;
     // data synchronization is not important
     // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-    return {
+    this.state = {
       isExpanded: this.props.isExpanded,
     };
-  },
+  }
 
-  toggleContext(evt) {
+  toggleContext = evt => {
     evt && evt.preventDefault();
 
     this.setState({
       isExpanded: !this.state.isExpanded,
     });
-  },
+  };
 
   hasContextSource() {
     return defined(this.props.data.context) && this.props.data.context.length;
-  },
+  }
 
   hasContextVars() {
     return !objectIsEmpty(this.props.data.vars);
-  },
+  }
 
   hasContextRegisters() {
     return !objectIsEmpty(this.props.registers);
-  },
+  }
 
   isExpandable() {
     return (
@@ -121,7 +118,7 @@ export const Frame = createReactClass({
       this.hasContextVars() ||
       this.hasContextRegisters()
     );
-  },
+  }
 
   renderOriginalSourceInfo() {
     const data = this.props.data;
@@ -135,13 +132,13 @@ export const Frame = createReactClass({
         <br />
       </React.Fragment>
     );
-  },
+  }
 
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
     // of the stacktrace / exception
     return this.props.data.platform || this.props.platform;
-  },
+  }
 
   shouldPrioritizeModuleName() {
     switch (this.getPlatform()) {
@@ -151,15 +148,15 @@ export const Frame = createReactClass({
       default:
         return false;
     }
-  },
+  }
 
-  preventCollapse(evt) {
+  preventCollapse = evt => {
     evt.stopPropagation();
-  },
+  };
 
   getSentryAppComponents() {
     return this.props.components;
-  },
+  }
 
   renderDefaultTitle() {
     const data = this.props.data;
@@ -178,7 +175,7 @@ export const Frame = createReactClass({
       const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName;
 
       title.push(
-        <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
+        <Tooltip key={pathName} title={data.absPath} disabled={!enablePathTooltip}>
           <code key="filename" className="filename">
             <Truncate value={pathName} maxLength={100} leftTrim={true} />
           </code>
@@ -189,7 +186,7 @@ export const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <Tooltip title={data.filename}>
+          <Tooltip key={data.filename} title={data.filename}>
             <a className="in-at real-filename">
               <span className="icon-question" />
             </a>
@@ -263,7 +260,7 @@ export const Frame = createReactClass({
     }
 
     return title;
-  },
+  }
 
   renderContext() {
     const data = this.props.data;
@@ -350,7 +347,7 @@ export const Frame = createReactClass({
       );
     }
     return context;
-  },
+  }
 
   renderExpander() {
     if (!this.isExpandable()) {
@@ -366,11 +363,11 @@ export const Frame = createReactClass({
         <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'} />
       </a>
     );
-  },
+  }
 
   leadsToApp() {
     return !this.props.data.inApp && this.props.nextFrame && this.props.nextFrame.inApp;
-  },
+  }
 
   isInlineFrame() {
     return (
@@ -378,7 +375,7 @@ export const Frame = createReactClass({
       this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
       this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
     );
-  },
+  }
 
   getFrameHint() {
     if (this.isInlineFrame()) {
@@ -400,7 +397,7 @@ export const Frame = createReactClass({
       }
     }
     return null;
-  },
+  }
 
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
@@ -408,7 +405,7 @@ export const Frame = createReactClass({
     } else {
       return null;
     }
-  },
+  }
 
   renderRepeats() {
     const timesRepeated = this.props.timesRepeated;
@@ -426,7 +423,7 @@ export const Frame = createReactClass({
     } else {
       return null;
     }
-  },
+  }
 
   renderDefaultLine() {
     return (
@@ -443,7 +440,7 @@ export const Frame = createReactClass({
         </DefaultLine>
       </StrictClick>
     );
-  },
+  }
 
   renderNativeLine() {
     const data = this.props.data;
@@ -487,7 +484,7 @@ export const Frame = createReactClass({
         </DefaultLine>
       </StrictClick>
     );
-  },
+  }
 
   renderLine() {
     switch (this.getPlatform()) {
@@ -500,7 +497,7 @@ export const Frame = createReactClass({
       default:
         return this.renderDefaultLine();
     }
-  },
+  }
 
   render() {
     const data = this.props.data;
@@ -524,8 +521,8 @@ export const Frame = createReactClass({
         {context}
       </li>
     );
-  },
-});
+  }
+}
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
