@@ -1,14 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import * as Sentry from '@sentry/browser';
 
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import formGroups from 'app/data/forms/userFeedback';
 
@@ -26,7 +28,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
     window.sentryEmbedCallback = function(embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(body) {
+      embed.submit = function(_body) {
         this._submitInProgress = true;
         setTimeout(
           function() {
@@ -66,7 +68,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
         <TextBlock>
           {t(
-            'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'
+            'Enabling User Feedback allows you to interact with your users, collect additional details about the issues impacting them, and reach out with resolutions.'
           )}
         </TextBlock>
         <TextBlock>
@@ -75,21 +77,12 @@ class ProjectUserFeedbackSettings extends AsyncView {
           )}
         </TextBlock>
         <TextBlock>
-          {tct(
-            'A detailed guide how to integrate it with our different SDKs can be found in [link].',
-            {
-              link: (
-                <a href="https://docs.sentry.io/enriching-error-data/user-feedback/">
-                  our docs
-                </a>
-              ),
-            }
-          )}
-        </TextBlock>
-        <TextBlock>
-          <Button priority="primary" onClick={this.handleClick}>
-            {t('See the report dialog in action')}
+          <Button href="https://docs.sentry.io/enriching-error-data/user-feedback/">
+            {t('Read the docs')}
           </Button>
+          <StyledButton priority="primary" onClick={this.handleClick}>
+            {t('See the report dialog')}
+          </StyledButton>
         </TextBlock>
 
         <Form
@@ -106,5 +99,9 @@ class ProjectUserFeedbackSettings extends AsyncView {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
 
 export default ProjectUserFeedbackSettings;
