@@ -167,6 +167,18 @@ export default class SentryApplicationDetails extends AsyncView {
     }
   };
 
+  onFieldChange = (name, value) => {
+    // Only checking for internal integrations without a webhookUrl
+    if (!this.isInternal || this.form.getValue('webhookUrl')) {
+      return;
+    }
+
+    //if the user clears events or sets isAlertable to true, we can reset the webhookUrl error
+    if ((name === 'events' && value.length === 0) || (name === 'isAlertable' && !value)) {
+      this.form.setError('webhookUrl');
+    }
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -203,6 +215,7 @@ export default class SentryApplicationDetails extends AsyncView {
           }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
+          onFieldChange={this.onFieldChange}
         >
           <JsonForm location={this.props.location} forms={forms} />
 

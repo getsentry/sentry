@@ -1,7 +1,9 @@
 import React from 'react';
+import _ from 'lodash';
+
 import {tct} from 'app/locale';
 
-const publicFormFields = [
+const getPublicFormFields = () => [
   {
     name: 'name',
     type: 'string',
@@ -92,18 +94,28 @@ const publicFormFields = [
 export const publicIntegrationForms = [
   {
     title: 'Public Integration Details',
-    fields: publicFormFields,
+    fields: getPublicFormFields(),
   },
 ];
 
-// remove fields not needed for internal integrations
-const internalFormFields = publicFormFields.filter(
-  formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
-);
+const getInternalFormFields = () => {
+  /***
+   * Generate internal form fields copy copying the public form fields and making adjustments
+   ***/
+
+  // remove fields not needed for internal integrations
+  const internalFormFields = getPublicFormFields().filter(
+    formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
+  );
+  //make webhookUrl optional
+  const webhookField = internalFormFields.find(field => field.name === 'webhookUrl');
+  webhookField.required = false;
+  return internalFormFields;
+};
 
 export const internalIntegrationForms = [
   {
     title: 'Internal Integration Details',
-    fields: internalFormFields,
+    fields: getInternalFormFields(),
   },
 ];

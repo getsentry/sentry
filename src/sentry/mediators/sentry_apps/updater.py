@@ -54,9 +54,9 @@ class Updater(Mediator):
     @if_param("status")
     def _update_status(self):
         if self.user.is_superuser:
-            if self.status == "published":
+            if self.status == SentryAppStatus.PUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.PUBLISHED
-            if self.status == "unpublished":
+            if self.status == SentryAppStatus.UNPUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.UNPUBLISHED
 
     @if_param("scopes")

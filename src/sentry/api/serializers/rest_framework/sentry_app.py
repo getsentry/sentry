@@ -70,9 +70,10 @@ class SentryAppSerializer(Serializer):
     status = serializers.CharField(required=False, allow_null=True)
     events = EventListField(required=False, allow_null=True)
     schema = SchemaField(required=False, allow_null=True)
-    webhookUrl = URLField()
+    webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
     redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
     isAlertable = serializers.BooleanField(required=False, default=False)
+    isInternal = serializers.BooleanField()
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
 
@@ -90,18 +91,34 @@ class SentryAppSerializer(Serializer):
         return value
 
     def validate(self, attrs):
-        if not attrs.get("scopes"):
-            return attrs
+        # validates events against scopes
+        if attrs.get("scopes"):
+            for resource in attrs.get("events"):
+                needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
+                if needed_scope not in attrs["scopes"]:
+                    raise ValidationError(
+                        {
+                            "events": u"{} webhooks require the {} permission.".format(
+                                resource, needed_scope
+                            )
+                        }
+                    )
 
-        for resource in attrs.get("events"):
-            needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
-            if needed_scope not in attrs["scopes"]:
-                raise ValidationError(
-                    {
-                        "events": u"{} webhooks require the {} permission.".format(
-                            resource, needed_scope
-                        )
-                    }
-                )
+        # validate if webhookUrl is missing that we don't have any webhook features enabled
+        if not attrs.get("webhookUrl"):
+            if attrs.get("isInternal"):
+                # for internal apps, make sure there aren't any events if webhookUrl is null
+                if attrs.get("events") and len(attrs.get("events")) > 0:
+                    raise ValidationError(
+                        {"webhookUrl": "webhookUrl required if webhook events are enabled"}
+                    )
+                # also check that we don't have the alert rule enabled
+                if attrs.get("isAlertable"):
+                    raise ValidationError(
+                        {"webhookUrl": "webhookUrl required if alert rule action is enabled"}
+                    )
+
+            else:
+                raise ValidationError({"webhookUrl": "webhookUrl required for public integrations"})
 
         return attrs
