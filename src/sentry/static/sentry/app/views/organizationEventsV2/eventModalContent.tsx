@@ -13,7 +13,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Event, Organization, EventView} from 'app/types';
 import {Location} from 'history';
 
-import EventInterfaces from './eventInterfaces';
+// import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
@@ -63,11 +63,7 @@ const EventModalContent = (props: EventModalContentProps) => {
           })}
       </HeaderBox>
       <ContentColumn>
-        {event.type === 'transaction' ? (
-          <TransanctionView event={event as SentryTransactionEvent} />
-        ) : (
-          <EventInterfaces event={event} projectId={projectId} />
-        )}
+        <TransanctionView event={event as SentryTransactionEvent} />
       </ContentColumn>
       <SidebarColumn>
         {event.groupID && (
