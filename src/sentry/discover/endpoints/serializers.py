@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import six
 import re
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
+from sentry.models import Project, ProjectStatus
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
@@ -131,3 +133,94 @@ class DiscoverQuerySerializer(serializers.Serializer):
             return [["has", [array_field.group(0), value]], "=", bool_value]
 
         return condition
+
+
+class DiscoverSavedQuerySerializer(serializers.Serializer):
+    name = serializers.CharField(required=True)
+    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
+    start = serializers.DateTimeField(required=False, allow_null=True)
+    end = serializers.DateTimeField(required=False, allow_null=True)
+    range = serializers.CharField(required=False, allow_null=True)
+    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    orderby = serializers.CharField(required=False, allow_null=True)
+
+    # This block of fields is only accepted by discover 1 which omits the version
+    # attribute or has it set to 1
+    rollup = serializers.IntegerField(required=False, allow_null=True)
+    aggregations = ListField(child=ListField(), required=False, allow_null=True)
+    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    conditions = ListField(child=ListField(), required=False, allow_null=True)
+    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False, allow_null=True)
+
+    # There are multiple versions of saved queries supported.
+    version = serializers.IntegerField(min_value=1, max_value=2, required=False, allow_null=True)
+
+    # Attributes that are only accepted if version = 2
+    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    query = serializers.CharField(required=False, allow_null=True)
+
+    disallowed_fields = {
+        1: set(["environment", "fieldnames", "query"]),
+        2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
+    }
+
+    def validate_projects(self, projects):
+        organization = self.context["organization"]
+
+        org_projects = set(
+            Project.objects.filter(
+                organization=organization, id__in=projects, status=ProjectStatus.VISIBLE
+            ).values_list("id", flat=True)
+        )
+
+        if set(projects) != org_projects:
+            raise PermissionDenied
+
+        return projects
+
+    def validate(self, data):
+        query = {}
+        query_keys = [
+            "fieldnames",
+            "environment",
+            "query",
+            "version",
+            "fields",
+            "conditions",
+            "aggregations",
+            "range",
+            "start",
+            "end",
+            "orderby",
+            "limit",
+        ]
+
+        for key in query_keys:
+            if data.get(key) is not None:
+                query[key] = data[key]
+
+        version = query.get("version", 1)
+        self.validate_version_fields(version, query)
+        if version == 2:
+            if len(query["fields"]) < 1:
+                raise serializers.ValidationError("You must include at least one field.")
+
+            if query.get("fieldnames") and len(query["fieldnames"]) != len(query["fields"]):
+                raise serializers.ValidationError(
+                    "You must provide an equal number of field names and fields"
+                )
+
+        return {"name": data["name"], "project_ids": data["projects"], "query": query}
+
+    def validate_version_fields(self, version, query):
+        try:
+            not_allowed = self.disallowed_fields[version]
+        except KeyError:
+            raise serializers.ValidationError("Invalid version requested.")
+        bad_fields = set(query.keys()) & not_allowed
+        if bad_fields:
+            raise serializers.ValidationError(
+                "You cannot use the %s attribute(s) with the selected version"
+                % ", ".join(bad_fields)
+            )
