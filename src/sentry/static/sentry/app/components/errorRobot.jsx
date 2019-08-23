@@ -23,14 +23,11 @@ class ErrorRobot extends React.Component {
     gradient: PropTypes.bool,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      error: false,
-      loading: false,
-      sampleIssueId: this.props.sampleIssueId,
-    };
-  }
+  state = {
+    error: false,
+    loading: false,
+    sampleIssueId: this.props.sampleIssueId,
+  };
 
   componentWillMount() {
     this.fetchData();

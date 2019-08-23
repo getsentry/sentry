@@ -77,16 +77,12 @@ export class Frame extends React.Component {
     emptySourceNotation: false,
   };
 
-  constructor(props) {
-    super(props);
-
-    // isExpanded can be initialized to true via parent component;
-    // data synchronization is not important
-    // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-    this.state = {
-      isExpanded: this.props.isExpanded,
-    };
-  }
+  // isExpanded can be initialized to true via parent component;
+  // data synchronization is not important
+  // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
+  state = {
+    isExpanded: this.props.isExpanded,
+  };
 
   toggleContext = evt => {
     evt && evt.preventDefault();
