@@ -1,8 +1,13 @@
 from __future__ import absolute_import
 
+import pytest
+
+# needed so we can see the full assertion errror in util
+pytest.register_assert_rewrite("tests.sentry.api.validators.sentry_apps.util")
+
+from .util import invalid_schema_with_error_message
 from sentry.testutils import TestCase
 from sentry.api.validators.sentry_apps.schema import validateUiElementSchema
-from jsonschema.exceptions import ValidationError as SchemaValidationError
 
 
 class TestSchemaValidation(TestCase):
@@ -74,37 +79,33 @@ class TestSchemaValidation(TestCase):
     def test_valid_schema_with_options(self):
         validateUiElementSchema(self.schema)
 
+    @invalid_schema_with_error_message("'elements' is a required property")
     def test_invalid_schema_elements_missing(self):
         schema = {"type": "nothing"}
-        try:
-            validateUiElementSchema(schema)
-            raise Exception("schema validation should fail")
-        except SchemaValidationError as e:
-            assert e.message == "'elements' is a required property"
+        validateUiElementSchema(schema)
 
+    @invalid_schema_with_error_message("'elements' should be an array of objects")
     def test_invalid_schema_elements_not_array(self):
         schema = {"elements": {"type": "issue-link"}}
-        try:
-            validateUiElementSchema(schema)
-            raise Exception("schema validation should fail")
-        except SchemaValidationError as e:
-            assert e.message == "'elements' should be an array of objects"
+        validateUiElementSchema(schema)
 
+    @invalid_schema_with_error_message("Each element needs a 'type' field")
     def test_invalid_schema_type_missing(self):
         schema = {"elements": [{"key": "issue-link"}]}
-        try:
-            validateUiElementSchema(schema)
-            raise Exception("schema validation should fail")
-        except SchemaValidationError as e:
-            assert e.message == "Each element needs a 'type' field"
+        validateUiElementSchema(schema)
 
+    @invalid_schema_with_error_message(
+        "Element has type 'other'. Type must be one of the following: ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']"
+    )
     def test_invalid_schema_type_invalid(self):
         schema = {"elements": [{"type": "other"}]}
-        try:
-            validateUiElementSchema(schema)
-            raise Exception("schema validation should fail")
-        except SchemaValidationError as e:
-            assert (
-                e.message
-                == "Element has type 'other'. Type must be one of the following: ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']"
-            )
+        validateUiElementSchema(schema)
+
+    @invalid_schema_with_error_message(
+        "'uri' is a required property for element of type 'stacktrace-link'"
+    )
+    def test_invalid_chema_element_missing_uri(self):
+        schema = {
+            "elements": [{"url": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"}]
+        }
+        validateUiElementSchema(schema)

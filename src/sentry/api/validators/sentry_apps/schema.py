@@ -181,12 +181,24 @@ SCHEMA = {
 element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
 
 
-def checkElementsIsArray(instance):
+def validate_component(schema):
+    """
+    In order to test individual components, that aren't normally allowed at the
+    top-level of a schema, we just plop all `definitions` into `properties`.
+    This makes the validator think they're all valid top-level elements.
+    """
+    component_schema = SCHEMA.copy()
+    component_schema["properties"] = component_schema["definitions"]
+    del component_schema["required"]
+    validate(instance={schema["type"]: schema}, schema=component_schema)
+
+
+def check_elements_is_array(instance):
     if not isinstance(instance["elements"], list):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
-def checkForElementTypeError(instance):
+def check_each_element_for_error(instance):
     for element in instance["elements"]:
         if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
@@ -196,13 +208,18 @@ def checkForElementTypeError(instance):
                 "Element has type '%s'. Type must be one of the following: %s"
                 % (found_type, element_types)
             )
+        try:
+            validate_component(element)
+        except SchemaValidationError as e:
+            # catch the validation error and re-write the error so the user knows which element has the issue
+            raise SchemaValidationError("%s for element of type '%s'" % (e.message, found_type))
 
 
 def validateUiElementSchema(instance):
     try:
         # schema validator will catch elements missing
-        checkElementsIsArray(instance)
-        checkForElementTypeError(instance)
+        check_elements_is_array(instance)
+        check_each_element_for_error(instance)
     except SchemaValidationError as e:
         raise e
     except Exception as e:
