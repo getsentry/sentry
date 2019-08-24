@@ -50,18 +50,23 @@ const decodeFields = (location: Location): Array<Field> => {
     return [];
   }
 
-  const field: Array<string> = isString(query.field) ? [query.field] : query.field;
+  const fields: Array<string> = isString(query.field) ? [query.field] : query.field;
 
-  return field.reduce((acc: Array<Field>, field: string) => {
+  return fields.reduce((acc: Array<Field>, field: string) => {
     try {
       const result = JSON.parse(field);
 
       if (isValidQueryStringField(result)) {
-        acc.push({
-          snuba_column: result[0],
-          title: result[1],
-          width: result[2],
-        });
+        const snuba_column = result[0].trim();
+
+        if (snuba_column.length > 0) {
+          acc.push({
+            snuba_column,
+            title: result[1],
+            width: result[2],
+          });
+        }
+
         return acc;
       }
     } catch (_err) {
@@ -79,9 +84,11 @@ const decodeSorts = (location): Array<Sort> => {
     return [];
   }
 
-  const sort: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
+  const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
 
-  return sort.reduce((acc: Array<Sort>, sort: string) => {
+  return sorts.reduce((acc: Array<Sort>, sort: string) => {
+    sort = sort.trim();
+
     if (sort.startsWith('-')) {
       acc.push({
         kind: 'desc',
@@ -99,13 +106,35 @@ const decodeSorts = (location): Array<Sort> => {
   }, []);
 };
 
+const decodeTags = (location: Location): Array<string> => {
+  const {query} = location;
+
+  if (!query || !query.tag) {
+    return [];
+  }
+
+  const tags: Array<string> = isString(query.tag) ? [query.tag] : query.tag;
+
+  return tags.reduce((acc: Array<string>, tag: string) => {
+    tag = tag.trim();
+
+    if (tag.length > 0) {
+      acc.push(tag);
+    }
+
+    return acc;
+  }, []);
+};
+
 class EventView {
   fields: Field[];
   sorts: Sort[];
+  tags: string[];
 
   constructor(location: Location) {
     this.fields = decodeFields(location);
     this.sorts = decodeSorts(location);
+    this.tags = decodeTags(location);
   }
 }
 
