@@ -11,9 +11,9 @@ class SidebarOrgSummary extends React.Component {
   };
 
   render() {
-    let {organization} = this.props;
-    let projects = organization.projects && organization.projects.length;
-    let extra = [];
+    const {organization} = this.props;
+    const projects = organization.projects && organization.projects.length;
+    const extra = [];
 
     if (projects) {
       extra.push(`${projects} projects`);

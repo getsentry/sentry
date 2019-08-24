@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -7,7 +6,7 @@ import {selectText} from 'app/utils/selectText';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 
 const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
@@ -74,7 +73,7 @@ class FeatureDisabled extends React.Component {
 
     const featureDisabled = (
       <React.Fragment>
-        <Flex justify="space-between" data-test-id="feature-message">
+        <FeatureDisabledMessage>
           {message}
           {!hideHelpToggle && (
             <HelpButton
@@ -86,7 +85,7 @@ class FeatureDisabled extends React.Component {
               {t('Help')}
             </HelpButton>
           )}
-        </Flex>
+        </FeatureDisabledMessage>
         {showDescription && (
           <HelpDescription>
             <p>
@@ -121,11 +120,16 @@ class FeatureDisabled extends React.Component {
   }
 }
 
+const FeatureDisabledMessage = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
 const HelpButton = styled(Button)`
   font-size: 0.8em;
 `;
 
-const HelpDescription = styled(Box)`
+const HelpDescription = styled('div')`
   font-size: 0.9em;
   margin-top: ${space(1)};
 
@@ -141,7 +145,6 @@ const HelpDescription = styled(Box)`
 `;
 
 const AlertWrapper = styled('div')`
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${HelpButton} {
     color: #6d6319;
     &:hover {

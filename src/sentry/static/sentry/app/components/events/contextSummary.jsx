@@ -38,13 +38,13 @@ class GenericSummary extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
 
     if (objectIsEmpty(data) || !data.name) {
       return <NoSummary title={this.props.unknownTitle} />;
     }
 
-    let className = generateClassName(data.name);
+    const className = generateClassName(data.name);
 
     return (
       <div className={`context-item ${className}`}>
@@ -64,13 +64,13 @@ export class OsSummary extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
 
     if (objectIsEmpty(data) || !data.name) {
       return <NoSummary title={t('Unknown OS')} />;
     }
 
-    let className = generateClassName(data.name);
+    const className = generateClassName(data.name);
     let versionElement = null;
 
     if (data.version) {
@@ -109,13 +109,15 @@ class UserSummary extends React.Component {
   };
 
   render() {
-    let user = this.props.data;
+    const user = this.props.data;
 
     if (objectIsEmpty(user)) {
       return <NoSummary title={t('Unknown User')} />;
     }
 
-    let userTitle = user.email ? user.email : user.ip_address || user.id || user.username;
+    const userTitle = user.email
+      ? user.email
+      : user.ip_address || user.id || user.username;
 
     if (!userTitle) {
       return <NoSummary title={t('Unknown User')} />;
@@ -152,14 +154,14 @@ class DeviceSummary extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
 
     if (objectIsEmpty(data)) {
       return <NoSummary title={t('Unknown Device')} />;
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = data.model && generateClassName(data.model);
+    const className = data.model && generateClassName(data.model);
 
     let subTitle = <p />;
 
@@ -195,7 +197,7 @@ export class GpuSummary extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
 
     if (objectIsEmpty(data) || !data.name) {
       return <NoSummary title={t('Unknown GPU')} />;
@@ -246,15 +248,19 @@ class EventContextSummary extends React.Component {
   };
 
   render() {
-    let evt = this.props.event;
+    const evt = this.props.event;
     let contextCount = 0;
 
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
     let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
-      if (contextCount >= MAX_CONTEXTS) return null;
-      let data = evt.contexts[key] || evt[key];
-      if (objectIsEmpty(data)) return null;
+      if (contextCount >= MAX_CONTEXTS) {
+        return null;
+      }
+      const data = evt.contexts[key] || evt[key];
+      if (objectIsEmpty(data)) {
+        return null;
+      }
       contextCount += 1;
       return <Component key={key} data={data} {...props} />;
     });
@@ -268,8 +274,12 @@ class EventContextSummary extends React.Component {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
       contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
-        if (contexts[index]) return contexts[index];
-        if (contextCount >= MIN_CONTEXTS) return null;
+        if (contexts[index]) {
+          return contexts[index];
+        }
+        if (contextCount >= MIN_CONTEXTS) {
+          return null;
+        }
         contextCount += 1;
         return <Component key={key} data={{}} {...props} />;
       });

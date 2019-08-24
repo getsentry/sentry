@@ -3,8 +3,9 @@
 exports[`AlertLink renders 1`] = `
 <IssueSyncListElementContainer>
   <Hovercard
-    containerClassName="css-1kx7hlk-hoverCardContainer"
+    containerClassName="css-2jp7uo-hoverCardContainer"
     displayTimeout={100}
+    position="top"
   >
     <IntegrationIcon
       src="icon-github"

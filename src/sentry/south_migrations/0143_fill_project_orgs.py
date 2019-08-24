@@ -6,11 +6,7 @@ from django.db import IntegrityError, models, transaction
 
 
 def atomic_save(model):
-    try:
-        with transaction.atomic():
-            model.save()
-    except transaction.TransactionManagementError:
-        # sqlite isn't happy
+    with transaction.atomic():
         model.save()
 
 

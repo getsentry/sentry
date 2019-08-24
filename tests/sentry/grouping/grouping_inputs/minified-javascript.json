@@ -1,0 +1,562 @@
+{
+  "culprit": "Pt</t.prototype.wrapTimeFunction/<(/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js)",
+  "event_id": "d8a4b0c9487e424ca55e26afd17c62fd",
+  "environment": "prod",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "M",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                " * @overview es6-promise - a tiny implementation of Promises/A+.",
+                " * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)",
+                " * @license   Licensed under MIT license",
+                " *            See https://raw.githubusercontent.com/stefanpenner/es6-promise/master/LICENSE",
+                " * @version   v4.2.5+7f2b526d"
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * react-dom-server.browser.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 38615,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip}  o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}",
+              "lineno": 172
+            },
+            {
+              "function": "S/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 228660,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "i",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 228515,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "b",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 61189,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "n",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 60943,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "g/</t[e]",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 213090,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "h/p._invoke</<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 212704,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "W",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 212914,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "e/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "module": "sentry/dist/app",
+              "colno": 36132,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js.map"
+              },
+              "context_line": "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}",
+              "lineno": 1
+            },
+            {
+              "function": "e/</a</<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "module": "sentry/dist/app",
+              "colno": 36236,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js.map"
+              },
+              "context_line": "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}",
+              "lineno": 1
+            },
+            {
+              "function": "t.exports/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 61094,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "L",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 229604,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "t.exports/</<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 61212,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "c",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 61153,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "n",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*! *****************************************************************************",
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the Apache License, Version 2.0 (the \"License\"); you may not use",
+                "this file except in compliance with the License. You may obtain a copy of the",
+                "License at http://www.apache.org/licenses/LICENSE-2.0"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 60943,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}",
+              "lineno": 64
+            },
+            {
+              "function": "g/</t[e]",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 213090,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "h/p._invoke</<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 212704,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "W",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                "/**",
+                " * @preserve jed.js https://github.com/SlexAxton/Jed",
+                " */",
+                "!function(n,o){var r=Array.prototype,p=Object.prototype,i=r.slice,c=p.hasOwnProperty,b=r.forEach,M={},a={forEach:function(t,e,n){var o,r,p;i {snip}",
+                "/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 212914,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}",
+              "lineno": 147
+            },
+            {
+              "function": "e/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "module": "sentry/dist/app",
+              "colno": 35941,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js.map"
+              },
+              "context_line": "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}",
+              "lineno": 1
+            },
+            {
+              "function": "componentPromise",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "module": "sentry/dist/app",
+              "colno": 1170018,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js.map"
+              },
+              "context_line": "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}",
+              "lineno": 1
+            },
+            {
+              "function": "o.e",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
+              "module": "sentry/dist/app",
+              "colno": 4919,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js.map"
+              },
+              "context_line": "{snip}  \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}",
+              "lineno": 1
+            },
+            {
+              "function": "Pt</t.prototype.wrapTimeFunction/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "pre_context": [
+                " * Jul 11,2018 - #f03357c",
+                " *",
+                " * https://github.com/csnover/TraceKit",
+                " * @license MIT",
+                " * @namespace TraceKit"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Licensed under the MIT License (MIT), see",
+                "  http://jedwatson.github.io/classnames",
+                "*/"
+              ],
+              "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js",
+              "module": "sentry/dist/vendor",
+              "colno": 19356,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}",
+              "lineno": 14
+            }
+          ]
+        },
+        "type": "NS_ERROR_NOT_INITIALIZED",
+        "value": ""
+      }
+    ]
+  },
+  "release": "74d1fca81fc9d5336ee0076e80ca86acbf009a74"
+}

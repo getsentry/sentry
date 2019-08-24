@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
 
@@ -30,12 +31,10 @@ export default class CustomIgnoreDurationModal extends React.Component {
     const dateStr = this.snoozeDateInputRef.current.value; // YYYY-MM-DD
     const timeStr = this.snoozeTimeInputRef.current.value; // HH:MM
     if (dateStr && timeStr) {
-      const selectedDate = new Date(dateStr + 'T' + timeStr); // poor man's ISO datetime
+      const selectedDate = moment.utc(dateStr + ' ' + timeStr);
       if (!isNaN(selectedDate)) {
-        const now = new Date();
-        const millis = selectedDate.getTime() - now.getTime();
-        const minutes = parseInt(Math.ceil(millis / 1000.0 / 60.0), 10);
-        return minutes;
+        const now = moment.utc();
+        return selectedDate.diff(now, 'minutes');
       }
     }
     return 0;
@@ -56,7 +55,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
   render() {
     // Give the user a sane starting point to select a date
     // (prettier than the empty date/time inputs):
-    let defaultDate = new Date();
+    const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 14);
     defaultDate.setSeconds(0);
     defaultDate.setMilliseconds(0);

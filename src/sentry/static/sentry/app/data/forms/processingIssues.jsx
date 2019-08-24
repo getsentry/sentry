@@ -1,7 +1,7 @@
 // Export route to make these forms searchable by label/help
 import {t} from 'app/locale';
 
-export const route = '/settings/:orgId/:projectId/processing-issues/';
+export const route = '/settings/:orgId/projects/:projectId/processing-issues/';
 
 const formGroups = [
   {
@@ -17,9 +17,15 @@ const formGroups = [
         help: t(`If reprocessing is enabled, Events with fixable issues will be
                 held back until you resolve them. Processing issues will then
                 show up in the list above with hints how to fix them.
-                If reprocessing is disabled Events with unresolved issues will also
-                show up in the stream.
+                If reprocessing is disabled, Events with unresolved issues will
+                also show up in the stream.
                 `),
+        saveOnBlur: false,
+        saveMessage: ({value}) =>
+          value
+            ? t('Reprocessing applies to future events only.')
+            : t(`All events with errors will be flushed into your issues stream.
+                Beware that this process may take some time and cannot be undone.`),
         getData: form => ({
           options: form,
         }),

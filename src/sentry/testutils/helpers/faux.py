@@ -4,6 +4,7 @@ import six
 
 from collections import deque
 
+from sentry.utils import json
 from sentry.utils.functional import compact
 
 
@@ -60,54 +61,49 @@ class Faux(object):
             return True
 
         raise AssertionError(
-            u'Expected to be called with {}. Received {}.'.format(
+            u"Expected to be called with {}. Received {}.".format(
                 self._invocation_to_s(*args, **kwargs),
                 self._invocation_to_s(*self.args, **self.kwargs),
             )
         )
 
-    def kwargs_contain(self, key):
-        if self._kwarg_exists(key):
+    def kwargs_contain(self, key, **kwargs):
+        if self._kwarg_exists(key, **kwargs):
             return True
 
         raise AssertionError(
-            u'Expected kwargs to contain key \'{}\'. Received ({}).'.format(
-                key,
-                self._kwargs_to_s(**self.kwargs),
-            ),
-        )
-
-    def kwarg_equals(self, key, expected):
-        if self._kwarg_value(key) == expected:
-            return True
-
-        raise AssertionError(
-            u'Expected kwargs[{}] to equal {!r}. Received {!r}.'.format(
-                key,
-                expected,
-                self._kwarg_value(key),
+            u"Expected kwargs to contain key '{}'. Received ({}).".format(
+                key, self._kwargs_to_s(**self.kwargs)
             )
         )
 
-    def args_contain(self, value):
+    def kwarg_equals(self, key, expected, **kwargs):
+        actual = self._kwarg_value(key, **kwargs)
+
+        if actual == expected:
+            return True
+
+        raise AssertionError(
+            u"Expected kwargs[{}] to equal {!r}. Received {!r}.".format(key, expected, actual)
+        )
+
+    def args_contain(self, value, **kwargs):
         if value in self.args:
             return True
 
         raise AssertionError(
-            u'Expected args to contain {!r}. Received ({}).'.format(
-                value,
-                self._args_to_s(*self.args),
-            ),
+            u"Expected args to contain {!r}. Received ({}).".format(
+                value, self._args_to_s(*self.args)
+            )
         )
 
-    def args_equals(self, *args):
+    def args_equals(self, *args, **kwargs):
         if self.args == tuple(args):
             return True
 
         raise AssertionError(
-            u'Expected args to equal ({}). Received ({}).'.format(
-                self._args_to_s(*args),
-                self._args_to_s(*self.args),
+            u"Expected args to equal ({}). Received ({}).".format(
+                self._args_to_s(*args), self._args_to_s(*self.args)
             )
         )
 
@@ -118,7 +114,7 @@ class Faux(object):
         except (KeyError, TypeError):
             return False
 
-    def _kwarg_value(self, key):
+    def _kwarg_value(self, key, **kwargs):
         """
         Support a dot notation shortcut for deeply nested dicts or just look
         up the value if passed a normal key.
@@ -129,12 +125,20 @@ class Faux(object):
         >>> self._kwarg_value('foo')
         {'bar': {'baz': 1}}
         """
-        if '.' in key:
-            keys = deque(key.split('.'))
+        if "." in key:
+            keys = deque(key.split("."))
         else:
-            return self.kwargs[key]
+            kwarg = self.kwargs[key]
+
+            if kwargs.get("format") == "json":
+                return json.loads(kwarg)
+
+            return kwarg
 
         kwarg = dict(self.kwargs)
+
+        if kwargs.get("format") == "json":
+            kwarg = json.loads(kwarg[keys.popleft()])
 
         while keys:
             kwarg = kwarg[keys.popleft()]
@@ -145,22 +149,25 @@ class Faux(object):
         """
         Convert a function invocation into a pretty printable string.
         """
-        return u'({})'.format(
-            ', '.join(compact([
-                self._args_to_s(*args),
-                self._kwargs_to_s(**kwargs),
-            ]))
+        return u"({})".format(
+            ", ".join(compact([self._args_to_s(*args), self._kwargs_to_s(**kwargs)]))
         )
 
     def _args_to_s(self, *args):
         if not len(args):
             return None
-        return ', '.join(u'{!r}'.format(arg) for arg in args)
+        return ", ".join(u"{!r}".format(arg) for arg in args)
 
     def _kwargs_to_s(self, **kwargs):
         if not len(kwargs):
             return None
-        return ', '.join(u'{}={!r}'.format(k, v) for k, v in six.iteritems(kwargs))
+        return ", ".join(u"{}={!r}".format(k, v) for k, v in six.iteritems(kwargs))
+
+
+class Mock(object):
+    def __init__(self, *args, **kwargs):
+        for k, v in six.iteritems(kwargs):
+            setattr(self, k, v)
 
 
 def faux(mock, call=None):

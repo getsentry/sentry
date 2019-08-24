@@ -2,13 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
-import SentryTypes from 'app/sentryTypes';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
 
 export default class ProjectBadge extends React.PureComponent {
   static propTypes = {
     ...BaseBadge.propTypes,
-    project: SentryTypes.Project.isRequired,
+    project: BaseBadge.propTypes.project.isRequired,
     avatarSize: PropTypes.number,
     /**
      * If true, will use default max-width, or specify one as a string
@@ -23,7 +22,7 @@ export default class ProjectBadge extends React.PureComponent {
   };
 
   render() {
-    let {hideOverflow, project, ...props} = this.props;
+    const {hideOverflow, project, ...props} = this.props;
 
     return (
       <BaseBadge

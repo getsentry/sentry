@@ -2,24 +2,24 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {logout} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
-import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
-import SentryTypes from 'app/sentryTypes';
-import TextOverflow from 'app/components/textOverflow';
 import IdBadge from 'app/components/idBadge';
-import ConfigStore from 'app/stores/configStore';
-import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
-import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
+import SentryTypes from 'app/sentryTypes';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
+import SidebarMenuItem, {getMenuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
+import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
+import TextOverflow from 'app/components/textOverflow';
 import withApi from 'app/utils/withApi';
-import {logout} from 'app/actionCreators/account';
 
-import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
+import SwitchOrganization from './switchOrganization';
 
 const SidebarDropdown = withApi(
   class SidebarDropdown extends React.Component {
@@ -37,22 +37,22 @@ const SidebarDropdown = withApi(
       onClick: () => {},
     };
 
-    handleLogout = (...args) => {
+    handleLogout = () => {
       logout(this.props.api).then(() => (window.location = '/auth/login'));
     };
 
     render() {
-      let {org, orientation, collapsed, config, user, onClick} = this.props;
-      let hasOrganization = !!org;
-      let hasUser = !!user;
+      const {org, orientation, collapsed, config, user, onClick} = this.props;
+      const hasOrganization = !!org;
+      const hasUser = !!user;
 
       // If there is no org in context, we use an org from `withLatestContext`
       // (which uses an org from organizations index endpoint versus details endpoint)
       // and does not have `access`
-      let hasOrgRead = org && org.access && org.access.indexOf('org:read') > -1;
-      let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
-      let hasTeamRead = org && org.access && org.access.indexOf('team:read') > -1;
-      let canCreateOrg = ConfigStore.get('features').has('organizations:create');
+      const hasOrgRead = org && org.access && org.access.indexOf('org:read') > -1;
+      const hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
+      const hasTeamRead = org && org.access && org.access.indexOf('team:read') > -1;
+      const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
       // Avatar to use: Organization --> user --> Sentry
       const avatar =
@@ -77,22 +77,22 @@ const SidebarDropdown = withApi(
             return (
               <SidebarDropdownRoot {...getRootProps({isStyled: true})}>
                 <SidebarDropdownActor
+                  type="button"
                   data-test-id="sidebar-dropdown"
                   {...getActorProps({isStyled: true})}
                 >
-                  <div style={{display: 'flex', alignItems: 'flex-start'}}>
-                    {avatar}
-                    {hasOrganization &&
-                      !collapsed &&
-                      orientation !== 'top' && (
-                        <NameAndOrgWrapper>
-                          <DropdownOrgName>
-                            {org.name} <i className="icon-arrow-down" />
-                          </DropdownOrgName>
-                          <DropdownUserName>{user.name}</DropdownUserName>
-                        </NameAndOrgWrapper>
-                      )}
-                  </div>
+                  {avatar}
+                  {!collapsed && orientation !== 'top' && (
+                    <OrgAndUserWrapper>
+                      <OrgOrUserName>
+                        {hasOrganization ? org.name : user.name}{' '}
+                        <i className="icon-arrow-down" />
+                      </OrgOrUserName>
+                      <UserNameOrEmail>
+                        {hasOrganization ? user.name : user.email}
+                      </UserNameOrEmail>
+                    </OrgAndUserWrapper>
+                  )}
                 </SidebarDropdownActor>
 
                 {isOpen && (
@@ -120,7 +120,6 @@ const SidebarDropdown = withApi(
                         <Hook
                           name="sidebar:organization-dropdown-menu"
                           organization={org}
-                          Components={{SidebarMenuItem}}
                         />
 
                         {!config.singleOrganization && (
@@ -143,13 +142,11 @@ const SidebarDropdown = withApi(
                           <SidebarMenuItem to="/settings/account/">
                             {t('User settings')}
                           </SidebarMenuItem>
-                          <SidebarMenuItem to={'/settings/account/api/'}>
+                          <SidebarMenuItem to="/settings/account/api/">
                             {t('API keys')}
                           </SidebarMenuItem>
                           {user.isSuperuser && (
-                            <SidebarMenuItem to={'/manage/'}>
-                              {t('Admin')}
-                            </SidebarMenuItem>
+                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                           )}
                           <SidebarMenuItem
                             data-test-id="sidebarSignout"
@@ -181,7 +178,7 @@ const SentryLink = styled(Link)`
 `;
 
 const UserSummary = styled(Link)`
-  display: flex;
+  ${getMenuItemStyles}
   padding: 10px 15px;
 `;
 
@@ -194,10 +191,11 @@ const SidebarDropdownRoot = styled('div')`
 `;
 
 // So that long org names and user names do not overflow
-const NameAndOrgWrapper = styled('div')`
+const OrgAndUserWrapper = styled('div')`
   overflow: hidden;
+  text-align: left;
 `;
-const DropdownOrgName = styled(TextOverflow)`
+const OrgOrUserName = styled(TextOverflow)`
   font-size: 16px;
   line-height: 1.2;
   font-weight: bold;
@@ -206,22 +204,26 @@ const DropdownOrgName = styled(TextOverflow)`
   transition: 0.15s text-shadow linear;
 `;
 
-const DropdownUserName = styled(TextOverflow)`
+const UserNameOrEmail = styled(TextOverflow)`
   font-size: 14px;
   line-height: 16px;
   transition: 0.15s color linear;
 `;
 
-const SidebarDropdownActor = styled('div')`
+const SidebarDropdownActor = styled('button')`
+  display: flex;
+  align-items: flex-start;
   cursor: pointer;
+  border: none;
+  padding: 0;
+  background: none;
+  width: 100%;
 
   &:hover {
-    /* stylelint-disable-next-line no-duplicate-selectors */
-    ${DropdownOrgName} {
+    ${OrgOrUserName} {
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
     }
-    /* stylelint-disable-next-line no-duplicate-selectors */
-    ${DropdownUserName} {
+    ${UserNameOrEmail} {
       color: ${p => p.theme.gray1};
     }
   }

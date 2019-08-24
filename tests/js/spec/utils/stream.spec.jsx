@@ -4,10 +4,12 @@ describe('utils/stream', function() {
   describe('queryToObj()', function() {
     it('should convert a basic query string to a query object', function() {
       expect(queryToObj('is:unresolved')).toEqual({
+        __text: '',
         is: 'unresolved',
       });
 
       expect(queryToObj('is:unresolved browser:"Chrome 36"')).toEqual({
+        __text: '',
         is: 'unresolved',
         browser: 'Chrome 36',
       });

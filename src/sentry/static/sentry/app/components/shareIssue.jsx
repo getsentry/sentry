@@ -30,7 +30,9 @@ class ShareUrlContainer extends React.Component {
 
   // Select URL when its container is clicked
   handleCopyClick = () => {
-    if (!this.urlRef) return;
+    if (!this.urlRef) {
+      return;
+    }
     selectText(ReactDOM.findDOMNode(this.urlRef));
   };
 
@@ -44,8 +46,8 @@ class ShareUrlContainer extends React.Component {
   };
 
   render() {
-    let {isSharing, busy, shareUrl, onConfirming, onCancel, onShare} = this.props;
-    let url = !busy && isSharing ? shareUrl : 'Not shared';
+    const {isSharing, busy, shareUrl, onConfirming, onCancel, onShare} = this.props;
+    const url = !busy && isSharing ? shareUrl : 'Not shared';
 
     return (
       <FlowLayout
@@ -171,7 +173,7 @@ class ShareIssue extends React.Component {
   };
 
   handleShare = () => {
-    let {onShare} = this.props;
+    const {onShare} = this.props;
     this.setState({busy: true}, () => onShare());
     this.hasConfirmModal = false;
   };
@@ -188,11 +190,11 @@ class ShareIssue extends React.Component {
   handleConfirmReshare = () => (this.hasConfirmModal = true);
 
   render() {
-    let {className, isSharing} = this.props;
-    let {busy} = this.state;
-    let cx = classNames('share-issue btn-sm btn btn-default', className);
+    const {className, isSharing} = this.props;
+    const {busy} = this.state;
+    const cx = classNames('share-issue btn-sm btn btn-default', className);
 
-    let shareTitle = 'Share';
+    const shareTitle = 'Share';
 
     // Needs to wrap in an inline block for DropdownLink,
     // or else dropdown icon gets wrapped?
@@ -230,15 +232,14 @@ class ShareIssue extends React.Component {
             </FlowLayout>
           )}
 
-          {!busy &&
-            isSharing && (
-              <ShareUrlContainer
-                {...this.props}
-                onCancel={this.handleConfirmCancel}
-                onConfirming={this.handleConfirmReshare}
-                onShare={this.handleShare}
-              />
-            )}
+          {!busy && isSharing && (
+            <ShareUrlContainer
+              {...this.props}
+              onCancel={this.handleConfirmCancel}
+              onConfirming={this.handleConfirmReshare}
+              onShare={this.handleShare}
+            />
+          )}
         </li>
       </DropdownLink>
     );

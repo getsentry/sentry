@@ -1,0 +1,12 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "foo",
+        "lineno": 1,
+        "context_line": "<HTML>",
+        "filename": "foo"
+      }
+    ]
+  }
+}

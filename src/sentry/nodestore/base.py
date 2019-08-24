@@ -1,11 +1,3 @@
-"""
-sentry.nodestore.base
-~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 import six
@@ -19,8 +11,16 @@ from sentry.utils.services import Service
 
 class NodeStorage(local, Service):
     __all__ = (
-        'create', 'delete', 'delete_multi', 'get', 'get_multi', 'set', 'set_multi', 'generate_id',
-        'cleanup', 'validate'
+        "create",
+        "delete",
+        "delete_multi",
+        "get",
+        "get_multi",
+        "set",
+        "set_multi",
+        "generate_id",
+        "cleanup",
+        "validate",
     )
 
     def create(self, data):
@@ -64,7 +64,7 @@ class NodeStorage(local, Service):
         """
         return dict((id, self.get(id)) for id in id_list)
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         """
         >>> nodestore.set('key1', {'foo': 'bar'})
         """

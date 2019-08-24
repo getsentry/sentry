@@ -4,18 +4,18 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -29,11 +29,17 @@ const AssigneeSelectorComponent = createReactClass({
   propTypes: {
     id: PropTypes.string.isRequired,
     size: PropTypes.number,
+    // Either a list of users, or null. If null, members will
+    // be read from the MemberListStore. The prop is useful when the
+    // store contains more/different users than you need to show
+    // in an individual component, eg. Org Issue list
+    memberList: PropTypes.array,
   },
 
   contextTypes: {
     organization: SentryTypes.Organization,
   },
+
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
@@ -42,14 +48,18 @@ const AssigneeSelectorComponent = createReactClass({
   statics: {
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
-      if (!members) return [];
+      if (!members) {
+        return [];
+      }
 
-      let sessionUser = ConfigStore.get('user');
-      let sessionUserIndex = members.findIndex(
+      const sessionUser = ConfigStore.get('user');
+      const sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
       );
 
-      if (sessionUserIndex === -1) return members;
+      if (sessionUserIndex === -1) {
+        return members;
+      }
 
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
@@ -64,9 +74,9 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   getInitialState() {
-    let group = GroupStore.get(this.props.id);
-    let memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
-    let loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+    const group = GroupStore.get(this.props.id);
+    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
 
     return {
       assignedTo: group && group.assignedTo,
@@ -76,9 +86,9 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+    const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
-      let group = GroupStore.get(this.props.id);
+      const group = GroupStore.get(this.props.id);
       this.setState({
         loading,
         assignedTo: group && group.assignedTo,
@@ -91,24 +101,40 @@ const AssigneeSelectorComponent = createReactClass({
       return true;
     }
 
+    // If the memberList in props has changed, re-render as
+    // props have updated, and we won't use internal state anyways.
+    if (
+      nextProps.memberList &&
+      !valueIsEqual(this.props.memberList, nextProps.memberList)
+    ) {
+      return true;
+    }
+
+    const currentMembers = this.memberList();
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
     // is called
-    if (
-      this.state.memberList === null &&
-      nextState.memberList !== this.state.memberList
-    ) {
+    if (currentMembers === null && nextState.memberList !== currentMembers) {
       return true;
     }
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  assignableTeams() {
-    let group = GroupStore.get(this.props.id);
+  memberList() {
+    if (this.props.memberList) {
+      return this.props.memberList;
+    }
+    return this.state.memberList;
+  },
 
-    return (ProjectsStore.getBySlug(group.project.slug) || {
-      teams: [],
-    }).teams
+  assignableTeams() {
+    const group = GroupStore.get(this.props.id);
+
+    return (
+      ProjectsStore.getBySlug(group.project.slug) || {
+        teams: [],
+      }
+    ).teams
       .sort((a, b) => a.slug.localeCompare(b.slug))
       .map(team => ({
         id: buildTeamId(team.id),
@@ -122,7 +148,7 @@ const AssigneeSelectorComponent = createReactClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    let group = GroupStore.get(this.props.id);
+    const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
@@ -139,7 +165,13 @@ const AssigneeSelectorComponent = createReactClass({
     this.setState({loading: true});
   },
 
-  handleAssign({value: {type, assignee}}, state, e) {
+  handleAssign(
+    {
+      value: {type, assignee},
+    },
+    state,
+    e
+  ) {
     if (type === 'member') {
       this.assignToUser(assignee);
     }
@@ -159,9 +191,8 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   renderNewMemberNodes() {
-    let {memberList} = this.state;
-    let {size} = this.props;
-    let members = AssigneeSelectorComponent.putSessionUserFirst(memberList);
+    const {size} = this.props;
+    const members = AssigneeSelectorComponent.putSessionUserFirst(this.memberList());
 
     return members.map(member => {
       return {
@@ -169,6 +200,7 @@ const AssigneeSelectorComponent = createReactClass({
         searchKey: `${member.email} ${member.name} ${member.slug}`,
         label: ({inputValue}) => (
           <MenuItemWrapper
+            data-test-id="assignee-option"
             key={buildUserId(member.id)}
             onSelect={this.assignToUser.bind(this, member)}
           >
@@ -185,14 +217,18 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   renderNewTeamNodes() {
-    let {size} = this.props;
+    const {size} = this.props;
 
     return this.assignableTeams().map(({id, display, team}) => {
       return {
         value: {type: 'team', assignee: team},
         searchKey: team.slug,
         label: ({inputValue}) => (
-          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
+          <MenuItemWrapper
+            data-test-id="assignee-option"
+            key={id}
+            onSelect={this.assignToTeam.bind(this, team)}
+          >
             <IconContainer>
               <Avatar team={team} size={size} />
             </IconContainer>
@@ -206,8 +242,8 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   renderNewDropdownItems() {
-    let teams = this.renderNewTeamNodes();
-    let members = this.renderNewMemberNodes();
+    const teams = this.renderNewTeamNodes();
+    const members = this.renderNewMemberNodes();
 
     return [
       {id: 'team-header', hideGroupLabel: true, items: teams},
@@ -216,11 +252,12 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   render() {
-    let {className} = this.props;
-    let {organization} = this.context;
-    let {loading, assignedTo, memberList} = this.state;
-    let canInvite = ConfigStore.get('invitesEnabled');
-    let hasOrgWrite = organization.access.includes('org:write');
+    const {className} = this.props;
+    const {organization} = this.context;
+    const {loading, assignedTo} = this.state;
+    const canInvite = ConfigStore.get('invitesEnabled');
+    const hasOrgWrite = organization.access.includes('org:write');
+    const memberList = this.memberList();
 
     return (
       <div className={className}>
@@ -233,7 +270,9 @@ const AssigneeSelectorComponent = createReactClass({
             zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
-              if (!e) return;
+              if (!e) {
+                return;
+              }
               e.stopPropagation();
             }}
             busy={memberList === null}
@@ -265,8 +304,9 @@ const AssigneeSelectorComponent = createReactClass({
                 <InviteMemberLink
                   data-test-id="invite-member"
                   disabled={loading}
-                  to={`/settings/${this.context.organization
-                    .slug}/members/new/?referrer=assignee_selector`}
+                  to={`/settings/${
+                    this.context.organization.slug
+                  }/members/new/?referrer=assignee_selector`}
                 >
                   <MenuItemWrapper>
                     <IconContainer>
@@ -302,8 +342,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   justify-content: flex-end;
 
   /* manually align menu underneath dropdown caret */
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${StyledMenu} {
+  ${DropdownBubble} {
     right: -14px;
   }
 `;
@@ -325,7 +364,7 @@ const IconUser = styled(InlineSvg)`
   margin-right: 2px;
 `;
 
-const IconContainer = styled.div`
+const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;

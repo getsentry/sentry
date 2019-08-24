@@ -7,6 +7,10 @@ import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 class DropdownAutoComplete extends React.Component {
   static propTypes = {
     ...DropdownAutoCompleteMenu.propTypes,
+
+    // Should clicking the actor toggle visibility?
+    allowActorToggle: PropTypes.bool,
+
     children: PropTypes.func,
   };
 
@@ -15,13 +19,13 @@ class DropdownAutoComplete extends React.Component {
   };
 
   render() {
-    let {children, ...props} = this.props;
+    const {children, allowActorToggle, ...props} = this.props;
 
     return (
       <DropdownAutoCompleteMenu {...props}>
         {renderProps => {
           // Don't pass `onClick` from `getActorProps`
-          let {
+          const {
             //eslint-disable-next-line no-unused-vars
             onClick,
             ...actorProps
@@ -31,7 +35,12 @@ class DropdownAutoComplete extends React.Component {
             <Actor
               isOpen={renderProps.isOpen}
               role="button"
-              onClick={renderProps.actions.open}
+              tabIndex="0"
+              onClick={
+                renderProps.isOpen && allowActorToggle
+                  ? renderProps.actions.close
+                  : renderProps.actions.open
+              }
               {...actorProps}
             >
               {children(renderProps)}

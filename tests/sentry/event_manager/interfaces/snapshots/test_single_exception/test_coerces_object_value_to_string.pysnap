@@ -1,0 +1,9 @@
+---
+created: '2019-03-14T17:12:36.119144Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_single_exception.py
+---
+errors: null
+to_json:
+  type: ValueError
+  value: '{"unauthorized":true}'

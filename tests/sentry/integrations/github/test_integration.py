@@ -23,6 +23,7 @@ from tests.sentry.plugins.testutils import (
 
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
+    base_url = 'https://api.github.com'
 
     def setUp(self):
         super(GitHubIntegrationTest, self).setUp()
@@ -58,7 +59,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            u'https://api.github.com/installations/{}/access_tokens'.format(
+            self.base_url + '/installations/{}/access_tokens'.format(
                 self.installation_id,
             ),
             json={
@@ -69,13 +70,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://api.github.com/user',
+            self.base_url + '/user',
             json={'id': self.user_id}
         )
 
         responses.add(
             responses.GET,
-            u'https://api.github.com/installation/repositories',
+            self.base_url + '/installation/repositories',
             json={
                 'repositories': [
                     {
@@ -94,7 +95,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u'https://api.github.com/app/installations/{}'.format(
+            self.base_url + '/app/installations/{}'.format(
                 self.installation_id,
             ),
             json={
@@ -111,7 +112,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u'https://api.github.com/user/installations',
+            self.base_url + '/user/installations',
             json={
                 'installations': [{'id': self.installation_id}],
             }
@@ -119,7 +120,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u'https://api.github.com/repos/Test-Organization/foo/hooks',
+            self.base_url + '/repos/Test-Organization/foo/hooks',
             json=[],
         )
 
@@ -299,7 +300,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         Identity.objects.get().update(user=user2)
         resp = self.assert_setup_flow()
         assert '"success":false' in resp.content
-        assert 'The provided GitHub account is linked to a different user' in resp.content
+        assert 'The provided GitHub account is linked to a different Sentry user' in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
@@ -405,3 +406,32 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Disabled after Integration installed
         assert 'github' not in [p.slug for p in plugins.for_project(project)]
+
+    @responses.activate
+    def test_get_repositories_search_param(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        responses.add(
+            responses.GET,
+            self.base_url + '/search/repositories?q=org:test%20ex',
+            json={
+                'items': [
+                    {
+                        'name': 'example',
+                        'full_name': 'test/example',
+                    },
+                    {
+                        'name': 'exhaust',
+                        'full_name': 'test/exhaust',
+                    },
+                ]
+            }
+        )
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        result = installation.get_repositories('ex')
+        assert result == [
+            {'identifier': 'test/example', 'name': 'example'},
+            {'identifier': 'test/exhaust', 'name': 'exhaust'}
+        ]

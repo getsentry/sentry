@@ -43,14 +43,29 @@ class ApiHostError(ApiError):
 
     @classmethod
     def from_exception(cls, exception):
-        if hasattr(exception, 'request'):
+        if getattr(exception, "request"):
             return cls.from_request(exception.request)
-        return cls('Unable to reach host')
+        return cls("Unable to reach host")
 
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls(u'Unable to reach host: {}'.format(host))
+        return cls(u"Unable to reach host: {}".format(host))
+
+
+class ApiTimeoutError(ApiError):
+    code = 504
+
+    @classmethod
+    def from_exception(cls, exception):
+        if getattr(exception, "request"):
+            return cls.from_request(exception.request)
+        return cls("Timed out reaching host")
+
+    @classmethod
+    def from_request(cls, request):
+        host = urlparse(request.url).netloc
+        return cls(u"Timed out attempting to reach host: {}".format(host))
 
 
 class ApiUnauthorized(ApiError):
@@ -69,5 +84,5 @@ class IntegrationError(Exception):
 
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
-        super(IntegrationFormError, self).__init__('Invalid integration action')
+        super(IntegrationFormError, self).__init__("Invalid integration action")
         self.field_errors = field_errors

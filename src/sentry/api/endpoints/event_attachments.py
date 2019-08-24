@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Event, EventAttachment
+from sentry.models import EventAttachment
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
@@ -20,27 +20,23 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        if not features.has('organizations:event-attachments',
-                            project.organization, actor=request.user):
+        if not features.has(
+            "organizations:event-attachments", project.organization, actor=request.user
+        ):
             return self.respond(status=404)
 
-        try:
-            event = Event.objects.get(
-                id=event_id,
-                project_id=project.id,
-            )
-        except Event.DoesNotExist:
-            return self.respond({'detail': 'Event not found'}, status=404)
+        event = eventstore.get_event_by_id(project.id, event_id)
+        if event is None:
+            return self.respond({"detail": "Event not found"}, status=404)
 
         queryset = EventAttachment.objects.filter(
-            project_id=project.id,
-            event_id=event.event_id,
-        ).select_related('file')
+            project_id=project.id, event_id=event.event_id
+        ).select_related("file")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='name',
+            order_by="name",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

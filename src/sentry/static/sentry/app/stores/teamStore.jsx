@@ -23,9 +23,11 @@ const TeamStore = Reflux.createStore({
   },
 
   onUpdateSuccess(itemId, response) {
-    if (!response) return;
+    if (!response) {
+      return;
+    }
 
-    let item = this.getBySlug(itemId);
+    const item = this.getBySlug(itemId);
 
     if (!item) {
       this.items.push(response);

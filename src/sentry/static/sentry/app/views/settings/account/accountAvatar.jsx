@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import AvatarCropper from 'app/components/avatarCropper';
 import LoadingError from 'app/components/loadingError';
@@ -19,12 +19,11 @@ const AccountAvatar = createReactClass({
   displayName: 'AccountAvatar',
 
   propTypes: {
+    api: PropTypes.object,
     userId: PropTypes.number,
     user: SentryTypes.User,
     onSave: PropTypes.func,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -65,7 +64,7 @@ const AccountAvatar = createReactClass({
   },
 
   handleSuccess(user) {
-    let {onSave} = this.props;
+    const {onSave} = this.props;
     this.setState({user});
     onSave(user);
     addSuccessMessage(t('Successfully saved avatar preferences'));
@@ -77,7 +76,7 @@ const AccountAvatar = createReactClass({
     if (this.state.dataUrl) {
       avatarPhoto = this.state.dataUrl.split(',')[1];
     }
-    this.api.request(this.getEndpoint(), {
+    this.props.api.request(this.getEndpoint(), {
       method: 'PUT',
       data: {
         avatar_photo: avatarPhoto,
@@ -92,7 +91,7 @@ const AccountAvatar = createReactClass({
   },
 
   handleChange(id) {
-    let user = {...this.state.user};
+    const user = {...this.state.user};
     user.avatar.avatarType = id;
     this.updateUserState(user);
   },
@@ -105,7 +104,7 @@ const AccountAvatar = createReactClass({
       return <LoadingIndicator />;
     }
 
-    let gravatarMessage = (
+    const gravatarMessage = (
       <Well>
         {t('Gravatars are managed through ')}
         <a href="http://gravatar.com" target="_blank" rel="noreferrer noopener">
@@ -114,7 +113,7 @@ const AccountAvatar = createReactClass({
       </Well>
     );
 
-    let isLetter = this.state.user.avatar.avatarType == 'letter_avatar';
+    const isLetter = this.state.user.avatar.avatarType === 'letter_avatar';
 
     return (
       <Panel>
@@ -167,7 +166,7 @@ const AccountAvatar = createReactClass({
   },
 });
 
-const AvatarGroup = styled.div`
+const AvatarGroup = styled('div')`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;
@@ -185,4 +184,6 @@ const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 
-export default AccountAvatar;
+export {AccountAvatar};
+
+export default withApi(AccountAvatar);

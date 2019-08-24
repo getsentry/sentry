@@ -10,6 +10,7 @@ class GitHubClientMixin(ApiClient):
     allow_redirects = True
 
     base_url = 'https://api.github.com'
+    integration_name = 'github'
 
     def get_jwt(self):
         return get_jwt()
@@ -94,7 +95,7 @@ class GitHubClientMixin(ApiClient):
             }
         return self._request(method, path, headers=headers, data=data, params=params)
 
-    def get_token(self):
+    def get_token(self, force_refresh=False):
         """
         Get token retrieves the active access token from the integration model.
         Should the token have expried, a new token will be generated and
@@ -106,7 +107,7 @@ class GitHubClientMixin(ApiClient):
         if expires_at is not None:
             expires_at = datetime.strptime(expires_at, '%Y-%m-%dT%H:%M:%S')
 
-        if not token or expires_at < datetime.utcnow():
+        if not token or expires_at < datetime.utcnow() or force_refresh:
             res = self.create_token()
             token = res['token']
             expires_at = datetime.strptime(

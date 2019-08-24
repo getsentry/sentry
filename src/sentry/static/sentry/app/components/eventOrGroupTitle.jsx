@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Metadata} from 'app/sentryTypes';
+import {getTitle} from 'app/utils/events';
 
 class EventOrGroupTitle extends React.Component {
   static propTypes = {
@@ -12,31 +13,17 @@ class EventOrGroupTitle extends React.Component {
         'expectct',
         'expectstaple',
         'default',
+        'transaction',
       ]).isRequired,
       title: PropTypes.string,
       metadata: Metadata.isRequired,
       culprit: PropTypes.string,
     }),
+    style: PropTypes.object,
   };
 
   render() {
-    let {data} = this.props;
-    let {metadata, title, type, culprit} = data;
-    let subtitle = null;
-
-    if (type == 'error') {
-      title = metadata.type;
-      subtitle = culprit;
-    } else if (type == 'csp') {
-      title = metadata.directive;
-      subtitle = metadata.uri;
-    } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-      title = metadata.message;
-      subtitle = metadata.origin;
-    } else if (type == 'default') {
-      title = metadata.title;
-    }
-
+    const {title, subtitle} = getTitle(this.props.data);
     if (subtitle) {
       return (
         <span style={this.props.style}>

@@ -32,14 +32,14 @@ describe('SettingsLayout', function() {
   });
 
   it('renders', function() {
-    let wrapper = shallow(<SettingsLayout route={{}} routes={[]} />);
+    const wrapper = shallow(<SettingsLayout route={{}} routes={[]} />);
 
     expect(wrapper).toMatchSnapshot();
   });
 
   it('can render navigation', function() {
     const Navigation = () => <div>Navigation</div>;
-    let wrapper = shallow(
+    const wrapper = shallow(
       <SettingsLayout route={{}} routes={[]} renderNavigation={() => <Navigation />} />
     );
 

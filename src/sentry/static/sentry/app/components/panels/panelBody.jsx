@@ -7,17 +7,18 @@ import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
 const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
-  let padding = !disablePadding
+  const padding = !disablePadding
     ? css`
         padding: ${space(2)};
       `
     : '';
-  let flexDirection = flex ? direction : undefined;
-  let Comp = flex ? Flex : 'div';
+  const flexDirection = flex ? direction : undefined;
+  const Comp = flex ? Flex : 'div';
+  const textClassName = textStyles(props);
 
   return (
     <Comp
-      className={cx(padding, textStyles, className)}
+      className={cx(padding, textClassName, className)}
       {...props}
       direction={flexDirection}
     />

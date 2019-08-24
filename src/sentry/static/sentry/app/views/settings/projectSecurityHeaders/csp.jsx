@@ -5,7 +5,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PreviewFeature from 'app/components/previewFeature';
@@ -26,7 +26,7 @@ export default class ProjectCspReports extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
@@ -61,7 +61,7 @@ export default class ProjectCspReports extends AsyncView {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
       <div>

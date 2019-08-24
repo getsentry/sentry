@@ -2,20 +2,11 @@ import styled from 'react-emotion';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {update} from 'app/actionCreators/projects';
-import ApiMixin from 'app/mixins/apiMixin';
-import Tooltip from 'app/components/tooltip';
-
-import Link from 'app/components/link';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
+import Link from 'app/components/links/link';
 import ProjectLabel from 'app/components/projectLabel';
 import SentryTypes from 'app/sentryTypes';
-
-const InlineButton = styled('button')`
-  color: ${p => p.theme.gray1};
-  border: none;
-  background-color: inherit;
-  padding: 0;
-`;
+import space from 'app/styles/space';
 
 const ProjectItem = createReactClass({
   displayName: 'ProjectItem',
@@ -25,52 +16,43 @@ const ProjectItem = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [ApiMixin],
-
   getInitialState() {
     return {
       isBookmarked: this.props.project.isBookmarked,
     };
   },
 
-  handleToggleBookmark() {
-    let {project, organization} = this.props;
-    let {isBookmarked} = this.state;
-
-    this.setState({isBookmarked: !isBookmarked}, () =>
-      update(this.api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        data: {
-          isBookmarked: this.state.isBookmarked,
-        },
-      })
-    );
-    //needed to dismiss tooltip
-    document.activeElement.blur();
+  handleToggleBookmark(isBookmarked) {
+    this.setState({isBookmarked});
   },
 
   render() {
-    let {project, organization} = this.props;
-    let {isBookmarked} = this.state;
+    const {project, organization} = this.props;
 
     return (
-      <div key={project.id} className={isBookmarked ? 'isBookmarked' : null}>
-        <Tooltip title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}>
-          <InlineButton onClick={() => this.handleToggleBookmark()}>
-            {isBookmarked ? (
-              <span className="icon-star-solid bookmark" />
-            ) : (
-              <span className="icon-star-outline bookmark" />
-            )}
-          </InlineButton>
-        </Tooltip>
-        <Link to={`/${organization.slug}/${project.slug}/`}>
+      <Container key={project.id}>
+        <BookmarkLink
+          organization={organization}
+          project={project}
+          isBookmarked={this.state.isBookmarked}
+          onToggle={this.handleToggleBookmark}
+        />
+        <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
           <ProjectLabel project={project} />
         </Link>
-      </div>
+      </Container>
     );
   },
 });
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const BookmarkLink = styled(BookmarkStar)`
+  margin-right: ${space(1)};
+  margin-top: -${space(0.25)};
+`;
 
 export default ProjectItem;

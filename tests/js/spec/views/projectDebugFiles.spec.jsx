@@ -2,13 +2,17 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectDebugFiles from 'app/views/projectDebugFiles';
+import ProjectDebugFiles from 'app/views/settings/projectDebugFiles';
 
 const ENDPOINT = '/projects/org/project/files/dsyms/';
 
 describe('ProjectDebugFiles', function() {
   beforeEach(function() {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: '/projects/org/project/',
+      body: {},
+    });
   });
 
   it('renders empty', function() {
@@ -16,8 +20,11 @@ describe('ProjectDebugFiles', function() {
       url: ENDPOINT,
       body: [],
     });
-    let wrapper = shallow(
-      <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
+    const wrapper = shallow(
+      <ProjectDebugFiles
+        params={{orgId: 'org', projectId: 'project'}}
+        location={{query: {}}}
+      />,
       TestStubs.routerContext()
     );
 
@@ -34,8 +41,11 @@ describe('ProjectDebugFiles', function() {
       method: 'PUT',
     });
 
-    let wrapper = mount(
-      <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
+    const wrapper = mount(
+      <ProjectDebugFiles
+        params={{orgId: 'org', projectId: 'project'}}
+        location={{query: {}}}
+      />,
       TestStubs.routerContext()
     );
 

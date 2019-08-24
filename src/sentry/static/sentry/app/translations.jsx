@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/browser';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language) {
-  let [left, right] = language.split('-');
+  const [left, right] = language.split('-');
   return left + (right ? '_' + right.toUpperCase() : '');
 }
 

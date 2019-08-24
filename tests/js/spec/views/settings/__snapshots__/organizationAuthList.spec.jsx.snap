@@ -35,7 +35,7 @@ exports[`OrganizationAuthList renders 1`] = `
           >
             Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
-          <ExternalLink
+          <ForwardRef
             href="https://docs.sentry.io/learn/sso/"
             key="2"
             rel="noreferrer noopener"
@@ -46,7 +46,7 @@ exports[`OrganizationAuthList renders 1`] = `
             >
               SSO documentation
             </span>
-          </ExternalLink>
+          </ForwardRef>
           <span
             key="3"
           >
@@ -131,7 +131,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           >
             Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
-          <ExternalLink
+          <ForwardRef
             href="https://docs.sentry.io/learn/sso/"
             key="2"
             rel="noreferrer noopener"
@@ -142,7 +142,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
             >
               SSO documentation
             </span>
-          </ExternalLink>
+          </ForwardRef>
           <span
             key="3"
           >

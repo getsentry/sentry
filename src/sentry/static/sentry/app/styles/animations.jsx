@@ -1,10 +1,14 @@
 import {keyframes} from 'react-emotion';
 
+import theme from 'app/utils/theme';
+
 export const growIn = keyframes`
   0% {
-    transform: scale(0);
+    opacity: 0;
+    transform: scale(0.75);
   }
   100% {
+    opacity: 1;
     transform: scale(1);
   }
 `;
@@ -36,12 +40,12 @@ export const fadeOut = keyframes`
   }
 `;
 
-export const pulse = keyframes`
+export const pulse = size => keyframes`
   0% {
     transform: scale(1,1);
   }
   50% {
-    transform: scale(1.15, 1.15);
+    transform: scale(${size}, ${size});
   }
   100% {
     transform: scale(1, 1);
@@ -104,5 +108,18 @@ export const highlight = color => keyframes`
 
   25% {
     background: ${color};
+  }
+`;
+
+export const alertHighlight = priority => keyframes`
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0);
+    border-color: transparent;
+  }
+
+  25% {
+    background: ${theme.alert[priority].backgroundLight};
+    border-color: ${theme.alert[priority].border};
   }
 `;

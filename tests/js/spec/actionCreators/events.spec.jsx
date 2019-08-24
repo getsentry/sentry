@@ -86,28 +86,12 @@ describe('Events ActionCreator', function() {
   it('requests events stats with absolute period including previous period', async function() {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
-    const result = await doEventsRequest(api, {
+    await doEventsRequest(api, {
       ...opts,
       includePrevious: true,
       start,
       end,
     });
-
-    expect(mock).toHaveBeenCalledTimes(2);
-
-    // Previous period call
-    expect(mock).toHaveBeenNthCalledWith(
-      1,
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [project.id],
-          environment: [],
-          start: '2017-10-08T00:00:00',
-          end: '2017-10-12T12:00:00',
-        }),
-      })
-    );
 
     expect(mock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -115,12 +99,10 @@ describe('Events ActionCreator', function() {
         query: expect.objectContaining({
           project: [project.id],
           environment: [],
-          start: '2017-10-12T12:00:00',
+          start: '2017-10-08T00:00:00',
           end: '2017-10-17T00:00:00',
         }),
       })
     );
-
-    expect(result.data).toHaveLength(12);
   });
 });

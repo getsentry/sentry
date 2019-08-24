@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationTagsTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
 
     def test_simple(self):
         user = self.create_user()
@@ -24,30 +23,27 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
+            event_id="a" * 32, group=group, datetime=self.min_ago, tags={"fruit": "apple"}
         )
         self.create_event(
-            'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id="b" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
         self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'some_tag': 'some_value'}
+            event_id="c" * 32, group=group, datetime=self.min_ago, tags={"some_tag": "some_value"}
         )
         self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
+            event_id="d" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
 
-        url = reverse(
-            'sentry-api-0-organization-tags',
-            kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {'uniqueValues': 2, 'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
-            {'uniqueValues': 1, 'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
+        data = response.data
+        data.sort(key=lambda val: val["totalValues"], reverse=True)
+        assert data == [
+            {"name": "Fruit", "key": "fruit", "totalValues": 3},
+            {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
     def test_no_projects(self):
@@ -55,13 +51,8 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         org = self.create_organization(owner=user)
         self.login_as(user=user)
 
-        url = reverse(
-            'sentry-api-0-organization-tags',
-            kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data == []

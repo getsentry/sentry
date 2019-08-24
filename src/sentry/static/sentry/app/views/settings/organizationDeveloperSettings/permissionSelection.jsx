@@ -5,7 +5,6 @@ import {find, flatMap} from 'lodash';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 /**
@@ -34,7 +33,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
  *    This components displays things per Resource. Meaning the User selects
  *    "Read", "Read & Write", or "Admin" for Project or Organization or etc.
  *
- *    == Scopes to Permissions
+ *    === Scopes to Permissions
  *
  *    The first thing this component does on instantiation is take the list of API
  *    Scopes passed via `props` and converts them to "Permissions.
@@ -84,29 +83,15 @@ export default class PermissionSelection extends React.Component {
   };
 
   static propTypes = {
-    scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
+    permissions: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
   };
 
   constructor(...args) {
     super(...args);
     this.state = {
-      permissions: this.scopeListToPermissionState(),
+      permissions: this.props.permissions,
     };
-  }
-
-  /**
-   * Converts the list of raw API scopes passed in to an object that can
-   * before stored and used via `state`. This object is structured by
-   * resource and holds "Permission" values. For example:
-   *
-   *    {
-   *      'Project': 'read',
-   *      ...,
-   *    }
-   *
-   */
-  scopeListToPermissionState() {
-    return new ConsolidatedScopes(this.props.scopes).toResourcePermissions();
   }
 
   /**
@@ -128,10 +113,13 @@ export default class PermissionSelection extends React.Component {
 
   onChange = (resource, choice) => {
     const {permissions} = this.state;
-
     permissions[resource] = choice;
+    this.save(permissions);
+  };
 
+  save = permissions => {
     this.setState({permissions});
+    this.props.onChange(permissions);
     this.context.form.setValue('scopes', this.permissionStateToList());
   };
 

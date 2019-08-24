@@ -75,7 +75,6 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
       </span>
       <CommitLink
         commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
-        key="1"
         repository={
           Object {
             "externalSlug": "example/repo-name",
@@ -86,6 +85,10 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
             "url": "https://github.com/example/repo-name",
           }
         }
+      />
+      <StyledTimeSince
+        date="2018-11-30T18:46:31Z"
+        suffix="ago"
       />
     </span>
   </p>
@@ -233,12 +236,10 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
       >
         This issue has been marked as resolved in version 
       </span>
-      <Version
-        anchor={true}
+      <WithOrganizationMockWrapper
         key="1"
         orgId="org"
         projectId="project"
-        showShortVersion={true}
         version="1.0"
       />
       <span
@@ -314,12 +315,10 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       >
          marked this issue as resolved in version 
       </span>
-      <Version
-        anchor={true}
+      <WithOrganizationMockWrapper
         key="2"
         orgId="org"
         projectId="project"
-        showShortVersion={true}
         version="1.0"
       />
       <span

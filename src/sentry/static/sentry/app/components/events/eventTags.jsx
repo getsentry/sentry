@@ -20,20 +20,34 @@ class EventTags extends React.Component {
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    hideGuide: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    hideGuide: false,
   };
 
   render() {
-    let tags = this.props.event.tags;
-    if (_.isEmpty(tags)) return null;
+    const tags = this.props.event.tags;
 
-    let {orgId, projectId} = this.props;
+    if (_.isEmpty(tags)) {
+      return null;
+    }
+
+    const {event, group, orgId, projectId, hideGuide} = this.props;
+
+    const streamPath = `/organizations/${orgId}/issues/`;
+
+    const releasesPath = `/organizations/${orgId}/releases/`;
+
     return (
       <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
+        group={group}
+        event={event}
         title={t('Tags')}
         type="tags"
         className="p-b-1"
+        hideGuide={hideGuide}
       >
         <Pills className="no-margin">
           {tags.map(tag => {
@@ -41,8 +55,11 @@ class EventTags extends React.Component {
               <Pill key={tag.key} name={tag.key}>
                 <Link
                   to={{
-                    pathname: `/${orgId}/${projectId}/`,
-                    query: {query: `${tag.key}:"${tag.value}"`},
+                    pathname: streamPath,
+                    query: {
+                      query: `${tag.key}:"${tag.value}"`,
+                      project: group.project.id,
+                    },
                   }}
                 >
                   <DeviceName>{tag.value}</DeviceName>
@@ -52,14 +69,21 @@ class EventTags extends React.Component {
                     <em className="icon-open" />
                   </a>
                 )}
-                {tag.key == 'release' && (
+                {tag.key === 'release' && (
                   <VersionHoverCard
                     containerClassName="pill-icon"
                     version={tag.value}
                     orgId={orgId}
                     projectId={projectId}
                   >
-                    <Link to={`/${orgId}/${projectId}/releases/${tag.value}/`}>
+                    <Link
+                      to={{
+                        pathname: `${releasesPath}${tag.value}/`,
+                        query: {
+                          project: group.project.id,
+                        },
+                      }}
+                    >
                       <InlineSvg src="icon-circle-info" size="14px" />
                     </Link>
                   </VersionHoverCard>

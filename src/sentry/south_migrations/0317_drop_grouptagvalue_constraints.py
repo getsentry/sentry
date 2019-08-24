@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         try:
             db.delete_foreign_key('sentry_messagefiltervalue', 'group_id')
             db.delete_foreign_key('sentry_messagefiltervalue', 'project_id')
-        except OperationalError:
+        except (OperationalError, ValueError):
             pass
 
     def backwards(self, orm):
@@ -731,7 +731,7 @@ class Migration(SchemaMigration):
             'app_id': ('django.db.models.fields.CharField', [], {
                 'max_length': '64'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -1093,7 +1093,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -1982,7 +1982,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('organization', 'task'),)",
                 'object_name': 'OrganizationOnboardingTask'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -2298,7 +2298,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('organization', 'version'),)",
                 'object_name': 'Release'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2539,7 +2539,7 @@ class Migration(SchemaMigration):
                 'object_name':
                 'Repository'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

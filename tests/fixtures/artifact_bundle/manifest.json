@@ -1,0 +1,17 @@
+{
+    "org": "__org__",
+    "release": "__release__",
+    "files": {
+        "files/_/_/index.js.map": {
+            "url": "~/index.js.map",
+            "type": "source_map"
+        },
+        "files/_/_/index.js": {
+            "url": "~/index.js",
+            "type": "source",
+            "headers": {
+                "Sourcemap": "index.js.map"
+            }
+        }
+    }
+}

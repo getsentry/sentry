@@ -63,19 +63,21 @@ class RouteSource extends React.Component {
     if (
       prevProps.project === this.props.project &&
       prevProps.organization === this.props.organization
-    )
+    ) {
       return;
+    }
 
     this.createSearch();
   }
 
   async createSearch() {
-    let {project, organization} = this.props;
+    const {project, organization} = this.props;
     const searchMap = flattenDepth(
       [
         mapFunc(accountSettingsNavigation),
         mapFunc(projectSettingsNavigation, {
           project: project || {},
+          organization: organization || {},
           access: new Set((organization && organization.access) || []),
           features: new Set((project && project.features) || []),
         }),
@@ -96,9 +98,9 @@ class RouteSource extends React.Component {
   }
 
   render() {
-    let {searchMap, query, params, children} = this.props;
+    const {searchMap, query, params, children} = this.props;
 
-    let results =
+    const results =
       (this.state.fuzzy &&
         this.state.fuzzy.search(query).map(({item, ...rest}) => ({
           item: {

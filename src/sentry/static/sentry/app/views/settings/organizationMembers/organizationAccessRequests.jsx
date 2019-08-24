@@ -36,9 +36,11 @@ class OrganizationAccessRequests extends React.Component {
   };
 
   render() {
-    let {accessRequestBusy, requestList} = this.props;
+    const {accessRequestBusy, requestList} = this.props;
 
-    if (!requestList || !requestList.length) return null;
+    if (!requestList || !requestList.length) {
+      return null;
+    }
 
     return (
       <Panel>
@@ -52,7 +54,7 @@ class OrganizationAccessRequests extends React.Component {
 
         <PanelBody>
           {requestList.map(({id, member, team}, i) => {
-            let displayName =
+            const displayName =
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (

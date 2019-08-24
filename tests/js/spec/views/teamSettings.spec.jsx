@@ -7,23 +7,23 @@ import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
 describe('TeamSettings', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
-    sinon.stub(window.location, 'assign');
+    jest.spyOn(window.location, 'assign');
   });
 
   afterEach(function() {
-    window.location.assign.restore();
+    window.location.assign.mockRestore();
   });
 
   it('can change name and slug', async function() {
-    let team = TestStubs.Team();
-    let putMock = MockApiClient.addMockResponse({
+    const team = TestStubs.Team();
+    const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
     });
-    let mountOptions = TestStubs.routerContext();
-    let {router} = mountOptions.context;
+    const mountOptions = TestStubs.routerContext();
+    const {router} = mountOptions.context;
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
         routes={[]}
         router={router}
@@ -65,13 +65,13 @@ describe('TeamSettings', function() {
     );
 
     await tick();
-    expect(router.push).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
+    expect(router.replace).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
   it('needs team:admin in order to see an enabled Remove Team button', function() {
-    let team = TestStubs.Team();
+    const team = TestStubs.Team();
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
@@ -90,23 +90,23 @@ describe('TeamSettings', function() {
   });
 
   it('can remove team', async function() {
-    let team = TestStubs.Team();
-    let deleteMock = MockApiClient.addMockResponse({
+    const team = TestStubs.Team({hasAccess: true});
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'DELETE',
     });
-    let routerPushMock = jest.fn();
-    let teamStoreTriggerMock = jest.fn();
-    sinon.stub(TeamStore, 'trigger', teamStoreTriggerMock);
+    const routerPushMock = jest.fn();
+    jest.spyOn(TeamStore, 'trigger');
     TeamStore.loadInitialData([
       {
         slug: 'team-slug',
+        hasAccess: true,
       },
     ]);
 
-    let wrapper = mount(
+    const wrapper = mount(
       <TeamSettings
-        router={{push: routerPushMock}}
+        router={{replace: routerPushMock}}
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
         team={team}
@@ -116,12 +116,12 @@ describe('TeamSettings', function() {
     );
 
     // Click "Remove Team button
-    wrapper.find('Button[priority="danger"]').simulate('click');
+    wrapper.find('Button[priority="danger"] button').simulate('click');
 
-    TeamStore.trigger.reset();
+    TeamStore.trigger.mockReset();
 
     // Wait for modal
-    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
+    wrapper.find('ModalDialog Button[priority="danger"] button').simulate('click');
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
       expect.objectContaining({
@@ -135,6 +135,6 @@ describe('TeamSettings', function() {
 
     expect(TeamStore.items).toEqual([]);
 
-    TeamStore.trigger.restore();
+    TeamStore.trigger.mockRestore();
   });
 });

@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const CodeBlock = styled.pre`
+const CodeBlock = styled('pre')`
   word-break: break-all;
   white-space: pre-wrap;
 `;
@@ -28,13 +28,13 @@ class ProjectOwnership extends AsyncView {
   }
 
   getEndpoints() {
-    let {organization, project} = this.props;
+    const {organization, project} = this.props;
     return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {
-    let {project, organization} = this.props;
-    let {ownership} = this.state;
+    const {project, organization} = this.props;
+    const {ownership} = this.state;
 
     const disabled = !organization.access.includes('project:write');
 
@@ -107,6 +107,31 @@ class ProjectOwnership extends AsyncView {
                     help: t(
                       'Issue owners will receive notifications for issues they are responsible for.'
                     ),
+                    disabled,
+                  },
+                ],
+              },
+            ]}
+          />
+        </Form>
+
+        <Form
+          apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
+          apiMethod="PUT"
+          saveOnBlur
+          initialData={{autoAssignment: ownership.autoAssignment}}
+          hideFooter
+        >
+          <JsonForm
+            forms={[
+              {
+                title: t('If a new event matches any of the ownership rules...'),
+                fields: [
+                  {
+                    name: 'autoAssignment',
+                    type: 'boolean',
+                    label: t('The issue is assigned to the team or user'),
+                    help: t('Issue owners will be automatically assigned.'),
                     disabled,
                   },
                 ],

@@ -24,7 +24,7 @@ class ApplicationScopes extends React.Component {
   handleToggleScopes = (scope, e) => {
     this.setState(
       state => {
-        let {scopes} = this.state;
+        const {scopes} = this.state;
         if (scopes.has(scope)) {
           scopes.delete(scope);
         } else {

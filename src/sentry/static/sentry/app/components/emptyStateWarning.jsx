@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import HeroIcon from 'app/components/heroIcon';
 import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -28,14 +29,14 @@ class EmptyStateWarning extends React.Component {
 
     return (
       <EmptyStreamWrapper data-test-id="empty-state">
-        <Icon className="icon icon-exclamation" />
+        <HeroIcon src="icon-circle-exclamation" size="54" />
         {this.props.children}
       </EmptyStreamWrapper>
     );
   }
 }
 
-const EmptyStreamWrapper = styled.div`
+const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
   padding: 48px 0;
@@ -47,14 +48,10 @@ const EmptyStreamWrapper = styled.div`
       margin-bottom: 0;
     }
   }
-`;
 
-const Icon = styled.div`
-  display: block;
-  font-size: 54px;
-  color: ${p => p.theme.gray2};
-  margin-bottom: 20px;
-  opacity: 0.45;
+  ${HeroIcon} {
+    margin-bottom: 20px;
+  }
 `;
 
 const SmallMessage = styled('div')`

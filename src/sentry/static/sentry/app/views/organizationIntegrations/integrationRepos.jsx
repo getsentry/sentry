@@ -37,7 +37,7 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   getEndpoints() {
-    let orgId = this.context.organization.slug;
+    const orgId = this.context.organization.slug;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       [
@@ -48,13 +48,13 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   getIntegrationRepos() {
-    let integrationId = this.props.integration.id;
+    const integrationId = this.props.integration.id;
     return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
 
   // Called by row to signal repository change.
   onRepositoryChange = data => {
-    let itemList = this.state.itemList;
+    const itemList = this.state.itemList;
     itemList.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
@@ -69,10 +69,11 @@ export default class IntegrationRepos extends AsyncComponent {
   );
 
   searchRepositoriesRequest = searchQuery => {
-    let orgId = this.context.organization.slug;
-    let query = {search: searchQuery};
-    let endpoint = `/organizations/${orgId}/integrations/${this.props.integration
-      .id}/repos/`;
+    const orgId = this.context.organization.slug;
+    const query = {search: searchQuery};
+    const endpoint = `/organizations/${orgId}/integrations/${
+      this.props.integration.id
+    }/repos/`;
     return this.api.request(endpoint, {
       method: 'GET',
       query,
@@ -91,17 +92,17 @@ export default class IntegrationRepos extends AsyncComponent {
   };
 
   addRepo(selection) {
-    let {integration} = this.props;
-    let {itemList} = this.state;
-    let orgId = this.context.organization.slug;
+    const {integration} = this.props;
+    const {itemList} = this.state;
+    const orgId = this.context.organization.slug;
 
     this.setState({adding: true});
 
-    let migratableRepo = itemList.filter(item => {
+    const migratableRepo = itemList.filter(item => {
       if (!(selection.value && item.externalSlug)) {
         return false;
       }
-      return selection.value == item.externalSlug;
+      return selection.value === item.externalSlug;
     })[0];
 
     let promise;
@@ -119,8 +120,8 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   renderDropdown() {
-    let access = new Set(this.context.organization.access);
-    if (!access.has('org:write')) {
+    const access = new Set(this.context.organization.access);
+    if (!access.has('org:integrations')) {
       return (
         <DropdownButton
           disabled={true}
@@ -135,10 +136,10 @@ export default class IntegrationRepos extends AsyncComponent {
     const repositories = new Set(
       this.state.itemList.filter(item => item.integrationId).map(i => i.externalSlug)
     );
-    let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
+    const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
     );
-    let items = repositoryOptions.map(repo => {
+    const items = repositoryOptions.map(repo => {
       return {
         searchKey: repo.name,
         value: repo.identifier,
@@ -150,8 +151,8 @@ export default class IntegrationRepos extends AsyncComponent {
       };
     });
 
-    let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
-    let onChange = this.state.integrationRepos.searchable
+    const menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
+    const onChange = this.state.integrationRepos.searchable
       ? this.handleSearchRepositories
       : null;
 
@@ -199,7 +200,7 @@ export default class IntegrationRepos extends AsyncComponent {
                 icon="icon-commit"
                 title={t('Sentry is better with commit data')}
                 description={t(
-                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
                 )}
                 action={
                   <Button href="https://docs.sentry.io/learn/releases/">

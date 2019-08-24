@@ -12,6 +12,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag';
+import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {
@@ -50,13 +51,20 @@ export default class ProviderItem extends React.PureComponent {
   render() {
     const {provider, active} = this.props;
 
+    // TODO(epurkhiser): We should probably use a more explicit hook name,
+    // instead of just the feature names (sso-basic, sso-saml2, etc).
+    const featureKey = provider.requiredFeature;
+    const featureProps = featureKey ? {hookName: descopeFeatureName(featureKey)} : {};
+
     return (
       <Feature
-        features={[provider.requiredFeature].filter(f => f)}
+        {...featureProps}
+        features={[featureKey].filter(f => f)}
         renderDisabled={({children, ...props}) =>
-          children({...props, renderDisabled: this.renderDisabledLock})}
+          children({...props, renderDisabled: this.renderDisabledLock})
+        }
       >
-        {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
+        {({hasFeature, features, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">
             <Flex flex={1}>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
@@ -113,7 +121,7 @@ const DisabledHovercard = styled(Hovercard)`
   width: 350px;
 `;
 
-const LockedFeature = ({provider, features, className, ...props}) => (
+const LockedFeature = ({provider, features, className}) => (
   <DisabledHovercard
     containerClassName={className}
     body={

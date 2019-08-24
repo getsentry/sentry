@@ -9,6 +9,14 @@ from distutils import log
 from subprocess import check_output
 from distutils.core import Command
 
+import sentry  # We just need its path via __file__
+
+
+SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, '..', '..', '..'))
+
+
+YARN_PATH = os.path.join(SENTRY_ROOT_PATH, 'bin', 'yarn')
+
 
 class BaseBuildCommand(Command):
     user_options = [
@@ -119,30 +127,22 @@ class BaseBuildCommand(Command):
             self._run_command(['git', 'submodule', 'init'])
             self._run_command(['git', 'submodule', 'update'])
 
-    def _setup_npm(self):
-        node_version = []
-        for app in 'node', 'npm', 'yarn':
-            try:
-                node_version.append(self._run_command([app, '--version']).rstrip())
-            except OSError:
-                if app == 'yarn':
-                    # yarn is optional
-                    node_version.append(None)
-                else:
-                    log.fatal(
-                        u'Cannot find `{0}` executable. Please install {0}`'
-                        ' and try again.'.format(app)
-                    )
-                    sys.exit(1)
+    def _setup_js_deps(self):
+        node_version = None
+        try:
+            node_version = self._run_command(['node', '--version']).rstrip()
+        except OSError:
+            log.fatal(
+                u'Cannot find node executable. Please install node'
+                ' and try again.'
+            )
+            sys.exit(1)
 
         if node_version[2] is not None:
-            log.info(u'using node ({0}) and yarn ({2})'.format(*node_version))
-            self._run_command(
-                ['yarn', 'install', '--production', '--pure-lockfile']
+            log.info(u'using node ({0}))'.format(node_version))
+            self._run_yarn_command(
+                ['install', '--production', '--pure-lockfile', '--quiet']
             )
-        else:
-            log.info(u'using node ({0}) and npm ({1})'.format(*node_version))
-            self._run_command(['npm', 'install', '--production', '--quiet'])
 
     def _run_command(self, cmd, env=None):
         log.debug('running [%s]' % (' '.join(cmd), ))
@@ -151,6 +151,12 @@ class BaseBuildCommand(Command):
         except Exception:
             log.error('command failed [%s] via [%s]' % (' '.join(cmd), self.work_path, ))
             raise
+
+    def _run_yarn_command(self, cmd, env=None):
+        log.debug(u'yarn path: ({0}))'.format(YARN_PATH))
+        self._run_command(
+            [YARN_PATH] + cmd, env=env
+        )
 
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
@@ -183,6 +189,6 @@ class BaseBuildCommand(Command):
     def run(self):
         if self.force or self._needs_built():
             self._setup_git()
-            self._setup_npm()
+            self._setup_js_deps()
             self._build()
             self.update_manifests()

@@ -25,7 +25,7 @@ export default class ApiForm extends React.Component {
 
   onSubmit = (data, onSuccess, onError) => {
     this.props.onSubmit && this.props.onSubmit(data);
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
@@ -42,7 +42,7 @@ export default class ApiForm extends React.Component {
 
   render() {
     // eslint-disable-next-line no-unused-vars
-    let {onSubmit, apiMethod, apiEndpoint, ...otherProps} = this.props;
+    const {onSubmit, apiMethod, apiEndpoint, ...otherProps} = this.props;
 
     return <Form onSubmit={this.onSubmit} {...otherProps} />;
   }

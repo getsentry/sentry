@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-const NavSection = styled.div`
+const NavSection = styled('div')`
   margin-bottom: 20px;
 `;
 

@@ -4,8 +4,9 @@ import styled from 'react-emotion';
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import IndicatorActions from 'app/actions/indicatorActions';
+import space from 'app/styles/space';
 
-// RFormValueoves a single indicator
+// Removes a single indicator
 export function removeIndicator(indicator) {
   IndicatorActions.remove(indicator);
 }
@@ -22,7 +23,7 @@ export function addMessage(msg, type, options = {}) {
   // use default only if undefined, as 0 is a valid duration
   duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
-  let action = options.append ? 'append' : 'replace';
+  const action = options.append ? 'append' : 'replace';
   // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
   // because we are firing an action. You can just add a new message and it will, by default,
   // replace active indicator
@@ -56,10 +57,10 @@ const PRETTY_VALUES = {
 // Transform form values into a string
 // Otherwise bool values will not get rendered and empty strings look like a bug
 const prettyFormString = (val, model, fieldName) => {
-  let descriptor = model.fieldDescriptor.get(fieldName);
+  const descriptor = model.fieldDescriptor.get(fieldName);
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
-    let initialData = model.initialData;
+    const initialData = model.initialData;
     // XXX(epurkhsier): We pass the "props" as the descriptor and initialData.
     // This isn't necessarily all of the props of the form field, but should
     // make up a good portion needed for formatting.
@@ -81,16 +82,20 @@ const prettyFormString = (val, model, fieldName) => {
  */
 
 export function saveOnBlurUndoMessage(change, model, fieldName) {
-  if (!model) return;
+  if (!model) {
+    return;
+  }
 
-  let label = model.getDescriptor(fieldName, 'label');
+  const label = model.getDescriptor(fieldName, 'label');
 
-  if (!label) return;
+  if (!label) {
+    return;
+  }
 
-  let prettifyValue = val => prettyFormString(val, model, fieldName);
+  const prettifyValue = val => prettyFormString(val, model, fieldName);
 
   // Hide the change text when formatMessageValue is explicitly set to false
-  let showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
+  const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
 
   addSuccessMessage(
     tct(
@@ -98,7 +103,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
         ? 'Changed [fieldName] from [oldValue] to [newValue]'
         : 'Changed [fieldName]',
       {
-        fieldName: <strong>{label}</strong>,
+        root: <MessageContainer />,
+        fieldName: <FieldName>{label}</FieldName>,
         oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
         newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
       }
@@ -108,17 +114,23 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
       model,
       id: fieldName,
       undo: () => {
-        if (!model || !fieldName) return;
+        if (!model || !fieldName) {
+          return;
+        }
 
-        let oldValue = model.getValue(fieldName);
-        let didUndo = model.undo();
-        let newValue = model.getValue(fieldName);
+        const oldValue = model.getValue(fieldName);
+        const didUndo = model.undo();
+        const newValue = model.getValue(fieldName);
 
-        if (!didUndo) return;
-        if (!label) return;
+        if (!didUndo) {
+          return;
+        }
+        if (!label) {
+          return;
+        }
 
         // `saveField` can return null if it can't save
-        let saveResult = model.saveField(fieldName, newValue);
+        const saveResult = model.saveField(fieldName, newValue);
 
         if (!saveResult) {
           addErrorMessage(
@@ -127,7 +139,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
                 ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
                 : 'Unable to restore [fieldName]',
               {
-                fieldName: <strong>{label}</strong>,
+                root: <MessageContainer />,
+                fieldName: <FieldName>{label}</FieldName>,
                 oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
                 newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
               }
@@ -143,7 +156,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
                 ? 'Restored [fieldName] from [oldValue] to [newValue]'
                 : 'Restored [fieldName]',
               {
-                fieldName: <strong>{label}</strong>,
+                root: <MessageContainer />,
+                fieldName: <FieldName>{label}</FieldName>,
                 oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
                 newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
               }
@@ -161,4 +175,13 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
 const FormValue = styled('span')`
   font-style: italic;
+  margin: 0 ${space(0.5)};
+`;
+const FieldName = styled('span')`
+  font-weight: bold;
+  margin: 0 ${space(0.5)};
+`;
+const MessageContainer = styled('div')`
+  display: flex;
+  align-items: center;
 `;

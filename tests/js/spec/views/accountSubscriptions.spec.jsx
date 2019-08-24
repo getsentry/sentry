@@ -17,7 +17,7 @@ describe('AccountSubscriptions', function() {
       url: ENDPOINT,
       body: [],
     });
-    let wrapper = shallow(<AccountSubscriptions />, {
+    const wrapper = shallow(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },
@@ -34,12 +34,12 @@ describe('AccountSubscriptions', function() {
       url: ENDPOINT,
       body: TestStubs.Subscriptions(),
     });
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
 
-    let wrapper = mount(<AccountSubscriptions />, {
+    const wrapper = mount(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },

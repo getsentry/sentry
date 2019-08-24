@@ -12,7 +12,7 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -22,10 +22,6 @@ import TwoFactorRequired from 'app/views/settings/account/accountSecurity/compon
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
 import recreateRoute from 'app/utils/recreateRoute';
-
-const AuthenticatorName = styled.span`
-  font-size: 1.2em;
-`;
 
 class AccountSecurity extends AsyncView {
   static PropTypes = {
@@ -54,15 +50,18 @@ class AccountSecurity extends AsyncView {
     });
   };
 
+  formatOrgSlugs = () => {
+    const {orgsRequire2fa} = this.props;
+    const slugs = orgsRequire2fa.map(({slug}) => slug);
+
+    return [slugs.slice(0, -1).join(', '), slugs.slice(-1)[0]].join(
+      slugs.length > 1 ? ' and ' : ''
+    );
+  };
+
   renderBody() {
-    let {
-      authenticators,
-      orgsRequire2fa,
-      countEnrolled,
-      deleteDisabled,
-      onDisable,
-    } = this.props;
-    let isEmpty = !authenticators.length;
+    const {authenticators, countEnrolled, deleteDisabled, onDisable} = this.props;
+    const isEmpty = !authenticators.length;
 
     return (
       <div>
@@ -80,8 +79,7 @@ class AccountSecurity extends AsyncView {
           }
         />
 
-        {!isEmpty &&
-          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
+        {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 
         <PasswordForm />
 
@@ -115,7 +113,7 @@ class AccountSecurity extends AsyncView {
           <PanelBody>
             {!isEmpty &&
               authenticators.map(auth => {
-                let {
+                const {
                   id,
                   authId,
                   description,
@@ -132,49 +130,44 @@ class AccountSecurity extends AsyncView {
                         <AuthenticatorName>{name}</AuthenticatorName>
                       </Box>
 
-                      {!isBackupInterface &&
-                        !isEnrolled && (
-                          <Button
-                            to={`/settings/account/security/mfa/${id}/enroll/`}
-                            size="small"
-                            priority="primary"
-                            className="enroll-button"
-                          >
-                            {t('Add')}
-                          </Button>
-                        )}
+                      {!isBackupInterface && !isEnrolled && (
+                        <Button
+                          to={`/settings/account/security/mfa/${id}/enroll/`}
+                          size="small"
+                          priority="primary"
+                          className="enroll-button"
+                        >
+                          {t('Add')}
+                        </Button>
+                      )}
 
-                      {isEnrolled &&
-                        authId && (
-                          <Button
-                            to={`/settings/account/security/mfa/${authId}/`}
-                            size="small"
-                            className="details-button"
-                          >
-                            {configureButton}
-                          </Button>
-                        )}
+                      {isEnrolled && authId && (
+                        <Button
+                          to={`/settings/account/security/mfa/${authId}/`}
+                          size="small"
+                          className="details-button"
+                        >
+                          {configureButton}
+                        </Button>
+                      )}
 
-                      {!isBackupInterface &&
-                        isEnrolled && (
-                          <Tooltip
-                            title={t(
-                              "Two-factor authentication is required for at least one organization you're a member of."
-                            )}
-                            disabled={!deleteDisabled}
+                      {!isBackupInterface && isEnrolled && (
+                        <Tooltip
+                          title={t(
+                            `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
+                          )}
+                          disabled={!deleteDisabled}
+                        >
+                          <RemoveConfirm
+                            onConfirm={() => onDisable(auth)}
+                            disabled={deleteDisabled}
                           >
-                            <span>
-                              <RemoveConfirm
-                                onConfirm={() => onDisable(auth)}
-                                disabled={deleteDisabled}
-                              >
-                                <Button css={{marginLeft: 6}} size="small">
-                                  <span className="icon icon-trash" />
-                                </Button>
-                              </RemoveConfirm>
-                            </span>
-                          </Tooltip>
-                        )}
+                            <Button css={{marginLeft: 6}} size="small">
+                              <span className="icon icon-trash" />
+                            </Button>
+                          </RemoveConfirm>
+                        </Tooltip>
+                      )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
                     </Flex>
@@ -191,5 +184,9 @@ class AccountSecurity extends AsyncView {
     );
   }
 }
+
+const AuthenticatorName = styled('span')`
+  font-size: 1.2em;
+`;
 
 export default AccountSecurity;

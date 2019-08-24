@@ -9,12 +9,15 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 //
 // See tests for examples
 export default function recreateRoute(to, {routes, params, location, stepBack}) {
-  let paths = routes.map(({path}) => path || '');
-  let lastRootIndex = findLastIndex(paths, path => path[0] === '/');
+  const paths = routes.map(({path}) => path || '');
+  let lastRootIndex;
   let routeIndex;
-  let routeToRoute = typeof to !== 'string';
+  const routeToRoute = typeof to !== 'string';
   if (routeToRoute) {
-    routeIndex = routes.indexOf(to) + lastRootIndex;
+    routeIndex = routes.indexOf(to) + 1;
+    lastRootIndex = findLastIndex(paths.slice(0, routeIndex), path => path[0] === '/');
+  } else {
+    lastRootIndex = findLastIndex(paths, path => path[0] === '/');
   }
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
@@ -25,9 +28,9 @@ export default function recreateRoute(to, {routes, params, location, stepBack}) 
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
-  let query = typeof location !== 'undefined' && location.search ? location.search : '';
+  const query = typeof location !== 'undefined' && location.search ? location.search : '';
 
-  let fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}${query}`;
+  const fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}${query}`;
 
   return replaceRouterParams(fullRoute, params);
 }

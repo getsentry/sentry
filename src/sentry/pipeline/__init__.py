@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from types import LambdaType
 
 from sentry.models import Organization
@@ -62,9 +64,9 @@ class NestedPipelineView(PipelineView):
     Useful for embedding an identity authentication pipeline.
     """
 
-    def __init__(self, bind_key, pipeline_cls, provider_key, config={}):
+    def __init__(self, bind_key, pipeline_cls, provider_key, config=None):
         self.provider_key = provider_key
-        self.config = config
+        self.config = config or {}
 
         class NestedPipeline(pipeline_cls):
             def set_parent_pipeline(self, parent_pipeline):
@@ -120,6 +122,7 @@ class Pipeline(object):
     overriding the scopes. The config object will be passed into the provider
     using the ``set_config`` method.
     """
+
     pipeline_name = None
     provider_manager = None
     provider_model_cls = None
@@ -141,8 +144,13 @@ class Pipeline(object):
         provider_key = state.provider_key
         config = state.config
 
-        return cls(request, organization=organization, provider_key=provider_key,
-                   provider_model=provider_model, config=config)
+        return cls(
+            request,
+            organization=organization,
+            provider_key=provider_key,
+            provider_model=provider_model,
+            config=config,
+        )
 
     def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
         if config is None:
@@ -163,8 +171,9 @@ class Pipeline(object):
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        pipe_ids = [u'{}.{}'.format(type(v).__module__, type(v).__name__)
-                    for v in self.pipeline_views]
+        pipe_ids = [
+            u"{}.{}".format(type(v).__module__, type(v).__name__) for v in self.pipeline_views
+        ]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
     def get_pipeline_views(self):
@@ -181,16 +190,18 @@ class Pipeline(object):
         return self.state.is_valid() and self.state.signature == self.signature
 
     def initialize(self):
-        self.state.regenerate({
-            'uid': self.request.user.id if self.request.user.is_authenticated() else None,
-            'provider_model_id': self.provider_model.id if self.provider_model else None,
-            'provider_key': self.provider.key,
-            'org_id': self.organization.id if self.organization else None,
-            'step_index': 0,
-            'signature': self.signature,
-            'config': self.config,
-            'data': {},
-        })
+        self.state.regenerate(
+            {
+                "uid": self.request.user.id if self.request.user.is_authenticated() else None,
+                "provider_model_id": self.provider_model.id if self.provider_model else None,
+                "provider_key": self.provider.key,
+                "org_id": self.organization.id if self.organization else None,
+                "step_index": 0,
+                "signature": self.signature,
+                "config": self.config,
+                "data": {},
+            }
+        )
 
     def clear_session(self):
         self.state.clear()
@@ -210,14 +221,11 @@ class Pipeline(object):
         if isinstance(step, LambdaType):
             step = step()
 
-        return step.dispatch(
-            request=self.request,
-            pipeline=self,
-        )
+        return step.dispatch(request=self.request, pipeline=self)
 
     def error(self, message):
-        context = {'error': message}
-        return render_to_response('sentry/pipeline-error.html', context, self.request)
+        context = {"error": message}
+        return render_to_response("sentry/pipeline-error.html", context, self.request)
 
     def next_step(self):
         """
@@ -240,3 +248,6 @@ class Pipeline(object):
 
     def fetch_state(self, key=None):
         return self.state.data if key is None else self.state.data.get(key)
+
+    def get_logger(self):
+        return logging.getLogger("sentry.integration.%s" % (self.provider.key,))

@@ -14,9 +14,10 @@ import InlineSvg from 'app/components/inlineSvg';
 import PanelAlert from 'app/components/panels/panelAlert';
 import Spinner from 'app/views/settings/components/forms/spinner';
 import returnButton from 'app/views/settings/components/forms/returnButton';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import space from 'app/styles/space';
 
-const FormFieldErrorReason = styled.div`
+const FormFieldErrorReason = styled('div')`
   color: ${p => p.theme.redDark};
   position: absolute;
   right: 2px;
@@ -47,12 +48,12 @@ const FormFieldErrorReason = styled.div`
   }
 `;
 
-const FormFieldError = styled.div`
+const FormFieldError = styled('div')`
   color: ${p => p.theme.redDark};
-  animation: ${pulse} 1s ease infinite;
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
-const FormFieldIsSaved = styled.div`
+const FormFieldIsSaved = styled('div')`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
   position: absolute;
@@ -81,8 +82,8 @@ const ReturnButtonStyled = styled(returnButton)`
  * the case where they return a value as the first argument.
  */
 const getValueFromEvent = (valueOrEvent, e) => {
-  let event = e || valueOrEvent;
-  let value = defined(e) ? valueOrEvent : event && event.target && event.target.value;
+  const event = e || valueOrEvent;
+  const value = defined(e) ? valueOrEvent : event && event.target && event.target.value;
 
   return {
     value,
@@ -104,14 +105,14 @@ class ControlState extends React.Component {
   };
 
   render() {
-    let {model, name} = this.props;
+    const {model, name} = this.props;
 
     return (
       <React.Fragment>
         <Observer>
           {() => {
-            let isSaving = model.getFieldState(name, FormState.SAVING);
-            let isSaved = model.getFieldState(name, FormState.READY);
+            const isSaving = model.getFieldState(name, FormState.SAVING);
+            const isSaved = model.getFieldState(name, FormState.READY);
 
             if (isSaving) {
               return (
@@ -135,9 +136,11 @@ class ControlState extends React.Component {
 
         <Observer>
           {() => {
-            let error = model.getError(name);
+            const error = model.getError(name);
 
-            if (!error) return null;
+            if (!error) {
+              return null;
+            }
 
             return (
               <ControlStateWrapper>
@@ -202,13 +205,18 @@ class FormField extends React.Component {
      * If saveOnBlur is false, then an optional saveMessage can be used to let
      * the user know what's going to happen when they save a field.
      */
-    saveMessage: PropTypes.node,
+    saveMessage: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 
     /**
      * The "alert type" to use for the save message.
      * Probably only "info"/"warning" should be used.
      */
     saveMessageAlertType: PropTypes.oneOf(['', 'info', 'warning', 'success', 'error']),
+
+    /**
+     * A function producing an optional component with extra information.
+     */
+    selectionInfoFunction: PropTypes.func,
 
     /**
      * Should hide error message?
@@ -220,7 +228,11 @@ class FormField extends React.Component {
     flexibleControlStateSize: PropTypes.bool,
 
     // Default value to use for form field if value is not specified in `<Form>` parent
-    defaultValue: PropTypes.string,
+    defaultValue: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.func,
+    ]),
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -249,12 +261,12 @@ class FormField extends React.Component {
     this.getModel().removeField(this.props.name);
   }
 
-  getError(props, context) {
+  getError(_props, _context) {
     return this.getModel().getError(this.props.name);
   }
 
   getId() {
-    return this.props.name;
+    return sanitizeQuerySelector(this.props.name);
   }
 
   getModel() {
@@ -268,11 +280,15 @@ class FormField extends React.Component {
   // Attempts to autofocus input field if field's name is in url hash
   handleInputMount = ref => {
     if (ref && !this.input) {
-      let hash = this.context.location && this.context.location.hash;
+      const hash = this.context.location && this.context.location.hash;
 
-      if (!hash) return;
+      if (!hash) {
+        return;
+      }
 
-      if (hash !== `#${this.props.name}`) return;
+      if (hash !== `#${this.props.name}`) {
+        return;
+      }
 
       // Not all form fields have this (e.g. Select fields)
       if (typeof ref.focus === 'function') {
@@ -287,9 +303,9 @@ class FormField extends React.Component {
    * Update field value in form model
    */
   handleChange = (...args) => {
-    let {name, onChange} = this.props;
-    let {value, event} = getValueFromEvent(...args);
-    let model = this.getModel();
+    const {name, onChange} = this.props;
+    const {value, event} = getValueFromEvent(...args);
+    const model = this.getModel();
 
     if (onChange) {
       onChange(value, event);
@@ -302,9 +318,9 @@ class FormField extends React.Component {
    * Notify model of a field being blurred
    */
   handleBlur = (...args) => {
-    let {name, onBlur} = this.props;
-    let {value, event} = getValueFromEvent(...args);
-    let model = this.getModel();
+    const {name, onBlur} = this.props;
+    const {value, event} = getValueFromEvent(...args);
+    const model = this.getModel();
 
     if (onBlur) {
       onBlur(value, event);
@@ -318,9 +334,9 @@ class FormField extends React.Component {
    * Handle keydown to trigger a save on Enter
    */
   handleKeyDown = (...args) => {
-    let {onKeyDown, name} = this.props;
-    let {value, event} = getValueFromEvent(...args);
-    let model = this.getModel();
+    const {onKeyDown, name} = this.props;
+    const {value, event} = getValueFromEvent(...args);
+    const model = this.getModel();
 
     if (event.key === 'Enter') {
       model.handleBlurField(name, value);
@@ -334,22 +350,22 @@ class FormField extends React.Component {
   /**
    * Handle saving an individual field via UI button
    */
-  handleSaveField = (...args) => {
-    let {name} = this.props;
-    let model = this.getModel();
+  handleSaveField = () => {
+    const {name} = this.props;
+    const model = this.getModel();
 
     model.handleSaveField(name, model.getValue(name));
   };
 
-  handleCancelField = (...args) => {
-    let {name} = this.props;
-    let model = this.getModel();
+  handleCancelField = () => {
+    const {name} = this.props;
+    const model = this.getModel();
 
     model.handleCancelSaveField(name);
   };
 
   render() {
-    let {
+    const {
       className,
       name,
       hideErrorMessage,
@@ -357,15 +373,16 @@ class FormField extends React.Component {
       saveOnBlur,
       saveMessage,
       saveMessageAlertType,
+      selectionInfoFunction,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
       // eslint-disable-next-line no-unused-vars
       defaultValue,
       ...props
     } = this.props;
-    let id = this.getId();
-    let model = this.getModel();
-    let saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
+    const id = this.getId();
+    const model = this.getModel();
+    const saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
     const makeField = extraProps => (
       <React.Fragment>
@@ -388,9 +405,11 @@ class FormField extends React.Component {
               errorState={
                 <Observer>
                   {() => {
-                    let error = this.getError();
-                    let shouldShowErrorMessage = error && !hideErrorMessage;
-                    if (!shouldShowErrorMessage) return null;
+                    const error = this.getError();
+                    const shouldShowErrorMessage = error && !hideErrorMessage;
+                    if (!shouldShowErrorMessage) {
+                      return null;
+                    }
                     return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                   }}
                 </Observer>
@@ -398,9 +417,9 @@ class FormField extends React.Component {
             >
               <Observer>
                 {() => {
-                  let error = this.getError();
-                  let value = model.getValue(name);
-                  let showReturnButton = model.getFieldState(name, 'showReturnButton');
+                  const error = this.getError();
+                  const value = model.getValue(name);
+                  const showReturnButton = model.getFieldState(name, 'showReturnButton');
 
                   return (
                     <React.Fragment>
@@ -427,17 +446,37 @@ class FormField extends React.Component {
             </FieldControl>
           )}
         </Field>
+        {selectionInfoFunction && (
+          <Observer>
+            {() => {
+              const error = this.getError();
+              const value = model.getValue(name);
+              return (
+                ((typeof props.visible === 'function' ? props.visible(props) : true) &&
+                  selectionInfoFunction({...props, error, value})) ||
+                null
+              );
+            }}
+          </Observer>
+        )}
         {saveOnBlurFieldOverride && (
           <Observer>
             {() => {
-              let showFieldSave = model.getFieldState(name, 'showSave');
+              const showFieldSave = model.getFieldState(name, 'showSave');
+              const value = model.getValue(name);
 
-              if (!showFieldSave) return null;
+              if (!showFieldSave) {
+                return null;
+              }
 
               return (
                 <PanelAlert type={saveMessageAlertType}>
                   <MessageAndActions>
-                    <div>{saveMessage}</div>
+                    <div>
+                      {typeof saveMessage === 'function'
+                        ? saveMessage({...props, value})
+                        : saveMessage}
+                    </div>
                     <Actions>
                       <CancelButton onClick={this.handleCancelField}>
                         {t('Cancel')}
@@ -465,7 +504,9 @@ class FormField extends React.Component {
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.
-    if (observedProps.length === 0) return makeField();
+    if (observedProps.length === 0) {
+      return makeField();
+    }
 
     const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
     const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));

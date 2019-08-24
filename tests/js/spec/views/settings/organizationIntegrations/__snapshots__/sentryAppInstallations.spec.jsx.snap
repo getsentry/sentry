@@ -2,10 +2,19 @@
 
 exports[`Sentry App Installations when Apps exist displays all Apps owned by the Org 1`] = `
 <SentryAppInstallations
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   applications={
     Array [
       Object {
+        "author": "Sentry",
         "clientId": "client-id",
         "clientSecret": "client-secret",
         "events": Array [],
@@ -13,6 +22,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "name": "Sample App",
         "overview": "This is an app.",
         "redirectUrl": "https://example/com/setup",
+        "schema": Object {},
         "scopes": Array [
           "project:read",
         ],
@@ -24,11 +34,39 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
     ]
   }
   installs={Array []}
-  orgId="org-slug"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
 >
   <SentryApplicationRow
     app={
       Object {
+        "author": "Sentry",
         "clientId": "client-id",
         "clientSecret": "client-secret",
         "events": Array [],
@@ -36,6 +74,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "name": "Sample App",
         "overview": "This is an app.",
         "redirectUrl": "https://example/com/setup",
+        "schema": Object {},
         "scopes": Array [
           "project:read",
         ],
@@ -48,15 +87,48 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
     key="123456123456123456123456"
     onInstall={[Function]}
     onUninstall={[Function]}
-    orgId="org-slug"
-    showPublishStatus={false}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    showInstallationStatus={true}
   >
-    <SentryAppItem>
+    <SentryAppItem
+      data-test-id="sample-app"
+      p={2}
+    >
       <Base
-        className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+        className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+        data-test-id="sample-app"
+        p={2}
       >
         <div
-          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+          data-test-id="sample-app"
           is={null}
         >
           <StyledFlex>
@@ -67,103 +139,15 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                 className="css-14n192s-StyledFlex eac2pqx1"
                 is={null}
               >
-                <SentryAppAvatar
-                  sentryApp={
-                    Object {
-                      "clientId": "client-id",
-                      "clientSecret": "client-secret",
-                      "events": Array [],
-                      "isAlertable": false,
-                      "name": "Sample App",
-                      "overview": "This is an app.",
-                      "redirectUrl": "https://example/com/setup",
-                      "scopes": Array [
-                        "project:read",
-                      ],
-                      "slug": "sample-app",
-                      "status": "unpublished",
-                      "uuid": "123456123456123456123456",
-                      "webhookUrl": "https://example.com/webhook",
-                    }
-                  }
+                <PluginIcon
+                  pluginId="sample-app"
                   size={36}
                 >
-                  <BaseAvatar
-                    hasTooltip={false}
-                    letterId="123456123456123456123456"
+                  <div
+                    className="css-19ydruf-PluginIcon e7e65lm0"
                     size={36}
-                    style={Object {}}
-                    title="Sample App"
-                    tooltip="Sample App"
-                    type="letter_avatar"
-                    uploadId=""
-                    uploadPath="avatar"
-                  >
-                    <Tooltip
-                      disabled={true}
-                      title="Sample App"
-                    >
-                      <StyledBaseAvatar
-                        className="avatar"
-                        loaded={true}
-                        style={
-                          Object {
-                            "height": "36px",
-                            "width": "36px",
-                          }
-                        }
-                      >
-                        <span
-                          className="avatar css-1i62700-StyledBaseAvatar e1z0ohzl0"
-                          style={
-                            Object {
-                              "height": "36px",
-                              "width": "36px",
-                            }
-                          }
-                        >
-                          <LetterAvatar
-                            displayName="Sample App"
-                            identifier="123456123456123456123456"
-                          >
-                            <Svg
-                              viewBox="0 0 120 120"
-                            >
-                              <svg
-                                className="css-123ijso-Svg e1knxa8x0"
-                                viewBox="0 0 120 120"
-                              >
-                                <rect
-                                  fill="#4674ca"
-                                  height="120"
-                                  rx="15"
-                                  ry="15"
-                                  width="120"
-                                  x="0"
-                                  y="0"
-                                />
-                                <text
-                                  fill="#FFFFFF"
-                                  fontSize="65"
-                                  style={
-                                    Object {
-                                      "dominantBaseline": "central",
-                                    }
-                                  }
-                                  textAnchor="middle"
-                                  x="50%"
-                                  y="50%"
-                                >
-                                  SA
-                                </text>
-                              </svg>
-                            </Svg>
-                          </LetterAvatar>
-                        </span>
-                      </StyledBaseAvatar>
-                    </Tooltip>
-                  </BaseAvatar>
-                </SentryAppAvatar>
+                  />
+                </PluginIcon>
                 <SentryAppBox>
                   <Base
                     className="css-161g25b-SentryAppBox eac2pqx2"
@@ -172,9 +156,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                       className="css-161g25b-SentryAppBox eac2pqx2"
                       is={null}
                     >
-                      <SentryAppName>
+                      <SentryAppName
+                        hideStatus={false}
+                      >
                         <div
-                          className="css-uiwo8x-SentryAppName eac2pqx4"
+                          className="css-4cu42i-SentryAppName eac2pqx4"
                         >
                           Sample App
                         </div>
@@ -187,57 +173,56 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                             className="css-f0t6d-SentryAppDetails eac2pqx3"
                             is={null}
                           >
-                            <Status>
+                            <Status
+                              isInternal={false}
+                            >
                               <WithTheme(Component)
                                 className="css-lk5f1o-Status eac2pqx8"
+                                isInternal={false}
                               >
                                 <Component
                                   className="css-lk5f1o-Status eac2pqx8"
+                                  isInternal={false}
                                   theme={
                                     Object {
                                       "alert": Object {
-                                        "attention": Object {
-                                          "background": "#F09E71",
-                                          "backgroundLight": "#ECBFA6",
-                                          "border": "#D0816D",
-                                        },
                                         "beta": Object {
                                           "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
-                                        },
-                                        "default": Object {
-                                          "background": "#BDB4C7",
-                                          "backgroundLight": "#FAF9FB",
-                                          "border": "#E2DBE8",
                                         },
                                         "error": Object {
                                           "background": "#e03e2f",
                                           "backgroundLight": "#FDF6F5",
-                                          "border": "#E7C0BC",
-                                          "iconColor": "#C72516",
-                                          "textLight": "#92635f",
+                                          "border": "#FA5849",
+                                          "iconColor": "#e03e2f",
+                                          "textLight": "#FA5849",
                                         },
                                         "info": Object {
                                           "background": "#3B6ECC",
                                           "backgroundLight": "#F5FAFE",
-                                          "border": "#B5D6ED",
+                                          "border": "#628BD6",
                                           "iconColor": "#3B6ECC",
+                                        },
+                                        "muted": Object {
+                                          "background": "#BDB4C7",
+                                          "backgroundLight": "#FAF9FB",
+                                          "border": "#AFA3BB",
                                         },
                                         "success": Object {
                                           "background": "#57be8c",
-                                          "backgroundLight": "#F8FCF7",
-                                          "border": "#BBD6B3",
+                                          "backgroundLight": "#f8fcf7",
+                                          "border": "#57be8c",
                                           "iconColor": "#3EA573",
                                         },
                                         "warn": Object {
-                                          "background": "#ecc844",
+                                          "background": "#ecbb08",
                                           "backgroundLight": "#FFFDF7",
-                                          "border": "#E1D697",
+                                          "border": "#e6bc23",
                                           "iconColor": "#e6bc23",
                                         },
                                         "warning": Object {
-                                          "background": "#ecc844",
+                                          "background": "#ecbb08",
                                           "backgroundLight": "#FFFDF7",
-                                          "border": "#E1D697",
+                                          "border": "#e6bc23",
                                           "iconColor": "#e6bc23",
                                         },
                                       },
@@ -245,10 +230,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "blue": "#3B6ECC",
                                       "blueDark": "#2F58A3",
                                       "blueLight": "#628BD6",
+                                      "blueLightest": "#F5FAFE",
                                       "borderDark": "#D1CAD8",
                                       "borderLight": "#E2DBE8",
                                       "borderLighter": "#f9f6fd",
                                       "borderRadius": "4px",
+                                      "borderRadiusBottom": "0 0 4px 4px",
                                       "breakpoints": Array [
                                         "768px",
                                         "992px",
@@ -262,6 +249,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "border": "#bf2a1d",
                                           "borderActive": "#7d1c13",
                                           "color": "#FFFFFF",
+                                          "focusShadow": "rgba(224, 62, 47, 0.5)",
                                         },
                                         "default": Object {
                                           "background": "#FFFFFF",
@@ -270,6 +258,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "borderActive": "#c9c0d1",
                                           "color": "#2f2936",
                                           "colorActive": "#161319",
+                                          "focusShadow": "rgba(226, 219, 232, 0.5)",
                                         },
                                         "disabled": Object {
                                           "background": "#FFFFFF",
@@ -289,6 +278,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "border": "#3d328e",
                                           "borderActive": "#352b7b",
                                           "color": "#FFFFFF",
+                                          "focusShadow": "rgba(108, 95, 199, 0.4)",
                                         },
                                         "success": Object {
                                           "background": "#3fa372",
@@ -296,6 +286,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "border": "#7ccca5",
                                           "borderActive": "#7ccca5",
                                           "color": "#FFFFFF",
+                                          "focusShadow": "rgba(87, 190, 140, 0.5)",
                                         },
                                       },
                                       "charts": Object {
@@ -332,11 +323,13 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "disabled": "#BDB4C7",
                                       "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                       "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
+                                      "dropShadowLightest": "0 1px 2px rgba(0, 0, 0, 0.04)",
                                       "error": "#e03e2f",
                                       "fontSizeExtraLarge": "18px",
                                       "fontSizeLarge": "16px",
                                       "fontSizeMedium": "14px",
                                       "fontSizeSmall": "12px",
+                                      "foreground": "#493E54",
                                       "gray1": "#BDB4C7",
                                       "gray2": "#9585A3",
                                       "gray3": "#645574",
@@ -346,9 +339,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "green": "#57be8c",
                                       "greenDark": "#3EA573",
                                       "greenLight": "#71D8A6",
+                                      "greenLightest": "#f8fcf7",
                                       "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                       "grid": 8,
                                       "headerFontSize": "22px",
+                                      "headerSelectorLabelHeight": 28,
+                                      "headerSelectorRowHeight": 44,
                                       "offWhite": "#FAF9FB",
                                       "offWhite2": "#E7E1EC",
                                       "orange": "#ec5e44",
@@ -357,6 +353,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "pink": "#F868BC",
                                       "pinkDark": "#DF4FA3",
                                       "pinkLight": "#FF82D6",
+                                      "placeholderBackground": "#f5f5f5",
                                       "purple": "#6C5FC7",
                                       "purple2": "#6f617c",
                                       "purpleDark": "#5346AE",
@@ -366,6 +363,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "red": "#e03e2f",
                                       "redDark": "#C72516",
                                       "redLight": "#FA5849",
+                                      "redLightest": "#FDF6F5",
                                       "settings": Object {
                                         "containerWidth": "1440px",
                                         "headerHeight": "115px",
@@ -409,6 +407,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "whiteDark": "#fbfbfc",
                                       "yellow": "#ecc844",
                                       "yellowDark": "#e6bc23",
+                                      "yellowDarkest": "#ecbb08",
                                       "yellowLight": "#FFF15E",
                                       "yellowLightest": "#FFFDF7",
                                       "yellowOrange": "#f9a66d",
@@ -420,11 +419,14 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "actor": 1008,
                                           "menu": 1007,
                                         },
+                                        "globalSelectionHeader": 1009,
                                         "header": 1000,
                                         "modal": 10000,
-                                        "orgAndUserMenu": 1003,
-                                        "sidebar": 1002,
+                                        "orgAndUserMenu": 1011,
+                                        "sentryErrorEmbed": 1090,
+                                        "sidebar": 1010,
                                         "toast": 10001,
+                                        "tooltip": 10002,
                                       },
                                     }
                                   }
@@ -445,65 +447,54 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           enabled={true}
                                           size={6}
                                         >
-                                          <Circle
+                                          <div
+                                            className="css-ghzigi-CircleIndicator exfjg1y0"
                                             color="#9585A3"
-                                            enabled={true}
                                             size={6}
-                                          >
-                                            <div
-                                              className="css-xhz9xw-Circle eljqieg0"
-                                              color="#9585A3"
-                                              size={6}
-                                            />
-                                          </Circle>
+                                          />
                                         </CircleIndicator>
                                         <div
                                           className="css-lk5f1o-Status eac2pqx8"
                                           theme={
                                             Object {
                                               "alert": Object {
-                                                "attention": Object {
-                                                  "background": "#F09E71",
-                                                  "backgroundLight": "#ECBFA6",
-                                                  "border": "#D0816D",
-                                                },
                                                 "beta": Object {
                                                   "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
-                                                },
-                                                "default": Object {
-                                                  "background": "#BDB4C7",
-                                                  "backgroundLight": "#FAF9FB",
-                                                  "border": "#E2DBE8",
                                                 },
                                                 "error": Object {
                                                   "background": "#e03e2f",
                                                   "backgroundLight": "#FDF6F5",
-                                                  "border": "#E7C0BC",
-                                                  "iconColor": "#C72516",
-                                                  "textLight": "#92635f",
+                                                  "border": "#FA5849",
+                                                  "iconColor": "#e03e2f",
+                                                  "textLight": "#FA5849",
                                                 },
                                                 "info": Object {
                                                   "background": "#3B6ECC",
                                                   "backgroundLight": "#F5FAFE",
-                                                  "border": "#B5D6ED",
+                                                  "border": "#628BD6",
                                                   "iconColor": "#3B6ECC",
+                                                },
+                                                "muted": Object {
+                                                  "background": "#BDB4C7",
+                                                  "backgroundLight": "#FAF9FB",
+                                                  "border": "#AFA3BB",
                                                 },
                                                 "success": Object {
                                                   "background": "#57be8c",
-                                                  "backgroundLight": "#F8FCF7",
-                                                  "border": "#BBD6B3",
+                                                  "backgroundLight": "#f8fcf7",
+                                                  "border": "#57be8c",
                                                   "iconColor": "#3EA573",
                                                 },
                                                 "warn": Object {
-                                                  "background": "#ecc844",
+                                                  "background": "#ecbb08",
                                                   "backgroundLight": "#FFFDF7",
-                                                  "border": "#E1D697",
+                                                  "border": "#e6bc23",
                                                   "iconColor": "#e6bc23",
                                                 },
                                                 "warning": Object {
-                                                  "background": "#ecc844",
+                                                  "background": "#ecbb08",
                                                   "backgroundLight": "#FFFDF7",
-                                                  "border": "#E1D697",
+                                                  "border": "#e6bc23",
                                                   "iconColor": "#e6bc23",
                                                 },
                                               },
@@ -511,10 +502,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "blue": "#3B6ECC",
                                               "blueDark": "#2F58A3",
                                               "blueLight": "#628BD6",
+                                              "blueLightest": "#F5FAFE",
                                               "borderDark": "#D1CAD8",
                                               "borderLight": "#E2DBE8",
                                               "borderLighter": "#f9f6fd",
                                               "borderRadius": "4px",
+                                              "borderRadiusBottom": "0 0 4px 4px",
                                               "breakpoints": Array [
                                                 "768px",
                                                 "992px",
@@ -528,6 +521,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "border": "#bf2a1d",
                                                   "borderActive": "#7d1c13",
                                                   "color": "#FFFFFF",
+                                                  "focusShadow": "rgba(224, 62, 47, 0.5)",
                                                 },
                                                 "default": Object {
                                                   "background": "#FFFFFF",
@@ -536,6 +530,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "borderActive": "#c9c0d1",
                                                   "color": "#2f2936",
                                                   "colorActive": "#161319",
+                                                  "focusShadow": "rgba(226, 219, 232, 0.5)",
                                                 },
                                                 "disabled": Object {
                                                   "background": "#FFFFFF",
@@ -555,6 +550,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "border": "#3d328e",
                                                   "borderActive": "#352b7b",
                                                   "color": "#FFFFFF",
+                                                  "focusShadow": "rgba(108, 95, 199, 0.4)",
                                                 },
                                                 "success": Object {
                                                   "background": "#3fa372",
@@ -562,6 +558,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "border": "#7ccca5",
                                                   "borderActive": "#7ccca5",
                                                   "color": "#FFFFFF",
+                                                  "focusShadow": "rgba(87, 190, 140, 0.5)",
                                                 },
                                               },
                                               "charts": Object {
@@ -598,11 +595,13 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "disabled": "#BDB4C7",
                                               "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                               "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
+                                              "dropShadowLightest": "0 1px 2px rgba(0, 0, 0, 0.04)",
                                               "error": "#e03e2f",
                                               "fontSizeExtraLarge": "18px",
                                               "fontSizeLarge": "16px",
                                               "fontSizeMedium": "14px",
                                               "fontSizeSmall": "12px",
+                                              "foreground": "#493E54",
                                               "gray1": "#BDB4C7",
                                               "gray2": "#9585A3",
                                               "gray3": "#645574",
@@ -612,9 +611,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "green": "#57be8c",
                                               "greenDark": "#3EA573",
                                               "greenLight": "#71D8A6",
+                                              "greenLightest": "#f8fcf7",
                                               "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                               "grid": 8,
                                               "headerFontSize": "22px",
+                                              "headerSelectorLabelHeight": 28,
+                                              "headerSelectorRowHeight": 44,
                                               "offWhite": "#FAF9FB",
                                               "offWhite2": "#E7E1EC",
                                               "orange": "#ec5e44",
@@ -623,6 +625,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "pink": "#F868BC",
                                               "pinkDark": "#DF4FA3",
                                               "pinkLight": "#FF82D6",
+                                              "placeholderBackground": "#f5f5f5",
                                               "purple": "#6C5FC7",
                                               "purple2": "#6f617c",
                                               "purpleDark": "#5346AE",
@@ -632,6 +635,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "red": "#e03e2f",
                                               "redDark": "#C72516",
                                               "redLight": "#FA5849",
+                                              "redLightest": "#FDF6F5",
                                               "settings": Object {
                                                 "containerWidth": "1440px",
                                                 "headerHeight": "115px",
@@ -675,6 +679,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "whiteDark": "#fbfbfc",
                                               "yellow": "#ecc844",
                                               "yellowDark": "#e6bc23",
+                                              "yellowDarkest": "#ecbb08",
                                               "yellowLight": "#FFF15E",
                                               "yellowLightest": "#FFFDF7",
                                               "yellowOrange": "#f9a66d",
@@ -686,11 +691,14 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "actor": 1008,
                                                   "menu": 1007,
                                                 },
+                                                "globalSelectionHeader": 1009,
                                                 "header": 1000,
                                                 "modal": 10000,
-                                                "orgAndUserMenu": 1003,
-                                                "sidebar": 1002,
+                                                "orgAndUserMenu": 1011,
+                                                "sentryErrorEmbed": 1090,
+                                                "sidebar": 1010,
                                                 "toast": 10001,
+                                                "tooltip": 10002,
                                               },
                                             }
                                           }
@@ -705,6 +713,8 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                             </Status>
                             <StyledLink
                               onClick={[Function]}
+                              onlyActiveOnIndex={false}
+                              style={Object {}}
                             >
                               <Link
                                 className="css-u3fgwp-StyledLink eac2pqx5"
@@ -736,6 +746,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                       is={null}
                     >
                       <Button
+                        align="center"
                         className="btn btn-default"
                         disabled={false}
                         icon="icon-circle-add"
@@ -743,6 +754,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         size="small"
                       >
                         <StyledButton
+                          aria-disabled={false}
                           aria-label="Install"
                           className="btn btn-default"
                           disabled={false}
@@ -750,73 +762,69 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           role="button"
                           size="small"
                         >
-                          <Component
+                          <ForwardRef
+                            aria-disabled={false}
                             aria-label="Install"
-                            className="btn btn-default css-dkprmi-StyledButton-getColors eqrebog0"
+                            className="btn btn-default css-z6hjis-StyledButton-getColors edwq9my0"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <button
+                              aria-disabled={false}
                               aria-label="Install"
-                              className="btn btn-default css-dkprmi-StyledButton-getColors eqrebog0"
-                              disabled={false}
+                              className="btn btn-default css-z6hjis-StyledButton-getColors edwq9my0"
                               onClick={[Function]}
                               role="button"
                               size="small"
                             >
                               <ButtonLabel
+                                align="center"
                                 size="small"
                               >
                                 <Component
-                                  className="css-7ui8bl-ButtonLabel eqrebog1"
+                                  align="center"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                   size="small"
                                 >
                                   <span
-                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    className="css-1h693nz-ButtonLabel edwq9my1"
                                   >
                                     <Icon
                                       hasChildren={true}
                                       size="small"
                                     >
                                       <Component
-                                        className="css-1vdnsie-Icon eqrebog2"
+                                        className="css-1vdnsie-Icon edwq9my2"
                                         hasChildren={true}
                                         size="small"
                                       >
                                         <span
-                                          className="css-1vdnsie-Icon eqrebog2"
+                                          className="css-1vdnsie-Icon edwq9my2"
                                           size="small"
                                         >
                                           <StyledInlineSvg
                                             size="12px"
                                             src="icon-circle-add"
                                           >
-                                            <InlineSvg
-                                              className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            <ForwardRef
+                                              className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                               size="12px"
                                               src="icon-circle-add"
                                             >
-                                              <StyledSvg
-                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              <svg
+                                                className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
                                               >
-                                                <svg
-                                                  className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
-                                                >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </StyledSvg>
-                                            </InlineSvg>
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </ForwardRef>
                                           </StyledInlineSvg>
                                         </span>
                                       </Component>
@@ -826,7 +834,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                 </Component>
                               </ButtonLabel>
                             </button>
-                          </Component>
+                          </ForwardRef>
                         </StyledButton>
                       </Button>
                     </div>
@@ -844,9 +852,44 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
 
 exports[`Sentry App Installations when no Apps exist no row is displayed 1`] = `
 <SentryAppInstallations
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   applications={Array []}
   installs={Array []}
-  orgId="org-slug"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
 />
 `;

@@ -41,6 +41,7 @@ export default [
     user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
     context: {'session:duration': 46363},
     entries: [],
+    title: "TypeError: Cannot read property 'assignedTo' of undefined",
     message:
       "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
     sdk: {
@@ -99,6 +100,7 @@ export default [
     user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
     context: {'session:duration': 46363},
     entries: [],
+    title: "TypeError: Cannot read property 'assignedTo' of undefined",
     message:
       "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
     sdk: {

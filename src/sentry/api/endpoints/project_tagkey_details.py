@@ -41,7 +41,18 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
+            from sentry import eventstream
+
+            eventstream_state = eventstream.start_delete_tag(project.id, key)
+
             deleted = tagstore.delete_tag_key(project.id, lookup_key)
+
+            # NOTE: By sending the `end_delete_tag` message here we are making
+            # the assumption that the `tagstore.delete_tag_key` does its work
+            # synchronously. As of this writing the Snuba `delete_tag_key` method
+            # is a no-op and this message itself is what causes the deletion to
+            # be done downstream.
+            eventstream.end_delete_tag(eventstream_state)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -49,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=tagkey.id,
+                target_object=getattr(tagkey, "id", None),
                 event=AuditLogEntryEvent.TAGKEY_REMOVE,
                 data=tagkey.get_audit_log_data(),
             )

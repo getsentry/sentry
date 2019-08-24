@@ -14,7 +14,7 @@ class TeamMembersEndpoint(TeamEndpoint):
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=team.organization,
             teams=team,
-        ).select_related('user')
+        ).select_related("user")
 
         member_list = sorted(
             queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email

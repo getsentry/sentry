@@ -11,7 +11,7 @@ exports[`RuleBuilder renders 1`] = `
       ],
       "results": Array [
         Object {
-          "isThrow": false,
+          "type": "return",
           "value": undefined,
         },
       ],
@@ -23,6 +23,7 @@ exports[`RuleBuilder renders 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -46,6 +47,7 @@ exports[`RuleBuilder renders 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -70,6 +72,9 @@ exports[`RuleBuilder renders 1`] = `
     >
       <BuilderSelect
         clearable={false}
+        disabled={false}
+        hideErrorMessage={false}
+        multiple={false}
         name="select-type"
         onChange={[Function]}
         options={
@@ -84,6 +89,7 @@ exports[`RuleBuilder renders 1`] = `
             },
           ]
         }
+        required={false}
         showSearch={false}
         style={
           Object {
@@ -135,6 +141,7 @@ exports[`RuleBuilder renders 1`] = `
               <StyledSelectControl
                 clearable={false}
                 disabled={false}
+                height={36}
                 id="id-select-type"
                 multiple={false}
                 name="select-type"
@@ -208,7 +215,7 @@ exports[`RuleBuilder renders 1`] = `
                     <ForwardRef(SelectPicker)
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                      className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -235,7 +242,7 @@ exports[`RuleBuilder renders 1`] = `
                       <SelectPicker
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -265,7 +272,7 @@ exports[`RuleBuilder renders 1`] = `
                           autosize={true}
                           backspaceRemoves={false}
                           backspaceToRemoveMessage="Press backspace to remove {label}"
-                          className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                           clearAllText="Clear all"
                           clearRenderer={[Function]}
                           clearValueText="Clear value"
@@ -325,7 +332,7 @@ exports[`RuleBuilder renders 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                            className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                           >
                             <input
                               disabled={false}
@@ -458,7 +465,7 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-1enrgn8-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-750a38-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -467,29 +474,22 @@ exports[`RuleBuilder renders 1`] = `
       <Divider
         src="icon-chevron-right"
       >
-        <InlineSvg
-          className="css-a4tn6s-Divider e1hyuoc78"
+        <ForwardRef
+          className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
           src="icon-chevron-right"
         >
-          <StyledSvg
-            className="css-a4tn6s-Divider e1hyuoc78"
+          <svg
+            className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
-            <svg
-              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
-              height="1em"
-              viewBox={Object {}}
-              width="1em"
-            >
-              <use
-                href="#test"
-                xlinkHref="#test"
-              />
-            </svg>
-          </StyledSvg>
-        </InlineSvg>
+            <use
+              href="#test"
+              xlinkHref="#test"
+            />
+          </svg>
+        </ForwardRef>
       </Divider>
       <Flex
         align="center"
@@ -514,6 +514,7 @@ exports[`RuleBuilder renders 1`] = `
                     "org:read",
                     "org:write",
                     "org:admin",
+                    "org:integrations",
                     "project:read",
                     "project:write",
                     "project:admin",
@@ -537,6 +538,7 @@ exports[`RuleBuilder renders 1`] = `
               }
               project={
                 Object {
+                  "environments": Array [],
                   "hasAccess": true,
                   "id": "2",
                   "isBookmarked": false,
@@ -566,7 +568,7 @@ exports[`RuleBuilder renders 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={Array []}
                 valueComponent={[Function]}
               >
@@ -582,7 +584,7 @@ exports[`RuleBuilder renders 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={Array []}
                   valueComponent={[Function]}
                 >
@@ -602,7 +604,7 @@ exports[`RuleBuilder renders 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={Array []}
                     valueComponent={[Function]}
                   >
@@ -611,7 +613,7 @@ exports[`RuleBuilder renders 1`] = `
                       async={true}
                       backspaceRemoves={true}
                       cache={false}
-                      className="css-11afz1b-StyledSelect eho28m20"
+                      className="css-1dke465-StyledSelect eho28m20"
                       clearable={true}
                       defaultOptions={true}
                       deleteRemoves={true}
@@ -622,7 +624,7 @@ exports[`RuleBuilder renders 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={Array []}
                       valueComponent={[Function]}
                     >
@@ -631,7 +633,7 @@ exports[`RuleBuilder renders 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-11afz1b-StyledSelect eho28m20"
+                        className="css-1dke465-StyledSelect eho28m20"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -643,7 +645,7 @@ exports[`RuleBuilder renders 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={Array []}
                         valueComponent={[Function]}
                       >
@@ -652,7 +654,7 @@ exports[`RuleBuilder renders 1`] = `
                           autoload={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-11afz1b-StyledSelect eho28m20"
+                          className="css-1dke465-StyledSelect eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -667,7 +669,7 @@ exports[`RuleBuilder renders 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={Array []}
                           valueComponent={[Function]}
@@ -679,7 +681,7 @@ exports[`RuleBuilder renders 1`] = `
                             backspaceRemoves={true}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
                             cache={false}
-                            className="css-11afz1b-StyledSelect eho28m20"
+                            className="css-1dke465-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -783,13 +785,9 @@ exports[`RuleBuilder renders 1`] = `
                                   >
                                     <DisabledLabel>
                                       <Tooltip
+                                        containerDisplayMode="inline-block"
+                                        position="left"
                                         title="#team-not-in-project is not a member of project"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "placement": "left",
-                                          }
-                                        }
                                       >
                                         <IdBadge
                                           team={
@@ -805,9 +803,12 @@ exports[`RuleBuilder renders 1`] = `
                                       </Tooltip>
                                     </DisabledLabel>
                                     <Tooltip
+                                      containerDisplayMode="inline-block"
+                                      position="top"
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
+                                        align="center"
                                         borderless={true}
                                         disabled={false}
                                         onClick={[Function]}
@@ -831,13 +832,9 @@ exports[`RuleBuilder renders 1`] = `
                                   "disabled": true,
                                   "label": <DisabledLabel>
                                     <Tooltip
+                                      containerDisplayMode="inline-block"
+                                      position="left"
                                       title="John Smith is not a member of project"
-                                      tooltipOptions={
-                                        Object {
-                                          "container": "body",
-                                          "placement": "left",
-                                        }
-                                      }
                                     >
                                       <IdBadge
                                         avatarSize={24}
@@ -859,7 +856,7 @@ exports[`RuleBuilder renders 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -874,7 +871,7 @@ exports[`RuleBuilder renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select css-11afz1b-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
+                              className="Select css-1dke465-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
                             >
                               <div
                                 className="Select-control"
@@ -891,7 +888,7 @@ exports[`RuleBuilder renders 1`] = `
                                   <div
                                     className="Select-placeholder"
                                   >
-                                    Add Owners
+                                    owners
                                   </div>
                                   <AutosizeInput
                                     aria-activedescendant="react-select-3--value"
@@ -972,6 +969,7 @@ exports[`RuleBuilder renders 1`] = `
         </Base>
       </Flex>
       <AddButton
+        align="center"
         disabled={true}
         icon="icon-circle-add"
         onClick={[Function]}
@@ -979,7 +977,8 @@ exports[`RuleBuilder renders 1`] = `
         size="small"
       >
         <Button
-          className="css-po7kq7-AddButton e1hyuoc79"
+          align="center"
+          className="css-8nraqh-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -987,88 +986,78 @@ exports[`RuleBuilder renders 1`] = `
           size="small"
         >
           <StyledButton
-            className="css-po7kq7-AddButton e1hyuoc79"
+            aria-disabled={true}
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={true}
-            href={null}
             onClick={[Function]}
             priority="primary"
             role="button"
             size="small"
-            to={null}
           >
-            <Component
-              className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
+            <ForwardRef
+              aria-disabled={true}
+              className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
               disabled={true}
-              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
               size="small"
-              to={null}
             >
               <button
-                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
-                disabled={true}
-                href={null}
+                aria-disabled={true}
+                className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
                 onClick={[Function]}
-                priority="primary"
                 role="button"
                 size="small"
-                to={null}
               >
                 <ButtonLabel
+                  align="center"
                   priority="primary"
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    align="center"
+                    className="css-1h693nz-ButtonLabel edwq9my1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      className="css-1h693nz-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <Component
-                          className="css-ljhpxy-Icon eqrebog2"
+                          className="css-ljhpxy-Icon edwq9my2"
                           hasChildren={false}
                           size="small"
                         >
                           <span
-                            className="css-ljhpxy-Icon eqrebog2"
+                            className="css-ljhpxy-Icon edwq9my2"
                             size="small"
                           >
                             <StyledInlineSvg
                               size="12px"
                               src="icon-circle-add"
                             >
-                              <InlineSvg
-                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                              <ForwardRef
+                                className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                 size="12px"
                                 src="icon-circle-add"
                               >
-                                <StyledSvg
-                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                <svg
+                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                   height="12px"
                                   viewBox={Object {}}
                                   width="12px"
                                 >
-                                  <svg
-                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                    height="12px"
-                                    viewBox={Object {}}
-                                    width="12px"
-                                  >
-                                    <use
-                                      href="#test"
-                                      xlinkHref="#test"
-                                    />
-                                  </svg>
-                                </StyledSvg>
-                              </InlineSvg>
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </ForwardRef>
                             </StyledInlineSvg>
                           </span>
                         </Component>
@@ -1077,7 +1066,7 @@ exports[`RuleBuilder renders 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>
@@ -1095,6 +1084,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         "org:read",
         "org:write",
         "org:admin",
+        "org:integrations",
         "project:read",
         "project:write",
         "project:admin",
@@ -1124,6 +1114,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
   }
   project={
     Object {
+      "environments": Array [],
       "hasAccess": true,
       "id": "2",
       "isBookmarked": false,
@@ -1163,29 +1154,22 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <AddIcon
             src="icon-circle-add"
           >
-            <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+            <ForwardRef
+              className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
-              <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+              <svg
+                className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
-                <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
-                >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </ForwardRef>
           </AddIcon>
           <StyledTextOverflow>
             <div
@@ -1214,29 +1198,22 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <AddIcon
             src="icon-circle-add"
           >
-            <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+            <ForwardRef
+              className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
-              <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+              <svg
+                className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
-                <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
-                >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </ForwardRef>
           </AddIcon>
           <StyledTextOverflow>
             <div
@@ -1265,29 +1242,22 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <AddIcon
             src="icon-circle-add"
           >
-            <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+            <ForwardRef
+              className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
-              <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+              <svg
+                className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
-                <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
-                >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </ForwardRef>
           </AddIcon>
           <StyledTextOverflow>
             <div
@@ -1316,29 +1286,22 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <AddIcon
             src="icon-circle-add"
           >
-            <InlineSvg
-              className="css-1ivdji5-AddIcon e1hyuoc74"
+            <ForwardRef
+              className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
               src="icon-circle-add"
             >
-              <StyledSvg
-                className="css-1ivdji5-AddIcon e1hyuoc74"
+              <svg
+                className="css-wbenas-InlineSvg-AddIcon e1hyuoc74"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
-                <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
-                >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </ForwardRef>
           </AddIcon>
           <StyledTextOverflow>
             <div
@@ -1364,6 +1327,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
     >
       <BuilderSelect
         clearable={false}
+        disabled={false}
+        hideErrorMessage={false}
+        multiple={false}
         name="select-type"
         onChange={[Function]}
         options={
@@ -1378,6 +1344,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             },
           ]
         }
+        required={false}
         showSearch={false}
         style={
           Object {
@@ -1429,6 +1396,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               <StyledSelectControl
                 clearable={false}
                 disabled={false}
+                height={36}
                 id="id-select-type"
                 multiple={false}
                 name="select-type"
@@ -1502,7 +1470,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     <ForwardRef(SelectPicker)
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                      className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -1529,7 +1497,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       <SelectPicker
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -1559,7 +1527,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           autosize={true}
                           backspaceRemoves={false}
                           backspaceToRemoveMessage="Press backspace to remove {label}"
-                          className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
                           clearAllText="Clear all"
                           clearRenderer={[Function]}
                           clearValueText="Clear value"
@@ -1619,7 +1587,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                            className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                           >
                             <input
                               disabled={false}
@@ -1752,7 +1720,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1enrgn8-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-750a38-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -1761,29 +1729,22 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <Divider
         src="icon-chevron-right"
       >
-        <InlineSvg
-          className="css-a4tn6s-Divider e1hyuoc78"
+        <ForwardRef
+          className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
           src="icon-chevron-right"
         >
-          <StyledSvg
-            className="css-a4tn6s-Divider e1hyuoc78"
+          <svg
+            className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
             height="1em"
             viewBox={Object {}}
             width="1em"
           >
-            <svg
-              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
-              height="1em"
-              viewBox={Object {}}
-              width="1em"
-            >
-              <use
-                href="#test"
-                xlinkHref="#test"
-              />
-            </svg>
-          </StyledSvg>
-        </InlineSvg>
+            <use
+              href="#test"
+              xlinkHref="#test"
+            />
+          </svg>
+        </ForwardRef>
       </Divider>
       <Flex
         align="center"
@@ -1808,6 +1769,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     "org:read",
                     "org:write",
                     "org:admin",
+                    "org:integrations",
                     "project:read",
                     "project:write",
                     "project:admin",
@@ -1831,6 +1793,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               }
               project={
                 Object {
+                  "environments": Array [],
                   "hasAccess": true,
                   "id": "2",
                   "isBookmarked": false,
@@ -1898,7 +1861,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={
                   Array [
                     Object {
@@ -1952,7 +1915,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={
                     Array [
                       Object {
@@ -2010,7 +1973,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={
                       Array [
                         Object {
@@ -2057,7 +2020,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       async={true}
                       backspaceRemoves={true}
                       cache={false}
-                      className="css-11afz1b-StyledSelect eho28m20"
+                      className="css-1dke465-StyledSelect eho28m20"
                       clearable={true}
                       defaultOptions={true}
                       deleteRemoves={true}
@@ -2068,7 +2031,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={
                         Array [
                           Object {
@@ -2115,7 +2078,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-11afz1b-StyledSelect eho28m20"
+                        className="css-1dke465-StyledSelect eho28m20"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -2127,7 +2090,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={
                           Array [
                             Object {
@@ -2174,7 +2137,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           autoload={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-11afz1b-StyledSelect eho28m20"
+                          className="css-1dke465-StyledSelect eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -2189,7 +2152,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={
                             Array [
@@ -2239,7 +2202,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             backspaceRemoves={true}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
                             cache={false}
-                            className="css-11afz1b-StyledSelect eho28m20"
+                            className="css-1dke465-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -2343,13 +2306,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   >
                                     <DisabledLabel>
                                       <Tooltip
+                                        containerDisplayMode="inline-block"
+                                        position="left"
                                         title="#team-not-in-project is not a member of project"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "placement": "left",
-                                          }
-                                        }
                                       >
                                         <IdBadge
                                           team={
@@ -2365,9 +2324,12 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       </Tooltip>
                                     </DisabledLabel>
                                     <Tooltip
+                                      containerDisplayMode="inline-block"
+                                      position="top"
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
+                                        align="center"
                                         borderless={true}
                                         disabled={false}
                                         onClick={[Function]}
@@ -2391,13 +2353,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   "disabled": true,
                                   "label": <DisabledLabel>
                                     <Tooltip
+                                      containerDisplayMode="inline-block"
+                                      position="left"
                                       title="John Smith is not a member of project"
-                                      tooltipOptions={
-                                        Object {
-                                          "container": "body",
-                                          "placement": "left",
-                                        }
-                                      }
                                     >
                                       <IdBadge
                                         avatarSize={24}
@@ -2419,7 +2377,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -2472,7 +2430,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select css-11afz1b-StyledSelect eho28m20 has-value is-clearable is-focused is-searchable Select--multi"
+                              className="Select css-1dke465-StyledSelect eho28m20 has-value is-clearable is-focused is-searchable Select--multi"
                             >
                               <div
                                 className="Select-control"
@@ -2493,7 +2451,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     key="value-0-user:1"
                                     onClick={null}
                                     onRemove={[Function]}
-                                    placeholder="Add Owners"
+                                    placeholder="owners"
                                     value={
                                       Object {
                                         "actor": Object {
@@ -2609,72 +2567,99 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               uploadPath="avatar"
                                             >
                                               <Tooltip
+                                                containerDisplayMode="inline-block"
                                                 disabled={false}
+                                                position="top"
                                                 title="Jane Doe (janedoe@example.com)"
                                               >
-                                                <StyledBaseAvatar
-                                                  className="tip avatar"
-                                                  loaded={true}
-                                                  round={true}
-                                                  style={
-                                                    Object {
-                                                      "height": "28px",
-                                                      "width": "28px",
-                                                    }
-                                                  }
-                                                  title="Jane Doe (janedoe@example.com)"
-                                                >
-                                                  <span
-                                                    className="tip avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                                                    style={
-                                                      Object {
-                                                        "height": "28px",
-                                                        "width": "28px",
-                                                      }
-                                                    }
-                                                    title="Jane Doe (janedoe@example.com)"
-                                                  >
-                                                    <LetterAvatar
-                                                      displayName="Jane Doe"
-                                                      identifier="janedoe@example.com"
-                                                      round={true}
+                                                <Manager>
+                                                  <Reference>
+                                                    <InnerReference
+                                                      setReferenceNode={[Function]}
                                                     >
-                                                      <Svg
-                                                        round={true}
-                                                        viewBox="0 0 120 120"
+                                                      <Container
+                                                        aria-describedby="tooltip-123456"
+                                                        containerDisplayMode="inline-block"
+                                                        innerRef={[Function]}
+                                                        onBlur={[Function]}
+                                                        onFocus={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
                                                       >
-                                                        <svg
-                                                          className="css-1r4mnb9-Svg e1knxa8x0"
-                                                          viewBox="0 0 120 120"
+                                                        <span
+                                                          aria-describedby="tooltip-123456"
+                                                          className="css-1m3e0hg-Container eowlwvy0"
+                                                          onBlur={[Function]}
+                                                          onFocus={[Function]}
+                                                          onMouseEnter={[Function]}
+                                                          onMouseLeave={[Function]}
                                                         >
-                                                          <rect
-                                                            fill="#f868bc"
-                                                            height="120"
-                                                            rx="15"
-                                                            ry="15"
-                                                            width="120"
-                                                            x="0"
-                                                            y="0"
-                                                          />
-                                                          <text
-                                                            fill="#FFFFFF"
-                                                            fontSize="65"
+                                                          <StyledBaseAvatar
+                                                            className="avatar"
+                                                            loaded={true}
+                                                            round={true}
                                                             style={
                                                               Object {
-                                                                "dominantBaseline": "central",
+                                                                "height": "28px",
+                                                                "width": "28px",
                                                               }
                                                             }
-                                                            textAnchor="middle"
-                                                            x="50%"
-                                                            y="50%"
                                                           >
-                                                            JD
-                                                          </text>
-                                                        </svg>
-                                                      </Svg>
-                                                    </LetterAvatar>
-                                                  </span>
-                                                </StyledBaseAvatar>
+                                                            <span
+                                                              className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                                              style={
+                                                                Object {
+                                                                  "height": "28px",
+                                                                  "width": "28px",
+                                                                }
+                                                              }
+                                                            >
+                                                              <LetterAvatar
+                                                                displayName="Jane Doe"
+                                                                identifier="janedoe@example.com"
+                                                                round={true}
+                                                              >
+                                                                <Svg
+                                                                  round={true}
+                                                                  viewBox="0 0 120 120"
+                                                                >
+                                                                  <svg
+                                                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                                                    viewBox="0 0 120 120"
+                                                                  >
+                                                                    <rect
+                                                                      fill="#f868bc"
+                                                                      height="120"
+                                                                      rx="15"
+                                                                      ry="15"
+                                                                      width="120"
+                                                                      x="0"
+                                                                      y="0"
+                                                                    />
+                                                                    <text
+                                                                      fill="#FFFFFF"
+                                                                      fontSize="65"
+                                                                      style={
+                                                                        Object {
+                                                                          "dominantBaseline": "central",
+                                                                        }
+                                                                      }
+                                                                      textAnchor="middle"
+                                                                      x="50%"
+                                                                      y="50%"
+                                                                    >
+                                                                      JD
+                                                                    </text>
+                                                                  </svg>
+                                                                </Svg>
+                                                              </LetterAvatar>
+                                                            </span>
+                                                          </StyledBaseAvatar>
+                                                        </span>
+                                                      </Container>
+                                                    </InnerReference>
+                                                  </Reference>
+                                                </Manager>
                                               </Tooltip>
                                             </BaseAvatar>
                                           </UserAvatar>
@@ -2786,6 +2771,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         </Base>
       </Flex>
       <AddButton
+        align="center"
         disabled={false}
         icon="icon-circle-add"
         onClick={[Function]}
@@ -2793,7 +2779,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         size="small"
       >
         <Button
-          className="css-po7kq7-AddButton e1hyuoc79"
+          align="center"
+          className="css-8nraqh-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -2801,15 +2788,17 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           size="small"
         >
           <StyledButton
-            className="css-po7kq7-AddButton e1hyuoc79"
+            aria-disabled={false}
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
             priority="primary"
             role="button"
             size="small"
           >
-            <Component
-              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
+            <ForwardRef
+              aria-disabled={false}
+              className="e1hyuoc79 css-1tsyl87-StyledButton-getColors-AddButton edwq9my0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2817,66 +2806,60 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               size="small"
             >
               <button
-                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
-                disabled={false}
+                aria-disabled={false}
+                className="e1hyuoc79 css-1tsyl87-StyledButton-getColors-AddButton edwq9my0"
                 onClick={[Function]}
-                priority="primary"
                 role="button"
                 size="small"
               >
                 <ButtonLabel
+                  align="center"
                   priority="primary"
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    align="center"
+                    className="css-1h693nz-ButtonLabel edwq9my1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      className="css-1h693nz-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <Component
-                          className="css-ljhpxy-Icon eqrebog2"
+                          className="css-ljhpxy-Icon edwq9my2"
                           hasChildren={false}
                           size="small"
                         >
                           <span
-                            className="css-ljhpxy-Icon eqrebog2"
+                            className="css-ljhpxy-Icon edwq9my2"
                             size="small"
                           >
                             <StyledInlineSvg
                               size="12px"
                               src="icon-circle-add"
                             >
-                              <InlineSvg
-                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                              <ForwardRef
+                                className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                 size="12px"
                                 src="icon-circle-add"
                               >
-                                <StyledSvg
-                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                <svg
+                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                   height="12px"
                                   viewBox={Object {}}
                                   width="12px"
                                 >
-                                  <svg
-                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                    height="12px"
-                                    viewBox={Object {}}
-                                    width="12px"
-                                  >
-                                    <use
-                                      href="#test"
-                                      xlinkHref="#test"
-                                    />
-                                  </svg>
-                                </StyledSvg>
-                              </InlineSvg>
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </ForwardRef>
                             </StyledInlineSvg>
                           </span>
                         </Component>
@@ -2885,7 +2868,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>

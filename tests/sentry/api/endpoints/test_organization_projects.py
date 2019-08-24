@@ -9,10 +9,9 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationProjectsTest(APITestCase):
-
     @fixture
     def org(self):
-        return self.create_organization(owner=self.user, name='baz')
+        return self.create_organization(owner=self.user, name="baz")
 
     @fixture
     def team(self):
@@ -20,12 +19,13 @@ class OrganizationProjectsTest(APITestCase):
 
     @fixture
     def path(self):
-        return u'/api/0/organizations/{}/projects/'.format(self.org.slug)
+        return u"/api/0/organizations/{}/projects/".format(self.org.slug)
 
     def check_valid_response(self, response, expected_projects):
         assert response.status_code == 200, response.content
         assert [project.id for project in expected_projects] == [
-            int(project_resp['id']) for project_resp in response.data]
+            int(project_resp["id"]) for project_resp in response.data
+        ]
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -33,50 +33,66 @@ class OrganizationProjectsTest(APITestCase):
 
         response = self.client.get(self.path)
         self.check_valid_response(response, [project])
-        assert self.client.session['activeorg'] == self.org.slug
+        assert self.client.session["activeorg"] == self.org.slug
 
     def test_with_stats(self):
         self.login_as(user=self.user)
 
         projects = [self.create_project(teams=[self.team])]
 
-        response = self.client.get(u'{}?statsPeriod=24h'.format(self.path), format='json')
+        response = self.client.get(u"{}?statsPeriod=24h".format(self.path), format="json")
         self.check_valid_response(response, projects)
-        assert response.data[0]['stats']
+        assert response.data[0]["stats"]
 
-        response = self.client.get(u'{}?statsPeriod=14d'.format(self.path), format='json')
+        response = self.client.get(u"{}?statsPeriod=14d".format(self.path), format="json")
         self.check_valid_response(response, projects)
-        assert response.data[0]['stats']
+        assert response.data[0]["stats"]
 
-        response = self.client.get(u'{}?statsPeriod='.format(self.path), format='json')
+        response = self.client.get(u"{}?statsPeriod=".format(self.path), format="json")
         self.check_valid_response(response, projects)
-        assert 'stats' not in response.data[0]
+        assert "stats" not in response.data[0]
 
-        response = self.client.get(u'{}?statsPeriod=48h'.format(self.path), format='json')
+        response = self.client.get(u"{}?statsPeriod=48h".format(self.path), format="json")
         assert response.status_code == 400
 
     def test_search(self):
         self.login_as(user=self.user)
-        project = self.create_project(teams=[self.team], name='bar', slug='bar')
+        project = self.create_project(teams=[self.team], name="bar", slug="bar")
 
-        response = self.client.get(u'{}?query=bar'.format(self.path))
+        response = self.client.get(u"{}?query=bar".format(self.path))
         self.check_valid_response(response, [project])
 
-        response = self.client.get(u'{}?query=baz'.format(self.path))
+        response = self.client.get(u"{}?query=baz".format(self.path))
         self.check_valid_response(response, [])
 
     def test_search_by_ids(self):
         self.login_as(user=self.user)
 
-        project_bar = self.create_project(teams=[self.team], name='bar', slug='bar')
-        project_foo = self.create_project(teams=[self.team], name='foo', slug='foo')
-        self.create_project(teams=[self.team], name='baz', slug='baz')
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
+        self.create_project(teams=[self.team], name="baz", slug="baz")
 
-        path = u'{}?query=id:{}'.format(self.path, project_foo.id)
+        path = u"{}?query=id:{}".format(self.path, project_foo.id)
         response = self.client.get(path)
         self.check_valid_response(response, [project_foo])
 
-        path = u'{}?query=id:{} id:{}'.format(self.path, project_bar.id, project_foo.id)
+        path = u"{}?query=id:{} id:{}".format(self.path, project_bar.id, project_foo.id)
+        response = self.client.get(path)
+
+        self.check_valid_response(response, [project_bar, project_foo])
+
+    def test_search_by_slugs(self):
+        self.login_as(user=self.user)
+
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
+        self.create_project(teams=[self.team], name="baz", slug="baz")
+
+        path = u"{}?query=slug:{}".format(self.path, project_foo.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_foo])
+
+        path = u"{}?query=slug:{} slug:{}".format(self.path, project_bar.slug, project_foo.slug)
         response = self.client.get(path)
 
         self.check_valid_response(response, [project_bar, project_foo])
@@ -90,7 +106,7 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path)
         self.check_valid_response(response, [project for project in projects])
 
-        response = self.client.get(self.path + '?per_page=2')
+        response = self.client.get(self.path + "?per_page=2")
         self.check_valid_response(response, [project for project in projects[:2]])
 
         self.create_project_bookmark(projects[-1], user=self.user)
@@ -100,7 +116,7 @@ class OrganizationProjectsTest(APITestCase):
         self.check_valid_response(response, [project for project in projects])
 
         # Make sure that it's at the front when on the second page as well
-        response = self.client.get(self.path + '?per_page=2')
+        response = self.client.get(self.path + "?per_page=2")
         self.check_valid_response(response, [project for project in projects[:2]])
 
         # Make sure that other user's bookmarks don't interfere with this user
@@ -109,16 +125,27 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path)
         self.check_valid_response(response, [project for project in projects])
 
+    def test_team_filter(self):
+        self.login_as(user=self.user)
+        other_team = self.create_team(organization=self.org)
+
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
+        project_baz = self.create_project(teams=[other_team], name="baz", slug="baz")
+        path = u"{}?query=team:{}".format(self.path, self.team.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_bar])
+
+        path = u"{}?query=!team:{}".format(self.path, self.team.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_baz, project_foo])
+
     def test_api_key(self):
-        key = ApiKey.objects.create(
-            organization=self.org,
-            scope_list=['org:read'],
-        )
+        key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
 
         project = self.create_project(teams=[self.team])
 
         response = self.client.get(
-            self.path,
-            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(key.key)),
+            self.path, HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(key.key))
         )
         self.check_valid_response(response, [project])

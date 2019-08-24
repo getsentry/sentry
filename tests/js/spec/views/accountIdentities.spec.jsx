@@ -18,7 +18,7 @@ describe('AccountIdentities', function() {
       body: [],
     });
 
-    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
 
     expect(wrapper).toMatchSnapshot();
   });
@@ -36,7 +36,7 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -53,14 +53,14 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
 
-    let disconnectRequest = {
+    const disconnectRequest = {
       url: `${ENDPOINT}1/`,
       method: 'DELETE',
     };
 
-    let mock = Client.addMockResponse(disconnectRequest);
+    const mock = Client.addMockResponse(disconnectRequest);
 
     expect(mock).not.toHaveBeenCalled();
 

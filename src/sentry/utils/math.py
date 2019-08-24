@@ -1,10 +1,3 @@
-"""
-sentry.utils.math
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, division
 
 import math
@@ -20,7 +13,7 @@ def stddev(values, mean_=None):
 
     n = 0
     for val in values:
-        n += (val - mean_)**2
+        n += (val - mean_) ** 2
     n = math.sqrt(n / float(len(values) - 1))
     return n
 

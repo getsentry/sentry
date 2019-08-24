@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -17,9 +18,19 @@ class SettingsNavigation extends React.Component {
     hookConfigs: [],
   };
 
+  componentDidCatch(error, errorInfo) {
+    Sentry.withScope(scope => {
+      Object.keys(errorInfo).forEach(key => {
+        scope.setExtra(key, errorInfo[key]);
+      });
+      scope.setExtra('url', window.location.href);
+      Sentry.captureException(error);
+    });
+  }
+
   render() {
-    let {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
-    let navWithHooks = navigationObjects.concat(hookConfigs);
+    const {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
+    const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
       <Box>

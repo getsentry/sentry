@@ -23,10 +23,9 @@ describe('EventOrGroupHeader', function() {
       id: 'id',
     };
     it('renders with `type = error`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
           orgId="orgId"
-          projectId="projectId"
           data={{
             ...groupData,
             ...{
@@ -40,10 +39,9 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = csp`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
-          projectId="projectId"
+          params={{orgId: 'orgId'}}
           data={{
             ...groupData,
             ...{
@@ -57,10 +55,9 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = default`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
-          projectId="projectId"
+          params={{orgId: 'orgId'}}
           data={{
             ...groupData,
             ...{
@@ -84,10 +81,9 @@ describe('EventOrGroupHeader', function() {
     };
 
     it('renders with `type = error`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
-          projectId="projectId"
+          params={{orgId: 'orgId'}}
           data={{
             ...eventData,
             ...{
@@ -101,10 +97,9 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = csp`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
-          projectId="projectId"
+          params={{orgId: 'orgId'}}
           data={{
             ...eventData,
             ...{
@@ -118,10 +113,9 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('renders with `type = default`', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
-          projectId="projectId"
+          params={{orgId: 'orgId'}}
           data={{
             ...eventData,
             ...{
@@ -135,9 +129,8 @@ describe('EventOrGroupHeader', function() {
     });
 
     it('hides level tag', function() {
-      let component = shallow(
+      const component = shallow(
         <EventOrGroupHeader
-          orgId="orgId"
           projectId="projectId"
           hideLevel
           data={{

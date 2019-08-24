@@ -8,45 +8,46 @@ from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.loader.browsersdkversion import (
-    DEFAULT_VERSION,
-    get_browser_sdk_version_choices
+    get_default_sdk_version_for_project,
+    get_browser_sdk_version_choices,
 )
 
 
-@scenario('DeleteClientKey')
+@scenario("DeleteClientKey")
 def delete_key_scenario(runner):
     key = runner.utils.create_client_key(runner.default_project)
     runner.request(
-        method='DELETE',
-        path='/projects/%s/%s/keys/%s/' %
-        (runner.org.slug, runner.default_project.slug, key.public_key)
+        method="DELETE",
+        path="/projects/%s/%s/keys/%s/"
+        % (runner.org.slug, runner.default_project.slug, key.public_key),
     )
 
 
-@scenario('UpdateClientKey')
+@scenario("UpdateClientKey")
 def update_key_scenario(runner):
     key = runner.utils.create_client_key(runner.default_project)
     runner.request(
-        method='PUT',
-        path='/projects/%s/%s/keys/%s/' %
-        (runner.org.slug, runner.default_project.slug, key.public_key),
-        data={'name': 'Quite Positive Key'}
+        method="PUT",
+        path="/projects/%s/%s/keys/%s/"
+        % (runner.org.slug, runner.default_project.slug, key.public_key),
+        data={"name": "Quite Positive Key"},
     )
 
 
 class RateLimitSerializer(serializers.Serializer):
-    count = serializers.IntegerField(min_value=0, required=False)
-    window = serializers.IntegerField(min_value=0, max_value=60 * 60 * 24, required=False)
+    count = EmptyIntegerField(min_value=0, required=False, allow_null=True)
+    window = EmptyIntegerField(min_value=0, max_value=60 * 60 * 24, required=False, allow_null=True)
 
 
 class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
     isActive = serializers.BooleanField(required=False)
-    rateLimit = RateLimitSerializer(required=False)
+    rateLimit = RateLimitSerializer(allow_null=True)
     browserSdkVersion = serializers.ChoiceField(
         choices=get_browser_sdk_version_choices(), required=False
     )
@@ -58,9 +59,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, key_id):
         try:
             key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F('roles').bitor(ProjectKey.roles.store),
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -84,38 +83,43 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         try:
             key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F('roles').bitor(ProjectKey.roles.store),
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = KeySerializer(data=request.DATA, partial=True)
+        serializer = KeySerializer(data=request.data, partial=True)
+        default_version = get_default_sdk_version_for_project(project)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
-            if result.get('name'):
-                key.label = result['name']
+            if result.get("name"):
+                key.label = result["name"]
 
-            if result.get('browserSdkVersion') == '':
-                key.data = {'browserSdkVersion': DEFAULT_VERSION}
+            if not result.get("browserSdkVersion"):
+                key.data = {"browserSdkVersion": default_version}
             else:
-                key.data = {'browserSdkVersion': result.get('browserSdkVersion', DEFAULT_VERSION)}
+                key.data = {"browserSdkVersion": result["browserSdkVersion"]}
 
-            if result.get('isActive') is True:
+            if result.get("isActive") is True:
                 key.status = ProjectKeyStatus.ACTIVE
-            elif result.get('isActive') is False:
+            elif result.get("isActive") is False:
                 key.status = ProjectKeyStatus.INACTIVE
 
-            if features.has('projects:rate-limits', project):
-                if result.get('rateLimit', -1) is None:
+            if features.has("projects:rate-limits", project):
+                ratelimit = result.get("rateLimit", -1)
+                if (
+                    ratelimit is None
+                    or ratelimit != -1
+                    and ratelimit
+                    and (ratelimit["count"] is None or ratelimit["window"] is None)
+                ):
                     key.rate_limit_count = None
                     key.rate_limit_window = None
-                elif result.get('rateLimit'):
-                    key.rate_limit_count = result['rateLimit']['count']
-                    key.rate_limit_window = result['rateLimit']['window']
+                elif result.get("rateLimit"):
+                    key.rate_limit_count = result["rateLimit"]["count"]
+                    key.rate_limit_window = result["rateLimit"]["window"]
 
             key.save()
 
@@ -147,9 +151,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         try:
             key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F('roles').bitor(ProjectKey.roles.store),
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist

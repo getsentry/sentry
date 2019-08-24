@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import Avatar from 'app/components/avatar';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
+import {omit} from 'lodash';
 
 const UserBadge = ({
   displayName,
@@ -18,7 +19,7 @@ const UserBadge = ({
   hideEmail,
   ...props
 }) => {
-  let userFromPropsOrMember = user || (member && member.user) || member;
+  const userFromPropsOrMember = user || (member && member.user) || member;
   return (
     <StyledUserBadge {...props}>
       <StyledAvatar user={userFromPropsOrMember} size={avatarSize} />
@@ -31,7 +32,13 @@ const UserBadge = ({
           {displayName ||
             userFromPropsOrMember.name ||
             userFromPropsOrMember.email ||
-            userFromPropsOrMember.ipAddress}
+            userFromPropsOrMember.username ||
+            userFromPropsOrMember.ipAddress ||
+            /**
+             * Because this can be used to render EventUser models, or User *interface*
+             * objects from serialized Event models. we try both ipAddress and ip_address.
+             */
+            userFromPropsOrMember.ip_address}
         </StyledName>
         {!hideEmail && (
           <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>
@@ -82,10 +89,10 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledName = styled(
-  ({useLink, hideEmail, to, ...props}) =>
-    useLink ? <Link to={to} {...props} /> : <span {...props} />
-)`
+const StyledName = styled(({useLink, to, ...props}) => {
+  const forwardProps = omit(props, 'hideEmail');
+  return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
+})`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};

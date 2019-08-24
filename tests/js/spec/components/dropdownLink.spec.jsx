@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React from 'react';
 
 import {mount} from 'enzyme';
@@ -19,7 +20,7 @@ describe('DropdownLink', function() {
 
   describe('renders', function() {
     it('and anchors to left by default', function() {
-      let component = mount(
+      const component = mount(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
@@ -30,7 +31,7 @@ describe('DropdownLink', function() {
     });
 
     it('and anchors to right', function() {
-      let component = mount(
+      const component = mount(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>
@@ -71,10 +72,12 @@ describe('DropdownLink', function() {
         wrapper.find('a').simulate('click');
       });
 
-      it('closes when clicked outside', function() {
+      it('closes when clicked outside', async function() {
         const evt = document.createEvent('HTMLEvents');
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
+        jest.runAllTimers();
+        await Promise.resolve();
         wrapper.update();
         expect(wrapper.find('li')).toHaveLength(0);
       });
@@ -128,7 +131,7 @@ describe('DropdownLink', function() {
       });
 
       it('does not close when document is clicked', function() {
-        jQuery(document).click();
+        $(document).click();
         // State does not change
         expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
       });

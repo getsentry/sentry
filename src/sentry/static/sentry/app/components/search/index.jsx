@@ -1,22 +1,23 @@
 import {Flex} from 'grid-emotion';
+import {debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {debounce} from 'lodash';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
-import {analytics} from 'app/utils/analytics';
+import ApiSource from 'app/components/search/sources/apiSource';
 import AutoComplete from 'app/components/autoComplete';
+import CommandSource from 'app/components/search/sources/commandSource';
+import FormSource from 'app/components/search/sources/formSource';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import RouteSource from 'app/components/search/sources/routeSource';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
-import ApiSource from 'app/components/search/sources/apiSource';
-import CommandSource from 'app/components/search/sources/commandSource';
-import FormSource from 'app/components/search/sources/formSource';
-import RouteSource from 'app/components/search/sources/routeSource';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
@@ -77,11 +78,13 @@ class Search extends React.Component {
   }
 
   handleSelect = (item, state) => {
-    if (!item) return;
+    if (!item) {
+      return;
+    }
 
     analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
 
-    let {to, action} = item;
+    const {to, action} = item;
 
     // `action` refers to a callback function while
     // `to` is a react-router route
@@ -90,26 +93,44 @@ class Search extends React.Component {
       return;
     }
 
-    if (!to) return;
+    if (!to) {
+      return;
+    }
 
-    let {params, router} = this.props;
-    let nextPath = replaceRouterParams(to, params);
+    if (to.startsWith('http')) {
+      const open = window.open();
+      if (open === null) {
+        addErrorMessage(
+          t('Unable to open search result (a popup blocker may have caused this).')
+        );
+        return;
+      }
+
+      open.opener = null;
+      open.location = to;
+      return;
+    }
+
+    const {params, router} = this.props;
+    const nextPath = replaceRouterParams(to, params);
 
     navigateTo(nextPath, router);
   };
 
   saveQueryMetrics = debounce(query => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
     analytics(`${this.props.entryPoint}.query`, {query});
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
-    let {renderItem} = this.props;
-    let highlighted = index === highlightedIndex;
-    let {item, matches} = resultObj;
-    let key = `${item.title}-${index}`;
-    let itemProps = {
+    const {renderItem} = this.props;
+    const highlighted = index === highlightedIndex;
+    const {item, matches} = resultObj;
+    const key = `${item.title}-${index}`;
+    const itemProps = {
       ...getItemProps({
         item,
       }),
@@ -134,7 +155,7 @@ class Search extends React.Component {
   };
 
   render() {
-    let {
+    const {
       params,
       dropdownStyle,
       searchOptions,
@@ -161,8 +182,8 @@ class Search extends React.Component {
           highlightedIndex,
           onChange,
         }) => {
-          let searchQuery = inputValue.toLowerCase().trim();
-          let isValidSearch = inputValue.length >= minSearch;
+          const searchQuery = inputValue.toLowerCase().trim();
+          const isValidSearch = inputValue.length >= minSearch;
 
           this.saveQueryMetrics(searchQuery);
 
@@ -195,8 +216,9 @@ class Search extends React.Component {
                             getItemProps,
                           });
                         })}
-                      {!isLoading &&
-                        !hasAnyResults && <EmptyItem>{t('No results found')}</EmptyItem>}
+                      {!isLoading && !hasAnyResults && (
+                        <EmptyItem>{t('No results found')}</EmptyItem>
+                      )}
                     </DropdownBox>
                   )}
                 </SearchSources>
@@ -211,7 +233,7 @@ class Search extends React.Component {
 
 export default withRouter(Search);
 
-const DropdownBox = styled.div`
+const DropdownBox = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -223,7 +245,7 @@ const DropdownBox = styled.div`
   overflow: hidden;
 `;
 
-const SearchWrapper = styled.div`
+const SearchWrapper = styled('div')`
   position: relative;
 `;
 

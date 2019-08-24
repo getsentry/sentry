@@ -1,11 +1,11 @@
 /* global __dirname */
 import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
-import sinon from 'sinon';
 import Adapter from 'enzyme-adapter-react-16';
 import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+import fromEntries from 'object.fromentries';
 
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
@@ -13,6 +13,10 @@ import theme from 'app/utils/theme';
 import {loadFixtures} from './helpers/loadFixtures';
 
 export * from './helpers/select';
+
+// We need this polyfill for testing only because
+// typescript handles it for main application
+fromEntries.shim();
 
 /**
  * Enzyme configuration
@@ -53,6 +57,7 @@ jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
+jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
 jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
@@ -65,6 +70,7 @@ jest.mock('react-router', () => {
     Route: ReactRouter.Route,
     withRouter: ReactRouter.withRouter,
     browserHistory: {
+      goBack: jest.fn(),
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
@@ -110,8 +116,27 @@ jest.mock('@sentry/browser', () => {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
+    startSpan: jest.fn(),
+    finishSpan: jest.fn(),
     lastEventId: jest.fn(),
+    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
     withScope: jest.spyOn(SentryBrowser, 'withScope'),
+    Severity: SentryBrowser.Severity,
+  };
+});
+
+jest.mock('popper.js', () => {
+  const PopperJS = jest.requireActual('popper.js');
+
+  return class {
+    static placements = PopperJS.placements;
+
+    constructor() {
+      return {
+        destroy: () => {},
+        scheduleUpdate: () => {},
+      };
+    }
   };
 });
 
@@ -126,7 +151,6 @@ jest.unmock('jquery');
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
-window.sinon = sinon;
 window.scrollTo = jest.fn();
 
 // this is very commonly used, so expose it globally

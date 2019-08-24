@@ -3,7 +3,6 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from sentry.utils.db import is_mysql
 
 
 class Migration(SchemaMigration):
@@ -50,7 +49,8 @@ class Migration(SchemaMigration):
         )
         db.send_create_signal('sentry', ['DSymSDK'])
 
-        # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
+        # Adding index on 'DSymSDK', fields ['version_major', 'version_minor',
+        # 'version_patchlevel', 'version_build']
         db.create_index(
             'sentry_dsymsdk',
             ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
@@ -65,7 +65,7 @@ class Migration(SchemaMigration):
                     )
                 ), ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)), (
                     'object_path',
-                    self.gf('django.db.models.fields.TextField')(db_index=not is_mysql())
+                    self.gf('django.db.models.fields.TextField')(db_index=True)
                 ), (
                     'uuid',
                     self.gf('django.db.models.fields.CharField')(max_length=36, db_index=True)
@@ -78,18 +78,6 @@ class Migration(SchemaMigration):
                 ),
             )
         )
-
-        # On MySQL we need to create the index here differently because
-        # the index must have a limit.  As we have the type already
-        # defined to text in the model earlier we just restrict the index
-        # to 255.  The hash matches what south would have created.
-        if is_mysql():
-            db.execute(
-                '''
-                create index sentry_dsymobject_39c06cbd
-                          on sentry_dsymobject (object_path(255))
-            '''
-            )
 
         db.send_create_signal('sentry', ['DSymObject'])
 
@@ -114,7 +102,8 @@ class Migration(SchemaMigration):
         db.send_create_signal('sentry', ['DSymBundle'])
 
     def backwards(self, orm):
-        # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
+        # Removing index on 'DSymSDK', fields ['version_major', 'version_minor',
+        # 'version_patchlevel', 'version_build']
         db.delete_index(
             'sentry_dsymsdk',
             ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
@@ -290,7 +279,7 @@ class Migration(SchemaMigration):
                     'to': "orm['sentry.AuthProvider']"
                 }
             ),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -322,7 +311,7 @@ class Migration(SchemaMigration):
             'Meta': {
                 'object_name': 'AuthProvider'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -708,7 +697,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -1504,7 +1493,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('organization', 'task'),)",
                 'object_name': 'OrganizationOnboardingTask'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -1734,7 +1723,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('project', 'version'),)",
                 'object_name': 'Release'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

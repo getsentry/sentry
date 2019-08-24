@@ -22,8 +22,8 @@ export default class OrganizationCreate extends AsyncView {
   }
 
   renderBody() {
-    let termsUrl = ConfigStore.get('termsUrl');
-    let privacyUrl = ConfigStore.get('privacyUrl');
+    const termsUrl = ConfigStore.get('termsUrl');
+    const privacyUrl = ConfigStore.get('privacyUrl');
 
     return (
       <NarrowLayout showLogout>
@@ -50,21 +50,19 @@ export default class OrganizationCreate extends AsyncView {
             required={true}
           />
 
-          {termsUrl &&
-            privacyUrl && (
-              <BooleanField
-                name="agreeTerms"
-                label={tct(
-                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                  {
-                    termsLink: <a href={termsUrl} />,
-                    privacyLink: <a href={privacyUrl} />,
-                  }
-                )}
-                placeholder={t('e.g. My Company')}
-                required={true}
-              />
-            )}
+          {termsUrl && privacyUrl && (
+            <BooleanField
+              name="agreeTerms"
+              label={tct(
+                'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                {
+                  termsLink: <a href={termsUrl} />,
+                  privacyLink: <a href={privacyUrl} />,
+                }
+              )}
+              required={true}
+            />
+          )}
         </ApiForm>
       </NarrowLayout>
     );

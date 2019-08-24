@@ -37,7 +37,7 @@ class CreateTeamModal extends React.Component {
   };
 
   render() {
-    let {Body, Header, closeModal, ...props} = this.props;
+    const {Body, Header, closeModal, ...props} = this.props;
 
     return (
       <React.Fragment>

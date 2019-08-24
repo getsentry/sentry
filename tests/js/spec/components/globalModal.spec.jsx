@@ -5,19 +5,19 @@ import {openModal, closeModal} from 'app/actionCreators/modal';
 
 describe('GlobalModal', function() {
   it('renders', function() {
-    let wrapper = shallow(<GlobalModal />);
+    const wrapper = shallow(<GlobalModal />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('uses actionCreators to open and close Modal', function(done) {
-    let wrapper = mount(<GlobalModal />);
+    const wrapper = mount(<GlobalModal />);
 
     openModal(() => <div id="modal-test">Hi</div>);
 
     // async :<
     setTimeout(() => {
       wrapper.update();
-      let modal = $(document.body).find('.modal');
+      const modal = $(document.body).find('.modal');
       expect(modal.text()).toBe('Hi');
       expect(wrapper.find('GlobalModal').prop('visible')).toBe(true);
 
@@ -31,8 +31,8 @@ describe('GlobalModal', function() {
   });
 
   it('calls onClose handler when modal closes', function(done) {
-    let wrapper = mount(<GlobalModal />);
-    let closeSpy = jest.fn();
+    const wrapper = mount(<GlobalModal />);
+    const closeSpy = jest.fn();
 
     openModal(
       ({Header}) => (
@@ -46,7 +46,7 @@ describe('GlobalModal', function() {
     // async :<
     setTimeout(() => {
       wrapper.update();
-      let modal = $(document.body).find('.modal');
+      const modal = $(document.body).find('.modal');
       modal.find('.close').click();
 
       setTimeout(() => {

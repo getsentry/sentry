@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
@@ -6,7 +7,10 @@ import SentryTypes from 'app/sentryTypes';
 
 class ProjectAvatar extends React.Component {
   static propTypes = {
-    project: SentryTypes.Project.isRequired,
+    project: PropTypes.oneOfType([
+      PropTypes.shape({slug: PropTypes.string}),
+      SentryTypes.Project,
+    ]).isRequired,
     ...BaseAvatar.propTypes,
   };
 
@@ -22,7 +26,7 @@ class ProjectAvatar extends React.Component {
   };
 
   render() {
-    let {project, ...props} = this.props;
+    const {project, ...props} = this.props;
 
     return <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />;
   }

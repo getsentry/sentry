@@ -1,152 +1,122 @@
-import $ from 'jquery';
 import {Box, Flex} from 'grid-emotion';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
-import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import SentryTypes from 'app/sentryTypes';
+import platforms from 'app/data/platforms';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
-const ProjectInstallPlatform = createReactClass({
-  displayName: 'ProjectInstallPlatform',
+class ProjectInstallPlatform extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    project: SentryTypes.Project.isRequired,
+  };
 
-  propTypes: {
-    // eslint-disable-next-line react/no-unused-prop-types
-    platformData: PropTypes.object.isRequired,
-    linkPath: PropTypes.func,
-  },
-
-  mixins: [ApiMixin],
-
-  getDefaultProps() {
-    return {
-      linkPath: (orgId, projectId, platform) =>
-        `/${orgId}/${projectId}/settings/install/${platform}/`,
-    };
-  },
-
-  getInitialState(props) {
-    props = props || this.props;
-    let params = props.params;
-    let key = params.platform;
-    let integration;
-    let platform;
-
-    props.platformData.platforms.forEach(p_item => {
-      if (integration) {
-        return;
-      }
-      integration = p_item.integrations.filter(i_item => {
-        return i_item.id == key;
-      })[0];
-      if (integration) {
-        platform = p_item;
-      }
-    });
-
-    return {
-      loading: true,
-      error: false,
-      integration,
-      platform,
-      html: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    html: null,
+  };
 
   componentDidMount() {
     this.fetchData();
-    $(window).scrollTop(0);
-  },
+    window.scrollTo(0, 0);
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.params.platform !== this.props.params.platform) {
-      this.setState(this.getInitialState(nextProps), this.fetchData);
-      $(window).scrollTop(0);
+    const {platform} = this.props.params;
+
+    //redirect if platform is not known.
+    if (!platform || platform === 'other') {
+      this.redirectToNeutralDocs();
     }
-  },
+  }
 
-  isGettingStarted() {
-    return location.href.indexOf('getting-started') > 0;
-  },
+  get isGettingStarted() {
+    return window.location.href.indexOf('getting-started') > 0;
+  }
 
-  fetchData() {
-    let {orgId, projectId, platform} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
-      success: data => {
-        this.setState({
-          loading: false,
-          error: false,
-          html: data.html,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
-  },
+  fetchData = async () => {
+    const {api, params} = this.props;
+    const {orgId, projectId, platform} = params;
 
-  getPlatformLink(platform, display) {
-    let {orgId, projectId} = this.props.params;
-    let path = this.props.linkPath(orgId, projectId, platform);
-    return (
-      <Link key={platform} to={path} className="list-group-item">
-        {display || platform}
-      </Link>
-    );
-  },
+    this.setState({loading: true});
+
+    try {
+      const {html} = await loadDocs(api, orgId, projectId, platform);
+      this.setState({html});
+    } catch (error) {
+      this.setState({error});
+    }
+
+    this.setState({loading: false});
+  };
+
+  redirectToNeutralDocs() {
+    const {orgId, projectId} = this.props.params;
+
+    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+
+    browserHistory.push(url);
+  }
 
   render() {
-    let {integration, platform} = this.state;
-    let {orgId, projectId} = this.props.params;
+    const {project, params} = this.props;
+    const {orgId, projectId} = params;
 
-    if (!integration || !platform) {
+    const platform = platforms.find(p => p.id === params.platform);
+
+    if (!platform) {
       return <NotFound />;
     }
+
+    const issueStreamLink = `/organizations/${orgId}/issues/?project=${
+      project.id
+    }#welcome`;
+    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (
       <Panel>
         <PanelHeader hasButtons>
-          {t('Configure %(integration)s', {integration: integration.name})}
+          {t('Configure %(platform)s', {platform: platform.name})}
           <Flex>
             <Box ml={1}>
-              <Button size="small" href={`/${orgId}/${projectId}/getting-started/`}>
+              <Button size="small" href={gettingStartedLink}>
                 {t('< Back')}
               </Button>
             </Box>
             <Box ml={1}>
-              <Button size="small" href={integration.link} external>
+              <Button size="small" href={platform.link} external>
                 {t('Full Documentation')}
               </Button>
             </Box>
           </Flex>
         </PanelHeader>
 
-        <PanelBody disablePadding={false}>
-          <TextBlock>
-            {tct(
-              `
+        <PanelAlert type="info">
+          {tct(
+            `
              This is a quick getting started guide. For in-depth instructions
-             on integrating Sentry with [integration], view
+             on integrating Sentry with [platform], view
              [docLink:our complete documentation].
             `,
-              {
-                integration: integration.name,
-                docLink: <a href={integration.link} />,
-              }
-            )}
-          </TextBlock>
+            {
+              platform: platform.name,
+              docLink: <a href={platform.link} />,
+            }
+          )}
+        </PanelAlert>
 
+        <PanelBody disablePadding={false}>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
@@ -155,11 +125,11 @@ const ProjectInstallPlatform = createReactClass({
             <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
           )}
 
-          {this.isGettingStarted() && (
+          {this.isGettingStarted && (
             <Button
               priority="primary"
               size="large"
-              to={`/${orgId}/${projectId}/#welcome`}
+              to={issueStreamLink}
               style={{marginTop: 20}}
             >
               {t('Got it! Take me to the Issue Stream.')}
@@ -168,10 +138,8 @@ const ProjectInstallPlatform = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
-});
-
-export default ProjectInstallPlatform;
+  }
+}
 
 const DocumentationWrapper = styled('div')`
   p {
@@ -182,3 +150,6 @@ const DocumentationWrapper = styled('div')`
     white-space: pre-wrap;
   }
 `;
+
+export {ProjectInstallPlatform};
+export default withApi(withOrganization(withProject(ProjectInstallPlatform)));

@@ -3,29 +3,23 @@ import {shallow} from 'enzyme';
 import SplitDiff from 'app/components/splitDiff';
 
 describe('SplitDiff', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
-    let wrapper = shallow(<SplitDiff base="restaurant" target="aura" />);
+    const wrapper = shallow(<SplitDiff base="restaurant" target="aura" />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with newlines', function() {
-    let base = `this is my restaurant
+    const base = `this is my restaurant
     and restaurant
     common`;
-    let target = `aura
+    const target = `aura
     and your aura
     common`;
-    let wrapper = shallow(<SplitDiff base={base} target={target} />);
+    const wrapper = shallow(<SplitDiff base={base} target={target} />);
     expect(wrapper).toMatchSnapshot();
   });
 });

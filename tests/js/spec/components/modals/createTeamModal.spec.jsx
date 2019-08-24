@@ -10,10 +10,10 @@ jest.mock('app/actionCreators/teams', () => ({
 }));
 
 describe('CreateTeamModal', function() {
-  let org = TestStubs.Organization();
-  let closeModal = jest.fn();
-  let onClose = jest.fn();
-  let onSuccess = jest.fn();
+  const org = TestStubs.Organization();
+  const closeModal = jest.fn();
+  const onClose = jest.fn();
+  const onSuccess = jest.fn();
 
   beforeEach(function() {
     onClose.mockReset();
@@ -23,7 +23,7 @@ describe('CreateTeamModal', function() {
   afterEach(function() {});
 
   it('calls createTeam action creator on submit', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <CreateTeamModal
         Body={Modal.Body}
         Header={Modal.Header}

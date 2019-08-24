@@ -1,8 +1,7 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import {isEqual, isInteger, omit} from 'lodash';
 import * as Sentry from '@sentry/browser';
 
-import {getParams} from 'app/views/organizationEvents/utils/getParams';
+import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 
@@ -22,6 +21,11 @@ const isEqualWithEmptyArrays = (newQuery, current) => {
     current
   );
 };
+
+// Reset values in global selection store
+export function resetGlobalSelection() {
+  GlobalSelectionActions.reset();
+}
 
 /**
  * Updates global project selection URL param if `router` is supplied
@@ -111,6 +115,34 @@ export function updateParams(obj, router, options) {
 }
 
 /**
+ * Like updateParams but just replaces the current URL and does not create a
+ * new browser history entry
+ *
+ * @param {Object} obj New query params
+ * @param {Object} [router] React router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ */
+export function updateParamsWithoutHistory(obj, router, options) {
+  // Allow another component to handle routing
+  if (!router) {
+    return;
+  }
+
+  const newQuery = getNewQueryParams(obj, router.location.query, options);
+
+  // Only push new location if query params have changed because this will cause a heavy re-render
+  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+    return;
+  }
+
+  router.replace({
+    pathname: router.location.pathname,
+    query: newQuery,
+  });
+}
+
+/**
  * Creates a new query parameter object given new params and old params
  * Preserves the old query params, except for `cursor`
  *
@@ -141,4 +173,32 @@ function getNewQueryParams(obj, oldQueryParams, {resetParams} = {}) {
   }
 
   return newQuery;
+}
+
+// Filters out params with null values and returns a default
+// `statsPeriod` when necessary.
+//
+// Accepts `period` and `statsPeriod` but will only return `statsPeriod`
+//
+function getParams(params = {}) {
+  const {start, end, period, statsPeriod, ...otherParams} = params;
+
+  // `statsPeriod` takes precendence for now
+  const coercedPeriod = statsPeriod || period;
+
+  // Filter null values
+  return Object.entries({
+    statsPeriod: coercedPeriod,
+    start: coercedPeriod ? null : start,
+    end: coercedPeriod ? null : end,
+    ...otherParams,
+  })
+    .filter(([key, value]) => defined(value))
+    .reduce(
+      (acc, [key, value]) => ({
+        ...acc,
+        [key]: value,
+      }),
+      {}
+    );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ProjectHeaderProjectSelector', function() {
   const testTeam = TestStubs.Team({
@@ -13,6 +14,7 @@ describe('ProjectHeaderProjectSelector', function() {
   const testProject = TestStubs.Project({
     id: 'test-project',
     slug: 'test-project',
+    isBookmarked: true,
     isMember: true,
     teams: [testTeam],
   });
@@ -36,8 +38,12 @@ describe('ProjectHeaderProjectSelector', function() {
 
   const openMenu = wrapper => wrapper.find('DropdownLabel').simulate('click');
 
+  beforeEach(function() {
+    ProjectsStore.loadInitialData(mockOrg.projects);
+  });
+
   it('renders with "Select a project" when no project is selected', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
@@ -46,7 +52,7 @@ describe('ProjectHeaderProjectSelector', function() {
   });
 
   it('has project label when project is selected', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
@@ -66,8 +72,8 @@ describe('ProjectHeaderProjectSelector', function() {
   });
 
   it('calls `router.push` when a project is selected', function() {
-    let routerMock = TestStubs.router();
-    let wrapper = mount(
+    const routerMock = TestStubs.router();
+    const wrapper = mount(
       <ProjectHeaderProjectSelector
         organization={mockOrg}
         projectId=""

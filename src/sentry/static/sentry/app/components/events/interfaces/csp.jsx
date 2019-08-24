@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
@@ -22,14 +22,13 @@ function getView(view, data) {
 
 export default class CspInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
 
   constructor(props) {
     super(props);
-    let {data} = props;
+    const {data} = props;
     // hide the report-uri since this is redundant and silly
     data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
 
@@ -46,10 +45,10 @@ export default class CspInterface extends React.Component {
   };
 
   render() {
-    let {view, data} = this.state;
-    let {group, event} = this.props;
+    const {view, data} = this.state;
+    const {event} = this.props;
 
-    let title = (
+    const title = (
       <div>
         <div className="btn-group">
           <a
@@ -75,18 +74,12 @@ export default class CspInterface extends React.Component {
       </div>
     );
 
-    let children = getView(view, data);
+    const children = getView(view, data);
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type="csp"
-        title={title}
-        wrapTitle={false}
-      >
+      <EventDataSection event={event} type="csp" title={title} wrapTitle={false}>
         {children}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

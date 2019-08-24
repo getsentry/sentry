@@ -1,10 +1,11 @@
-import {isString} from 'lodash';
+import {isEmpty, isString} from 'lodash';
 import * as Sentry from '@sentry/browser';
+import queryString from 'query-string';
 
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
-  return v.replace(/"/g, '\\"');
+  return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 // TODO(dcramer): support cookies
@@ -16,7 +17,7 @@ export function getCurlCommand(data) {
   }
 
   // TODO(benvinegar): just gzip? what about deflate?
-  let compressed = data.headers.find(
+  const compressed = data.headers.find(
     h => h[0] === 'Accept-Encoding' && h[1].indexOf('gzip') !== -1
   );
   if (compressed) {
@@ -24,11 +25,11 @@ export function getCurlCommand(data) {
   }
 
   // sort headers
-  let headers = data.headers.sort(function(a, b) {
+  const headers = data.headers.sort(function(a, b) {
     return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
   });
 
-  for (let header of headers) {
+  for (const header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
@@ -38,11 +39,14 @@ export function getCurlCommand(data) {
         result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
         break;
       case 'application/x-www-form-urlencoded':
-        result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
+        result += ' \\\n --data "' + escapeQuotes(queryString.stringify(data.data)) + '"';
         break;
+
       default:
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        } else if (Object.keys(data.data).length === 0) {
+          // Do nothing with empty object data.
         } else {
           Sentry.withScope(scope => {
             scope.setExtra('data', data);
@@ -52,14 +56,42 @@ export function getCurlCommand(data) {
     }
   }
 
-  result += ' \\\n "' + data.url;
+  result += ' \\\n "' + getFullUrl(data) + '"';
+  return result;
+}
 
-  if (defined(data.query) && data.query) {
-    result += '?' + data.query;
+export function stringifyQueryList(query) {
+  if (isString(query)) {
+    return query;
   }
 
-  result += '"';
-  return result;
+  const queryObj = {};
+  for (const kv of query) {
+    if (kv !== null && kv.length === 2) {
+      const [k, v] = kv;
+      if (v !== null) {
+        queryObj[k] = v;
+      }
+    }
+  }
+  return queryString.stringify(queryObj);
+}
+
+export function getFullUrl(data) {
+  let fullUrl = data && data.url;
+  if (!fullUrl) {
+    return fullUrl;
+  }
+
+  if (!isEmpty(data.query)) {
+    fullUrl += '?' + stringifyQueryList(data.query);
+  }
+
+  if (data.fragment) {
+    fullUrl += '#' + data.fragment;
+  }
+
+  return fullUrl;
 }
 
 /**
@@ -75,7 +107,7 @@ export function getCurlCommand(data) {
 export function objectToSortedTupleArray(obj) {
   return Object.keys(obj)
     .reduce((out, k) => {
-      let val = obj[k];
+      const val = obj[k];
       return out.concat(
         {}.toString.call(val) === '[object Array]'
           ? val.map(v => [k, v]) // key has multiple values (array)

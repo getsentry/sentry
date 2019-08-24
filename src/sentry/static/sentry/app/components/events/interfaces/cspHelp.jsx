@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
 
-/*eslint getsentry/jsx-needs-il8n:0*/
 // TODO: Not sure what we're going to do here re: translations. - Ben
 
 const help = {
@@ -144,7 +143,7 @@ function getLinkHref(key) {
 }
 
 function getLink(key) {
-  let href = getLinkHref(key);
+  const href = getLinkHref(key);
 
   return (
     <span>
@@ -162,8 +161,8 @@ class CSPHelp extends React.Component {
   };
 
   render() {
-    let {data} = this.props;
-    let key = data.effective_directive;
+    const {data} = this.props;
+    const key = data.effective_directive;
     return (
       <div>
         <h4>

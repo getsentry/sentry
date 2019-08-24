@@ -12,6 +12,7 @@ class RouteError extends React.Component {
      * Disable logging to Sentry
      */
     disableLogSentry: PropTypes.bool,
+    disableReport: PropTypes.bool,
     error: PropTypes.object.isRequired,
     routes: PropTypes.array,
   };
@@ -22,13 +23,18 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {disableLogSentry, routes, error} = this.props;
-    let {organization, project} = this.context;
+    let {error} = this.props;
+    const {disableLogSentry, disableReport, routes} = this.props;
+    const {organization, project} = this.context;
 
-    if (disableLogSentry) return;
-    if (!error) return;
+    if (disableLogSentry) {
+      return;
+    }
+    if (!error) {
+      return;
+    }
 
-    let route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes(routes);
     if (route) {
       error = new Error(error.message + `: ${route}`);
     }
@@ -43,7 +49,10 @@ class RouteError extends React.Component {
         scope.setExtra('projectFeatures', (project && project.features) || []);
         Sentry.captureException(error);
       });
-      Sentry.showReportDialog();
+
+      if (!disableReport) {
+        Sentry.showReportDialog();
+      }
     });
   }
 
@@ -68,13 +77,12 @@ class RouteError extends React.Component {
         </p>
         <p>If you're daring, you may want to try the following:</p>
         <ul>
-          {window &&
-            window.adblockSuspected && (
-              <li>
-                We detected something AdBlock-like. Try disabling it, as it's known to
-                cause issues.
-              </li>
-            )}
+          {window && window.adblockSuspected && (
+            <li>
+              We detected something AdBlock-like. Try disabling it, as it's known to cause
+              issues.
+            </li>
+          )}
           <li>
             Give it a few seconds and{' '}
             <a
@@ -83,7 +91,8 @@ class RouteError extends React.Component {
               }}
             >
               reload the page
-            </a>.
+            </a>
+            .
           </li>
           <li>
             If all else fails,{' '}

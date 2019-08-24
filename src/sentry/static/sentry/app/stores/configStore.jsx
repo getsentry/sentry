@@ -14,7 +14,7 @@ const ConfigStore = Reflux.createStore({
 
   set(key, value) {
     this.config[key] = value;
-    let out = {};
+    const out = {};
     out[key] = value;
     this.trigger(out);
   },
@@ -23,26 +23,35 @@ const ConfigStore = Reflux.createStore({
     return this.config;
   },
 
-  loadInitialData(config, languageOverride = null) {
+  loadInitialData(config) {
     config.features = new Set(config.features || []);
     this.config = config;
+
+    // Language code is passed from django
+    let languageCode = config.languageCode;
 
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
       config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
 
-      // Parse query string for `lang`
-      let queryString = qs.parse(window.location.search) || {};
+      let queryString = {};
 
-      // Priority:
-      // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
-      setLocale(
-        queryString.lang || config.user.options.language || languageOverride || 'en'
-      );
-    } else if (languageOverride) {
-      setLocale(languageOverride);
+      // Parse query string for `lang`
+      try {
+        queryString = qs.parse(window.location.search) || {};
+      } catch (err) {
+        // ignore if this fails to parse
+        // this can happen if we have an invalid query string
+        // e.g. unencoded "%"
+      }
+
+      languageCode = queryString.lang || config.user.options.language || languageCode;
     }
+
+    // Priority:
+    // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
+    setLocale(languageCode || 'en');
 
     this.trigger(config);
   },

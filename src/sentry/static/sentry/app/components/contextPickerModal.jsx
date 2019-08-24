@@ -65,9 +65,9 @@ class ContextPickerModal extends React.Component {
   constructor(props) {
     super(props);
 
-    let {needProject, latestContext} = props;
+    const {needProject, latestContext} = props;
 
-    let shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
+    const shouldHaveEmptyOrgSelector = !needProject || !latestContext.organization;
     this.state = {
       // Initialize loading to true if there is only 1 organization because component will immediately
       // attempt to fetch org details for that org. Otherwise we'd have to change state in `DidMount`
@@ -82,7 +82,7 @@ class ContextPickerModal extends React.Component {
   }
 
   componentDidMount() {
-    let {latestContext, organizations} = this.props;
+    const {latestContext, organizations} = this.props;
 
     // Don't make any assumptions if there are multiple organizations
     if (organizations.length !== 1) {
@@ -110,7 +110,7 @@ class ContextPickerModal extends React.Component {
   componentWillReceiveProps(nextProps) {
     // Should only check the case where there is no latestContext.organization and we're waiting
     // for it to be set (after fetch in DidMount)
-    let {latestContext} = this.props;
+    const {latestContext} = this.props;
     if (
       (!latestContext.organization &&
         latestContext.organization !== nextProps.latestContext.organization) ||
@@ -135,7 +135,7 @@ class ContextPickerModal extends React.Component {
     projects,
     latestOrg = this.props.latestContext && this.props.latestContext.organization
   ) => {
-    let {needProject, onFinish, nextPath} = this.props;
+    const {needProject, onFinish, nextPath} = this.props;
 
     // If no project is needed and theres only 1 org OR
     // if we need a project and there's only 1 project
@@ -173,7 +173,9 @@ class ContextPickerModal extends React.Component {
   };
 
   focusProjectSelector = () => {
-    if (!this.projectSelect || this.state.loading) return;
+    if (!this.projectSelect || this.state.loading) {
+      return;
+    }
 
     ReactDOM.findDOMNode(this.projectSelect)
       .querySelector('input')
@@ -181,7 +183,9 @@ class ContextPickerModal extends React.Component {
   };
 
   focusOrganizationSelector = () => {
-    if (!this.orgSelect || this.state.loading) return;
+    if (!this.orgSelect || this.state.loading) {
+      return;
+    }
 
     ReactDOM.findDOMNode(this.orgSelect)
       .querySelector('input')
@@ -190,7 +194,9 @@ class ContextPickerModal extends React.Component {
 
   handleSelectOrganization = ({value}) => {
     // Don't do anything if org value doesn't actually change
-    if (this.state.selectedOrganization === value) return;
+    if (this.state.selectedOrganization === value) {
+      return;
+    }
 
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
@@ -209,26 +215,31 @@ class ContextPickerModal extends React.Component {
   };
 
   handleSelectProject = ({value}) => {
-    let {latestContext} = this.props;
+    const {latestContext} = this.props;
 
-    if (!value || !latestContext.organization) return;
+    if (!value || !latestContext.organization) {
+      return;
+    }
 
     this.navigateIfFinish([latestContext.organization], [{slug: value}]);
   };
 
   render() {
-    let {latestContext, needOrg, needProject, organizations, Header, Body} = this.props;
-    let {loading} = this.state;
+    const {latestContext, needOrg, needProject, organizations, Header, Body} = this.props;
+    const {loading} = this.state;
 
-    let shouldShowPicker = needOrg || needProject;
+    const shouldShowPicker = needOrg || needProject;
 
-    let projects = latestContext.organization && latestContext.organization.projects;
+    const projects = latestContext.organization && latestContext.organization.projects;
 
-    if (!shouldShowPicker) return null;
+    if (!shouldShowPicker) {
+      return null;
+    }
 
-    let shouldShowProjectSelector = latestContext.organization && needProject && projects;
+    const shouldShowProjectSelector =
+      latestContext.organization && needProject && projects;
 
-    let orgChoices = organizations
+    const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
 
@@ -243,7 +254,9 @@ class ContextPickerModal extends React.Component {
               <StyledSelectControl
                 innerRef={ref => {
                   this.orgSelect = ref;
-                  if (shouldShowProjectSelector) return;
+                  if (shouldShowProjectSelector) {
+                    return;
+                  }
                   this.focusOrganizationSelector();
                 }}
                 placeholder="Select an Organization"
@@ -255,22 +268,20 @@ class ContextPickerModal extends React.Component {
               />
             )}
 
-            {latestContext.organization &&
-              needProject &&
-              projects && (
-                <StyledSelectControl
-                  innerRef={ref => {
-                    this.projectSelect = ref;
-                    this.focusProjectSelector();
-                  }}
-                  placeholder="Select a Project"
-                  name="project"
-                  value=""
-                  openOnFocus
-                  options={projects.map(({slug}) => ({label: slug, value: slug}))}
-                  onChange={this.handleSelectProject}
-                />
-              )}
+            {latestContext.organization && needProject && projects && (
+              <StyledSelectControl
+                innerRef={ref => {
+                  this.projectSelect = ref;
+                  this.focusProjectSelector();
+                }}
+                placeholder="Select a Project"
+                name="project"
+                value=""
+                openOnFocus
+                options={projects.map(({slug}) => ({label: slug, value: slug}))}
+                onChange={this.handleSelectProject}
+              />
+            )}
           </Body>
         </React.Fragment>
       </div>

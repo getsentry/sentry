@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
-import TextLink from 'app/components/textLink';
+import TextLink from 'app/components/links/textLink';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -39,29 +39,33 @@ class SettingsBreadcrumb extends React.Component {
   };
 
   componentDidUpdate(prevProps) {
-    if (this.props.routes === prevProps.routes) return;
+    if (this.props.routes === prevProps.routes) {
+      return;
+    }
     SettingsBreadcrumbActions.trimMappings(this.props.routes);
   }
 
   render() {
-    let {routes, params, pathMap} = this.props;
-    let lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
+    const {routes, params, pathMap} = this.props;
+    const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
     return (
       <Breadcrumbs>
         {routes.map((route, i) => {
-          if (!route.name) return null;
-          let pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
-          let isLast = i === lastRouteIndex;
-          let createMenu = MENUS[route.name];
-          let Menu = typeof createMenu === 'function' && createMenu;
-          let hasMenu = !!Menu;
-          let CrumbPicker = hasMenu
+          if (!route.name) {
+            return null;
+          }
+          const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
+          const isLast = i === lastRouteIndex;
+          const createMenu = MENUS[route.name];
+          const Menu = typeof createMenu === 'function' && createMenu;
+          const hasMenu = !!Menu;
+          const CrumbPicker = hasMenu
             ? Menu
             : () => (
                 <Crumb route={route} isLast={isLast}>
-                  <TextLink to={recreateRoute(route, {routes, params})}>
+                  <CrumbLink to={recreateRoute(route, {routes, params})}>
                     {pathTitle || route.name}{' '}
-                  </TextLink>
+                  </CrumbLink>
                   <Divider isLast={isLast} />
                 </Crumb>
               );
@@ -89,7 +93,18 @@ export default createReactClass({
   },
 });
 
-const Breadcrumbs = styled.div`
+const CrumbLink = styled(TextLink)`
+  display: block;
+
+  &.focus-visible {
+    outline: none;
+    box-shadow: ${p => p.theme.blue} 0 2px 0;
+  }
+`;
+
+export {CrumbLink};
+
+const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
 `;

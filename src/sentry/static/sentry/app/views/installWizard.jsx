@@ -6,7 +6,7 @@ import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ApiForm} from 'app/components/forms';
-import {getOptionField, getForm} from 'app/options';
+import {getOptionDefault, getOptionField, getForm} from 'app/options';
 
 export default class InstallWizard extends AsyncView {
   static propTypes = {
@@ -15,12 +15,12 @@ export default class InstallWizard extends AsyncView {
 
   componentWillMount() {
     super.componentWillMount();
-    jQuery(document.body).addClass('install-wizard');
+    document.body.classList.add('install-wizard');
   }
 
   componentWillUnmount() {
     super.componentWillUnmount();
-    jQuery(document.body).removeClass('install-wizard');
+    document.body.classList.remove('install-wizard');
   }
 
   getEndpoints() {
@@ -28,7 +28,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   renderFormFields() {
-    let options = this.state.data;
+    const options = this.state.data;
 
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
@@ -43,10 +43,10 @@ export default class InstallWizard extends AsyncView {
     }
 
     // A mapping of option name to Field object
-    let fields = {};
+    const fields = {};
 
-    for (let key of missingOptions) {
-      let option = options[key];
+    for (const key of missingOptions) {
+      const option = options[key];
       if (option.field.disabled) {
         continue;
       }
@@ -57,12 +57,28 @@ export default class InstallWizard extends AsyncView {
   }
 
   getInitialData() {
-    let options = this.state.data;
-    let data = {};
+    const options = this.state.data;
+    const data = {};
     Object.keys(options).forEach(optionName => {
-      let option = options[optionName];
-      if (!option.field.isSet) {
-        data[optionName] = option.value;
+      const option = options[optionName];
+      if (option.field.disabled) {
+        return;
+      }
+
+      // TODO(dcramer): we need to rethink this logic as doing multiple "is this value actually set"
+      // is problematic
+      // all values to their server-defaults (as client-side defaults dont really work)
+      const displayValue = option.value || getOptionDefault(optionName);
+      if (
+        // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
+        // vs using an implied default so effectively this is binding
+        optionName !== 'beacon.anonymous' &&
+        // XXX(byk): if we don't have a set value but have a default value filled
+        // instead, from the client, set it on the data so it is sent to the server
+        !option.field.isSet &&
+        displayValue !== undefined
+      ) {
+        data[optionName] = displayValue;
       }
     });
     return data;
@@ -73,7 +89,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   render() {
-    let version = ConfigStore.get('version');
+    const version = ConfigStore.get('version');
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
@@ -86,8 +102,8 @@ export default class InstallWizard extends AsyncView {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                ? this.renderError(new Error('Unable to load all required endpoints'))
-                : this.renderBody()}
+              ? this.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>

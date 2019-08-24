@@ -1,10 +1,3 @@
-"""
-sentry.utils.query
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import progressbar
@@ -18,7 +11,7 @@ from django.db.models.signals import pre_delete, pre_save, post_save, post_delet
 
 from sentry.utils import db
 
-_leaf_re = re.compile(r'^(Event|Group)(.+)')
+_leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
 class InvalidQuerySetError(ValueError):
@@ -33,10 +26,11 @@ class RangeQuerySetWrapper(object):
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__(self, queryset, step=1000, limit=None, min_id=None, order_by='pk', callbacks=()):
+    def __init__(self, queryset, step=1000, limit=None, min_id=None, order_by="pk", callbacks=()):
         # Support for slicing
-        if queryset.query.low_mark == 0 and not \
-                (queryset.query.order_by or queryset.query.extra_order_by):
+        if queryset.query.low_mark == 0 and not (
+            queryset.query.order_by or queryset.query.extra_order_by
+        ):
             if limit is None:
                 limit = queryset.query.high_mark
             queryset.query.clear_limits()
@@ -67,7 +61,7 @@ class RangeQuerySetWrapper(object):
 
         queryset = self.queryset
         if self.desc:
-            queryset = queryset.order_by('-%s' % self.order_by)
+            queryset = queryset.order_by("-%s" % self.order_by)
         else:
             queryset = queryset.order_by(self.order_by)
 
@@ -83,11 +77,11 @@ class RangeQuerySetWrapper(object):
             if cur_value is None:
                 results = queryset
             elif self.desc:
-                results = queryset.filter(**{'%s__lte' % self.order_by: cur_value})
+                results = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
             elif not self.desc:
-                results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
+                results = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
-            results = list(results[0:self.step])
+            results = list(results[0 : self.step])
 
             for cb in self.callbacks:
                 cb(results)
@@ -125,20 +119,20 @@ class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
 
 class WithProgressBar(object):
     def __init__(self, iterator, count=None, caption=None):
-        if count is None and hasattr(iterator, '__len__'):
+        if count is None and hasattr(iterator, "__len__"):
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = six.text_type(caption or u'Progress')
+        self.caption = six.text_type(caption or u"Progress")
 
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                '%s: ' % (self.caption, ),
+                "%s: " % (self.caption,),
                 progressbar.Percentage(),
-                ' ',
+                " ",
                 progressbar.Bar(),
-                ' ',
+                " ",
                 progressbar.ETA(),
             ]
             pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
@@ -167,7 +161,7 @@ class EverythingCollector(Collector):
         nullable=False,
         collect_related=True,
         source_attr=None,
-        reverse_dependency=False
+        reverse_dependency=False,
     ):
         new_objs = self.add(objs)
         if not new_objs:
@@ -190,7 +184,7 @@ class EverythingCollector(Collector):
                     source=model,
                     source_attr=ptr.rel.related_name,
                     collect_related=False,
-                    reverse_dependency=True
+                    reverse_dependency=True,
                 )
 
         if collect_related:
@@ -208,14 +202,11 @@ class EverythingCollector(Collector):
                 if not relation.rel.through:
                     sub_objs = relation.bulk_related_objects(new_objs, self.using)
                     self.collect(
-                        sub_objs,
-                        source=model,
-                        source_attr=relation.rel.related_name,
-                        nullable=True
+                        sub_objs, source=model, source_attr=relation.rel.related_name, nullable=True
                     )
 
 
-def merge_into(self, other, callback=lambda x: x, using='default'):
+def merge_into(self, other, callback=lambda x: x, using="default"):
     """
     Collects objects related to ``self`` and updates their foreign keys to
     point to ``other``.
@@ -237,8 +228,10 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
     for model, objects in six.iteritems(collector.data):
         # find all potential keys which match our type
         fields = set(
-            f.name for f in model._meta.fields
-            if isinstance(f, ForeignKey) and f.rel.to == s_model if f.rel.to
+            f.name
+            for f in model._meta.fields
+            if isinstance(f, ForeignKey) and f.rel.to == s_model
+            if f.rel.to
         )
         if not fields:
             # the collector pulls in the self reference, so if it's our model
@@ -246,7 +239,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             # perfectly ok
             if model == s_model:
                 continue
-            raise TypeError('Unable to determine related keys on %r' % model)
+            raise TypeError("Unable to determine related keys on %r" % model)
 
         for obj in objects:
             send_signals = not model._meta.auto_created
@@ -261,14 +254,9 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 # as before, if we're referencing ourself, this is ok
                 if obj == self:
                     continue
-                raise ValueError('Mismatched row present in related results')
+                raise ValueError("Mismatched row present in related results")
 
-            signal_kwargs = {
-                'sender': model,
-                'instance': obj,
-                'using': using,
-                'migrated': True,
-            }
+            signal_kwargs = {"sender": model, "instance": obj, "using": using, "migrated": True}
 
             if send_signals:
                 pre_delete.send(**signal_kwargs)
@@ -291,8 +279,9 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 post_save.send(created=True, **signal_kwargs)
 
 
-def bulk_delete_objects(model, limit=10000, transaction_id=None,
-                        logger=None, partition_key=None, **filters):
+def bulk_delete_objects(
+    model, limit=10000, transaction_id=None, logger=None, partition_key=None, **filters
+):
     connection = connections[router.db_for_write(model)]
     quote_name = connection.ops.quote_name
 
@@ -302,11 +291,11 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None,
 
     if partition_key:
         for column, value in partition_key.items():
-            partition_query.append('%s = %%s' % (quote_name(column), ))
+            partition_query.append("%s = %%s" % (quote_name(column),))
             params.append(value)
 
     for column, value in filters.items():
-        query.append('%s = %%s' % (quote_name(column), ))
+        query.append("%s = %%s" % (quote_name(column),))
         params.append(value)
 
     if db.is_postgres():
@@ -319,25 +308,14 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None,
                 limit %(limit)d
             ))
         """ % dict(
-            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
-            query=' AND '.join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    elif db.is_mysql():
-        query = """
-            delete from %(table)s
-            where %(partition_query)s (%(query)s)
-            limit %(limit)d
-        """ % dict(
-            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
-            query=' AND '.join(query),
+            partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
+            query=" AND ".join(query),
             table=model._meta.db_table,
             limit=limit,
         )
     else:
         if logger is not None:
-            logger.warning('Using slow deletion strategy due to unknown database')
+            logger.warning("Using slow deletion strategy due to unknown database")
         has_more = False
         for obj in model.objects.filter(**filters)[:limit]:
             obj.delete()
@@ -351,13 +329,10 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None,
 
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
-            'object.delete.bulk_executed',
+            "object.delete.bulk_executed",
             extra=dict(
-                filters.items() + [
-                    ('model', model.__name__),
-                    ('transaction_id', transaction_id),
-                ]
-            )
+                filters.items() + [("model", model.__name__), ("transaction_id", transaction_id)]
+            ),
         )
 
     return has_more

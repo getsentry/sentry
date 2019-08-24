@@ -22,7 +22,7 @@ export default class InputField extends React.Component {
   };
 
   render() {
-    let {className, field} = this.props;
+    const {className, field} = this.props;
 
     return (
       <FormField className={className} {...this.props}>

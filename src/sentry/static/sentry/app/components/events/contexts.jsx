@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
@@ -23,7 +23,7 @@ function getSourcePlugin(pluginContexts, contextType) {
   if (CONTEXT_TYPES[contextType]) {
     return null;
   }
-  for (let plugin of pluginContexts) {
+  for (const plugin of pluginContexts) {
     if (plugin.contexts.indexOf(contextType) >= 0) {
       return plugin;
     }
@@ -52,13 +52,25 @@ class ContextChunk extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
+    if (
+      prevProps.group.id !== this.props.group.id ||
+      prevProps.type !== this.props.type
+    ) {
       this.syncPlugin();
     }
   }
 
   syncPlugin = () => {
-    let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
+    const {group, type, alias} = this.props;
+
+    // Search using `alias` first because old plugins rely on it and type is set to "default"
+    // e.g. sessionstack
+    const sourcePlugin =
+      type === 'default'
+        ? getSourcePlugin(group.pluginContexts, alias) ||
+          getSourcePlugin(group.pluginContexts, type)
+        : getSourcePlugin(group.pluginContexts, type);
+
     if (!sourcePlugin) {
       this.setState({
         pluginLoading: false,
@@ -78,7 +90,7 @@ class ContextChunk extends React.Component {
   };
 
   renderTitle = component => {
-    let {value, alias, type} = this.props;
+    const {value, alias, type} = this.props;
     let title = null;
     if (defined(value.title)) {
       title = value.title;
@@ -105,10 +117,13 @@ class ContextChunk extends React.Component {
       return null;
     }
 
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {type, alias, value} = this.props;
-    let Component = getContextComponent(type);
+    const group = this.props.group;
+    const evt = this.props.event;
+    const {type, alias, value} = this.props;
+    const Component =
+      type === 'default'
+        ? getContextComponent(alias) || getContextComponent(type)
+        : getContextComponent(type);
 
     // this can happen if the component does not exist
     if (!Component) {
@@ -116,7 +131,7 @@ class ContextChunk extends React.Component {
     }
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         group={group}
         event={evt}
         key={`context-${alias}`}
@@ -124,7 +139,7 @@ class ContextChunk extends React.Component {
         title={this.renderTitle(Component)}
       >
         <Component alias={alias} data={value} />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }
@@ -136,9 +151,9 @@ class ContextsInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let children = [];
+    const group = this.props.group;
+    const evt = this.props.event;
+    const children = [];
     if (!objectIsEmpty(evt.user)) {
       children.push(
         <ContextChunk
@@ -153,7 +168,7 @@ class ContextsInterface extends React.Component {
     }
 
     let value = null;
-    for (let key in evt.contexts) {
+    for (const key in evt.contexts) {
       value = evt.contexts[key];
       children.push(
         <ContextChunk

@@ -20,7 +20,7 @@ class OrganizationApiKeys extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} API Keys`;
   }
 

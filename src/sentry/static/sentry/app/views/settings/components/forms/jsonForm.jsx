@@ -1,11 +1,13 @@
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 import scrollToElement from 'scroll-to-element';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {defined} from 'app/utils';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
 class JsonForm extends React.Component {
   static propTypes = {
@@ -66,7 +68,7 @@ class JsonForm extends React.Component {
 
   componentWillReceiveProps(nextProps, e) {
     if (this.getLocation(this.props).hash !== this.getLocation(nextProps).hash) {
-      let hash = this.getLocation(nextProps).hash;
+      const hash = this.getLocation(nextProps).hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});
     }
@@ -77,18 +79,27 @@ class JsonForm extends React.Component {
   };
 
   scrollToHash(toHash) {
-    let hash = toHash || this.getLocation(this.props).hash;
+    const hash = toHash || this.getLocation(this.props).hash;
 
-    if (!hash) return;
+    if (!hash) {
+      return;
+    }
 
     // Push onto callback queue so it runs after the DOM is updated,
     // this is required when navigating from a different page so that
     // the element is rendered on the page before trying to getElementById.
-    scrollToElement(hash, {align: 'middle', offset: -100});
+    try {
+      scrollToElement(sanitizeQuerySelector(decodeURIComponent(hash)), {
+        align: 'middle',
+        offset: -100,
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+    }
   }
 
   render() {
-    let {
+    const {
       forms,
       title,
       fields,
@@ -104,8 +115,8 @@ class JsonForm extends React.Component {
       ...otherProps
     } = this.props;
 
-    let hasFormGroups = defined(forms);
-    let formPanelProps = {
+    const hasFormGroups = defined(forms);
+    const formPanelProps = {
       access,
       disabled,
       features,
@@ -172,7 +183,7 @@ class FormPanel extends React.Component {
   };
 
   render() {
-    let {
+    const {
       title,
       fields,
       access,
@@ -184,11 +195,11 @@ class FormPanel extends React.Component {
       location,
       ...otherProps
     } = this.props;
-    let shouldRenderFooter = typeof renderFooter === 'function';
-    let shouldRenderHeader = typeof renderHeader === 'function';
+    const shouldRenderFooter = typeof renderFooter === 'function';
+    const shouldRenderHeader = typeof renderHeader === 'function';
 
     return (
-      <Panel key={title} id={title}>
+      <Panel key={title} id={sanitizeQuerySelector(title)}>
         <PanelHeader>{title}</PanelHeader>
         <PanelBody>
           {shouldRenderHeader && renderHeader({title, fields})}
@@ -199,7 +210,7 @@ class FormPanel extends React.Component {
             }
 
             // eslint-disable-next-line no-unused-vars
-            let {defaultValue, ...fieldWithoutDefaultValue} = field;
+            const {defaultValue, ...fieldWithoutDefaultValue} = field;
 
             // Allow the form panel disabled prop to override the fields
             // disabled prop, with fallback to the fields disabled state.

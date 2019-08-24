@@ -25,16 +25,18 @@ export default class PercentageAreaChart extends React.Component {
     return {
       getDataItemName: ({name}) => name,
       getValue: ({name, value}, total) =>
-        !total ? 0 : Math.round(value / total * 1000) / 10,
+        !total ? 0 : Math.round((value / total) * 1000) / 10,
     };
   }
 
   getSeries() {
-    let {series, getDataItemName, getValue} = this.props;
+    const {series, getDataItemName, getValue} = this.props;
 
-    const totalsArray = series[0].data.map(({name, value}, i) => {
-      return [name, series.reduce((sum, {data}) => sum + data[i].value, 0)];
-    });
+    const totalsArray = series.length
+      ? series[0].data.map(({name, value}, i) => {
+          return [name, series.reduce((sum, {data}) => sum + data[i].value, 0)];
+        })
+      : [];
     const totals = new Map(totalsArray);
     return [
       ...series.map(({seriesName, data}) =>
@@ -62,11 +64,14 @@ export default class PercentageAreaChart extends React.Component {
           // Make sure tooltip is inside of chart (because of overflow: hidden)
           confine: true,
           formatter: seriesParams => {
+            // `seriesParams` can be an array or an object :/
+            const series = Array.isArray(seriesParams) ? seriesParams : [seriesParams];
+
             // Filter series that have 0 counts
             const date =
-              `${seriesParams.length &&
-                moment(seriesParams[0].axisValue).format('MMM D, YYYY')}<br />` || '';
-            return `${date} ${seriesParams
+              `${series.length &&
+                moment(series[0].axisValue).format('MMM D, YYYY')}<br />` || '';
+            return `${date} ${series
               .filter(
                 ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
               )

@@ -10,7 +10,7 @@ class AppContextType extends React.Component {
   };
 
   render() {
-    let {
+    const {
       app_id,
       app_start_time,
       device_app_hash,
@@ -40,8 +40,6 @@ class AppContextType extends React.Component {
   }
 }
 
-AppContextType.getTitle = function(value) {
-  return 'App';
-};
+AppContextType.getTitle = () => 'App';
 
 export default AppContextType;

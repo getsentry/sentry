@@ -2,13 +2,14 @@ import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
-import Link from 'app/components/link';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -23,10 +24,10 @@ class OrganizationApiKeysList extends React.Component {
   };
 
   render() {
-    let {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
-    let hasKeys = keys && keys.length;
+    const {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
+    const hasKeys = keys && keys.length;
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -57,7 +58,7 @@ class OrganizationApiKeysList extends React.Component {
           {tct(
             'psst. Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
             {
-              tokens: <Link to="/api/" />,
+              tokens: <Link to="/settings/account/api/auth-tokens/" />,
             }
           )}
         </div>
@@ -85,7 +86,7 @@ class OrganizationApiKeysList extends React.Component {
 
             {keys &&
               keys.map(({id, key, label}) => {
-                let apiDetailsUrl = recreateRoute(`${id}/`, {
+                const apiDetailsUrl = recreateRoute(`${id}/`, {
                   params,
                   routes,
                 });
@@ -97,7 +98,9 @@ class OrganizationApiKeysList extends React.Component {
                         <Link to={apiDetailsUrl}>{label}</Link>
                       </Box>
                       <Box px={2} flex="2">
-                        <div className="form-control disabled auto-select">{key}</div>
+                        <AutoSelectText className="form-control disabled">
+                          {key}
+                        </AutoSelectText>
                       </Box>
                     </Flex>
 

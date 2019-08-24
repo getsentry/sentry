@@ -4,7 +4,7 @@ import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
@@ -13,48 +13,54 @@ describe('Tooltip', function() {
   });
 
   it('updates title', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <Tooltip title="test">
         <span>My Button</span>
-      </Tooltip>
+      </Tooltip>,
+      TestStubs.routerContext()
     );
 
     wrapper.setProps({title: 'bar'});
-    let tip = wrapper.find('.tip');
-    expect(tip.props().title).toBe('bar');
-    wrapper.setProps({title: 'baz'});
-    tip = wrapper.find('.tip');
-    expect(tip.props().title).toBe('baz');
+    wrapper.update();
+    const trigger = wrapper.find('span');
+    trigger.simulate('mouseEnter');
+
+    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
+    // Check the text node.
+    expect(tooltip.childNodes[0].nodeValue).toEqual('bar');
+
+    trigger.simulate('mouseLeave');
   });
 
-  it('disables and re-enables', function() {
-    let wrapper = mount(
-      <Tooltip title="test">
+  it('disables and does not render', function() {
+    const wrapper = mount(
+      <Tooltip title="test" disabled>
         <span>My Button</span>
-      </Tooltip>
+      </Tooltip>,
+      TestStubs.routerContext()
     );
+    const trigger = wrapper.find('span');
+    trigger.simulate('mouseEnter');
 
-    wrapper.setProps({disabled: true});
-    let tip = wrapper.find('span');
+    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
+    expect(tooltip).toBeFalsy();
 
-    expect(tip.props().title).toBeUndefined();
-    wrapper.setProps({disabled: false});
-
-    tip = wrapper.find('.tip');
-    expect(tip.props().title).toBe('test');
+    trigger.simulate('mouseLeave');
   });
 
-  it('simultaneous enable and text change', function() {
-    let wrapper = mount(
-      <Tooltip title="test">
+  it('does not render an empty tooltip', function() {
+    const wrapper = mount(
+      <Tooltip title="">
         <span>My Button</span>
-      </Tooltip>
+      </Tooltip>,
+      TestStubs.routerContext()
     );
+    const trigger = wrapper.find('span');
+    trigger.simulate('mouseEnter');
 
-    wrapper.setProps({disabled: true, title: 'bar'});
-    let tip = wrapper.find('span');
+    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
+    expect(tooltip).toBeFalsy();
 
-    expect(tip.props().title).toBeUndefined();
-    wrapper.setProps({disabled: false});
+    trigger.simulate('mouseLeave');
   });
 });

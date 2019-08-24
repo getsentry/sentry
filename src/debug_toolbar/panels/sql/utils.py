@@ -16,26 +16,26 @@ class BoldKeywordFilter:
         for token_type, value in stream:
             is_keyword = token_type in T.Keyword
             if is_keyword:
-                yield T.Text, '<strong>'
+                yield T.Text, "<strong>"
             yield token_type, escape(value)
             if is_keyword:
-                yield T.Text, '</strong>'
+                yield T.Text, "</strong>"
 
 
 def reformat_sql(sql):
     stack = sqlparse.engine.FilterStack()
     stack.preprocess.append(BoldKeywordFilter())  # add our custom filter
     stack.postprocess.append(sqlparse.filters.SerializerUnicode())  # tokens -> strings
-    return swap_fields(''.join(stack.run(sql)))
+    return swap_fields("".join(stack.run(sql)))
 
 
 def swap_fields(sql):
-    expr = r'SELECT</strong> (...........*?) <strong>FROM'
+    expr = r"SELECT</strong> (...........*?) <strong>FROM"
     subs = (
-        r'SELECT</strong> '
+        r"SELECT</strong> "
         r'<a class="djDebugUncollapsed djDebugToggle" href="#">&#8226;&#8226;&#8226;</a> '
         r'<a class="djDebugCollapsed djDebugToggle" href="#">\1</a> '
-        r'<strong>FROM'
+        r"<strong>FROM"
     )
     return re.sub(expr, subs, sql)
 
@@ -47,7 +47,7 @@ def contrasting_color_generator():
     """
 
     def rgb_to_hex(rgb):
-        return '#%02x%02x%02x' % tuple(rgb)
+        return "#%02x%02x%02x" % tuple(rgb)
 
     triples = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
     n = 1 << 7

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
@@ -9,10 +9,15 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 
 class ExceptionInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
+    hideGuide: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    hideGuide: false,
   };
 
   constructor(...args) {
@@ -29,12 +34,8 @@ class ExceptionInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let event = this.props.event;
-    let data = this.props.data;
-    let stackView = this.state.stackView;
-    let stackType = this.state.stackType;
-    let newestFirst = this.state.newestFirst;
+    const {projectId, event, data, hideGuide, type} = this.props;
+    const {stackView, stackType, newestFirst} = this.state;
 
     // in case there are threads in the event data, we don't render the
     // exception block.  Instead the exception is contained within the
@@ -43,15 +44,15 @@ class ExceptionInterface extends React.Component {
       return null;
     }
 
-    let title = (
+    const title = (
       <CrashHeader
-        group={group}
         title={t('Exception')}
         platform={event.platform}
         exception={data}
         stackView={stackView}
         newestFirst={newestFirst}
         stackType={stackType}
+        hideGuide={hideGuide}
         onChange={newState => {
           this.setState(newState);
         }}
@@ -59,22 +60,16 @@ class ExceptionInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type={this.props.type}
-        title={title}
-        wrapTitle={false}
-      >
+      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
         <CrashContent
-          group={group}
+          projectId={projectId}
           event={event}
           stackType={stackType}
           stackView={stackView}
           newestFirst={newestFirst}
           exception={data}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

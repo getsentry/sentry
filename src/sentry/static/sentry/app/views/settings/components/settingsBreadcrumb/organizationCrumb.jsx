@@ -7,9 +7,11 @@ import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import TextLink from 'app/components/textLink';
+import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import recreateRoute from 'app/utils/recreateRoute';
 import withLatestContext from 'app/utils/withLatestContext';
+
+import {CrumbLink} from '.';
 
 class OrganizationCrumb extends React.Component {
   static propTypes = {
@@ -19,17 +21,46 @@ class OrganizationCrumb extends React.Component {
     route: PropTypes.object,
   };
 
+  handleSelect = item => {
+    const {params, routes, route} = this.props;
+    // If we are currently in a project context, and we're attempting to switch organizations,
+    // then we need to default to index route (e.g. `route`)
+    //
+    // Otherwise, find the last route without a router param
+    // e.g. if you are on API details, we want the API listing
+    // This fails if our route tree is not nested
+    const hasProjectParam = !!params.projectId;
+    let destination = hasProjectParam
+      ? route
+      : findFirstRouteWithoutRouteParam(routes.slice(routes.indexOf(route)));
+
+    // It's possible there is no route without route params (e.g. organization settings index),
+    // in which case, we can use the org settings index route (e.g. `route`)
+    if (!hasProjectParam && typeof destination === 'undefined') {
+      destination = route;
+    }
+
+    browserHistory.push(
+      recreateRoute(destination, {
+        routes,
+        params: {...params, orgId: item.value},
+      })
+    );
+  };
+
   render() {
-    let {organizations, organization, params, routes, route, ...props} = this.props;
+    const {organizations, organization, params, routes, route, ...props} = this.props;
 
-    if (!organization) return null;
+    if (!organization) {
+      return null;
+    }
 
-    let hasMenu = organizations.length > 1;
+    const hasMenu = organizations.length > 1;
 
     return (
       <BreadcrumbDropdown
         name={
-          <TextLink
+          <CrumbLink
             to={recreateRoute(route, {
               routes,
               params: {...params, orgId: organization.slug},
@@ -38,22 +69,9 @@ class OrganizationCrumb extends React.Component {
             <Flex align="center">
               <IdBadge avatarSize={18} organization={organization} />
             </Flex>
-          </TextLink>
+          </CrumbLink>
         }
-        onSelect={item => {
-          // If we are currently in a project context, and we're attempting to switch organizations,
-          // then we need to default to index route (e.g. `route`)
-          //
-          // Otherwise, using empty string ('') will keep the current route path but with target org
-          let hasProjectParam = !!params.projectId;
-          let destination = hasProjectParam ? route : '';
-          browserHistory.push(
-            recreateRoute(destination, {
-              routes,
-              params: {...params, orgId: item.value},
-            })
-          );
-        }}
+        onSelect={this.handleSelect}
         hasMenu={hasMenu}
         route={route}
         items={organizations.map(org => ({

@@ -1,22 +1,16 @@
-"""
-sentry.quotas.base
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import six
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry import options
 from sentry.utils.services import Service
 
 
 class RateLimit(object):
-    __slots__ = ['is_limited', 'retry_after', 'reason', 'reason_code']
+    __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
 
     def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
         self.is_limited = is_limited
@@ -26,6 +20,22 @@ class RateLimit(object):
         self.reason = reason
         # machine readable description
         self.reason_code = reason_code
+
+    def to_dict(self):
+        """
+        Converts the object into a plain dictionary
+        :return: a dict containing the non None elm of the RateLimit
+
+        >>> x = RateLimit(is_limited = False, retry_after = 33)
+        >>> x.to_dict() == {'is_limited': False, 'retry_after': 33}
+        True
+
+        """
+        return {
+            name: getattr(self, name, None)
+            for name in self.__slots__
+            if getattr(self, name, None) is not None
+        }
 
 
 class NotRateLimited(RateLimit):
@@ -44,9 +54,16 @@ class Quota(Service):
     respond whether or not a project has been configured to throttle incoming
     events if they go beyond the specified quota.
     """
+
     __all__ = (
-        'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
-        'translate_quota', 'validate', 'refund', 'get_event_retention',
+        "get_maximum_quota",
+        "get_organization_quota",
+        "get_project_quota",
+        "is_rate_limited",
+        "translate_quota",
+        "validate",
+        "refund",
+        "get_event_retention",
     )
 
     def __init__(self, **options):
@@ -62,7 +79,7 @@ class Quota(Service):
         return 0
 
     def translate_quota(self, quota, parent_quota):
-        if six.text_type(quota).endswith('%'):
+        if six.text_type(quota).endswith("%"):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:
@@ -72,29 +89,34 @@ class Quota(Service):
     def get_key_quota(self, key):
         from sentry import features
 
-        if features.has('projects:rate-limits', key.project):
-            return key.rate_limit
-        return (0, 0)
+        # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
+        # expensive depending on feature handlers) for project rate limits.
+        # This happens on /store.
+        cache_key = u"project:{}:features:rate-limits".format(key.project.id)
+
+        has_rate_limits = cache.get(cache_key)
+        if has_rate_limits is None:
+            has_rate_limits = features.has("projects:rate-limits", key.project)
+            cache.set(cache_key, has_rate_limits, 600)
+
+        return key.rate_limit if has_rate_limits else (0, 0)
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
 
-        org = getattr(project, '_organization_cache', None)
+        org = getattr(project, "_organization_cache", None)
         if not org:
             org = Organization.objects.get_from_cache(id=project.organization_id)
             project._organization_cache = org
 
         max_quota_share = int(
-            OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit', 100)
+            OrganizationOption.objects.get_value(org, "sentry:project-rate-limit", 100)
         )
 
         org_quota, window = self.get_organization_quota(org)
 
         if max_quota_share != 100 and org_quota:
-            quota = self.translate_quota(
-                u'{}%'.format(max_quota_share),
-                org_quota,
-            )
+            quota = self.translate_quota(u"{}%".format(max_quota_share), org_quota)
         else:
             quota = 0
 
@@ -105,13 +127,11 @@ class Quota(Service):
 
         account_limit = int(
             OrganizationOption.objects.get_value(
-                organization=organization,
-                key='sentry:account-rate-limit',
-                default=0,
+                organization=organization, key="sentry:account-rate-limit", default=0
             )
         )
 
-        system_limit = options.get('system.rate-limit')
+        system_limit = options.get("system.rate-limit")
 
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
@@ -123,17 +143,15 @@ class Quota(Service):
             return (account_limit, 3600)
 
         return (
-            self.translate_quota(
-                settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-                system_limit,
-            ), 60
+            self.translate_quota(settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit),
+            60,
         )
 
     def get_maximum_quota(self, organization):
         """
         Return the maximum capable rate for an organization.
         """
-        return (options.get('system.rate-limit'), 60)
+        return (options.get("system.rate-limit"), 60)
 
     def get_event_retention(self, organization):
-        return options.get('system.event-retention-days') or None
+        return options.get("system.event-retention-days") or None

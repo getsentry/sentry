@@ -8,7 +8,7 @@ export function GitHubRepositoryProvider(params = {}) {
         label: 'Repository Name',
         type: 'text',
         placeholder: 'e.g. getsentry/sentry',
-        help: 'Enter your repository name, including the owner.',
+        help: 'Enter your repository name, in the form <github-org/repo-name>.',
         required: true,
       },
     ],

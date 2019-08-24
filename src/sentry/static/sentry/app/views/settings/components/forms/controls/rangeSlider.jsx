@@ -3,6 +3,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Input from 'app/views/settings/components/forms/controls/input';
+import space from 'app/styles/space';
 
 class RangeSlider extends React.Component {
   static propTypes = {
@@ -40,6 +42,14 @@ class RangeSlider extends React.Component {
     allowedValues: PropTypes.arrayOf(PropTypes.number),
 
     /**
+     * Show custom input
+     */
+    showCustomInput: PropTypes.bool,
+
+    // Placeholder for custom input
+    placeholder: PropTypes.string,
+
+    /**
      * This is called when *any* MouseUp or KeyUp event happens.
      * Used for "smart" Fields to trigger a "blur" event. `onChange` can
      * be triggered quite frequently
@@ -50,7 +60,7 @@ class RangeSlider extends React.Component {
   constructor(props) {
     super(props);
 
-    let state = {sliderValue: props.value};
+    const state = {sliderValue: props.value};
     if (props.allowedValues) {
       // With `allowedValues` sliderValue will be the index to value in `allowedValues`
       // This is so we can snap the rangeSlider using `step`
@@ -67,7 +77,7 @@ class RangeSlider extends React.Component {
   componentWillReceiveProps(nextProps) {
     // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
     if (typeof nextProps.value !== 'undefined') {
-      let {allowedValues} = this.props;
+      const {allowedValues} = this.props;
       let sliderValue = nextProps.value;
 
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
@@ -79,7 +89,7 @@ class RangeSlider extends React.Component {
   }
 
   getActualValue = sliderValue => {
-    let {allowedValues} = this.props;
+    const {allowedValues} = this.props;
     let value;
 
     if (allowedValues) {
@@ -92,29 +102,53 @@ class RangeSlider extends React.Component {
     return value;
   };
 
-  handleInput = e => {
-    let sliderValue = parseInt(e.target.value, 10);
-
+  setValue = value => {
     this.setState({
-      sliderValue,
+      sliderValue: value,
     });
+  };
 
+  changeValue = (value, e) => {
     if (this.props.onChange) {
-      let value = this.getActualValue(sliderValue);
-      this.props.onChange(value, e);
+      this.props.onChange(this.getActualValue(value), e);
     }
   };
 
+  handleInput = e => {
+    const sliderValue = parseInt(e.target.value, 10);
+    this.setValue(sliderValue);
+    this.changeValue(sliderValue, e);
+  };
+
   handleBlur = e => {
-    let {onBlur} = this.props;
-    if (typeof onBlur !== 'function') return;
+    const {onBlur} = this.props;
+    if (typeof onBlur !== 'function') {
+      return;
+    }
 
     onBlur(e);
   };
 
+  handleCustomInputChange = e => {
+    const value = parseInt(e.target.value, 10);
+    this.setValue(isNaN(value) ? 0 : value);
+  };
+
+  handleCustomInputBlur = e => {
+    this.handleInput(e);
+  };
+
   render() {
-    let {name, min, max, step, disabled, allowedValues, formatLabel} = this.props;
-    let {sliderValue} = this.state;
+    let {min, max, step} = this.props;
+    const {
+      name,
+      disabled,
+      allowedValues,
+      formatLabel,
+      placeholder,
+      showCustomInput,
+    } = this.props;
+    const {sliderValue} = this.state;
     let actualValue = sliderValue;
     let displayValue = actualValue;
 
@@ -132,20 +166,31 @@ class RangeSlider extends React.Component {
 
     return (
       <div>
-        <Label for={name}>{displayValue}</Label>
-        <Slider
-          type="range"
-          name={name}
-          min={min}
-          max={max}
-          step={step}
-          disabled={disabled}
-          onInput={this.handleInput}
-          onChange={() => {}}
-          onMouseUp={this.handleBlur}
-          onKeyUp={this.handleBlur}
-          value={sliderValue}
-        />
+        {!showCustomInput && <Label htmlFor={name}>{displayValue}</Label>}
+        <SliderAndInputWrapper showCustomInput={showCustomInput}>
+          <Slider
+            type="range"
+            name={name}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            onInput={this.handleInput}
+            onChange={() => {}}
+            onMouseUp={this.handleBlur}
+            onKeyUp={this.handleBlur}
+            value={sliderValue}
+            hasLabel={!showCustomInput}
+          />
+          {showCustomInput && (
+            <Input
+              placeholder={placeholder}
+              value={sliderValue}
+              onChange={this.handleCustomInputChange}
+              onBlur={this.handleCustomInputBlur}
+            />
+          )}
+        </SliderAndInputWrapper>
       </div>
     );
   }
@@ -153,11 +198,11 @@ class RangeSlider extends React.Component {
 
 export default RangeSlider;
 
-const Slider = styled.input`
+const Slider = styled('input')`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
-  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * 2}px;
+  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * (p.hasLabel ? 2 : 1)}px;
 
   &::-webkit-slider-runnable-track {
     width: 100%;
@@ -283,8 +328,16 @@ const Slider = styled.input`
   }
 `;
 
-const Label = styled.label`
+const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
   color: ${p => p.theme.gray3};
+`;
+
+const SliderAndInputWrapper = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
+  grid-gap: ${space(1)};
 `;

@@ -2,10 +2,14 @@ import * as Sentry from '@sentry/browser';
 
 export default function handleXhrErrorResponse(message) {
   return resp => {
-    if (!resp) return;
-    if (!resp.responseJSON) return;
+    if (!resp) {
+      return;
+    }
+    if (!resp.responseJSON) {
+      return;
+    }
 
-    let {responseJSON} = resp;
+    const {responseJSON} = resp;
 
     // If this is a string then just capture it as error
     if (typeof responseJSON.detail === 'string') {
@@ -18,9 +22,11 @@ export default function handleXhrErrorResponse(message) {
     }
 
     // Ignore sudo-required errors
-    if (responseJSON.detail.code === 'sudo-required') return;
+    if (responseJSON.detail && responseJSON.detail.code === 'sudo-required') {
+      return;
+    }
 
-    if (typeof responseJSON.detail.message === 'string') {
+    if (responseJSON.detail && typeof responseJSON.detail.message === 'string') {
       Sentry.withScope(scope => {
         scope.setExtra('status', resp.status);
         scope.setExtra('detail', responseJSON.detail);

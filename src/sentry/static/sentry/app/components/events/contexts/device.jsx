@@ -1,7 +1,9 @@
+import {isString} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
+import DeviceName from 'app/components/deviceName';
 import {defined, formatBytes} from 'app/utils';
 
 class DeviceContextType extends React.Component {
@@ -21,8 +23,9 @@ class DeviceContextType extends React.Component {
     }
 
     let memory = `Total: ${formatBytes(memory_size)} / Free: ${formatBytes(free_memory)}`;
-    if (Number.isInteger(usable_memory) && usable_memory > 0)
+    if (Number.isInteger(usable_memory) && usable_memory > 0) {
       memory += ` / Usable: ${formatBytes(usable_memory)}`;
+    }
 
     return memory;
   };
@@ -33,27 +36,31 @@ class DeviceContextType extends React.Component {
     external_storage_size,
     external_free_storage
   ) => {
-    if (!Number.isInteger(storage_size) || storage_size <= 0) return null;
+    if (!Number.isInteger(storage_size) || storage_size <= 0) {
+      return null;
+    }
 
     let storage = `Total: ${formatBytes(storage_size)}`;
-    if (Number.isInteger(free_storage) && free_storage > 0)
+    if (Number.isInteger(free_storage) && free_storage > 0) {
       storage += ` / Free: ${formatBytes(free_storage)}`;
+    }
 
     if (
       Number.isInteger(external_storage_size) &&
       external_storage_size > 0 &&
       Number.isInteger(external_free_storage) &&
       external_free_storage > 0
-    )
+    ) {
       storage += ` (External Total: ${formatBytes(
         external_storage_size
       )} / Free: ${formatBytes(external_free_storage)})`;
+    }
 
     return storage;
   };
 
   render() {
-    let {
+    const {
       name,
       family,
       model,
@@ -76,20 +83,25 @@ class DeviceContextType extends React.Component {
       device_type,
       ...data
     } = this.props.data;
-    let memory = this.formatMemory(memory_size, free_memory, usable_memory);
-    let storage = this.formatStorage(
+    const memory = this.formatMemory(memory_size, free_memory, usable_memory);
+    const storage = this.formatStorage(
       storage_size,
       free_storage,
       external_storage_size,
       external_free_storage
     );
+
+    const renderedModel = isString(model) ? (
+      <DeviceName>{model + (model_id ? ` (${model_id})` : '')}</DeviceName>
+    ) : null;
+
     return (
       <ContextBlock
         data={data}
         knownData={[
           ['?Name', name],
           ['?Family', family],
-          ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?Model', renderedModel],
           ['?CPU Description', cpu_description],
           ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
@@ -108,8 +120,6 @@ class DeviceContextType extends React.Component {
   }
 }
 
-DeviceContextType.getTitle = function(value) {
-  return 'Device';
-};
+DeviceContextType.getTitle = () => 'Device';
 
 export default DeviceContextType;

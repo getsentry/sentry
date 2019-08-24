@@ -1,10 +1,10 @@
+import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EventEntries from 'app/components/events/eventEntries';
 import Footer from 'app/components/footer';
 import LoadingError from 'app/components/loadingError';
@@ -16,11 +16,13 @@ import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 const SharedGroupDetails = createReactClass({
   displayName: 'SharedGroupDetails',
 
+  propTypes: {
+    api: PropTypes.object,
+  },
+
   childContextTypes: {
     group: SentryTypes.Group,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -38,15 +40,17 @@ const SharedGroupDetails = createReactClass({
 
   componentWillMount() {
     this.fetchData();
-    jQuery(document.body).addClass('shared-group');
+    document.body.classList.add('shared-group');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('shared-group');
+    document.body.classList.remove('shared-group');
   },
 
   getTitle() {
-    if (this.state.group) return this.state.group.title;
+    if (this.state.group) {
+      return this.state.group.title;
+    }
     return 'Sentry';
   },
 
@@ -56,7 +60,7 @@ const SharedGroupDetails = createReactClass({
       error: false,
     });
 
-    this.api.request(this.getGroupDetailsEndpoint(), {
+    this.props.api.request(this.getGroupDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
@@ -73,23 +77,27 @@ const SharedGroupDetails = createReactClass({
   },
 
   getGroupDetailsEndpoint() {
-    let id = this.props.params.shareId;
+    const id = this.props.params.shareId;
 
     return '/shared/issues/' + id + '/';
   },
 
   render() {
-    let group = this.state.group;
+    const group = this.state.group;
 
     if (this.state.loading) {
       return <LoadingIndicator />;
-    } else if (!group) {
+    }
+
+    if (!group) {
       return <NotFound />;
-    } else if (this.state.error) {
+    }
+
+    if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    let evt = this.state.group.latestEvent;
+    const evt = this.state.group.latestEvent;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -132,4 +140,6 @@ const SharedGroupDetails = createReactClass({
   },
 });
 
-export default SharedGroupDetails;
+export {SharedGroupDetails};
+
+export default withApi(SharedGroupDetails);

@@ -9,7 +9,7 @@ import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
@@ -90,8 +90,8 @@ class FineTuningFooter extends React.Component {
   };
 
   render() {
-    let {path, text} = this.props;
-    let baseUrl = '/settings/account/notifications/';
+    const {path, text} = this.props;
+    const baseUrl = '/settings/account/notifications/';
 
     return (
       <PanelFooter css={{borderTop: 'none'}}>

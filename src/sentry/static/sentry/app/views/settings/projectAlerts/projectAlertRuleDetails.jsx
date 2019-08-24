@@ -11,14 +11,14 @@ class ProjectAlertRuleDetails extends AsyncView {
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return [['configs', `/projects/${orgId}/${projectId}/rules/configuration/`]];
   }
 
   renderBody() {
-    let {organization, project} = this.context;
-    let {actions, conditions} = this.state.configs;
+    const {organization, project} = this.context;
+    const {actions, conditions} = this.state.configs;
 
     return (
       <RuleEditor

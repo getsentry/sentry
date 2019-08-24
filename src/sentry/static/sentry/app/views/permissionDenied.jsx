@@ -5,7 +5,7 @@ import React from 'react';
 import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
@@ -22,10 +22,10 @@ class PermissionDenied extends React.Component {
   };
 
   componentDidMount() {
-    let {routes} = this.props;
-    let {organization, project} = this.context;
+    const {routes} = this.props;
+    const {organization, project} = this.context;
 
-    let route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes(routes);
     Sentry.withScope(scope => {
       scope.setFingerprint([ERROR_NAME, route]);
       scope.setExtra('route', route);

@@ -23,7 +23,7 @@ class PasswordForm extends React.Component {
   };
 
   render() {
-    let user = ConfigStore.get('user');
+    const user = ConfigStore.get('user');
     return (
       <Form
         apiMethod="PUT"

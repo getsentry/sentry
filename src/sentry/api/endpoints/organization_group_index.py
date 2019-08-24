@@ -5,15 +5,24 @@ import six
 
 from django.conf import settings
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
+from sentry import features
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.api.helpers.group_index import (
+    build_query_params_from_request,
+    delete_groups,
+    get_by_short_id,
+    update_groups,
+    ValidationError,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.models import Environment, Group, GroupStatus, Project
+from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
-
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -22,23 +31,17 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationEventPermission,)
 
-    def _build_query_params_from_request(self, request, organization, project_ids):
-        projects = list(
-            Project.objects.filter(
-                id__in=project_ids,
-                organization=organization,
-            )
+    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments
         )
-        return build_query_params_from_request(request, projects)
-
-    def _search(self, request, organization, project_ids, environments, extra_query_kwargs=None):
-        query_kwargs = self._build_query_params_from_request(request, organization, project_ids)
         if extra_query_kwargs is not None:
-            assert 'environment' not in extra_query_kwargs
+            assert "environment" not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
 
-        query_kwargs['environments'] = environments if environments else None
+        query_kwargs["environments"] = environments if environments else None
         result = search.query(**query_kwargs)
         return result, query_kwargs
 
@@ -83,20 +86,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        stats_period = request.GET.get('groupStatsPeriod')
-        if stats_period not in (None, '', '24h', '14d'):
+        stats_period = request.GET.get("groupStatsPeriod")
+        if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
             # default
-            stats_period = '24h'
-        elif stats_period == '':
+            stats_period = "24h"
+        elif stats_period == "":
             # disable stats
             stats_period = None
 
-        environments = list(Environment.objects.filter(
-            organization_id=organization.id,
-            name__in=self.get_environments(request, organization),
-        ))
+        environments = self.get_environments(request, organization)
 
         serializer = functools.partial(
             StreamGroupSerializerSnuba,
@@ -104,50 +104,94 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
         )
 
-        project_ids = self.get_project_ids(request, organization)
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
 
-        if not project_ids:
+        if not projects:
             return Response([])
 
-        query = request.GET.get('query', '').strip()
+        if len(projects) > 1 and not features.has(
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"}, status=400
+            )
+
+        # we ignore date range for both short id and event ids
+        query = request.GET.get("query", "").strip()
         if query:
             # check to see if we've got an event ID
-            if len(query) == 32:
-                groups = list(
-                    Group.objects.filter_by_event_id(
-                        project_ids,
-                        query,
-                    )
+            event_id = normalize_event_id(query)
+            if event_id:
+                # For a direct hit lookup we want to use any passed project ids
+                # (we've already checked permissions on these) plus any other
+                # projects that the user is a member of. This gives us a better
+                # chance of returning the correct result, even if the wrong
+                # project is selected.
+                direct_hit_projects = set(project_ids) | set(
+                    [project.id for project in request.access.projects]
                 )
+                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
+                if len(groups) == 1:
+                    response = Response(
+                        serialize(groups, request.user, serializer(matching_event_id=event_id))
+                    )
+                    response["X-Sentry-Direct-Hit"] = "1"
+                    return response
 
                 if groups:
                     return Response(serialize(groups, request.user, serializer()))
 
-            group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
+            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
             if group is not None:
-                # check to make sure user has access to project
-                if group.project_id in project_ids:
-                    response = Response(
-                        serialize(
-                            [group], request.user, serializer()
-                        )
-                    )
-                    response['X-Sentry-Direct-Hit'] = '1'
+                # check all projects user has access to
+                if request.access.has_project_access(group.project):
+                    response = Response(serialize([group], request.user, serializer()))
+                    response["X-Sentry-Direct-Hit"] = "1"
                     return response
+
+        # If group ids specified, just ignore any query components
+        try:
+            group_ids = set(map(int, request.GET.getlist("group")))
+        except ValueError:
+            return Response({"detail": "Group ids must be integers"}, status=400)
+
+        if group_ids:
+            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            if any(g for g in groups if not request.access.has_project_access(g.project)):
+                raise PermissionDenied
+            return Response(serialize(groups, request.user, serializer()))
+
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as exc:
+            return Response({"detail": exc.message}, status=400)
 
         try:
             cursor_result, query_kwargs = self._search(
-                request, organization, project_ids, environments, {'count_hits': True})
+                request,
+                organization,
+                projects,
+                environments,
+                {"count_hits": True, "date_to": end, "date_from": start},
+            )
         except ValidationError as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
+            return Response({"detail": six.text_type(exc)}, status=400)
 
         results = list(cursor_result)
 
         context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
-            context = [r for r in context if r['status'] == 'unresolved']
+        # TODO: We should try to integrate this into the search backend, since
+        # this can cause us to arbitrarily return fewer results than requested.
+        status = [
+            search_filter
+            for search_filter in query_kwargs.get("search_filters", [])
+            if search_filter.key.name == "status"
+        ]
+        if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
+            context = [r for r in context if r["status"] == "unresolved"]
 
         response = Response(context)
 
@@ -156,3 +200,117 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): add metrics that are similar to project endpoint here
 
         return response
+
+    def put(self, request, organization):
+        """
+        Bulk Mutate a List of Issues
+        ````````````````````````````
+
+        Bulk mutate various attributes on issues.  The list of issues
+        to modify is given through the `id` query parameter.  It is repeated
+        for each issue that should be modified.
+
+        - For non-status updates, the `id` query parameter is required.
+        - For status updates, the `id` query parameter may be omitted
+          for a batch "update all" query.
+        - An optional `status` query parameter may be used to restrict
+          mutations to only events with the given status.
+
+        The following attributes can be modified and are supplied as
+        JSON object in the body:
+
+        If any ids are out of scope this operation will succeed without
+        any data mutation.
+
+        :qparam int id: a list of IDs of the issues to be mutated.  This
+                        parameter shall be repeated for each issue.  It
+                        is optional only if a status is mutated in which
+                        case an implicit `update all` is assumed.
+        :qparam string status: optionally limits the query to issues of the
+                               specified status.  Valid values are
+                               ``"resolved"``, ``"unresolved"`` and
+                               ``"ignored"``.
+        :pparam string organization_slug: the slug of the organization the
+                                          issues belong to.
+        :param string status: the new status for the issues.  Valid values
+                              are ``"resolved"``, ``"resolvedInNextRelease"``,
+                              ``"unresolved"``, and ``"ignored"``. Status
+                              updates that include release data are only allowed
+                              for groups within a single project.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``. Status detail
+                                  updates that include release data are only allowed
+                                  for groups within a single project.
+        :param int ignoreDuration: the number of minutes to ignore this issue.
+        :param boolean isPublic: sets the issue to public or private.
+        :param boolean merge: allows to merge or unmerge different issues.
+        :param string assignedTo: the actor id (or username) of the user or team that should be
+                                  assigned to this issue. Bulk assigning issues
+                                  is limited to groups within a single project.
+        :param boolean hasSeen: in case this API call is invoked with a user
+                                context this allows changing of the flag
+                                that indicates if the user has seen the
+                                event.
+        :param boolean isBookmarked: in case this API call is invoked with a
+                                     user context this allows changing of
+                                     the bookmark flag.
+        :auth: required
+        """
+
+        projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"}, status=400
+            )
+
+        search_fn = functools.partial(
+            self._search,
+            request,
+            organization,
+            projects,
+            self.get_environments(request, organization),
+        )
+        return update_groups(request, projects, organization.id, search_fn)
+
+    def delete(self, request, organization):
+        """
+        Bulk Remove a List of Issues
+        ````````````````````````````
+
+        Permanently remove the given issues. The list of issues to
+        modify is given through the `id` query parameter.  It is repeated
+        for each issue that should be removed.
+
+        Only queries by 'id' are accepted.
+
+        If any ids are out of scope this operation will succeed without
+        any data mutation.
+
+        :qparam int id: a list of IDs of the issues to be removed.  This
+                        parameter shall be repeated for each issue.
+        :pparam string organization_slug: the slug of the organization the
+                                          issues belong to.
+        :auth: required
+        """
+        projects = self.get_projects(request, organization)
+        if len(projects) > 1 and not features.has(
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"}, status=400
+            )
+
+        search_fn = functools.partial(
+            self._search,
+            request,
+            organization,
+            projects,
+            self.get_environments(request, organization),
+        )
+
+        return delete_groups(request, projects, organization.id, search_fn)

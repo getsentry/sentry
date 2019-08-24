@@ -5,7 +5,7 @@ import SplitLayout from 'app/components/splitLayout';
 
 describe('SplitLayout', function() {
   it('renders with one child', function() {
-    let component = shallow(
+    const component = shallow(
       <SplitLayout>
         <div>child</div>
       </SplitLayout>
@@ -15,7 +15,7 @@ describe('SplitLayout', function() {
   });
 
   it('renders with multiple children', function() {
-    let component = shallow(
+    const component = shallow(
       <SplitLayout>
         <div>child #1</div>
         <div>child #2</div>
@@ -27,7 +27,7 @@ describe('SplitLayout', function() {
   });
 
   it('renders with responsive property', function() {
-    let component = shallow(
+    const component = shallow(
       <SplitLayout responsive>
         <div>child #1</div>
         <div>child #2</div>
@@ -39,7 +39,7 @@ describe('SplitLayout', function() {
   });
 
   it('renders with a separation width', function() {
-    let component = shallow(
+    const component = shallow(
       <SplitLayout responsive splitWidth={5}>
         <div>child #1</div>
         <div>child #2</div>

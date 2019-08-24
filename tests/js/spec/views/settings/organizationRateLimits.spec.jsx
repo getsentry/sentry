@@ -24,7 +24,7 @@ describe('Organization Rate Limits', function() {
   });
 
   it('renders with initialData', function() {
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(
       wrapper
@@ -48,7 +48,7 @@ describe('Organization Rate Limits', function() {
         maxRateInterval: 60,
       },
     };
-    let wrapper = mount(creator({organization: org}), TestStubs.routerContext());
+    const wrapper = mount(creator({organization: org}), TestStubs.routerContext());
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
@@ -56,13 +56,13 @@ describe('Organization Rate Limits', function() {
   });
 
   it('can change Account Rate Limit', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -86,13 +86,13 @@ describe('Organization Rate Limits', function() {
   });
 
   it('can change Project Rate Limit', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    let wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mount(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

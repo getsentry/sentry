@@ -25,7 +25,13 @@ class BaseAvatar extends React.Component {
      * Default gravatar to display
      */
     default: PropTypes.string,
+    /**
+     * Enable to display tooltips.
+     */
     hasTooltip: PropTypes.bool,
+    /**
+     * The type of avatar being rendered.
+     */
     type: PropTypes.string,
     /**
      * Path to uploaded avatar (differs based on model type)
@@ -40,7 +46,13 @@ class BaseAvatar extends React.Component {
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
     title: PropTypes.string,
-    tooltip: PropTypes.string,
+    /**
+     * The content for the tooltip. Requires hasTooltip to display
+     */
+    tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
+    /**
+     * Additional props for the tooltip
+     */
     tooltipOptions: PropTypes.object,
     /**
      * Should avatar be round instead of a square
@@ -68,10 +80,10 @@ class BaseAvatar extends React.Component {
   }
 
   getRemoteImageSize = () => {
-    let {remoteImageSize, size} = this.props;
+    const {remoteImageSize, size} = this.props;
     // Try to make sure remote image size is >= requested size
     // If requested size > allowed size then use the largest allowed size
-    let allowed =
+    const allowed =
       size &&
       (ALLOWED_SIZES.find(allowedSize => allowedSize >= size) ||
         ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
@@ -80,7 +92,7 @@ class BaseAvatar extends React.Component {
   };
 
   buildUploadUrl = () => {
-    let {uploadPath, uploadId} = this.props;
+    const {uploadPath, uploadId} = this.props;
 
     return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
       s: DEFAULT_REMOTE_SIZE,
@@ -100,9 +112,9 @@ class BaseAvatar extends React.Component {
       return null;
     }
 
-    let {type, round, gravatarId} = this.props;
+    const {type, round, gravatarId} = this.props;
 
-    let eventProps = {
+    const eventProps = {
       onError: this.handleError,
       onLoad: this.handleLoad,
     };
@@ -127,12 +139,20 @@ class BaseAvatar extends React.Component {
   };
 
   renderLetterAvatar() {
-    let {title, letterId, round} = this.props;
+    const {title, letterId, round} = this.props;
     return <LetterAvatar round={round} displayName={title} identifier={letterId} />;
   }
 
   render() {
-    let {className, round, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
+    const {
+      className,
+      round,
+      hasTooltip,
+      size,
+      tooltip,
+      tooltipOptions,
+      style,
+    } = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -143,7 +163,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
+      <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}

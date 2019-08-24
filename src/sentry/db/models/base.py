@@ -1,11 +1,3 @@
-"""
-sentry.db.models
-~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 from copy import copy
@@ -16,13 +8,12 @@ from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals
 from django.db.models.query_utils import DeferredAttribute
-from django.utils import timezone
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
-__all__ = ('BaseModel', 'Model', 'sane_repr')
+__all__ = ("BaseModel", "Model", "sane_repr")
 
 UNSAVED = object()
 
@@ -30,15 +21,15 @@ DEFERRED = object()
 
 
 def sane_repr(*attrs):
-    if 'id' not in attrs and 'pk' not in attrs:
-        attrs = ('id', ) + attrs
+    if "id" not in attrs and "pk" not in attrs:
+        attrs = ("id",) + attrs
 
     def _repr(self):
         cls = type(self).__name__
 
-        pairs = ('%s=%s' % (a, repr(getattr(self, a, None))) for a in attrs)
+        pairs = ("%s=%s" % (a, repr(getattr(self, a, None))) for a in attrs)
 
-        return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
+        return u"<%s at 0x%x: %s>" % (cls, id(self), ", ".join(pairs))
 
     return _repr
 
@@ -58,7 +49,7 @@ class BaseModel(models.Model):
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        d.pop('_Model__data', None)
+        d.pop("_Model__data", None)
         return d
 
     def __hash__(self):
@@ -89,8 +80,10 @@ class BaseModel(models.Model):
             data = {}
             for f in self._meta.fields:
                 # XXX(dcramer): this is how Django determines this (copypasta from Model)
-                if isinstance(type(f).__dict__.get(f.attname),
-                              DeferredAttribute) or f.column is None:
+                if (
+                    isinstance(type(f).__dict__.get(f.attname), DeferredAttribute)
+                    or f.column is None
+                ):
                     continue
                 try:
                     v = self.__get_field_value(f)
@@ -104,10 +97,6 @@ class BaseModel(models.Model):
             self.__data = data
         else:
             self.__data = UNSAVED
-
-    def _update_timestamps(self):
-        if hasattr(self, 'date_updated'):
-            self.date_updated = timezone.now()
 
     def has_changed(self, field_name):
         "Returns ``True`` if ``field`` has changed since initialization."
@@ -135,7 +124,7 @@ class Model(BaseModel):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr('id')
+    __repr__ = sane_repr("id")
 
 
 def __model_post_save(instance, **kwargs):
@@ -144,20 +133,13 @@ def __model_post_save(instance, **kwargs):
     instance._update_tracked_data()
 
 
-def __model_pre_save(instance, **kwargs):
-    if not isinstance(instance, BaseModel):
-        return
-    instance._update_timestamps()
-
-
 def __model_class_prepared(sender, **kwargs):
     if not issubclass(sender, BaseModel):
         return
 
-    if not hasattr(sender, '__core__'):
-        raise ValueError(u'{!r} model has not defined __core__'.format(sender))
+    if not hasattr(sender, "__core__"):
+        raise ValueError(u"{!r} model has not defined __core__".format(sender))
 
 
-signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)

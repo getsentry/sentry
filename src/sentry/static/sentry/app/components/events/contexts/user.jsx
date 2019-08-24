@@ -5,7 +5,10 @@ import _ from 'lodash';
 
 import Avatar from 'app/components/avatar';
 import ErrorBoundary from 'app/components/errorBoundary';
+import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
+
+const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
 class UserContextType extends React.Component {
   static propTypes = {
@@ -13,9 +16,9 @@ class UserContextType extends React.Component {
   };
 
   render() {
-    let user = this.props.data;
-    let builtins = [];
-    let children = [];
+    const user = this.props.data;
+    const builtins = [];
+    const children = [];
 
     // Handle our native attributes special
     user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
@@ -24,9 +27,11 @@ class UserContextType extends React.Component {
         'Email',
         <pre>
           {user.email}
-          <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
-            <em className="icon-envelope" />
-          </a>
+          {EMAIL_REGEX.test(user.email) && (
+            <ExternalLink href={`mailto:${user.email}`} className="external-icon">
+              <em className="icon-envelope" />
+            </ExternalLink>
+          )}
         </pre>,
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
@@ -67,8 +72,6 @@ class UserContextType extends React.Component {
   }
 }
 
-UserContextType.getTitle = function(value) {
-  return 'User';
-};
+UserContextType.getTitle = () => 'User';
 
 export default UserContextType;

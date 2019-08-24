@@ -3,18 +3,12 @@ import {shallow} from 'enzyme';
 import ToolbarHeader from 'app/components/toolbarHeader';
 
 describe('ToolbarHeader', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ToolbarHeader>
         <div />
       </ToolbarHeader>

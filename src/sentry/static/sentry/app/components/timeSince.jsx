@@ -11,6 +11,9 @@ class TimeSince extends React.PureComponent {
     date: PropTypes.any.isRequired,
     suffix: PropTypes.string,
   };
+  static defaultProps = {
+    suffix: 'ago',
+  };
 
   static getDateObj(date) {
     if (_.isString(date) || _.isNumber(date)) {
@@ -19,14 +22,27 @@ class TimeSince extends React.PureComponent {
     return date;
   }
 
-  static defaultProps = {
-    suffix: 'ago',
+  static getRelativeDate = (currentDateTime, suffix) => {
+    const date = TimeSince.getDateObj(currentDateTime);
+
+    if (!suffix) {
+      return moment(date).fromNow(true);
+    } else if (suffix === 'ago') {
+      return moment(date).fromNow();
+    } else if (suffix === 'old') {
+      return t('%(time)s old', {time: moment(date).fromNow(true)});
+    } else {
+      throw new Error('Unsupported time format suffix');
+    }
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      relative: this.getRelativeDate(),
+  state = {
+    relative: '',
+  };
+
+  static getDerivedStateFromProps(props) {
+    return {
+      relative: TimeSince.getRelativeDate(props.date, props.suffix),
     };
   }
 
@@ -46,30 +62,17 @@ class TimeSince extends React.PureComponent {
 
     this.ticker = setTimeout(() => {
       this.setState({
-        relative: this.getRelativeDate(),
+        relative: TimeSince.getRelativeDate(this.props.date, this.props.suffix),
       });
       this.setRelativeDateTicker();
     }, ONE_MINUTE_IN_MS);
   };
 
-  getRelativeDate = () => {
-    let date = TimeSince.getDateObj(this.props.date);
-    if (!this.props.suffix) {
-      return moment(date).fromNow(true);
-    } else if (this.props.suffix === 'ago') {
-      return moment(date).fromNow();
-    } else if (this.props.suffix === 'old') {
-      return t('%(time)s old', {time: moment(date).fromNow(true)});
-    } else {
-      throw new Error('Unsupported time format suffix');
-    }
-  };
-
   render() {
-    let date = TimeSince.getDateObj(this.props.date);
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const date = TimeSince.getDateObj(this.props.date);
+    const user = ConfigStore.get('user');
+    const options = user ? user.options : {};
+    const format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
     return (
       <time
         dateTime={date.toISOString()}

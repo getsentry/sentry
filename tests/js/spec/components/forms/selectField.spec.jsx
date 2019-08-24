@@ -7,7 +7,7 @@ import {selectByValue} from '../../../helpers/select';
 
 describe('SelectField', function() {
   it('renders without form context', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <SelectField
         options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
         name="fieldName"
@@ -18,7 +18,7 @@ describe('SelectField', function() {
   });
 
   it('renders with flat choices', function() {
-    let wrapper = shallow(<SelectField choices={['a', 'b', 'c']} name="fieldName" />, {
+    const wrapper = shallow(<SelectField choices={['a', 'b', 'c']} name="fieldName" />, {
       context: {
         form: {
           data: {
@@ -32,7 +32,7 @@ describe('SelectField', function() {
   });
 
   it('renders with paired choices', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <SelectField
         choices={[['a', 'abc'], ['b', 'bcd'], ['c', 'cde']]}
         name="fieldName"
@@ -52,8 +52,8 @@ describe('SelectField', function() {
   });
 
   it('can change value and submit', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <Form onSubmit={mock}>
         <SelectField
           options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
@@ -72,8 +72,8 @@ describe('SelectField', function() {
 
   describe('Multiple', function() {
     it('selects multiple values and submits', function() {
-      let mock = jest.fn();
-      let wrapper = mount(
+      const mock = jest.fn();
+      const wrapper = mount(
         <Form onSubmit={mock}>
           <SelectField
             multiple

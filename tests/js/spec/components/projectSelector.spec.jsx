@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import ProjectSelector from 'app/components/projectSelector';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ProjectSelector', function() {
   const testTeam = TestStubs.Team({
@@ -13,6 +14,7 @@ describe('ProjectSelector', function() {
   const testProject = TestStubs.Project({
     id: 'test-project',
     slug: 'test-project',
+    isBookmarked: true,
     isMember: true,
     teams: [testTeam],
   });
@@ -45,8 +47,12 @@ describe('ProjectSelector', function() {
     children: actorRenderer,
   };
 
+  beforeEach(function() {
+    ProjectsStore.loadInitialData(mockOrg.projects);
+  });
+
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectSelector
         {...props}
         organization={{
@@ -59,6 +65,9 @@ describe('ProjectSelector', function() {
       />,
       routerContext
     );
+
+    ProjectsStore.loadInitialData([]);
+
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
     // Should not have "Create Project" button
@@ -66,7 +75,7 @@ describe('ProjectSelector', function() {
   });
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectSelector
         {...props}
         organization={{
@@ -79,6 +88,9 @@ describe('ProjectSelector', function() {
       />,
       routerContext
     );
+
+    ProjectsStore.loadInitialData([]);
+
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
     // Should not have "Create Project" button
@@ -86,13 +98,13 @@ describe('ProjectSelector', function() {
   });
 
   it('lists projects and has filter', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
   it('can filter projects by project name', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
@@ -103,7 +115,7 @@ describe('ProjectSelector', function() {
   });
 
   it('does not close dropdown when input is clicked', async function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('click');
@@ -113,7 +125,7 @@ describe('ProjectSelector', function() {
   });
 
   it('closes dropdown when project is selected', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -125,8 +137,8 @@ describe('ProjectSelector', function() {
   });
 
   it('calls callback when project is selected', function() {
-    let mock = jest.fn();
-    let wrapper = mount(<ProjectSelector {...props} onSelect={mock} />, routerContext);
+    const mock = jest.fn();
+    const wrapper = mount(<ProjectSelector {...props} onSelect={mock} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -143,7 +155,7 @@ describe('ProjectSelector', function() {
   });
 
   it('shows empty filter message when filtering has no results', function() {
-    let wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
@@ -151,8 +163,8 @@ describe('ProjectSelector', function() {
   });
 
   it('does not call `onSelect` when using multi select', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ProjectSelector {...props} multi onSelect={mock} />,
       routerContext
     );
@@ -160,7 +172,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('MultiSelectWrapper')
+      .find('CheckboxHitbox')
       .first()
       .simulate('click');
 
@@ -169,8 +181,8 @@ describe('ProjectSelector', function() {
   });
 
   it('calls `onMultiSelect` and render prop when using multi select as an uncontrolled component', async function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <ProjectSelector {...props} multi onMultiSelect={mock} />,
       routerContext
     );
@@ -178,7 +190,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxHitbox')
       .at(0)
       .simulate('click', {target: {checked: true}});
 
@@ -190,18 +202,25 @@ describe('ProjectSelector', function() {
       ],
       expect.anything()
     );
+
     expect(actorRenderer).toHaveBeenLastCalledWith(
       expect.objectContaining({
         selectedProjects: [expect.objectContaining({slug: 'test-project'})],
       })
     );
-    expect(Array.from(wrapper.state('selectedProjects').keys())).toEqual([
-      'test-project',
-    ]);
+
+    expect(
+      Array.from(
+        wrapper
+          .find('ProjectSelectorItem')
+          .filterWhere(p => p.prop('isChecked'))
+          .map(p => p.prop('project').slug)
+      )
+    ).toEqual(['test-project']);
 
     // second project
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxHitbox')
       .at(1)
       .simulate('click', {target: {checked: true}});
 
@@ -224,14 +243,18 @@ describe('ProjectSelector', function() {
         ],
       })
     );
-    expect(Array.from(wrapper.state('selectedProjects').keys())).toEqual([
-      'test-project',
-      'another-project',
-    ]);
+    expect(
+      Array.from(
+        wrapper
+          .find('ProjectSelectorItem')
+          .filterWhere(p => p.prop('isChecked'))
+          .map(p => p.prop('project').slug)
+      )
+    ).toEqual(['test-project', 'another-project']);
 
     // Can unselect item
     wrapper
-      .find('MultiSelect')
+      .find('CheckboxHitbox')
       .at(1)
       .simulate('click', {target: {checked: false}});
 
@@ -248,8 +271,38 @@ describe('ProjectSelector', function() {
         selectedProjects: [expect.objectContaining({slug: 'test-project'})],
       })
     );
-    expect(Array.from(wrapper.state('selectedProjects').keys())).toEqual([
-      'test-project',
-    ]);
+    expect(
+      Array.from(
+        wrapper
+          .find('ProjectSelectorItem')
+          .filterWhere(p => p.prop('isChecked'))
+          .map(p => p.prop('project').slug)
+      )
+    ).toEqual(['test-project']);
+  });
+
+  it('displays multi projects', function() {
+    const project = TestStubs.Project();
+    const multiProjectProps = {...props, multiProjects: [project]};
+
+    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    openMenu(wrapper);
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("Projects I don't belong to");
+  });
+
+  it('displays multi projects with non member projects', function() {
+    const project = TestStubs.Project({id: '1'});
+    const nonMemberProject = TestStubs.Project({id: '2'});
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [project],
+      nonMemberProjects: [nonMemberProject],
+    };
+
+    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    openMenu(wrapper);
+    expect(wrapper.text()).toContain("Projects I don't belong to");
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 });

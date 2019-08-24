@@ -21,7 +21,7 @@ describe('AdminQuotas', function() {
     });
 
     it('renders', function() {
-      let wrapper = shallow(<AdminQuotas params={{}} />, {
+      const wrapper = shallow(<AdminQuotas params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import TextLink from 'app/components/textLink';
+import TextLink from 'app/components/links/textLink';
 
 storiesOf('UI|Links/TextLink', module).add(
   'default',

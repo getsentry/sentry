@@ -10,7 +10,6 @@ const MAX_ERRORS = 100;
 
 class EventErrors extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
@@ -22,7 +21,7 @@ class EventErrors extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (this.state.isOpen != nextState.isOpen) {
+    if (this.state.isOpen !== nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
@@ -37,19 +36,14 @@ class EventErrors extends React.Component {
   };
 
   render() {
-    let eventErrors = this.props.event.errors;
+    const eventErrors = this.props.event.errors;
     // XXX: uniqueErrors is not performant with large datasets
-    let errors =
+    const errors =
       eventErrors.length > MAX_ERRORS ? eventErrors : this.uniqueErrors(eventErrors);
-    let numErrors = errors.length;
-    let isOpen = this.state.isOpen;
+    const numErrors = errors.length;
+    const isOpen = this.state.isOpen;
     return (
-      <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
-        type="errors"
-        className="errors"
-      >
+      <EventDataSection event={this.props.event} type="errors" className="errors">
         <span className="icon icon-alert" />
         <p>
           <a className="pull-right errors-toggle" onClick={this.toggle}>

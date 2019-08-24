@@ -4,11 +4,11 @@ import {mount, shallow} from 'enzyme';
 import UserBadge from 'app/components/idBadge/userBadge';
 
 describe('UserBadge', function() {
-  let member = TestStubs.Member();
-  let user = TestStubs.User();
+  const member = TestStubs.Member();
+  const user = TestStubs.User();
 
   it('renders with link when member is supplied', function() {
-    let wrapper = mount(<UserBadge member={member} orgId="orgId" />);
+    const wrapper = mount(<UserBadge member={member} orgId="orgId" />);
 
     expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
     expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
@@ -17,7 +17,7 @@ describe('UserBadge', function() {
   });
 
   it('renders with no link when user is supplied', function() {
-    let wrapper = mount(<UserBadge user={user} orgId="orgId" />);
+    const wrapper = mount(<UserBadge user={user} orgId="orgId" />);
 
     expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
     expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
@@ -26,7 +26,7 @@ describe('UserBadge', function() {
   });
 
   it('can display alternate display names/emails', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <UserBadge
         user={user}
         displayName="Other Display Name"
@@ -38,20 +38,45 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe('Other Display Email');
   });
 
+  it('can coalesce using username', function() {
+    const username = TestStubs.User({
+      name: null,
+      email: null,
+      username: 'the-batman',
+    });
+    const wrapper = shallow(<UserBadge user={username} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe(username.username);
+    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+  });
+
+  it('can coalesce using ipaddress', function() {
+    const ipUser = TestStubs.User({
+      name: null,
+      email: null,
+      username: null,
+      ipAddress: '127.0.0.1',
+    });
+    const wrapper = shallow(<UserBadge user={ipUser} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe(ipUser.ipAddress);
+    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+  });
+
   it('does not use a link for member name', function() {
-    let wrapper = mount(<UserBadge user={user} useLink={false} />);
+    const wrapper = mount(<UserBadge user={user} useLink={false} />);
 
     expect(wrapper.find('StyledName Link')).toHaveLength(0);
   });
 
   it('can hide email address', function() {
-    let wrapper = mount(<UserBadge user={user} hideEmail />);
+    const wrapper = mount(<UserBadge user={user} hideEmail />);
 
     expect(wrapper.find('StyledEmail')).toHaveLength(0);
   });
 
   it('renders when a member without a user to passed to member', function() {
-    let wrapper = mount(<UserBadge member={{...member, user: null}} />);
+    const wrapper = mount(<UserBadge member={{...member, user: null}} />);
 
     expect(wrapper.find('StyledName').prop('children')).toBe('Sentry 1 Name');
   });

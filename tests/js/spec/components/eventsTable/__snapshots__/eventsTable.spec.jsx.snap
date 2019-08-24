@@ -15,7 +15,7 @@ exports[`EventsTable renders 1`] = `
     </tr>
   </thead>
   <tbody>
-    <EventsTableRow
+    <WithOrganizationMockWrapper
       event={
         Object {
           "context": Object {
@@ -105,6 +105,7 @@ exports[`EventsTable renders 1`] = `
               "value": "id:1",
             },
           ],
+          "title": "TypeError: Cannot read property 'assignedTo' of undefined",
           "type": "error",
           "user": Object {
             "email": "billy@sentry.io",
@@ -120,7 +121,7 @@ exports[`EventsTable renders 1`] = `
       projectId="projectId"
       tagList={Array []}
     />
-    <EventsTableRow
+    <WithOrganizationMockWrapper
       event={
         Object {
           "context": Object {
@@ -210,6 +211,7 @@ exports[`EventsTable renders 1`] = `
               "value": "id:1",
             },
           ],
+          "title": "TypeError: Cannot read property 'assignedTo' of undefined",
           "type": "error",
           "user": Object {
             "email": "billy@sentry.io",

@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "jipJipManagementApplication",
+        "module": "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0$$EnhancerBySpringCGLIB$$8219cd38$$FastClassBySpringCGLIB$$6c0b35d1"
+      }
+    ]
+  },
+  "platform": "java"
+}

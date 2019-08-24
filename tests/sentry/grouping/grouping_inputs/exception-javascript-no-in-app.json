@@ -1,0 +1,112 @@
+{
+  "culprit": "onError(app/views/settings/components/forms/form)",
+  "event_id": "764b1abef8844ef6a25435301fa58af9",
+  "environment": "prod",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "webpack:///./app/components/modals/createTeamModal.jsx",
+              "pre_context": [
+                "      .then(resp => {",
+                "        this.handleSuccess(resp);",
+                "        onSuccess(resp);",
+                "      })",
+                "      .catch(err => {"
+              ],
+              "post_context": [
+                "      });",
+                "  };",
+                "",
+                "  handleSuccess = data => {",
+                "    if (this.props.onClose) {"
+              ],
+              "module": "app/components/modals/createTeamModal",
+              "in_app": false,
+              "lineno": 27,
+              "colno": 9,
+              "filename": "./app/components/modals/createTeamModal.jsx",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/CreateTeamModal.js.map"
+              },
+              "context_line": "        onError(err);"
+            },
+            {
+              "function": "onError",
+              "abs_path": "webpack:///./app/views/settings/components/forms/form.jsx",
+              "pre_context": [
+                "    this.model.submitSuccess(data);",
+                "    this.props.onSubmitSuccess(data, this.model);",
+                "  };",
+                "",
+                "  onSubmitError = error => {"
+              ],
+              "module": "app/views/settings/components/forms/form",
+              "filename": "./app/views/settings/components/forms/form.jsx",
+              "post_context": [
+                "    this.props.onSubmitError(error, this.model);",
+                "  };",
+                "",
+                "  render() {",
+                "    const {"
+              ],
+              "colno": 16,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/app.js.map"
+              },
+              "context_line": "    this.model.submitError(error);",
+              "lineno": 125
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/CreateTeamModal.js",
+              "post_context": [
+                "//# sourceMappingURL=CreateTeamModal.js.map"
+              ],
+              "in_app": false,
+              "lineno": 1,
+              "colno": 948,
+              "filename": "/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/CreateTeamModal.js",
+              "context_line": "{snip} en(function(e){a.handleSuccess(e),t(e)}).catch(function(e){n(e)})},a.handleSuccess=function(e){a.props.onClose&&a.props.onClose(e),a.props.c {snip}"
+            },
+            {
+              "function": "a.onSubmitError",
+              "abs_path": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "in_app": false,
+              "lineno": 1,
+              "colno": 137210,
+              "filename": "/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/app.js",
+              "context_line": "{snip} mitSuccess(e,a.model)},a.onSubmitError=function(e){a.model.submitError(e),a.props.onSubmitError(e,a.model)};var i=e.saveOnBlur,o=e.apiEndpoi {snip}"
+            }
+          ]
+        },
+        "mechanism": {
+          "data": {
+            "message": "Cannot read property 'submitError' of null",
+            "mode": "stack",
+            "name": "TypeError"
+          },
+          "type": "onunhandledrejection",
+          "handled": false
+        },
+        "value": "Cannot read property 'submitError' of null",
+        "type": "TypeError"
+      }
+    ]
+  },
+  "release": "678e58f7fba703cae83404ceb1538665b4c875db"
+}

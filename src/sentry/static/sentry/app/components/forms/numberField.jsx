@@ -9,10 +9,10 @@ export default class NumberField extends InputField {
   };
 
   coerceValue(value, prevValue) {
-    let intValue = parseInt(value, 10);
+    const intValue = parseInt(value, 10);
 
     // return previous value if new value is NaN, otherwise, will get recursive error
-    let isNewCoercedNaN = isNaN(intValue);
+    const isNewCoercedNaN = isNaN(intValue);
 
     if (!isNewCoercedNaN) {
       return intValue;

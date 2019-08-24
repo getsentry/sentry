@@ -12,17 +12,19 @@ class CrashContent extends React.Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     stackView: PropTypes.string.isRequired,
-    stackType: PropTypes.string,
+    projectId: PropTypes.string.isRequired,
     newestFirst: PropTypes.bool.isRequired,
+    stackType: PropTypes.string,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
   };
 
   renderException = () => {
-    const {event, stackView, stackType, newestFirst, exception} = this.props;
+    const {event, stackView, stackType, newestFirst, exception, projectId} = this.props;
     return stackView === 'raw' ? (
       <RawExceptionContent
         eventId={event.id}
+        projectId={projectId}
         type={stackType}
         values={exception.values}
         platform={event.platform}

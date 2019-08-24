@@ -21,10 +21,13 @@ import HookStore from 'app/stores/hookStore';
  *
  * @param {String} name The name of the hook as listed in hookstore.add(hookName, callback)
  * @param {Component} defaultComponent Component that will be shown if no hook is available
+ * @param {Function} defaultComponentPromise This is a function that returns a promise (more
+ *                   specifically a function that returns the result of a dynamic import using
+ *                   `import()`. This will use React.Suspense and React.lazy to render the component.
  *
  */
 
-function HookOrDefault({hookName, defaultComponent, params}) {
+function HookOrDefault({hookName, defaultComponent, defaultComponentPromise, params}) {
   const HookOrDefaultComponent = createReactClass({
     displayName: 'HookOrDefaultComponent',
     mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
@@ -37,19 +40,35 @@ function HookOrDefault({hookName, defaultComponent, params}) {
 
     handleHooks(hookNameFromStore, hooks) {
       // Make sure that the incoming hook update matches this component's hook name
-      if (hookName !== hookNameFromStore) return;
+      if (hookName !== hookNameFromStore) {
+        return;
+      }
 
       this.setState(state => ({
         hooks,
       }));
     },
 
+    getDefaultComponent() {
+      // If `defaultComponentPromise` is passed, then return a Suspended component
+      if (defaultComponentPromise) {
+        const Component = React.lazy(defaultComponentPromise);
+        return props => (
+          <React.Suspense fallback={null}>
+            <Component {...props} />
+          </React.Suspense>
+        );
+      }
+
+      return defaultComponent;
+    },
+
     render() {
-      let hookExists = this.state.hooks && this.state.hooks.length;
-      let HookComponent =
+      const hookExists = this.state.hooks && this.state.hooks.length;
+      const HookComponent =
         hookExists && this.state.hooks[0]({params})
           ? this.state.hooks[0]({params})
-          : defaultComponent;
+          : this.getDefaultComponent();
 
       return <HookComponent {...this.props} />;
     },

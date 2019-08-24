@@ -7,7 +7,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
   hasRelease={false}
   isAutoResolved={false}
   isResolved={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
   orgId="org-1"
   projectId="proj-1"
   shouldConfirm={true}
@@ -79,101 +79,53 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         />
       </Modal>
     </CustomResolutionModal>
-    <div
-      className="btn-group"
+    <GuideAnchor
+      target="resolve"
     >
-      <ActionLink
-        className="btn btn-default btn-sm"
-        confirmLabel="Resolve"
-        disabled={false}
-        message="Are you sure???"
-        onAction={[Function]}
-        shouldConfirm={true}
-        title="Resolve"
+      <div
+        className="btn-group"
       >
-        <Confirm
-          cancelText="Cancel"
-          confirmText="Resolve"
-          disableConfirmButton={false}
+        <ActionLink
+          className="btn btn-default btn-sm"
+          confirmLabel="Resolve"
+          disabled={false}
           message="Are you sure???"
-          onConfirm={[Function]}
-          priority="primary"
+          onAction={[Function]}
+          shouldConfirm={true}
+          title="Resolve"
         >
-          <a
-            className="btn btn-default btn-sm"
-            onClick={[Function]}
-            title="Resolve"
+          <Confirm
+            cancelText="Cancel"
+            confirmText="Resolve"
+            disableConfirmButton={false}
+            message="Are you sure???"
+            onConfirm={[Function]}
+            priority="primary"
+            stopPropagation={false}
           >
-             
-            <span
-              className="icon-checkmark hidden-xs"
-              style={
-                Object {
-                  "marginRight": 5,
-                }
-              }
-            />
-            <GuideAnchor
-              target="resolve"
-              type="text"
+            <a
+              aria-label="Resolve"
+              className="btn btn-default btn-sm"
+              onClick={[Function]}
+              title="Resolve"
             >
-              <GuideAnchorContainer
-                innerRef={[Function]}
-                type="text"
-              >
-                <div
-                  className="css-9u5for-GuideAnchorContainer e130o4350"
-                  type="text"
-                >
-                  <StyledGuideAnchor
-                    active={false}
-                    className="guide-anchor-ping resolve"
-                  >
-                    <div
-                      className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
-                    >
-                      <StyledGuideAnchorRipples>
-                        <div
-                          className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
-                        />
-                      </StyledGuideAnchorRipples>
-                    </div>
-                  </StyledGuideAnchor>
-                </div>
-              </GuideAnchorContainer>
-            </GuideAnchor>
-            Resolve
-          </a>
-          <Modal
-            animation={false}
-            autoFocus={true}
-            backdrop={true}
-            bsClass="modal"
-            dialogComponentClass={[Function]}
-            enforceFocus={true}
-            keyboard={true}
-            manager={
-              ModalManager {
-                "add": [Function],
-                "containers": Array [],
-                "data": Array [],
-                "handleContainerOverflow": true,
-                "hideSiblingNodes": true,
-                "isTopModal": [Function],
-                "modals": Array [],
-                "remove": [Function],
-              }
-            }
-            onHide={[Function]}
-            renderBackdrop={[Function]}
-            restoreFocus={true}
-            show={false}
-          >
+               
+              <span
+                className="icon-checkmark hidden-xs"
+                style={
+                  Object {
+                    "marginRight": 5,
+                  }
+                }
+              />
+              Resolve
+            </a>
             <Modal
+              animation={false}
               autoFocus={true}
               backdrop={true}
-              backdropClassName="modal-backdrop"
-              containerClassName="modal-open"
+              bsClass="modal"
+              dialogComponentClass={[Function]}
               enforceFocus={true}
               keyboard={true}
               manager={
@@ -188,276 +140,376 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                   "remove": [Function],
                 }
               }
-              onEntering={[Function]}
-              onExited={[Function]}
               onHide={[Function]}
               renderBackdrop={[Function]}
               restoreFocus={true}
               show={false}
-            />
-          </Modal>
-        </Confirm>
-      </ActionLink>
-      <DropdownLink
-        alwaysRenderMenu={true}
-        anchorRight={false}
-        caret={true}
-        className="btn btn-default btn-sm"
-        disabled={false}
-        key="resolve-dropdown"
-        title=""
-      >
-        <DropdownMenu
-          alwaysRenderMenu={true}
-          closeOnEscape={true}
-          keepMenuOpen={false}
-        >
-          <span
-            className="dropdown"
-          >
-            <a
-              className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
-              onClick={[Function]}
-              onKeyDown={[Function]}
-              onMouseEnter={[Function]}
-              onMouseLeave={[Function]}
-              style={
-                Object {
-                  "outline": "none",
+            >
+              <Modal
+                autoFocus={true}
+                backdrop={true}
+                backdropClassName="modal-backdrop"
+                containerClassName="modal-open"
+                enforceFocus={true}
+                keyboard={true}
+                manager={
+                  ModalManager {
+                    "add": [Function],
+                    "containers": Array [],
+                    "data": Array [],
+                    "handleContainerOverflow": true,
+                    "hideSiblingNodes": true,
+                    "isTopModal": [Function],
+                    "modals": Array [],
+                    "remove": [Function],
+                  }
                 }
-              }
-              tabIndex={-1}
+                onEntering={[Function]}
+                onExited={[Function]}
+                onHide={[Function]}
+                renderBackdrop={[Function]}
+                restoreFocus={true}
+                show={false}
+              />
+            </Modal>
+          </Confirm>
+        </ActionLink>
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={false}
+          caret={true}
+          className="btn btn-default btn-sm"
+          disabled={false}
+          key="resolve-dropdown"
+          title=""
+        >
+          <DropdownMenu
+            alwaysRenderMenu={true}
+            closeOnEscape={true}
+            keepMenuOpen={false}
+          >
+            <span
+              className="dropdown"
             >
-              <div
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
+                onClick={[Function]}
+                onKeyDown={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+                style={
+                  Object {
+                    "outline": "none",
+                  }
+                }
               >
-                <span />
-                <i
-                  className="icon-arrow-down"
-                />
-              </div>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-              onMouseEnter={[Function]}
-              onMouseLeave={[Function]}
-            >
-              <MenuItem
-                header={true}
-              >
-                <li
-                  className="dropdown-header"
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  Resolved In
-                </li>
-              </MenuItem>
-              <MenuItem
-                noAnchor={true}
+                  <span />
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <MenuItem
+                  header={true}
                 >
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
+                  <li
+                    className="dropdown-header"
+                    role="presentation"
                   >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      message="Are you sure???"
-                      onAction={[Function]}
-                      shouldConfirm={true}
+                    Resolved In
+                  </li>
+                </MenuItem>
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    role="presentation"
+                  >
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <Confirm
-                        cancelText="Cancel"
-                        confirmText="Resolve"
-                        disableConfirmButton={false}
-                        message="Are you sure???"
-                        onConfirm={[Function]}
-                        priority="primary"
-                      >
-                        <a
-                          className="tip"
-                          onClick={[Function]}
-                          title="Set up release tracking in order to use this feature."
-                        >
-                           
-                          The next release
-                        </a>
-                        <Modal
-                          animation={false}
-                          autoFocus={true}
-                          backdrop={true}
-                          bsClass="modal"
-                          dialogComponentClass={[Function]}
-                          enforceFocus={true}
-                          keyboard={true}
-                          manager={
-                            ModalManager {
-                              "add": [Function],
-                              "containers": Array [],
-                              "data": Array [],
-                              "handleContainerOverflow": true,
-                              "hideSiblingNodes": true,
-                              "isTopModal": [Function],
-                              "modals": Array [],
-                              "remove": [Function],
-                            }
-                          }
-                          onHide={[Function]}
-                          renderBackdrop={[Function]}
-                          restoreFocus={true}
-                          show={false}
-                        >
-                          <Modal
-                            autoFocus={true}
-                            backdrop={true}
-                            backdropClassName="modal-backdrop"
-                            containerClassName="modal-open"
-                            enforceFocus={true}
-                            keyboard={true}
-                            manager={
-                              ModalManager {
-                                "add": [Function],
-                                "containers": Array [],
-                                "data": Array [],
-                                "handleContainerOverflow": true,
-                                "hideSiblingNodes": true,
-                                "isTopModal": [Function],
-                                "modals": Array [],
-                                "remove": [Function],
-                              }
-                            }
-                            onEntering={[Function]}
-                            onExited={[Function]}
-                            onHide={[Function]}
-                            renderBackdrop={[Function]}
-                            restoreFocus={true}
-                            show={false}
-                          />
-                        </Modal>
-                      </Confirm>
-                    </ActionLink>
-                  </Tooltip>
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
-                  >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      message="Are you sure???"
-                      onAction={[Function]}
-                      shouldConfirm={true}
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  message="Are you sure???"
+                                  onAction={[Function]}
+                                  shouldConfirm={true}
+                                >
+                                  <Confirm
+                                    cancelText="Cancel"
+                                    confirmText="Resolve"
+                                    disableConfirmButton={false}
+                                    message="Are you sure???"
+                                    onConfirm={[Function]}
+                                    priority="primary"
+                                    stopPropagation={false}
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                    >
+                                       
+                                      The next release
+                                    </a>
+                                    <Modal
+                                      animation={false}
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      bsClass="modal"
+                                      dialogComponentClass={[Function]}
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    >
+                                      <Modal
+                                        autoFocus={true}
+                                        backdrop={true}
+                                        backdropClassName="modal-backdrop"
+                                        containerClassName="modal-open"
+                                        enforceFocus={true}
+                                        keyboard={true}
+                                        manager={
+                                          ModalManager {
+                                            "add": [Function],
+                                            "containers": Array [],
+                                            "data": Array [],
+                                            "handleContainerOverflow": true,
+                                            "hideSiblingNodes": true,
+                                            "isTopModal": [Function],
+                                            "modals": Array [],
+                                            "remove": [Function],
+                                          }
+                                        }
+                                        onEntering={[Function]}
+                                        onExited={[Function]}
+                                        onHide={[Function]}
+                                        renderBackdrop={[Function]}
+                                        restoreFocus={true}
+                                        show={false}
+                                      />
+                                    </Modal>
+                                  </Confirm>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <Confirm
-                        cancelText="Cancel"
-                        confirmText="Resolve"
-                        disableConfirmButton={false}
-                        message="Are you sure???"
-                        onConfirm={[Function]}
-                        priority="primary"
-                      >
-                        <a
-                          className="tip"
-                          onClick={[Function]}
-                          title="Set up release tracking in order to use this feature."
-                        >
-                           
-                          The current release
-                        </a>
-                        <Modal
-                          animation={false}
-                          autoFocus={true}
-                          backdrop={true}
-                          bsClass="modal"
-                          dialogComponentClass={[Function]}
-                          enforceFocus={true}
-                          keyboard={true}
-                          manager={
-                            ModalManager {
-                              "add": [Function],
-                              "containers": Array [],
-                              "data": Array [],
-                              "handleContainerOverflow": true,
-                              "hideSiblingNodes": true,
-                              "isTopModal": [Function],
-                              "modals": Array [],
-                              "remove": [Function],
-                            }
-                          }
-                          onHide={[Function]}
-                          renderBackdrop={[Function]}
-                          restoreFocus={true}
-                          show={false}
-                        >
-                          <Modal
-                            autoFocus={true}
-                            backdrop={true}
-                            backdropClassName="modal-backdrop"
-                            containerClassName="modal-open"
-                            enforceFocus={true}
-                            keyboard={true}
-                            manager={
-                              ModalManager {
-                                "add": [Function],
-                                "containers": Array [],
-                                "data": Array [],
-                                "handleContainerOverflow": true,
-                                "hideSiblingNodes": true,
-                                "isTopModal": [Function],
-                                "modals": Array [],
-                                "remove": [Function],
-                              }
-                            }
-                            onEntering={[Function]}
-                            onExited={[Function]}
-                            onHide={[Function]}
-                            renderBackdrop={[Function]}
-                            restoreFocus={true}
-                            show={false}
-                          />
-                        </Modal>
-                      </Confirm>
-                    </ActionLink>
-                  </Tooltip>
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
-                  >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      message="Are you sure???"
-                      onAction={[Function]}
-                      shouldConfirm={false}
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  message="Are you sure???"
+                                  onAction={[Function]}
+                                  shouldConfirm={true}
+                                >
+                                  <Confirm
+                                    cancelText="Cancel"
+                                    confirmText="Resolve"
+                                    disableConfirmButton={false}
+                                    message="Are you sure???"
+                                    onConfirm={[Function]}
+                                    priority="primary"
+                                    stopPropagation={false}
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                    >
+                                       
+                                      The current release
+                                    </a>
+                                    <Modal
+                                      animation={false}
+                                      autoFocus={true}
+                                      backdrop={true}
+                                      bsClass="modal"
+                                      dialogComponentClass={[Function]}
+                                      enforceFocus={true}
+                                      keyboard={true}
+                                      manager={
+                                        ModalManager {
+                                          "add": [Function],
+                                          "containers": Array [],
+                                          "data": Array [],
+                                          "handleContainerOverflow": true,
+                                          "hideSiblingNodes": true,
+                                          "isTopModal": [Function],
+                                          "modals": Array [],
+                                          "remove": [Function],
+                                        }
+                                      }
+                                      onHide={[Function]}
+                                      renderBackdrop={[Function]}
+                                      restoreFocus={true}
+                                      show={false}
+                                    >
+                                      <Modal
+                                        autoFocus={true}
+                                        backdrop={true}
+                                        backdropClassName="modal-backdrop"
+                                        containerClassName="modal-open"
+                                        enforceFocus={true}
+                                        keyboard={true}
+                                        manager={
+                                          ModalManager {
+                                            "add": [Function],
+                                            "containers": Array [],
+                                            "data": Array [],
+                                            "handleContainerOverflow": true,
+                                            "hideSiblingNodes": true,
+                                            "isTopModal": [Function],
+                                            "modals": Array [],
+                                            "remove": [Function],
+                                          }
+                                        }
+                                        onEntering={[Function]}
+                                        onExited={[Function]}
+                                        onHide={[Function]}
+                                        renderBackdrop={[Function]}
+                                        restoreFocus={true}
+                                        show={false}
+                                      />
+                                    </Modal>
+                                  </Confirm>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <a
-                        className="tip"
-                        disabled={false}
-                        onClick={[Function]}
-                      >
-                        Another version…
-                      </a>
-                    </ActionLink>
-                  </Tooltip>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
-        </DropdownMenu>
-      </DropdownLink>
-    </div>
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  message="Are you sure???"
+                                  onAction={[Function]}
+                                  shouldConfirm={false}
+                                >
+                                  <a
+                                    className=""
+                                    data-test-id="action-link"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                  >
+                                    Another version…
+                                  </a>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
+      </div>
+    </GuideAnchor>
   </div>
 </ResolveActions>
 `;
@@ -468,7 +520,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
   hasRelease={false}
   isAutoResolved={false}
   isResolved={false}
-  onUpdate={[Function]}
+  onUpdate={[MockFunction]}
   orgId="org-1"
   projectId="proj-1"
 >
@@ -539,195 +591,251 @@ exports[`ResolveActions without confirmation renders 1`] = `
         />
       </Modal>
     </CustomResolutionModal>
-    <div
-      className="btn-group"
+    <GuideAnchor
+      target="resolve"
     >
-      <ActionLink
-        className="btn btn-default btn-sm"
-        confirmLabel="Resolve"
-        disabled={false}
-        onAction={[Function]}
-        shouldConfirm={false}
-        title="Resolve"
+      <div
+        className="btn-group"
       >
-        <a
+        <ActionLink
           className="btn btn-default btn-sm"
+          confirmLabel="Resolve"
           disabled={false}
-          onClick={[Function]}
+          onAction={[Function]}
+          shouldConfirm={false}
+          title="Resolve"
         >
-          <span
-            className="icon-checkmark hidden-xs"
-            style={
-              Object {
-                "marginRight": 5,
-              }
-            }
-          />
-          <GuideAnchor
-            target="resolve"
-            type="text"
+          <a
+            aria-label="Resolve"
+            className="btn btn-default btn-sm"
+            data-test-id="action-link-resolve"
+            disabled={false}
+            onClick={[Function]}
           >
-            <GuideAnchorContainer
-              innerRef={[Function]}
-              type="text"
-            >
-              <div
-                className="css-9u5for-GuideAnchorContainer e130o4350"
-                type="text"
-              >
-                <StyledGuideAnchor
-                  active={false}
-                  className="guide-anchor-ping resolve"
-                >
-                  <div
-                    className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
-                  >
-                    <StyledGuideAnchorRipples>
-                      <div
-                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
-                      />
-                    </StyledGuideAnchorRipples>
-                  </div>
-                </StyledGuideAnchor>
-              </div>
-            </GuideAnchorContainer>
-          </GuideAnchor>
-          Resolve
-        </a>
-      </ActionLink>
-      <DropdownLink
-        alwaysRenderMenu={true}
-        anchorRight={false}
-        caret={true}
-        className="btn btn-default btn-sm"
-        disabled={false}
-        key="resolve-dropdown"
-        title=""
-      >
-        <DropdownMenu
-          alwaysRenderMenu={true}
-          closeOnEscape={true}
-          keepMenuOpen={false}
-        >
-          <span
-            className="dropdown"
-          >
-            <a
-              className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
-              onClick={[Function]}
-              onKeyDown={[Function]}
-              onMouseEnter={[Function]}
-              onMouseLeave={[Function]}
+            <span
+              className="icon-checkmark hidden-xs"
               style={
                 Object {
-                  "outline": "none",
+                  "marginRight": 5,
                 }
               }
-              tabIndex={-1}
+            />
+            Resolve
+          </a>
+        </ActionLink>
+        <DropdownLink
+          alwaysRenderMenu={true}
+          anchorRight={false}
+          caret={true}
+          className="btn btn-default btn-sm"
+          disabled={false}
+          key="resolve-dropdown"
+          title=""
+        >
+          <DropdownMenu
+            alwaysRenderMenu={true}
+            closeOnEscape={true}
+            keepMenuOpen={false}
+          >
+            <span
+              className="dropdown"
             >
-              <div
-                className="dropdown-actor-title"
+              <a
+                className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
+                onClick={[Function]}
+                onKeyDown={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+                style={
+                  Object {
+                    "outline": "none",
+                  }
+                }
               >
-                <span />
-                <i
-                  className="icon-arrow-down"
-                />
-              </div>
-            </a>
-            <ul
-              className="dropdown-menu"
-              onClick={[Function]}
-              onMouseEnter={[Function]}
-              onMouseLeave={[Function]}
-            >
-              <MenuItem
-                header={true}
-              >
-                <li
-                  className="dropdown-header"
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <div
+                  className="dropdown-actor-title"
                 >
-                  Resolved In
-                </li>
-              </MenuItem>
-              <MenuItem
-                noAnchor={true}
+                  <span />
+                  <i
+                    className="icon-arrow-down"
+                  />
+                </div>
+              </a>
+              <ul
+                className="dropdown-menu"
+                onClick={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
               >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
+                <MenuItem
+                  header={true}
                 >
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
+                  <li
+                    className="dropdown-header"
+                    role="presentation"
                   >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      onAction={[Function]}
-                      shouldConfirm={false}
+                    Resolved In
+                  </li>
+                </MenuItem>
+                <MenuItem
+                  noAnchor={true}
+                >
+                  <li
+                    className=""
+                    role="presentation"
+                  >
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <a
-                        className="tip"
-                        disabled={false}
-                        onClick={[Function]}
-                      >
-                        The next release
-                      </a>
-                    </ActionLink>
-                  </Tooltip>
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
-                  >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      onAction={[Function]}
-                      shouldConfirm={false}
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  onAction={[Function]}
+                                  shouldConfirm={false}
+                                >
+                                  <a
+                                    className=""
+                                    data-test-id="action-link"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                  >
+                                    The next release
+                                  </a>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <a
-                        className="tip"
-                        disabled={false}
-                        onClick={[Function]}
-                      >
-                        The current release
-                      </a>
-                    </ActionLink>
-                  </Tooltip>
-                  <Tooltip
-                    title="Set up release tracking in order to use this feature."
-                  >
-                    <ActionLink
-                      className="tip"
-                      confirmLabel="Resolve"
-                      disabled={false}
-                      onAction={[Function]}
-                      shouldConfirm={false}
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  onAction={[Function]}
+                                  shouldConfirm={false}
+                                >
+                                  <a
+                                    className=""
+                                    data-test-id="action-link"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                  >
+                                    The current release
+                                  </a>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                    <Tooltip
+                      containerDisplayMode="block"
+                      position="top"
                       title="Set up release tracking in order to use this feature."
                     >
-                      <a
-                        className="tip"
-                        disabled={false}
-                        onClick={[Function]}
-                      >
-                        Another version…
-                      </a>
-                    </ActionLink>
-                  </Tooltip>
-                </li>
-              </MenuItem>
-            </ul>
-          </span>
-        </DropdownMenu>
-      </DropdownLink>
-    </div>
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="block"
+                              innerRef={[Function]}
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-zt6512-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <ActionLink
+                                  confirmLabel="Resolve"
+                                  disabled={false}
+                                  onAction={[Function]}
+                                  shouldConfirm={false}
+                                >
+                                  <a
+                                    className=""
+                                    data-test-id="action-link"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                  >
+                                    Another version…
+                                  </a>
+                                </ActionLink>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                  </li>
+                </MenuItem>
+              </ul>
+            </span>
+          </DropdownMenu>
+        </DropdownLink>
+      </div>
+    </GuideAnchor>
   </div>
 </ResolveActions>
 `;

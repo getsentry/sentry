@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
 
 // event ids must have string length of 32
@@ -18,7 +19,7 @@ const shouldSearchShortIds = query => /[\w\d]+-[\w\d]+/.test(query);
 
 // Helper functions to create result objects
 async function createOrganizationResults(organizationsPromise) {
-  let organizations = (await organizationsPromise) || [];
+  const organizations = (await organizationsPromise) || [];
   return flatten(
     organizations.map(org => [
       {
@@ -41,30 +42,22 @@ async function createOrganizationResults(organizationsPromise) {
   );
 }
 async function createProjectResults(projectsPromise, orgId) {
-  let projects = (await projectsPromise) || [];
+  const projects = (await projectsPromise) || [];
   return flatten(
     projects.map(project => [
-      {
-        title: `${project.slug} Dashboard`,
-        description: 'Project Dashboard',
-        model: project,
-        sourceType: 'project',
-        resultType: 'route',
-        to: `/${orgId}/${project.slug}/`,
-      },
       {
         title: `${project.slug} Settings`,
         description: 'Project Settings',
         model: project,
         sourceType: 'project',
         resultType: 'settings',
-        to: `/settings/${orgId}/${project.slug}/`,
+        to: `/settings/${orgId}/projects/${project.slug}/`,
       },
     ])
   );
 }
 async function createTeamResults(teamsPromise, orgId) {
-  let teams = (await teamsPromise) || [];
+  const teams = (await teamsPromise) || [];
   return teams.map(team => ({
     title: `#${team.slug}`,
     description: 'Team Settings',
@@ -76,7 +69,7 @@ async function createTeamResults(teamsPromise, orgId) {
 }
 
 async function createMemberResults(membersPromise, orgId) {
-  let members = (await membersPromise) || [];
+  const members = (await membersPromise) || [];
   return members.map(member => ({
     title: member.name,
     description: member.email,
@@ -88,19 +81,19 @@ async function createMemberResults(membersPromise, orgId) {
 }
 
 async function createLegacyIntegrationResults(pluginsPromise, orgId) {
-  let plugins = (await pluginsPromise) || [];
+  const plugins = (await pluginsPromise) || [];
   return plugins.map(plugin => ({
     title: `${plugin.name} (Legacy)`,
     description: plugin.description,
     model: plugin,
     sourceType: 'plugin',
     resultType: 'integration',
-    to: `/settings/${orgId}/:projectId/plugins/${plugin.id}/`,
+    to: `/settings/${orgId}/projects/:projectId/plugins/${plugin.id}/`,
   }));
 }
 
 async function createIntegrationResults(integrationsPromise, orgId) {
-  let {providers} = (await integrationsPromise) || {};
+  const {providers} = (await integrationsPromise) || {};
   return (
     (providers &&
       providers.map(provider => ({
@@ -122,10 +115,12 @@ async function createIntegrationResults(integrationsPromise, orgId) {
 }
 
 async function createShortIdLookupResult(shortIdLookupPromise) {
-  let shortIdLookup = await shortIdLookupPromise;
-  if (!shortIdLookup) return null;
+  const shortIdLookup = await shortIdLookupPromise;
+  if (!shortIdLookup) {
+    return null;
+  }
 
-  let issue = shortIdLookup && shortIdLookup.group;
+  const issue = shortIdLookup && shortIdLookup.group;
   return {
     item: {
       title: `${(issue && issue.metadata && issue.metadata.type) ||
@@ -134,23 +129,29 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
-      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
+      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${
+        shortIdLookup.groupId
+      }/`,
     },
   };
 }
 
 async function createEventIdLookupResult(eventIdLookupPromise) {
-  let eventIdLookup = await eventIdLookupPromise;
-  if (!eventIdLookup) return null;
+  const eventIdLookup = await eventIdLookupPromise;
+  if (!eventIdLookup) {
+    return null;
+  }
 
-  let event = eventIdLookup && eventIdLookup.event;
+  const event = eventIdLookup && eventIdLookup.event;
   return {
     item: {
       title: `${(event && event.metadata && event.metadata.type) || t('Event')}`,
       description: `${event && event.metadata && event.metadata.value}`,
       sourceType: 'event',
       resultType: 'event',
-      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
+      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${
+        eventIdLookup.groupId
+      }/events/${eventIdLookup.eventId}/`,
     },
   };
 }
@@ -162,6 +163,9 @@ class ApiSource extends React.Component {
 
     // fuse.js options
     searchOptions: PropTypes.object,
+
+    // Organization used for search context
+    organization: SentryTypes.Organization,
 
     /**
      * Render function that passes:
@@ -188,7 +192,9 @@ class ApiSource extends React.Component {
 
     this.api = new Client();
 
-    if (typeof props.query !== 'undefined') this.doSearch(props.query);
+    if (typeof props.query !== 'undefined') {
+      this.doSearch(props.query);
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -209,8 +215,8 @@ class ApiSource extends React.Component {
 
   // Debounced method to handle querying all API endpoints (when necessary)
   doSearch = debounce(async query => {
-    let {params, organization} = this.props;
-    let orgId = (params && params.orgId) || (organization && organization.slug);
+    const {params, organization} = this.props;
+    const orgId = (params && params.orgId) || (organization && organization.slug);
     let searchUrls = ['/organizations/'];
     let directUrls = [];
 
@@ -231,7 +237,7 @@ class ApiSource extends React.Component {
       ];
     }
 
-    let searchRequests = searchUrls.map(url =>
+    const searchRequests = searchUrls.map(url =>
       this.api
         .requestPromise(url, {
           query: {
@@ -247,14 +253,18 @@ class ApiSource extends React.Component {
         )
     );
 
-    let directRequests = directUrls.map(url => {
-      if (!url) return Promise.resolve(null);
+    const directRequests = directUrls.map(url => {
+      if (!url) {
+        return Promise.resolve(null);
+      }
 
       return this.api.requestPromise(url).then(
         resp => resp,
         err => {
           // No need to log 404 errors
-          if (err && err.status === 404) return null;
+          if (err && err.status === 404) {
+            return null;
+          }
           this.handleRequestError(err, {orgId, url});
           return null;
         }
@@ -280,17 +290,24 @@ class ApiSource extends React.Component {
 
   // Handles a list of search request promises, and then updates state with response objects
   async handleSearchRequest(searchRequests, directRequests) {
-    let {searchOptions} = this.props;
+    const {searchOptions} = this.props;
 
     // Note we don't wait for all requests to resolve here (e.g. `await Promise.all(reqs)`)
     // so that we can start processing before all API requests are resolved
     //
     // This isn't particularly helpful in its current form because we still wait for all requests to finish before
     // updating state, but you could potentially optimize rendering direct results before all requests are finished.
-    let [organizations, projects, teams, members, plugins, integrations] = searchRequests;
-    let [shortIdLookup, eventIdLookup] = directRequests;
+    const [
+      organizations,
+      projects,
+      teams,
+      members,
+      plugins,
+      integrations,
+    ] = searchRequests;
+    const [shortIdLookup, eventIdLookup] = directRequests;
 
-    let [searchResults, directResults] = await Promise.all([
+    const [searchResults, directResults] = await Promise.all([
       this.getSearchableResults([
         organizations,
         projects,
@@ -302,7 +319,7 @@ class ApiSource extends React.Component {
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
-    let fuzzy = createFuzzySearch(searchResults, {
+    const fuzzy = createFuzzySearch(searchResults, {
       ...searchOptions,
       keys: ['title', 'description'],
     });
@@ -317,10 +334,10 @@ class ApiSource extends React.Component {
 
   // Process API requests that create result objects that should be searchable
   async getSearchableResults(requests) {
-    let {params, organization} = this.props;
-    let orgId = (params && params.orgId) || (organization && organization.slug);
-    let [organizations, projects, teams, members, plugins, integrations] = requests;
-    let searchResults = flatten(
+    const {params, organization} = this.props;
+    const orgId = (params && params.orgId) || (organization && organization.slug);
+    const [organizations, projects, teams, members, plugins, integrations] = requests;
+    const searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
         createProjectResults(projects, orgId),
@@ -337,22 +354,24 @@ class ApiSource extends React.Component {
   // Create result objects from API requests that do not require fuzzy search
   // i.e. these responses only return 1 object or they should always be displayed regardless of query input
   async getDirectResults(requests, query) {
-    let [shortIdLookup, eventIdLookup] = requests;
+    const [shortIdLookup, eventIdLookup] = requests;
 
-    let directResults = (await Promise.all([
+    const directResults = (await Promise.all([
       createShortIdLookupResult(shortIdLookup),
       createEventIdLookupResult(eventIdLookup),
     ])).filter(result => !!result);
 
-    if (!directResults.length) return [];
+    if (!directResults.length) {
+      return [];
+    }
 
     return directResults;
   }
 
   render() {
-    let {children, query} = this.props;
-    let {fuzzy, directResults} = this.state;
-    let results = (fuzzy && fuzzy.search(query)) || null;
+    const {children, query} = this.props;
+    const {fuzzy, directResults} = this.state;
+    const results = (fuzzy && fuzzy.search(query)) || null;
 
     return children({
       isLoading: this.state.loading,

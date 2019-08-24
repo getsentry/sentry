@@ -1,10 +1,3 @@
-"""
-sentry.tsdb.inmemory
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 from collections import Counter, defaultdict
@@ -41,9 +34,9 @@ class InMemoryTSDB(BaseTSDB):
                 self.data[model][(key, environment_id)][norm_epoch] += count
 
     def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments([model], environment_ids)
 
@@ -54,9 +47,9 @@ class InMemoryTSDB(BaseTSDB):
                     destination[bucket] += count
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments(models, environment_ids)
 
@@ -68,10 +61,7 @@ class InMemoryTSDB(BaseTSDB):
                     for environment_id in environment_ids:
                         data = self.data[model][(key, environment_id)]
                         for timestamp in series:
-                            data.pop(
-                                self.normalize_to_rollup(timestamp, rollup),
-                                0,
-                            )
+                            data.pop(self.normalize_to_rollup(timestamp, rollup), 0)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
@@ -83,11 +73,13 @@ class InMemoryTSDB(BaseTSDB):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
 
             for key in keys:
-                if environment_ids is None:
+                if not environment_ids:
                     value = self.data[model][(key, None)][norm_epoch]
                 else:
-                    value = sum(int(self.data[model][(key, environment_id)][norm_epoch])
-                                for environment_id in environment_ids)
+                    value = sum(
+                        int(self.data[model][(key, environment_id)][norm_epoch])
+                        for environment_id in environment_ids
+                    )
                 results.append((to_timestamp(timestamp), key, value))
 
         results_by_key = defaultdict(dict)
@@ -111,8 +103,9 @@ class InMemoryTSDB(BaseTSDB):
             for environment_id in environment_ids:
                 self.sets[model][(key, environment_id)][r].update(values)
 
-    def get_distinct_counts_series(self, model, keys, start, end=None,
-                                   rollup=None, environment_id=None):
+    def get_distinct_counts_series(
+        self, model, keys, start, end=None, rollup=None, environment_id=None
+    ):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -127,8 +120,9 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_distinct_counts_totals(self, model, keys, start, end=None,
-                                   rollup=None, environment_id=None):
+    def get_distinct_counts_totals(
+        self, model, keys, start, end=None, rollup=None, environment_id=None
+    ):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -144,8 +138,9 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_distinct_counts_union(self, model, keys, start, end=None,
-                                  rollup=None, environment_id=None):
+    def get_distinct_counts_union(
+        self, model, keys, start, end=None, rollup=None, environment_id=None
+    ):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -159,11 +154,12 @@ class InMemoryTSDB(BaseTSDB):
 
         return len(values)
 
-    def merge_distinct_counts(self, model, destination, sources,
-                              timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+    def merge_distinct_counts(
+        self, model, destination, sources, timestamp=None, environment_ids=None
+    ):
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments([model], environment_ids)
 
@@ -173,11 +169,12 @@ class InMemoryTSDB(BaseTSDB):
                 for bucket, values in self.sets[model].pop((source, environment_id), {}).items():
                     destination[bucket].update(values)
 
-    def delete_distinct_counts(self, models, keys, start=None, end=None,
-                               timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+    def delete_distinct_counts(
+        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
+    ):
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments(models, environment_ids)
 
@@ -189,38 +186,17 @@ class InMemoryTSDB(BaseTSDB):
                     for environment_id in environment_ids:
                         data = self.data[model][(key, environment_id)]
                         for timestamp in series:
-                            data.pop(
-                                self.normalize_to_rollup(timestamp, rollup),
-                                set(),
-                            )
+                            data.pop(self.normalize_to_rollup(timestamp, rollup), set())
 
     def flush(self):
         # self.data[model][key][rollup] = count
-        self.data = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    int,
-                )
-            )
-        )
+        self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
         # self.sets[model][key][rollup] = set of elements
-        self.sets = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    set,
-                ),
-            ),
-        )
+        self.sets = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
 
         # self.frequencies[model][key][rollup] = Counter()
-        self.frequencies = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    Counter,
-                )
-            ),
-        )
+        self.frequencies = defaultdict(lambda: defaultdict(lambda: defaultdict(Counter)))
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
         environment_ids = set([environment_id, None])
@@ -238,8 +214,9 @@ class InMemoryTSDB(BaseTSDB):
                     for rollup in self.rollups:
                         source[self.normalize_to_rollup(timestamp, rollup)].update(items)
 
-    def get_most_frequent(self, model, keys, start, end=None,
-                          rollup=None, limit=None, environment_id=None):
+    def get_most_frequent(
+        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+    ):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         self.validate_arguments([model], [environment_id])
@@ -256,8 +233,9 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_most_frequent_series(self, model, keys, start, end=None,
-                                 rollup=None, limit=None, environment_id=None):
+    def get_most_frequent_series(
+        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+    ):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         self.validate_arguments([model], [environment_id])
@@ -283,7 +261,7 @@ class InMemoryTSDB(BaseTSDB):
             source = self.frequencies[model][(key, environment_id)]
             for timestamp in series:
                 scores = source[self.normalize_ts_to_rollup(timestamp, rollup)]
-                result.append((timestamp, {k: scores.get(k, 0.0) for k in members}, ))
+                result.append((timestamp, {k: scores.get(k, 0.0) for k in members}))
 
         return results
 
@@ -303,9 +281,9 @@ class InMemoryTSDB(BaseTSDB):
         return results
 
     def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments([model], environment_ids)
 
@@ -315,11 +293,12 @@ class InMemoryTSDB(BaseTSDB):
                 for bucket, counter in self.data[model].pop((source, environment_id), {}).items():
                     destination[bucket].update(counter)
 
-    def delete_frequencies(self, models, keys, start=None, end=None,
-                           timestamp=None, environment_ids=None):
-        environment_ids = (
-            set(environment_ids) if environment_ids is not None else set()).union(
-            [None])
+    def delete_frequencies(
+        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
+    ):
+        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
+            [None]
+        )
 
         self.validate_arguments(models, environment_ids)
 
@@ -331,7 +310,4 @@ class InMemoryTSDB(BaseTSDB):
                     for environment_id in environment_ids:
                         data = self.frequencies[model][(key, environment_id)]
                         for timestamp in series:
-                            data.pop(
-                                self.normalize_to_rollup(timestamp, rollup),
-                                Counter(),
-                            )
+                            data.pop(self.normalize_to_rollup(timestamp, rollup), Counter())

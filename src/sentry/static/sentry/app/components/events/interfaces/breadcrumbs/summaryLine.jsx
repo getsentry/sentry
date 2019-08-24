@@ -30,7 +30,7 @@ class SummaryLine extends React.Component {
     if (!this.domElement) {
       return;
     }
-    let hasOverflow = isOverflowing(this.domElement);
+    const hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
         hasOverflow,

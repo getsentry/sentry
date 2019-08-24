@@ -12,11 +12,11 @@ from sentry.models import ApiKey, AuditLogEntryEvent
 class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = ApiKey
-        fields = ('label', 'scope_list', 'allowed_origins')
+        fields = ("label", "scope_list", "allowed_origins")
 
 
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationAdminPermission, )
+    permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request, organization, api_key_id):
         """
@@ -29,10 +29,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -53,14 +50,11 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         """
 
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ApiKeySerializer(api_key, data=request.DATA, partial=True)
+        serializer = ApiKeySerializer(api_key, data=request.data, partial=True)
 
         if serializer.is_valid():
             api_key = serializer.save()
@@ -88,10 +82,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 

@@ -12,14 +12,14 @@ const MIN_SCORE = 0.6;
 
 // @param score: {[key: string]: number}
 const checkBelowThreshold = scores => {
-  let scoreKeys = (scores && Object.keys(scores)) || [];
+  const scoreKeys = (scores && Object.keys(scores)) || [];
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
 const GroupingStore = Reflux.createStore({
   listenables: [GroupingActions],
   init() {
-    let state = this.getInitialState();
+    const state = this.getInitialState();
 
     Object.entries(state).forEach(([key, value]) => {
       this[key] = value;
@@ -55,18 +55,18 @@ const GroupingStore = Reflux.createStore({
   },
 
   setStateForId(map, idOrIds, newState) {
-    let ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
 
     return ids.map(id => {
-      let state = (map.has(id) && map.get(id)) || {};
-      let mergedState = Object.assign({}, state, newState);
+      const state = (map.has(id) && map.get(id)) || {};
+      const mergedState = Object.assign({}, state, newState);
       map.set(id, mergedState);
       return mergedState;
     });
   },
 
   isAllUnmergedSelected() {
-    let lockedItems =
+    const lockedItems =
       Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [];
     return (
       this.unmergeList.size ===
@@ -83,7 +83,7 @@ const GroupingStore = Reflux.createStore({
     this.init();
     this.triggerFetchState();
 
-    let promises = requests.map(({endpoint, queryParams, dataKey}) => {
+    const promises = requests.map(({endpoint, queryParams, dataKey}) => {
       return new Promise((resolve, reject) => {
         api.request(endpoint, {
           method: 'GET',
@@ -96,7 +96,7 @@ const GroupingStore = Reflux.createStore({
             });
           },
           error: err => {
-            let error = (err.responseJSON && err.responseJSON.detail) || true;
+            const error = (err.responseJSON && err.responseJSON.detail) || true;
             reject(error);
           },
         });
@@ -113,14 +113,14 @@ const GroupingStore = Reflux.createStore({
       },
       similar: ([issue, scoreMap]) => {
         // Hide items with a low scores
-        let isBelowThreshold = checkBelowThreshold(scoreMap);
+        const isBelowThreshold = checkBelowThreshold(scoreMap);
 
         // List of scores indexed by interface (i.e., exception and message)
-        let scoresByInterface = Object.keys(scoreMap)
+        const scoresByInterface = Object.keys(scoreMap)
           .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
             // tokenize scorekey, first token is the interface name
-            let [interfaceName] = scoreKey.split(':');
+            const [interfaceName] = scoreKey.split(':');
             if (!acc[interfaceName]) {
               acc[interfaceName] = [];
             }
@@ -130,13 +130,13 @@ const GroupingStore = Reflux.createStore({
           }, {});
 
         // Aggregate score by interface
-        let aggregate = Object.keys(scoresByInterface)
+        const aggregate = Object.keys(scoresByInterface)
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
           .reduce((acc, [interfaceName, allScores]) => {
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
-            let scores = allScores.filter(([, score]) => score !== null);
-            let avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+            const scores = allScores.filter(([, score]) => score !== null);
+            const avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
             acc[interfaceName] = avg;
             return acc;
           }, {});
@@ -158,7 +158,7 @@ const GroupingStore = Reflux.createStore({
     return Promise.all(promises).then(
       resultsArray => {
         resultsArray.forEach(({dataKey, data, links}) => {
-          let items = data.map(responseProcessors[dataKey]);
+          const items = data.map(responseProcessors[dataKey]);
           this[`${dataKey}Items`] = items;
           this[`${dataKey}Links`] = links;
         });
@@ -180,8 +180,10 @@ const GroupingStore = Reflux.createStore({
     let checked;
 
     // Don't do anything if item is busy
-    let state = this.mergeState.has(id) && this.mergeState.get(id);
-    if (state && state.busy === true) return;
+    const state = this.mergeState.has(id) && this.mergeState.get(id);
+    if (state && state.busy === true) {
+      return;
+    }
 
     if (this.mergeList.has(id)) {
       this.mergeList.delete(id);
@@ -203,9 +205,11 @@ const GroupingStore = Reflux.createStore({
     let checked;
 
     // Uncheck an item to unmerge
-    let state = this.unmergeState.get(fingerprint);
+    const state = this.unmergeState.get(fingerprint);
 
-    if (state && state.busy === true) return;
+    if (state && state.busy === true) {
+      return;
+    }
 
     if (this.unmergeList.has(fingerprint)) {
       this.unmergeList.delete(fingerprint);
@@ -228,7 +232,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
-    let ids = Array.from(this.unmergeList.keys());
+    const ids = Array.from(this.unmergeList.keys());
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {
@@ -245,7 +249,7 @@ const GroupingStore = Reflux.createStore({
         busy: true,
       });
       this.triggerUnmergeState();
-      let loadingIndicator = IndicatorStore.add(loadingMessage);
+      const loadingIndicator = IndicatorStore.add(loadingMessage);
 
       api.request(`/issues/${groupId}/hashes/`, {
         method: 'DELETE',
@@ -280,8 +284,10 @@ const GroupingStore = Reflux.createStore({
     });
   },
 
-  onMerge({params, query}) {
-    let ids = Array.from(this.mergeList.values());
+  // For cross-project views, we need to pass projectId instead of
+  // depending on router params (since we will only have orgId in that case)
+  onMerge({params, query, projectId}) {
+    const ids = Array.from(this.mergeList.values());
 
     this.mergeDisabled = true;
     this.setStateForId(this.mergeState, ids, {
@@ -289,15 +295,15 @@ const GroupingStore = Reflux.createStore({
     });
     this.triggerMergeState();
 
-    let promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       // Disable merge button
 
       if (params) {
-        let {orgId, groupId, projectId} = params;
+        const {orgId, groupId} = params;
         api.merge(
           {
             orgId,
-            projectId,
+            projectId: projectId || params.projectId,
             itemIds: [...ids, groupId],
             query,
           },
@@ -351,7 +357,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   onToggleCollapseFingerprint(fingerprint) {
-    let collapsed =
+    const collapsed =
       this.unmergeState.has(fingerprint) && this.unmergeState.get(fingerprint).collapsed;
     this.setStateForId(this.unmergeState, fingerprint, {collapsed: !collapsed});
     this.trigger({
@@ -360,7 +366,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   triggerFetchState() {
-    let state = {
+    const state = {
       similarItems: this.similarItems.filter(({isBelowThreshold}) => !isBelowThreshold),
       filteredSimilarItems: this.similarItems.filter(
         ({isBelowThreshold}) => isBelowThreshold
@@ -380,7 +386,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   triggerUnmergeState() {
-    let state = pick(this, [
+    const state = pick(this, [
       'unmergeDisabled',
       'unmergeState',
       'unmergeList',
@@ -392,7 +398,7 @@ const GroupingStore = Reflux.createStore({
   },
 
   triggerMergeState() {
-    let state = pick(this, ['mergeDisabled', 'mergeState', 'mergeList']);
+    const state = pick(this, ['mergeDisabled', 'mergeState', 'mergeList']);
     this.trigger(state);
     return state;
   },

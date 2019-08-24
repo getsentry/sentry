@@ -1,8 +1,5 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
-import {action} from '@storybook/addon-actions';
+import React from 'react';
 
 import {
   Form as LegacyForm,
@@ -10,16 +7,22 @@ import {
   PasswordField,
   BooleanField,
 } from 'app/components/forms';
+import {Panel} from 'app/components/panels';
+import {action} from '@storybook/addon-actions';
+import {boolean} from '@storybook/addon-knobs';
+import {storiesOf} from '@storybook/react';
+import {withInfo} from '@storybook/addon-info';
+import DatePickerField from 'app/views/settings/components/forms/datePickerField';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
 import RadioField from 'app/views/settings/components/forms/radioField';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import RangeField from 'app/views/settings/components/forms/rangeField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import {Panel} from 'app/components/panels';
-import TextField from 'app/views/settings/components/forms/textField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import Switch from 'app/components/switch';
+import TextField from 'app/views/settings/components/forms/textField';
 
 class UndoButton extends React.Component {
   handleClick(e) {
@@ -41,7 +44,7 @@ UndoButton.contextTypes = {
 };
 
 // eslint-disable-next-line
-storiesOf('Forms|Form', module)
+storiesOf('Forms|Old/Form', module)
   .add('empty', withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />))
   .add(
     'with Cancel',
@@ -65,7 +68,70 @@ storiesOf('Forms|Form', module)
     ))
   );
 
-storiesOf('Forms|Fields/Old', module)
+storiesOf('Forms|Form', module).add(
+  'default',
+  withInfo(
+    'Use the knobs to see how the different field props that can be used affect the form layout.'
+  )(() => {
+    const fieldProps = {
+      alignRight: boolean('Align right', false),
+      required: boolean('Required', false),
+      visible: boolean('Visible', true),
+      disabled: boolean('Disabled', false),
+      flexibleControlStateSize: boolean('Flexible Control State Size', true),
+      inline: boolean('Inline (Label and Control on same line)', true),
+      stacked: boolean(
+        'Stacked (Fields are on top of each other without a border)',
+        true
+      ),
+    };
+    return (
+      <Form>
+        <TextField
+          name="textfieldflexiblecontrol"
+          label="Text Field With Flexible Control State Size"
+          placeholder="Type text and then delete it"
+          {...fieldProps}
+        />
+        <NewBooleanField name="field" label="New Boolean Field" {...fieldProps} />
+        <RadioField
+          name="radio"
+          label="Radio Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+          {...fieldProps}
+        />
+        <SelectField
+          name="select"
+          label="Select Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+          {...fieldProps}
+        />
+        <RangeField
+          name="rangeField"
+          label="Range Field"
+          min={1}
+          max={10}
+          step={1}
+          value={1}
+          formatLabel={value => {
+            return `${value} Toaster Strudle${value > 1 ? 's' : ''}`;
+          }}
+          {...fieldProps}
+        />
+      </Form>
+    );
+  })
+);
+
+storiesOf('Forms|Old/Fields', module)
   .add(
     'PasswordField',
     withInfo({
@@ -154,6 +220,17 @@ storiesOf('Forms|Fields', module)
     })(() => (
       <Form>
         <NewBooleanField name="field" label="New Boolean Field" />
+      </Form>
+    ))
+  )
+  .add(
+    'DatePickerField',
+    withInfo({
+      text: 'Date picker field with a popup calendar picker (for a single date)',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <DatePickerField name="field" label="Date Picker Field" />
       </Form>
     ))
   )

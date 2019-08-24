@@ -44,7 +44,7 @@ class IssueActions extends PluginComponentBase {
   }
 
   componentDidMount() {
-    let plugin = this.props.plugin;
+    const plugin = this.props.plugin;
     if (!plugin.issue && this.props.actionType !== 'unlink') {
       this.fetchData();
     }
@@ -79,7 +79,7 @@ class IssueActions extends PluginComponentBase {
   }
 
   errorHandler(error) {
-    let state = {
+    const state = {
       loading: false,
     };
     if (error.status === 400 && error.responseJSON) {
@@ -94,7 +94,7 @@ class IssueActions extends PluginComponentBase {
     if (this.props.actionType === 'create') {
       this.api.request(this.getPluginCreateEndpoint(), {
         success: data => {
-          let createFormData = {};
+          const createFormData = {};
           data.forEach(field => {
             createFormData[field.name] = field.default;
           });
@@ -113,7 +113,7 @@ class IssueActions extends PluginComponentBase {
     } else if (this.props.actionType === 'link') {
       this.api.request(this.getPluginLinkEndpoint(), {
         success: data => {
-          let linkFormData = {};
+          const linkFormData = {};
           data.forEach(field => {
             linkFormData[field.name] = field.default;
           });
@@ -170,10 +170,10 @@ class IssueActions extends PluginComponentBase {
   }
 
   changeField(action, name, value) {
-    let key = action + 'FormData';
-    let formData = this.state[key];
+    const key = action + 'FormData';
+    const formData = this.state[key];
     formData[name] = value;
-    let state = {};
+    const state = {};
     state[key] = formData;
     this.setState(state);
   }
@@ -266,14 +266,14 @@ class IssueActions extends PluginComponentBase {
   }
 
   getPluginConfigureUrl() {
-    let org = this.getOrganization();
-    let project = this.getProject();
-    let plugin = this.props.plugin;
+    const org = this.getOrganization();
+    const project = this.getProject();
+    const plugin = this.props.plugin;
     return '/' + org.slug + '/' + project.slug + '/settings/plugins/' + plugin.slug;
   }
 
   renderError() {
-    let error = this.state.error;
+    const error = this.state.error;
     if (!error) {
       return null;
     }
@@ -327,8 +327,8 @@ class IssueActions extends PluginComponentBase {
         </div>
       );
     } else if (error.error_type === 'validation') {
-      let errors = [];
-      for (let name in error.errors) {
+      const errors = [];
+      for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
       return <div className="alert alert-error alert-block">{errors}</div>;

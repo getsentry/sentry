@@ -11,7 +11,7 @@ describe('AccountSecurityEnroll', function() {
 
   describe('Totp', function() {
     Client.clearMockResponses();
-    let authenticator = TestStubs.Authenticators().Totp({
+    const authenticator = TestStubs.Authenticators().Totp({
       isEnrolled: false,
       qrcode: [[1, 0]],
       secret: 'secret',
@@ -52,7 +52,7 @@ describe('AccountSecurityEnroll', function() {
     });
 
     it('can enroll', function() {
-      let enrollMock = Client.addMockResponse({
+      const enrollMock = Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
       });
@@ -78,7 +78,7 @@ describe('AccountSecurityEnroll', function() {
         statusCode: 400,
       });
 
-      let pushMock = jest.fn();
+      const pushMock = jest.fn();
       wrapper = mount(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([

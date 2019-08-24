@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -74,7 +74,9 @@ export default class ProviderRow extends React.Component {
       icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
       children: this.isEnabled
         ? t('Add Another')
-        : upgradeable ? t('Update') : t('Install'),
+        : upgradeable
+        ? t('Update')
+        : t('Install'),
     };
   }
 
@@ -88,13 +90,14 @@ export default class ProviderRow extends React.Component {
         onRemove={this.props.onRemove}
         onDisable={this.props.onDisable}
         onReinstallIntegration={this.props.onReinstall}
+        data-test-id={integration.id}
       />
     ));
   }
 
   render() {
     return (
-      <PanelItem p={0} direction="column">
+      <PanelItem p={0} direction="column" data-test-id={this.props.provider.key}>
         <Flex align="center" p={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>
@@ -153,15 +156,14 @@ const NewInstallation = styled('div')`
     ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
 `;
 
-const StyledInstalledIntegration = styled(
-  p =>
-    p.integration.newlyAdded ? (
-      <NewInstallation>
-        <InstalledIntegration {...p} />
-      </NewInstallation>
-    ) : (
+const StyledInstalledIntegration = styled(p =>
+  p.integration.newlyAdded ? (
+    <NewInstallation>
       <InstalledIntegration {...p} />
-    )
+    </NewInstallation>
+  ) : (
+    <InstalledIntegration {...p} />
+  )
 )`
   padding: ${space(2)};
   padding-left: 0;

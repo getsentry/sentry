@@ -3,6 +3,7 @@ import React from 'react';
 
 import BooleanField from './booleanField';
 import EmailField from './emailField';
+import HiddenField from './hiddenField';
 import NumberField from './numberField';
 import RangeField from './rangeField';
 import SelectField from './selectField';
@@ -10,7 +11,9 @@ import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
 import InputField from './inputField';
-import ChoiceMapper from './choiceMapper';
+import ChoiceMapperField from './choiceMapperField';
+import RichListField from './richListField';
+import FieldSeparator from './fieldSeparator';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
@@ -21,13 +24,17 @@ export default class FieldFromConfig extends React.Component {
         'boolean',
         'choice',
         'choice_mapper',
+        'custom',
         'email',
+        'hidden',
         'multichoice',
         'number',
         'radio',
         'range',
+        'rich_list',
         'secret',
         'select',
+        'separator',
         'string',
         'text',
         'textarea',
@@ -59,14 +66,16 @@ export default class FieldFromConfig extends React.Component {
   };
 
   render() {
-    let {field, ...otherProps} = this.props;
+    const {field, ...otherProps} = this.props;
 
-    let props = {
+    const props = {
       ...otherProps,
       ...field,
     };
 
     switch (field.type) {
+      case 'separator':
+        return <FieldSeparator {...props} />;
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
@@ -76,6 +85,8 @@ export default class FieldFromConfig extends React.Component {
         return <BooleanField {...props} />;
       case 'email':
         return <EmailField {...props} />;
+      case 'hidden':
+        return <HiddenField {...props} />;
       case 'string':
       case 'text':
       case 'url':
@@ -101,9 +112,13 @@ export default class FieldFromConfig extends React.Component {
 
         return <SelectField {...props} />;
       case 'choice_mapper':
-        return <ChoiceMapper {...props} />;
+        return <ChoiceMapperField {...props} />;
       case 'radio':
         return <RadioField {...props} />;
+      case 'rich_list':
+        return <RichListField {...props} />;
+      case 'custom':
+        return field.Component(props);
       default:
         return null;
     }

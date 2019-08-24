@@ -11,7 +11,7 @@ class OsContextType extends React.Component {
   };
 
   render() {
-    let {name, version, build, kernel_version, rooted, ...data} = this.props.data;
+    const {name, version, build, kernel_version, rooted, ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
@@ -27,8 +27,6 @@ class OsContextType extends React.Component {
   }
 }
 
-OsContextType.getTitle = function(value) {
-  return 'Operating System';
-};
+OsContextType.getTitle = () => 'Operating System';
 
 export default OsContextType;

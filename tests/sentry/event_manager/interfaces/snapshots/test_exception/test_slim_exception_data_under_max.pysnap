@@ -1,0 +1,10 @@
+---
+created: '2019-05-22T14:45:11.515847Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+values:
+- stacktrace:
+    frames:
+    - filename: foo
+  value: foo

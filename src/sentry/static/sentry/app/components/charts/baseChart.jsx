@@ -5,7 +5,7 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
-import {DEFAULT_USE_UTC} from 'app/constants';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
@@ -61,6 +61,8 @@ class BaseChart extends React.Component {
 
     toolBox: SentryTypes.EChartsToolBox,
 
+    graphic: SentryTypes.EchartsGraphic,
+
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
 
@@ -79,9 +81,6 @@ class BaseChart extends React.Component {
 
     devicePixelRatio: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
-    // callback when chart is ready
-    onChartReady: PropTypes.func,
-
     // theme name
     // example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
     theme: PropTypes.string,
@@ -95,27 +94,36 @@ class BaseChart extends React.Component {
     // states whether not to update chart immediately
     lazyUpdate: PropTypes.bool,
 
-    // Map of eventName -> function for echarts events
-    onEvents: PropTypes.shape({
-      highlight: PropTypes.func,
-      mouseover: PropTypes.func,
-    }),
+    // eCharts Event Handlers
+    // callback when chart is ready
+    onChartReady: PropTypes.func,
+    onHighlight: PropTypes.func,
+    onMouseOver: PropTypes.func,
+    onClick: PropTypes.func,
+
+    // Zoom on chart
+    onDataZoom: PropTypes.func,
+
+    // One example of when this is called is restoring chart from zoom levels
+    onRestore: PropTypes.func,
+
+    onFinished: PropTypes.func,
 
     // Forwarded Ref
-    forwardedRef: PropTypes.object,
+    forwardedRef: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
 
     // Custom chart props that are implemented by us (and not a feature of eCharts)
     /**
      * Display previous period as a LineSeries
      */
-    previousPeriod: SentryTypes.SeriesUnit,
+    previousPeriod: PropTypes.arrayOf(SentryTypes.SeriesUnit),
 
     // If data is grouped by date, then apply default date formatting to
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
 
-    // How is data grouped (affects formatting of axis labels and tooltips)
-    interval: PropTypes.oneOf(['hour', 'day']),
+    // Should we render hours on xaxis instead of day?
+    shouldXAxisRenderTimeOnly: PropTypes.bool,
 
     // Formats dates as UTC?
     utc: PropTypes.bool,
@@ -134,17 +142,41 @@ class BaseChart extends React.Component {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
-    interval: 'day',
-    utc: DEFAULT_USE_UTC,
+    shouldXAxisRenderTimeOnly: false,
+  };
+
+  getEventsMap = {
+    click: (...args) => {
+      this.handleClick(...args);
+      callIfFunction(this.props.onClick, ...args);
+    },
+    highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
+    mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
+    datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
+    restore: (...args) => callIfFunction(this.props.onRestore, ...args),
+    finished: (...args) => callIfFunction(this.props.onFinished, ...args),
   };
 
   handleChartReady = (...args) => {
-    let {onChartReady} = this.props;
+    const {onChartReady} = this.props;
     onChartReady(...args);
   };
 
+  /**
+   * Handle series item clicks (e.g. Releases mark line or a single series item)
+   * This is different than when you hover over an "axis" line on a chart (e.g.
+   * if there are 2 series for an axis and you're not directly hovered over an item)
+   *
+   * Calls "onClick" inside of series data
+   */
+  handleClick = (series, chart) => {
+    if (series.data) {
+      callIfFunction(series.data.onClick, series, chart);
+    }
+  };
+
   getColorPalette = () => {
-    let {series} = this.props;
+    const {series} = this.props;
 
     return series && series.length
       ? theme.charts.getColorPalette(series.length)
@@ -152,7 +184,7 @@ class BaseChart extends React.Component {
   };
 
   render() {
-    let {
+    const {
       options,
       colors,
       grid,
@@ -163,9 +195,10 @@ class BaseChart extends React.Component {
       xAxis,
       dataZoom,
       toolBox,
+      graphic,
 
       isGroupedByDate,
-      interval,
+      shouldXAxisRenderTimeOnly,
       previousPeriod,
       utc,
       yAxes,
@@ -178,13 +211,16 @@ class BaseChart extends React.Component {
       lazyUpdate,
       silent,
       style,
-      onEvents,
       forwardedRef,
     } = this.props;
 
     const yAxisOrCustom = !yAxes
-      ? yAxis !== null ? YAxis(yAxis) : null
-      : Array.isArray(yAxes) ? yAxes.slice(0, 2).map(YAxis) : [YAxis(), YAxis()];
+      ? yAxis !== null
+        ? YAxis(yAxis)
+        : null
+      : Array.isArray(yAxes)
+      ? yAxes.slice(0, 2).map(YAxis)
+      : [YAxis(), YAxis()];
 
     return (
       <ReactEchartsCore
@@ -195,7 +231,7 @@ class BaseChart extends React.Component {
         silent={silent}
         theme={this.props.theme}
         onChartReady={this.handleChartReady}
-        onEvents={onEvents}
+        onEvents={this.getEventsMap}
         opts={{
           height,
           width,
@@ -209,19 +245,17 @@ class BaseChart extends React.Component {
         }}
         option={{
           ...options,
+          useUTC: utc,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
-          tooltip:
-            tooltip !== null
-              ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
-              : null,
+          tooltip: tooltip !== null ? Tooltip({isGroupedByDate, utc, ...tooltip}) : null,
           legend: legend ? Legend({...legend}) : null,
           yAxis: yAxisOrCustom,
           xAxis:
             xAxis !== null
               ? XAxis({
                   ...xAxis,
-                  interval,
+                  shouldRenderTimeOnly: shouldXAxisRenderTimeOnly,
                   isGroupedByDate,
                   utc,
                 })
@@ -230,17 +264,23 @@ class BaseChart extends React.Component {
             ? series
             : [
                 ...series,
-                LineSeries({
-                  name: previousPeriod.seriesName,
-                  data: previousPeriod.data.map(({name, value}) => [name, value]),
-                  lineStyle: {
-                    color: theme.gray1,
-                    type: 'dotted',
-                  },
-                }),
+                ...previousPeriod.map(previous =>
+                  LineSeries({
+                    name: previous.seriesName,
+                    data: previous.data.map(({name, value}) => [name, value]),
+                    lineStyle: {
+                      color: theme.gray1,
+                      type: 'dotted',
+                    },
+                    itemStyle: {
+                      color: theme.gray1,
+                    },
+                  })
+                ),
               ],
           dataZoom,
           toolbox: toolBox,
+          graphic,
         }}
       />
     );

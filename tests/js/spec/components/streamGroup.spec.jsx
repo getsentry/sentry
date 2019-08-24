@@ -7,11 +7,9 @@ import StreamGroup from 'app/components/stream/group';
 // jest.mock('app/mixins/projectState');
 
 describe('StreamGroup', function() {
-  let sandbox;
   let GROUP_1;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     GROUP_1 = TestStubs.Group({
       id: '1337',
       project: {
@@ -20,15 +18,13 @@ describe('StreamGroup', function() {
       },
       type: 'error',
     });
-    sandbox.stub(GroupStore, 'get').returns(GROUP_1);
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders with anchors', function() {
-    let component = shallow(
+    const component = shallow(
       <StreamGroup
         id="1L"
         orgId="orgId"
@@ -40,7 +36,7 @@ describe('StreamGroup', function() {
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(3);
+    expect(component.find('GuideAnchor')).toHaveLength(1);
     expect(component).toMatchSnapshot();
   });
 });

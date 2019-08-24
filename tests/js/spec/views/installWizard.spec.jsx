@@ -31,7 +31,7 @@ describe('InstallWizard', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('has "Send my contact information..." when beacon.anonymous is false', function() {
+  it('has no option selected when beacon.anonymous is unset', function() {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard({
@@ -52,14 +52,14 @@ describe('InstallWizard', function() {
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
     ).toBe(false);
   });
 
-  it('has "Please keep my usage anonymous" when beacon.anonymous is true', function() {
+  it('has no option selected even when beacon.anonymous is set', function() {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard({
@@ -70,9 +70,9 @@ describe('InstallWizard', function() {
             required: true,
             disabled: false,
             allowEmpty: true,
-            isSet: false,
+            isSet: true,
           },
-          value: true,
+          value: false,
         },
       }),
     });
@@ -84,6 +84,6 @@ describe('InstallWizard', function() {
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
-    ).toBe(true);
+    ).toBe(false);
   });
 });

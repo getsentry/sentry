@@ -33,7 +33,6 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
             "outline": "none",
           }
         }
-        tabIndex={-1}
       >
         <div
           className="dropdown-actor-title"
@@ -97,7 +96,6 @@ exports[`DropdownLink renders and anchors to right 1`] = `
             "outline": "none",
           }
         }
-        tabIndex={-1}
       >
         <div
           className="dropdown-actor-title"

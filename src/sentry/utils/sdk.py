@@ -17,10 +17,11 @@ from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
+from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
+UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -40,6 +41,7 @@ def is_current_event_safe():
 
 def get_project_key():
     from sentry.models import ProjectKey
+
     if not settings.SENTRY_PROJECT:
         return None
 
@@ -47,31 +49,36 @@ def get_project_key():
     try:
         if settings.SENTRY_PROJECT_KEY is not None:
             key = ProjectKey.objects.get(
-                id=settings.SENTRY_PROJECT_KEY,
-                project=settings.SENTRY_PROJECT,
+                id=settings.SENTRY_PROJECT_KEY, project=settings.SENTRY_PROJECT
             )
         else:
             key = ProjectKey.get_default(settings.SENTRY_PROJECT)
     except Exception as exc:
         # if the relation fails to query or is missing completely, lets handle
         # it gracefully
-        sdk_logger.warn('internal-error.unable-to-fetch-project', extra={
-            'project_id': settings.SENTRY_PROJECT,
-            'project_key': settings.SENTRY_PROJECT_KEY,
-            'error_message': six.text_type(exc),
-        })
+        sdk_logger.warn(
+            "internal-error.unable-to-fetch-project",
+            extra={
+                "project_id": settings.SENTRY_PROJECT,
+                "project_key": settings.SENTRY_PROJECT_KEY,
+                "error_message": six.text_type(exc),
+            },
+        )
     if key is None:
-        sdk_logger.warn('internal-error.no-project-available', extra={
-            'project_id': settings.SENTRY_PROJECT,
-            'project_key': settings.SENTRY_PROJECT_KEY,
-        })
+        sdk_logger.warn(
+            "internal-error.no-project-available",
+            extra={
+                "project_id": settings.SENTRY_PROJECT,
+                "project_key": settings.SENTRY_PROJECT_KEY,
+            },
+        )
     return key
 
 
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
-        metrics.incr('internal.uncaptured.logs', skip_internal=False)
+        metrics.incr("internal.uncaptured.logs", skip_internal=False)
         return is_current_event_safe()
 
 
@@ -82,16 +89,20 @@ def configure_sdk():
 
     assert sentry_sdk.Hub.main.client is None
 
-    options = settings.SENTRY_SDK_CONFIG
+    sdk_options = settings.SENTRY_SDK_CONFIG
 
     internal_transport = InternalTransport()
     upstream_transport = None
-    if options.get('dsn'):
-        upstream_transport = make_transport(get_options(options))
+    if sdk_options.get("dsn"):
+        upstream_transport = make_transport(get_options(sdk_options))
 
     def capture_event(event):
-        internal_transport.capture_event(event)
+        if event.get("type") == "transaction" and options.get(
+            "transaction-events.force-disable-internal-project"
+        ):
+            return
 
+        # Make sure we log to upstream when available first
         if upstream_transport is not None:
             # TODO(mattrobenolt): Bring this back safely.
             # from sentry import options
@@ -99,6 +110,8 @@ def configure_sdk():
             # if install_id:
             #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
+
+        internal_transport.capture_event(event)
 
     sentry_sdk.init(
         integrations=[
@@ -108,8 +121,22 @@ def configure_sdk():
             RustInfoIntegration(),
         ],
         transport=capture_event,
-        **options
+        traceparent_v2=True,
+        **sdk_options
     )
+
+
+def _create_noop_hub():
+    def transport(event):
+        with capture_internal_exceptions():
+            metrics.incr("internal.uncaptured.events", skip_internal=False)
+            sdk_logger.warn("internal-error.noop-hub")
+
+    return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
+
+
+NOOP_HUB = _create_noop_hub()
+del _create_noop_hub
 
 
 class InternalTransport(Transport):
@@ -123,17 +150,30 @@ class InternalTransport(Transport):
     @cached_property
     def request_factory(self):
         from django.test import RequestFactory
+
         return RequestFactory()
 
     def capture_event(self, event):
+        # Disable the SDK while processing our own events. This fixes some
+        # recursion issues when the view crashes without including any
+        # UNSAFE_FILES
+        #
+        # NOTE: UNSAFE_FILES still exists because the hub does not follow the
+        # execution flow into the celery job triggered by StoreView. In other
+        # words, UNSAFE_FILES is used in case the celery job for crashes and
+        # that error is captured by the SDK.
+        with NOOP_HUB:
+            return self._capture_event(event)
+
+    def _capture_event(self, event):
         with capture_internal_exceptions():
             key = self.project_key
             if key is None:
                 return
 
             if not is_current_event_safe():
-                metrics.incr('internal.uncaptured.events', skip_internal=False)
-                sdk_logger.warn('internal-error.unsafe-stacktrace')
+                metrics.incr("internal.uncaptured.events", skip_internal=False)
+                sdk_logger.warn("internal-error.unsafe-stacktrace")
                 return
 
             auth = Auth(
@@ -142,33 +182,31 @@ class InternalTransport(Transport):
                 project_id=key.project_id,
                 public_key=key.public_key,
                 secret_key=key.secret_key,
-                client="sentry-python/%s" % SDK_VERSION
+                client="sentry-python/%s" % SDK_VERSION,
             )
 
-            headers = {
-                'HTTP_X_SENTRY_AUTH': auth.to_header(),
-                'HTTP_CONTENT_ENCODING': 'deflate'
-            }
+            headers = {"HTTP_X_SENTRY_AUTH": auth.to_header(), "HTTP_CONTENT_ENCODING": "deflate"}
 
             request = self.request_factory.post(
-                '/api/{}/store/'.format(key.project_id),
-                data=zlib.compress(json.dumps(event).encode('utf8')),
-                content_type='application/octet-stream',
+                "/api/{}/store/".format(key.project_id),
+                data=zlib.compress(json.dumps(event).encode("utf8")),
+                content_type="application/octet-stream",
                 **headers
             )
 
             from sentry.web.api import StoreView
-            resp = StoreView.as_view()(
-                request,
-                project_id=six.text_type(key.project_id),
-            )
+
+            resp = StoreView.as_view()(request, project_id=six.text_type(key.project_id))
 
             if resp.status_code != 200:
-                sdk_logger.warn('internal-error.invalid-response', extra={
-                    'project_id': settings.SENTRY_PROJECT,
-                    'project_key': settings.SENTRY_PROJECT_KEY,
-                    'status_code': resp.status_code,
-                })
+                sdk_logger.warn(
+                    "internal-error.invalid-response",
+                    extra={
+                        "project_id": settings.SENTRY_PROJECT,
+                        "project_key": settings.SENTRY_PROJECT_KEY,
+                        "status_code": resp.status_code,
+                    },
+                )
 
 
 class RavenShim(object):
@@ -190,11 +228,10 @@ class RavenShim(object):
             for k, v in tags.items():
                 scope.set_tag(k, v)
 
-    def _kwargs_into_scope(self, scope, extra=None, tags=None,
-                           fingerprint=None, request=None):
-        for key, value in (extra.items() if extra else ()):
+    def _kwargs_into_scope(self, scope, extra=None, tags=None, fingerprint=None, request=None):
+        for key, value in extra.items() if extra else ():
             scope.set_extra(key, value)
-        for key, value in (tags.items() if tags else ()):
+        for key, value in tags.items() if tags else ():
             scope.set_tag(key, value)
         if fingerprint is not None:
             scope.fingerprint = fingerprint

@@ -1,20 +1,31 @@
 from __future__ import absolute_import
 
 __all__ = (
-    'EncryptedCharField', 'EncryptedJsonField', 'EncryptedPickledObjectField', 'EncryptedTextField',
+    "EncryptedCharField",
+    "EncryptedJsonField",
+    "EncryptedPickledObjectField",
+    "EncryptedTextField",
 )
 
 import six
 
 from django.conf import settings
-from django.db import models
 from django.db.models import CharField, TextField
-from jsonfield import JSONField
 from picklefield.fields import PickledObjectField
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.utils import Creator
 from sentry.utils.encryption import decrypt, encrypt
 
 
 class EncryptedCharField(CharField):
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(EncryptedCharField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
+
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedCharField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
@@ -26,10 +37,7 @@ class EncryptedCharField(CharField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
@@ -45,17 +53,14 @@ class EncryptedJsonField(JSONField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedPickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, six.binary_type):
-            value = value.decode('utf-8')
+            value = value.decode("utf-8")
         value = super(EncryptedPickledObjectField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
@@ -66,14 +71,19 @@ class EncryptedPickledObjectField(PickledObjectField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedTextField(TextField):
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(EncryptedTextField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
+
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedTextField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
@@ -85,18 +95,11 @@ class EncryptedTextField(TextField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
-if hasattr(models, 'SubfieldBase'):
-    EncryptedCharField = six.add_metaclass(models.SubfieldBase)(EncryptedCharField)
-    EncryptedTextField = six.add_metaclass(models.SubfieldBase)(EncryptedTextField)
-
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules(

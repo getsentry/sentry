@@ -1,4 +1,4 @@
-import jQuery from 'jquery';
+import $ from 'jquery';
 import Reflux from 'reflux';
 import _ from 'lodash';
 
@@ -14,7 +14,7 @@ const EventStore = Reflux.createStore({
   loadInitialData(items) {
     this.reset();
 
-    let itemIds = new Set();
+    const itemIds = new Set();
     items.forEach(item => {
       itemIds.add(item.id);
       this.items.push(item);
@@ -28,8 +28,8 @@ const EventStore = Reflux.createStore({
       items = [items];
     }
 
-    let itemsById = {};
-    let itemIds = new Set();
+    const itemsById = {};
+    const itemIds = new Set();
     items.forEach(item => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
@@ -37,12 +37,12 @@ const EventStore = Reflux.createStore({
 
     items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = $.extend(true, {}, item, itemsById[item.id]);
         delete itemsById[item.id];
       }
     });
 
-    for (let itemId in itemsById) {
+    for (const itemId in itemsById) {
       this.items.push(itemsById[itemId]);
     }
 

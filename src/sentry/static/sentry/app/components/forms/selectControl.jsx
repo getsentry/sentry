@@ -36,10 +36,10 @@ export default class SelectControl extends React.Component {
   };
 
   render() {
-    let {async, creatable, options, choices, clearable, ...props} = this.props;
+    const {async, creatable, options, choices, clearable, ...props} = this.props;
 
     // Compatibility with old select2 API
-    let choicesOrOptions =
+    const choicesOrOptions =
       convertFromSelect2Choices(
         typeof choices === 'function' ? choices(this.props) : choices
       ) || options;
@@ -127,7 +127,9 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     }
   }
 
-  .Select.is-focused:not(.is-open) > .Select-control {
+  /* stylelint-disable-next-line no-descending-specificity */
+  &.Select.is-focused:not(.is-open) > .Select-control {
     border-color: ${p => p.theme.gray};
+    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 `;

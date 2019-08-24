@@ -26,7 +26,9 @@ const SettingsBreadcrumbStore = Reflux.createStore({
   onTrimMappings(routes) {
     const routePath = getRouteStringFromRoutes(routes);
     for (const fullPath in this.pathMap) {
-      if (!routePath.startsWith(fullPath)) delete this.pathMap[fullPath];
+      if (!routePath.startsWith(fullPath)) {
+        delete this.pathMap[fullPath];
+      }
     }
     this.trigger(this.pathMap);
   },

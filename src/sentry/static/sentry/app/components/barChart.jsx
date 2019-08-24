@@ -29,10 +29,10 @@ class BarChart extends React.Component {
   };
 
   render() {
-    let points = this.props.points.map(point => {
+    const points = this.props.points.map(point => {
       return {x: point.x, y: [point.y]};
     });
-    let props = Object.assign({}, this.props, {points});
+    const props = Object.assign({}, this.props, {points});
     return <StackedBarChart {...props} />;
   }
 }

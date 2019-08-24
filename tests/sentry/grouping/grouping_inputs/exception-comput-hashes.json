@@ -1,0 +1,7 @@
+{
+  "exception": {
+    "type": "ValueError",
+    "module": "foo.bar",
+    "value": "hello world"
+  }
+}

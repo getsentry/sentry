@@ -3,10 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Sidebar from 'app/components/sidebar';
-import Footer from 'app/components/footer';
 import space from 'app/styles/space';
 
+import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
@@ -20,14 +19,13 @@ class SettingsLayout extends React.Component {
   };
 
   render() {
-    let {params, routes, route, router, renderNavigation, children} = this.props;
+    const {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
-    let childProps = (children && children.props) || this.props;
-    let childRoutes = childProps.routes || routes || [];
-    let childRoute = childProps.route || route || {};
+    const childProps = (children && children.props) || this.props;
+    const childRoutes = childProps.routes || routes || [];
+    const childRoute = childProps.route || route || {};
     return (
       <React.Fragment>
-        <Sidebar />
         <SettingsColumn>
           <SettingsHeader>
             <Flex align="center" width={1}>
@@ -44,27 +42,33 @@ class SettingsLayout extends React.Component {
 
           <MaxWidthContainer>
             {typeof renderNavigation === 'function' && (
-              <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
+              <SidebarWrapper>
+                <SettingsBackButton />
+                <SidebarWrapperContent>{renderNavigation()}</SidebarWrapperContent>
+              </SidebarWrapper>
             )}
             <Content>{children}</Content>
           </MaxWidthContainer>
-          <Footer />
         </SettingsColumn>
       </React.Fragment>
     );
   }
 }
 
-const MaxWidthContainer = styled(Flex)`
+const MaxWidthContainer = styled('div')`
+  display: flex;
   max-width: ${p => p.theme.settings.containerWidth};
   flex: 1;
 `;
 
-const SidebarWrapper = styled(Box)`
+const SidebarWrapper = styled('div')`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: #fff;
   border-right: 1px solid ${p => p.theme.borderLight};
+`;
+
+const SidebarWrapperContent = styled('div')`
   padding: ${space(4)};
 `;
 
@@ -81,7 +85,7 @@ const SettingsColumn = styled('div')`
  * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
  * Will also cut off tooltips.
  */
-const Content = styled(Box)`
+const Content = styled('div')`
   flex: 1;
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */

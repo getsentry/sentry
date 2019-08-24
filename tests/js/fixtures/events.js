@@ -12,3 +12,10 @@ export function Events(params = []) {
     ...params,
   ];
 }
+
+export function EventsStats(query = {}, params) {
+  return {
+    data: [[new Date(), [{count: 321}, {count: 79}]], [new Date(), [{count: 123}]]],
+    ...params,
+  };
+}

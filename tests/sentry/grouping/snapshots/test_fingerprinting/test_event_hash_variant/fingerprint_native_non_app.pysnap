@@ -1,0 +1,22 @@
+---
+created: '2019-07-23T21:55:26.014346Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - symcache-error
+    matchers:
+    - - function
+      - symbolicator::actors::symcaches::*
+    - - app
+      - 'false'
+  version: 1
+fingerprint:
+- '{{ default }}'
+variants:
+  app:
+    type: component
+  system:
+    type: component

@@ -134,6 +134,30 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
 
+    @responses.activate
+    def test_create_repository_request_invalid_url(self):
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
+            status=200,
+            json=self.default_repository_config
+        )
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
+            status=422,
+            json={'error': 'Invalid url given'}
+        )
+        response = self.create_repository(
+            self.default_repository_config,
+            self.integration.id,
+            add_responses=False)
+        assert response.status_code == 400
+        self.assert_error_message(
+            response,
+            'validation',
+            'Error Communicating with GitLab (HTTP 422): Invalid url given')
+
     def test_create_repository_data_no_installation_id(self):
         response = self.create_repository(self.default_repository_config, None)
         assert response.status_code == 400

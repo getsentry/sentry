@@ -3,9 +3,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import Link from '../link';
+import HookOrDefault from 'app/components/hookOrDefault';
+import Tooltip from 'app/components/tooltip';
+
+import Link from '../links/link';
 import TextOverflow from '../textOverflow';
-import Tooltip from '../tooltip';
+
+const LabelHook = HookOrDefault({
+  hookName: 'sidebar:item-label',
+  defaultComponent: ({children}) => {
+    return <React.Fragment>{children}</React.Fragment>;
+  },
+});
 
 class SidebarItem extends React.Component {
   static propTypes = {
@@ -39,18 +48,19 @@ class SidebarItem extends React.Component {
   };
 
   handleClick = e => {
-    let {id, onClick} = this.props;
+    const {id, onClick} = this.props;
 
-    if (typeof onClick !== 'function') return;
+    if (typeof onClick !== 'function') {
+      return;
+    }
 
     onClick(id, e);
   };
 
   render() {
-    let {
+    const {
       router,
       href,
-      index,
       to,
       icon,
       label,
@@ -63,28 +73,16 @@ class SidebarItem extends React.Component {
     } = this.props;
 
     // If there is no active panel open and if path is active according to react-router
-    let isActiveRouter =
-      (!hasPanel &&
-        router &&
-        to &&
-        router.isActive(
-          {
-            pathname: to,
-          },
-          index
-        )) ||
+    const isActiveRouter =
+      (!hasPanel && router && to && location.pathname.startsWith(to)) ||
       // TODO: this won't be necessary once we remove settingsHome
       (label === 'Settings' && location.pathname.startsWith('/settings/'));
 
-    let isTop = orientation === 'top';
-    let placement = isTop ? 'bottom' : 'right';
+    const isTop = orientation === 'top';
+    const placement = isTop ? 'bottom' : 'right';
 
     return (
-      <Tooltip
-        disabled={!collapsed}
-        title={label}
-        tooltipOptions={{placement, html: true}}
-      >
+      <Tooltip disabled={!collapsed} title={label} placement={placement}>
         <StyledSidebarItem
           data-test-id={this.props['data-test-id']}
           active={active || isActiveRouter}
@@ -95,12 +93,13 @@ class SidebarItem extends React.Component {
         >
           <SidebarItemWrapper>
             <SidebarItemIcon>{icon}</SidebarItemIcon>
-            {!collapsed &&
-              !isTop && (
-                <SidebarItemLabel>
+            {!collapsed && !isTop && (
+              <SidebarItemLabel>
+                <LabelHook id={this.props.id}>
                   <TextOverflow>{label}</TextOverflow>
-                </SidebarItemLabel>
-              )}
+                </LabelHook>
+              </SidebarItemLabel>
+            )}
             {badge > 0 && (
               <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
             )}
@@ -114,7 +113,9 @@ class SidebarItem extends React.Component {
 export default withRouter(SidebarItem);
 
 const getActiveStyle = ({active, theme}) => {
-  if (!active) return '';
+  if (!active) {
+    return '';
+  }
   return css`
     color: ${theme.white};
 
@@ -146,9 +147,9 @@ const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
     display: block;
     content: '';
     position: absolute;
-    top: 5px;
+    top: 4px;
     left: -20px;
-    bottom: 5px;
+    bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
     background-color: transparent;
@@ -172,6 +173,17 @@ const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
   &:hover,
   &:focus {
     color: ${p => p.theme.gray1};
+  }
+
+  &.focus-visible {
+    outline: none;
+    background: #584c66;
+    padding: 0 19px;
+    margin: 0 -19px;
+
+    &:before {
+      left: 0;
+    }
   }
 
   ${getActiveStyle};
@@ -201,10 +213,15 @@ const SidebarItemLabel = styled('span')`
   white-space: nowrap;
   opacity: 1;
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
-  if (!collapsed) return '';
+  if (!collapsed) {
+    return '';
+  }
 
   return css`
     text-indent: -99999em;

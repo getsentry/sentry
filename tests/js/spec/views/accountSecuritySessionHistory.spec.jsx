@@ -39,7 +39,7 @@ describe('AccountSecuritySessionHistory', function() {
       ],
     });
 
-    let wrapper = mount(<AccountSecuritySessionHistory />, TestStubs.routerContext());
+    const wrapper = mount(<AccountSecuritySessionHistory />, TestStubs.routerContext());
 
     wrapper.update();
     await tick();

@@ -6,7 +6,7 @@ import ResolveActions from 'app/components/actions/resolve';
 describe('ResolveActions', function() {
   describe('disabled', function() {
     let component, button;
-    let spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
@@ -14,8 +14,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -28,21 +28,55 @@ describe('ResolveActions', function() {
 
     it('does not call onUpdate when clicked', function() {
       button.simulate('click');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('disableDropdown', function() {
+    let component, button;
+    const spy = jest.fn();
+
+    beforeEach(function() {
+      component = mount(
+        <ResolveActions
+          onUpdate={spy}
+          disableDropdown={true}
+          hasRelease={false}
+          orgId="org-1"
+          projectId="proj-1"
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('main button is enabled', function() {
+      button = component.find('ActionLink[title="Resolve"]');
+      expect(button.prop('disabled')).toBeFalsy();
+    });
+
+    it('main button calls onUpdate when clicked', function() {
+      button = component.find('ActionLink[title="Resolve"]');
+      button.simulate('click');
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('dropdown menu is disabled', function() {
+      button = component.find('DropdownLink');
+      expect(button.prop('disabled')).toBe(true);
     });
   });
 
   describe('resolved', function() {
     let component;
-    let spy = sinon.stub();
+    const spy = jest.fn();
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
         />,
         TestStubs.routerContext()
@@ -50,27 +84,27 @@ describe('ResolveActions', function() {
     });
 
     it('displays resolved view', function() {
-      let button = component.find('a.btn.active');
+      const button = component.find('a.btn.active');
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function() {
       component.find('a.btn.active').simulate('click');
-      expect(spy.calledWith({status: 'unresolved'})).toBeTruthy();
+      expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
   describe('auto resolved', function() {
     it('cannot be unresolved manually', function() {
-      let spy = sinon.stub();
-      let component = mount(
+      const spy = jest.fn();
+      const component = mount(
         <ResolveActions
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
           isAutoResolved={true}
         />,
@@ -78,20 +112,20 @@ describe('ResolveActions', function() {
       );
 
       component.find('a.btn').simulate('click');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('without confirmation', function() {
     let component;
-    let spy = sinon.stub();
+    const spy = jest.fn();
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -102,26 +136,26 @@ describe('ResolveActions', function() {
     });
 
     it('calls spy with resolved status when clicked', function() {
-      let button = component.find('a.btn.btn-default').first();
+      const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.calledWith({status: 'resolved'})).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({status: 'resolved'});
     });
   });
 
   describe('with confirmation step', function() {
     let component, button;
-    let spy = sinon.stub();
+    const spy = jest.fn();
 
     beforeEach(function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           shouldConfirm={true}
-          confirmMessage={'Are you sure???'}
+          confirmMessage="Are you sure???"
         />,
         TestStubs.routerContext()
       );
@@ -135,24 +169,24 @@ describe('ResolveActions', function() {
     it('displays confirmation modal with message provided', function() {
       button.simulate('click');
 
-      let modal = $(document.body).find('.modal');
+      const modal = $(document.body).find('.modal');
       expect(modal.text()).toContain('Are you sure???');
-      expect(spy.notCalled).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
       $(document.body)
         .find('.modal button:contains("Resolve")')
         .click();
 
-      expect(spy.called).toBe(true);
+      expect(spy).toHaveBeenCalled();
     });
   });
 
   it('can resolve in "another version"', async function() {
-    let onUpdate = jest.fn();
+    const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <ResolveActions
         hasRelease
         orgId="org-slug"

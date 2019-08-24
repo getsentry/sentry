@@ -20,6 +20,8 @@ const inputStyles = props => {
     transition: border 0.1s linear;
     resize: vertical;
 
+    ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
+
     ${readOnlyStyle(props)};
 
     &:focus {
@@ -45,6 +47,10 @@ const inputStyles = props => {
       &::placeholder {
         color: ${props.theme.disabled};
       }
+    }
+
+    &.focus-visible {
+      box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
     }
   `;
 };

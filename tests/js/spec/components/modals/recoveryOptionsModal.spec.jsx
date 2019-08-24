@@ -5,8 +5,8 @@ import {mount} from 'enzyme';
 import RecoveryOptionsModal from 'app/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function() {
-  let closeModal = jest.fn();
-  let onClose = jest.fn();
+  const closeModal = jest.fn();
+  const onClose = jest.fn();
   let wrapper;
 
   beforeEach(function() {
@@ -31,14 +31,14 @@ describe('RecoveryOptionsModal', function() {
   afterEach(function() {});
 
   it('can redirect to recovery codes if user skips backup phone setup', async function() {
-    let getRecoveryCodes = 'RecoveryOptionsModal Button[name="getCodes"]';
+    const getRecoveryCodes = 'RecoveryOptionsModal Button[name="getCodes"]';
     expect(wrapper.find(getRecoveryCodes)).toHaveLength(0);
 
     // skip backup phone setup
     wrapper.find('RecoveryOptionsModal Button[name="skipStep"]').simulate('click');
     expect(wrapper.find(getRecoveryCodes)).toHaveLength(1);
 
-    let mockId = TestStubs.Authenticators().Recovery().authId;
+    const mockId = TestStubs.Authenticators().Recovery().authId;
     expect(
       wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
     ).toMatch(`/settings/account/security/mfa/${mockId}/`);
@@ -48,7 +48,7 @@ describe('RecoveryOptionsModal', function() {
   });
 
   it('can redirect to backup phone setup', async function() {
-    let backupPhone = 'RecoveryOptionsModal Button[name="addPhone"]';
+    const backupPhone = 'RecoveryOptionsModal Button[name="addPhone"]';
 
     expect(wrapper.find(backupPhone)).toHaveLength(1);
     expect(wrapper.find(backupPhone).prop('to')).toMatch(
@@ -76,7 +76,7 @@ describe('RecoveryOptionsModal', function() {
       />,
       TestStubs.routerContext()
     );
-    let mockId = TestStubs.Authenticators().Recovery().authId;
+    const mockId = TestStubs.Authenticators().Recovery().authId;
     expect(
       wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
     ).toMatch(`/settings/account/security/mfa/${mockId}/`);

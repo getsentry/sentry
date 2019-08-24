@@ -9,22 +9,15 @@ from sentry.testutils import APITestCase
 class GroupTagDetailsTest(APITestCase):
     def test_simple(self):
         group = self.create_group()
-        group.data['tags'] = (['foo', 'bar'], )
+        group.data["tags"] = (["foo", "bar"],)
         group.save()
 
-        key, value = group.data['tags'][0]
+        key, value = group.data["tags"][0]
         tagkey = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=None,
-            key=key,
-            values_seen=2
+            project_id=group.project_id, environment_id=None, key=key, values_seen=2
         )
         tagstore.create_tag_value(
-            project_id=group.project_id,
-            environment_id=None,
-            key=key,
-            value=value,
-            times_seen=4
+            project_id=group.project_id, environment_id=None, key=key, value=value, times_seen=4
         )
         tagstore.create_group_tag_key(
             project_id=group.project_id,
@@ -44,9 +37,8 @@ class GroupTagDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u'/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/tags/{}/".format(group.id, tagkey.key)
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data['key'] == six.text_type(tagkey.key)
-        assert response.data['uniqueValues'] == 1
-        assert response.data['totalValues'] == 3
+        assert response.data["key"] == six.text_type(tagkey.key)
+        assert response.data["totalValues"] == 3

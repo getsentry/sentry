@@ -3,26 +3,20 @@ import {shallow} from 'enzyme';
 import SnoozeAction from 'app/components/issues/snoozeAction';
 
 describe('SnoozeAction', function() {
-  let sandbox;
+  beforeEach(function() {});
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
-
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     it('should show a gravatar when avatar type is gravatar', function() {
-      let wrapper = shallow(<SnoozeAction onSnooze={function() {}} />);
+      const wrapper = shallow(<SnoozeAction onSnooze={function() {}} />);
       expect(wrapper.find('h5').text()).toEqual('How long should we ignore this issue?');
     });
   });
 
   describe('click handlers', function() {
     it('30m link should call prop w/ value 30', function(done) {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <SnoozeAction
           onSnooze={function(duration) {
             expect(duration).toEqual(30);
@@ -39,7 +33,7 @@ describe('SnoozeAction', function() {
     });
 
     it('forever link should call prop w/ value undefined', function(done) {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <SnoozeAction
           onSnooze={function(duration) {
             expect(duration).toEqual(undefined);

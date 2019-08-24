@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import posixpath
 
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -10,8 +9,9 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
+
 try:
-    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
+    from django.http import CompatibleStreamingHttpResponse as StreamingHttpResponse
 except ImportError:
     from django.http import StreamingHttpResponse
 
@@ -27,11 +27,11 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         file = releasefile.file
         fp = file.getfile()
         response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b''),
-            content_type=file.headers.get('content-type', 'application/octet-stream'),
+            iter(lambda: fp.read(4096), b""),
+            content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-        response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
             " ".join(releasefile.name.split())
         )
         return response
@@ -52,26 +52,20 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        download_requested = request.GET.get('download') is not None
-        if download_requested and (request.access.has_scope('project:write')):
+        download_requested = request.GET.get("download") is not None
+        if download_requested and (request.access.has_scope("project:write")):
             return self.download(releasefile)
         elif download_requested:
             return Response(status=403)
@@ -94,34 +88,26 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseFileSerializer(data=request.DATA)
+        serializer = ReleaseFileSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
-        releasefile.update(
-            name=result['name'],
-        )
+        releasefile.update(name=result["name"])
 
         return Response(serialize(releasefile, request.user))
 
@@ -141,21 +127,15 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(
-                release=release,
-                id=file_id,
-            )
+            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 

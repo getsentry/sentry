@@ -7,22 +7,25 @@ const validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
-  'routes:onboarding-survey',
+  'routes:organization-root',
 
   // Analytics and tracking hooks
-  'amplitude:event',
+  'analytics:init-user',
+  'analytics:track-event',
+  'analytics:track-adhoc-event',
+
+  // TODO(epurkhser): This is deprecated and should be replaced
   'analytics:event',
-  'analytics:log-experiment',
-  'analytics:onboarding-survey-log',
 
   // Operational metrics
   'metrics:event',
 
   // Specific component customizations
-  'sidebar:onboarding-assets',
-  'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
+  'component:header-date-range',
+  'component:header-selector-items',
+  'component:event-cause-empty',
 
   // Additional settings
   'settings:organization-navigation',
@@ -33,6 +36,12 @@ const validHookNames = new Set([
   'organization:header',
   'sidebar:help-menu',
   'sidebar:organization-dropdown-menu',
+  'sidebar:bottom-items',
+  'sidebar:item-label',
+
+  // Onboarding experience
+  'onboarding:invite-members',
+  'onboarding:extra-chrome',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',
@@ -40,16 +49,18 @@ const validHookNames = new Set([
   // feature-disabled:<feature-flag> hooks should return components that will
   // be rendered in place for Feature components when the feature is not
   // enabled.
+  'feature-disabled:custom-inbound-filters',
   'feature-disabled:discard-groups',
   'feature-disabled:data-forwarding',
-  'feature-disabled:custom-inbound-filters',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
-
-  // TODO(epurkhiser): These are not used anymore and should be removed
-  'organization:sidebar',
+  'feature-disabled:events-page',
+  'feature-disabled:events-sidebar-item',
+  'feature-disabled:discover-page',
+  'feature-disabled:discover-sidebar-item',
+  'feature-disabled:project-selector-checkbox',
 ]);
 
 /**

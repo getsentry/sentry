@@ -1,7 +1,7 @@
 from django.conf import settings
 from south.modelsinspector import add_introspection_rules
 
-if 'annoying' in settings.INSTALLED_APPS:
+if "annoying" in settings.INSTALLED_APPS:
     try:
         from annoying.fields import AutoOneToOneField
     except ImportError:

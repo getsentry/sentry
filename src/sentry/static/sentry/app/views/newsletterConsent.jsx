@@ -1,29 +1,26 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import jQuery from 'jquery';
-import createReactClass from 'create-react-class';
+import React from 'react';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import NarrowLayout from 'app/components/narrowLayout';
 
-export default createReactClass({
-  displayName: 'NewsletterConsent',
-
-  propTypes: {
+export default class NewsletterConsent extends React.Component {
+  static propTypes = {
     onSubmitSuccess: PropTypes.func,
-  },
+  };
 
   componentWillMount() {
-    jQuery(document.body).addClass('auth');
-  },
+    document.body.classList.add('auth');
+  }
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('auth');
-  },
+    document.body.classList.remove('auth');
+  }
 
-  onSubmitSuccess() {
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess();
-  },
+  onSubmitSuccess = () => {
+    callIfFunction(this.props.onSubmitSuccess);
+  };
 
   // NOTE: the text here is duplicated within ``RegisterForm`` on the backend
   render() {
@@ -35,7 +32,6 @@ export default createReactClass({
           apiMethod="POST"
           apiEndpoint="/users/me/subscriptions/"
           onSubmitSuccess={this.onSubmitSuccess}
-          onSubmitError={this.onSubmitError}
           submitLabel="Continue"
         >
           <RadioBooleanField
@@ -49,9 +45,7 @@ export default createReactClass({
                 We'd love to keep you updated via email with product and feature
                 announcements, promotions, educational materials, and events. Our updates
                 focus on relevant information, and we'll never sell your data to third
-                parties. See our <a href="https://sentry.io/privacy/">
-                  Privacy Policy
-                </a>{' '}
+                parties. See our <a href="https://sentry.io/privacy/">Privacy Policy</a>{' '}
                 for more details.
               </span>
             }
@@ -62,5 +56,5 @@ export default createReactClass({
         </ApiForm>
       </NarrowLayout>
     );
-  },
-});
+  }
+}

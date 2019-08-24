@@ -1,12 +1,6 @@
 """
-sentry.rules.actions.notify_event_service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Used for notifying a *specific* plugin
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
 """
-
 from __future__ import absolute_import
 
 from django import forms
@@ -24,33 +18,33 @@ class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args, **kwargs):
-        service_choices = [(s.slug, s.title) for s in kwargs.pop('services')]
+        service_choices = [(s.slug, s.title) for s in kwargs.pop("services")]
 
         super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
 
-        self.fields['service'].choices = service_choices
-        self.fields['service'].widget.choices = self.fields['service'].choices
+        self.fields["service"].choices = service_choices
+        self.fields["service"].widget.choices = self.fields["service"].choices
 
 
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
-    label = 'Send a notification via {service}'
+    label = "Send a notification via {service}"
 
     def __init__(self, *args, **kwargs):
         super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
         self.form_fields = {
-            'service': {
-                'type': 'choice',
-                'choices': [[i.slug, i.title] for i in self.get_services()]
+            "service": {
+                "type": "choice",
+                "choices": [[i.slug, i.title] for i in self.get_services()],
             }
         }
 
     def after(self, event, state):
-        service = self.get_option('service')
+        service = self.get_option("service")
 
-        extra = {'event_id': event.id}
+        extra = {"event_id": event.id}
         if not service:
-            self.logger.info('rules.fail.is_configured', extra=extra)
+            self.logger.info("rules.fail.is_configured", extra=extra)
             return
 
         app = None
@@ -60,30 +54,36 @@ class NotifyEventServiceAction(EventAction):
             pass
 
         if app:
-            kwargs = {'sentry_app': app}
-            metrics.incr('notifications.sent', instance=app.slug, skip_internal=False)
+            kwargs = {"sentry_app": app}
+            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
             yield self.future(notify_sentry_app, **kwargs)
         else:
-            plugin = plugins.get(service)
+            try:
+                plugin = plugins.get(service)
+            except KeyError:
+                # If we've removed the plugin no need to error, just skip.
+                extra["plugin"] = service
+                self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
+                return
+
             if not plugin.is_enabled(self.project):
-                extra['project_id'] = self.project.id
-                self.logger.info('rules.fail.is_enabled', extra=extra)
+                extra["project_id"] = self.project.id
+                self.logger.info("rules.fail.is_enabled", extra=extra)
                 return
 
             group = event.group
 
             if not plugin.should_notify(group=group, event=event):
-                extra['group_id'] = group.id
-                self.logger.info('rule.fail.should_notify', extra=extra)
+                extra["group_id"] = group.id
+                self.logger.info("rule.fail.should_notify", extra=extra)
                 return
 
-            metrics.incr('notifications.sent', instance=plugin.slug, skip_internal=False)
+            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(
-            installations__organization_id=self.project.organization_id,
-            is_alertable=True,
+            installations__organization_id=self.project.organization_id, is_alertable=True
         ).distinct()
         results = [SentryAppService(app) for app in apps]
         return results
@@ -98,7 +98,7 @@ class NotifyEventServiceAction(EventAction):
             results.append(PluginService(plugin))
 
         for plugin in plugins.for_project(self.project, version=2):
-            for notifier in (safe_execute(plugin.get_notifiers, _with_transaction=False) or ()):
+            for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
                 results.append(PluginService(notifier))
 
         return results
@@ -109,7 +109,4 @@ class NotifyEventServiceAction(EventAction):
         return services
 
     def get_form_instance(self):
-        return self.form_cls(
-            self.data,
-            services=self.get_services(),
-        )
+        return self.form_cls(self.data, services=self.get_services())

@@ -16,6 +16,7 @@ exports[`TeamCreate render() renders correctly 1`] = `
             "org:read",
             "org:write",
             "org:admin",
+            "org:integrations",
             "project:read",
             "project:write",
             "project:admin",

@@ -9,15 +9,7 @@ class DebugNoteEmailView(ActivityMailDebugView):
     def get_activity(self, request, event):
         random = get_random(request)
         return {
-            'type': Activity.NOTE,
-            'user': request.user,
-            'data': {
-                'text': make_message(
-                    random,
-                    max(
-                        2,
-                        int(random.weibullvariate(12, 0.4)),
-                    ),
-                )
-            },
+            "type": Activity.NOTE,
+            "user": request.user,
+            "data": {"text": make_message(random, max(2, int(random.weibullvariate(12, 0.4))))},
         }

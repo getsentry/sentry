@@ -4,13 +4,17 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import HookStore from 'app/stores/hookStore';
-import OrganizationState from 'app/mixins/organizationState';
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 import navigationConfiguration from 'app/views/settings/organization/navigationConfiguration';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
 const OrganizationSettingsNavigation = createReactClass({
   displayName: 'OrganizationSettingsNavigation',
-  mixins: [OrganizationState, Reflux.listenTo(HookStore, 'handleHooks')],
+  propTypes: {
+    organization: SentryTypes.Organization,
+  },
+  mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
 
   getInitialState() {
     return this.getHooks();
@@ -23,7 +27,7 @@ const OrganizationSettingsNavigation = createReactClass({
 
   getHooks() {
     // Allow injection via getsentry et all
-    let org = this.getOrganization();
+    const org = this.props.organization;
 
     return {
       hookConfigs: HookStore.get('settings:organization-navigation-config').map(cb =>
@@ -34,18 +38,20 @@ const OrganizationSettingsNavigation = createReactClass({
   },
 
   handleHooks(name, hooks) {
-    let org = this.getOrganization();
-    if (name !== 'settings:organization-navigation-config') return;
+    const org = this.props.organization;
+    if (name !== 'settings:organization-navigation-config') {
+      return;
+    }
     this.setState(state => ({
       hookConfigs: hooks.map(cb => cb(org)),
     }));
   },
 
   render() {
-    let access = this.getAccess();
-    let features = this.getFeatures();
-    let org = this.getOrganization();
-    let {hooks, hookConfigs} = this.state;
+    const org = this.props.organization;
+    const access = new Set(org.access);
+    const features = new Set(org.features);
+    const {hooks, hookConfigs} = this.state;
 
     return (
       <SettingsNavigation
@@ -60,4 +66,4 @@ const OrganizationSettingsNavigation = createReactClass({
   },
 });
 
-export default OrganizationSettingsNavigation;
+export default withOrganization(OrganizationSettingsNavigation);

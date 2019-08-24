@@ -7,7 +7,7 @@ foo@example.com unassigned an issue
 
 ornare elit pulvinar nisl integer cum ad massa
 
-http://testserver/organization/project/issues/1/?referrer=UnassignedActivityEmail
+http://testserver/organizations/organization/issues/1/?referrer=UnassignedActivityEmail
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

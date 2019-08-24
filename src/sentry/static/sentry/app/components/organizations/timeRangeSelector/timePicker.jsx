@@ -24,22 +24,24 @@ const TimePicker = styled(
           <div>
             <Input
               type="time"
+              key={start}
+              defaultValue={start}
               className="rdrDateDisplayItem"
               data-test-id="startTime"
               disabled={disabled}
-              value={start}
-              onChange={onChangeStart}
+              onBlur={onChangeStart}
             />
           </div>
 
           <div>
             <Input
               type="time"
+              defaultValue={end}
+              key={end}
               className="rdrDateDisplayItem"
               data-test-id="endTime"
               disabled={disabled}
-              value={end}
-              onChange={onChangeEnd}
+              onBlur={onChangeEnd}
             />
           </div>
         </div>

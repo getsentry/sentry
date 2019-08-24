@@ -1,34 +1,34 @@
-import * as Sentry from '@sentry/browser';
-
 import {browserHistory} from 'react-router';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {removeAuthenticator} from 'app/actionCreators/account';
+import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import RoleSelect from './inviteMember/roleSelect';
-import TeamSelect from './inviteMember/teamSelect';
 
+const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
 const NO_PERMISSION = t('You do not have permission to perform this action');
 const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
-const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {
@@ -37,11 +37,9 @@ class OrganizationMemberDetail extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    let {teams} = this.getOrganization();
 
     this.state = {
       ...this.state,
-      selectedTeams: new Set(teams.map(({slug}) => slug)),
       roleList: [],
       selectedRole: '',
       member: null,
@@ -49,8 +47,8 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   getEndpoints() {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
     return [['member', `/organizations/${slug}/members/${params.memberId}/`]];
   }
 
@@ -59,7 +57,7 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   redirectToMemberPage() {
-    let members = recreateRoute('members/', {
+    const members = recreateRoute('members/', {
       routes: this.props.routes,
       params: this.props.params,
       stepBack: -2,
@@ -68,10 +66,10 @@ class OrganizationMemberDetail extends AsyncView {
   }
 
   handleSave = () => {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
 
-    let indicator = IndicatorStore.add('Saving...');
+    const indicator = IndicatorStore.add('Saving...');
     this.setState({busy: true});
 
     updateMember(this.api, {
@@ -91,10 +89,10 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   handleInvite = regenerate => {
-    let {slug} = this.getOrganization();
-    let {params} = this.props;
+    const {slug} = this.getOrganization();
+    const {params} = this.props;
 
-    let indicator = IndicatorStore.add('Sending invite...');
+    const indicator = IndicatorStore.add('Sending invite...');
     this.setState({busy: true});
 
     resendMemberInvite(this.api, {
@@ -115,52 +113,30 @@ class OrganizationMemberDetail extends AsyncView {
       });
   };
 
-  handleToggleTeam = slug => {
-    let {member} = this.state;
-    let selectedTeams = new Set(member.teams);
-    if (selectedTeams.has(slug)) {
-      selectedTeams.delete(slug);
-    } else {
-      selectedTeams.add(slug);
+  handleAddTeam = team => {
+    const {member} = this.state;
+    if (!member.teams.includes(team.slug)) {
+      member.teams.push(team.slug);
     }
+    this.setState({member});
+  };
+
+  handleRemoveTeam = removedTeam => {
+    const {member} = this.state;
 
     this.setState({
       member: {
         ...member,
-        teams: Array.from(selectedTeams.values()),
-      },
-    });
-  };
-
-  allSelected = () => {
-    let {member} = this.state;
-    let {teams} = this.getOrganization();
-    return teams.length === member.teams.length;
-  };
-
-  handleSelectAll = () => {
-    let {member, selectedTeams} = this.state;
-    let {teams} = this.getOrganization();
-
-    if (this.allSelected()) {
-      selectedTeams.clear();
-    } else {
-      selectedTeams = new Set(teams.map(({slug}) => slug));
-    }
-
-    this.setState({
-      member: {
-        ...member,
-        teams: Array.from(selectedTeams.values()),
+        teams: member.teams.filter(slug => slug !== removedTeam),
       },
     });
   };
 
   handle2faReset = () => {
-    let {user} = this.state.member;
-    let {slug} = this.getOrganization();
+    const {user} = this.state.member;
+    const {slug} = this.getOrganization();
 
-    let requests = user.authenticators.map(auth =>
+    const requests = user.authenticators.map(auth =>
       removeAuthenticator(this.api, user.id, auth.id)
     );
 
@@ -176,42 +152,57 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   showResetButton = () => {
-    let {member} = this.state;
-    let {require2FA} = this.getOrganization();
-    let {user} = member;
+    const {member} = this.state;
+    const {require2FA} = this.getOrganization();
+    const {user} = member;
 
-    if (!user || !user.authenticators || require2FA) return false;
-    let hasAuth = user.authenticators.length >= 1;
+    if (!user || !user.authenticators || require2FA) {
+      return false;
+    }
+    const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
   };
 
   getTooltip = () => {
-    let {member} = this.state;
-    let {require2FA} = this.getOrganization();
-    let {user} = member;
+    const {member} = this.state;
+    const {require2FA} = this.getOrganization();
+    const {user} = member;
 
-    if (!user) return '';
+    if (!user) {
+      return '';
+    }
 
-    if (!user.authenticators) return NO_PERMISSION;
-    if (!user.authenticators.length) return NOT_ENROLLED;
-    if (!user.canReset2fa) return MULTIPLE_ORGS;
-    if (require2FA) return TWO_FACTOR_REQUIRED;
+    if (!user.authenticators) {
+      return NO_PERMISSION;
+    }
+    if (!user.authenticators.length) {
+      return NOT_ENROLLED;
+    }
+    if (!user.canReset2fa) {
+      return MULTIPLE_ORGS;
+    }
+    if (require2FA) {
+      return TWO_FACTOR_REQUIRED;
+    }
 
     return '';
   };
 
   renderBody() {
-    let {error, member} = this.state;
-    let {teams, access} = this.getOrganization();
+    const {error, member} = this.state;
+    const organization = this.getOrganization();
+    const access = organization.access;
 
-    if (!member) return <NotFound />;
+    if (!member) {
+      return <NotFound />;
+    }
 
-    let inviteLink = member.invite_link;
-    let canEdit = access.includes('org:write');
+    const inviteLink = member.invite_link;
+    const canEdit = access.includes('org:write');
 
-    let {email, expired, pending} = member;
-    let canResend = !expired;
-    let showAuth = !pending;
+    const {email, expired, pending} = member;
+    const canResend = !expired;
+    const showAuth = !pending;
 
     return (
       <div>
@@ -272,14 +263,11 @@ class OrganizationMemberDetail extends AsyncView {
                 <div className="form-actions">
                   <div className="control-group">
                     <label>{t('Invite Link')}</label>
-                    <div className="controls">
-                      <code
-                        className="auto-select form-control"
-                        style={{overflow: 'auto'}}
-                      >
+                    <AutoSelectText className="controls">
+                      <code className="form-control" style={{overflow: 'auto'}}>
                         {inviteLink}
                       </code>
-                    </div>
+                    </AutoSelectText>
                     <p className="help-block">
                       This unique invite link may only be used by this member.
                     </p>
@@ -323,21 +311,19 @@ class OrganizationMemberDetail extends AsyncView {
                   disabled={this.showResetButton()}
                   title={this.getTooltip()}
                 >
-                  <span>
-                    <Confirm
-                      disabled={!this.showResetButton()}
-                      message={tct(
-                        'Are you sure you want to disable all two-factor authentication methods for [name]?',
-                        {name: member.name ? member.name : 'this member'}
-                      )}
-                      onConfirm={this.handle2faReset}
-                      data-test-id="reset-2fa-confirm"
-                    >
-                      <Button data-test-id="reset-2fa" priority="danger">
-                        {t('Reset two-factor authentication')}
-                      </Button>
-                    </Confirm>
-                  </span>
+                  <Confirm
+                    disabled={!this.showResetButton()}
+                    message={tct(
+                      'Are you sure you want to disable all two-factor authentication methods for [name]?',
+                      {name: member.name ? member.name : 'this member'}
+                    )}
+                    onConfirm={this.handle2faReset}
+                    data-test-id="reset-2fa-confirm"
+                  >
+                    <Button data-test-id="reset-2fa" priority="danger">
+                      {t('Reset two-factor authentication')}
+                    </Button>
+                  </Confirm>
                 </Tooltip>
               </Field>
             </PanelBody>
@@ -353,12 +339,11 @@ class OrganizationMemberDetail extends AsyncView {
         />
 
         <TeamSelect
-          teams={teams}
-          selectedTeams={new Set(member.teams)}
-          toggleTeam={this.handleToggleTeam}
+          organization={organization}
+          selectedTeams={member.teams}
           disabled={!canEdit}
-          onSelectAll={this.handleSelectAll}
-          allSelected={this.allSelected}
+          onAddTeam={this.handleAddTeam}
+          onRemoveTeam={this.handleRemoveTeam}
         />
 
         <Button

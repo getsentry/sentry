@@ -25,10 +25,14 @@ export default class CustomIgnoreCountModal extends React.Component {
   }
 
   onSubmit = () => {
-    this.props.onSelected({
-      [this.props.countName]: this.state.count,
-      [this.props.windowName]: this.state.window,
-    });
+    const {count, window} = this.state;
+    const {countName, windowName} = this.props;
+
+    const statusDetails = {[countName]: count};
+    if (window) {
+      statusDetails[windowName] = window;
+    }
+    this.props.onSelected(statusDetails);
   };
 
   onChange = (name, value) => {
@@ -36,7 +40,7 @@ export default class CustomIgnoreCountModal extends React.Component {
   };
 
   render() {
-    let {count, window} = this.state;
+    const {count, window} = this.state;
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">

@@ -1,10 +1,3 @@
-"""
-sentry.api.paginator
-~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import bisect
@@ -18,17 +11,21 @@ from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 
-quote_name = connections['default'].ops.quote_name
+quote_name = connections["default"].ops.quote_name
 
 
 MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
 
 
+class BadPaginationError(Exception):
+    pass
+
+
 class BasePaginator(object):
     def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
         if order_by:
-            if order_by.startswith('-'):
+            if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
             else:
                 self.key, self.desc = order_by, False
@@ -60,17 +57,16 @@ class BasePaginator(object):
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = '-%s' % (
-                        queryset.query.order_by[index])
-            elif ('-%s' % self.key) in queryset.query.order_by:
+                    queryset.query.order_by[index] = "-%s" % (queryset.query.order_by[index])
+            elif ("-%s" % self.key) in queryset.query.order_by:
                 if asc:
-                    index = queryset.query.order_by.index('-%s' % (self.key))
+                    index = queryset.query.order_by.index("-%s" % (self.key))
                     queryset.query.order_by[index] = queryset.query.order_by[index][1:]
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
                 else:
-                    queryset = queryset.order_by('-%s' % self.key)
+                    queryset = queryset.order_by("-%s" % self.key)
 
         if value:
             assert self.key
@@ -83,14 +79,12 @@ class BasePaginator(object):
 
             if asc:
                 queryset = queryset.extra(
-                    where=['%s.%s >= %%s' %
-                           (queryset.model._meta.db_table, col_query, )],
+                    where=["%s.%s >= %%s" % (queryset.model._meta.db_table, col_query)],
                     params=col_params,
                 )
             else:
                 queryset = queryset.extra(
-                    where=['%s.%s <= %%s' %
-                           (queryset.model._meta.db_table, col_query, )],
+                    where=["%s.%s <= %%s" % (queryset.model._meta.db_table, col_query)],
                     params=col_params,
                 )
 
@@ -102,7 +96,7 @@ class BasePaginator(object):
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None, count_hits=False):
+    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -121,6 +115,8 @@ class BasePaginator(object):
         # the key is not unique
         if count_hits:
             hits = self.count_hits(MAX_HITS_LIMIT)
+        elif known_hits is not None:
+            hits = known_hits
         else:
             hits = None
 
@@ -171,16 +167,14 @@ class BasePaginator(object):
         hits_query = self.queryset.values()[:max_hits].query
         # clear out any select fields (include select_related) and pull just the id
         hits_query.clear_select_clause()
-        hits_query.add_fields(['id'])
+        hits_query.add_fields(["id"])
         hits_query.clear_ordering(force_empty=True)
         try:
             h_sql, h_params = hits_query.sql_with_params()
         except EmptyResultSet:
             return 0
         cursor = connections[self.queryset.db].cursor()
-        cursor.execute(u'SELECT COUNT(*) FROM ({}) as t'.format(
-            h_sql,
-        ), h_params)
+        cursor.execute(u"SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
         return cursor.fetchone()[0]
 
 
@@ -198,7 +192,7 @@ class DateTimePaginator(BasePaginator):
 
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        value = float(value.strftime('%s.%f')) * self.multiplier
+        value = float(value.strftime("%s.%f")) * self.multiplier
         return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
 
     def value_from_cursor(self, cursor):
@@ -211,11 +205,17 @@ class DateTimePaginator(BasePaginator):
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
 class OffsetPaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
-        self.key = order_by if order_by is None or isinstance(
-            order_by, (list, tuple, set)) else (order_by, )
+    def __init__(
+        self, queryset, order_by=None, max_limit=MAX_LIMIT, max_offset=None, on_results=None
+    ):
+        self.key = (
+            order_by
+            if order_by is None or isinstance(order_by, (list, tuple, set))
+            else (order_by,)
+        )
         self.queryset = queryset
         self.max_limit = max_limit
+        self.max_offset = max_offset
         self.on_results = on_results
 
     def get_result(self, limit=100, cursor=None):
@@ -234,9 +234,12 @@ class OffsetPaginator(object):
         offset = cursor.offset * cursor.value
         stop = offset + (cursor.value or limit) + 1
 
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+
         results = list(queryset[offset:stop])
         if cursor.value != limit:
-            results = results[-(limit + 1):]
+            results = results[-(limit + 1) :]
 
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
@@ -245,11 +248,7 @@ class OffsetPaginator(object):
         if self.on_results:
             results = self.on_results(results)
 
-        return CursorResult(
-            results=results,
-            next=next_cursor,
-            prev=prev_cursor,
-        )
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
 def reverse_bisect_left(a, x, lo=0, hi=None):
@@ -264,7 +263,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     - right side: ``all(val <= x for val in a[i:hi])``
     """
     if lo < 0:
-        raise ValueError('lo must be non-negative')
+        raise ValueError("lo must be non-negative")
 
     if hi is None or hi > len(a):
         hi = len(a)
@@ -281,19 +280,17 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
 
 class SequencePaginator(object):
     def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
-        self.scores, self.values = map(
-            list,
-            zip(*sorted(data, reverse=reverse)),
-        ) if data else ([], [])
+        self.scores, self.values = (
+            map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
+        )
         self.reverse = reverse
         self.search = functools.partial(
-            reverse_bisect_left if reverse else bisect.bisect_left,
-            self.scores,
+            reverse_bisect_left if reverse else bisect.bisect_left, self.scores
         )
         self.max_limit = max_limit
         self.on_results = on_results
 
-    def get_result(self, limit, cursor=None, count_hits=False):
+    def get_result(self, limit, cursor=None, count_hits=False, known_hits=None):
         limit = min(limit, self.max_limit)
 
         if cursor is None:
@@ -322,10 +319,7 @@ class SequencePaginator(object):
         if self.scores:
             prev_score = self.scores[min(lo, len(self.scores) - 1)]
             prev_cursor = Cursor(
-                prev_score,
-                lo - self.search(prev_score, hi=lo),
-                True,
-                True if lo > 0 else False,
+                prev_score, lo - self.search(prev_score, hi=lo), True, True if lo > 0 else False
             )
 
             next_score = self.scores[min(hi, len(self.scores) - 1)]
@@ -343,12 +337,19 @@ class SequencePaginator(object):
         if self.on_results:
             results = self.on_results(results)
 
+        if known_hits is not None:
+            hits = min(known_hits, MAX_HITS_LIMIT)
+        elif count_hits:
+            hits = min(len(self.scores), MAX_HITS_LIMIT)
+        else:
+            hits = None
+
         return CursorResult(
             results,
             prev=prev_cursor,
             next=next_cursor,
-            hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
-            max_hits=MAX_HITS_LIMIT if count_hits else None,
+            hits=hits,
+            max_hits=MAX_HITS_LIMIT if hits is not None else None,
         )
 
 
@@ -382,10 +383,10 @@ class GenericOffsetPaginator(object):
             has_more = len(data) == limit + 1
             if has_more:
                 data.pop()
-        elif isinstance(data.get('data'), list):
-            has_more = len(data['data']) == limit + 1
+        elif isinstance(data.get("data"), list):
+            has_more = len(data["data"]) == limit + 1
             if has_more:
-                data['data'].pop()
+                data["data"].pop()
         else:
             raise NotImplementedError
 
@@ -396,7 +397,7 @@ class GenericOffsetPaginator(object):
         return CursorResult(
             data,
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
-            next=Cursor(0, max(0, offset + limit), False, has_more)
+            next=Cursor(0, max(0, offset + limit), False, has_more),
         )
         # TODO use Cursor.value as the `end` argument to data_fn() so that
         # subsequent pages returned using these cursors are using the same end

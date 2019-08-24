@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
 
 class Pill extends React.Component {
   static propTypes = {
-    className: PropTypes.string,
     name: PropTypes.string,
     value: PropTypes.any,
   };
@@ -29,19 +29,85 @@ class Pill extends React.Component {
   };
 
   render() {
-    const {name, children, className, ...props} = this.props;
-    let [extraClass, renderedValue] = this.renderValue();
-
+    const {name, children, ...props} = this.props;
+    const [extraClass, renderedValue] = this.renderValue();
     return (
-      <li className={classNames(className, extraClass)} {...props}>
-        <span className="key">{name}</span>
-        <span className="value">
+      <StyledPill {...props}>
+        <PillName>{name}</PillName>
+        <PillValue type={extraClass}>
           {renderedValue}
           {children}
-        </span>
-      </li>
+        </PillValue>
+      </StyledPill>
     );
   }
 }
+
+const StyledPill = styled('li')`
+  white-space: nowrap;
+  margin: 0 10px 10px 0;
+  display: flex;
+  border: 1px solid ${p => p.theme.gray1};
+  border-radius: ${p => p.theme.button.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  line-height: 1.2;
+  max-width: 100%;
+  &:last-child {
+    margin-right: 0;
+  }
+`;
+
+const PillName = styled('span')`
+  padding: ${space(0.5)} ${space(1)};
+  min-width: 0;
+  white-space: nowrap;
+`;
+
+const PillValue = styled(PillName)`
+  /* .true - good values */
+  ${p =>
+    p.type === 'true' &&
+    `
+    background: ${p.theme.greenLightest};
+    border: 1px solid ${p.theme.green};
+    margin: -1px;
+  `}
+
+  /* .false - error values */
+  ${p =>
+    p.type === 'false' &&
+    `
+    background: ${p.theme.redLightest};
+    border: 1px solid ${p.theme.red};
+    margin: -1px;
+  `}
+
+  background: ${p => p.theme.whiteDark};
+  border-left: 1px solid ${p => p.theme.gray1};
+  border-radius: 0 ${p => p.theme.button.borderRadius} ${p =>
+  p.theme.button.borderRadius} 0;
+  font-family: ${p => p.theme.text.familyMono};
+  max-width: 100%;
+
+  > a {
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: text-bottom;
+  }
+
+  .pill-icon,
+  .external-icon {
+    display: inline;
+    margin: 0 0 0 ${space(1)};
+    color: ${p => p.theme.gray2};
+    line-height: 1.2;
+    &:hover {
+      color: ${p => p.theme.gray4};
+    }
+  }
+`;
 
 export default Pill;

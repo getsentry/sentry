@@ -8,11 +8,15 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 
+const BasicModelShape = PropTypes.shape({slug: PropTypes.string});
+
 class BaseBadge extends React.PureComponent {
   static propTypes = {
-    team: SentryTypes.Team,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
+    team: PropTypes.oneOfType([BasicModelShape, SentryTypes.Team]),
+    organization: PropTypes.oneOfType([BasicModelShape, SentryTypes.Organization]),
+    project: PropTypes.oneOfType([BasicModelShape, SentryTypes.Project]),
+    member: PropTypes.oneOfType([BasicModelShape, SentryTypes.Member]),
+    user: PropTypes.oneOfType([BasicModelShape, SentryTypes.User]),
 
     /**
      * Avatar size
@@ -47,7 +51,7 @@ class BaseBadge extends React.PureComponent {
   };
 
   render() {
-    let {
+    const {
       className,
       hideAvatar,
       hideName,
@@ -61,7 +65,7 @@ class BaseBadge extends React.PureComponent {
       project,
     } = this.props;
 
-    let data = {
+    const data = {
       team,
       organization,
       project,
@@ -73,6 +77,7 @@ class BaseBadge extends React.PureComponent {
           <StyledAvatar
             css={avatarClassName}
             size={avatarSize}
+            hideName={hideName}
             {...avatarProps || {}}
             {...data}
           />
@@ -92,7 +97,7 @@ class BaseBadge extends React.PureComponent {
 export default BaseBadge;
 
 const StyledAvatar = styled(Avatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hideName ? 0 : space(1))};
   flex-shrink: 0;
 `;
 

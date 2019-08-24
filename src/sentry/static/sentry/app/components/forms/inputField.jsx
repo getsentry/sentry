@@ -1,7 +1,6 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
+
 import FormField from 'app/components/forms/formField';
 
 export default class InputField extends FormField {
@@ -9,25 +8,6 @@ export default class InputField extends FormField {
     ...FormField.propTypes,
     placeholder: PropTypes.string,
   };
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.attachTooltips();
-  }
-
-  componentWillUnmount() {
-    this.removeTooltips();
-    jQuery(ReactDOM.findDOMNode(this)).unbind();
-    super.componentWillUnmount();
-  }
-
-  attachTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip();
-  }
-
-  removeTooltips() {
-    jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
-  }
 
   getAttributes() {
     return {};

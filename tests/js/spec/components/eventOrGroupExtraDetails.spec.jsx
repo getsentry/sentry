@@ -3,11 +3,9 @@ import {shallow} from 'enzyme';
 import toJson from 'enzyme-to-json';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
-jest.mock('app/mixins/projectState');
-
 describe('EventOrGroupExtraDetails', function() {
   it('renders last and first seen', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -21,7 +19,7 @@ describe('EventOrGroupExtraDetails', function() {
   });
 
   it('renders only first seen', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -34,7 +32,7 @@ describe('EventOrGroupExtraDetails', function() {
   });
 
   it('renders only last seen', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -47,7 +45,7 @@ describe('EventOrGroupExtraDetails', function() {
   });
 
   it('renders all details', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -69,7 +67,7 @@ describe('EventOrGroupExtraDetails', function() {
   });
 
   it('renders assignee and status', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -93,7 +91,7 @@ describe('EventOrGroupExtraDetails', function() {
   });
 
   it('details when mentioned', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"

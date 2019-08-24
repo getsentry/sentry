@@ -40,11 +40,9 @@ def load_defaults():
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.CommitAuthor, BulkModelDeletionTask)
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
-    default_manager.register(models.DiscoverSavedQuery, BulkModelDeletionTask)
-    default_manager.register(models.DiscoverSavedQueryProject, BulkModelDeletionTask)
+    default_manager.register(models.Dashboard, ModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
     default_manager.register(models.Event, defaults.EventDeletionTask)
-    default_manager.register(models.EventMapping, BulkModelDeletionTask)
     default_manager.register(models.EventUser, BulkModelDeletionTask)
     default_manager.register(models.Group, defaults.GroupDeletionTask)
     default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
@@ -65,8 +63,8 @@ def load_defaults():
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
     default_manager.register(
-        models.OrganizationIntegration,
-        defaults.OrganizationIntegrationDeletionTask)
+        models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
+    )
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)

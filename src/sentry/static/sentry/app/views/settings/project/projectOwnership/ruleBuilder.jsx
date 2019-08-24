@@ -59,23 +59,22 @@ class RuleBuilder extends React.Component {
   };
 
   handleAddRule = () => {
-    let {type, text, owners, isValid} = this.state;
+    const {type, text, owners, isValid} = this.state;
 
     if (!isValid) {
-      addErrorMessage('A Rule needs a type, a value, and one or more owners.');
+      addErrorMessage('A rule needs a type, a value, and one or more issue owners.');
       return;
     }
 
-    let ownerText = owners
-      .map(
-        owner =>
-          owner.actor.type === 'team'
-            ? `#${owner.actor.name}`
-            : memberListStore.getById(owner.actor.id).email
+    const ownerText = owners
+      .map(owner =>
+        owner.actor.type === 'team'
+          ? `#${owner.actor.name}`
+          : memberListStore.getById(owner.actor.id).email
       )
       .join(' ');
 
-    let rule = `${type}:${text} ${ownerText}`;
+    const rule = `${type}:${text} ${ownerText}`;
     this.props.onAddRule(rule);
     this.setState(initialState);
   };
@@ -86,8 +85,8 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
-    let {urls, paths, disabled, project, organization} = this.props;
-    let {type, text, owners, isValid} = this.state;
+    const {urls, paths, disabled, project, organization} = this.props;
+    const {type, text, owners, isValid} = this.state;
 
     return (
       <React.Fragment>
@@ -160,11 +159,11 @@ class RuleBuilder extends React.Component {
     );
   }
 }
-const Candidates = styled.div`
+const Candidates = styled('div')`
   margin-bottom: 10px;
 `;
 
-const TypeHint = styled.div`
+const TypeHint = styled('div')`
   color: ${p => p.theme.borderDark};
 `;
 
@@ -172,7 +171,7 @@ const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
 
-const RuleCandidate = styled.div`
+const RuleCandidate = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   border: 1px solid ${p => p.theme.borderDark};
   background-color: #f8fafd;
@@ -190,7 +189,7 @@ const AddIcon = styled(InlineSvg)`
   flex-shrink: 0;
 `;
 
-const BuilderBar = styled.div`
+const BuilderBar = styled('div')`
   display: flex;
   height: 40px;
   align-items: center;

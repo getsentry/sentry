@@ -1,4 +1,3 @@
-/*global global*/
 import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {

@@ -3,32 +3,29 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
-import ConfigStore from 'app/stores/configStore';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
+import space from 'app/styles/space';
 
 export default class ResourceCard extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     link: PropTypes.string.isRequired,
-    imgUrl: PropTypes.string.isRequired,
+    imgUrl: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
   };
 
   recordClick = () => {
-    let {link, title} = this.props;
+    const {link, title} = this.props;
     analytics('orgdash.resource_clicked', {link, title});
   };
 
   render() {
-    const mediaUrl = ConfigStore.get('mediaUrl');
-    let {title, link, imgUrl} = this.props;
+    const {title, link, imgUrl} = this.props;
 
     return (
       <ResourceCardWrapper onClick={this.recordClick}>
         <StyledLink href={link}>
-          <div className="m-b-1">
-            <img src={mediaUrl + imgUrl} alt={title} />
-          </div>
+          <StyledImg src={imgUrl} alt={title} />
           <StyledTitle>{title}</StyledTitle>
         </StyledLink>
       </ResourceCardWrapper>
@@ -36,21 +33,27 @@ export default class ResourceCard extends React.Component {
   }
 }
 
-const StyledTitle = styled('div')`
-  color: #493e54;
-  font-size: 16px;
-  text-align: center;
-  font-weight: bold;
-`;
-
 const ResourceCardWrapper = styled(Panel)`
   display: flex;
   flex: 1;
   align-items: center;
-  padding: 20px;
+  padding: ${space(3)};
   margin-bottom: 0;
 `;
 
 const StyledLink = styled(ExternalLink)`
   flex: 1;
+`;
+
+const StyledImg = styled('img')`
+  display: block;
+  margin: 0 auto ${space(3)} auto;
+  height: 160px;
+`;
+
+const StyledTitle = styled('div')`
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeLarge};
+  text-align: center;
+  font-weight: bold;
 `;

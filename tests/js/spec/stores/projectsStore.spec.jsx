@@ -3,19 +3,19 @@ import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
 
 describe('ProjectsStore', function() {
-  let teamFoo = TestStubs.Team({
+  const teamFoo = TestStubs.Team({
     slug: 'team-foo',
   });
-  let teamBar = TestStubs.Team({
+  const teamBar = TestStubs.Team({
     slug: 'team-bar',
   });
-  let projectFoo = TestStubs.Project({
+  const projectFoo = TestStubs.Project({
     id: '2',
     slug: 'foo',
     name: 'Foo',
     teams: [teamFoo],
   });
-  let projectBar = TestStubs.Project({
+  const projectBar = TestStubs.Project({
     id: '10',
     slug: 'bar',
     name: 'Bar',
@@ -37,7 +37,7 @@ describe('ProjectsStore', function() {
   });
 
   it('adds project to store on "create success"', async function() {
-    let project = TestStubs.Project({id: '11', slug: 'created-project'});
+    const project = TestStubs.Project({id: '11', slug: 'created-project'});
     ProjectActions.createSuccess(project);
     await tick();
     expect(ProjectsStore.itemsById[project.id]).toMatchObject({
@@ -57,7 +57,7 @@ describe('ProjectsStore', function() {
 
   it('updates a project in store', async function() {
     // Create a new project, but should have same id as `projectBar`
-    let project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
+    const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
     ProjectActions.updateSuccess(project);
     await tick();
     expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
@@ -113,7 +113,7 @@ describe('ProjectsStore', function() {
   });
 
   it('can add a team to a project', async function() {
-    let team = TestStubs.Team({
+    const team = TestStubs.Team({
       slug: 'new-team',
     });
     ProjectActions.addTeamSuccess(team, 'foo');

@@ -20,7 +20,7 @@ class EventRow extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         event: EventStore.get(this.props.id),
       });
@@ -32,12 +32,13 @@ class EventRow extends React.Component {
   }
 
   render() {
-    let event = this.state.event;
-    let eventLink = `/${this.props.orgSlug}/${this.props
-      .projectSlug}/issues/${event.groupID}/events/${event.id}/`;
+    const event = this.state.event;
+    const eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${
+      event.groupID
+    }/events/${event.id}/`;
 
-    let tagList = [];
-    for (let key in event.tags) {
+    const tagList = [];
+    for (const key in event.tags) {
       tagList.push([key, event.tags[key]]);
     }
 
@@ -45,7 +46,7 @@ class EventRow extends React.Component {
       <tr>
         <td>
           <h5>
-            <Link to={eventLink}>{event.message}</Link>
+            <Link to={eventLink}>{event.title || event.message}</Link>
           </h5>
           <small className="tagList">
             {tagList.map(tag => {

@@ -10,7 +10,7 @@ class CallRecordingPanel(Panel):
     def __init__(self, *args, **kwargs):
         super(CallRecordingPanel, self).__init__(*args, **kwargs)
         cls = type(self)
-        if getattr(cls, '_collector', None) is None:
+        if getattr(cls, "_collector", None) is None:
             self.collector = ThreadCollector()
 
             for context in cls.get_context(self.collector):
@@ -36,11 +36,8 @@ class CallRecordingPanel(Panel):
     @property
     def nav_subtitle(self):
         calls = len(self.calls)
-        duration = int(sum(((c['end'] - c['start']) for c in self.calls)) * 1000)
+        duration = int(sum(((c["end"] - c["start"]) for c in self.calls)) * 1000)
 
         return ungettext(
-            '%(calls)d call in %(duration).2fms', '%(calls)d calls in %(duration).2fms', calls
-        ) % {
-            'calls': calls,
-            'duration': duration
-        }
+            "%(calls)d call in %(duration).2fms", "%(calls)d calls in %(duration).2fms", calls
+        ) % {"calls": calls, "duration": duration}

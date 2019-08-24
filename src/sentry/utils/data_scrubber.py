@@ -1,10 +1,3 @@
-"""
-sentry.utils.data_scrubber
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import re
@@ -26,7 +19,7 @@ def varmap(func, var, context=None, name=None):
 
     objid = id(var)
     if objid in context:
-        return func(name, '<...>')
+        return func(name, "<...>")
     context.add(objid)
 
     if isinstance(var, dict):
@@ -48,20 +41,21 @@ class SensitiveDataFilter(object):
     Asterisk out things that look like passwords, credit card numbers,
     and API keys in frames, http, and basic extra data.
     """
+
     VALUES_RE = re.compile(
-        r'|'.join(
+        r"|".join(
             [
                 # http://www.richardsramblings.com/regex/credit-card-numbers/
-                r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
+                r"\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b",
                 # various private/public keys
-                r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
+                r"-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----",
                 # social security numbers (US)
-                r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
+                r"^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b",
             ]
         ),
-        re.DOTALL
+        re.DOTALL,
     )
-    URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@')
+    URL_PASSWORD_RE = re.compile(r"\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@")
 
     def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
@@ -75,42 +69,45 @@ class SensitiveDataFilter(object):
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
-        if 'stacktrace' in data:
-            self.filter_stacktrace(data['stacktrace'])
+        if data.get("stacktrace"):
+            self.filter_stacktrace(data["stacktrace"])
 
-        if 'exception' in data:
-            for exc in get_path(data, 'exception', 'values', filter=True) or ():
-                if exc.get('stacktrace'):
-                    self.filter_stacktrace(exc['stacktrace'])
+        for exc in get_path(data, "exception", "values", filter=True) or ():
+            if exc.get("stacktrace"):
+                self.filter_stacktrace(exc["stacktrace"])
 
-        if 'breadcrumbs' in data:
-            for crumb in data['breadcrumbs'].get('values') or ():
-                self.filter_crumb(crumb)
+        for exc in get_path(data, "threads", "values", filter=True) or ():
+            if exc.get("stacktrace"):
+                self.filter_stacktrace(exc["stacktrace"])
 
-        if 'request' in data:
-            self.filter_http(data['request'])
+        for crumb in get_path(data, "breadcrumbs", "values", filter=True) or ():
+            self.filter_crumb(crumb)
 
-        if 'user' in data:
-            self.filter_user(data['user'])
+        if data.get("request"):
+            self.filter_http(data["request"])
 
-        if 'csp' in data:
-            self.filter_csp(data['csp'])
+        if data.get("user"):
+            self.filter_user(data["user"])
 
-        if 'extra' in data:
-            data['extra'] = varmap(self.sanitize, data['extra'])
+        if data.get("csp"):
+            self.filter_csp(data["csp"])
 
-        if 'contexts' in data:
-            for key, value in six.iteritems(data['contexts']):
-                data['contexts'][key] = varmap(self.sanitize, value)
+        if data.get("extra"):
+            data["extra"] = varmap(self.sanitize, data["extra"])
+
+        if data.get("contexts"):
+            for key, value in six.iteritems(data["contexts"]):
+                if value:
+                    data["contexts"][key] = varmap(self.sanitize, value)
 
     def sanitize(self, key, value):
-        if value is None or value == '':
+        if value is None or value == "":
             return value
 
         if isinstance(key, six.string_types):
             key = key.lower()
         else:
-            key = ''
+            key = ""
 
         if key and key in self.exclude_fields:
             return value
@@ -122,13 +119,13 @@ class SensitiveDataFilter(object):
             # Check if the value is a url-like object
             # that contains a password
             # e.g. postgres://foo:password@example.com/db
-            if '//' in value and '@' in value:
-                value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
+            if "//" in value and "@" in value:
+                value = self.URL_PASSWORD_RE.sub(r"\1" + FILTER_MASK + "@", value)
 
         if isinstance(value, six.string_types):
             str_value = value.lower()
         else:
-            str_value = ''
+            str_value = ""
 
         for field in self.fields:
             if field in str_value:
@@ -138,63 +135,63 @@ class SensitiveDataFilter(object):
         return value
 
     def filter_stacktrace(self, data):
-        if 'frames' not in data:
+        if not data.get("frames"):
             return
-        for frame in data['frames']:
-            if 'vars' not in frame:
+        for frame in data["frames"]:
+            if not frame or not frame.get("vars"):
                 continue
-            frame['vars'] = varmap(self.sanitize, frame['vars'])
+            frame["vars"] = varmap(self.sanitize, frame["vars"])
 
     def filter_http(self, data):
-        for n in ('data', 'cookies', 'headers', 'env', 'query_string'):
-            if n not in data:
+        for n in ("data", "cookies", "headers", "env", "query_string"):
+            if not data.get(n):
                 continue
 
-            if isinstance(data[n], six.string_types) and '=' in data[n]:
+            if isinstance(data[n], six.string_types) and "=" in data[n]:
                 # at this point we've assumed it's a standard HTTP query
                 querybits = []
-                for bit in data[n].split('&'):
-                    chunk = bit.split('=')
+                for bit in data[n].split("&"):
+                    chunk = bit.split("=")
                     if len(chunk) == 2:
                         querybits.append((chunk[0], self.sanitize(*chunk)))
                     else:
                         querybits.append(chunk)
 
-                data[n] = '&'.join('='.join(k) for k in querybits)
+                data[n] = "&".join("=".join(k) for k in querybits)
             else:
                 # Encoded structured data (HTTP bodies, headers) would have
                 # already been decoded by the request interface.
                 data[n] = varmap(self.sanitize, data[n])
 
     def filter_user(self, data):
-        if 'data' not in data:
+        if not data.get("data"):
             return
-        data['data'] = varmap(self.sanitize, data['data'])
+        data["data"] = varmap(self.sanitize, data["data"])
 
     def filter_crumb(self, data):
-        for key in 'data', 'message':
+        for key in "data", "message":
             val = data.get(key)
             if val:
                 data[key] = varmap(self.sanitize, val)
 
     def filter_csp(self, data):
-        for key in 'blocked_uri', 'document_uri':
-            if key not in data:
+        for key in "blocked_uri", "document_uri":
+            if not data.get(key):
                 continue
             value = data[key]
             if not isinstance(value, six.string_types):
                 continue
-            if '?' not in value:
+            if "?" not in value:
                 continue
-            if '=' not in value:
+            if "=" not in value:
                 continue
             scheme, netloc, path, query, fragment = urlsplit(value)
             querybits = []
-            for bit in query.split('&'):
-                chunk = bit.split('=')
+            for bit in query.split("&"):
+                chunk = bit.split("=")
                 if len(chunk) == 2:
                     querybits.append((chunk[0], self.sanitize(*chunk)))
                 else:
                     querybits.append(chunk)
-            query = '&'.join('='.join(k) for k in querybits)
+            query = "&".join("=".join(k) for k in querybits)
             data[key] = urlunsplit((scheme, netloc, path, query, fragment))

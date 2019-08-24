@@ -15,6 +15,7 @@ import {
   ProjectTableLayout,
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
+import {PageContent} from 'app/styles/organization';
 
 class OrganizationStats extends React.Component {
   static propTypes = {
@@ -31,27 +32,33 @@ class OrganizationStats extends React.Component {
   };
 
   renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
-    let [accepted, rejected, blacklisted] = point.y;
-
-    let value = `${intcomma(accepted)} accepted`;
-    if (rejected) {
-      value += `<br>${intcomma(rejected)} rate limited`;
-    }
-    if (blacklisted) {
-      value += `<br>${intcomma(blacklisted)} filtered`;
-    }
+    const timeLabel = chart.getTimeLabel(point);
+    const [accepted, rejected, blacklisted] = point.y;
 
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {intcomma(accepted)} accepted
+          {rejected > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(rejected)} rate limited
+            </React.Fragment>
+          )}
+          {blacklisted > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(blacklisted)} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   }
 
-  render() {
-    let {
+  renderContent() {
+    const {
       statsLoading,
       orgTotal,
       statsError,
@@ -135,6 +142,14 @@ class OrganizationStats extends React.Component {
         </Panel>
         {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
       </div>
+    );
+  }
+
+  render() {
+    return (
+      <React.Fragment>
+        <PageContent>{this.renderContent()}</PageContent>
+      </React.Fragment>
     );
   }
 }

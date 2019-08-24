@@ -5,27 +5,24 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function() {
   const routerContext = TestStubs.routerContext();
+  const items = [
+    {
+      value: 'apple',
+      label: <div>Apple</div>,
+    },
+    {
+      value: 'bacon',
+      label: <div>Bacon</div>,
+    },
+    {
+      value: 'corn',
+      label: <div>Corn</div>,
+    },
+  ];
 
   it('has actor wrapper', function() {
     const wrapper = mount(
-      <DropdownAutoComplete
-        items={[
-          {
-            value: 'apple',
-            label: <div>Apple</div>,
-          },
-          {
-            value: 'bacon',
-            label: <div>Bacon</div>,
-          },
-          {
-            value: 'corn',
-            label: <div>Corn</div>,
-          },
-        ]}
-      >
-        {() => 'Click Me!'}
-      </DropdownAutoComplete>,
+      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
       routerContext
     );
     expect(wrapper.find('div[role="button"]')).toHaveLength(1);
@@ -34,27 +31,26 @@ describe('DropdownAutoComplete', function() {
 
   it('opens dropdown menu when actor is clicked', function() {
     const wrapper = mount(
-      <DropdownAutoComplete
-        items={[
-          {
-            value: 'apple',
-            label: <div>Apple</div>,
-          },
-          {
-            value: 'bacon',
-            label: <div>Bacon</div>,
-          },
-          {
-            value: 'corn',
-            label: <div>Corn</div>,
-          },
-        ]}
-      >
+      <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
+      routerContext
+    );
+    wrapper.find('Actor[role="button"]').simulate('click');
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+
+    wrapper.find('Actor[role="button"]').simulate('click');
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+  });
+
+  it('toggles dropdown menu when actor is clicked', function() {
+    const wrapper = mount(
+      <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
       </DropdownAutoComplete>,
       routerContext
     );
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledMenu')).toHaveLength(1);
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    wrapper.find('Actor[role="button"]').simulate('click');
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
   });
 });

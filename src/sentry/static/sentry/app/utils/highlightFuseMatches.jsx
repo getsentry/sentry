@@ -26,13 +26,13 @@ const getFuseMatches = ({value, indices}) => {
     return [{highlight: false, text: value}];
   }
 
-  let strLength = value.length;
-  let result = [];
+  const strLength = value.length;
+  const result = [];
   let prev = [0, -1];
 
   indices.forEach(([start, end]) => {
     // Unhighlighted string before the match
-    let stringBeforeMatch = value.substring(prev[1] + 1, start);
+    const stringBeforeMatch = value.substring(prev[1] + 1, start);
 
     // Only add to result if non-empty string
     if (!!stringBeforeMatch) {
@@ -43,7 +43,7 @@ const getFuseMatches = ({value, indices}) => {
     }
 
     // This is the matched string, which should be highlighted
-    let matchedString = value.substring(start, end + 1);
+    const matchedString = value.substring(start, end + 1);
     result.push({
       highlight: true,
       text: matchedString,
@@ -53,7 +53,7 @@ const getFuseMatches = ({value, indices}) => {
   });
 
   // The rest of the string starting from the last match index
-  let restOfString = value.substring(prev[1] + 1, strLength);
+  const restOfString = value.substring(prev[1] + 1, strLength);
   // Only add to result if non-empty string
   if (!!restOfString) {
     result.push({highlight: false, text: restOfString});
@@ -67,7 +67,9 @@ const getFuseMatches = ({value, indices}) => {
  */
 const highlightFuseMatches = (matchObj, Marker = 'mark') => {
   return getFuseMatches(matchObj).map(({highlight, text}, index) => {
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     if (highlight) {
       return <Marker key={index}>{text}</Marker>;
     }

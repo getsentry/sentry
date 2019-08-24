@@ -29,13 +29,15 @@ class U2fEnrolledDetails extends React.Component {
   };
 
   render() {
-    let {isEnrolled, devices, id, onRemoveU2fDevice} = this.props;
+    const {isEnrolled, devices, id, onRemoveU2fDevice} = this.props;
 
-    if (id !== 'u2f' || !isEnrolled) return null;
+    if (id !== 'u2f' || !isEnrolled) {
+      return null;
+    }
 
-    let hasDevices = devices && devices.length;
+    const hasDevices = devices && devices.length;
     // Note Tooltip doesn't work because of bootstrap(?) pointer events for disabled buttons
-    let isLastDevice = hasDevices === 1;
+    const isLastDevice = hasDevices === 1;
 
     return (
       <Panel css={{marginTop: 30}}>
@@ -66,7 +68,9 @@ class U2fEnrolledDetails extends React.Component {
                         </ConfirmHeader>
                         <TextBlock>
                           {t(
-                            `Are you sure you want to remove the U2F device "${device.name}"?`
+                            `Are you sure you want to remove the U2F device "${
+                              device.name
+                            }"?`
                           )}
                         </TextBlock>
                       </React.Fragment>

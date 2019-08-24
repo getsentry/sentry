@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import Link from 'app/components/link';
-import ExternalLink from 'app/components/externalLink';
+import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {OrgSummary} from './sidebarOrgSummary';
 
@@ -23,8 +23,8 @@ class SidebarMenuItem extends React.Component {
     external: PropTypes.bool,
   };
   render() {
-    let {children, to, href, ...props} = this.props;
-    let hasMenu = !to && !href;
+    const {children, to, href, ...props} = this.props;
+    const hasMenu = !to && !href;
 
     return (
       <MenuItemLink to={to} href={href} {...props}>
@@ -48,37 +48,44 @@ const MenuItemLabel = styled('span')`
         `};
 `;
 
+const getMenuItemStyles = p => css`
+  color: ${p.theme.gray5};
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  line-height: 32px;
+  padding: 0 ${p.theme.sidebar.menuSpacing};
+  position: relative;
+  transition: 0.1s all linear;
+  ${(!!p.to || !!p.href) && 'overflow: hidden'};
+
+  &:hover,
+  &:active,
+  &.focus-visible {
+    background: ${p.theme.offWhite};
+    color: ${p.theme.gray5};
+    outline: none;
+  }
+
+  ${OrgSummary} {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+export {getMenuItemStyles};
+
 const MenuItemLink = styled(({to, href, external, ...props}) => {
   if (to) {
     return <Link to={to} href={href} {...props} />;
   }
 
   if (href) {
-    let Component = external ? ExternalLink : Link;
+    const Component = external ? ExternalLink : Link;
     return <Component href={href} {...props} />;
   }
 
-  return <div {...props} />;
+  return <div tabIndex="0" {...props} />;
 })`
-  color: ${p => p.theme.gray5};
-  cursor: pointer;
-  display: flex;
-  font-size: 14px;
-  line-height: 32px;
-  padding: 0 ${p => p.theme.sidebar.menuSpacing};
-  position: relative;
-  transition: 0.1s all linear;
-  ${p => (!!p.to || !!p.href) && 'overflow: hidden'};
-
-  &:hover,
-  &:active {
-    background: ${p => p.theme.offWhite};
-    color: ${p => p.theme.gray5};
-  }
-
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${OrgSummary} {
-    padding-left: 0;
-    padding-right: 0;
-  }
+  ${getMenuItemStyles}
 `;

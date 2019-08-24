@@ -6,7 +6,7 @@ import ApiNewToken from 'app/views/apiNewToken';
 describe('ApiNewToken', function() {
   describe('render()', function() {
     it('renders', function() {
-      let wrapper = shallow(<ApiNewToken params={{}} />, {
+      const wrapper = shallow(<ApiNewToken params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

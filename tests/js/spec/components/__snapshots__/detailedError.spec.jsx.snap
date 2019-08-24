@@ -17,13 +17,13 @@ exports[`DetailedError can hide support links 1`] = `
     <h4>
       Error heading
     </h4>
-    <p
+    <div
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </p>
+    </div>
     <div
       className="detailed-error-content-footer"
     >
@@ -57,13 +57,13 @@ exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
     <h4>
       Error heading
     </h4>
-    <p
+    <div
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </p>
+    </div>
   </div>
 </div>
 `;
@@ -85,13 +85,13 @@ exports[`DetailedError renders 1`] = `
     <h4>
       Error heading
     </h4>
-    <p
+    <div
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </p>
+    </div>
     <div
       className="detailed-error-content-footer"
     >
@@ -132,13 +132,13 @@ exports[`DetailedError renders with "Retry" button 1`] = `
     <h4>
       Error heading
     </h4>
-    <p
+    <div
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </p>
+    </div>
     <div
       className="detailed-error-content-footer"
     >

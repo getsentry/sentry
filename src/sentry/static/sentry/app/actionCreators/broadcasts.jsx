@@ -1,5 +1,5 @@
-export function getAllBroadcasts(api) {
-  return api.requestPromise('/broadcasts/', {method: 'GET'});
+export function getAllBroadcasts(api, orgSlug) {
+  return api.requestPromise(`/organizations/${orgSlug}/broadcasts/`, {method: 'GET'});
 }
 
 export function markBroadcastsAsSeen(api, idList) {

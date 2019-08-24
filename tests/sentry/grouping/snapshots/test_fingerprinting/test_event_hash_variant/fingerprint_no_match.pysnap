@@ -1,0 +1,29 @@
+---
+created: '2019-07-23T21:55:26.024104Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - database-unavailable
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    - - module
+      - invalid.databasestuff.*
+  version: 1
+fingerprint:
+- my-route
+- '{{ default }}'
+variants:
+  app:
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'
+  system:
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'

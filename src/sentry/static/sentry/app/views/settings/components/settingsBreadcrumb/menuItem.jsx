@@ -5,7 +5,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class MenuItem extends React.Component {
   render() {
-    let {children, ...props} = this.props;
+    const {children, ...props} = this.props;
     return <StyledMenuItem {...props}>{children}</StyledMenuItem>;
   }
 }

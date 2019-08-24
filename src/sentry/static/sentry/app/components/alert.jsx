@@ -1,66 +1,61 @@
-import React from 'react';
+import {css, cx} from 'emotion';
 import PropTypes from 'prop-types';
-import {cx} from 'emotion';
-import {Flex} from 'grid-emotion';
+import React from 'react';
+import color from 'color';
 import styled from 'react-emotion';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+
 import InlineSvg from 'app/components/inlineSvg';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
   margin-right: calc(${p => p.size} / 2);
 `;
 
-const getAlertColorStyles = ({backgroundLight, border, iconColor}, textColor) => `
+const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   background: ${backgroundLight};
   border: 1px solid ${border};
 
   svg {
     color: ${iconColor};
   }
-
-  a {
-    color: ${textColor};
-    border-bottom: 1px dotted ${textColor};
-  }
 `;
 
-const getSystemAlertColorStyles = ({background}) => `
-  background: ${background};
+const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   border: 0;
   border-radius: 0;
-  color: #fff;
-  font-weight: bold;
-  text-shadow: 0 1px 1px rgba(0,0,0, .15);
+  border-bottom: 1px solid ${color(border)
+    .alpha(0.5)
+    .string()};
 
   ${StyledInlineSvg} {
-    color: #fff;
-  }
-
-  a {
-    color: #fff;
-    border-bottom: 1px dotted rgba(255,255,255, .8);
-
-    &:hover {
-      border-bottom: 1px dotted rgba(255,255,255, 1);
-    }
+    color: ${iconColor};
   }
 `;
 
-const AlertWrapper = styled(Flex)`
+const alertStyles = ({theme, type, system, alignTop}) => css`
+  display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
   font-size: 15px;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.whiteDark};
-  border: 1px solid ${p => p.theme.borderDark};
-  align-items: center;
+  box-shadow: ${theme.dropShadowLight};
+  border-radius: ${theme.borderRadius};
+  background: ${theme.whiteDark};
+  border: 1px solid ${theme.borderDark};
+  align-items: ${alignTop ? 'top' : 'center'};
 
-  ${p =>
-    p.system
-      ? p.type && getSystemAlertColorStyles(p.theme.alert[p.type])
-      : p.type && getAlertColorStyles(p.theme.alert[p.type], p.theme.gray5)};
+  a:not([role='button']) {
+    color: ${theme.textColor};
+    border-bottom: 1px dotted ${theme.textColor};
+  }
+
+  ${getAlertColorStyles(theme.alert[type])};
+  ${system && getSystemAlertColorStyles(theme.alert[type])};
+`;
+
+const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
+  ${alertStyles}
 `;
 
 const StyledTextBlock = styled(TextBlock)`
@@ -89,10 +84,15 @@ Alert.propTypes = {
   type: PropTypes.string,
   icon: PropTypes.string,
   iconSize: PropTypes.string,
+  alignTop: PropTypes.bool,
 };
 
 Alert.defaultProps = {
   iconSize: '24px',
+  type: 'info',
+  alignTop: false,
 };
+
+export {alertStyles};
 
 export default Alert;

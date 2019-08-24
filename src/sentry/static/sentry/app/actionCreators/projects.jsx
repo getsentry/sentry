@@ -12,7 +12,7 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
 
-  let endpoint = `/projects/${params.orgId}/${params.projectId}/`;
+  const endpoint = `/projects/${params.orgId}/${params.projectId}/`;
   return api
     .requestPromise(endpoint, {
       method: 'PUT',
@@ -33,7 +33,7 @@ export function update(api, params) {
 export function loadStats(api, params) {
   ProjectActions.loadStats(params.orgId, params.data);
 
-  let endpoint = `/organizations/${params.orgId}/stats/`;
+  const endpoint = `/organizations/${params.orgId}/stats/`;
   api.request(endpoint, {
     query: params.query,
     success: data => {
@@ -47,15 +47,15 @@ export function loadStats(api, params) {
 
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-let _projectStatsToFetch = new Set();
+const _projectStatsToFetch = new Set();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout
 const MAX_PROJECTS_TO_FETCH = 10;
 
 const _queryForStats = (api, projects, orgId) => {
-  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
-  let endpoint = `/organizations/${orgId}/projects/`;
+  const idQueryParams = projects.map(project => `id:${project}`).join(' ');
+  const endpoint = `/organizations/${orgId}/projects/`;
 
   return api.requestPromise(endpoint, {
     query: {
@@ -66,8 +66,10 @@ const _queryForStats = (api, projects, orgId) => {
 };
 
 export const _debouncedLoadStats = debounce((api, projectSet, params) => {
-  let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
-  let projects = Array.from(projectSet).filter(
+  const existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(
+    ({id}) => id
+  );
+  const projects = Array.from(projectSet).filter(
     project => !existingProjectStats.includes(project)
   );
 
@@ -108,7 +110,7 @@ export function setActiveProject(project) {
 }
 
 export function removeProject(api, orgId, project) {
-  let endpoint = `/projects/${orgId}/${project.slug}/`;
+  const endpoint = `/projects/${orgId}/${project.slug}/`;
 
   ProjectActions.removeProject(project);
   return api
@@ -131,7 +133,7 @@ export function removeProject(api, orgId, project) {
 }
 
 export function transferProject(api, orgId, project, email) {
-  let endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
+  const endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
 
   return api
     .requestPromise(endpoint, {
@@ -168,7 +170,7 @@ export function transferProject(api, orgId, project, email) {
  * @param {String} team Team data object
  */
 export function addTeamToProject(api, orgSlug, projectSlug, team) {
-  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
+  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
 
   addLoadingMessage();
   ProjectActions.addTeam(team);
@@ -210,7 +212,7 @@ export function addTeamToProject(api, orgSlug, projectSlug, team) {
  * @param {String} teamSlug Team Slug
  */
 export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
-  let endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
 
   addLoadingMessage();
   ProjectActions.removeTeam(teamSlug);
@@ -260,9 +262,37 @@ export function changeProjectSlug(prev, next) {
  * @param {String} projectSlug Project Slug
  */
 export function sendSampleEvent(api, orgSlug, projectSlug) {
-  let endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
+  const endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
 
   return api.requestPromise(endpoint, {
     method: 'POST',
   });
+}
+
+/**
+ * Creates a project
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} team The team slug to assign the project to
+ * @param {String} name Name of the project
+ * @param {String} platform The platform key of the project
+ */
+export function createProject(api, orgSlug, team, name, platform) {
+  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
+    method: 'POST',
+    data: {name, platform},
+  });
+}
+
+/**
+ * Load platform documentation specific to the project. The DSN and various
+ * other project specific secrets will be included in the documentation.
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ */
+export function loadDocs(api, orgSlug, projectSlug, platform) {
+  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }

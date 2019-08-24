@@ -1,47 +1,51 @@
 import {debounce} from 'lodash';
+import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import IdBadge from 'app/components/idBadge';
+import {Panel, PanelHeader} from 'app/components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
-import Link from 'app/components/link';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IdBadge from 'app/components/idBadge';
 import IndicatorStore from 'app/stores/indicatorStore';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
-import {Panel, PanelHeader} from 'app/components/panels';
-import InlineSvg from 'app/components/inlineSvg';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withConfig from 'app/utils/withConfig';
+import withOrganization from 'app/utils/withOrganization';
 
-const TeamMembers = createReactClass({
-  displayName: 'TeamMembers',
-  mixins: [ApiMixin, OrganizationState],
+class TeamMembers extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    config: SentryTypes.Config.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      dropdownBusy: false,
-      teamMemberList: null,
-      orgMemberList: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    dropdownBusy: false,
+    teamMemberList: null,
+    orgMemberList: null,
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.teamId !== params.teamId ||
       nextProps.params.orgId !== params.orgId
@@ -54,21 +58,21 @@ const TeamMembers = createReactClass({
         this.fetchData
       );
     }
-  },
+  }
 
-  debouncedFetchMembersRequest: debounce(function(query) {
+  debouncedFetchMembersRequest = debounce(function(query) {
     this.setState(
       {
         dropdownBusy: true,
       },
       () => this.fetchMembersRequest(query)
     );
-  }, 200),
+  }, 200);
 
   removeMember(member) {
-    let {params} = this.props;
+    const {params} = this.props;
     leaveTeam(
-      this.api,
+      this.props.api,
       {
         orgId: params.orgId,
         teamId: params.teamId,
@@ -94,55 +98,58 @@ const TeamMembers = createReactClass({
         },
       }
     );
-  },
+  }
 
-  fetchMembersRequest(query) {
-    let {orgId} = this.props.params;
-    return this.api.request(`/organizations/${orgId}/members/`, {
-      query: {
-        query,
-      },
-      success: data => {
-        this.setState({
-          orgMemberList: data,
-          dropdownBusy: false,
-        });
-      },
-      error: () => {
-        IndicatorStore.add(t('Unable to load organization members.'), 'error', {
-          duration: 2000,
-        });
-        this.setState({
-          dropdownBusy: false,
-        });
-      },
-    });
-  },
+  fetchMembersRequest = async query => {
+    const {params, api} = this.props;
+    const {orgId} = params;
 
-  fetchData() {
-    let params = this.props.params;
+    try {
+      const data = await api.requestPromise(`/organizations/${orgId}/members/`, {
+        query: {
+          query,
+        },
+      });
+      this.setState({
+        orgMemberList: data,
+        dropdownBusy: false,
+      });
+    } catch (_err) {
+      addErrorMessage(t('Unable to load organization members.'), {
+        duration: 2000,
+      });
 
-    this.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
-      success: data => {
-        this.setState({
-          teamMemberList: data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
+      this.setState({
+        dropdownBusy: false,
+      });
+    }
+  };
+
+  fetchData = async () => {
+    const {api, params} = this.props;
+
+    try {
+      const data = await api.requestPromise(
+        `/teams/${params.orgId}/${params.teamId}/members/`
+      );
+      this.setState({
+        teamMemberList: data,
+        loading: false,
+        error: false,
+      });
+    } catch (err) {
+      this.setState({
+        loading: false,
+        error: true,
+        errorResponse: err,
+      });
+    }
 
     this.fetchMembersRequest('');
-  },
+  };
 
-  addTeamMember(selection) {
-    let params = this.props.params;
+  addTeamMember = selection => {
+    const params = this.props.params;
 
     this.setState({
       loading: true,
@@ -152,7 +159,7 @@ const TeamMembers = createReactClass({
     this.debouncedFetchMembersRequest('');
 
     joinTeam(
-      this.api,
+      this.props.api,
       {
         orgId: params.orgId,
         teamId: params.teamId,
@@ -160,7 +167,7 @@ const TeamMembers = createReactClass({
       },
       {
         success: () => {
-          let orgMember = this.state.orgMemberList.find(member => {
+          const orgMember = this.state.orgMemberList.find(member => {
             return member.id === selection.value;
           });
           this.setState({
@@ -168,34 +175,37 @@ const TeamMembers = createReactClass({
             error: false,
             teamMemberList: this.state.teamMemberList.concat([orgMember]),
           });
-          IndicatorStore.add(t('Successfully added member to team.'), 'success', {
-            duration: 2000,
-          });
+          addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
           this.setState({
             loading: false,
           });
-          IndicatorStore.add(t('Unable to add team member.'), 'error', {duration: 2000});
+          addErrorMessage(t('Unable to add team member.'));
         },
       }
     );
-  },
+  };
 
   /**
- * We perform an API request to support orgs with > 100 members (since that's the max API returns)
- *
- * @param {Event} e React Event when member filter input changes
- */
-  handleMemberFilterChange(e) {
+   * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+   *
+   * @param {Event} e React Event when member filter input changes
+   */
+  handleMemberFilterChange = e => {
     this.setState({dropdownBusy: true});
     this.debouncedFetchMembersRequest(e.target.value);
-  },
+  };
 
-  renderDropdown(access) {
-    let {params} = this.props;
+  renderDropdown = access => {
+    const {params} = this.props;
 
-    if (!access.has('org:write')) {
+    // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
+    // a parent "team details" request should determine your team membership, so this only view is rendered only
+    // when you are a member
+    const canAddMembers = access.has('org:write') || access.has('team:admin');
+
+    if (!canAddMembers) {
       return (
         <DropdownButton
           disabled={true}
@@ -208,9 +218,9 @@ const TeamMembers = createReactClass({
       );
     }
 
-    let existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
+    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
 
-    let items = (this.state.orgMemberList || [])
+    const items = (this.state.orgMemberList || [])
       .filter(m => !existingMembers.has(m.id))
       .map(m => {
         return {
@@ -225,7 +235,7 @@ const TeamMembers = createReactClass({
         };
       });
 
-    let menuHeader = (
+    const menuHeader = (
       <StyledMembersLabel>
         {t('Members')}
         <StyledCreateMemberLink to={`/settings/${params.orgId}/members/new/`}>
@@ -244,18 +254,22 @@ const TeamMembers = createReactClass({
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
-        {({isOpen, selectedItem}) => (
+        {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Member')}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
     );
-  },
+  };
 
-  removeButton(member) {
+  removeButton = member => {
     return (
-      <Button size="small" onClick={this.removeMember.bind(this, member)}>
+      <Button
+        size="small"
+        onClick={this.removeMember.bind(this, member)}
+        label={t('Remove')}
+      >
         <InlineSvg
           src="icon-circle-subtract"
           size="1.25em"
@@ -264,15 +278,19 @@ const TeamMembers = createReactClass({
         {t('Remove')}
       </Button>
     );
-  },
+  };
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
-    let {params} = this.props;
-
-    let access = this.getAccess();
+    const {params, organization, config} = this.props;
+    const access = new Set(organization.access);
+    const isOrgAdmin = access.has('org:write');
+    const isTeamAdmin = access.has('team:admin');
 
     return (
       <Panel>
@@ -281,21 +299,25 @@ const TeamMembers = createReactClass({
           <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
         </PanelHeader>
         {this.state.teamMemberList.length ? (
-          this.state.teamMemberList.map(member => (
-            <StyledMemberContainer key={member.id}>
-              <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
-              {access.has('org:write') && this.removeButton(member)}
-            </StyledMemberContainer>
-          ))
+          this.state.teamMemberList.map(member => {
+            const isSelf = member.email === config.user.email;
+            const canRemoveMember = isOrgAdmin || isTeamAdmin || isSelf;
+            return (
+              <StyledMemberContainer key={member.id}>
+                <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
+                {canRemoveMember && this.removeButton(member)}
+              </StyledMemberContainer>
+            );
+          })
         ) : (
           <EmptyMessage icon="icon-user" size="large">
-            {t('Your Team is Empty')}
+            {t('This team has no members')}
           </EmptyMessage>
         )}
       </Panel>
     );
-  },
-});
+  }
+}
 
 const StyledMemberContainer = styled('div')`
   display: flex;
@@ -337,4 +359,4 @@ const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
 `;
 
-export default TeamMembers;
+export default withConfig(withApi(withOrganization(TeamMembers)));

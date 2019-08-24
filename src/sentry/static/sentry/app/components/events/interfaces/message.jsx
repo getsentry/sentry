@@ -10,7 +10,6 @@ import {objectIsEmpty} from 'app/utils';
 
 class MessageInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
@@ -34,10 +33,10 @@ class MessageInterface extends React.Component {
   }
 
   render() {
-    let {data, group, event} = this.props;
+    const {data, event} = this.props;
 
     return (
-      <EventDataSection group={group} event={event} type="message" title={t('Message')}>
+      <EventDataSection event={event} type="message" title={t('Message')}>
         <pre className="plain">
           <Annotated object={data} prop="formatted" />
         </pre>

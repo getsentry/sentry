@@ -9,7 +9,7 @@ from sentry.models import Environment, Rule
 def _generate_rule_label(project, rule, data):
     from sentry.rules import rules
 
-    rule_cls = rules.get(data['id'])
+    rule_cls = rules.get(data["id"])
     if rule_cls is None:
         return
 
@@ -19,37 +19,30 @@ def _generate_rule_label(project, rule, data):
 
 @register(Rule)
 class RuleSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         environments = Environment.objects.in_bulk(
-            filter(None, [i.environment_id for i in item_list]),
+            filter(None, [i.environment_id for i in item_list])
         )
-        return {
-            i: {
-                'environment': environments.get(i.environment_id)
-            } for i in item_list
-        }
+        return {i: {"environment": environments.get(i.environment_id)} for i in item_list}
 
     def serialize(self, obj, attrs, user):
-        environment = attrs['environment']
+        environment = attrs["environment"]
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
-            'id':
-            six.text_type(obj.id) if obj.id else None,
-            'conditions': [
-                dict(o.items() + [('name', _generate_rule_label(obj.project, obj, o))]) for o in obj.data.get('conditions', [])
+            "id": six.text_type(obj.id) if obj.id else None,
+            "conditions": [
+                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                for o in obj.data.get("conditions", [])
             ],
-            'actions': [
-                dict(o.items() + [('name', _generate_rule_label(obj.project, obj, o))]) for o in obj.data.get('actions', [])
+            "actions": [
+                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                for o in obj.data.get("actions", [])
             ],
-            'actionMatch':
-            obj.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH,
-            'frequency':
-            obj.data.get('frequency') or Rule.DEFAULT_FREQUENCY,
-            'name':
-            obj.label,
-            'dateCreated':
-            obj.date_added,
-            'environment': environment.name if environment is not None else None,
+            "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH,
+            "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
+            "name": obj.label,
+            "dateCreated": obj.date_added,
+            "environment": environment.name if environment is not None else None,
         }
         return d

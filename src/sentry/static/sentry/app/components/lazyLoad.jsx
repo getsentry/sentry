@@ -40,6 +40,11 @@ class LazyLoad extends React.Component {
   }
 
   componentWillReceiveProps(nextProps, nextState) {
+    // No need to refetch when component does not change
+    if (nextProps.component && nextProps.component === this.props.component) {
+      return;
+    }
+
     // This is to handle the following case:
     // <Route path="a/">
     //   <Route path="b/" component={LazyLoad} componentPromise={...} />
@@ -48,7 +53,9 @@ class LazyLoad extends React.Component {
     //
     // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
     // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route === this.props.route) return;
+    if (nextProps.route && nextProps.route === this.props.route) {
+      return;
+    }
 
     // If `this.fetchComponent` is not in callback,
     // then there's no guarantee that new Component will be rendered
@@ -86,7 +93,7 @@ class LazyLoad extends React.Component {
   };
 
   async fetchComponent() {
-    let getComponent = this.getComponentGetter();
+    const getComponent = this.getComponentGetter();
 
     try {
       const Component = await retryableImport(getComponent);
@@ -108,9 +115,9 @@ class LazyLoad extends React.Component {
   };
 
   render() {
-    let {Component, error} = this.state;
+    const {Component, error} = this.state;
     // eslint-disable-next-line no-unused-vars
-    let {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {hideBusy, hideError, component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (

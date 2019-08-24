@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 function LoadingIndicator(props) {
-  let {
+  const {
     hideMessage,
     mini,
     triangle,
@@ -17,7 +17,7 @@ function LoadingIndicator(props) {
     size,
     hideSpinner,
   } = props;
-  let cx = classNames(className, {
+  const cx = classNames(className, {
     overlay,
     dark,
     loading: true,
@@ -25,7 +25,7 @@ function LoadingIndicator(props) {
     triangle,
   });
 
-  let loadingCx = classNames({
+  const loadingCx = classNames({
     relative,
     'loading-indicator': true,
     'load-complete': finished,

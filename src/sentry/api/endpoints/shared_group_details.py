@@ -5,7 +5,10 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
-    serialize, SharedEventSerializer, SharedGroupSerializer, SharedProjectSerializer
+    serialize,
+    SharedEventSerializer,
+    SharedGroupSerializer,
+    SharedProjectSerializer,
 )
 from sentry.models import Group
 
@@ -40,11 +43,10 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
             group,
             request.user,
             SharedGroupSerializer(
-                environment_func=self._get_environment_func(
-                    request, group.project.organization_id)
-            )
+                environment_func=self._get_environment_func(request, group.project.organization_id)
+            ),
         )
         # TODO(dcramer): move latestEvent/project into SharedGroupSerializer
-        context['latestEvent'] = serialize(event, request.user, SharedEventSerializer())
-        context['project'] = serialize(group.project, request.user, SharedProjectSerializer())
+        context["latestEvent"] = serialize(event, request.user, SharedEventSerializer())
+        context["project"] = serialize(group.project, request.user, SharedProjectSerializer())
         return Response(context)

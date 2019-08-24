@@ -6,7 +6,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
-const Wrapper = styled.div`
+const Wrapper = styled('div')`
   display: flex;
   text-align: center;
   align-items: center;
@@ -28,7 +28,7 @@ const Description = styled(TextBlock)`
   ${MarginStyles};
 `;
 
-const Title = styled.div`
+const Title = styled('div')`
   font-weight: bold;
   font-size: 20px;
   line-height: 1.2;
@@ -45,21 +45,19 @@ const StyledInlineSvg = styled(InlineSvg)`
   ${MarginStyles};
 `;
 
-const Action = styled.div`
+const Action = styled('div')`
   ${MarginStyles};
 `;
 
-const EmptyMessage = ({title, description, icon, children, action, size}) => {
-  return (
-    <Wrapper size={size}>
-      {icon && <StyledInlineSvg src={icon} size="36px" />}
-      {title && <Title>{title}</Title>}
-      {description && <Description>{description}</Description>}
-      {children && <Description noMargin>{children}</Description>}
-      {action && <Action>{action}</Action>}
-    </Wrapper>
-  );
-};
+const EmptyMessage = ({title, description, icon, children, action, size, className}) => (
+  <Wrapper className={className} data-test-id="empty-message" size={size}>
+    {icon && <StyledInlineSvg src={icon} size="36px" />}
+    {title && <Title>{title}</Title>}
+    {description && <Description>{description}</Description>}
+    {children && <Description noMargin>{children}</Description>}
+    {action && <Action>{action}</Action>}
+  </Wrapper>
+);
 
 EmptyMessage.propTypes = {
   title: PropTypes.node,

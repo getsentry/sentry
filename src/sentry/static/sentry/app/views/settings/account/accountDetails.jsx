@@ -24,7 +24,7 @@ class AccountDetails extends AsyncView {
   handleSubmitError = (resp, model, id) => {};
 
   renderBody() {
-    let {user} = this.state;
+    const {user} = this.state;
 
     return (
       <div>

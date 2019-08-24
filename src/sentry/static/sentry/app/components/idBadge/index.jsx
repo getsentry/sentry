@@ -7,7 +7,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import TeamBadge from 'app/components/idBadge/teamBadge';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import OrganizationBadge from 'app/components/idBadge/organizationBadge';
-import SentryTypes from 'app/sentryTypes';
 
 const COMPONENT_MAP = new Map([
   ['organization', OrganizationBadge],
@@ -24,17 +23,12 @@ const COMPONENT_MAP = new Map([
 export default class IdBadge extends React.Component {
   static propTypes = {
     ...BaseBadge.propTypes,
-    team: SentryTypes.Team,
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    member: SentryTypes.Member,
-    user: SentryTypes.User,
   };
 
   render() {
     // Given the set of sentry types, find the prop name that was passed to this component,
     // of which we have a mapped component for
-    let propNameWithData = Object.keys(this.props).find(key => COMPONENT_MAP.has(key));
+    const propNameWithData = Object.keys(this.props).find(key => COMPONENT_MAP.has(key));
 
     if (!propNameWithData) {
       throw new Error(
@@ -42,7 +36,7 @@ export default class IdBadge extends React.Component {
       );
     }
 
-    let Component = COMPONENT_MAP.get(propNameWithData);
+    const Component = COMPONENT_MAP.get(propNameWithData);
 
     return (
       <InlineErrorBoundary mini>

@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -14,21 +13,15 @@ import getDynamicText from 'app/utils/getDynamicText';
 import IndicatorStore from 'app/stores/indicatorStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
 
-// TODO(dcramer): this is duplicated in ProjectKeyDetails
-const EmptyHeader = styled.div`
-  font-size: 1.3em;
-`;
-
 class HookStats extends AsyncComponent {
   getEndpoints() {
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 30;
-    let {hookId, orgId, projectId} = this.props.params;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
+    const {hookId, orgId, projectId} = this.props.params;
     return [
       [
         'stats',
@@ -45,23 +38,25 @@ class HookStats extends AsyncComponent {
   }
 
   renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
-    let [total] = point.y;
+    const timeLabel = chart.getTimeLabel(point);
+    const [total] = point.y;
 
-    let value = `${total.toLocaleString()} events`;
+    const value = `${total.toLocaleString()} events`;
 
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">{value}</div>
+      </div>
     );
   }
 
   renderBody() {
     let emptyStats = true;
-    let stats = this.state.stats.map(p => {
-      if (p.total) emptyStats = false;
+    const stats = this.state.stats.map(p => {
+      if (p.total) {
+        emptyStats = false;
+      }
       return {
         x: p.ts,
         y: [p.total],
@@ -83,12 +78,10 @@ class HookStats extends AsyncComponent {
               tooltip={this.renderTooltip}
             />
           ) : (
-            <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-              <EmptyHeader>{t('Nothing recorded in the last 30 days.')}</EmptyHeader>
-              <TextBlock css={{marginBottom: 0}}>
-                {t('Total webhooks fired for this configuration.')}
-              </TextBlock>
-            </EmptyMessage>
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total webhooks fired for this configuration.')}
+            />
           )}
         </PanelBody>
       </Panel>
@@ -98,18 +91,18 @@ class HookStats extends AsyncComponent {
 
 export default class ProjectServiceHookDetails extends AsyncView {
   getEndpoints() {
-    let {orgId, projectId, hookId} = this.props.params;
+    const {orgId, projectId, hookId} = this.props.params;
     return [['hook', `/projects/${orgId}/${projectId}/hooks/${hookId}/`]];
   }
 
   onDelete = () => {
-    let {orgId, projectId, hookId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {orgId, projectId, hookId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hookId}/`, {
       method: 'DELETE',
       success: () => {
         IndicatorStore.remove(loadingIndicator);
-        browserHistory.push(`/settings/${orgId}/${projectId}/hooks/`);
+        browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
       },
       error: () => {
         IndicatorStore.remove(loadingIndicator);
@@ -125,8 +118,8 @@ export default class ProjectServiceHookDetails extends AsyncView {
   };
 
   renderBody() {
-    let {orgId, projectId, hookId} = this.props.params;
-    let {hook} = this.state;
+    const {orgId, projectId, hookId} = this.props.params;
+    const {hook} = this.state;
     return (
       <div>
         <SettingsPageHeader title={t('Service Hook Details')} />
@@ -142,7 +135,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
           hookId={hookId}
           initialData={{
             ...hook,
-            isActive: hook.status != 'disabled',
+            isActive: hook.status !== 'disabled',
           }}
         />
         <Panel>

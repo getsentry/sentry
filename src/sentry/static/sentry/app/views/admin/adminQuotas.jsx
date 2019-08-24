@@ -1,4 +1,3 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
@@ -19,7 +18,7 @@ export default class AdminQuotas extends AsyncView {
   }
 
   renderBody() {
-    let {config} = this.state;
+    const {config} = this.state;
     return (
       <div>
         <h3>Quotas</h3>

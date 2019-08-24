@@ -1,17 +1,10 @@
-"""
-sentry.runner.decorators
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2015 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import os
 
 from click import Choice
 
-LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'FATAL')
+LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL")
 
 
 class CaseInsensitiveChoice(Choice):
@@ -30,8 +23,9 @@ def configuration(f):
         # HACK: We can't call `configure()` from within tests
         # since we don't load config files from disk, so we
         # need a way to bypass this initialization step
-        if os.environ.get('_SENTRY_SKIP_CONFIGURATION') != '1':
+        if os.environ.get("_SENTRY_SKIP_CONFIGURATION") != "1":
             from sentry.runner import configure
+
             configure()
         return ctx.invoke(f, *args, **kwargs)
 
@@ -47,29 +41,30 @@ def log_options(default=None):
         import click
         from functools import update_wrapper
         from sentry.logging import LoggingFormat
+
         formats = [LoggingFormat.HUMAN, LoggingFormat.MACHINE]
 
         @click.pass_context
         @click.option(
-            '--loglevel',
-            '-l',
+            "--loglevel",
+            "-l",
             default=default,
-            help='Global logging level. Use wisely.',
-            envvar='SENTRY_LOG_LEVEL',
-            type=CaseInsensitiveChoice(LOG_LEVELS)
+            help="Global logging level. Use wisely.",
+            envvar="SENTRY_LOG_LEVEL",
+            type=CaseInsensitiveChoice(LOG_LEVELS),
         )
         @click.option(
-            '--logformat',
+            "--logformat",
             default=default,
-            help='Log line format.',
-            envvar='SENTRY_LOG_FORMAT',
-            type=CaseInsensitiveChoice(formats)
+            help="Log line format.",
+            envvar="SENTRY_LOG_FORMAT",
+            type=CaseInsensitiveChoice(formats),
         )
         def inner(ctx, loglevel=None, logformat=None, *args, **kwargs):
             if loglevel:
-                os.environ['SENTRY_LOG_LEVEL'] = loglevel
+                os.environ["SENTRY_LOG_LEVEL"] = loglevel
             if logformat:
-                os.environ['SENTRY_LOG_FORMAT'] = logformat.lower()
+                os.environ["SENTRY_LOG_FORMAT"] = logformat.lower()
             return ctx.invoke(f, *args, **kwargs)
 
         return update_wrapper(inner, f)

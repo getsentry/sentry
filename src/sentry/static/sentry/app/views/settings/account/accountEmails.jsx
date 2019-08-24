@@ -42,7 +42,7 @@ class EmailRow extends React.Component {
   };
 
   render() {
-    let {email, isPrimary, isVerified, hideRemove} = this.props;
+    const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
       <PanelItem justify="space-between">
@@ -60,29 +60,27 @@ class EmailRow extends React.Component {
           )}
         </Flex>
         <Flex>
-          {!isPrimary &&
-            isVerified && (
-              <Button size="small" onClick={this.handleSetPrimary}>
-                {t('Set as primary')}
-              </Button>
-            )}
+          {!isPrimary && isVerified && (
+            <Button size="small" onClick={this.handleSetPrimary}>
+              {t('Set as primary')}
+            </Button>
+          )}
           {!isVerified && (
             <Button size="small" onClick={this.handleVerify}>
               {t('Resend verification')}
             </Button>
           )}
-          {!hideRemove &&
-            !isPrimary && (
-              <Box ml={1}>
-                <Button
-                  data-test-id="remove"
-                  priority="danger"
-                  size="small"
-                  icon="icon-trash"
-                  onClick={this.handleRemove}
-                />
-              </Box>
-            )}
+          {!hideRemove && !isPrimary && (
+            <Box ml={1}>
+              <Button
+                data-test-id="remove"
+                priority="danger"
+                size="small"
+                icon="icon-trash"
+                onClick={this.handleRemove}
+              />
+            </Box>
+          )}
         </Flex>
       </PanelItem>
     );
@@ -148,9 +146,9 @@ class AccountEmails extends AsyncView {
   };
 
   renderBody() {
-    let {emails} = this.state;
-    let primary = emails.find(({isPrimary}) => isPrimary);
-    let secondary = emails.filter(({isPrimary}) => !isPrimary);
+    const {emails} = this.state;
+    const primary = emails.find(({isPrimary}) => isPrimary);
+    const secondary = emails.filter(({isPrimary}) => !isPrimary);
 
     return (
       <div>

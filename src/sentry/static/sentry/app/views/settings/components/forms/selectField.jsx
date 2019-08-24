@@ -55,7 +55,7 @@ export default class SelectField extends React.Component {
   };
 
   render() {
-    let {multiple, allowClear, ...otherProps} = this.props;
+    const {multiple, allowClear, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
@@ -63,7 +63,7 @@ export default class SelectField extends React.Component {
         field={({onChange, onBlur, disabled, required, ...props}) => {
           // We remove the required property here since applying it to the
           // DOM causes the native tooltip to render in strange places.
-          let choices = getChoices(props);
+          const choices = getChoices(props);
 
           // Check if value quacks like mobx and get the raw array.
           // Inside Form containers `value` can be a mobx observable

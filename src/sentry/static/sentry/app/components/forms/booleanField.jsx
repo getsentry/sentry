@@ -3,15 +3,16 @@ import React from 'react';
 import {defined} from 'app/utils';
 
 import InputField from 'app/components/forms/inputField';
+import Tooltip from 'app/components/tooltip';
 
 export default class BooleanField extends InputField {
   coerceValue(props) {
-    let value = super.coerceValue(props);
+    const value = super.coerceValue(props);
     return value ? true : false;
   }
 
   onChange = e => {
-    let value = e.target.checked;
+    const value = e.target.checked;
     this.setValue(value);
   };
 
@@ -28,7 +29,7 @@ export default class BooleanField extends InputField {
   }
 
   render() {
-    let {error} = this.state;
+    const {error} = this.state;
     let className = this.getClassName();
     if (error) {
       className += ' has-error';
@@ -39,15 +40,11 @@ export default class BooleanField extends InputField {
           <label className="control-label">
             {this.getField()}
             {this.props.label}
-            {this.props.disabled &&
-              this.props.disabledReason && (
-                <span
-                  className="disabled-indicator tip"
-                  title={this.props.disabledReason}
-                >
-                  <span className="icon-question" />
-                </span>
-              )}
+            {this.props.disabled && this.props.disabledReason && (
+              <Tooltip title={this.props.disabledReason}>
+                <span className="icon-question" />
+              </Tooltip>
+            )}
           </label>
           {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
           {error && <p className="error">{error}</p>}

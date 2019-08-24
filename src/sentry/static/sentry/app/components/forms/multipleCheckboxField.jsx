@@ -29,7 +29,7 @@ export default class MultipleCheckboxField extends FormField {
   };
 
   render() {
-    let {
+    const {
       required,
       className,
       disabled,
@@ -40,16 +40,16 @@ export default class MultipleCheckboxField extends FormField {
       hideLabelDivider,
       style,
     } = this.props;
-    let {error} = this.state;
-    let cx = classNames(className, 'control-group', {
+    const {error} = this.state;
+    const cx = classNames(className, 'control-group', {
       'has-error': error,
     });
     // Hacky, but this isn't really a form label vs the checkbox labels, but
     // we want to treat it as one (i.e. for "required" indicator)
-    let labelCx = classNames({
+    const labelCx = classNames({
       required,
     });
-    let shouldShowDisabledReason = disabled && disabledReason;
+    const shouldShowDisabledReason = disabled && disabledReason;
 
     return (
       <div style={style} className={cx}>

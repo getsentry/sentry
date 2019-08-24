@@ -4,7 +4,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function() {
   it('renders with Avatar and team name', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectBadge project={TestStubs.Project()} />,
       TestStubs.routerContext()
     );

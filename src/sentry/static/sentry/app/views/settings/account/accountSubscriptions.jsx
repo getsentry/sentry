@@ -14,10 +14,10 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-const SubscriptionName = styled.div`
+const SubscriptionName = styled('div')`
   font-size: 1.2em;
 `;
-const Description = styled.div`
+const Description = styled('div')`
   font-size: 0.8em;
   margin-top: 6px;
   color: ${p => p.theme.gray3};
@@ -37,11 +37,11 @@ class AccountSubscriptions extends AsyncView {
   }
 
   handleToggle = (subscription, index, e) => {
-    let subscribed = !subscription.subscribed;
-    let oldSubscriptions = this.state.subscriptions;
+    const subscribed = !subscription.subscribed;
+    const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
-      let newSubscriptions = state.subscriptions.slice();
+      const newSubscriptions = state.subscriptions.slice();
       newSubscriptions[index] = {
         ...subscription,
         subscribed,

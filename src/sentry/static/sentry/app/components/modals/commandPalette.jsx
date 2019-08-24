@@ -14,7 +14,7 @@ const dropdownStyle = css`
   border-top-right-radius: 0;
   position: initial;
   box-shadow: none;
-  border-top: 1px solid ${p => theme.borderLight};
+  border-top: 1px solid ${theme.borderLight};
 `;
 
 class CommandPaletteModal extends React.Component {
@@ -37,7 +37,7 @@ class CommandPaletteModal extends React.Component {
   };
 
   render() {
-    let {Body} = this.props;
+    const {Body} = this.props;
 
     return (
       <Body>

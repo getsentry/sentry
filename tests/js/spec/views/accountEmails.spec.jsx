@@ -18,19 +18,19 @@ describe('AccountEmails', function() {
   });
 
   it('renders with emails', function() {
-    let wrapper = shallow(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = shallow(<AccountEmails />, TestStubs.routerContext());
 
     expect(wrapper).toMatchSnapshot();
   });
 
   it('can remove an email', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
       statusCode: 200,
     });
 
-    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -52,13 +52,13 @@ describe('AccountEmails', function() {
   });
 
   it('can change a secondary email to primary an email', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -80,13 +80,13 @@ describe('AccountEmails', function() {
   });
 
   it('can resend verification email', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: `${ENDPOINT}confirm/`,
       method: 'POST',
       statusCode: 200,
     });
 
-    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -104,12 +104,12 @@ describe('AccountEmails', function() {
   });
 
   it('can add a secondary email', function() {
-    let mock = Client.addMockResponse({
+    const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
       statusCode: 200,
     });
-    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

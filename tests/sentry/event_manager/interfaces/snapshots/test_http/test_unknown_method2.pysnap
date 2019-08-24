@@ -1,0 +1,9 @@
+---
+created: '2019-03-14T17:12:35.854613Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
+errors: null
+to_json:
+  method: FOO-BAR
+  url: http://example.com/

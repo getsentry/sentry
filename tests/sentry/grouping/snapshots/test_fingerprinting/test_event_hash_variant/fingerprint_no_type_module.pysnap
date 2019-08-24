@@ -1,0 +1,26 @@
+---
+created: '2019-08-05T10:26:51.809104Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - '{{ type }}'
+    - '{{ module }}'
+    - '{{ function }}'
+    matchers:
+    - - function
+      - main
+  version: 1
+fingerprint:
+- '{{ type }}'
+- '{{ module }}'
+- '{{ function }}'
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - <no-type>
+    - <no-module>
+    - main

@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "int main()",
+        "symbol": "_main",
+        "module": "libfoo"
+      }
+    ]
+  }
+}

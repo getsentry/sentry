@@ -10,26 +10,26 @@ import PageHeading from 'app/components/pageHeading';
 export default class UserFeedbackContainer extends React.Component {
   static propTypes = {
     location: PropTypes.object.isRequired,
-    params: PropTypes.object.isRequired,
-    pageLinks: PropTypes.string.isRequired,
+    pageLinks: PropTypes.string,
     status: PropTypes.string.isRequired,
   };
 
   render() {
-    const {location: {pathname, query}, params, pageLinks, children, status} = this.props;
+    const {
+      location: {pathname, query},
+      pageLinks,
+      children,
+      status,
+    } = this.props;
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <div>
+      <div data-test-id="user-feedback">
         <div className="row">
           <div className="col-sm-9" style={{marginBottom: '5px'}}>
-            {params.projectId ? (
-              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
-            ) : (
-              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
-            )}
+            <PageHeading withMargins>{t('User Feedback')}</PageHeading>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right', marginTop: '4px'}}>
             <div className="btn-group">

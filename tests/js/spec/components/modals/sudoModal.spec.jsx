@@ -46,12 +46,11 @@ describe('Sudo Modal', function() {
       ...ConfigStore.get('user'),
       hasPasswordAuth: true,
     });
-    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
-    let api = new Client();
-    let successCb = jest.fn();
-    let errorCb = jest.fn();
-    let orgDeleteMock;
+    const api = new Client();
+    const successCb = jest.fn();
+    const errorCb = jest.fn();
 
     // No Modal
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
@@ -71,17 +70,17 @@ describe('Sudo Modal', function() {
     expect(wrapper.find('ModalDialog input')).toHaveLength(1);
 
     // Original callbacks should not have been called
-    expect(successCb).not.toBeCalled();
-    expect(errorCb).not.toBeCalled();
+    expect(successCb).not.toHaveBeenCalled();
+    expect(errorCb).not.toHaveBeenCalled();
 
     // Clear mocks and allow DELETE
     Client.clearMockResponses();
-    orgDeleteMock = Client.addMockResponse({
+    const orgDeleteMock = Client.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 200,
     });
-    let sudoMock = Client.addMockResponse({
+    const sudoMock = Client.addMockResponse({
       url: '/auth/',
       method: 'PUT',
       statusCode: 200,
@@ -131,11 +130,11 @@ describe('Sudo Modal', function() {
       ...ConfigStore.get('user'),
       hasPasswordAuth: false,
     });
-    let wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
 
-    let api = new Client();
-    let successCb = jest.fn();
-    let errorCb = jest.fn();
+    const api = new Client();
+    const successCb = jest.fn();
+    const errorCb = jest.fn();
 
     // No Modal
     expect(wrapper.find('ModalDialog')).toHaveLength(0);

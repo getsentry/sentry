@@ -1,4 +1,3 @@
-/*global global*/
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -48,7 +47,7 @@ describe('RepositoryRow', function() {
       expect(wrapper.find('Button[icon="icon-trash"]').props().disabled).toEqual(true);
 
       // Cancel button active
-      let cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
+      const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
       expect(cancel).toHaveLength(1);
       expect(cancel.props().disabled).toEqual(false);
     });
@@ -91,7 +90,7 @@ describe('RepositoryRow', function() {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request on delete', async function() {
-      let deleteRepo = Client.addMockResponse({
+      const deleteRepo = Client.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
         method: 'DELETE',
         statusCode: 204,
@@ -120,7 +119,7 @@ describe('RepositoryRow', function() {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request to cancel', async function() {
-      let cancel = Client.addMockResponse({
+      const cancel = Client.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${pendingRepo.id}/`,
         method: 'PUT',
         statusCode: 204,

@@ -9,7 +9,7 @@ import threading
 import six
 from django.utils.functional import empty, LazyObject
 
-from sentry.utils import warnings
+from sentry.utils import warnings, metrics
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
 
 from .imports import import_string
@@ -22,6 +22,7 @@ def raises(exceptions):
     def decorator(function):
         function.__raises__ = exceptions
         return function
+
     return decorator
 
 
@@ -55,21 +56,33 @@ class LazyServiceWrapper(LazyObject):
     >>> service.expose(locals())
     """
 
-    def __init__(self, backend_base, backend_path, options, dangerous=()):
+    def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
         super(LazyServiceWrapper, self).__init__()
         self.__dict__.update(
             {
-                '_backend': backend_path,
-                '_options': options,
-                '_base': backend_base,
-                '_dangerous': dangerous,
+                "_backend": backend_path,
+                "_options": options,
+                "_base": backend_base,
+                "_dangerous": dangerous,
+                "_metrics_path": metrics_path,
             }
         )
 
     def __getattr__(self, name):
         if self._wrapped is empty:
             self._setup()
-        return getattr(self._wrapped, name)
+
+        attr = getattr(self._wrapped, name)
+
+        # If we want to wrap in metrics, we need to make sure it's some callable,
+        # and within our list of exposed attributes. Then we can safely wrap
+        # in our metrics decorator.
+        if self._metrics_path and callable(attr) and name in self._base.__all__:
+            return metrics.wraps(
+                self._metrics_path, instance=name, tags={"backend": self._backend}
+            )(attr)
+
+        return attr
 
     def _setup(self):
         backend = import_string(self._backend)
@@ -77,8 +90,8 @@ class LazyServiceWrapper(LazyObject):
         if backend in self._dangerous:
             warnings.warn(
                 warnings.UnsupportedBackend(
-                    u'The {!r} backend for {} is not recommended '
-                    'for production use.'.format(self._backend, self._base)
+                    u"The {!r} backend for {} is not recommended "
+                    "for production use.".format(self._backend, self._base)
                 )
             )
         instance = backend(**self._options)
@@ -86,7 +99,7 @@ class LazyServiceWrapper(LazyObject):
 
     def expose(self, context):
         base = self._base
-        for key in itertools.chain(base.__all__, ('validate', 'setup')):
+        for key in itertools.chain(base.__all__, ("validate", "setup")):
             if inspect.ismethod(getattr(base, key)):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
@@ -99,7 +112,7 @@ def resolve_callable(value):
     elif isinstance(value, six.string_types):
         return import_string(value)
     else:
-        raise TypeError('Expected callable or string')
+        raise TypeError("Expected callable or string")
 
 
 class Context(object):
@@ -108,10 +121,7 @@ class Context(object):
         self.backends = backends
 
     def copy(self):
-        return Context(
-            self.request,
-            self.backends.copy(),
-        )
+        return Context(self.request, self.backends.copy())
 
 
 class ServiceDelegator(Service):
@@ -220,18 +230,18 @@ class ServiceDelegator(Service):
         self.__backend_base = import_string(backend_base)
 
         def load_executor(options):
-            path = options.get('path')
+            path = options.get("path")
             if path is None:
                 executor_cls = ThreadedExecutor
             else:
                 executor_cls = import_string(path)
-            return executor_cls(**options.get('options', {}))
+            return executor_cls(**options.get("options", {}))
 
         self.__backends = {}
         for name, options in backends.items():
             self.__backends[name] = (
-                import_string(options['path'])(**options.get('options', {})),
-                load_executor(options.get('executor', {})),
+                import_string(options["path"])(**options.get("options", {})),
+                load_executor(options.get("executor", {})),
             )
 
         self.__selector_func = resolve_callable(selector_func)
@@ -274,6 +284,7 @@ class ServiceDelegator(Service):
             # to create a new context.
             if context is None:
                 from sentry.app import env  # avoids a circular import
+
                 context = Context(env.request, {})
 
             # If this thread already has an active backend for this base class,
@@ -294,15 +305,15 @@ class ServiceDelegator(Service):
 
             selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
             if not len(selected_backend_names) > 0:
-                raise self.InvalidBackend('No backends returned by selector!')
+                raise self.InvalidBackend("No backends returned by selector!")
 
             # Ensure that the primary backend is actually registered -- we
             # don't want to schedule any work on the secondaries if the primary
             # request is going to fail anyway.
             if selected_backend_names[0] not in self.__backends:
                 raise self.InvalidBackend(
-                    u'{!r} is not a registered backend.'.format(
-                        selected_backend_names[0]))
+                    u"{!r} is not a registered backend.".format(selected_backend_names[0])
+                )
 
             def call_backend_method(context, backend, is_primary):
                 # Update the thread local state in the executor to the provided
@@ -328,14 +339,15 @@ class ServiceDelegator(Service):
                     # here, since it's assumed that the caller will log them
                     # from the calling thread.)
                     if not is_primary:
-                        expected_raises = getattr(base_value, '__raises__', [])
+                        expected_raises = getattr(base_value, "__raises__", [])
                         if not expected_raises or not isinstance(e, tuple(expected_raises)):
-                            logger.warning('%s caught in executor while calling %r on %s.',
-                                           type(e).__name__,
-                                           attribute_name,
-                                           type(backend).__name__,
-                                           exc_info=True,
-                                           )
+                            logger.warning(
+                                "%s caught in executor while calling %r on %s.",
+                                type(e).__name__,
+                                attribute_name,
+                                type(backend).__name__,
+                                exc_info=True,
+                            )
                     raise
                 finally:
                     type(self).__state.context = None
@@ -357,16 +369,14 @@ class ServiceDelegator(Service):
                     backend, executor = self.__backends[backend_name]
                 except KeyError:
                     logger.warning(
-                        '%r is not a registered backend and will be ignored.',
+                        "%r is not a registered backend and will be ignored.",
                         backend_name,
-                        exc_info=True)
+                        exc_info=True,
+                    )
                 else:
                     results[i] = executor.submit(
                         functools.partial(
-                            call_backend_method,
-                            context.copy(),
-                            backend,
-                            is_primary=False,
+                            call_backend_method, context.copy(), backend, is_primary=False
                         ),
                         priority=1,
                         block=False,
@@ -377,12 +387,7 @@ class ServiceDelegator(Service):
             # since we already ensured that the primary backend exists.)
             backend, executor = self.__backends[selected_backend_names[0]]
             results[0] = executor.submit(
-                functools.partial(
-                    call_backend_method,
-                    context.copy(),
-                    backend,
-                    is_primary=True,
-                ),
+                functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
                 priority=0,
                 block=True,
             )
@@ -390,11 +395,7 @@ class ServiceDelegator(Service):
             if self.__callback_func is not None:
                 FutureSet(filter(None, results)).add_done_callback(
                     lambda *a, **k: self.__callback_func(
-                        context,
-                        attribute_name,
-                        callargs,
-                        selected_backend_names,
-                        results,
+                        context, attribute_name, callargs, selected_backend_names, results
                     )
                 )
 

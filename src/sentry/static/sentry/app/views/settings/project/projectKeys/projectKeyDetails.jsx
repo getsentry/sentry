@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
@@ -14,14 +13,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Field from 'app/views/settings/components/forms/field';
@@ -37,7 +35,6 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -58,12 +55,13 @@ const RATE_LIMIT_FORMAT_MAP = new Map([
 const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
 
 const KeyStats = createReactClass({
-  displayName: 'KeyStats',
-  mixins: [ApiMixin],
+  propTypes: {
+    api: PropTypes.object.isRequired,
+  },
 
   getInitialState() {
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 30;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
 
     return {
       since,
@@ -80,8 +78,8 @@ const KeyStats = createReactClass({
   },
 
   fetchData() {
-    let {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
+    const {keyId, orgId, projectId} = this.props.params;
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
       query: {
         since: this.state.since,
         until: this.state.until,
@@ -89,8 +87,10 @@ const KeyStats = createReactClass({
       },
       success: data => {
         let emptyStats = true;
-        let stats = data.map(p => {
-          if (p.total) emptyStats = false;
+        const stats = data.map(p => {
+          if (p.total) {
+            emptyStats = false;
+          }
           return {
             x: p.ts,
             y: [p.accepted, p.dropped],
@@ -109,34 +109,42 @@ const KeyStats = createReactClass({
     });
   },
 
-  renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
-    let [accepted, dropped, filtered] = point.y;
-
-    let value = `${accepted.toLocaleString()} accepted`;
-    if (dropped) {
-      value += `<br>${dropped.toLocaleString()} rate limited`;
-    }
-    if (filtered) {
-      value += `<br>${filtered.toLocaleString()} filtered`;
-    }
+  renderTooltip(point, _pointIdx, chart) {
+    const timeLabel = chart.getTimeLabel(point);
+    const [accepted, dropped, filtered] = point.y;
 
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {accepted.toLocaleString()} accepted
+          {dropped > 0 && (
+            <React.Fragment>
+              <br />
+              {dropped.toLocaleString()} rate limited
+            </React.Fragment>
+          )}
+          {filtered > 0 && (
+            <React.Fragment>
+              <br />
+              {filtered.toLocaleString()} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   },
 
   render() {
-    if (this.state.loading)
+    if (this.state.loading) {
       return (
         <div className="box">
           <LoadingIndicator />
         </div>
       );
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
     return (
       <Panel>
@@ -148,17 +156,16 @@ const KeyStats = createReactClass({
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}
+              minHeights={[1, 0]}
               className="standard-barchart"
               style={{border: 'none'}}
               tooltip={this.renderTooltip}
             />
           ) : (
-            <EmptyMessage css={{flexDirection: 'column', alignItems: 'center'}}>
-              <EmptyHeader>{t('Nothing recorded in the last 30 days.')}</EmptyHeader>
-              <TextBlock css={{marginBottom: 0}}>
-                {t('Total events captured using these credentials.')}
-              </TextBlock>
-            </EmptyMessage>
+            <EmptyMessage
+              title={t('Nothing recorded in the last 30 days.')}
+              description={t('Total events captured using these credentials.')}
+            />
           )}
         </PanelBody>
       </Panel>
@@ -173,7 +180,7 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
-    let valueObj = {
+    const valueObj = {
       ...currentValueObj,
       window: value,
     };
@@ -182,7 +189,7 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   handleChangeCount = (cb, value, e) => {
-    let valueObj = {
+    const valueObj = {
       ...value,
       count: e.target.value,
     };
@@ -191,11 +198,11 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   render() {
-    let {data, disabled} = this.props;
-    let {keyId, orgId, projectId} = this.props.params;
-    let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const {data, disabled} = this.props;
+    const {keyId, orgId, projectId} = this.props.params;
+    const apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
-    let disabledAlert = ({features}) => (
+    const disabledAlert = ({features}) => (
       <FeatureDisabled
         alert={PanelAlert}
         features={features}
@@ -207,8 +214,10 @@ class KeyRateLimitsForm extends React.Component {
       <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
         <Feature
           features={['projects:rate-limits']}
+          hookName="rate-limits"
           renderDisabled={({children, ...props}) =>
-            children({...props, renderDisabled: disabledAlert})}
+            children({...props, renderDisabled: disabledAlert})
+          }
         >
           {({hasFeature, features, organization, project, renderDisabled}) => (
             <Panel>
@@ -229,8 +238,8 @@ class KeyRateLimitsForm extends React.Component {
                   name="rateLimit"
                   label={t('Rate Limit')}
                   disabled={disabled || !hasFeature}
-                  validate={({id, form, model}) => {
-                    let isValid =
+                  validate={({form}) => {
+                    const isValid =
                       form &&
                       form.rateLimit &&
                       typeof form.rateLimit.count !== 'undefined' &&
@@ -296,24 +305,25 @@ const KeySettings = createReactClass({
   displayName: 'KeySettings',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {loading: false};
   },
 
-  handleRemove(e) {
-    if (this.state.loading) return;
+  handleRemove() {
+    if (this.state.loading) {
+      return;
+    }
 
-    let loadingIndicator = addLoadingMessage(t('Saving changes..'));
-    let {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
+    const loadingIndicator = addLoadingMessage(t('Saving changes..'));
+    const {keyId, orgId, projectId} = this.props.params;
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
-      success: (d, _, jqXHR) => {
+      success: () => {
         this.props.onRemove();
         removeIndicator(loadingIndicator);
         addSuccessMessage(t('Revoked key'));
@@ -330,9 +340,9 @@ const KeySettings = createReactClass({
   },
 
   render() {
-    let {keyId, orgId, projectId} = this.props.params;
-    let {data} = this.props;
-    let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const {keyId, orgId, projectId} = this.props.params;
+    const {data} = this.props;
+    const apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
     const loaderLink = getDynamicText({
       value: data.dsn.cdn,
       fixed: '__JS_SDK_LOADER_URL__',
@@ -364,9 +374,7 @@ const KeySettings = createReactClass({
                     label={t('Enabled')}
                     required={false}
                     disabled={!hasAccess}
-                    help={
-                      'Accept events from this key? This may be used to temporarily suspend a key.'
-                    }
+                    help="Accept events from this key? This may be used to temporarily suspend a key."
                   />
                   <Field label={t('Created')}>
                     <div className="controls">
@@ -383,45 +391,41 @@ const KeySettings = createReactClass({
               disabled={!hasAccess}
             />
 
-            <Feature features={['organizations:js-loader']}>
-              <Form
-                saveOnBlur
-                apiEndpoint={apiEndpoint}
-                apiMethod="PUT"
-                initialData={data}
-              >
-                <Panel>
-                  <PanelHeader>{t('CDN')}</PanelHeader>
-                  <PanelBody>
-                    <Field
-                      help={tct(
-                        'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
-                              What does the script provide?
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                      inline={false}
-                      flexibleControlStateSize
-                    >
-                      <TextCopyInput
-                      >{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
-                    </Field>
-                    <SelectField
-                      name="browserSdkVersion"
-                      choices={data.browserSdk ? data.browserSdk.choices : []}
-                      placeholder={t('4.x')}
-                      allowClear={false}
-                      enabled={!hasAccess}
-                      help={t('Select the version of the SDK that should be loaded')}
-                    />
-                  </PanelBody>
-                </Panel>
-              </Form>
-            </Feature>
+            <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
+              <Panel>
+                <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
+                <PanelBody>
+                  <Field
+                    help={tct(
+                      'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                            What does the script provide?
+                          </ExternalLink>
+                        ),
+                      }
+                    )}
+                    inline={false}
+                    flexibleControlStateSize
+                  >
+                    <TextCopyInput>
+                      {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+                    </TextCopyInput>
+                  </Field>
+                  <SelectField
+                    name="browserSdkVersion"
+                    choices={data.browserSdk ? data.browserSdk.choices : []}
+                    placeholder={t('4.x')}
+                    allowClear={false}
+                    enabled={!hasAccess}
+                    help={t(
+                      'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
+                    )}
+                  />
+                </PanelBody>
+              </Panel>
+            </Form>
 
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -481,32 +485,33 @@ export default class ProjectKeyDetails extends AsyncView {
   }
 
   getEndpoints() {
-    let {keyId, orgId, projectId} = this.props.params;
+    const {keyId, orgId, projectId} = this.props.params;
     return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
   }
 
-  handleRemove = data => {
-    let {orgId, projectId} = this.props.params;
+  handleRemove = () => {
+    const {orgId, projectId} = this.props.params;
     browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
   };
 
   renderBody() {
-    let {data} = this.state;
-    let {params} = this.props;
+    const {data} = this.state;
+    const {params} = this.props;
 
     return (
       <div className="ref-key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 
-        <KeyStats params={params} />
+        <KeyStats api={this.api} params={params} />
 
-        <KeySettings params={params} data={data} onRemove={this.handleRemove} />
+        <KeySettings
+          api={this.api}
+          params={params}
+          data={data}
+          onRemove={this.handleRemove}
+        />
       </div>
     );
   }
 }
-
-const EmptyHeader = styled.div`
-  font-size: 1.3em;
-`;

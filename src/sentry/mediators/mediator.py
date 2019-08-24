@@ -133,10 +133,7 @@ class Mediator(object):
         When the Mediator type is created, we turn all of it's Param
         declarations into actual properties.
         """
-        if (
-            sentry.mediators.mediator.Mediator in cls.__bases__
-            and not cls._params_prepared
-        ):
+        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
             cls._prepare_params()
             cls._params_prepared = True
 
@@ -144,27 +141,34 @@ class Mediator(object):
 
     @classmethod
     def _prepare_params(cls):
-        params = [
-            (k, v) for k, v in six.iteritems(cls.__dict__)
-            if isinstance(v, Param)
-        ]
+        params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
 
         for name, param in params:
             param.setup(cls, name)
 
     @classmethod
-    @transaction.atomic
     def run(cls, *args, **kwargs):
-        obj = cls(*args, **kwargs)
+        with transaction.atomic():
+            obj = cls(*args, **kwargs)
 
-        with obj.log():
-            return obj.call()
+            with obj.log():
+                result = obj.call()
+                obj.audit()
+                obj.record_analytics()
+                return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
-        self.logger = kwargs.get('logger',
-                                 logging.getLogger(self._logging_name))
+        self.logger = kwargs.get("logger", logging.getLogger(self._logging_name))
         self._validate_params(**kwargs)
+
+    def audit(self):
+        # used for creating audit log entries
+        pass
+
+    def record_analytics(self):
+        # used to record data to Amplitude
+        pass
 
     def call(self):
         raise NotImplementedError
@@ -193,7 +197,7 @@ class Mediator(object):
         if param and param.has_default:
             return param.default(self)
 
-        if not param.is_required and not param.has_default:
+        if param and not param.is_required and not param.has_default:
             return None
 
         try:
@@ -206,33 +210,33 @@ class Mediator(object):
         # These will be named ``_<name>`` on the class, so remove the ``_`` so
         # that it matches the name we'll be invoking on the Mediator instance.
         return dict(
-            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__)
-            if isinstance(v, Param)
+            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__) if isinstance(v, Param)
         )
 
     @memoize
     def _logging_name(self):
-        return '.'.join([
-            self.__class__.__module__,
-            self.__class__.__name__
-        ])
+        return ".".join([self.__class__.__module__, self.__class__.__name__])
 
     @property
     def _default_logging(self):
         from sentry.app import env
 
-        if not env.request or \
-           not hasattr(env.request, 'resolver_match') or \
-           not hasattr(env.request.resolver_match, 'kwargs'):
+        if (
+            not env.request
+            or not hasattr(env.request, "resolver_match")
+            or not hasattr(env.request.resolver_match, "kwargs")
+        ):
             return {}
 
         request_params = env.request.resolver_match.kwargs
 
-        return compact({
-            'org': request_params.get('organization_slug'),
-            'team': request_params.get('team_slug'),
-            'project': request_params.get('project_slug'),
-        })
+        return compact(
+            {
+                "org": request_params.get("organization_slug"),
+                "team": request_params.get("team_slug"),
+                "project": request_params.get("project_slug"),
+            }
+        )
 
     @property
     def _logging_context(self):
@@ -244,16 +248,15 @@ class Mediator(object):
     @contextmanager
     def _measured(self, context):
         start = datetime.datetime.now()
-        context.log(at='start')
+        context.log(at="start")
 
         try:
             yield
         except Exception as e:
-            context.log(at='exception',
-                        elapsed=self._milliseconds_since(start))
+            context.log(at="exception", elapsed=self._milliseconds_since(start))
             raise e
 
-        context.log(at='finish', elapsed=self._milliseconds_since(start))
+        context.log(at="finish", elapsed=self._milliseconds_since(start))
 
     def _milliseconds_since(self, start):
         now = datetime.datetime.now()

@@ -17,11 +17,9 @@ class NotifyEventServiceActionTest(RuleTestCase):
         plugin.is_enabled.return_value = True
         plugin.should_notify.return_value = True
 
-        rule = self.get_rule(data={
-            'service': 'mail',
-        })
+        rule = self.get_rule(data={"service": "mail"})
 
-        with patch('sentry.plugins.plugins.get') as get_plugin:
+        with patch("sentry.plugins.plugins.get") as get_plugin:
             get_plugin.return_value = plugin
 
             results = list(rule.after(event=event, state=self.get_state()))
@@ -34,14 +32,10 @@ class NotifyEventServiceActionTest(RuleTestCase):
         event = self.get_event()
 
         self.create_sentry_app(
-            organization=event.organization,
-            name='Test Application',
-            is_alertable=True,
+            organization=event.organization, name="Test Application", is_alertable=True
         )
 
-        rule = self.get_rule(data={
-            'service': 'test-application',
-        })
+        rule = self.get_rule(data={"service": "test-application"})
 
         results = list(rule.after(event=event, state=self.get_state()))
 

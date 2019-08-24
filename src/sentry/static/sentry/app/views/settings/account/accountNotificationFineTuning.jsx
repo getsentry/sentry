@@ -11,7 +11,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Pagination from 'app/components/pagination';
-import ProjectsStore from 'app/stores/projectsStore';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -62,6 +61,8 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
       "Reports contain a summary of what's happened within the organization."
     ),
     type: 'select',
+    // API only saves organizations that have this disabled, so we should default to "On"
+    defaultValue: 1,
     choices: [[1, t('On')], [0, t('Off')]],
     defaultFieldName: 'weeklyReports',
   },
@@ -85,6 +86,21 @@ const PanelBodyLineItem = styled(PanelBody)`
 // Which fine tuning parts are grouped by project
 const isGroupedByProject = type => ['alerts', 'workflow', 'email'].indexOf(type) > -1;
 
+function groupByOrganization(projects) {
+  return projects.reduce((acc, project) => {
+    const orgSlug = project.organization.slug;
+    if (acc[orgSlug]) {
+      acc[orgSlug].projects.push(project);
+    } else {
+      acc[orgSlug] = {
+        organization: project.organization,
+        projects: [project],
+      };
+    }
+    return acc;
+  }, {});
+}
+
 class AccountNotificationsByProject extends React.Component {
   static propTypes = {
     projects: PropTypes.array,
@@ -92,10 +108,8 @@ class AccountNotificationsByProject extends React.Component {
   };
 
   getFieldData() {
-    let {projects, field} = this.props;
-    ProjectsStore.loadInitialData(projects);
-
-    const projectsByOrg = ProjectsStore.getAllGroupedByOrganization();
+    const {projects, field} = this.props;
+    const projectsByOrg = groupByOrganization(projects);
 
     // eslint-disable-next-line no-unused-vars
     const {title, description, ...fieldConfig} = field;
@@ -213,19 +227,23 @@ export default class AccountNotificationFineTuning extends AsyncView {
 
   // Return a sorted list of user's verified emails
   getEmailChoices() {
-    let {emails} = this.state;
-    if (!emails) return [];
+    const {emails} = this.state;
+    if (!emails) {
+      return [];
+    }
 
-    return emails.filter(({isVerified}) => isVerified).sort((a, b) => {
-      // Sort by primary -> email
-      if (a.isPrimary) {
-        return -1;
-      } else if (b.isPrimary) {
-        return 1;
-      }
+    return emails
+      .filter(({isVerified}) => isVerified)
+      .sort((a, b) => {
+        // Sort by primary -> email
+        if (a.isPrimary) {
+          return -1;
+        } else if (b.isPrimary) {
+          return 1;
+        }
 
-      return a.email < b.email ? -1 : 1;
-    });
+        return a.email < b.email ? -1 : 1;
+      });
   }
 
   renderBody() {
@@ -253,7 +271,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={'/users/me/notifications/'}
+              apiEndpoint="/users/me/notifications/"
               initialData={this.state.notifications}
             >
               <JsonForm
@@ -282,16 +300,16 @@ export default class AccountNotificationFineTuning extends AsyncView {
                 </Box>
               </PanelHeader>
 
-              {isProject &&
-                hasProjects && (
-                  <AccountNotificationsByProject
-                    projects={this.state.projects}
-                    field={field}
-                  />
-                )}
+              {isProject && hasProjects && (
+                <AccountNotificationsByProject
+                  projects={this.state.projects}
+                  field={field}
+                />
+              )}
 
-              {isProject &&
-                !hasProjects && <EmptyMessage>{t('No projects found')}</EmptyMessage>}
+              {isProject && !hasProjects && (
+                <EmptyMessage>{t('No projects found')}</EmptyMessage>
+              )}
 
               {!isProject && (
                 <AccountNotificationsByOrganizationContainer field={field} />

@@ -1,12 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import ConfigStore from 'app/stores/configStore';
 import SentryTypes from 'app/sentryTypes';
+import withConfig from 'app/utils/withConfig';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
   <Alert type="error" icon="icon-circle-info">
@@ -106,31 +104,19 @@ class Access extends React.Component {
   }
 }
 
-const AccessContainer = createReactClass({
-  displayName: 'AccessContainer',
+class AccessContainer extends React.Component {
+  static propTypes = {
+    config: SentryTypes.Config,
+  };
 
   // TODO(billy): We can derive org from latestContextStore if needed, but
   // let's keep it simple for now and use the org from context
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization,
-  },
-
-  mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreUpdate')],
-
-  getInitialState() {
-    return {
-      config: ConfigStore.getConfig() || {},
-    };
-  },
-
-  onConfigStoreUpdate(config) {
-    if (config === this.state.config) return;
-    this.setState({config});
-  },
+  };
 
   render() {
-    const user = this.state.config.user || {};
-
+    const user = this.props.config.user || {};
     return (
       <Access
         configUser={user}
@@ -138,7 +124,7 @@ const AccessContainer = createReactClass({
         {...this.props}
       />
     );
-  },
-});
+  }
+}
 
-export default AccessContainer;
+export default withConfig(AccessContainer);

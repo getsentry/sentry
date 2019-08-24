@@ -11,7 +11,7 @@ describe('ProjectTeams', function() {
   let org;
   let project;
   let team;
-  let team2 = {
+  const team2 = {
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
@@ -46,14 +46,17 @@ describe('ProjectTeams', function() {
     modals.openCreateTeamModal.mockRestore();
   });
 
-  it('renders', function() {
-    let wrapper = shallow(
+  it('renders', async function() {
+    const wrapper = shallow(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
       TestStubs.routerContext()
     );
+    // Wait for team list to fetch.
+    await wrapper.update();
+
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -64,27 +67,29 @@ describe('ProjectTeams', function() {
       body: [team, team2],
     });
 
-    let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
-    let mock = MockApiClient.addMockResponse({
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    const mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'DELETE',
       statusCode: 200,
     });
 
-    let endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-    let mock2 = MockApiClient.addMockResponse({
+    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const mock2 = MockApiClient.addMockResponse({
       url: endpoint2,
       method: 'DELETE',
       statusCode: 200,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
       TestStubs.routerContext()
     );
+    // Wait for team list to fetch.
+    await wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -122,21 +127,102 @@ describe('ProjectTeams', function() {
     );
   });
 
-  it('can associate a team with project', function() {
-    let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-    let mock = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-      statusCode: 200,
+  it('removes team from project when project team is not in org list', async function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/teams/`,
+      method: 'GET',
+      body: [team, team2],
     });
 
-    let wrapper = mount(
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    const mock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'DELETE',
+    });
+
+    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const mock2 = MockApiClient.addMockResponse({
+      url: endpoint2,
+      method: 'DELETE',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: [
+        TestStubs.Team({
+          id: '3',
+          slug: 'team-slug-3',
+          name: 'Team Name 3',
+          hasAccess: true,
+        }),
+      ],
+    });
+
+    const wrapper = mount(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />,
       TestStubs.routerContext()
     );
+    // Wait for team list to fetch.
+    await wrapper.update();
+
+    expect(mock).not.toHaveBeenCalled();
+
+    // Click "Remove"
+    wrapper
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    expect(mock).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+
+    await tick();
+
+    // Remove second team
+    wrapper
+      .update()
+      .find('PanelBody Button')
+      .first()
+      .simulate('click');
+
+    // Modal opens because this is the last team in project
+    // Click confirm
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+
+    expect(mock2).toHaveBeenCalledWith(
+      endpoint2,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+  });
+
+  it('can associate a team with project', async function() {
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const mock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      statusCode: 200,
+    });
+
+    const wrapper = mount(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+      />,
+      TestStubs.routerContext()
+    );
+    // Wait for team list to fetch.
+    await wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -144,7 +230,7 @@ describe('ProjectTeams', function() {
     wrapper.find('DropdownButton').simulate('click');
 
     // click a team
-    let el = wrapper.find('AutoCompleteItem').first();
+    const el = wrapper.find('AutoCompleteItem').first();
     el.simulate('click');
 
     expect(mock).toHaveBeenCalledWith(
@@ -157,11 +243,6 @@ describe('ProjectTeams', function() {
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async function() {
     MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [org],
-    });
-
-    MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {},
     });
@@ -169,17 +250,21 @@ describe('ProjectTeams', function() {
       url: '/assistant/',
       body: {},
     });
-    let addTeamToProject = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [org],
+    });
+    const addTeamToProject = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/new-team/`,
       method: 'POST',
     });
-    let createTeam = MockApiClient.addMockResponse({
+    const createTeam = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'POST',
       body: {slug: 'new-team'},
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <App params={{orgId: org.slug}}>
         <ProjectTeams
           params={{orgId: org.slug, projectId: project.slug}}
@@ -189,12 +274,14 @@ describe('ProjectTeams', function() {
       </App>,
       TestStubs.routerContext()
     );
+    // Wait for team list to fetch.
+    await wrapper.update();
 
-    // open dropdown
-    wrapper.find('DropdownButton').simulate('click');
+    // Open the dropdown
+    wrapper.find('TeamSelect DropdownButton').simulate('click');
 
     // Click "Create Team" inside of dropdown
-    wrapper.find('StyledCreateTeamLink').simulate('click');
+    wrapper.find('TeamSelect StyledCreateTeamLink').simulate('click');
 
     // action creator to open "create team modal" is called
     expect(modals.openCreateTeamModal).toHaveBeenCalledWith(

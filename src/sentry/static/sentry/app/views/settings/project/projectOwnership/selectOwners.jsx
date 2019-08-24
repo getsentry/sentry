@@ -15,7 +15,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
@@ -106,7 +106,7 @@ export default class SelectOwners extends React.Component {
       label: (
         <DisabledLabel>
           <Tooltip
-            tooltipOptions={{container: 'body', placement: 'left'}}
+            position="left"
             title={t('%s is not a member of project', user.name || user.email)}
           >
             {this.renderUserBadge(user)}
@@ -130,8 +130,8 @@ export default class SelectOwners extends React.Component {
   };
 
   createUnmentionableTeam = team => {
-    let {organization} = this.props;
-    let canAddTeam = organization.access.includes('project:write');
+    const {organization} = this.props;
+    const canAddTeam = organization.access.includes('project:write');
 
     return {
       ...this.createMentionableTeam(team),
@@ -140,7 +140,7 @@ export default class SelectOwners extends React.Component {
         <Flex justify="space-between">
           <DisabledLabel>
             <Tooltip
-              tooltipOptions={{container: 'body', placement: 'left'}}
+              position="left"
               title={t('%s is not a member of project', `#${team.slug}`)}
             >
               <IdBadge team={team} />
@@ -172,8 +172,8 @@ export default class SelectOwners extends React.Component {
   }
 
   getMentionableTeams() {
-    let {project} = this.props;
-    let projectData = ProjectsStore.getBySlug(project.slug);
+    const {project} = this.props;
+    const projectData = ProjectsStore.getBySlug(project.slug);
 
     if (!projectData) {
       return [];
@@ -188,8 +188,8 @@ export default class SelectOwners extends React.Component {
    * @param {Team[]} teamsInProject A list of teams that are in the current project
    */
   getTeamsNotInProject(teamsInProject = []) {
-    let teams = TeamStore.getAll() || [];
-    let excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
+    const teams = TeamStore.getAll() || [];
+    const excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
 
     return teams
       .filter(team => excludedTeamIds.indexOf(team.id) === -1)
@@ -203,7 +203,7 @@ export default class SelectOwners extends React.Component {
   closeSelectMenu() {
     // Close select menu
     if (this.selectRef) {
-      let input = ReactDOM.findDOMNode(this.selectRef).querySelector(
+      const input = ReactDOM.findDOMNode(this.selectRef).querySelector(
         '.Select-input input'
       );
       if (input) {
@@ -214,9 +214,9 @@ export default class SelectOwners extends React.Component {
   }
 
   async handleAddTeamToProject(team) {
-    let {organization, project, value} = this.props;
+    const {organization, project, value} = this.props;
     // Copy old value
-    let oldValue = [...value];
+    const oldValue = [...value];
 
     // Optimistic update
     this.props.onChange([...this.props.value, this.createMentionableTeam(team)]);
@@ -248,11 +248,13 @@ export default class SelectOwners extends React.Component {
   };
 
   queryMembers = debounce((query, cb) => {
-    let {organization} = this.props;
+    const {organization} = this.props;
 
     // Because this function is debounced, the component can potentially be
     // unmounted before this fires, in which case, `this.api` is null
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
@@ -262,10 +264,10 @@ export default class SelectOwners extends React.Component {
   }, 250);
 
   handleLoadOptions = () => {
-    let usersInProject = this.getMentionableUsers();
-    let teamsInProject = this.getMentionableTeams();
-    let teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
-    let usersInProjectById = usersInProject.map(({actor}) => actor.id);
+    const usersInProject = this.getMentionableUsers();
+    const teamsInProject = this.getMentionableTeams();
+    const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
+    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     // Return a promise for `react-select`
     return new Promise((resolve, reject) => {
@@ -312,7 +314,7 @@ export default class SelectOwners extends React.Component {
         disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
-        placeholder={t('Add Owners')}
+        placeholder={t('owners')}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}

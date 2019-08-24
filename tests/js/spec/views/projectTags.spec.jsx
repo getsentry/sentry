@@ -3,7 +3,7 @@ import React from 'react';
 import $ from 'jquery';
 
 import {mount} from 'enzyme';
-import ProjectTags from 'app/views/projectTags';
+import ProjectTags from 'app/views/settings/projectTags';
 
 describe('ProjectTags', function() {
   let org, project, wrapper;
@@ -63,7 +63,7 @@ describe('ProjectTags', function() {
   });
 
   it('deletes tag', function() {
-    let tags = wrapper.state('tags').length;
+    const tags = wrapper.state('tags').length;
 
     wrapper
       .find('Button')

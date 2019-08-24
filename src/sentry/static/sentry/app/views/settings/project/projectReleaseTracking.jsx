@@ -9,7 +9,6 @@ import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
@@ -34,7 +33,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     // Allow 403s
     return [
@@ -48,7 +47,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   handleRegenerateToken = () => {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
@@ -70,7 +69,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    let {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
+    const {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
     return (
       'curl ' +
       webhookUrl +
@@ -85,14 +84,14 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   renderBody() {
-    let {organization, project, plugins} = this.props;
-    let hasWrite = organization.access.includes('project:write');
+    const {organization, project, plugins} = this.props;
+    const hasWrite = organization.access.includes('project:write');
 
     if (plugins.loading) {
       return <LoadingIndicator />;
     }
 
-    let pluginList = plugins.plugins.filter(
+    const pluginList = plugins.plugins.filter(
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
 
@@ -129,7 +128,7 @@ class ProjectReleaseTracking extends AsyncView {
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
                 {
                   link: (
-                    <a href="https://docs.sentry.io/workflow/releases/?platform=javascript#tag-errors">
+                    <a href="https://docs.sentry.io/workflow/releases/#configure-sdk">
                       our docs
                     </a>
                   ),
@@ -202,21 +201,21 @@ class ProjectReleaseTracking extends AsyncView {
               )}
             </p>
 
-            <DynamicWrapper
-              value={
+            {getDynamicText({
+              value: (
                 <AutoSelectText>
                   <pre>{this.getReleaseWebhookIntructions()}</pre>
                 </AutoSelectText>
-              }
-              fixed={
+              ),
+              fixed: (
                 <pre>
                   {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
                 </pre>
-              }
-            />
+              ),
+            })}
           </PanelBody>
         </Panel>
 

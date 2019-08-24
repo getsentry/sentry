@@ -1,0 +1,1132 @@
+{
+  "culprit": "Button(App)",
+  "event_id": "353534518fca4c449858a352b0407a5d",
+  "environment": "production",
+  "platform": "java",
+  "logger": "javascript",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "value",
+              "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "pre_context": [
+                "  callFunctionReturnFlushedQueue(module: string, method: string, args: any[]) {",
+                "    this.__guard(() => {",
+                "      this.__callFunction(module, method, args);",
+                "    });",
+                ""
+              ],
+              "post_context": [
+                "  }",
+                "",
+                "  callFunctionReturnResultAndFlushedQueue(",
+                "    module: string,",
+                "    method: string,"
+              ],
+              "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+              "colno": 17,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    return this.flushedQueue();",
+              "lineno": 119
+            },
+            {
+              "function": "flushedQueue",
+              "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "pre_context": [
+                "    try {",
+                "      fn();",
+                "    } catch (error) {",
+                "      ErrorUtils.reportFatalError(error);",
+                "    } finally {"
+              ],
+              "post_context": [
+                "    }",
+                "  }",
+                "",
+                "  __callImmediates() {",
+                "    Systrace.beginEvent('JSTimers.callImmediates()');"
+              ],
+              "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+              "colno": 12,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "      this._inCall--;",
+              "lineno": 318
+            },
+            {
+              "function": "_inCall",
+              "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "pre_context": [
+                "  callFunctionReturnFlushedQueue(module: string, method: string, args: any[]) {",
+                "    this.__guard(() => {",
+                "      this.__callFunction(module, method, args);",
+                "    });",
+                ""
+              ],
+              "post_context": [
+                "  }",
+                "",
+                "  callFunctionReturnResultAndFlushedQueue(",
+                "    module: string,",
+                "    method: string,"
+              ],
+              "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+              "colno": 17,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    return this.flushedQueue();",
+              "lineno": 119
+            },
+            {
+              "function": "flushedQueue",
+              "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "pre_context": [
+                "    Systrace.endEvent();",
+                "    return result;",
+                "  }",
+                "",
+                "  __invokeCallback(cbID: number, args: any[]) {"
+              ],
+              "post_context": [
+                "    this._eventLoopStartTime = this._lastFlush;",
+                "",
+                "    // The rightmost bit of cbID indicates fail (0) or success (1), the other bits are the callID shifted left.",
+                "    // eslint-disable-next-line no-bitwise",
+                "    const callID = cbID >>> 1;"
+              ],
+              "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+              "colno": 10,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    this._lastFlush = new Date().getTime();",
+              "lineno": 357
+            },
+            {
+              "function": "_lastFlush",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "      var target = i.target;",
+                "      null === target ||",
+                "        void 0 === target ||",
+                "        target < ReactNativeTagHandles.tagsStartAt ||",
+                "        (index = target);"
+              ],
+              "post_context": [
+                "    }",
+                "  }",
+                "});",
+                "RCTEventEmitter.register(ReactNativeEventEmitter);",
+                "var hasSymbol = \"function\" === typeof Symbol && Symbol[\"for\"],"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 7,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "      _receiveRootNodeIDEvent(index, eventTopLevelType, i);",
+              "lineno": 1160
+            },
+            {
+              "function": "_receiveRootNodeIDEvent",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "  },",
+                "  EMPTY_NATIVE_EVENT = {};",
+                "function _receiveRootNodeIDEvent(rootNodeID, topLevelType, nativeEventParam) {",
+                "  var nativeEvent = nativeEventParam || EMPTY_NATIVE_EVENT,",
+                "    inst = getInstanceFromTag(rootNodeID);"
+              ],
+              "post_context": [
+                "    var events = nativeEvent.target;",
+                "    for (var events$jscomp$0 = null, i = 0; i < plugins.length; i++) {",
+                "      var possiblePlugin = plugins[i];",
+                "      possiblePlugin &&",
+                "        (possiblePlugin = possiblePlugin.extractEvents("
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 3,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "  batchedUpdates(function() {",
+              "lineno": 1095
+            },
+            {
+              "function": "batchedUpdates",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "var isBatching = !1;",
+                "function batchedUpdates(fn, bookkeeping) {",
+                "  if (isBatching) return fn(bookkeeping);",
+                "  isBatching = !0;",
+                "  try {"
+              ],
+              "post_context": [
+                "  } finally {",
+                "    if (((isBatching = !1), null !== restoreTarget || null !== restoreQueue))",
+                "      if (",
+                "        (_flushInteractiveUpdates(),",
+                "        restoreTarget &&"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 12,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    return _batchedUpdates(fn, bookkeeping);",
+              "lineno": 1054
+            },
+            {
+              "function": "_batchedUpdates",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "    },",
+                "    batchedUpdates: function(fn, a) {",
+                "      var previousIsBatchingUpdates = isBatchingUpdates;",
+                "      isBatchingUpdates = !0;",
+                "      try {"
+              ],
+              "post_context": [
+                "      } finally {",
+                "        (isBatchingUpdates = previousIsBatchingUpdates) ||",
+                "          isRendering ||",
+                "          performSyncWork();",
+                "      }"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 16,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "        return fn(a);",
+              "lineno": 5928
+            },
+            {
+              "function": "fn",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "    events = events$jscomp$0;",
+                "    null !== events && (eventQueue = accumulateInto(eventQueue, events));",
+                "    events = eventQueue;",
+                "    eventQueue = null;",
+                "    events &&"
+              ],
+              "post_context": [
+                "      invariant(",
+                "        !eventQueue,",
+                "        \"processEventQueue(): Additional events were enqueued while processing an event queue. Support for this has not yet been implemented.\"",
+                "      ),",
+                "      ReactErrorUtils.rethrowCaughtError());"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 8,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),",
+              "lineno": 1113
+            },
+            {
+              "function": "forEachAccumulated",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "    return current;",
+                "  }",
+                "  return Array.isArray(next) ? [current].concat(next) : [current, next];",
+                "}",
+                "function forEachAccumulated(arr, cb, scope) {"
+              ],
+              "post_context": [
+                "}",
+                "var eventQueue = null;",
+                "function executeDispatchesAndReleaseTopLevel(e) {",
+                "  if (e) {",
+                "    var dispatchListeners = e._dispatchListeners,"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 28,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);",
+              "lineno": 219
+            },
+            {
+              "function": "[native code] forEach",
+              "platform": "javascript",
+              "lineno": 0,
+              "colno": 0,
+              "in_app": false
+            },
+            {
+              "function": "D",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "        i++",
+                "      )",
+                "        executeDispatch(e, !1, dispatchListeners[i], dispatchInstances[i]);",
+                "    else",
+                "      dispatchListeners &&"
+              ],
+              "post_context": [
+                "    e._dispatchListeners = null;",
+                "    e._dispatchInstances = null;",
+                "    e.isPersistent() || e.constructor.release(e);",
+                "  }",
+                "}"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 9,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "        executeDispatch(e, !1, dispatchListeners, dispatchInstances);",
+              "lineno": 235
+            },
+            {
+              "function": "executeDispatch",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "  return \"topMouseDown\" === topLevelType || \"topTouchStart\" === topLevelType;",
+                "}",
+                "function executeDispatch(event, simulated, listener, inst) {",
+                "  simulated = event.type || \"unknown-event\";",
+                "  event.currentTarget = getNodeFromInstance(inst);"
+              ],
+              "post_context": [
+                "    simulated,",
+                "    listener,",
+                "    void 0,",
+                "    event",
+                "  );"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 19,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError(",
+              "lineno": 181
+            },
+            {
+              "function": "invokeGuardedCallbackAndCatchFirstError",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "    c,",
+                "    d,",
+                "    e,",
+                "    f",
+                "  ) {"
+              ],
+              "post_context": [
+                "    if (ReactErrorUtils.hasCaughtError()) {",
+                "      var error = ReactErrorUtils.clearCaughtError();",
+                "      ReactErrorUtils._hasRethrowError ||",
+                "        ((ReactErrorUtils._hasRethrowError = !0),",
+                "        (ReactErrorUtils._rethrowError = error));"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 43,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);",
+              "lineno": 54
+            },
+            {
+              "function": "apply",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "  _caughtError: null,",
+                "  _hasCaughtError: !1,",
+                "  _rethrowError: null,",
+                "  _hasRethrowError: !1,",
+                "  invokeGuardedCallback: function(name, func, context, a, b, c, d, e, f) {"
+              ],
+              "post_context": [
+                "  },",
+                "  invokeGuardedCallbackAndCatchFirstError: function(",
+                "    name,",
+                "    func,",
+                "    context,"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 27,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    invokeGuardedCallback.apply(ReactErrorUtils, arguments);",
+              "lineno": 41
+            },
+            {
+              "function": "apply",
+              "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "pre_context": [
+                "  shallowEqual = require(\"fbjs/lib/shallowEqual\"),",
+                "  ExceptionsManager = require(\"ExceptionsManager\");",
+                "function invokeGuardedCallback(name, func, context, a, b, c, d, e, f) {",
+                "  this._hasCaughtError = !1;",
+                "  this._caughtError = null;"
+              ],
+              "post_context": [
+                "  try {",
+                "    func.apply(context, funcArgs);",
+                "  } catch (error) {",
+                "    (this._caughtError = error), (this._hasCaughtError = !0);",
+                "  }"
+              ],
+              "filename": "node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Renderer/ReactNativeRenderer-prod",
+              "colno": 45,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "  var funcArgs = Array.prototype.slice.call(arguments, 3);",
+              "lineno": 28
+            },
+            {
+              "function": "arguments",
+              "abs_path": "app:///node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "pre_context": [
+                "  },",
+                "",
+                "  /**",
+                "   * Place as callback for a DOM element's `onResponderRelease` event.",
+                "   */"
+              ],
+              "post_context": [
+                "    this._receiveSignal(Signals.RESPONDER_RELEASE, e);",
+                "  },",
+                "",
+                "  /**",
+                "   * Place as callback for a DOM element's `onResponderTerminate` event."
+              ],
+              "filename": "node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Components/Touchable/Touchable",
+              "colno": 36,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "  touchableHandleResponderRelease: function(e) {",
+              "lineno": 430
+            },
+            {
+              "function": "_receiveSignal",
+              "abs_path": "app:///node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "pre_context": [
+                "        'Touchable cannot transition from `' + curState + '` to `' + signal +",
+                "        '` for responder `' + responderID + '`'",
+                "      );",
+                "    }",
+                "    if (curState !== nextState) {"
+              ],
+              "post_context": [
+                "      this.state.touchable.touchState = nextState;",
+                "    }",
+                "  },",
+                "",
+                "  _cancelLongPressDelayTimeout: function () {"
+              ],
+              "filename": "node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Components/Touchable/Touchable",
+              "colno": 12,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "      this._performSideEffectsForTransition(curState, nextState, signal, e);",
+              "lineno": 662
+            },
+            {
+              "function": "_performSideEffectsForTransition",
+              "abs_path": "app:///node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "pre_context": [
+                "        if (!newIsHighlight && !curIsHighlight) {",
+                "          // we never highlighted because of delay, but we should highlight now",
+                "          this._startHighlight(e);",
+                "          this._endHighlight(e);",
+                "        }"
+              ],
+              "post_context": [
+                "      }",
+                "    }",
+                "",
+                "    this.touchableDelayTimeout && clearTimeout(this.touchableDelayTimeout);",
+                "    this.touchableDelayTimeout = null;"
+              ],
+              "filename": "node_modules/react-native/Libraries/Components/Touchable/Touchable.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Components/Touchable/Touchable",
+              "colno": 9,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "        this.touchableHandlePress(e);",
+              "lineno": 744
+            },
+            {
+              "function": "this",
+              "abs_path": "app:///node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js",
+              "pre_context": [
+                "    this.props.onPressOut && this.props.onPressOut(e);",
+                "    this._dispatchPressedStateChange(false);",
+                "  },",
+                "",
+                "  touchableHandlePress: function(e: Event) {"
+              ],
+              "post_context": [
+                "  },",
+                "",
+                "  touchableHandleLongPress: function(e: Event) {",
+                "    this.props.onLongPress && this.props.onLongPress(e);",
+                "  },"
+              ],
+              "filename": "node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js",
+              "platform": "javascript",
+              "module": "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android",
+              "colno": 16,
+              "in_app": false,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "    this.props.onPress && this.props.onPress(e);",
+              "lineno": 175
+            },
+            {
+              "function": "onPress",
+              "abs_path": "app:///App.js",
+              "pre_context": [
+                "          styleDisabled={{ color: 'red' }}",
+                "          onPress={() => this._uriError()}",
+                "          accessibilityLabel={'SyntaxError: Unexepected identifier'}",
+                "          title=\"SyntaxError: Unexepected identifier\"",
+                "        />"
+              ],
+              "post_context": [
+                "          style={{ fontSize: 12, color: 'green' }}",
+                "          styleDisabled={{ color: 'red' }}",
+                "          onPress={() => this._referenceError()}",
+                "          accessibilityLabel={'ReferenceError: undefinedVariable is not defined'}",
+                "          title=\"ReferenceError: undefinedVariable is not defined\""
+              ],
+              "filename": "App.js",
+              "platform": "javascript",
+              "module": "App",
+              "colno": 10,
+              "in_app": true,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "        <Button",
+              "lineno": 143
+            },
+            {
+              "function": "Button",
+              "abs_path": "app:///App.js",
+              "pre_context": [
+                "      <View style={styles.container}>",
+                "        <TextInput",
+                "          style={{ height: 40, borderColor: 'black', borderWidth: 1, width: '80%' }}",
+                "          accessibilityLabel={'email'}",
+                "        />"
+              ],
+              "post_context": [
+                "          style={{fontSize: 12, color: 'green'}}",
+                "          styleDisabled={{color: 'red'}}",
+                "          onPress={() => this._notAFunctionError()}",
+                "          accessibilityLabel={'TypeError: obj.invalidFunction is not a function'}",
+                "          title=\"TypeError: obj.invalidFunction is not a function\""
+              ],
+              "filename": "App.js",
+              "platform": "javascript",
+              "module": "App",
+              "colno": 9,
+              "in_app": true,
+              "data": {
+                "sourcemap": "app:///index.android.bundle.map"
+              },
+              "context_line": "        <Button",
+              "lineno": 115
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "value",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,r,n,g){'use strict';var u=t(g[0]),a={get AccessibilityInfo(){return t(g[1])},get ActivityIndicator(){return t(g[2])},get AR {snip}",
+                "__d(function(n,e,r,i,o){'use strict';var t=function(n){};r.exports=function(n,e,r,i,o,a,f,s){if(t(e),!n){var u;if(void 0===e)u=new Error(\"Mi {snip}",
+                "__d(function(e,n,t,i,o){'use strict';var r=n(o[0]),c=n(o[1]),s=r.AccessibilityInfo,u=new Map,a={fetch:function(){return new Promise(function {snip}",
+                "__d(function(e,n,t,r,o){'use strict';var a=n(o[0]),i=n(o[1]);function u(e,n){if(!e)return null;var t=babelHelpers.slicedToArray(e,5),r=t[0], {snip}",
+                "__d(function(e,r,n,l,a){'use strict';var t=new(r(a[0]))('undefined'!=typeof __fbUninstallRNGlobalErrorHandler&&!0===__fbUninstallRNGlobalErr {snip}"
+              ],
+              "post_context": [
+                "__d(function(r,o,t,i,n){t.exports=r.ErrorUtils},18,[]);",
+                "__d(function(n,t,e,c,i){'use strict';t(i[0]);var o=!1,u=0,a={installReactHook:function(){!0},setEnabled:function(n){o!==n&&(o=n)},isEnabled: {snip}",
+                "__d(function(t,n,r,u,c){'use strict';r.exports=function(t){return t}},20,[]);",
+                "__d(function(t,n,i,e,f){'use strict';i.exports=function(t){var n,i=typeof t;if(void 0===t)n='undefined';else if(null===t)n='null';else if('s {snip}",
+                "__d(function(e,t,n,r,i){'use strict';t(i[0]),t(i[1]);var l=t(i[2]),a=t(i[3]).Timing,o=null;function u(){return o||(o=t(i[4])),o()}var c=16.6 {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 18,
+              "colno": 1039,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} eue()}},{key:\"callFunctionReturnResultAndFlushedQueue\",value:function(e,l,t){var u=this,s=void 0;return this.__guard(function(){s=u.__callFu {snip}"
+            },
+            {
+              "function": "value",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,r,n,g){'use strict';var u=t(g[0]),a={get AccessibilityInfo(){return t(g[1])},get ActivityIndicator(){return t(g[2])},get AR {snip}",
+                "__d(function(n,e,r,i,o){'use strict';var t=function(n){};r.exports=function(n,e,r,i,o,a,f,s){if(t(e),!n){var u;if(void 0===e)u=new Error(\"Mi {snip}",
+                "__d(function(e,n,t,i,o){'use strict';var r=n(o[0]),c=n(o[1]),s=r.AccessibilityInfo,u=new Map,a={fetch:function(){return new Promise(function {snip}",
+                "__d(function(e,n,t,r,o){'use strict';var a=n(o[0]),i=n(o[1]);function u(e,n){if(!e)return null;var t=babelHelpers.slicedToArray(e,5),r=t[0], {snip}",
+                "__d(function(e,r,n,l,a){'use strict';var t=new(r(a[0]))('undefined'!=typeof __fbUninstallRNGlobalErrorHandler&&!0===__fbUninstallRNGlobalErr {snip}"
+              ],
+              "post_context": [
+                "__d(function(r,o,t,i,n){t.exports=r.ErrorUtils},18,[]);",
+                "__d(function(n,t,e,c,i){'use strict';t(i[0]);var o=!1,u=0,a={installReactHook:function(){!0},setEnabled:function(n){o!==n&&(o=n)},isEnabled: {snip}",
+                "__d(function(t,n,r,u,c){'use strict';r.exports=function(t){return t}},20,[]);",
+                "__d(function(t,n,i,e,f){'use strict';i.exports=function(t){var n,i=typeof t;if(void 0===t)n='undefined';else if(null===t)n='null';else if('s {snip}",
+                "__d(function(e,t,n,r,i){'use strict';t(i[0]),t(i[1]);var l=t(i[2]),a=t(i[3]).Timing,o=null;function u(){return o||(o=t(i[4])),o()}var c=16.6 {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 18,
+              "colno": 3009,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ll--}}},{key:\"__callImmediates\",value:function(){i.beginEvent('JSTimers.callImmediates()'),h||(h=l(s[5])),h.callImmediates(),i.endEvent()}}, {snip}"
+            },
+            {
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,r,n,g){'use strict';var u=t(g[0]),a={get AccessibilityInfo(){return t(g[1])},get ActivityIndicator(){return t(g[2])},get AR {snip}",
+                "__d(function(n,e,r,i,o){'use strict';var t=function(n){};r.exports=function(n,e,r,i,o,a,f,s){if(t(e),!n){var u;if(void 0===e)u=new Error(\"Mi {snip}",
+                "__d(function(e,n,t,i,o){'use strict';var r=n(o[0]),c=n(o[1]),s=r.AccessibilityInfo,u=new Map,a={fetch:function(){return new Promise(function {snip}",
+                "__d(function(e,n,t,r,o){'use strict';var a=n(o[0]),i=n(o[1]);function u(e,n){if(!e)return null;var t=babelHelpers.slicedToArray(e,5),r=t[0], {snip}",
+                "__d(function(e,r,n,l,a){'use strict';var t=new(r(a[0]))('undefined'!=typeof __fbUninstallRNGlobalErrorHandler&&!0===__fbUninstallRNGlobalErr {snip}"
+              ],
+              "post_context": [
+                "__d(function(r,o,t,i,n){t.exports=r.ErrorUtils},18,[]);",
+                "__d(function(n,t,e,c,i){'use strict';t(i[0]);var o=!1,u=0,a={installReactHook:function(){!0},setEnabled:function(n){o!==n&&(o=n)},isEnabled: {snip}",
+                "__d(function(t,n,r,u,c){'use strict';r.exports=function(t){return t}},20,[]);",
+                "__d(function(t,n,i,e,f){'use strict';i.exports=function(t){var n,i=typeof t;if(void 0===t)n='undefined';else if(null===t)n='null';else if('s {snip}",
+                "__d(function(e,t,n,r,i){'use strict';t(i[0]),t(i[1]);var l=t(i[2]),a=t(i[3]).Timing,o=null;function u(){return o||(o=t(i[4])),o()}var c=16.6 {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 18,
+              "colno": 1067,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} turnResultAndFlushedQueue\",value:function(e,l,t){var u=this,s=void 0;return this.__guard(function(){s=u.__callFunction(e,l,t)}),[s,this.flus {snip}"
+            },
+            {
+              "function": "value",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,r,n,g){'use strict';var u=t(g[0]),a={get AccessibilityInfo(){return t(g[1])},get ActivityIndicator(){return t(g[2])},get AR {snip}",
+                "__d(function(n,e,r,i,o){'use strict';var t=function(n){};r.exports=function(n,e,r,i,o,a,f,s){if(t(e),!n){var u;if(void 0===e)u=new Error(\"Mi {snip}",
+                "__d(function(e,n,t,i,o){'use strict';var r=n(o[0]),c=n(o[1]),s=r.AccessibilityInfo,u=new Map,a={fetch:function(){return new Promise(function {snip}",
+                "__d(function(e,n,t,r,o){'use strict';var a=n(o[0]),i=n(o[1]);function u(e,n){if(!e)return null;var t=babelHelpers.slicedToArray(e,5),r=t[0], {snip}",
+                "__d(function(e,r,n,l,a){'use strict';var t=new(r(a[0]))('undefined'!=typeof __fbUninstallRNGlobalErrorHandler&&!0===__fbUninstallRNGlobalErr {snip}"
+              ],
+              "post_context": [
+                "__d(function(r,o,t,i,n){t.exports=r.ErrorUtils},18,[]);",
+                "__d(function(n,t,e,c,i){'use strict';t(i[0]);var o=!1,u=0,a={installReactHook:function(){!0},setEnabled:function(n){o!==n&&(o=n)},isEnabled: {snip}",
+                "__d(function(t,n,r,u,c){'use strict';r.exports=function(t){return t}},20,[]);",
+                "__d(function(t,n,i,e,f){'use strict';i.exports=function(t){var n,i=typeof t;if(void 0===t)n='undefined';else if(null===t)n='null';else if('s {snip}",
+                "__d(function(e,t,n,r,i){'use strict';t(i[0]),t(i[1]);var l=t(i[2]),a=t(i[3]).Timing,o=null;function u(){return o||(o=t(i[4])),o()}var c=16.6 {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 18,
+              "colno": 3582,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} \",value:function(e,l){this._lastFlush=(new Date).getTime(),this._eventLoopStartTime=this._lastFlush;var t=e>>>1,u=1&e?this._successCallbacks {snip}"
+            },
+            {
+              "function": "receiveTouches",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 16203,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} id 0===a||a<Ae.tagsStartAt||(i=a),ze(i,e,o)}}});u.register(Ue);var Fe=\"function\"==typeof Symbol&&Symbol.for,De=Fe?Symbol.for(\"react.element\" {snip}"
+            },
+            {
+              "function": "ze",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 15366,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ion ze(e,t,n){var r=n||He,o=Se(e);Ie(function(){for(var e=r.target,n=null,a=0;a<S.length;a++){var l=S[a];l&&(l=l.extractEvents(t,o,r,e))&&(n {snip}"
+            },
+            {
+              "function": "Ie",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 14871,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} f(Ne)return e(t);Ne=!0;try{return _e(e,t)}finally{if(Ne=!1,(null!==Pe||null!==Re)&&(we(),Pe&&(t=Pe,e=Re,Re=Pe=null,Ee(t),e)))for(t=0;t<e.len {snip}"
+            },
+            {
+              "function": "batchedUpdates",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 72170,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ion(e,t){var n=be;be=!0;try{return e(t)}finally{(be=n)||fe||v()}},unbatchedUpdates:function(e,t){if(be&&!Te){Te=!0;try{return e(t)}finally{T {snip}"
+            },
+            {
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 15520,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ==(e=n)&&(F=z(F,e)),e=F,F=null,e&&(U(e,D),i(!F,\"processEventQueue(): Additional events were enqueued while processing an event queue. Suppor {snip}"
+            },
+            {
+              "function": "U",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 2992,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip}  U(e,t,n){Array.isArray(e)?e.forEach(t,n):e&&t.call(n,e)}var F=null;function D(e){if(e){var t=e._dispatchListeners,n=e._dispatchInstances;if {snip}"
+            },
+            {
+              "function": "[native code] forEach",
+              "platform": "javascript",
+              "lineno": 0,
+              "colno": 0,
+              "in_app": false
+            },
+            {
+              "function": "D",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 3195,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ed();r++)A(e,!1,t[r],n[r]);else t&&A(e,!1,t,n);e._dispatchListeners=null,e._dispatchInstances=null,e.isPersistent()||e.constructor.release(e {snip}"
+            },
+            {
+              "function": "A",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 2433,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} okeGuardedCallbackAndCatchFirstError(t,n,void 0,e),e.currentTarget=null}function H(e){var t=e._dispatchListeners,n=e._dispatchInstances;retu {snip}"
+            },
+            {
+              "function": "invokeGuardedCallbackAndCatchFirstError",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 634,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ,u){if(v.invokeGuardedCallback.apply(this,arguments),v.hasCaughtError()){var s=v.clearCaughtError();v._hasRethrowError||(v._hasRethrowError= {snip}"
+            },
+            {
+              "function": "invokeGuardedCallback",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 519,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} :function(e,t,n,r,o,i,a,l,u){g.apply(v,arguments)},invokeGuardedCallbackAndCatchFirstError:function(e,t,n,r,o,i,a,l,u){if(v.invokeGuardedCal {snip}"
+            },
+            {
+              "function": "g",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(e,t,i,a,r){'use strict';var s=t(r[0]),n=t(r[1]),o=(t(r[2]),t(r[3])),l=t(r[4]),c=t(r[5]),d=t(r[6]),p=t(r[7]),h=t(r[8]),m=t(r[9]) {snip}",
+                "__d(function(n,r,f,e,i){'use strict';var a=r(i[0]),l=function(n,r,f,e,i,l){var o=r[f];return void 0===o||null===o?n?new Error('Required '+i+ {snip}",
+                "__d(function(e,r,a,l,n){'use strict';function t(e,r,a){return a<0&&(a+=1),a>1&&(a-=1),a<.16666666666666666?e+6*(r-e)*a:a<.5?r:a<.66666666666 {snip}",
+                "__d(function(_,t,E,i,e){'use strict';var s=t(e[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.NativeMethodsMixin;E.exports=s},38,[39]);",
+                "__d(function(t,r,s,c,e){'use strict';var i;i=r(e[0]),s.exports=i},39,[40]);"
+              ],
+              "post_context": [
+                "__d(function(e,r,t,n,o){'use strict';var a=r(o[0]),i=a.polyfillObjectProperty,l=a.polyfillGlobal;void 0===e.GLOBAL&&(e.GLOBAL=e),void 0===e. {snip}",
+                "__d(function(e,l,r,o,t){'use strict';var i=l(t[0]);function n(e,l,r){var o=Object.getOwnPropertyDescriptor(e,l),t=o||{},n=t.enumerable,a=t.w {snip}",
+                "__d(function(n,t,o,r,e){'use strict';function f(t){var o=n[t];if(null==o)return!0;if('function'!=typeof n.Symbol)return!0;var r=o.prototype; {snip}",
+                "__d(function(e,t,r,n,i){'use strict';var a=t(i[0]),o=t(i[1]),u=t(i[2]),s=t(i[3]);r.exports=(function(e,t){if(!a('Map'))return e.Map;var r='k {snip}",
+                "__d(function(t,n,r,e,o){'use strict';r.exports=function(){return'f'+(1073741824*Math.random()).toString(16).replace('.','')}},45,[]);"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 41,
+              "colno": 296,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} l;var s=Array.prototype.slice.call(arguments,3);try{t.apply(n,s)}catch(e){this._caughtError=e,this._hasCaughtError=!0}}var v={_caughtError:n {snip}"
+            },
+            {
+              "function": "touchableHandleResponderRelease",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,i,n,e,s){var h=i(s[0]);n.exports=h({initialize:function(t){this.reset().push(t)},push:function(){var t=Array.prototype.join.c {snip}",
+                "__d(function(t,x,y,i,n){var r=x(n[0]);function s(t,x,y,i,n,r){return t&&'object'==typeof t&&(x=t.yx,i=t.yy,r=t.y,y=t.xy,n=t.x,t=t.xx),this.x {snip}",
+                "__d(function(e,t,s,r,o){'use strict';var i=t(o[0]),a=(t(o[1]),t(o[2])),l=t(o[3]),n=t(o[4]),b=t(o[5]),c=t(o[6]),u=(t(o[7]),t(o[8])),d=t(o[9]) {snip}",
+                "__d(function(e,t,s,n,i){'use strict';var o=t(i[0]),r=t(i[1]),l=t(i[2]),a=t(i[3]),p=t(i[4]),h=t(i[5]),d=t(i[6]),u=t(i[7]),c=t(i[8]),R=t(i[9]) {snip}",
+                "__d(function(e,o,n,t,s){'use strict';var i=o(s[0]),l=o(s[1]),a=o(s[2]),r=o(s[3])(o(s[4]));n.exports={ellipsizeMode:a.oneOf(['head','middle', {snip}"
+              ],
+              "post_context": [
+                "__d(function(t,o,e,i,n){'use strict';var h=o(n[0]),r=h.twoArgumentPooler;function s(t,o){this.width=t,this.height=o}s.prototype.destructor=f {snip}",
+                "__d(function(t,n,o,e,i){'use strict';var r=n(i[0]),s=function(t){if(this.instancePool.length){var n=this.instancePool.pop();return this.call {snip}",
+                "__d(function(t,o,n,i,e){'use strict';var l=o(e[0]),r=l.twoArgumentPooler;function s(t,o){this.left=t,this.top=o}s.prototype.destructor=funct {snip}",
+                "__d(function(t,i,e,n,a){'use strict';i(a[0]);var v=i(a[1]).TVNavigationEventEmitter,o=i(a[2]);function _(){this.__nativeTVNavigationEventLis {snip}",
+                "__d(function(t,e,n,c,u){\"use strict\";n.exports={extractSingleTouch:function(t){var e=t.touches,n=t.changedTouches,c=e&&e.length>0,u=n&&n.len {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 167,
+              "colno": 4757,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} hableHandleResponderRelease:function(E){this._receiveSignal(u.RESPONDER_RELEASE,E)},touchableHandleResponderTerminate:function(E){this._rece {snip}"
+            },
+            {
+              "function": "_receiveSignal",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,i,n,e,s){var h=i(s[0]);n.exports=h({initialize:function(t){this.reset().push(t)},push:function(){var t=Array.prototype.join.c {snip}",
+                "__d(function(t,x,y,i,n){var r=x(n[0]);function s(t,x,y,i,n,r){return t&&'object'==typeof t&&(x=t.yx,i=t.yy,r=t.y,y=t.xy,n=t.x,t=t.xx),this.x {snip}",
+                "__d(function(e,t,s,r,o){'use strict';var i=t(o[0]),a=(t(o[1]),t(o[2])),l=t(o[3]),n=t(o[4]),b=t(o[5]),c=t(o[6]),u=(t(o[7]),t(o[8])),d=t(o[9]) {snip}",
+                "__d(function(e,t,s,n,i){'use strict';var o=t(i[0]),r=t(i[1]),l=t(i[2]),a=t(i[3]),p=t(i[4]),h=t(i[5]),d=t(i[6]),u=t(i[7]),c=t(i[8]),R=t(i[9]) {snip}",
+                "__d(function(e,o,n,t,s){'use strict';var i=o(s[0]),l=o(s[1]),a=o(s[2]),r=o(s[3])(o(s[4]));n.exports={ellipsizeMode:a.oneOf(['head','middle', {snip}"
+              ],
+              "post_context": [
+                "__d(function(t,o,e,i,n){'use strict';var h=o(n[0]),r=h.twoArgumentPooler;function s(t,o){this.width=t,this.height=o}s.prototype.destructor=f {snip}",
+                "__d(function(t,n,o,e,i){'use strict';var r=n(i[0]),s=function(t){if(this.instancePool.length){var n=this.instancePool.pop();return this.call {snip}",
+                "__d(function(t,o,n,i,e){'use strict';var l=o(e[0]),r=l.twoArgumentPooler;function s(t,o){this.left=t,this.top=o}s.prototype.destructor=funct {snip}",
+                "__d(function(t,i,e,n,a){'use strict';i(a[0]);var v=i(a[1]).TVNavigationEventEmitter,o=i(a[2]);function _(){this.__nativeTVNavigationEventLis {snip}",
+                "__d(function(t,e,n,c,u){\"use strict\";n.exports={extractSingleTouch:function(t){var e=t.touches,n=t.changedTouches,c=e&&e.length>0,u=n&&n.len {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 167,
+              "colno": 7292,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} der `'+t+'`');R!==i&&(this._performSideEffectsForTransition(R,i,E,e),this.state.touchable.touchState=i)}},_cancelLongPressDelayTimeout:funct {snip}"
+            },
+            {
+              "function": "_performSideEffectsForTransition",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,i,n,e,s){var h=i(s[0]);n.exports=h({initialize:function(t){this.reset().push(t)},push:function(){var t=Array.prototype.join.c {snip}",
+                "__d(function(t,x,y,i,n){var r=x(n[0]);function s(t,x,y,i,n,r){return t&&'object'==typeof t&&(x=t.yx,i=t.yy,r=t.y,y=t.xy,n=t.x,t=t.xx),this.x {snip}",
+                "__d(function(e,t,s,r,o){'use strict';var i=t(o[0]),a=(t(o[1]),t(o[2])),l=t(o[3]),n=t(o[4]),b=t(o[5]),c=t(o[6]),u=(t(o[7]),t(o[8])),d=t(o[9]) {snip}",
+                "__d(function(e,t,s,n,i){'use strict';var o=t(i[0]),r=t(i[1]),l=t(i[2]),a=t(i[3]),p=t(i[4]),h=t(i[5]),d=t(i[6]),u=t(i[7]),c=t(i[8]),R=t(i[9]) {snip}",
+                "__d(function(e,o,n,t,s){'use strict';var i=o(s[0]),l=o(s[1]),a=o(s[2]),r=o(s[3])(o(s[4]));n.exports={ellipsizeMode:a.oneOf(['head','middle', {snip}"
+              ],
+              "post_context": [
+                "__d(function(t,o,e,i,n){'use strict';var h=o(n[0]),r=h.twoArgumentPooler;function s(t,o){this.width=t,this.height=o}s.prototype.destructor=f {snip}",
+                "__d(function(t,n,o,e,i){'use strict';var r=n(i[0]),s=function(t){if(this.instancePool.length){var n=this.instancePool.pop();return this.call {snip}",
+                "__d(function(t,o,n,i,e){'use strict';var l=o(e[0]),r=l.twoArgumentPooler;function s(t,o){this.left=t,this.top=o}s.prototype.destructor=funct {snip}",
+                "__d(function(t,i,e,n,a){'use strict';i(a[0]);var v=i(a[1]).TVNavigationEventEmitter,o=i(a[2]);function _(){this.__nativeTVNavigationEventLis {snip}",
+                "__d(function(t,e,n,c,u){\"use strict\";n.exports={extractSingleTouch:function(t){var e=t.touches,n=t.changedTouches,c=e&&e.length>0,u=n&&n.len {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 167,
+              "colno": 8505,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} ghlight(R),this._endHighlight(R)),this.touchableHandlePress(R))}this.touchableDelayTimeout&&clearTimeout(this.touchableDelayTimeout),this.to {snip}"
+            },
+            {
+              "function": "touchableHandlePress",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,n,o,e,i){'use strict';var r=n(i[0]),s=function(t){if(this.instancePool.length){var n=this.instancePool.pop();return this.call {snip}",
+                "__d(function(t,o,n,i,e){'use strict';var l=o(e[0]),r=l.twoArgumentPooler;function s(t,o){this.left=t,this.top=o}s.prototype.destructor=funct {snip}",
+                "__d(function(t,i,e,n,a){'use strict';i(a[0]);var v=i(a[1]).TVNavigationEventEmitter,o=i(a[2]);function _(){this.__nativeTVNavigationEventLis {snip}",
+                "__d(function(t,e,n,c,u){\"use strict\";n.exports={extractSingleTouch:function(t){var e=t.touches,n=t.changedTouches,c=e&&e.length>0,u=n&&n.len {snip}",
+                "__d(function(r,n,t,i,o){'use strict';t.exports=function(r,n){var t={};for(var i in r)t[i]=r[i];for(var o in n)t[o]=n[o];return t}},172,[]);"
+              ],
+              "post_context": [
+                "__d(function(e,s,t,o,n){'use strict';var i=s(n[0]),r=s(n[1]),p=s(n[2]),a=s(n[3]),l=s(n[4]),c=s(n[5]),h=s(n[6]),u=s(n[7]),d=s(n[8]),y=d.Acces {snip}",
+                "__d(function(i,t,e,n,a){'use strict';var r='undefined'==typeof window?i:window,s=function(i,t,e){return function(n,a){var r=i(function(){t.c {snip}",
+                "__d(function(e,n,s,t,a){'use strict';var o=n(a[0]);s.exports=function(e){o(!(e.delayPressIn<0||e.delayPressOut<0||e.delayLongPress<0),'Touch {snip}",
+                "__d(function(t,e,s,i,o){'use strict';var n=e(o[0]),r=e(o[1]),a=e(o[2]),p=e(o[3]),c=e(o[4]),l=e(o[5]),h=e(o[6]),u=e(o[7]),d=e(o[8]),y=e(o[9]) {snip}",
+                "__d(function(e,t,n,a,o){'use strict';var m=t(o[0]),r=t(o[1]),i=t(o[2]),c=t(o[3]),d=t(o[4]),p={View:m.createAnimatedComponent(d),Text:m.creat {snip}"
+              ],
+              "in_app": false,
+              "platform": "javascript",
+              "lineno": 174,
+              "colno": 1566,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} dlePress:function(e){this.props.onPress&&this.props.onPress(e)},touchableHandleLongPress:function(e){this.props.onLongPress&&this.props.onLo {snip}"
+            },
+            {
+              "function": "onPress",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,e,n,i,r){'use strict';var o=e(r[0]),s=(e(r[1]),e(r[2])),a=e(r[3]),l=e(r[4]),c=(e(r[5]),e(r[6])),u=e(r[7]),p=(e(r[8]),e(r[9]), {snip}",
+                "__d(function(e,t,i,n,r){'use strict';var f=t(r[0]);i.exports=function(e,t){fetch(f().url+'open-stack-frame',{method:'POST',body:JSON.stringi {snip}",
+                "__d(function(t,r,o,e,u){'use strict';var c=r(u[0]).SourceCode,i=void 0,l='http://localhost:8081/';o.exports=function(){if(void 0===i){var t= {snip}",
+                "__d(function(e,r,t,n,a){'use strict';var s=r(a[0]),o=r(a[1]).SourceCode,c=void 0;t.exports=function(t){var n,u,i,d,f;return regeneratorRunti {snip}",
+                "__d(function(_,t,E,s,O){'use strict';var R=t(O[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;E.exports=R.takeSnapshot},304,[39]);"
+              ],
+              "post_context": [
+                "__d(function(e,t,n,r,u){'use strict';Object.defineProperty(r,\"__esModule\",{value:!0});var c=t(u[0]);Object.keys(c).forEach(function(e){\"defa {snip}",
+                "__d(function(e,t,n,a,r){Object.defineProperty(a,\"__esModule\",{value:!0}),a.Sentry=a.SentryLog=a.SentrySeverity=void 0;var i=t(r[0]),l=t(r[1] {snip}",
+                "__d(function(e,t,a,l,n){Object.defineProperty(l,\"__esModule\",{value:!0}),l.RavenClient=void 0;var u=t(n[0]),i=babelHelpers.interopRequireDef {snip}",
+                "__d(function(n,e,o,f,t){var d=e(t[0]),i='undefined'!=typeof window?window:void 0!==n?n:'undefined'!=typeof self?self:{},r=i.Raven,a=new d;a. {snip}",
+                "__d(function(t,e,r,n,a){var i=e(a[0]),s=e(a[1]),o=e(a[2]),l=e(a[3]),c=e(a[4]),u=c.isErrorEvent,h=c.isDOMError,p=c.isDOMException,_=c.isError {snip}"
+              ],
+              "in_app": true,
+              "platform": "javascript",
+              "lineno": 306,
+              "colno": 3731,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} {style:{fontSize:12,color:'green'},styleDisabled:{color:'red'},onPress:function(){return e._referenceError()},accessibilityLabel:'ReferenceE {snip}"
+            },
+            {
+              "function": "value",
+              "abs_path": "app:///index.android.bundle",
+              "pre_context": [
+                "__d(function(t,e,n,i,r){'use strict';var o=e(r[0]),s=(e(r[1]),e(r[2])),a=e(r[3]),l=e(r[4]),c=(e(r[5]),e(r[6])),u=e(r[7]),p=(e(r[8]),e(r[9]), {snip}",
+                "__d(function(e,t,i,n,r){'use strict';var f=t(r[0]);i.exports=function(e,t){fetch(f().url+'open-stack-frame',{method:'POST',body:JSON.stringi {snip}",
+                "__d(function(t,r,o,e,u){'use strict';var c=r(u[0]).SourceCode,i=void 0,l='http://localhost:8081/';o.exports=function(){if(void 0===i){var t= {snip}",
+                "__d(function(e,r,t,n,a){'use strict';var s=r(a[0]),o=r(a[1]).SourceCode,c=void 0;t.exports=function(t){var n,u,i,d,f;return regeneratorRunti {snip}",
+                "__d(function(_,t,E,s,O){'use strict';var R=t(O[0]).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;E.exports=R.takeSnapshot},304,[39]);"
+              ],
+              "post_context": [
+                "__d(function(e,t,n,r,u){'use strict';Object.defineProperty(r,\"__esModule\",{value:!0});var c=t(u[0]);Object.keys(c).forEach(function(e){\"defa {snip}",
+                "__d(function(e,t,n,a,r){Object.defineProperty(a,\"__esModule\",{value:!0}),a.Sentry=a.SentryLog=a.SentrySeverity=void 0;var i=t(r[0]),l=t(r[1] {snip}",
+                "__d(function(e,t,a,l,n){Object.defineProperty(l,\"__esModule\",{value:!0}),l.RavenClient=void 0;var u=t(n[0]),i=babelHelpers.interopRequireDef {snip}",
+                "__d(function(n,e,o,f,t){var d=e(t[0]),i='undefined'!=typeof window?window:void 0!==n?n:'undefined'!=typeof self?self:{},r=i.Raven,a=new d;a. {snip}",
+                "__d(function(t,e,r,n,a){var i=e(a[0]),s=e(a[1]),o=e(a[2]),l=e(a[3]),c=e(a[4]),u=c.isErrorEvent,h=c.isDOMError,p=c.isDOMException,_=c.isError {snip}"
+              ],
+              "in_app": true,
+              "platform": "javascript",
+              "lineno": 306,
+              "colno": 2622,
+              "filename": "app:///index.android.bundle",
+              "context_line": "{snip} .createElement(_reactNative.Button,{style:{fontSize:12,color:'green'},styleDisabled:{color:'red'},onPress:function(){return e._notAFunctionE {snip}"
+            }
+          ]
+        },
+        "module": "",
+        "value": "undefined is not a function (evaluating '({}).invalidFunction()')",
+        "type": "TypeError"
+      }
+    ]
+  },
+  "release": "com.reactnativedemo-1.1"
+}

@@ -50,14 +50,6 @@ storiesOf('UI|Tags', module)
     ))
   )
   .add(
-    'with border',
-    withInfo('A bordered tag-like thing. Use this when you want a border')(() => (
-      <Tag border priority="attention">
-        Development
-      </Tag>
-    ))
-  )
-  .add(
     'with icon',
     withInfo(
       'A tag-like thing with an icon. Use when you need to represent something'

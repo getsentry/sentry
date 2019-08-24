@@ -3,29 +3,38 @@ import Jed from 'jed';
 import React from 'react';
 import {sprintf} from 'sprintf-js';
 import _ from 'lodash';
+import {css} from 'react-emotion';
+
 import {getTranslations} from 'app/translations';
 
 let LOCALE_DEBUG = false;
 
-let sessionStorage = window.sessionStorage;
-if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
+const sessionStorage = window.sessionStorage;
+if (sessionStorage && sessionStorage.getItem('localeDebug') === '1') {
   LOCALE_DEBUG = true;
 }
+
+const markerCss = css`
+  background: #ff801790;
+  outline: 2px solid #ff801790;
+`;
 
 export function setLocaleDebug(value) {
   sessionStorage.setItem('localeDebug', value ? '1' : '0');
   /*eslint no-console:0*/
-  console.log(
-    'Locale debug is: ',
-    value ? 'on' : 'off',
-    '. Reload page to apply changes!'
-  );
+  console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
+}
+
+export function toggleLocaleDebug(value) {
+  const currentValue = sessionStorage.getItem('localeDebug');
+  setLocaleDebug(currentValue !== '1');
+  window.location.reload();
 }
 
 let i18n = null;
 
 export function setLocale(locale) {
-  let translations = getTranslations(locale);
+  const translations = getTranslations(locale);
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: function(key) {},
@@ -38,7 +47,7 @@ export function setLocale(locale) {
 setLocale('en');
 
 function formatForReact(formatString, args) {
-  let rv = [];
+  const rv = [];
   let cursor = 0;
 
   // always re-parse, do not cache, because we change the match
@@ -77,7 +86,7 @@ function argsInvolveReact(args) {
   if (args.some(React.isValidElement)) {
     return true;
   }
-  if (args.length == 1 && _.isObject(args[0])) {
+  if (args.length === 1 && _.isObject(args[0])) {
     return Object.keys(args[0]).some(key => {
       return React.isValidElement(args[0][key]);
     });
@@ -86,22 +95,22 @@ function argsInvolveReact(args) {
 }
 
 export function parseComponentTemplate(string) {
-  let rv = {};
+  const rv = {};
 
   function process(startPos, group, inGroup) {
-    let regex = /\[(.*?)(:|\])|\]/g;
+    const regex = /\[(.*?)(:|\])|\]/g;
     let match;
-    let buf = [];
+    const buf = [];
     let satisfied = false;
 
     let pos = (regex.lastIndex = startPos);
     while ((match = regex.exec(string)) !== null) {
-      let substr = string.substr(pos, match.index - pos);
+      const substr = string.substr(pos, match.index - pos);
       if (substr !== '') {
         buf.push(substr);
       }
 
-      if (match[0] == ']') {
+      if (match[0] === ']') {
         if (inGroup) {
           satisfied = true;
           break;
@@ -111,7 +120,7 @@ export function parseComponentTemplate(string) {
         }
       }
 
-      if (match[2] == ']') {
+      if (match[2] === ']') {
         pos = regex.lastIndex;
       } else {
         pos = regex.lastIndex = process(regex.lastIndex, match[1], true);
@@ -121,7 +130,7 @@ export function parseComponentTemplate(string) {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      let rest = string.substr(pos);
+      const rest = string.substr(pos);
       if (rest) {
         buf.push(rest);
       }
@@ -140,7 +149,7 @@ export function parseComponentTemplate(string) {
 export function renderComponentTemplate(template, components) {
   let idx = 0;
   function renderGroup(group) {
-    let children = [];
+    const children = [];
 
     (template[group] || []).forEach(item => {
       if (_.isString(item)) {
@@ -172,13 +181,13 @@ function mark(rv) {
     return rv;
   }
 
-  let proxy = {
+  const proxy = {
     $$typeof: Symbol.for('react.element'),
     type: 'span',
     key: null,
     ref: null,
     props: {
-      className: 'translation-wrapper',
+      className: markerCss,
       children: _.isArray(rv) ? rv : [rv],
     },
     _owner: null,
@@ -186,7 +195,7 @@ function mark(rv) {
   };
 
   proxy.toString = function() {
-    return '🇦🇹' + rv + '🇦🇹';
+    return '✅' + rv + '✅';
   };
 
   return proxy;
@@ -231,7 +240,7 @@ export function ngettext(singular, plural, ...args) {
    the root string is always called "root", the rest is prefixed
    with the name in the brackets */
 export function gettextComponentTemplate(template, components) {
-  let tmpl = parseComponentTemplate(i18n.gettext(template));
+  const tmpl = parseComponentTemplate(i18n.gettext(template));
   return mark(renderComponentTemplate(tmpl, components));
 }
 

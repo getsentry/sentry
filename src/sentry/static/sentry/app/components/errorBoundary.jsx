@@ -8,9 +8,9 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 
-let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
+const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
 
-let getExclamation = () => {
+const getExclamation = () => {
   return exclamation[Math.floor(Math.random() * exclamation.length)];
 };
 
@@ -18,6 +18,7 @@ class ErrorBoundary extends React.Component {
   static propTypes = {
     mini: PropTypes.bool,
     message: PropTypes.node,
+    customComponent: PropTypes.node,
   };
 
   static defaultProps = {
@@ -31,13 +32,9 @@ class ErrorBoundary extends React.Component {
 
   componentDidMount() {
     // Listen for route changes so we can clear error
-    this.unlisten = browserHistory.listen(() => this.setState({error: null}));
-  }
-
-  componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
-    }
+    this.unlistenBrowserHistory = browserHistory.listen(() =>
+      this.setState({error: null})
+    );
   }
 
   componentDidCatch(error, errorInfo) {
@@ -48,9 +45,19 @@ class ErrorBoundary extends React.Component {
     });
   }
 
+  componentWillUnmount() {
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
+    }
+  }
+
   render() {
     if (this.state.error) {
-      let {mini, message, className} = this.props;
+      const {customComponent, mini, message, className} = this.props;
+
+      if (customComponent) {
+        return customComponent;
+      }
 
       if (mini) {
         return (
@@ -80,14 +87,14 @@ Anyway, we apologize for the inconvenience.`
   }
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled('div')`
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;
 `;
 
-const StackTrace = styled.pre`
+const StackTrace = styled('pre')`
   white-space: pre-wrap;
   margin: 32px;
   margin-left: 85px;

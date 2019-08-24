@@ -21,18 +21,20 @@ class SplitDiff extends React.Component {
   };
 
   render() {
-    let {className, type, base, target} = this.props;
-    let diffFn = diffFnMap[type];
+    const {className, type, base, target} = this.props;
+    const diffFn = diffFnMap[type];
 
-    if (typeof diffFn !== 'function') return null;
+    if (typeof diffFn !== 'function') {
+      return null;
+    }
 
-    let baseLines = base.split('\n');
-    let targetLines = target.split('\n');
-    let [largerArray] =
+    const baseLines = base.split('\n');
+    const targetLines = target.split('\n');
+    const [largerArray] =
       baseLines.length > targetLines.length
         ? [baseLines, targetLines]
         : [targetLines, baseLines];
-    let results = largerArray.map((line, index) =>
+    const results = largerArray.map((line, index) =>
       diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
     );
 
@@ -40,20 +42,22 @@ class SplitDiff extends React.Component {
       <SplitTable className={className}>
         <SplitBody>
           {results.map((line, j) => {
-            let highlightAdded = line.find(result => result.added);
-            let highlightRemoved = line.find(result => result.removed);
+            const highlightAdded = line.find(result => result.added);
+            const highlightRemoved = line.find(result => result.removed);
 
             return (
               <tr key={j}>
                 <Cell isRemoved={highlightRemoved}>
                   <Line>
-                    {line.filter(result => !result.added).map((result, i) => {
-                      return (
-                        <Word key={i} isRemoved={result.removed}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.added)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isRemoved={result.removed}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
 
@@ -61,13 +65,15 @@ class SplitDiff extends React.Component {
 
                 <Cell isAdded={highlightAdded}>
                   <Line>
-                    {line.filter(result => !result.removed).map((result, i) => {
-                      return (
-                        <Word key={i} isAdded={result.added}>
-                          {result.value}
-                        </Word>
-                      );
-                    })}
+                    {line
+                      .filter(result => !result.removed)
+                      .map((result, i) => {
+                        return (
+                          <Word key={i} isAdded={result.added}>
+                            {result.value}
+                          </Word>
+                        );
+                      })}
                   </Line>
                 </Cell>
               </tr>

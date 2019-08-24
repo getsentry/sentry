@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {defined} from 'app/utils';
@@ -13,7 +13,7 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
 function trimFilename(fn) {
-  let pieces = fn.split(/\//g);
+  const pieces = fn.split(/\//g);
   return pieces[pieces.length - 1];
 }
 
@@ -22,7 +22,7 @@ function findRelevantFrame(stacktrace) {
     return stacktrace.frames[stacktrace.frames.length - 1];
   }
   for (let i = stacktrace.frames.length - 1; i >= 0; i--) {
-    let frame = stacktrace.frames[i];
+    const frame = stacktrace.frames[i];
     if (frame.inApp) {
       return frame;
     }
@@ -32,11 +32,11 @@ function findRelevantFrame(stacktrace) {
 }
 
 function findThreadException(thread, event) {
-  for (let entry of event.entries) {
+  for (const entry of event.entries) {
     if (entry.type !== 'exception') {
       continue;
     }
-    for (let exc of entry.data.values) {
+    for (const exc of entry.data.values) {
       if (exc.threadId === thread.id) {
         return entry.data;
       }
@@ -51,10 +51,10 @@ function findThreadStacktrace(thread, event, raw) {
   } else if (thread.stacktrace) {
     return thread.stacktrace;
   }
-  let exc = findThreadException(thread, event);
+  const exc = findThreadException(thread, event);
   if (exc) {
     let rv = null;
-    for (let singleExc of exc.values) {
+    for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
         rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
       }
@@ -65,8 +65,8 @@ function findThreadStacktrace(thread, event, raw) {
 }
 
 function getThreadTitle(thread, event, simplified) {
-  let stacktrace = findThreadStacktrace(thread, event, false);
-  let bits = ['Thread'];
+  const stacktrace = findThreadStacktrace(thread, event, false);
+  const bits = ['Thread'];
   if (defined(thread.name)) {
     bits.push(` "${thread.name}"`);
   }
@@ -76,21 +76,23 @@ function getThreadTitle(thread, event, simplified) {
 
   if (!simplified) {
     if (stacktrace) {
-      let frame = findRelevantFrame(stacktrace);
+      const frame = findRelevantFrame(stacktrace);
       bits.push(' — ');
       bits.push(
         <em key="location">
           {frame.filename
             ? trimFilename(frame.filename)
             : frame.package
-              ? trimPackage(frame.package)
-              : frame.module ? frame.module : '<unknown>'}
+            ? trimPackage(frame.package)
+            : frame.module
+            ? frame.module
+            : '<unknown>'}
         </em>
       );
     }
 
     if (thread.crashed) {
-      let exc = findThreadException(thread, event);
+      const exc = findThreadException(thread, event);
       bits.push(' — ');
       bits.push(
         <small key="crashed">
@@ -109,12 +111,12 @@ function getIntendedStackView(thread, event) {
 }
 
 function findBestThread(threads) {
-  for (let thread of threads) {
+  for (const thread of threads) {
     if (thread.crashed) {
       return thread;
     }
   }
-  for (let thread of threads) {
+  for (const thread of threads) {
     if (thread.stacktrace) {
       return thread;
     }
@@ -124,8 +126,8 @@ function findBestThread(threads) {
 
 class Thread extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
+    projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     stackView: PropTypes.string,
     stackType: PropTypes.string,
@@ -158,8 +160,8 @@ class Thread extends React.Component {
   render() {
     const {
       data,
-      group,
       event,
+      projectId,
       stackView,
       stackType,
       newestFirst,
@@ -180,11 +182,11 @@ class Thread extends React.Component {
           this.renderMissingStacktrace()
         ) : (
           <CrashContent
-            group={group}
             event={event}
             stackType={stackType}
             stackView={stackView}
             newestFirst={newestFirst}
+            projectId={projectId}
             exception={exception}
             stacktrace={stacktrace}
           />
@@ -196,15 +198,20 @@ class Thread extends React.Component {
 
 class ThreadsInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
+    projectId: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    hideGuide: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    hideGuide: false,
   };
 
   constructor(props) {
     super(props);
-    let thread = findBestThread(props.data.values);
+    const thread = findBestThread(props.data.values);
 
     this.state = {
       activeThread: thread,
@@ -245,13 +252,13 @@ class ThreadsInterface extends React.Component {
   };
 
   render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {stackView, stackType, newestFirst, activeThread} = this.state;
-    let exception = this.getException();
-    let stacktrace = this.getStacktrace();
+    const evt = this.props.event;
+    const {projectId, hideGuide} = this.props;
+    const {stackView, stackType, newestFirst, activeThread} = this.state;
+    const exception = this.getException();
+    const stacktrace = this.getStacktrace();
 
-    let threadSelector = (
+    const threadSelector = (
       <div className="pull-left btn-group">
         <DropdownLink
           btnGroup={true}
@@ -272,15 +279,15 @@ class ThreadsInterface extends React.Component {
       </div>
     );
 
-    let title = (
+    const title = (
       <CrashHeader
         title={null}
         beforeTitle={threadSelector}
-        group={group}
         platform={evt.platform}
         thread={activeThread}
         stacktrace={stacktrace}
         exception={exception}
+        hideGuide={hideGuide}
         stackView={stackView}
         newestFirst={newestFirst}
         stackType={stackType}
@@ -291,15 +298,13 @@ class ThreadsInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
-        group={group}
+      <EventDataSection
         event={evt}
         type={this.props.type}
         title={title}
         wrapTitle={false}
       >
         <Thread
-          group={group}
           data={activeThread}
           exception={exception}
           stackView={stackView}
@@ -307,8 +312,9 @@ class ThreadsInterface extends React.Component {
           stacktrace={stacktrace}
           event={evt}
           newestFirst={newestFirst}
+          projectId={projectId}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

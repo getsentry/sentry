@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {objectToArray} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -10,7 +9,6 @@ import SentryTypes from 'app/sentryTypes';
 
 class EventPackageData extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
@@ -19,15 +17,10 @@ class EventPackageData extends React.Component {
   }
 
   render() {
-    let packages = objectToArray(this.props.event.packages);
+    const packages = Object.entries(this.props.event.packages);
 
     return (
-      <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
-        type="packages"
-        title={t('Packages')}
-      >
+      <EventDataSection event={this.props.event} type="packages" title={t('Packages')}>
         <ClippedBox>
           <ErrorBoundary mini>
             <KeyValueList data={packages} />

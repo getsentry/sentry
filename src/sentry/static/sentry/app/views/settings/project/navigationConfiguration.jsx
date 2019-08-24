@@ -1,10 +1,9 @@
 import {t} from 'app/locale';
 
-const pathPrefix = '/settings/:orgId/:projectId';
+const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 export default function getConfiguration({project}) {
-  let plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
-
+  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),
@@ -26,6 +25,13 @@ export default function getConfiguration({project}) {
           description: t('Manage alerts and alert rules for a project'),
         },
         {
+          path: `${pathPrefix}/incident-rules/`,
+          title: t('Incident Rules'),
+          show: ({features}) => features.has('incidents'),
+          description: t('Manage Incident Rules'),
+          id: 'incident-rules',
+        },
+        {
           path: `${pathPrefix}/tags/`,
           title: t('Tags'),
           description: t("View and manage a  project's tags"),
@@ -45,11 +51,6 @@ export default function getConfiguration({project}) {
           title: t('Data Forwarding'),
         },
         {
-          path: `${pathPrefix}/saved-searches/`,
-          title: t('Saved Searches'),
-          description: t('Manage saved searches for a project and your account'),
-        },
-        {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
         },
@@ -58,7 +59,9 @@ export default function getConfiguration({project}) {
           title: t('Processing Issues'),
           // eslint-disable-next-line no-shadow
           badge: ({project}) => {
-            if (project.processingIssues <= 0) return null;
+            if (project.processingIssues <= 0) {
+              return null;
+            }
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
         },

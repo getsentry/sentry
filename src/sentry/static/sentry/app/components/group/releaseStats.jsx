@@ -1,71 +1,46 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
-import EnvironmentStore from 'app/stores/environmentStore';
-import LatestContextStore from 'app/stores/latestContextStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
+import getDynamicText from 'app/utils/getDynamicText';
 import {t} from 'app/locale';
 
-const GroupReleaseStats = createReactClass({
-  displayName: 'GroupReleaseStats',
-
-  propTypes: {
-    group: SentryTypes.Group,
-    project: SentryTypes.Project,
+class GroupReleaseStats extends React.PureComponent {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
     allEnvironments: PropTypes.object,
-  },
-
-  contextTypes: {
-    organization: PropTypes.object,
-  },
-
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
-  ],
-
-  getInitialState() {
-    let envList = EnvironmentStore.getActive();
-
-    return {
-      envList,
-      environment: LatestContextStore.getInitialState().environment,
-    };
-  },
-
-  getEnvironment(envName) {
-    let defaultEnv = EnvironmentStore.getDefault();
-    let queriedEnvironment = EnvironmentStore.getByName(envName);
-
-    return queriedEnvironment || defaultEnv;
-  },
-
-  onLatestContextChange(context) {
-    this.setState({environment: context.environment || null});
-  },
+  };
 
   render() {
-    let {group, project, allEnvironments} = this.props;
-    let {environment} = this.state;
+    const {group, organization, project, environments, allEnvironments} = this.props;
 
-    let envName = environment ? environment.displayName : t('All Environments');
-    let projectId = project.slug;
-    let orgId = this.getOrganization().slug;
-    let hasRelease = new Set(project.features).has('releases');
-    let isLoading = !group || !allEnvironments;
+    const environmentLabel = environments.length
+      ? environments.map(env => env.displayName).join(', ')
+      : t('All Environments');
+
+    const shortEnvironmentLabel =
+      environments.length > 1
+        ? t('selected environments')
+        : environments.length === 1
+        ? environments[0].displayName
+        : null;
+
+    const projectId = project.slug;
+    const orgId = organization.slug;
+    const hasRelease = new Set(project.features).has('releases');
+    const isLoading = !group || !allEnvironments;
 
     return (
       <div className="env-stats">
         <h6>
-          <span>{envName}</span>
+          <span data-test-id="env-label">{environmentLabel}</span>
         </h6>
+
         <div className="env-content">
           {isLoading ? (
             <LoadingIndicator />
@@ -73,7 +48,7 @@ const GroupReleaseStats = createReactClass({
             <div>
               <GroupReleaseChart
                 group={allEnvironments}
-                environment={envName}
+                environment={environmentLabel}
                 environmentStats={group.stats}
                 release={group.currentRelease ? group.currentRelease.release : null}
                 releaseStats={group.currentRelease ? group.currentRelease.stats : null}
@@ -84,7 +59,7 @@ const GroupReleaseStats = createReactClass({
               />
               <GroupReleaseChart
                 group={allEnvironments}
-                environment={envName}
+                environment={environmentLabel}
                 environmentStats={group.stats}
                 release={group.currentRelease ? group.currentRelease.release : null}
                 releaseStats={group.currentRelease ? group.currentRelease.stats : null}
@@ -96,31 +71,37 @@ const GroupReleaseStats = createReactClass({
               />
               <h6>
                 <span>{t('First seen')}</span>
-                {environment ? <small>({environment.displayName})</small> : null}
+                {environments.length ? <small>({environmentLabel})</small> : null}
               </h6>
 
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={group.firstSeen}
+                date={getDynamicText({
+                  value: group.firstSeen,
+                  fixed: '2015-08-13T03:08:25Z',
+                })}
                 dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
-                environment={environment ? environment.name : null}
+                environment={shortEnvironmentLabel}
                 release={group.firstRelease || null}
                 title={t('First seen')}
               />
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment ? <small>({environment.displayName})</small> : null}
+                {environments.length ? <small>({environmentLabel})</small> : null}
               </h6>
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={group.lastSeen}
+                date={getDynamicText({
+                  value: group.lastSeen,
+                  fixed: '2016-01-13T03:08:25Z',
+                })}
                 dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
-                environment={environment ? environment.name : null}
+                environment={shortEnvironmentLabel}
                 release={group.lastRelease || null}
                 title={t('Last seen')}
               />
@@ -129,7 +110,7 @@ const GroupReleaseStats = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export default GroupReleaseStats;

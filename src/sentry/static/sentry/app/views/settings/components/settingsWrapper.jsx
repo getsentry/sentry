@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
@@ -6,14 +5,6 @@ import styled from 'react-emotion';
 import ScrollToTop from 'app/views/settings/components/scrollToTop';
 import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
-
-const StyledSettingsWrapper = styled.div`
-  font-family: 'Rubik', sans-serif;
-  font-size: 16px;
-  color: ${p => p.theme.gray5};
-  margin: 0 auto;
-  line-height: 1;
-`;
 
 class SettingsWrapper extends React.Component {
   static propTypes = {
@@ -30,7 +21,9 @@ class SettingsWrapper extends React.Component {
     this.state = {
       lastAppContext: !!props.project
         ? 'project'
-        : !!props.organization ? 'organization' : null,
+        : !!props.organization
+        ? 'organization'
+        : null,
     };
   }
 
@@ -38,14 +31,6 @@ class SettingsWrapper extends React.Component {
     return {
       lastAppContext: this.state.lastAppContext,
     };
-  }
-
-  componentDidMount() {
-    $(document.body).addClass('new-settings');
-  }
-
-  componentWillUnmount() {
-    $(document.body).removeClass('new-settings');
   }
 
   render() {
@@ -58,3 +43,16 @@ class SettingsWrapper extends React.Component {
 }
 
 export default withLatestContext(SettingsWrapper);
+
+const StyledSettingsWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  font-size: 16px;
+  color: ${p => p.theme.gray5};
+  margin-bottom: -20px; /* to account for footer margin top */
+  line-height: 1;
+
+  .messages-container {
+    margin: 0;
+  }
+`;

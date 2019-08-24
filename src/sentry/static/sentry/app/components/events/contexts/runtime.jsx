@@ -10,7 +10,7 @@ class RuntimeContextType extends React.Component {
   };
 
   render() {
-    let {name, version, build, ...data} = this.props.data;
+    const {name, version, build, ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
@@ -21,8 +21,6 @@ class RuntimeContextType extends React.Component {
   }
 }
 
-RuntimeContextType.getTitle = function(value) {
-  return 'Runtime';
-};
+RuntimeContextType.getTitle = () => 'Runtime';
 
 export default RuntimeContextType;

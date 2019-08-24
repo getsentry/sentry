@@ -1,52 +1,43 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-//import GroupEventDataSection from "../eventDataSection";
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
-import OrganizationState from 'app/mixins/organizationState';
 
-const StacktraceContent = createReactClass({
-  displayName: 'StacktraceContent',
-
-  propTypes: {
+export default class StacktraceContent extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
-  },
+  };
 
-  mixins: [OrganizationState],
+  static defaultProps = {
+    includeSystemFrames: true,
+    expandFirstFrame: true,
+  };
 
-  getDefaultProps() {
-    return {
-      includeSystemFrames: true,
-      expandFirstFrame: true,
-    };
-  },
-
-  renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
-    let props = {
+  renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
+    const props = {
       className: 'frame frames-omitted',
       key: 'omitted',
     };
-    let text = t(
+    const text = t(
       'Frames %d until %d were omitted and not available.',
       firstFrameOmitted,
       lastFrameOmitted
     );
     return <li {...props}>{text}</li>;
-  },
+  };
 
-  frameIsVisible(frame, nextFrame) {
+  frameIsVisible = (frame, nextFrame) => {
     return (
       this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
     );
-  },
+  };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
@@ -59,19 +50,21 @@ const StacktraceContent = createReactClass({
 
     let lastFrameIdx = null;
     data.frames.forEach((frame, frameIdx) => {
-      if (frame.inApp) lastFrameIdx = frameIdx;
+      if (frame.inApp) {
+        lastFrameIdx = frameIdx;
+      }
     });
     if (lastFrameIdx === null) {
       lastFrameIdx = data.frames.length - 1;
     }
 
-    let expandFirstFrame = this.props.expandFirstFrame;
-    let frames = [];
+    const expandFirstFrame = this.props.expandFirstFrame;
+    const frames = [];
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
-      let prevFrame = data.frames[frameIdx - 1];
-      let nextFrame = data.frames[frameIdx + 1];
-      let repeatedFrame =
+      const prevFrame = data.frames[frameIdx - 1];
+      const nextFrame = data.frames[frameIdx + 1];
+      const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
         frame.instructionAddr === nextFrame.instructionAddr &&
@@ -109,7 +102,7 @@ const StacktraceContent = createReactClass({
     });
 
     if (frames.length > 0 && data.registers) {
-      let lastFrame = frames.length - 1;
+      const lastFrame = frames.length - 1;
       frames[lastFrame] = React.cloneElement(frames[lastFrame], {
         registers: data.registers,
       });
@@ -132,7 +125,5 @@ const StacktraceContent = createReactClass({
         <ul>{frames}</ul>
       </div>
     );
-  },
-});
-
-export default StacktraceContent;
+  }
+}

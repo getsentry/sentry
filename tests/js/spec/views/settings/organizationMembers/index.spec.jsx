@@ -1,18 +1,20 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
+import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationMembers', function() {
-  let members = TestStubs.Members();
-  let currentUser = members[1];
-  let defaultProps = {
+  const members = TestStubs.Members();
+  const currentUser = members[1];
+  const defaultProps = {
     orgId: 'org-slug',
     orgName: 'Organization Name',
     status: '',
@@ -25,21 +27,19 @@ describe('OrganizationMembers', function() {
     onSendInvite: () => {},
     onRemove: () => {},
     onLeave: () => {},
+    location: {query: {}},
   };
-  let organization = TestStubs.Organization({
+  const organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin'],
+    status: {
+      id: 'active',
+    },
   });
-  let getStub;
 
-  beforeAll(function() {
-    getStub = sinon
-      .stub(ConfigStore, 'get')
-      .withArgs('user')
-      .returns(currentUser);
-  });
+  jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser);
 
   afterAll(function() {
-    getStub.restore();
+    ConfigStore.get.mockRestore();
   });
 
   beforeEach(function() {
@@ -78,15 +78,22 @@ describe('OrganizationMembers', function() {
         require_link: true,
       },
     });
+    Client.addMockResponse({
+      url: '/organizations/org-id/teams/',
+      method: 'GET',
+      body: TestStubs.Team(),
+    });
+    browserHistory.push.mockReset();
+    OrganizationsStore.load([organization]);
   });
 
   it('can remove a member', async function() {
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'DELETE',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -109,16 +116,19 @@ describe('OrganizationMembers', function() {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('displays error message when failing to remove member', async function() {
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -141,15 +151,18 @@ describe('OrganizationMembers', function() {
     expect(deleteMock).toHaveBeenCalled();
     await tick();
     expect(addErrorMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('can leave org', async function() {
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = Client.addMockResponse({
       url: `/organizations/org-id/members/${members[1].id}/`,
       method: 'DELETE',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -172,16 +185,61 @@ describe('OrganizationMembers', function() {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
+  });
+
+  it('can redirect to remaining org after leaving', async function() {
+    const deleteMock = Client.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'DELETE',
+    });
+    const secondOrg = TestStubs.Organization({
+      slug: 'org-two',
+      status: {
+        id: 'active',
+      },
+    });
+    OrganizationsStore.add(secondOrg);
+
+    const wrapper = mount(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper
+      .find('Button[priority="danger"]')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    // Confirm modal
+    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    await tick();
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(addSuccessMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith(`/${secondOrg.slug}/`);
+    expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 
   it('displays error message when failing to leave org', async function() {
-    let deleteMock = Client.addMockResponse({
+    const deleteMock = Client.addMockResponse({
       url: `/organizations/org-id/members/${members[1].id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -204,17 +262,20 @@ describe('OrganizationMembers', function() {
     expect(deleteMock).toHaveBeenCalled();
     await tick();
     expect(addErrorMessage).toHaveBeenCalled();
+
+    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
   it('can re-send invite to member', async function() {
-    let inviteMock = MockApiClient.addMockResponse({
+    const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'PUT',
       body: {
         id: '1234',
       },
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -236,11 +297,11 @@ describe('OrganizationMembers', function() {
   });
 
   it('can approve pending access request', async function() {
-    let approveMock = MockApiClient.addMockResponse({
+    const approveMock = MockApiClient.addMockResponse({
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -269,11 +330,11 @@ describe('OrganizationMembers', function() {
   });
 
   it('can deny pending access request', async function() {
-    let denyMock = MockApiClient.addMockResponse({
+    const denyMock = MockApiClient.addMockResponse({
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -303,15 +364,14 @@ describe('OrganizationMembers', function() {
   });
 
   it('can search organization members', async function() {
-    let searchMock = MockApiClient.addMockResponse({
+    const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-id/members/',
       body: [],
     });
-    let routerContext = TestStubs.routerContext();
-    let wrapper = mount(
+    const routerContext = TestStubs.routerContext();
+    const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
-        location={{}}
         params={{
           orgId: 'org-id',
         }}

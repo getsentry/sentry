@@ -12,8 +12,8 @@ describe('OrganizationMemberDetail', function() {
   let organization;
   let wrapper;
   let routerContext;
-  let team = TestStubs.Team();
-  let teams = [
+  const team = TestStubs.Team();
+  const teams = [
     team,
     TestStubs.Team({
       id: '2',
@@ -22,12 +22,12 @@ describe('OrganizationMemberDetail', function() {
       isMember: false,
     }),
   ];
-  let member = TestStubs.Member({
+  const member = TestStubs.Member({
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
   });
-  let pendingMember = TestStubs.Member({
+  const pendingMember = TestStubs.Member({
     id: 2,
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
@@ -35,7 +35,7 @@ describe('OrganizationMemberDetail', function() {
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
-  let expiredMember = TestStubs.Member({
+  const expiredMember = TestStubs.Member({
     id: 3,
     roles: TestStubs.RoleList(),
     dateCreated: new Date(),
@@ -64,6 +64,10 @@ describe('OrganizationMemberDetail', function() {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
         body: expiredMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
       });
     });
 
@@ -101,37 +105,52 @@ describe('OrganizationMemberDetail', function() {
       );
     });
 
-    it('joins a team', function() {
+    it('leaves a team', async function() {
       wrapper = mount(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      // Wait for team list to load
+      await tick();
 
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .first()
-          .prop('checked')
-      ).toBe(true);
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .last()
-          .prop('checked')
-      ).toBe(false);
+      // Remove our one team
+      const button = wrapper.find('TeamSelect TeamRow Button');
+      expect(button).toHaveLength(1);
+      button.simulate('click');
+
+      // Save Member
+      wrapper.find('Button[priority="primary"]').simulate('click');
+
+      expect(updateMember).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            teams: [],
+          }),
+        })
+      );
+    });
+
+    it('joins a team', async function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: member.id}} />,
+        routerContext
+      );
+      // Wait for team list to fetch.
+      await wrapper.update();
+
+      // Should have one team enabled
+      expect(wrapper.find('TeamSelect PanelItem')).toHaveLength(1);
 
       // Select new team to join
-      wrapper
-        .find('TeamSelect Checkbox')
-        .last()
-        .simulate('change');
+      // Open the dropdown
+      wrapper.find('TeamSelect DropdownButton').simulate('click');
 
-      expect(
-        wrapper
-          .find('TeamSelect Checkbox')
-          .last()
-          .prop('checked')
-      ).toBe(true);
+      // Click the first item
+      wrapper
+        .find('TeamSelect TeamDropdownElement')
+        .first()
+        .simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -147,70 +166,31 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
-  it('can select and deselect all', function() {
-    wrapper = mount(
-      <OrganizationMemberDetail params={{memberId: member.id}} />,
-      routerContext
-    );
-
-    let first = 'TeamSelect Checkbox[id="team-slug"]';
-    let last = 'TeamSelect Checkbox[id="new-team"]';
-    let selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
-
-    expect(selectAllButton).toHaveLength(1);
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-    expect(wrapper.state('member').teams).toHaveLength(1);
-
-    // select and deselect all
-    selectAllButton.simulate('click');
-    expect(wrapper.find(first).prop('checked')).toBe(true);
-    expect(wrapper.find(last).prop('checked')).toBe(true);
-    expect(wrapper.state('member').teams).toHaveLength(2);
-
-    selectAllButton.simulate('click');
-    expect(wrapper.find(first).prop('checked')).toBe(false);
-    expect(wrapper.find(last).prop('checked')).toBe(false);
-    expect(wrapper.state('member').teams).toHaveLength(0);
-
-    // select one, then select all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(1);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(0);
-
-    // select both, then deselect all
-    wrapper.find(first).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(1);
-    wrapper.find(last).simulate('change');
-    expect(wrapper.state('member').teams).toHaveLength(2);
-    selectAllButton.simulate('click');
-    expect(wrapper.state('member').teams).toHaveLength(0);
-  });
-
   describe('Cannot Edit', function() {
     beforeAll(function() {
       organization = TestStubs.Organization({teams, access: ['org:read']});
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('can not change roles, teams, or save', function() {
+    it('can not change roles, teams, or save', async function() {
       wrapper = mount(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
+      await wrapper.update();
 
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
       expect(
+        wrapper
+          .find('TeamRow Button')
+          .first()
+          .prop('disabled')
+      ).toBe(true);
+      expect(
         wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
       ).toBe(true);
-      expect(wrapper.find('Button[data-test-id="select-all"]').prop('disabled')).toBe(
-        true
-      );
     });
   });
 
@@ -255,7 +235,7 @@ describe('OrganizationMemberDetail', function() {
         routerContext
       );
 
-      let button = wrapper.find('Button[data-test-id="resend-invite"]');
+      const button = wrapper.find('Button[data-test-id="resend-invite"]');
       expect(button.text()).toEqual('Resend Invite');
     });
 
@@ -270,25 +250,25 @@ describe('OrganizationMemberDetail', function() {
   });
 
   describe('Reset member 2FA', function() {
-    let fields = {
+    const fields = {
       roles: TestStubs.RoleList(),
       dateCreated: new Date(),
       teams: [team.slug],
     };
 
-    let noAccess = TestStubs.Member({
+    const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
       user: TestStubs.User({has2fa: false}),
     });
 
-    let no2fa = TestStubs.Member({
+    const no2fa = TestStubs.Member({
       ...fields,
       id: '5',
       user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
-    let has2fa = TestStubs.Member({
+    const has2fa = TestStubs.Member({
       ...fields,
       id: '6',
       user: TestStubs.User({
@@ -302,7 +282,7 @@ describe('OrganizationMemberDetail', function() {
       }),
     });
 
-    let multipleOrgs = TestStubs.Member({
+    const multipleOrgs = TestStubs.Member({
       ...fields,
       id: '7',
       user: TestStubs.User({
@@ -337,10 +317,14 @@ describe('OrganizationMemberDetail', function() {
         url: `/organizations/${organization.slug}/members/${multipleOrgs.id}/`,
         body: multipleOrgs,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: teams,
+      });
     });
 
-    let button = 'Button[data-test-id="reset-2fa"]';
-    let tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
+    const button = 'Button[data-test-id="reset-2fa"]';
+    const tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
 
     const expectButtonEnabled = () => {
       expect(wrapper.find(button).text()).toEqual('Reset two-factor authentication');
@@ -383,7 +367,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('can reset member 2FA', function() {
-      let deleteMocks = has2fa.user.authenticators.map(auth => {
+      const deleteMocks = has2fa.user.authenticators.map(auth => {
         return MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
           method: 'DELETE',

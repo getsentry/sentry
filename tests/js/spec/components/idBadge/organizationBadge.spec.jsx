@@ -4,7 +4,7 @@ import OrganizationBadge from 'app/components/idBadge/organizationBadge';
 
 describe('OrganizationBadge', function() {
   it('renders with Avatar and organization name', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationBadge organization={TestStubs.Organization()} />,
       TestStubs.routerContext()
     );

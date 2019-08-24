@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {objectToArray} from 'app/utils';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -9,7 +8,6 @@ import SentryTypes from 'app/sentryTypes';
 
 class EventExtraData extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
@@ -31,11 +29,10 @@ class EventExtraData extends React.Component {
   };
 
   render() {
-    let extraDataArray = objectToArray(this.props.event.context);
+    const extraDataArray = Object.entries(this.props.event.context);
     return (
       <div className="extra-data">
         <EventDataSection
-          group={this.props.group}
           event={this.props.event}
           type="extra"
           title={t('Additional Data')}

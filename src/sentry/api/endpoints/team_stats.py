@@ -11,10 +11,10 @@ from sentry.models import Environment, Project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('RetrieveEventCountsTeam')
+@scenario("RetrieveEventCountsTeam")
 def retrieve_event_counts_team(runner):
     runner.request(
-        method='GET', path='/teams/%s/%s/stats/' % (runner.org.slug, runner.default_team.slug)
+        method="GET", path="/teams/%s/%s/stats/" % (runner.org.slug, runner.default_team.slug)
     )
 
 
@@ -45,24 +45,15 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         :qparam timestamp until: a timestamp to set the end of the query
                                  in seconds since UNIX epoch.
         :qparam string resolution: an explicit resolution to search
-                                   for (eg: ``10s``).  This should not be
-                                   used unless you are familiar with Sentry's
-                                   internals as it's restricted to pre-defined
-                                   values.
+                                   for (one of ``10s``, ``1h``, and ``1d``)
         :auth: required
         """
         try:
-            environment_id = self._get_environment_id_from_request(
-                request,
-                team.organization_id,
-            )
+            environment_id = self._get_environment_id_from_request(request, team.organization_id)
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        projects = Project.objects.get_for_user(
-            team=team,
-            user=request.user,
-        )
+        projects = Project.objects.get_for_user(team=team, user=request.user)
 
         if not projects:
             return Response([])

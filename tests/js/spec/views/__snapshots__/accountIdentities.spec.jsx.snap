@@ -72,6 +72,7 @@ exports[`AccountIdentities renders list 1`] = `
             p={2}
           >
             <Button
+              align="center"
               disabled={false}
               onClick={[Function]}
               size="small"

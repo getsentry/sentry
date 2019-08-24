@@ -14,7 +14,7 @@ class CursorPoller {
   }
 
   getDelay() {
-    let delay = this._baseDelay * (this._reqsWithoutData + 1);
+    const delay = this._baseDelay * (this._reqsWithoutData + 1);
     return Math.min(delay, this._maxDelay);
   }
 
@@ -59,10 +59,24 @@ class CursorPoller {
           this._reqsWithoutData -= 1;
         }
 
-        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
+        const links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
         this._pollingEndpoint = links.previous.href;
 
         this.options.success(data, jqXHR.getResponseHeader('Link'));
+      },
+      error: resp => {
+        if (!resp) {
+          return;
+        }
+
+        // If user does not have access to the endpoint, we should halt polling
+        // These errors could mean:
+        // * the user lost access to a project
+        // * project was renamed
+        // * user needs to reauth
+        if (resp.status === 404 || resp.status === 403 || resp.status === 401) {
+          this.disable();
+        }
       },
       complete: () => {
         this._lastRequest = null;

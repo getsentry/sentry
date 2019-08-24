@@ -7,11 +7,18 @@ import entries from '../../mocks/entries';
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
-  let routerContext = TestStubs.routerContext();
-  let api = new MockApiClient();
+  const routerContext = TestStubs.routerContext();
+  const api = new MockApiClient();
 
   it('is loading when initially rendering', function() {
-    let wrapper = shallow(<IssueDiff baseIssueId="base" targetIssueId="target" />);
+    const wrapper = shallow(
+      <IssueDiff
+        baseIssueId="base"
+        targetIssueId="target"
+        orgId="org-slug"
+        projectId="project-slug"
+      />
+    );
     expect(wrapper.find('SplitDiff')).toHaveLength(0);
     expect(wrapper).toMatchSnapshot();
   });
@@ -32,8 +39,14 @@ describe('IssueDiff', function() {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    let wrapper = mount(
-      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+    const wrapper = mount(
+      <IssueDiff
+        api={api}
+        baseIssueId="base"
+        targetIssueId="target"
+        orgId="org-slug"
+        projectId="project-slug"
+      />,
       routerContext
     );
 
@@ -48,20 +61,26 @@ describe('IssueDiff', function() {
     Client.addMockResponse({
       url: '/issues/target/events/latest/',
       body: {
-        entries: [{type: 'message', data: {message: 'Hello World'}}],
+        entries: [{type: 'message', data: {formatted: 'Hello World'}}],
       },
     });
     Client.addMockResponse({
       url: '/issues/base/events/latest/',
       body: {
         platform: 'javascript',
-        entries: [{type: 'message', data: {message: 'Foo World'}}],
+        entries: [{type: 'message', data: {formatted: 'Foo World'}}],
       },
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    let wrapper = mount(
-      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+    const wrapper = mount(
+      <IssueDiff
+        api={api}
+        baseIssueId="base"
+        targetIssueId="target"
+        orgId="org-slug"
+        projectId="project-slug"
+      />,
       routerContext
     );
 

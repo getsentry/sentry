@@ -1,16 +1,24 @@
 import React from 'react';
+
+import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import {removeSentryApp, publishRequestSentryApp} from 'app/actionCreators/sentryApps';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
-export default class OrganizationDeveloperSettings extends AsyncView {
+class OrganizationDeveloperSettings extends AsyncView {
+  static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+  };
+
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];
   }
@@ -25,45 +33,109 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     );
   };
 
-  renderBody() {
-    let {orgId} = this.props.params;
-    let action = (
+  publishRequest = app => {
+    // TODO(scefali) May want to do some state change after the request to show that the publish request has been made
+    publishRequestSentryApp(this.api, app);
+  };
+
+  renderApplicationRow = app => {
+    const {organization} = this.props;
+    return (
+      <SentryApplicationRow
+        key={app.uuid}
+        app={app}
+        organization={organization}
+        onRemoveApp={this.removeApp}
+        onPublishRequest={this.publishRequest}
+        showInstallationStatus={false}
+      />
+    );
+  };
+
+  renderInternalIntegrations() {
+    const {orgId} = this.props.params;
+    const integrations = this.state.applications.filter(app => app.status === 'internal');
+    const isEmpty = integrations.length === 0;
+
+    const action = (
       <Button
         priority="primary"
         size="small"
-        to={`/settings/${orgId}/developer-settings/new/`}
+        to={`/settings/${orgId}/developer-settings/new-internal/`}
         icon="icon-circle-add"
       >
-        {t('Create New Application')}
+        {t('New Internal Integration')}
       </Button>
     );
 
-    let isEmpty = this.state.applications.length === 0;
+    return (
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          {t('Internal Integrations')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {!isEmpty ? (
+            integrations.map(this.renderApplicationRow)
+          ) : (
+            <EmptyMessage>
+              {t('No internal integrations have been created yet.')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  renderExernalIntegrations() {
+    const {orgId} = this.props.params;
+    const integrations = this.state.applications.filter(app => app.status !== 'internal');
+    const isEmpty = integrations.length === 0;
+
+    const action = (
+      <Button
+        priority="primary"
+        size="small"
+        to={`/settings/${orgId}/developer-settings/new-public/`}
+        icon="icon-circle-add"
+      >
+        {t('New Public Integration')}
+      </Button>
+    );
 
     return (
+      <Panel>
+        <PanelHeader hasButtons={true}>
+          {t('Public Integrations')}
+          {action}
+        </PanelHeader>
+        <PanelBody>
+          {!isEmpty ? (
+            integrations.map(this.renderApplicationRow)
+          ) : (
+            <EmptyMessage>
+              {t('No public integrations have been created yet.')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  renderBody() {
+    return (
       <div>
-        <SettingsPageHeader title={t('Developer Settings')} action={action} />
-        <Panel>
-          <PanelHeader>{t('Applications')}</PanelHeader>
-          <PanelBody>
-            {!isEmpty ? (
-              this.state.applications.map(app => {
-                return (
-                  <SentryApplicationRow
-                    key={app.uuid}
-                    app={app}
-                    orgId={orgId}
-                    onRemoveApp={this.removeApp}
-                    showPublishStatus={true}
-                  />
-                );
-              })
-            ) : (
-              <EmptyMessage>{t('No applications have been created yet.')}</EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
+        <SettingsPageHeader title={t('Developer Settings')} />
+        <AlertLink to="https://docs.sentry.io/workflow/integrations/integration-platform/">
+          {t(
+            'Have questions about the Integration Platform? Learn more about it in our docs.'
+          )}
+        </AlertLink>
+        {this.renderExernalIntegrations()}
+        {this.renderInternalIntegrations()}
       </div>
     );
   }
 }
+
+export default withOrganization(OrganizationDeveloperSettings);

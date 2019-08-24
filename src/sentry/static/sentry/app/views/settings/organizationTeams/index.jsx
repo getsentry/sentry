@@ -1,26 +1,28 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
 import {loadStats} from 'app/actionCreators/projects';
 import {sortArray} from 'app/utils';
-import ApiMixin from 'app/mixins/apiMixin';
-import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+
 import OrganizationTeams from './organizationTeams';
 
 const OrganizationTeamsContainer = createReactClass({
   displayName: 'OrganizationTeamsContainer',
 
   propTypes: {
+    api: PropTypes.object,
+    organization: SentryTypes.Organization,
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
   mixins: [
-    ApiMixin,
-    OrganizationState,
     Reflux.listenTo(TeamStore, 'onTeamListChange'),
     Reflux.listenTo(ProjectsStore, 'onProjectListChange'),
   ],
@@ -42,7 +44,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   fetchStats() {
-    loadStats(this.api, {
+    loadStats(this.props.api, {
       orgId: this.props.params.orgId,
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
@@ -53,7 +55,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   onTeamListChange() {
-    let newTeamList = TeamStore.getAll();
+    const newTeamList = TeamStore.getAll();
 
     this.setState({
       teamList: sortArray(newTeamList, function(o) {
@@ -63,7 +65,7 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   onProjectListChange() {
-    let newProjectList = ProjectsStore.getAll();
+    const newProjectList = ProjectsStore.getAll();
 
     this.setState({
       projectList: sortArray(newProjectList, function(o) {
@@ -73,21 +75,21 @@ const OrganizationTeamsContainer = createReactClass({
   },
 
   render() {
-    if (!this.context.organization) return null;
+    const {organization} = this.props;
 
-    let access = this.getAccess();
-    let features = this.getFeatures();
-    let org = this.getOrganization();
+    if (!organization) {
+      return null;
+    }
 
-    let allTeams = this.state.teamList;
-    let activeTeams = this.state.teamList.filter(team => team.isMember);
+    const allTeams = this.state.teamList;
+    const activeTeams = this.state.teamList.filter(team => team.isMember);
 
     return (
       <OrganizationTeams
         {...this.props}
-        access={access}
-        features={features}
-        organization={org}
+        access={new Set(organization.access)}
+        features={new Set(organization.features)}
+        organization={organization}
         projectList={this.state.projectList}
         allTeams={allTeams}
         activeTeams={activeTeams}
@@ -96,4 +98,6 @@ const OrganizationTeamsContainer = createReactClass({
   },
 });
 
-export default OrganizationTeamsContainer;
+export {OrganizationTeamsContainer};
+
+export default withApi(withOrganization(OrganizationTeamsContainer));

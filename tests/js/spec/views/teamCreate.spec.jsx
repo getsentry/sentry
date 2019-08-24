@@ -6,7 +6,7 @@ import {TeamCreate} from 'app/views/teamCreate';
 describe('TeamCreate', function() {
   describe('render()', function() {
     it('renders correctly', function() {
-      let wrapper = shallow(
+      const wrapper = shallow(
         <TeamCreate
           params={{
             orgId: 'org',
@@ -22,7 +22,7 @@ describe('TeamCreate', function() {
 
   describe('handleSubmitSuccess()', function() {
     let wrapper;
-    let redirectMock = jest.fn();
+    const redirectMock = jest.fn();
 
     beforeEach(function() {
       redirectMock.mockReset();

@@ -33,18 +33,22 @@ class Clipboard extends React.Component {
   }
 
   handleMount = ref => {
-    if (!ref) return;
+    if (!ref) {
+      return;
+    }
 
-    let {hideMessages, successMessage, errorMessage, onSuccess, onError} = this.props;
-    let hasSuccessCb = typeof onSuccess === 'function';
-    let hasErrorCb = typeof onError === 'function';
-    let bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
+    const {hideMessages, successMessage, errorMessage, onSuccess, onError} = this.props;
+    const hasSuccessCb = typeof onSuccess === 'function';
+    const hasErrorCb = typeof onError === 'function';
+    const bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
 
     this.clipboard = new Clip(ReactDOM.findDOMNode(ref), {
       text: () => this.props.value,
     });
 
-    if (!bindEventHandlers) return;
+    if (!bindEventHandlers) {
+      return;
+    }
 
     this.clipboard
       .on('success', () => {
@@ -66,7 +70,7 @@ class Clipboard extends React.Component {
   };
 
   render() {
-    let {children, hideUnsupported} = this.props;
+    const {children, hideUnsupported} = this.props;
 
     // Browser doesn't support `execCommand`
     if (hideUnsupported && !Clip.isSupported()) {

@@ -171,19 +171,24 @@ export function getOption(option) {
   return definitionsMap[option];
 }
 
+export function getOptionDefault(option) {
+  const meta = getOption(option);
+  return meta.defaultValue ? meta.defaultValue() : undefined;
+}
+
 function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
 export function getOptionField(option, field) {
-  let meta = {...getOption(option), ...field};
-  let Field = meta.component || TextField;
+  const meta = {...getOption(option), ...field};
+  const Field = meta.component || TextField;
   return (
     <Field
       {...meta}
       name={option}
       key={option}
-      defaultValue={meta.defaultValue ? meta.defaultValue() : undefined}
+      defaultValue={getOptionDefault(option)}
       required={meta.required && !meta.allowEmpty}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
@@ -203,10 +208,10 @@ export function getForm(fields) {
   // fields is a object mapping key name to Fields, so the goal is to split
   // them up into multiple sections, and spit out fieldsets with a grouping of
   // all fields, in the right order, under their section.
-  let sets = [];
-  for (let section of sections) {
-    let set = [];
-    for (let option of optionsForSection(section)) {
+  const sets = [];
+  for (const section of sections) {
+    const set = [];
+    for (const option of optionsForSection(section)) {
       if (fields[option.key]) {
         set.push(fields[option.key]);
       }

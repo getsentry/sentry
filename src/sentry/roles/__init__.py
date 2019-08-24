@@ -13,3 +13,4 @@ get_choices = default_manager.get_choices
 get_default = default_manager.get_default
 get_top_dog = default_manager.get_top_dog
 with_scope = default_manager.with_scope
+with_any_scope = default_manager.with_any_scope

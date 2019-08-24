@@ -3,26 +3,28 @@ import React from 'react';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
-class GroupEventDataSection extends React.Component {
+class EventDataSection extends React.Component {
   static propTypes = {
     title: PropTypes.any,
     type: PropTypes.string.isRequired,
     wrapTitle: PropTypes.bool,
     toggleRaw: PropTypes.func,
     raw: PropTypes.bool,
+    hideGuide: PropTypes.bool,
   };
 
   static defaultProps = {
     wrapTitle: true,
     raw: false,
+    hideGuide: false,
   };
 
   componentDidMount() {
     if (location.hash) {
-      let [, hash] = location.hash.split('#');
+      const [, hash] = location.hash.split('#');
 
       try {
-        let anchorElement = hash && document.querySelector('div#' + hash);
+        const anchorElement = hash && document.querySelector('div#' + hash);
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
@@ -38,40 +40,45 @@ class GroupEventDataSection extends React.Component {
   }
 
   render() {
-    const guideAnchor =
-      this.props.type === 'tags' ? <GuideAnchor target="tags" type="text" /> : null;
+    const {
+      children,
+      className,
+      hideGuide,
+      type,
+      title,
+      toggleRaw,
+      raw,
+      wrapTitle,
+    } = this.props;
+
+    let titleNode = wrapTitle ? <h3>{title}</h3> : <div>{title}</div>;
+    if (type === 'tags' && hideGuide === false) {
+      titleNode = (
+        <GuideAnchor target="tags" position="top">
+          {titleNode}
+        </GuideAnchor>
+      );
+    }
 
     return (
-      <div className={(this.props.className || '') + ' box'}>
-        {this.props.title && (
-          <div className="box-header" id={this.props.type}>
-            <a href={'#' + this.props.type} className="permalink">
+      <div className={(className || '') + ' box'}>
+        {title && (
+          <div className="box-header" id={type}>
+            <a href={'#' + type} className="permalink">
               <em className="icon-anchor" />
             </a>
-            {this.props.wrapTitle ? (
-              <h3>
-                {guideAnchor}
-                {this.props.title}
-              </h3>
-            ) : (
-              <div>
-                {guideAnchor}
-                {this.props.title}
-              </div>
-            )}
-            {this.props.type === 'extra' && (
+            {titleNode}
+            {type === 'extra' && (
               <div className="btn-group pull-right">
                 <a
-                  className={
-                    (!this.props.raw ? 'active' : '') + ' btn btn-default btn-sm'
-                  }
-                  onClick={() => this.props.toggleRaw(false)}
+                  className={(!raw ? 'active' : '') + ' btn btn-default btn-sm'}
+                  onClick={() => toggleRaw(false)}
                 >
                   {t('Formatted')}
                 </a>
                 <a
-                  className={(this.props.raw ? 'active' : '') + ' btn btn-default btn-sm'}
-                  onClick={() => this.props.toggleRaw(true)}
+                  className={(raw ? 'active' : '') + ' btn btn-default btn-sm'}
+                  onClick={() => toggleRaw(true)}
                 >
                   {t('Raw')}
                 </a>
@@ -79,10 +86,10 @@ class GroupEventDataSection extends React.Component {
             )}
           </div>
         )}
-        <div className="box-content with-padding">{this.props.children}</div>
+        <div className="box-content with-padding">{children}</div>
       </div>
     );
   }
 }
 
-export default GroupEventDataSection;
+export default EventDataSection;

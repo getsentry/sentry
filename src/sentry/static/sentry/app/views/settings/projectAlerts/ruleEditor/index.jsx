@@ -14,13 +14,13 @@ import {
   addMessage,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
-import EnvironmentStore from 'app/stores/environmentStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {getDisplayName} from 'app/utils/environment';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -45,24 +45,24 @@ const RuleEditor = createReactClass({
   displayName: 'RuleEditor',
 
   propTypes: {
+    api: PropTypes.object,
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin],
-
   getInitialState() {
     return {
       rule: null,
       loading: false,
       error: null,
+      environments: [],
     };
   },
 
   componentDidMount() {
-    this.fetchRule();
+    this.fetchData();
   },
 
   componentDidUpdate() {
@@ -71,30 +71,31 @@ const RuleEditor = createReactClass({
     }
   },
 
-  fetchRule() {
-    const {ruleId, projectId, orgId} = this.props.params;
+  fetchData() {
+    const {
+      api,
+      params: {ruleId, projectId, orgId},
+    } = this.props;
 
-    if (ruleId) {
-      const endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
-      this.api.request(endpoint, {
-        success: rule => {
-          this.setState({
-            rule,
-          });
-        },
-      });
-    } else {
-      const defaultRule = {
-        actionMatch: 'all',
-        actions: [],
-        conditions: [],
-        name: '',
-        frequency: 30,
-        environment: ALL_ENVIRONMENTS_KEY,
-      };
+    const defaultRule = {
+      actionMatch: 'all',
+      actions: [],
+      conditions: [],
+      name: '',
+      frequency: 30,
+      environment: ALL_ENVIRONMENTS_KEY,
+    };
 
-      this.setState({rule: defaultRule});
-    }
+    const promises = [
+      api.requestPromise(`/projects/${orgId}/${projectId}/environments/`),
+      ruleId
+        ? api.requestPromise(`/projects/${orgId}/${projectId}/rules/${ruleId}/`)
+        : Promise.resolve(defaultRule),
+    ];
+
+    Promise.all(promises).then(([environments, rule]) => {
+      this.setState({environments, rule});
+    });
   },
 
   handleSubmit(e) {
@@ -115,7 +116,7 @@ const RuleEditor = createReactClass({
 
     addMessage(t('Saving...'));
 
-    this.api.request(endpoint, {
+    this.props.api.request(endpoint, {
       method: isNew ? 'POST' : 'PUT',
       data,
       success: resp => {
@@ -140,7 +141,9 @@ const RuleEditor = createReactClass({
 
   hasError(field) {
     const {error} = this.state;
-    if (!error) return false;
+    if (!error) {
+      return false;
+    }
     return !!error[field];
   },
 
@@ -194,13 +197,15 @@ const RuleEditor = createReactClass({
   },
 
   render() {
-    const activeEnvs = EnvironmentStore.getActive() || [];
+    const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...activeEnvs.map(env => [env.name, env.displayName]),
+      ...environments.map(env => [env.name, getDisplayName(env)]),
     ];
 
-    if (!this.state.rule) return <LoadingIndicator />;
+    if (!this.state.rule) {
+      return <LoadingIndicator />;
+    }
 
     const {rule, loading, error} = this.state;
     const {actionMatch, actions, conditions, frequency, name} = rule;
@@ -325,7 +330,9 @@ const RuleEditor = createReactClass({
   },
 });
 
-export default RuleEditor;
+export {RuleEditor};
+
+export default withApi(RuleEditor);
 
 const CancelButton = styled(Button)`
   margin-right: ${space(1)};

@@ -31,7 +31,15 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     >
       <Box>
         <RepositoryRow
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           key="4"
           orgId="org-slug"
           repository={
@@ -117,6 +125,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       mb={1}
     >
       <Button
+        align="center"
         disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >
@@ -192,6 +201,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       mb={1}
     >
       <Button
+        align="center"
         disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >

@@ -16,7 +16,7 @@ describe('OrganizationApiKeysList', function() {
   beforeEach(function() {});
 
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -28,7 +28,7 @@ describe('OrganizationApiKeysList', function() {
   });
 
   it('opens a modal when trying to delete a key', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -43,7 +43,7 @@ describe('OrganizationApiKeysList', function() {
     wrapper.update();
 
     // expect a modal
-    let modal = wrapper.find('Modal');
+    const modal = wrapper.find('Modal');
     expect(modal.first().prop('show')).toBe(true);
   });
 });

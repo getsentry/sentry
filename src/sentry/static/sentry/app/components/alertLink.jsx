@@ -2,7 +2,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
@@ -11,7 +11,7 @@ export default class AlertLink extends React.Component {
     to: PropTypes.string,
     href: PropTypes.string,
     icon: PropTypes.string,
-    priority: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'default']),
+    priority: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'muted']),
     size: PropTypes.oneOf(['small', 'normal']),
   };
 
@@ -20,7 +20,7 @@ export default class AlertLink extends React.Component {
   };
 
   render() {
-    let {icon, children, size} = this.props;
+    const {icon, children, size} = this.props;
 
     return (
       <StyledLink {...this.props}>
@@ -38,13 +38,18 @@ const StyledLink = styled(Link)`
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
-  padding: ${p => (p.size == 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
+  padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
   &:hover {
     border-color: ${p => p.theme.blueLight};
+  }
+
+  &.focus-visible {
+    outline: none;
+    box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
   }
 `;
 
@@ -53,5 +58,5 @@ const AlertLinkText = styled('div')`
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: ${p => (p.spacingSize == 'small' ? space(1) : space(1.5))};
+  margin-right: ${p => (p.spacingSize === 'small' ? space(1) : space(1.5))};
 `;

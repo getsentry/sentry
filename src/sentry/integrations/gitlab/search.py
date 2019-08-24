@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.exceptions import ApiError
 from sentry.models import Integration
 
 
@@ -37,7 +39,10 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             except ValueError:
                 iids = None
 
-            response = installation.search_issues(query=query, project_id=project, iids=iids)
+            try:
+                response = installation.search_issues(query=query, project_id=project, iids=iids)
+            except ApiError as e:
+                return Response({'detail': six.text_type(e)}, status=400)
 
             return Response([{
                 'label': '(#%s) %s' % (i['iid'], i['title']),
@@ -45,7 +50,10 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             } for i in response])
 
         elif field == 'project':
-            response = installation.search_projects(query)
+            try:
+                response = installation.search_projects(query)
+            except ApiError as e:
+                return Response({'detail': six.text_type(e)}, status=400)
             return Response([{
                 'label': project['name_with_namespace'],
                 'value': project['id'],

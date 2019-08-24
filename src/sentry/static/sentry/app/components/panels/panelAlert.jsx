@@ -13,15 +13,15 @@ const DEFAULT_ICONS = {
 
 // Margin bottom should probably be a different prop
 const PanelAlert = styled(({type, icon, ...props}) => (
-  <Alert {...props} icon={icon || DEFAULT_ICONS[type]} type={type} />
+  <Alert {...props} icon={icon || DEFAULT_ICONS[type]} type={type} system />
 ))`
-  margin: -1px;
+  margin: 0 0 1px 0;
   border-radius: 0;
 `;
 
 PanelAlert.propTypes = {
-  type: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'default']),
-  icon: PropTypes.string,
+  ...Alert.propTypes,
+  type: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'muted']),
 };
 
 export default PanelAlert;

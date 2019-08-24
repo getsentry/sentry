@@ -4,6 +4,12 @@ import {mount} from 'enzyme';
 import TableChart from 'app/components/charts/tableChart';
 
 describe('TableChart', function() {
+  const renderer = jest.fn(() => null);
+
+  beforeEach(function() {
+    renderer.mockClear();
+  });
+
   it('calculates row and column totals and passes to renderers', function() {
     const ERROR_TYPE_DATA = [
       ['TypeError', 50, 40, 30],
@@ -11,7 +17,6 @@ describe('TableChart', function() {
       ['NameError', 15, 15, 15],
       ['ZeroDivisionError', 20, 10, 0],
     ];
-    const renderer = jest.fn();
     mount(
       <TableChart
         title="Error Type"
@@ -50,7 +55,6 @@ describe('TableChart', function() {
       ['NameError', 'Label', 15, 15, 15],
       ['ZeroDivisionError', 'Label', 20, 10, 0],
     ];
-    const renderer = jest.fn();
     mount(
       <TableChart
         title="Error Type"
@@ -101,7 +105,6 @@ describe('TableChart', function() {
   });
 
   it('renders headers', function() {
-    const renderer = jest.fn();
     const headers = ['Foo', 'Bar', 'Baz'];
     mount(
       <TableChart
@@ -122,7 +125,6 @@ describe('TableChart', function() {
   });
 
   it('renders headers with row total column', function() {
-    const renderer = jest.fn();
     mount(
       <TableChart
         title="Error Type"
@@ -169,7 +171,7 @@ describe('TableChart', function() {
       />
     );
 
-    // table headers == Number of data columns + total column
+    // table headers === Number of data columns + total column
     expect(renderTableHeaderCell).toHaveBeenCalledTimes(5);
     expect(renderTableHeaderCell).toHaveBeenLastCalledWith(
       expect.objectContaining({

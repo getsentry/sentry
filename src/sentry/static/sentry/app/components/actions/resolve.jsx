@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import {getShortVersion} from 'app/utils';
 import {t} from 'app/locale';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import MenuItem from 'app/components/menuItem';
@@ -16,10 +15,11 @@ export default class ResolveActions extends React.Component {
     latestRelease: PropTypes.object,
     onUpdate: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     shouldConfirm: PropTypes.bool,
     confirmMessage: PropTypes.node,
     disabled: PropTypes.bool,
+    disableDropdown: PropTypes.bool,
     isResolved: PropTypes.bool,
     isAutoResolved: PropTypes.bool,
     confirmLabel: PropTypes.string,
@@ -51,7 +51,7 @@ export default class ResolveActions extends React.Component {
   }
 
   renderResolved() {
-    let {isAutoResolved, onUpdate} = this.props;
+    const {isAutoResolved, onUpdate} = this.props;
 
     if (isAutoResolved) {
       return (
@@ -72,6 +72,7 @@ export default class ResolveActions extends React.Component {
         <div className="btn-group">
           <Tooltip title={t('Unresolve')}>
             <a
+              data-test-id="button-unresolve"
               className={this.getButtonClass('active')}
               onClick={() => onUpdate({status: 'unresolved'})}
             >
@@ -84,7 +85,7 @@ export default class ResolveActions extends React.Component {
   }
 
   render() {
-    let {
+    const {
       isResolved,
       hasRelease,
       latestRelease,
@@ -95,19 +96,20 @@ export default class ResolveActions extends React.Component {
       shouldConfirm,
       disabled,
       confirmLabel,
+      disableDropdown,
     } = this.props;
 
-    let buttonClass = this.getButtonClass();
+    const buttonClass = this.getButtonClass();
 
     if (isResolved) {
       return this.renderResolved();
     }
 
-    let actionTitle = !hasRelease
+    const actionTitle = !hasRelease
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
-    let actionLinkProps = {
+    const actionLinkProps = {
       shouldConfirm,
       message: confirmMessage,
       confirmLabel,
@@ -123,81 +125,79 @@ export default class ResolveActions extends React.Component {
           orgId={orgId}
           projectId={projectId}
         />
-        <div className="btn-group">
-          <ActionLink
-            {...actionLinkProps}
-            title={'Resolve'}
-            className={buttonClass}
-            onAction={() => onUpdate({status: 'resolved'})}
-          >
-            <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="resolve" type="text" />
-            {t('Resolve')}
-          </ActionLink>
+        <GuideAnchor target="resolve">
+          <div className="btn-group">
+            <ActionLink
+              {...actionLinkProps}
+              title="Resolve"
+              className={buttonClass}
+              onAction={() => onUpdate({status: 'resolved'})}
+            >
+              <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
+              {t('Resolve')}
+            </ActionLink>
 
-          <DropdownLink
-            key="resolve-dropdown"
-            caret={true}
-            className={buttonClass}
-            title=""
-            alwaysRenderMenu
-            disabled={disabled}
-          >
-            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
-            <MenuItem noAnchor={true}>
-              <Tooltip title={actionTitle}>
-                <ActionLink
-                  {...actionLinkProps}
-                  onAction={() => {
-                    return (
-                      hasRelease &&
-                      onUpdate({
-                        status: 'resolved',
-                        statusDetails: {
-                          inNextRelease: true,
-                        },
-                      })
-                    );
-                  }}
-                >
-                  {t('The next release')}
-                </ActionLink>
-              </Tooltip>
-              <Tooltip title={actionTitle}>
-                <ActionLink
-                  {...actionLinkProps}
-                  onAction={() => {
-                    return (
-                      hasRelease &&
-                      onUpdate({
-                        status: 'resolved',
-                        statusDetails: {
-                          inRelease: latestRelease ? latestRelease.version : 'latest',
-                        },
-                      })
-                    );
-                  }}
-                >
-                  {latestRelease
-                    ? t(
-                        'The current release (%s)',
-                        getShortVersion(latestRelease.version)
-                      )
-                    : t('The current release')}
-                </ActionLink>
-              </Tooltip>
-              <Tooltip title={actionTitle}>
-                <ActionLink
-                  {...actionLinkProps}
-                  onAction={() => hasRelease && this.setState({modal: true})}
-                  shouldConfirm={false}
-                >
-                  {t('Another version\u2026')}
-                </ActionLink>
-              </Tooltip>
-            </MenuItem>
-          </DropdownLink>
-        </div>
+            <DropdownLink
+              key="resolve-dropdown"
+              caret={true}
+              className={buttonClass}
+              title=""
+              alwaysRenderMenu
+              disabled={disableDropdown || disabled}
+            >
+              <MenuItem header={true}>{t('Resolved In')}</MenuItem>
+              <MenuItem noAnchor={true}>
+                <Tooltip title={actionTitle} containerDisplayMode="block">
+                  <ActionLink
+                    {...actionLinkProps}
+                    onAction={() => {
+                      return (
+                        hasRelease &&
+                        onUpdate({
+                          status: 'resolved',
+                          statusDetails: {
+                            inNextRelease: true,
+                          },
+                        })
+                      );
+                    }}
+                  >
+                    {t('The next release')}
+                  </ActionLink>
+                </Tooltip>
+                <Tooltip title={actionTitle} containerDisplayMode="block">
+                  <ActionLink
+                    {...actionLinkProps}
+                    onAction={() => {
+                      return (
+                        hasRelease &&
+                        onUpdate({
+                          status: 'resolved',
+                          statusDetails: {
+                            inRelease: latestRelease ? latestRelease.version : 'latest',
+                          },
+                        })
+                      );
+                    }}
+                  >
+                    {latestRelease
+                      ? t('The current release (%s)', latestRelease.version)
+                      : t('The current release')}
+                  </ActionLink>
+                </Tooltip>
+                <Tooltip title={actionTitle} containerDisplayMode="block">
+                  <ActionLink
+                    {...actionLinkProps}
+                    onAction={() => hasRelease && this.setState({modal: true})}
+                    shouldConfirm={false}
+                  >
+                    {t('Another version\u2026')}
+                  </ActionLink>
+                </Tooltip>
+              </MenuItem>
+            </DropdownLink>
+          </div>
+        </GuideAnchor>
       </div>
     );
   }

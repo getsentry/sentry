@@ -38,8 +38,7 @@ exports[`AdminBuffer render() renders 1`] = `
         Updates Processed
       </h4>
     </div>
-    <internalStatChart
-      height={150}
+    <withApi(InternalStatChart)
       label="Jobs"
       resolution="1h"
       since={1507603280}
@@ -56,8 +55,7 @@ exports[`AdminBuffer render() renders 1`] = `
         Revoked Updates
       </h4>
     </div>
-    <internalStatChart
-      height={150}
+    <withApi(InternalStatChart)
       label="Jobs"
       resolution="1h"
       since={1507603280}

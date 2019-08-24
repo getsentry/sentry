@@ -10,12 +10,10 @@ import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder
 jest.mock('jquery');
 
 describe('RuleBuilder', function() {
-  let sandbox;
-
-  let organization = TestStubs.Organization();
+  const organization = TestStubs.Organization();
   let project;
   let handleAdd;
-  let USER_1 = TestStubs.User({
+  const USER_1 = TestStubs.User({
     id: '1',
     name: 'Jane Doe',
     email: 'janedoe@example.com',
@@ -25,7 +23,7 @@ describe('RuleBuilder', function() {
       email: 'janedoe@example.com',
     },
   });
-  let USER_2 = TestStubs.User({
+  const USER_2 = TestStubs.User({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
@@ -36,25 +34,24 @@ describe('RuleBuilder', function() {
     },
   });
 
-  let TEAM_1 = TestStubs.Team({
+  const TEAM_1 = TestStubs.Team({
     id: '3',
     name: 'COOL TEAM',
     slug: 'cool-team',
   });
 
   // This team is in project
-  let TEAM_2 = TestStubs.Team({
+  const TEAM_2 = TestStubs.Team({
     id: '4',
     name: 'TEAM NOT IN PROJECT',
     slug: 'team-not-in-project',
   });
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     // User in project
     MemberListStore.loadInitialData([USER_1]);
     // All teams
-    sandbox.stub(TeamStore, 'getAll').returns([TEAM_1, TEAM_2]);
+    jest.spyOn(TeamStore, 'getAll').mockImplementation(() => [TEAM_1, TEAM_2]);
 
     handleAdd = jest.fn();
 
@@ -63,7 +60,7 @@ describe('RuleBuilder', function() {
       teams: [TEAM_1],
     });
     ProjectsStore.loadInitialData([project]);
-    sandbox.stub(ProjectsStore, 'getBySlug').returns(project);
+    jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -71,12 +68,10 @@ describe('RuleBuilder', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
       TestStubs.routerContext()
     );
@@ -84,11 +79,11 @@ describe('RuleBuilder', function() {
     await tick();
     wrapper.update();
 
-    let add = wrapper.find('Button');
+    const add = wrapper.find('Button');
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
-    let text = wrapper.find('BuilderInput');
+    const text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
     expect(wrapper.find('Button').prop('disabled')).toBe(true);
 
@@ -110,7 +105,7 @@ describe('RuleBuilder', function() {
   });
 
   it('renders with suggestions', async function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -154,7 +149,7 @@ describe('RuleBuilder', function() {
     // Enter to select Jane Doe
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
-    let ruleCandidate = wrapper.find('RuleCandidate').first();
+    const ruleCandidate = wrapper.find('RuleCandidate').first();
     ruleCandidate.simulate('click');
 
     // This is because after selecting, react-select (async) reloads

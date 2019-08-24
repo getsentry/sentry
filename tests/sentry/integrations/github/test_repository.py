@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import mock
 import responses
 import pytest
 
@@ -30,22 +31,29 @@ def stub_installation_token():
 
 
 class GitHubAppsProviderTest(PluginTestCase):
+    def setUp(self):
+        super(GitHubAppsProviderTest, self).setUp()
+        self.organization = self.create_organization()
+        self.integration = Integration.objects.create(
+            provider='github',
+            external_id='654321',
+        )
+
+    def tearDown(self):
+        super(GitHubAppsProviderTest, self).tearDown()
+        responses.reset()
+
     @fixture
     def provider(self):
         return GitHubRepositoryProvider('integrations:github')
 
     @fixture
     def repository(self):
-        organization = self.create_organization()
-        integration = Integration.objects.create(
-            provider='github',
-            external_id='654321',
-        )
         return Repository.objects.create(
             name='getsentry/example-repo',
             provider='integrations:github',
-            organization_id=organization.id,
-            integration_id=integration.id,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
             url='https://github.com/getsentry/example-repo',
             config={'name': 'getsentry/example-repo'},
         )
@@ -74,8 +82,9 @@ class GitHubAppsProviderTest(PluginTestCase):
             'url': 'https://github.com/getsentry/example-repo',
         }
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits_no_start(self):
+    def test_compare_commits_no_start(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
@@ -102,8 +111,9 @@ class GitHubAppsProviderTest(PluginTestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, 'abcdef')
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
@@ -119,8 +129,9 @@ class GitHubAppsProviderTest(PluginTestCase):
         for commit in result:
             assert_commit_shape(commit)
 
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     @responses.activate
-    def test_compare_commits_patchset_handling(self):
+    def test_compare_commits_patchset_handling(self, get_jwt):
         stub_installation_token()
         responses.add(
             responses.GET,
@@ -151,6 +162,49 @@ class GitHubAppsProviderTest(PluginTestCase):
         )
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, 'xyz123', 'abcdef')
+
+    @mock.patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    @responses.activate
+    def test_compare_commits_force_refresh(self, get_jwt):
+        stub_installation_token()
+        ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+        self.integration.metadata = {
+            'access_token': 'old-access-token',
+            'expires_at': ten_hours.replace(microsecond=0).isoformat()
+        }
+        self.integration.save()
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef',
+            status=404,
+            body='GitHub returned a 404 Not Found error.'
+        )
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef',
+            json=json.loads(COMPARE_COMMITS_EXAMPLE)
+        )
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e',
+            json=json.loads(GET_COMMIT_EXAMPLE)
+        )
+
+        result = self.provider.compare_commits(self.repository, 'xyz123', 'abcdef')
+        for commit in result:
+            assert_commit_shape(commit)
+
+        # assert token was refreshed
+        assert Integration.objects.get(
+            id=self.integration.id).metadata['access_token'] == 'v1.install-token'
+
+        # compare_commits gives 400, token was refreshed, and compare_commits gives 200
+        assert responses.calls[0].response.url == u'https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef'
+        assert responses.calls[0].response.status_code == 404
+        assert responses.calls[1].response.url == u'https://api.github.com/installations/654321/access_tokens'
+        assert responses.calls[1].response.status_code == 200
+        assert responses.calls[2].response.url == u'https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef'
+        assert responses.calls[2].response.status_code == 200
 
     def test_pull_request_url(self):
         pull = PullRequest(key=99)

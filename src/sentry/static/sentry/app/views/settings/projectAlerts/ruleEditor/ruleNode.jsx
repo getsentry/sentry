@@ -107,7 +107,6 @@ class RuleNode extends React.Component {
           <Button
             onClick={this.props.handleDelete}
             type="button"
-            tabIndex="-1"
             size="small"
             icon="icon-trash"
           />
@@ -119,7 +118,7 @@ class RuleNode extends React.Component {
 
 export default RuleNode;
 
-const RuleNodeRow = styled.div`
+const RuleNodeRow = styled('div')`
   display: flex;
   align-items: center;
   padding: 0 15px;
@@ -168,6 +167,6 @@ const RuleNodeForm = styled('div')`
   }
 `;
 
-const RuleNodeControls = styled.div`
+const RuleNodeControls = styled('div')`
   margin-left: 6px;
 `;

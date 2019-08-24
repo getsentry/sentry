@@ -7,6 +7,7 @@ export function Project(params) {
     isMember: true,
     isBookmarked: false,
     teams: [],
+    environments: [],
     ...params,
   };
 }

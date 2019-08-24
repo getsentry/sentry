@@ -1,4 +1,4 @@
-let data = [
+const data = [
   [1543276800000, 0],
   [1543363200000, 0],
   [1543449600000, 36],
@@ -8,11 +8,11 @@ let data = [
   [1543795200000, 104],
   [1543881600000, 13],
 ];
-let model = {
+const model = {
   xAxis: [
     {
-      rangeStart: 2,
-      rangeEnd: 5,
+      rangeStart: 1543449600000,
+      rangeEnd: 1543708800000,
     },
   ],
   series: [
@@ -28,8 +28,14 @@ export const chart = {
 
 // eslint-disable-next-line
 export const doZoom = (wrapper, chart = chart) => {
-  wrapper.instance().handleDataZoom({}, chart);
-  wrapper.instance().handleChartFinished();
+  wrapper
+    .find('ChartZoom')
+    .instance()
+    .handleDataZoom({}, chart);
+  wrapper
+    .find('ChartZoom')
+    .instance()
+    .handleChartFinished();
 };
 
 export const mockZoomRange = (rangeStart, rangeEnd) => {
