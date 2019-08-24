@@ -34,11 +34,11 @@ const isValidQueryStringField = (maybe: any): maybe is QueryStringField => {
     return false;
   }
 
-  const validTypes =
-    isString(maybe[0]) &&
-    isString(maybe[1]) &&
-    typeof maybe[2] === 'number' &&
-    isFinite(maybe[2]);
+  const hasSnubaCol = isString(maybe[0]);
+  const hasTitle = isString(maybe[1]);
+  const hasWidth = typeof maybe[2] === 'number' && isFinite(maybe[2]);
+
+  const validTypes = hasSnubaCol && hasTitle && hasWidth;
 
   return validTypes;
 };
