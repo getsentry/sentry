@@ -126,15 +126,34 @@ const decodeTags = (location: Location): Array<string> => {
   }, []);
 };
 
+const decodeQuery = (location: Location): string | undefined => {
+  if (!location.query || !location.query.query) {
+    return void 0;
+  }
+
+  const queryParameter = location.query.query;
+
+  const query =
+    Array.isArray(queryParameter) && queryParameter.length > 0
+      ? queryParameter[0]
+      : isString(queryParameter)
+      ? queryParameter
+      : void 0;
+
+  return isString(query) ? query.trim() : undefined;
+};
+
 class EventView {
   fields: Field[];
   sorts: Sort[];
   tags: string[];
+  query: string | undefined;
 
   constructor(location: Location) {
     this.fields = decodeFields(location);
     this.sorts = decodeSorts(location);
     this.tags = decodeTags(location);
+    this.query = decodeQuery(location);
   }
 }
 
