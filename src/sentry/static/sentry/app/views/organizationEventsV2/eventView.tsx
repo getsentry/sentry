@@ -1,6 +1,18 @@
 import {Location} from 'history';
 import {isString} from 'lodash';
 
+type Descending = {
+  kind: 'desc';
+  snuba_col: string;
+};
+
+type Ascending = {
+  kind: 'asc';
+  snuba_col: string;
+};
+
+type Sort = Descending | Ascending;
+
 type QueryStringField = [
   /* snuba_column */ string,
   /* title */ string,
@@ -60,11 +72,40 @@ const decodeFields = (location: Location): Array<Field> => {
   }, []);
 };
 
+const decodeSorts = (location): Array<Sort> => {
+  const {query} = location;
+
+  if (!query || !query.sort) {
+    return [];
+  }
+
+  const sort: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
+
+  return sort.reduce((acc: Array<Sort>, sort: string) => {
+    if (sort.startsWith('-')) {
+      acc.push({
+        kind: 'desc',
+        snuba_col: sort.substring(1),
+      });
+      return acc;
+    }
+
+    acc.push({
+      kind: 'asc',
+      snuba_col: sort,
+    });
+
+    return acc;
+  }, []);
+};
+
 class EventView {
   fields: Field[];
+  sorts: Sort[];
 
   constructor(location: Location) {
     this.fields = decodeFields(location);
+    this.sorts = decodeSorts(location);
   }
 }
 
