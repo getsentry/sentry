@@ -49,7 +49,7 @@ type Props = {
   organization: Organization;
   location: Location;
   eventSlug: string;
-  view: EventView;
+  view: EventViewv1;
   params: Params;
 };
 

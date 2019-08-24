@@ -123,7 +123,7 @@ class Discover2Table extends React.PureComponent<Props> {
 
     this.props.api.request(url, {
       query: this.getQuery(),
-      success: (data, textStatus, jqxhr) => {
+      success: (data, __textStatus, __jqxhr) => {
         console.log('data', data);
         // const projectMap = {};
         // data.forEach(project => {
