@@ -275,7 +275,7 @@ export type Group = {
   seenBy: User[];
 };
 
-export type EventView = {
+export type EventViewv1 = {
   id: string;
   name: string;
   data: {

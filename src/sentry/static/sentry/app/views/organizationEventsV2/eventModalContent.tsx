@@ -10,7 +10,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Event, Organization, EventView} from 'app/types';
+import {Event, Organization, EventViewv1} from 'app/types';
 import {Location} from 'history';
 
 import EventInterfaces from './eventInterfaces';
@@ -26,7 +26,7 @@ type EventModalContentProps = {
   projectId: string;
   organization: Organization;
   location: Location;
-  view: EventView;
+  view: EventViewv1;
 };
 
 /**

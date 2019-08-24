@@ -12,7 +12,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
-import {EventView, Organization} from 'app/types';
+import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
 
@@ -24,7 +24,7 @@ export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
 
 // TODO(ts): eventually defer to TS compile-time check to ensure this is readonly instead
 //       of deepfreezing it in runtime
-export const ALL_VIEWS: Readonly<Array<EventView>> = [
+export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     id: 'all',
     name: t('All Events'),

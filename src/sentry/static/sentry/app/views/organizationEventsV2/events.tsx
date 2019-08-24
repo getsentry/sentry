@@ -5,7 +5,7 @@ import {omit, isEqual} from 'lodash';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 
-import {Organization, EventView} from 'app/types';
+import {Organization, EventViewv1} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
@@ -32,7 +32,7 @@ type EventsProps = {
   router: ReactRouter.InjectedRouter;
   location: Location;
   organization: Organization;
-  view: EventView;
+  view: EventViewv1;
 };
 
 export default class Events extends React.Component<EventsProps> {
@@ -92,7 +92,7 @@ export default class Events extends React.Component<EventsProps> {
 type EventsTableProps = {
   location: Location;
   organization: Organization;
-  view: EventView;
+  view: EventViewv1;
 };
 
 // TODO: refactor this

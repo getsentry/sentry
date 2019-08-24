@@ -20,7 +20,7 @@ import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
-import {Event, Organization, EventView} from 'app/types';
+import {Event, Organization, EventViewv1} from 'app/types';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import {getQueryString} from './utils';
@@ -135,7 +135,7 @@ type ModalLineGraphProps = {
   organization: Organization;
   location: Location;
   currentEvent: Event;
-  view: EventView;
+  view: EventViewv1;
   // TODO(ts): adjust
   selection: any;
 };

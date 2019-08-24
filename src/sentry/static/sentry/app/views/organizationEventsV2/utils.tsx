@@ -2,7 +2,7 @@ import {partial, pick, get} from 'lodash';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {EventView} from 'app/types';
+import {EventViewv1} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
@@ -14,7 +14,7 @@ import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './
  * @returns {Object}
  *
  */
-export function getCurrentView(requestedView?: string): EventView {
+export function getCurrentView(requestedView?: string): EventViewv1 {
   return ALL_VIEWS.find(view => view.id === requestedView) || ALL_VIEWS[0];
 }
 
@@ -29,7 +29,7 @@ export type EventQuery = {
 /**
  * Takes a view and determines if there are any aggregate fields in it.
  *
- * TODO(mark) This function should be part of an EventView abstraction
+ * TODO(mark) This function should be part of an EventViewv1 abstraction
  *
  * @param {Object} view
  * @returns {Boolean}
@@ -43,12 +43,12 @@ export function hasAggregateField(view) {
 /**
  * Takes a view and converts it into the format required for the events API
  *
- * TODO(mark) This function should be part of an EventView abstraction
+ * TODO(mark) This function should be part of an EventViewv1 abstraction
  *
  * @param {Object} view
  * @returns {Object}
  */
-export function getQuery(view: EventView, location: Location) {
+export function getQuery(view: EventViewv1, location: Location) {
   const fields: Array<string> = get(view, 'data.fields', []);
 
   type LocationQuery = {
@@ -87,12 +87,12 @@ export function getQuery(view: EventView, location: Location) {
  * Generate a querystring based on the view defaults, current
  * location and any additional parameters
  *
- * TODO(mark) This function should be part of an EventView abstraction
+ * TODO(mark) This function should be part of an EventViewv1 abstraction
  *
  * @param {Object} view defaults containing `.data.query`
  * @param {Location} browser location
  */
-export function getQueryString(view: EventView, location: Location): string {
+export function getQueryString(view: EventViewv1, location: Location): string {
   const queryParts: Array<string> = [];
   if (view.data.query) {
     queryParts.push(view.data.query);

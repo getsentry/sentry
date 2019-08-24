@@ -10,14 +10,14 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {EventView, Organization} from 'app/types';
+import {EventViewv1, Organization} from 'app/types';
 
 import {FIELD_FORMATTERS, SPECIAL_FIELDS} from './data';
 import {getFieldRenderer} from './utils';
 import SortLink from './sortLink';
 
 type Props = {
-  view: EventView;
+  view: EventViewv1;
   isLoading: boolean;
   location: Location;
   organization: Organization;

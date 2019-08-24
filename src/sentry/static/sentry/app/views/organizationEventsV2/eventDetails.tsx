@@ -13,7 +13,7 @@ import NotFound from 'app/components/errors/notFound';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
-import {Organization, EventView, Event} from 'app/types';
+import {Organization, EventViewv1, Event} from 'app/types';
 
 import EventModalContent from './eventModalContent';
 import {EventQuery, getQuery} from './utils';

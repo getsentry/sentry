@@ -10,7 +10,7 @@ import SentryTypes from 'app/sentryTypes';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
-import {Organization, EventView} from 'app/types';
+import {Organization, EventViewv1} from 'app/types';
 
 import {
   fetchTagDistribution,
@@ -25,7 +25,7 @@ import {MODAL_QUERY_KEYS} from './data';
 type Props = {
   api: Client;
   organization: Organization;
-  view: EventView;
+  view: EventViewv1;
   location: Location;
 };
 
