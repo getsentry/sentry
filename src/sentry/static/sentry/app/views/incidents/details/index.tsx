@@ -39,24 +39,24 @@ class IncidentDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  fetchData = () => {
+  fetchData = async () => {
     this.setState({isLoading: true, hasError: false});
+
     const {
       api,
       params: {orgId, incidentId},
     } = this.props;
 
-    fetchIncident(api, orgId, incidentId)
-      .then(incident => {
-        this.setState({incident, isLoading: false, hasError: false});
-        markIncidentAsSeen(api, orgId, incident);
-      })
-      .catch(() => {
-        this.setState({isLoading: false, hasError: true});
-      });
+    try {
+      const incident = await fetchIncident(api, orgId, incidentId);
+      this.setState({incident, isLoading: false, hasError: false});
+      markIncidentAsSeen(api, orgId, incident);
+    } catch (_err) {
+      this.setState({isLoading: false, hasError: true});
+    }
   };
 
-  handleSubscriptionChange = () => {
+  handleSubscriptionChange = async () => {
     const {
       api,
       params: {orgId, incidentId},
@@ -74,15 +74,17 @@ class IncidentDetails extends React.Component<Props, State> {
       incident: {...(state.incident as Incident), isSubscribed: newIsSubscribed},
     }));
 
-    updateSubscription(api, orgId, incidentId, newIsSubscribed).catch(() => {
+    try {
+      updateSubscription(api, orgId, incidentId, newIsSubscribed);
+    } catch (_err) {
       this.setState(state => ({
         incident: {...(state.incident as Incident), isSubscribed},
       }));
       addErrorMessage(t('An error occurred, your subscription status was not changed.'));
-    });
+    }
   };
 
-  handleStatusChange = () => {
+  handleStatusChange = async () => {
     const {
       api,
       params: {orgId, incidentId},
@@ -102,19 +104,18 @@ class IncidentDetails extends React.Component<Props, State> {
       incident: {...(state.incident as Incident), status: newStatus},
     }));
 
-    updateStatus(api, orgId, incidentId, newStatus)
-      .then(incident => {
-        // Update entire incident object because updating status can cause other parts
-        // of the model to change (e.g close date)
-        this.setState({incident});
-      })
-      .catch(() => {
-        this.setState(state => ({
-          incident: {...(state.incident as Incident), status},
-        }));
+    try {
+      const incident = await updateStatus(api, orgId, incidentId, newStatus);
+      // Update entire incident object because updating status can cause other parts
+      // of the model to change (e.g close date)
+      this.setState({incident});
+    } catch (_err) {
+      this.setState(state => ({
+        incident: {...(state.incident as Incident), status},
+      }));
 
-        addErrorMessage(t('An error occurred, your incident status was not changed.'));
-      });
+      addErrorMessage(t('An error occurred, your incident status was not changed.'));
+    }
   };
 
   render() {
