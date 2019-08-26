@@ -55,7 +55,8 @@ export default class SentryAppExternalInstallation extends AsyncView {
   }
 
   get disableInstall() {
-    return this.state.isInstalled || this.isSentryAppUnavailableForOrg;
+    const {reloading, isInstalled} = this.state;
+    return isInstalled || reloading || this.isSentryAppUnavailableForOrg;
   }
 
   hasAccess = org => org.access.includes('org:integrations');
@@ -164,9 +165,10 @@ export default class SentryAppExternalInstallation extends AsyncView {
       return (
         <Alert type="error" icon="icon-circle-exclamation">
           {tct(
-            'Integration [sentryAppName] is an unpublished integration for a different organization',
+            'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
             {
               sentryAppName: <strong>{sentryApp.name}</strong>,
+              otherOrg: <strong>{sentryApp.owner.slug}</strong>,
             }
           )}
         </Alert>
