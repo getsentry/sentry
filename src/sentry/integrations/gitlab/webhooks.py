@@ -13,19 +13,13 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from simplejson import JSONDecodeError
 
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Integration,
-    PullRequest,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
-logger = logging.getLogger('sentry.webhooks')
+logger = logging.getLogger("sentry.webhooks")
 
-PROVIDER_NAME = 'integrations:gitlab'
+PROVIDER_NAME = "integrations:gitlab"
 
 
 class Webhook(object):
@@ -34,19 +28,17 @@ class Webhook(object):
 
     def get_repo(self, integration, organization, event):
         try:
-            project_id = event['project']['id']
+            project_id = event["project"]["id"]
         except KeyError:
-            logger.info('gitlab.webhook.missing-projectid', extra={
-                'integration_id': integration.id
-            })
+            logger.info(
+                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
+            )
             raise Http404()
 
-        external_id = u'{}:{}'.format(integration.metadata['instance'], project_id)
+        external_id = u"{}:{}".format(integration.metadata["instance"], project_id)
         try:
             repo = Repository.objects.get(
-                organization_id=organization.id,
-                provider=PROVIDER_NAME,
-                external_id=external_id,
+                organization_id=organization.id, provider=PROVIDER_NAME, external_id=external_id
             )
         except Repository.DoesNotExist:
             return None
@@ -65,33 +57,29 @@ class MergeEventWebhook(Webhook):
         if repo is None:
             return
         try:
-            number = event['object_attributes']['iid']
-            title = event['object_attributes']['title']
-            body = event['object_attributes']['description']
-            created_at = event['object_attributes']['created_at']
-            merge_commit_sha = event['object_attributes']['merge_commit_sha']
+            number = event["object_attributes"]["iid"]
+            title = event["object_attributes"]["title"]
+            body = event["object_attributes"]["description"]
+            created_at = event["object_attributes"]["created_at"]
+            merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
 
-            last_commit = event['object_attributes']['last_commit']
+            last_commit = event["object_attributes"]["last_commit"]
             author_email = None
             author_name = None
             if last_commit:
-                author_email = last_commit['author']['email']
-                author_name = last_commit['author']['name']
+                author_email = last_commit["author"]["email"]
+                author_name = last_commit["author"]["name"]
         except KeyError as e:
             logger.info(
-                'gitlab.webhook.invalid-merge-data',
-                extra={
-                    'integration_id': integration.id,
-                    'error': six.string_type(e)
-                })
+                "gitlab.webhook.invalid-merge-data",
+                extra={"integration_id": integration.id, "error": six.string_type(e)},
+            )
 
         if not author_email:
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(
-            organization_id=organization.id,
-            email=author_email,
-            defaults={'name': author_name}
+            organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
 
         try:
@@ -100,12 +88,11 @@ class MergeEventWebhook(Webhook):
                 repository_id=repo.id,
                 key=number,
                 values={
-                    'title': title,
-                    'author': author,
-                    'message': body,
-                    'merge_commit_sha': merge_commit_sha,
-                    'date_added': dateutil.parser.parse(
-                        created_at).astimezone(timezone.utc),
+                    "title": title,
+                    "author": author,
+                    "message": body,
+                    "merge_commit_sha": merge_commit_sha,
+                    "date_added": dateutil.parser.parse(created_at).astimezone(timezone.utc),
                 },
             )
         except IntegrityError:
@@ -129,11 +116,11 @@ class PushEventWebhook(Webhook):
         # TODO gitlab only sends a max of 20 commits. If a push contains
         # more commits they provide a total count and require additional API
         # requests to fetch the commit details
-        for commit in event.get('commits', []):
-            if IntegrationRepositoryProvider.should_ignore_commit(commit['message']):
+        for commit in event.get("commits", []):
+            if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                 continue
 
-            author_email = commit['author']['email']
+            author_email = commit["author"]["email"]
 
             # TODO(dcramer): we need to deal with bad values here, but since
             # its optional, lets just throw it out for now
@@ -143,7 +130,7 @@ class PushEventWebhook(Webhook):
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
-                    defaults={'name': commit['author']['name']}
+                    defaults={"name": commit["author"]["name"]},
                 )[0]
             else:
                 author = authors[author_email]
@@ -152,28 +139,25 @@ class PushEventWebhook(Webhook):
                     Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,
-                        key=commit['id'],
-                        message=commit['message'],
+                        key=commit["id"],
+                        message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(
-                            commit['timestamp'],
-                        ).astimezone(timezone.utc),
+                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
+                            timezone.utc
+                        ),
                     )
             except IntegrityError:
                 pass
 
 
 class GitlabWebhookEndpoint(View):
-    provider = 'gitlab'
+    provider = "gitlab"
 
-    _handlers = {
-        'Push Hook': PushEventWebhook,
-        'Merge Request Hook': MergeEventWebhook,
-    }
+    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        if request.method != 'POST':
+        if request.method != "POST":
             return HttpResponse(status=405)
 
         return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
@@ -183,53 +167,46 @@ class GitlabWebhookEndpoint(View):
             # Munge the token to extract the integration external_id.
             # gitlab hook payloads don't give us enough unique context
             # to find data on our side so we embed one in the token.
-            token = request.META['HTTP_X_GITLAB_TOKEN']
-            instance, group_path, secret = token.split(':')
-            external_id = u'{}:{}'.format(instance, group_path)
+            token = request.META["HTTP_X_GITLAB_TOKEN"]
+            instance, group_path, secret = token.split(":")
+            external_id = u"{}:{}".format(instance, group_path)
         except Exception:
-            logger.info('gitlab.webhook.invalid-token', extra={'token': token})
+            logger.info("gitlab.webhook.invalid-token", extra={"token": token})
             return HttpResponse(status=400)
 
         try:
-            integration = Integration.objects.filter(
-                provider=self.provider,
-                external_id=external_id
-            ).prefetch_related('organizations').get()
+            integration = (
+                Integration.objects.filter(provider=self.provider, external_id=external_id)
+                .prefetch_related("organizations")
+                .get()
+            )
         except Integration.DoesNotExist:
             logger.info(
-                'gitlab.webhook.invalid-organization',
-                extra={
-                    'external_id': request.META['HTTP_X_GITLAB_TOKEN'],
-                }
+                "gitlab.webhook.invalid-organization",
+                extra={"external_id": request.META["HTTP_X_GITLAB_TOKEN"]},
             )
             return HttpResponse(status=400)
 
-        if not constant_time_compare(secret, integration.metadata['webhook_secret']):
+        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
             logger.info(
-                'gitlab.webhook.invalid-token-secret',
-                extra={
-                    'integration_id': integration.id
-                }
+                "gitlab.webhook.invalid-token-secret", extra={"integration_id": integration.id}
             )
             return HttpResponse(status=400)
 
         try:
-            event = json.loads(request.body.decode('utf-8'))
+            event = json.loads(request.body.decode("utf-8"))
         except JSONDecodeError:
             logger.info(
-                'gitlab.webhook.invalid-json',
-                extra={
-                    'external_id': integration.external_id
-                }
+                "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
             )
             return HttpResponse(status=400)
 
         try:
-            handler = self._handlers[request.META['HTTP_X_GITLAB_EVENT']]
+            handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError:
-            logger.info('gitlab.webhook.missing-event', extra={
-                'event': request.META['HTTP_X_GITLAB_EVENT']
-            })
+            logger.info(
+                "gitlab.webhook.missing-event", extra={"event": request.META["HTTP_X_GITLAB_EVENT"]}
+            )
             return HttpResponse(status=400)
 
         for organization in integration.organizations.all():

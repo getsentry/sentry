@@ -18,7 +18,7 @@ class SentryAppPublishRequestTest(APITestCase):
 
         self.url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_request(self, send_mail):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
@@ -31,7 +31,7 @@ class SentryAppPublishRequestTest(APITestCase):
             fail_silently=False,
         )
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_already_published(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         self.login_as(user=self.user)
@@ -40,7 +40,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.data["detail"] == "Cannot publish already published integration"
         send_mail.asssert_not_called()
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_internal(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         self.login_as(user=self.user)

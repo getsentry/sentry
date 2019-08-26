@@ -14,15 +14,15 @@ class GitlabRefreshAuthTest(GitLabTestCase):
     def setUp(self):
         super(GitlabRefreshAuthTest, self).setUp()
         self.client = self.installation.get_client()
-        self.request_data = {'id': 'user_id'}
-        self.request_url = 'https://example.gitlab.com/api/v4/user'
-        self.refresh_url = 'https://example.gitlab.com/oauth/token'
+        self.request_data = {"id": "user_id"}
+        self.request_url = "https://example.gitlab.com/api/v4/user"
+        self.refresh_url = "https://example.gitlab.com/oauth/token"
         self.refresh_response = {
-            'access_token': '123432sfh29uhs29347',
-            'token_type': 'bearer',
-            'refresh_token': '29f43sdfsk22fsj929',
-            'created_at': 1536798907,
-            'scope': 'api'
+            "access_token": "123432sfh29uhs29347",
+            "token_type": "bearer",
+            "refresh_token": "29f43sdfsk22fsj929",
+            "created_at": 1536798907,
+            "scope": "api",
         }
         self.original_identity_data = dict(self.client.identity.data)
 
@@ -37,7 +37,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             responses.POST,
             self.refresh_url,
             status=200 if success else 401,
-            json=self.refresh_response if success else {}
+            json=self.refresh_response if success else {},
         )
 
     def add_get_user_response(self, success):
@@ -53,9 +53,9 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         assert call.response.status_code == status
 
     def assert_data(self, data, expected_data):
-        assert data['access_token'] == expected_data['access_token']
-        assert data['refresh_token'] == expected_data['refresh_token']
-        assert data['created_at'] == expected_data['created_at']
+        assert data["access_token"] == expected_data["access_token"]
+        assert data["refresh_token"] == expected_data["refresh_token"]
+        assert data["created_at"] == expected_data["created_at"]
 
     def assert_request_failed_refresh(self):
         responses_calls = responses.calls
