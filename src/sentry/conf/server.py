@@ -847,8 +847,7 @@ SENTRY_FEATURES = {
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
-    'organizations:org-saved-searches': False,
-
+    "organizations:org-saved-searches": False,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
