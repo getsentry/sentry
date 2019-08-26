@@ -71,8 +71,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
             )
 
     uwsgi_overrides = {
-        # Make sure we don't try and use uwsgi protocol
-        "protocol": "http",
+        'http-keepalive': True,
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
         "worker-reload-mercy": 2,
@@ -110,6 +109,8 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         proxy_port = port
         port = port + 1
 
+        uwsgi_overrides['protocol'] = 'http'
+
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
 
@@ -120,6 +121,17 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         )
 
         daemons = [w for w in daemons if w[0] != "webpack"] + [("webpack", webpack_config)]
+    else:
+        # If we are the bare http server, use the http option with uwsgi protocol
+        # See https://uwsgi-docs.readthedocs.io/en/latest/HTTP.html
+        uwsgi_overrides.update({
+            # Make sure uWSGI spawns an HTTP server for us as we don't
+            # have a proxy/load-balancer in front in dev mode.
+            'http': '%s:%s' % (host, port),
+            'protocol': 'uwsgi',
+            # This is needed to prevent https://git.io/fj7Lw
+            'uwsgi-socket': None,
+        })
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:

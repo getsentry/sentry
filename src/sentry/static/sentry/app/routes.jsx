@@ -675,6 +675,13 @@ function routes() {
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route
+        path="/accept/:memberId/:token/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptOrganizationInvite" */ 'app/views/acceptOrganizationInvite')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="/accept-transfer/"
         componentPromise={() =>
           import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/acceptProjectTransfer')
@@ -1028,13 +1035,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/incidents/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ 'app/views/organizationIncidents')
+              import(/* webpackChunkName: "IncidentsContainer" */ 'app/views/incidents')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidents" */ 'app/views/organizationIncidents/list')
+                import(/* webpackChunkName: "Incidents" */ 'app/views/incidents/list')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -1042,7 +1049,7 @@ function routes() {
             <Route
               path=":incidentId/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidentDetails" */ 'app/views/organizationIncidents/details')
+                import(/* webpackChunkName: "OrganizationIncidentDetails" */ 'app/views/incidents/details')
               }
               component={errorHandler(LazyLoad)}
             />

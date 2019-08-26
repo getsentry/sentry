@@ -1,15 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
-
-
-def iso_timestamp(date):
-    return date.isoformat()[:19]
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
@@ -17,9 +13,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         super(OrganizationEventsStatsEndpointTest, self).setUp()
         self.login_as(user=self.user)
 
-        self.day_ago = (timezone.now() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0
-        )
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
         self.project = self.create_project()
         self.project2 = self.create_project()
@@ -29,7 +23,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "very bad",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
             },
@@ -39,7 +33,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh my",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -49,7 +43,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "message": "very bad",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=2)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -64,8 +58,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "start": iso_timestamp(self.day_ago),
-                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                 "interval": "1h",
             },
             format="json",
@@ -94,8 +88,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "start": iso_timestamp(self.day_ago),
-                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                 "interval": "1h",
                 "group": self.group.id,
             },
@@ -116,7 +110,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "d" * 32,
                 "message": "something",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                 "tags": {"sentry:user": self.user2.email},
                 "fingerprint": ["group2"],
             },
@@ -125,8 +119,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "start": iso_timestamp(self.day_ago),
-                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                 "interval": "1h",
                 "yAxis": "user_count",
             },
@@ -143,8 +137,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "start": iso_timestamp(self.day_ago),
-                "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                 "interval": "1h",
                 "yAxis": "event_count",
             },
@@ -164,8 +158,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
                 },
@@ -183,8 +177,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count_unique(user)",
                 },
@@ -202,8 +196,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "nope(lol)",
                 },
@@ -216,8 +210,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "referenceEvent": "nope-invalid",
                     "yAxis": "count()",
@@ -232,7 +226,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "e" * 32,
                 "message": "oh my",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                 "tags": {"sentry:user": "bob@example.com"},
                 "fingerprint": ["group3"],
             },
@@ -243,8 +237,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),
                     "yAxis": "count()",
@@ -264,7 +258,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "e" * 32,
                 "message": "oh my",
-                "timestamp": iso_timestamp(self.day_ago + timedelta(minutes=2)),
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                 "tags": {"sentry:user": "bob@example.com"},
                 "fingerprint": ["group3"],
             },
@@ -275,8 +269,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_timestamp(self.day_ago),
-                    "end": iso_timestamp(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "field": ["message", "count()"],
                     "interval": "1h",
                     "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),

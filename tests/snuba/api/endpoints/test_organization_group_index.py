@@ -32,6 +32,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -39,7 +40,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super(GroupListTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -152,7 +153,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -160,7 +161,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
                 "environment": "staging",
             },
             project_id=self.project.id,
@@ -195,7 +196,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
 
@@ -209,12 +210,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_lookup_by_event_id_incorrect_project_id(self):
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
         event_id = "b" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
 
@@ -235,7 +236,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
 
@@ -1048,7 +1049,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": six.binary_type(i)},
-                    "timestamp": (self.min_ago - timedelta(seconds=i)).isoformat()[:19],
+                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )

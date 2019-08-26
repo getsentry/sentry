@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import {getShortVersion} from 'app/utils';
+import {getShortCommitHash} from 'app/utils';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
@@ -37,7 +37,7 @@ function CommitLink({inline, commitId, repository}) {
     return <span>{t('Unknown Commit')}</span>;
   }
 
-  const shortId = getShortVersion(commitId);
+  const shortId = getShortCommitHash(commitId);
 
   const providerData = SUPPORTED_PROVIDERS.find(provider => {
     if (!repository.provider) {

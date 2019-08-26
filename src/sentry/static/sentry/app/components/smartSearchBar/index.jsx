@@ -9,6 +9,7 @@ import styled, {css} from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -143,6 +144,10 @@ class SmartSearchBar extends React.Component {
     // Can create a saved search
     canCreateSavedSearch: PropTypes.bool,
 
+    // Wrap the input with a form
+    // Useful if search bar is used within a parent form
+    useFormWrapper: PropTypes.bool,
+
     /**
      * If this is defined, attempt to save search term scoped to the user and the current org
      */
@@ -165,6 +170,12 @@ class SmartSearchBar extends React.Component {
     onGetRecentSearches: PropTypes.func,
 
     onSearch: PropTypes.func,
+
+    // Search input change event
+    onChange: PropTypes.func,
+
+    // Search input blur event
+    onBlur: PropTypes.func,
 
     onSavedRecentSearch: PropTypes.func,
 
@@ -208,6 +219,7 @@ class SmartSearchBar extends React.Component {
     supportedTags: {},
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
+    useFormWrapper: true,
   };
 
   constructor(props) {
@@ -312,11 +324,13 @@ class SmartSearchBar extends React.Component {
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
       this.setState({dropdownVisible: false});
+      callIfFunction(this.props.onBlur);
     }, this.DROPDOWN_BLUR_DURATION);
   };
 
   onQueryChange = evt => {
     this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
+    callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
   onKeyUp = evt => {
@@ -793,12 +807,45 @@ class SmartSearchBar extends React.Component {
       pinnedSearch,
       placeholder,
       disabled,
+      useFormWrapper,
       onSidebarToggle,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
     const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
     const hasQuery = !!this.state.query;
+
+    const input = (
+      <React.Fragment>
+        <StyledInput
+          type="text"
+          placeholder={placeholder}
+          id="smart-search-input"
+          name="query"
+          innerRef={this.searchInput}
+          autoComplete="off"
+          value={this.state.query}
+          onFocus={this.onQueryFocus}
+          onBlur={this.onQueryBlur}
+          onKeyUp={this.onKeyUp}
+          onKeyDown={this.onKeyDown}
+          onChange={this.onQueryChange}
+          onClick={this.onInputClick}
+          disabled={disabled}
+        />
+        {(this.state.loading || this.state.searchItems.length > 0) && (
+          <DropdownWrapper visible={this.state.dropdownVisible}>
+            <SearchDropdown
+              className={dropdownClassName}
+              items={this.state.searchItems}
+              onClick={this.onAutoComplete}
+              loading={this.state.loading}
+              searchSubstring={this.state.searchTerm}
+            />
+          </DropdownWrapper>
+        )}
+      </React.Fragment>
+    );
 
     return (
       <Container
@@ -810,35 +857,11 @@ class SmartSearchBar extends React.Component {
           <SearchSvg src="icon-search" />
         </SearchLabel>
 
-        <StyledForm onSubmit={this.onSubmit}>
-          <StyledInput
-            type="text"
-            placeholder={placeholder}
-            id="smart-search-input"
-            name="query"
-            innerRef={this.searchInput}
-            autoComplete="off"
-            value={this.state.query}
-            onFocus={this.onQueryFocus}
-            onBlur={this.onQueryBlur}
-            onKeyUp={this.onKeyUp}
-            onKeyDown={this.onKeyDown}
-            onChange={this.onQueryChange}
-            onClick={this.onInputClick}
-            disabled={disabled}
-          />
-          {(this.state.loading || this.state.searchItems.length > 0) && (
-            <DropdownWrapper visible={this.state.dropdownVisible}>
-              <SearchDropdown
-                className={dropdownClassName}
-                items={this.state.searchItems}
-                onClick={this.onAutoComplete}
-                loading={this.state.loading}
-                searchSubstring={this.state.searchTerm}
-              />
-            </DropdownWrapper>
-          )}
-        </StyledForm>
+        {useFormWrapper ? (
+          <StyledForm onSubmit={this.onSubmit}>{input}</StyledForm>
+        ) : (
+          input
+        )}
         <ButtonBar>
           {this.state.query !== '' && (
             <InputButton

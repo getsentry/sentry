@@ -41,7 +41,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Authorize repositories to be added to your Sentry organization to augmenting
+        Authorize repositories to be added to your Sentry organization to augment
         sentry issues with commit data with [deployment
         tracking](https://docs.sentry.io/learn/releases/).
         """,
