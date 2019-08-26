@@ -7,8 +7,10 @@ from rest_framework.serializers import Serializer, ValidationError
 
 from django.template.defaultfilters import slugify
 from sentry.api.validators.sentry_apps.schema import validate as validate_schema
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.constants import SentryAppStatus
 
 
 class ApiScopesField(serializers.Field):
@@ -73,9 +75,21 @@ class SentryAppSerializer(Serializer):
     webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
     redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
     isAlertable = serializers.BooleanField(required=False, default=False)
-    isInternal = serializers.BooleanField()
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
+
+    def get_current_value_wrapper(self, attrs):
+        def get_current_value(field_name):
+            if field_name in attrs:
+                return attrs[field_name]
+            # params might be passed as camel case but we always store as snake case
+            mapped_field_name = camel_to_snake_case(field_name)
+            if hasattr(self.instance, mapped_field_name):
+                return getattr(self.instance, mapped_field_name)
+            else:
+                return None
+
+        return get_current_value
 
     def validate_name(self, value):
         if not value:
@@ -104,20 +118,20 @@ class SentryAppSerializer(Serializer):
                         }
                     )
 
+        get_current_value = self.get_current_value_wrapper(attrs)
         # validate if webhookUrl is missing that we don't have any webhook features enabled
-        if not attrs.get("webhookUrl"):
-            if attrs.get("isInternal"):
+        if not get_current_value("webhookUrl"):
+            if get_current_value("status") == SentryAppStatus.INTERNAL_STR:
                 # for internal apps, make sure there aren't any events if webhookUrl is null
-                if attrs.get("events") and len(attrs.get("events")) > 0:
+                if get_current_value("events") and len(get_current_value("events")) > 0:
                     raise ValidationError(
                         {"webhookUrl": "webhookUrl required if webhook events are enabled"}
                     )
                 # also check that we don't have the alert rule enabled
-                if attrs.get("isAlertable"):
+                if get_current_value("isAlertable"):
                     raise ValidationError(
                         {"webhookUrl": "webhookUrl required if alert rule action is enabled"}
                     )
-
             else:
                 raise ValidationError({"webhookUrl": "webhookUrl required for public integrations"})
 
