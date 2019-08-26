@@ -1,5 +1,4 @@
 import {Params} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -32,10 +31,6 @@ type State = {
 };
 
 class IncidentDetails extends React.Component<Props, State> {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-  };
-
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
