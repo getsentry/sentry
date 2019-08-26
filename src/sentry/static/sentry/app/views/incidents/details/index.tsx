@@ -31,7 +31,7 @@ type State = {
   incident?: Incident;
 };
 
-class OrganizationIncidentDetails extends React.Component<Props, State> {
+class IncidentDetails extends React.Component<Props, State> {
   static propTypes = {
     api: PropTypes.object.isRequired,
   };
@@ -146,5 +146,4 @@ class OrganizationIncidentDetails extends React.Component<Props, State> {
   }
 }
 
-export {OrganizationIncidentDetails};
-export default withApi(OrganizationIncidentDetails);
+export default withApi(IncidentDetails);
