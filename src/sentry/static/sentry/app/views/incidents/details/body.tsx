@@ -1,3 +1,4 @@
+import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -10,7 +11,6 @@ import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
-import SentryTypes from 'app/sentryTypes';
 import SideHeader from 'app/views/incidents/details/sideHeader';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -19,16 +19,20 @@ import Activity from './activity';
 import RelatedIssues from './relatedIssues';
 import Suspects from './suspects';
 
-export default class DetailsBody extends React.Component {
-  static propTypes = {
-    incident: SentryTypes.Incident,
-  };
+import {Incident} from '../types';
 
+type Props = {
+  params: Params;
+  incident?: Incident;
+};
+
+export default class DetailsBody extends React.Component<Props> {
   render() {
     const {params, incident} = this.props;
 
     // Considered loading when there is no incident object
     const loading = !incident;
+
     return (
       <StyledPageContent>
         <Main>
@@ -51,7 +55,7 @@ export default class DetailsBody extends React.Component {
             <Activity
               params={params}
               incident={incident}
-              incidentStatus={!loading ? incident.status : null}
+              incidentStatus={!!incident ? incident.status : null}
             />
           </PageContent>
         </Main>
@@ -59,7 +63,7 @@ export default class DetailsBody extends React.Component {
           <PageContent>
             <SideHeader loading={loading}>{t('Events in Incident')}</SideHeader>
 
-            {!loading ? (
+            {incident ? (
               <Chart
                 data={incident.eventStats.data}
                 detected={incident.dateDetected}
@@ -71,10 +75,10 @@ export default class DetailsBody extends React.Component {
 
             <div>
               <SideHeader loading={loading}>
-                {t('Projects Affected')} ({!loading ? incident.projects.length : '-'})
+                {t('Projects Affected')} ({incident ? incident.projects.length : '-'})
               </SideHeader>
 
-              {!loading && (
+              {incident && (
                 <div>
                   <Projects slugs={incident.projects} orgId={params.orgId}>
                     {({projects}) => {

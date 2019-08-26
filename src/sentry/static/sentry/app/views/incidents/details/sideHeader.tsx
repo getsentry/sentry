@@ -3,7 +3,13 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-const SideHeader = styled(function Styled({className, loading, children}) {
+type Props = {
+  className?: string;
+  loading: boolean;
+  children: React.ReactNode;
+};
+
+const SideHeader = styled(function Styled({className, loading, children}: Props) {
   return (
     <h6 className={className}>
       <Title loading={loading}>{children}</Title>
@@ -16,7 +22,7 @@ const SideHeader = styled(function Styled({className, loading, children}) {
   text-transform: uppercase;
 `;
 
-const Title = styled('span')`
+const Title = styled('span')<{loading: boolean}>`
   ${p =>
     p.loading
       ? `
