@@ -102,14 +102,16 @@ class OrganizationReleaseDetails extends AsyncView {
     if (has404Errors) {
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
-          <h3>{t('The Release you are looking for could not be found.')}</h3>
-          <p>
-            {t(
-              'If you have just changed projects, it is possible that this release is not associated with any of your selected projects. If so, include a project that this release is associated with.'
-            )}
-          </p>
-        </Alert>
+        <PageContent>
+          <Alert type="error" icon="icon-circle-exclamation">
+            <h3>{t('The Release you are looking for could not be found.')}</h3>
+            <p>
+              {t(
+                'If you have just changed projects, it is possible that this release is not associated with any of your selected projects. If so, include a project that this release is associated with.'
+              )}
+            </p>
+          </Alert>
+        </PageContent>
       );
     }
     return super.renderError(error, disableLog, disableReport);
