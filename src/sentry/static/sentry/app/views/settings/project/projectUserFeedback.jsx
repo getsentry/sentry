@@ -68,12 +68,16 @@ class ProjectUserFeedbackSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
         <TextBlock>
           {t(
-            'Enabling User Feedback allows you to interact with your users, collect additional details about the Sentry issues impacting them, and reach out with resolutions.'
+            `Enabling User Feedback allows you to interact with your users,
+            collect additional details about the Sentry issues impacting them,
+            and reach out with resolutions.`
           )}
         </TextBlock>
         <TextBlock>
           {t(
-            'When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry.'
+            `When configured, your users will be presented with a dialog prompting
+            them for additional information. That information will get attached to
+            the issue in Sentry.`
           )}
         </TextBlock>
         <TextBlock>

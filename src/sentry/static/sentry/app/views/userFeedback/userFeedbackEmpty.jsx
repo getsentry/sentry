@@ -48,14 +48,13 @@ class UserFeedbackEmpty extends React.Component {
   }
 
   trackAnalytics({eventKey, eventName}) {
-    const {organization} = this.props;
-    const {projects} = organization;
+    const {organization, projectIds} = this.props;
 
     trackAnalyticsEvent({
       eventKey,
       eventName,
-      organization_id: parseInt(organization.id, 10),
-      projects,
+      organization_id: organization.id,
+      projects: projectIds,
     });
   }
 
@@ -69,7 +68,9 @@ class UserFeedbackEmpty extends React.Component {
             <h3>{t('No User Feedback Collected')}</h3>
             <p>
               {t(
-                'Enabling User Feedback allows you to interact with your users, collect additional details about the Sentry issues impacting them, and reach out with resolutions.'
+                `Enabling User Feedback allows you to interact with your users,
+                collect additional details about the Sentry issues impacting them,
+                and reach out with resolutions.`
               )}
             </p>
             <ButtonList>
