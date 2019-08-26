@@ -41,7 +41,7 @@ describe('ReleaseDetails', function() {
     };
     const location = {
       pathname: '/',
-      query: [],
+      query: {},
     };
 
     const wrapper = mount(
