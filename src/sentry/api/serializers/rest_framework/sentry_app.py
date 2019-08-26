@@ -10,7 +10,6 @@ from sentry.api.validators.sentry_apps.schema import validate as validate_schema
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
-from sentry.constants import SentryAppStatus
 
 
 class ApiScopesField(serializers.Field):
@@ -74,6 +73,7 @@ class SentryAppSerializer(Serializer):
     schema = SchemaField(required=False, allow_null=True)
     webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
     redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
+    isInternal = serializers.BooleanField(required=False, default=False)
     isAlertable = serializers.BooleanField(required=False, default=False)
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
@@ -121,7 +121,7 @@ class SentryAppSerializer(Serializer):
         get_current_value = self.get_current_value_wrapper(attrs)
         # validate if webhookUrl is missing that we don't have any webhook features enabled
         if not get_current_value("webhookUrl"):
-            if get_current_value("status") == SentryAppStatus.INTERNAL_STR:
+            if get_current_value("isInternal"):
                 # for internal apps, make sure there aren't any events if webhookUrl is null
                 if get_current_value("events") and len(get_current_value("events")) > 0:
                     raise ValidationError(
