@@ -30,7 +30,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_all_events_empty(self):
         with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?view=all")
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events empty state")
 
@@ -50,7 +50,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?view=all")
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
 
