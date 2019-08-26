@@ -20,15 +20,26 @@ type Props = {
 
 type State = {
   eventView: EventView;
+  loading: boolean;
+  hasError: boolean;
+
+  // TODO(ts): type this
+  pageLinks: any;
+  data: any;
 };
 
 class Discover2Table extends React.PureComponent<Props, State> {
   state: State = {
     eventView: EventView.fromLocation(this.props.location),
+    loading: true,
+    hasError: false,
+    pageLinks: null,
+    data: null,
   };
 
-  static getDerivedStateFromProps(props: Props): State {
+  static getDerivedStateFromProps(props: Props, state: State): State {
     return {
+      ...state,
       eventView: EventView.fromLocation(props.location),
     };
   }
@@ -110,26 +121,23 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
     this.props.api.request(url, {
       query: this.getQuery(),
-      success: (data, __textStatus, __jqxhr) => {
+      success: (data, __textStatus, jqxhr) => {
+        // TODO: remove
         console.log('data', data);
 
-        // const projectMap = {};
-        // data.forEach(project => {
-        //   projectMap[project.id] = project;
-        // });
-        // this.setState(prevState => {
-        //   return {
-        //     pageLinks: jqxhr.getResponseHeader('Link'),
-        //     projectMap,
-        //     projectsRequestsPending: prevState.projectsRequestsPending - 1,
-        //   };
-        // });
+        this.setState(prevState => {
+          return {
+            loading: false,
+            hasError: false,
+            pageLinks: jqxhr ? jqxhr.getResponseHeader('Link') : prevState.pageLinks,
+            data,
+          };
+        });
       },
-      error: err => {
-        console.log('error', err);
-        // this.setState({
-        //   projectsError: true,
-        // });
+      error: _err => {
+        this.setState({
+          hasError: true,
+        });
       },
     });
   };
