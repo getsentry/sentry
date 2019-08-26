@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
+from django.utils import timezone
 from sentry.constants import SentryAppInstallationStatus
 
 
@@ -31,7 +32,10 @@ class Migration(DataMigration):
         installs = SentryAppInstallation.objects.filter(
             api_token_id__isnull=False,
             date_deleted__isnull=True,
-        ).update(status=SentryAppInstallationStatus.INSTALLED)
+        ).update(
+            status=SentryAppInstallationStatus.INSTALLED,
+            date_updated=timezone.now(),
+        )
 
 
     def backwards(self, orm):
