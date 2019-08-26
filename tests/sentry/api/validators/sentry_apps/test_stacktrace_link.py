@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from sentry.testutils import TestCase
 
-from .util import invalid_schema, validate_component
+from .util import invalid_schema
+from sentry.api.validators.sentry_apps.schema import validate_component
 
 
 class TestOpenInSchemaValidation(TestCase):

@@ -1,13 +1,18 @@
 from __future__ import absolute_import
 
+import logging
+import json
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import best_match
+from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+logger = logging.getLogger(__name__)
 
 SCHEMA = {
     "type": "object",
     "definitions": {
         # Property Types
-        "uri": {"type": "string", "format": "uri", "pattern": "^\/"},
+        "uri": {"type": "string", "format": "uri", "pattern": r"^\/"},
         "options": {
             "type": "array",
             "minItems": 1,
@@ -75,7 +80,7 @@ SCHEMA = {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["image"]},
-                "url": {"type": "string", "format": "uri", "pattern": "^(?:https?|\/)"},
+                "url": {"type": "string", "format": "uri", "pattern": r"^(?:https?|\/)"},
                 "alt": {"type": "string"},
             },
             "required": ["type", "url"],
@@ -84,7 +89,7 @@ SCHEMA = {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["video"]},
-                "url": {"type": "string", "format": "uri", "pattern": "^(?:https?|\/)"},
+                "url": {"type": "string", "format": "uri", "pattern": r"^(?:https?|\/)"},
             },
             "required": ["type", "url"],
         },
@@ -177,9 +182,64 @@ SCHEMA = {
     "required": ["elements"],
 }
 
+element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
 
-def validate(instance, schema=SCHEMA):
+
+def validate_component(schema):
+    """
+    In order to test individual components, that aren't normally allowed at the
+    top-level of a schema, we just plop all `definitions` into `properties`.
+    This makes the validator think they're all valid top-level elements.
+    """
+    component_schema = SCHEMA.copy()
+    component_schema["properties"] = component_schema["definitions"]
+    del component_schema["required"]
+    validate(instance={schema["type"]: schema}, schema=component_schema)
+
+
+def check_elements_is_array(instance):
+    if not isinstance(instance["elements"], list):
+        raise SchemaValidationError("'elements' should be an array of objects")
+
+
+def check_each_element_for_error(instance):
+    for element in instance["elements"]:
+        if "type" not in element:
+            raise SchemaValidationError("Each element needs a 'type' field")
+        found_type = element["type"]
+        if found_type not in element_types:
+            raise SchemaValidationError(
+                "Element has type '%s'. Type must be one of the following: %s"
+                % (found_type, element_types)
+            )
+        try:
+            validate_component(element)
+        except SchemaValidationError as e:
+            # catch the validation error and re-write the error so the user knows which element has the issue
+            raise SchemaValidationError("%s for element of type '%s'" % (e.message, found_type))
+
+
+def validate_ui_element_schema(instance):
+    try:
+        # schema validator will catch elements missing
+        check_elements_is_array(instance)
+        check_each_element_for_error(instance)
+    except SchemaValidationError as e:
+        raise e
+    except Exception as e:
+        logger.warn(
+            "Unexepcted error validating schema: %s",
+            e,
+            exc_info=True,
+            extra={"schema": json.dumps(instance)},
+        )
+        # pre-validators might have unexpected errors if the format is not what they expect in the check
+        # if that happens, we should eat the error and let the main validator find the schema error
+        pass
+    validate(instance, SCHEMA)
+
+
+def validate(instance, schema):
     v = Draft4Validator(schema)
-
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))
