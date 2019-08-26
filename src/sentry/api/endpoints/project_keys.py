@@ -28,7 +28,7 @@ def create_key_scenario(runner):
 
 
 class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
+    name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
     public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
 
