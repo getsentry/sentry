@@ -2,7 +2,6 @@ import {Box, Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
@@ -54,16 +53,17 @@ const RATE_LIMIT_FORMAT_MAP = new Map([
 
 const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
 
-const KeyStats = createReactClass({
-  propTypes: {
+class KeyStats extends React.Component {
+  static propTypes = {
     api: PropTypes.object.isRequired,
-  },
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
 
-    return {
+    this.state = {
       since,
       until,
       loading: true,
@@ -71,13 +71,13 @@ const KeyStats = createReactClass({
       stats: null,
       emptyStats: false,
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const {keyId, orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
       query: {
@@ -107,9 +107,9 @@ const KeyStats = createReactClass({
         this.setState({error: true, loading: false});
       },
     });
-  },
+  };
 
-  renderTooltip(point, _pointIdx, chart) {
+  renderTooltip = (point, _pointIdx, chart) => {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
@@ -133,7 +133,7 @@ const KeyStats = createReactClass({
         </div>
       </div>
     );
-  },
+  };
 
   render() {
     if (this.state.loading) {
@@ -170,8 +170,8 @@ const KeyStats = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
-});
+  }
+}
 
 class KeyRateLimitsForm extends React.Component {
   static propTypes = {
@@ -301,20 +301,18 @@ class KeyRateLimitsForm extends React.Component {
   }
 }
 
-const KeySettings = createReactClass({
-  displayName: 'KeySettings',
-
-  propTypes: {
+class KeySettings extends React.Component {
+  static propTypes = {
     api: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {loading: false};
-  },
+  state = {
+    loading: false,
+  };
 
-  handleRemove() {
+  handleRemove = () => {
     if (this.state.loading) {
       return;
     }
@@ -337,7 +335,7 @@ const KeySettings = createReactClass({
         addErrorMessage(t('Unable to revoke key'));
       },
     });
-  },
+  };
 
   render() {
     const {keyId, orgId, projectId} = this.props.params;
@@ -476,8 +474,8 @@ const KeySettings = createReactClass({
         )}
       </Access>
     );
-  },
-});
+  }
+}
 
 export default class ProjectKeyDetails extends AsyncView {
   getTitle() {
