@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 
+import logging
+import json
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+logger = logging.getLogger(__name__)
 
 SCHEMA = {
     "type": "object",
@@ -223,6 +227,12 @@ def validate_ui_element_schema(instance):
     except SchemaValidationError as e:
         raise e
     except Exception as e:
+        logger.warn(
+            "Unexepcted error validating schema: %s",
+            e,
+            exc_info=True,
+            extra={"schema": json.dumps(instance)},
+        )
         # pre-validators might have unexpected errors if the format is not what they expect in the check
         # if that happens, we should eat the error and let the main validator find the schema error
         pass
