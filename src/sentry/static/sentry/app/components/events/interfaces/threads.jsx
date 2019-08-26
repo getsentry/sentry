@@ -258,7 +258,8 @@ class ThreadsInterface extends React.Component {
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
 
-    const threadSelector = (
+    const threads = this.props.data.values || [];
+    const threadSelector = threads.length ? (
       <div className="pull-left btn-group">
         <DropdownLink
           btnGroup={true}
@@ -266,7 +267,7 @@ class ThreadsInterface extends React.Component {
           className="btn btn-default btn-sm"
           title={getThreadTitle(activeThread, this.props.event, true)}
         >
-          {this.props.data.values.map((thread, idx) => {
+          {threads.map((thread, idx) => {
             return (
               <MenuItem key={idx} noAnchor={true}>
                 <a onClick={this.onSelectNewThread.bind(this, thread)}>
@@ -277,7 +278,7 @@ class ThreadsInterface extends React.Component {
           })}
         </DropdownLink>
       </div>
-    );
+    ) : null;
 
     const title = (
       <CrashHeader
