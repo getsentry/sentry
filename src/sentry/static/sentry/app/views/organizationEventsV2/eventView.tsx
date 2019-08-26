@@ -1,6 +1,8 @@
 import {Location} from 'history';
 import {isString} from 'lodash';
 
+import {EventViewv1} from 'app/types';
+
 type Descending = {
   kind: 'desc';
   snuba_col: string;
@@ -15,14 +17,16 @@ type Sort = Descending | Ascending;
 
 type QueryStringField = [
   /* snuba_column */ string,
-  /* title */ string,
-  /* width */ number
+  /* title */ string
+  // TODO: implement later
+  // /* width */ number
 ];
 
 type Field = {
   snuba_column: string;
   title: string;
-  width: number;
+  // TODO: implement later
+  // width: number;
 };
 
 const isValidQueryStringField = (maybe: any): maybe is QueryStringField => {
@@ -30,15 +34,19 @@ const isValidQueryStringField = (maybe: any): maybe is QueryStringField => {
     return false;
   }
 
-  if (maybe.length !== 3) {
+  if (maybe.length !== 2) {
     return false;
   }
 
   const hasSnubaCol = isString(maybe[0]);
   const hasTitle = isString(maybe[1]);
-  const hasWidth = typeof maybe[2] === 'number' && isFinite(maybe[2]);
 
-  const validTypes = hasSnubaCol && hasTitle && hasWidth;
+  // TODO: implement later
+  // const hasWidth = typeof maybe[2] === 'number' && isFinite(maybe[2]);
+  // TODO: implement later
+  // const validTypes = hasSnubaCol && hasTitle && hasWidth;
+
+  const validTypes = hasSnubaCol && hasTitle;
 
   return validTypes;
 };
@@ -63,7 +71,6 @@ const decodeFields = (location: Location): Array<Field> => {
           acc.push({
             snuba_column,
             title: result[1],
-            width: result[2],
           });
         }
 
@@ -77,15 +84,7 @@ const decodeFields = (location: Location): Array<Field> => {
   }, []);
 };
 
-const decodeSorts = (location): Array<Sort> => {
-  const {query} = location;
-
-  if (!query || !query.sort) {
-    return [];
-  }
-
-  const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
-
+const fromSorts = (sorts: Array<string>): Array<Sort> => {
   return sorts.reduce((acc: Array<Sort>, sort: string) => {
     sort = sort.trim();
 
@@ -104,6 +103,18 @@ const decodeSorts = (location): Array<Sort> => {
 
     return acc;
   }, []);
+};
+
+const decodeSorts = (location: Location): Array<Sort> => {
+  const {query} = location;
+
+  if (!query || !query.sort) {
+    return [];
+  }
+
+  const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
+
+  return fromSorts(sorts);
 };
 
 const decodeTags = (location: Location): Array<string> => {
@@ -149,12 +160,76 @@ class EventView {
   tags: string[];
   query: string | undefined;
 
-  constructor(location: Location) {
-    this.fields = decodeFields(location);
-    this.sorts = decodeSorts(location);
-    this.tags = decodeTags(location);
-    this.query = decodeQuery(location);
+  constructor(props: {
+    fields: Field[];
+    sorts: Sort[];
+    tags: string[];
+    query?: string | undefined;
+  }) {
+    this.fields = props.fields;
+    this.sorts = props.sorts;
+    this.tags = props.tags;
+    this.query = props.query;
   }
+
+  static fromLocation(location: Location): EventView {
+    return new EventView({
+      fields: decodeFields(location),
+      sorts: decodeSorts(location),
+      tags: decodeTags(location),
+      query: decodeQuery(location),
+    });
+  }
+
+  static fromEventViewv1(eventViewV1: EventViewv1): EventView {
+    const fields = eventViewV1.data.fields.map((snubaColName: string, index: number) => {
+      return {
+        snuba_column: snubaColName,
+        title: eventViewV1.data.columnNames[index],
+      };
+    });
+
+    return new EventView({
+      fields,
+      sorts: fromSorts(eventViewV1.data.sort),
+      tags: eventViewV1.tags,
+      query: eventViewV1.data.query,
+    });
+  }
+
+  getFieldSnubaCols = () => {
+    return this.fields.map(field => {
+      return field.snuba_column;
+    });
+  };
+
+  getQuery = (inputQuery: string | string[] | null | undefined): string => {
+    const queryParts: Array<string> = [];
+
+    if (this.query) {
+      queryParts.push(this.query);
+    }
+
+    if (inputQuery) {
+      // there may be duplicate query in the query string
+      // e.g. query=hello&query=world
+      if (Array.isArray(inputQuery)) {
+        inputQuery.forEach(query => {
+          if (typeof query === 'string') {
+            queryParts.push(query);
+          }
+        });
+      }
+
+      if (typeof inputQuery === 'string') {
+        queryParts.push(inputQuery);
+      }
+    }
+
+    return queryParts.join(' ');
+
+    return '';
+  };
 }
 
 export default EventView;

@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
-import {isString, pick} from 'lodash';
+import {pick} from 'lodash';
+// import {browserHistory} from 'react-router';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -8,26 +9,7 @@ import {Organization} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {EventQuery} from './utils';
-
-type Field = [/* col name */ string, /* field name */ string, /* table width */ number];
-
-const isValidField = (maybe: any): boolean => {
-  if (!Array.isArray(maybe)) {
-    return false;
-  }
-
-  if (maybe.length !== 3) {
-    return false;
-  }
-
-  const validTypes =
-    isString(maybe[0]) &&
-    isString(maybe[1]) &&
-    typeof maybe[2] === 'number' &&
-    isFinite(maybe[2]);
-
-  return validTypes;
-};
+import EventView from './eventView';
 
 type Props = {
   api: Client;
@@ -35,34 +17,29 @@ type Props = {
   organization: Organization;
 };
 
-class Discover2Table extends React.PureComponent<Props> {
-  getFields = (): Array<Field> => {
-    const {query} = this.props.location;
+type State = {
+  eventView: EventView;
+};
 
-    if (!query || !query.field) {
-      return [];
-    }
-
-    const field: Array<string> = isString(query.field) ? [query.field] : query.field;
-
-    return field.reduce((acc: Array<Field>, field: string) => {
-      try {
-        const result = JSON.parse(field);
-
-        if (isValidField(result)) {
-          acc.push(result);
-          return acc;
-        }
-      } catch (_err) {
-        // no-op
-      }
-
-      return acc;
-    }, []);
+class Discover2Table extends React.PureComponent<Props, State> {
+  state: State = {
+    eventView: EventView.fromLocation(this.props.location),
   };
+
+  static getDerivedStateFromProps(props: Props): State {
+    return {
+      eventView: EventView.fromLocation(props.location),
+    };
+  }
 
   componentDidMount() {
     this.fetchData();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.location !== prevProps.location) {
+      this.fetchData();
+    }
   }
 
   getQuery = () => {
@@ -92,9 +69,7 @@ class Discover2Table extends React.PureComponent<Props> {
       'sort',
     ]);
 
-    const fieldNames = this.getFields().map(field => {
-      return field[1];
-    });
+    const fieldNames = this.state.eventView.getFieldSnubaCols();
 
     const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
 
@@ -102,9 +77,7 @@ class Discover2Table extends React.PureComponent<Props> {
       field: [...new Set(fieldNames)],
       sort: picked.sort ? picked.sort : defaultSort,
       per_page: DEFAULT_PER_PAGE,
-      // TODO: fix this
-      query: '',
-      // query: getQueryString(view, location),
+      query: this.state.eventView.getQuery(query.query),
     });
 
     if (!eventQuery.sort) {
@@ -143,8 +116,6 @@ class Discover2Table extends React.PureComponent<Props> {
         // });
       },
     });
-
-    console.log('Discover2Table', this.getFields());
   };
 
   render() {
