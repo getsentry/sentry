@@ -9,7 +9,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-const SideHeader = styled(function Styled({className, loading, children}: Props) {
+const SideHeader = styled(function SideHeader({className, loading, children}: Props) {
   return (
     <h6 className={className}>
       <Title loading={loading}>{children}</Title>
