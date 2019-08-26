@@ -1,7 +1,6 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
@@ -22,24 +21,22 @@ import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import {getUrlRoutingName, getDisplayName} from 'app/utils/environment';
 
-const ProjectEnvironments = createReactClass({
-  propTypes: {
+class ProjectEnvironments extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
-  },
+  };
 
-  getInitialState() {
-    return {
-      project: null,
-      environments: null,
-      isLoading: true,
-    };
-  },
+  state = {
+    project: null,
+    environments: null,
+    isLoading: true,
+  };
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate(prevProps) {
     if (
@@ -48,7 +45,7 @@ const ProjectEnvironments = createReactClass({
     ) {
       this.fetchData();
     }
-  },
+  }
 
   fetchData() {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
@@ -66,7 +63,7 @@ const ProjectEnvironments = createReactClass({
         this.setState({environments, isLoading: false});
       },
     });
-  },
+  }
 
   fetchProjectDetails() {
     const {orgId, projectId} = this.props.params;
@@ -75,10 +72,10 @@ const ProjectEnvironments = createReactClass({
         this.setState({project});
       },
     });
-  },
+  }
 
   // Toggle visibility of environment
-  toggleEnv(env, shouldHide) {
+  toggleEnv = (env, shouldHide) => {
     const {orgId, projectId} = this.props.params;
 
     this.props.api.request(
@@ -89,24 +86,24 @@ const ProjectEnvironments = createReactClass({
           name: env.name,
           isHidden: shouldHide,
         },
-        success: e => {
+        success: () => {
           addSuccessMessage(
             tct('Updated [environment]', {
               environment: getDisplayName(env),
             })
           );
         },
-        error: err => {
+        error: () => {
           addErrorMessage(
             tct('Unable to update [environment]', {
               environment: getDisplayName(env),
             })
           );
         },
-        complete: this.fetchData,
+        complete: this.fetchData.bind(this),
       }
     );
-  },
+  };
 
   renderEmpty() {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
@@ -114,7 +111,7 @@ const ProjectEnvironments = createReactClass({
       ? t("You don't have any hidden environments.")
       : t("You don't have any environments yet.");
     return <EmptyMessage>{message}</EmptyMessage>;
-  },
+  }
 
   /**
    * Renders rows for "system" environments:
@@ -138,7 +135,7 @@ const ProjectEnvironments = createReactClass({
         isSystemRow
       />
     );
-  },
+  }
 
   renderEnvironmentList(envs) {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
@@ -162,7 +159,7 @@ const ProjectEnvironments = createReactClass({
         })}
       </React.Fragment>
     );
-  },
+  }
 
   renderBody() {
     const {environments, isLoading} = this.state;
@@ -178,7 +175,7 @@ const ProjectEnvironments = createReactClass({
           : this.renderEmpty()}
       </PanelBody>
     );
-  },
+  }
 
   render() {
     const {routes, params, location} = this.props;
@@ -208,8 +205,8 @@ const ProjectEnvironments = createReactClass({
         </Panel>
       </div>
     );
-  },
-});
+  }
+}
 
 class EnvironmentRow extends React.Component {
   static propTypes = {

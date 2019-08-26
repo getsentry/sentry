@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # isort:skip_file
 from sentry.runner import configure
+
 configure()
 
 import argparse
 
 
-def main(
-    username,
-    newsletter_consent_prompt=None,
-):
+def main(username, newsletter_consent_prompt=None):
     from sentry.models import User
 
     user = User.objects.get(username__iexact=username)
@@ -19,14 +17,15 @@ def main(
         user.save()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('username', default=None, nargs='?')
-    parser.add_argument('--newsletter-consent-prompt', dest='newsletter_consent_prompt', action='store_true')
-    parser.add_argument('--no-newsletter-consent-prompt', dest='newsletter_consent_prompt', action='store_false')
+    parser.add_argument("username", default=None, nargs="?")
+    parser.add_argument(
+        "--newsletter-consent-prompt", dest="newsletter_consent_prompt", action="store_true"
+    )
+    parser.add_argument(
+        "--no-newsletter-consent-prompt", dest="newsletter_consent_prompt", action="store_false"
+    )
     args = parser.parse_args()
 
-    main(
-        username=args.username,
-        newsletter_consent_prompt=args.newsletter_consent_prompt,
-    )
+    main(username=args.username, newsletter_consent_prompt=args.newsletter_consent_prompt)

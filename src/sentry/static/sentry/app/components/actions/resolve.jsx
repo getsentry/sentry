@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import {getShortVersion} from 'app/utils';
 import {t} from 'app/locale';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import MenuItem from 'app/components/menuItem';
@@ -182,10 +181,7 @@ export default class ResolveActions extends React.Component {
                     }}
                   >
                     {latestRelease
-                      ? t(
-                          'The current release (%s)',
-                          getShortVersion(latestRelease.version)
-                        )
+                      ? t('The current release (%s)', latestRelease.version)
                       : t('The current release')}
                   </ActionLink>
                 </Tooltip>

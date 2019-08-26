@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {getShortVersion} from 'app/utils';
 import {t, tct} from 'app/locale';
 import AvatarList from 'app/components/avatar/avatarList';
 import Button from 'app/components/button';
@@ -106,7 +105,6 @@ class VersionHoverCard extends React.Component {
     const {release, deploys} = this.state;
     const {version} = this.props;
     const lastCommit = release.lastCommit;
-    const shortVersion = getShortVersion(version);
 
     const recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
       const {dateFinished, environment} = deploy;
@@ -121,11 +119,7 @@ class VersionHoverCard extends React.Component {
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
     return {
-      header: (
-        <span className="truncate">
-          {tct('Release [version]', {version: shortVersion})}
-        </span>
-      ),
+      header: <span className="truncate">{tct('Release [version]', {version})}</span>,
       body: (
         <div>
           <div className="row row-flex">
