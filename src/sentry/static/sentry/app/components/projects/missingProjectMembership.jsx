@@ -1,33 +1,35 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
-import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {joinTeam} from 'app/actionCreators/teams';
+import HeroIcon from 'app/components/heroIcon';
+import Well from 'app/components/well';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-const MissingProjectMembership = createReactClass({
-  displayName: 'MissingProjectMembership',
-
-  propTypes: {
+class MissingProjectMembership extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     organization: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
+
     const {organization, projectId} = this.props;
     const project = organization.projects.find(p => p.slug === projectId);
 
-    return {
+    this.state = {
       loading: false,
       error: false,
       project,
     };
-  },
+  }
 
   joinTeam(team) {
     this.setState({
@@ -59,7 +61,7 @@ const MissingProjectMembership = createReactClass({
         },
       }
     );
-  },
+  }
 
   renderJoinTeam(team, features) {
     if (!team) {
@@ -81,7 +83,7 @@ const MissingProjectMembership = createReactClass({
         {t('Request Access')}
       </a>
     );
-  },
+  }
 
   renderExplanation(features) {
     if (features.has('open-membership')) {
@@ -91,7 +93,7 @@ const MissingProjectMembership = createReactClass({
         'To view this data you must first request access to one of the following teams:'
       );
     }
-  },
+  }
 
   renderJoinTeams(features) {
     const {teams} = this.state.project;
@@ -112,7 +114,7 @@ const MissingProjectMembership = createReactClass({
         </p>
       );
     });
-  },
+  }
 
   render() {
     const {organization} = this.props;
@@ -120,16 +122,24 @@ const MissingProjectMembership = createReactClass({
 
     return (
       <div className="container">
-        <div className="box alert-box">
-          <span className="icon icon-exclamation" />
+        <StyledWell centered>
+          <StyledHeroIcon src="icon-circle-exclamation" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
           {this.renderJoinTeams(features)}
-        </div>
+        </StyledWell>
       </div>
     );
-  },
-});
+  }
+}
+
+const StyledWell = styled(Well)`
+  margin-top: ${space(2)};
+`;
+
+const StyledHeroIcon = styled(HeroIcon)`
+  margin-bottom: ${space(2)};
+`;
 
 export {MissingProjectMembership};
 

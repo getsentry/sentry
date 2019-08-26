@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -14,22 +13,18 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
 
-const ServiceHookRow = createReactClass({
-  displayName: 'ServiceHookRow',
-
-  propTypes: {
+class ServiceHookRow extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     hook: PropTypes.object.isRequired,
     onToggleActive: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-    };
-  },
+  state = {
+    loading: false,
+    error: false,
+  };
 
   render() {
     const {orgId, projectId, hook} = this.props;
@@ -57,8 +52,8 @@ const ServiceHookRow = createReactClass({
         />
       </Field>
     );
-  },
-});
+  }
+}
 
 export default class ProjectServiceHooks extends AsyncView {
   static contextTypes = {

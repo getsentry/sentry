@@ -1,6 +1,5 @@
 import styled from 'react-emotion';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import Link from 'app/components/links/link';
@@ -8,23 +7,22 @@ import ProjectLabel from 'app/components/projectLabel';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
-const ProjectItem = createReactClass({
-  displayName: 'ProjectItem',
-
-  propTypes: {
+class ProjectItem extends React.Component {
+  static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       isBookmarked: this.props.project.isBookmarked,
     };
-  },
+  }
 
-  handleToggleBookmark(isBookmarked) {
+  handleToggleBookmark = isBookmarked => {
     this.setState({isBookmarked});
-  },
+  };
 
   render() {
     const {project, organization} = this.props;
@@ -42,8 +40,8 @@ const ProjectItem = createReactClass({
         </Link>
       </Container>
     );
-  },
-});
+  }
+}
 
 const Container = styled('div')`
   display: flex;

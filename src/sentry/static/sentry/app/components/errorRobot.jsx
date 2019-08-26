@@ -1,7 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
@@ -9,10 +8,8 @@ import Button from 'app/components/button';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 import withApi from 'app/utils/withApi';
 
-const ErrorRobot = createReactClass({
-  displayName: 'ErrorRobot',
-
-  propTypes: {
+class ErrorRobot extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     org: PropTypes.object.isRequired,
     project: PropTypes.object,
@@ -24,19 +21,17 @@ const ErrorRobot = createReactClass({
     sampleIssueId: PropTypes.string,
 
     gradient: PropTypes.bool,
-  },
+  };
 
-  getInitialState() {
-    return {
-      error: false,
-      loading: false,
-      sampleIssueId: this.props.sampleIssueId,
-    };
-  },
+  state = {
+    error: false,
+    loading: false,
+    sampleIssueId: this.props.sampleIssueId,
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   fetchData() {
     const {org, project} = this.props;
@@ -54,7 +49,7 @@ const ErrorRobot = createReactClass({
       this.props.api.request(url, {
         method: 'GET',
         data: requestParams,
-        success: (data, ignore, jqXHR) => {
+        success: data => {
           this.setState({
             loading: false,
             sampleIssueId: (data.length > 0 && data[0].id) || '',
@@ -70,7 +65,7 @@ const ErrorRobot = createReactClass({
         },
       });
     }
-  },
+  }
 
   render() {
     const {loading, error, sampleIssueId} = this.state;
@@ -139,8 +134,8 @@ const ErrorRobot = createReactClass({
         </div>
       </ErrorRobotWrapper>
     );
-  },
-});
+  }
+}
 
 export {ErrorRobot};
 

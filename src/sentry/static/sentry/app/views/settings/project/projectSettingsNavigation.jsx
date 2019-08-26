@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
@@ -8,13 +7,14 @@ import getConfiguration from 'app/views/settings/project/navigationConfiguration
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
-const ProjectSettingsNavigation = createReactClass({
-  propTypes: {
+class ProjectSettingsNavigation extends React.Component {
+  static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-  },
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
     // Allow injection via getsentry et all
     const org = this.props.organization;
     const hooks = [];
@@ -22,10 +22,10 @@ const ProjectSettingsNavigation = createReactClass({
       hooks.push(cb(org));
     });
 
-    return {
+    this.state = {
       hooks,
     };
-  },
+  }
 
   render() {
     const {organization, project} = this.props;
@@ -40,7 +40,7 @@ const ProjectSettingsNavigation = createReactClass({
         hooks={this.state.hooks}
       />
     );
-  },
-});
+  }
+}
 
 export default withProject(withOrganization(ProjectSettingsNavigation));
