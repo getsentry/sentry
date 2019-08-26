@@ -64,7 +64,7 @@ setup-git:
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	$(PIP) install "pre-commit>=1.10.1,<1.11.0" $(PIP_OPTS)
+	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
 	pre-commit install --install-hooks
 	@echo ""
 
