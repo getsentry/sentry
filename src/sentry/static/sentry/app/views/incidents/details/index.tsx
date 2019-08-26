@@ -1,6 +1,8 @@
+import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
@@ -16,16 +18,25 @@ import {
 } from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
+import {Incident} from '../types';
 
-class OrganizationIncidentDetails extends React.Component {
+type Props = {
+  api: Client;
+  params: Params;
+};
+
+type State = {
+  isLoading: boolean;
+  hasError: boolean;
+  incident?: Incident;
+};
+
+class OrganizationIncidentDetails extends React.Component<Props, State> {
   static propTypes = {
     api: PropTypes.object.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {isLoading: false, hasError: false};
-  }
+  state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -56,17 +67,21 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
+    if (!this.state.incident) {
+      return;
+    }
+
     const isSubscribed = this.state.incident.isSubscribed;
 
     const newIsSubscribed = !isSubscribed;
 
     this.setState(state => ({
-      incident: {...state.incident, isSubscribed: newIsSubscribed},
+      incident: {...(state.incident as Incident), isSubscribed: newIsSubscribed},
     }));
 
     updateSubscription(api, orgId, incidentId, newIsSubscribed).catch(() => {
       this.setState(state => ({
-        incident: {...state.incident, isSubscribed},
+        incident: {...(state.incident as Incident), isSubscribed},
       }));
       addErrorMessage(t('An error occurred, your subscription status was not changed.'));
     });
@@ -78,6 +93,10 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
+    if (!this.state.incident) {
+      return;
+    }
+
     const {status} = this.state.incident;
 
     const newStatus = isOpen(this.state.incident)
@@ -85,7 +104,7 @@ class OrganizationIncidentDetails extends React.Component {
       : IncidentStatus.CREATED;
 
     this.setState(state => ({
-      incident: {...state.incident, status: newStatus},
+      incident: {...(state.incident as Incident), status: newStatus},
     }));
 
     updateStatus(api, orgId, incidentId, newStatus)
@@ -96,7 +115,7 @@ class OrganizationIncidentDetails extends React.Component {
       })
       .catch(() => {
         this.setState(state => ({
-          incident: {...state.incident, status},
+          incident: {...(state.incident as Incident), status},
         }));
 
         addErrorMessage(t('An error occurred, your incident status was not changed.'));
