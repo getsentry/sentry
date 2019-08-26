@@ -2182,6 +2182,13 @@
     "@types/history" "^3"
     "@types/react" "*"
 
+"@types/react-sparklines@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@types/react-sparklines/-/react-sparklines-1.7.0.tgz#f956d0f7b0e746ad445ce1cd250fe81f8a384684"
+  integrity sha512-Vd+cME7+Yy3kFNhnid9EBIKiyCQ/at8nqDczIs0UYfIB8AtaRJPqekigv02biOsIbQCvxyvIAIjiTKOC+hHNbA==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-virtualized@^9.20.1":
   version "9.21.2"
   resolved "https://registry.yarnpkg.com/@types/react-virtualized/-/react-virtualized-9.21.2.tgz#c5e4293409593814c35466913e83fb856e2053d0"
