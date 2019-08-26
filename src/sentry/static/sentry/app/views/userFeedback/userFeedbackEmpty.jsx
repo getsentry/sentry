@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/browser';
 
 import {t} from 'app/locale';
+import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 
 class UserFeedbackEmpty extends React.Component {
@@ -16,6 +16,19 @@ class UserFeedbackEmpty extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     projectIds: PropTypes.arrayOf(PropTypes.string.isRequired),
   };
+
+  componentDidMount() {
+    const {organization, projectIds} = this.props;
+
+    if (this.hasAnyFeedback === false) {
+      // send to reload only due to higher event volume
+      trackAdhocEvent({
+        eventKey: 'user_feedback.viewed',
+        org_id: parseInt(organization.id, 10),
+        projects: projectIds,
+      });
+    }
+  }
 
   get hasAnyFeedback() {
     const {
@@ -56,7 +69,7 @@ class UserFeedbackEmpty extends React.Component {
             <h3>{t('No User Feedback Collected')}</h3>
             <p>
               {t(
-                'User Feedback allows you to interact with your users, collect additional details about the issues impacting them, and reach out with resolutions'
+                'Enabling User Feedback allows you to interact with your users, collect additional details about the Sentry issues impacting them, and reach out with resolutions.'
               )}
             </p>
             <ButtonList>
@@ -87,7 +100,7 @@ class UserFeedbackEmpty extends React.Component {
                   });
                 }}
               >
-                {t('See the report dialog')}
+                {t('Open the report dialog')}
               </Button>
             </ButtonList>
           </StyledContainer>

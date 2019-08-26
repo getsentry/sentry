@@ -68,7 +68,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
         <TextBlock>
           {t(
-            'Enabling User Feedback allows you to interact with your users, collect additional details about the issues impacting them, and reach out with resolutions.'
+            'Enabling User Feedback allows you to interact with your users, collect additional details about the Sentry issues impacting them, and reach out with resolutions.'
           )}
         </TextBlock>
         <TextBlock>
@@ -81,7 +81,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
             {t('Read the docs')}
           </Button>
           <StyledButton priority="primary" onClick={this.handleClick}>
-            {t('See the report dialog')}
+            {t('Open the report dialog')}
           </StyledButton>
         </TextBlock>
 
