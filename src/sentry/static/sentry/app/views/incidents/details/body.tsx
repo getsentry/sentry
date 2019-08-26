@@ -30,9 +30,6 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {params, incident} = this.props;
 
-    // Considered loading when there is no incident object
-    const loading = !incident;
-
     return (
       <StyledPageContent>
         <Main>
@@ -61,7 +58,7 @@ export default class DetailsBody extends React.Component<Props> {
         </Main>
         <Sidebar>
           <PageContent>
-            <SideHeader loading={loading}>{t('Events in Incident')}</SideHeader>
+            <SideHeader loading={!incident}>{t('Events in Incident')}</SideHeader>
 
             {incident ? (
               <Chart
@@ -74,7 +71,7 @@ export default class DetailsBody extends React.Component<Props> {
             )}
 
             <div>
-              <SideHeader loading={loading}>
+              <SideHeader loading={!incident}>
                 {t('Projects Affected')} ({incident ? incident.projects.length : '-'})
               </SideHeader>
 
