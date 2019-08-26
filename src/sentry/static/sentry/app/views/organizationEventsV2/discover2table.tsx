@@ -1,13 +1,14 @@
 import React from 'react';
 import {Location} from 'history';
 import {pick} from 'lodash';
-// import {browserHistory} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
+import {DEFAULT_EVENT_VIEW_V1} from './data';
 import {EventQuery} from './utils';
 import EventView from './eventView';
 
@@ -33,6 +34,21 @@ class Discover2Table extends React.PureComponent<Props, State> {
   }
 
   componentDidMount() {
+    const {location} = this.props;
+
+    if (!this.state.eventView.isComplete()) {
+      const nextEventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          ...nextEventView.generateQueryStringObject(),
+        },
+      });
+      return;
+    }
+
     this.fetchData();
   }
 
@@ -92,12 +108,11 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
-    console.log('this.getQuery()', this.getQuery());
-
     this.props.api.request(url, {
       query: this.getQuery(),
       success: (data, __textStatus, __jqxhr) => {
         console.log('data', data);
+
         // const projectMap = {};
         // data.forEach(project => {
         //   projectMap[project.id] = project;
@@ -110,7 +125,8 @@ class Discover2Table extends React.PureComponent<Props, State> {
         //   };
         // });
       },
-      error: () => {
+      error: err => {
+        console.log('error', err);
         // this.setState({
         //   projectsError: true,
         // });
@@ -119,16 +135,6 @@ class Discover2Table extends React.PureComponent<Props, State> {
   };
 
   render() {
-    // TODO: remove
-    // const field_1 = JSON.stringify(['foo', 'bar', 34.5]);
-    // const field_2 = JSON.stringify(['baz', 'qux', 50]);
-
-    // const result = qs.stringify({
-    //   field: [field_1, field_2],
-    // });
-
-    // console.log('result', result);
-
     return <div>foo</div>;
   }
 }

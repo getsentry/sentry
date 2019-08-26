@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import {isString} from 'lodash';
 
 import {EventViewv1} from 'app/types';
@@ -84,6 +84,12 @@ const decodeFields = (location: Location): Array<Field> => {
   }, []);
 };
 
+const encodeFields = (fields: Array<Field>): Array<string> => {
+  return fields.map(field => {
+    return JSON.stringify([field.snuba_column, field.title]);
+  });
+};
+
 const fromSorts = (sorts: Array<string>): Array<Sort> => {
   return sorts.reduce((acc: Array<Sort>, sort: string) => {
     sort = sort.trim();
@@ -115,6 +121,22 @@ const decodeSorts = (location: Location): Array<Sort> => {
   const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
 
   return fromSorts(sorts);
+};
+
+const encodeSorts = (sorts: Array<Sort>): Array<string> => {
+  return sorts.map(sort => {
+    switch (sort.kind) {
+      case 'desc': {
+        return `-${sort.snuba_col}`;
+      }
+      case 'asc': {
+        return String(sort.snuba_col);
+      }
+      default: {
+        throw new Error('unexpected sort type');
+      }
+    }
+  });
 };
 
 const decodeTags = (location: Location): Array<string> => {
@@ -196,6 +218,20 @@ class EventView {
       query: eventViewV1.data.query,
     });
   }
+
+  generateQueryStringObject = (): Query => {
+    return {
+      field: encodeFields(this.fields),
+      sort: encodeSorts(this.sorts),
+      tag: this.tags,
+      query: this.query,
+    };
+  };
+
+  // TODO: need better name
+  isComplete = (): boolean => {
+    return this.fields.length > 0;
+  };
 
   getFieldSnubaCols = () => {
     return this.fields.map(field => {
