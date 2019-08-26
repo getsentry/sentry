@@ -20,12 +20,10 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
 
     def create_token(self):
         return self.post(
-            u'/installations/{}/access_tokens'.format(
-                self.integration.metadata['installation_id'],
-            ),
+            u"/installations/{}/access_tokens".format(self.integration.metadata["installation_id"]),
             headers={
-                'Authorization': 'Bearer %s' % self.get_jwt(),
+                "Authorization": "Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
-                'Accept': 'application/vnd.github.machine-man-preview+json',
+                "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )

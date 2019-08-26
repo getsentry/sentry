@@ -20,15 +20,15 @@ def is_translated(msg):
 
 
 @click.command()
-@click.argument('catalog_file', type=click.Path())
+@click.argument("catalog_file", type=click.Path())
 def cli(catalog_file):
     # Read the old ones back.  Once we are in, we will never go.
     with open(catalog_file) as f:
-        rv = json.load(f)['supported_locales']
+        rv = json.load(f)["supported_locales"]
 
-    base = 'src/sentry/locale'
+    base = "src/sentry/locale"
     for locale in os.listdir(base):
-        fn = os.path.join(base, locale, 'LC_MESSAGES', 'django.po')
+        fn = os.path.join(base, locale, "LC_MESSAGES", "django.po")
         if not os.path.isfile(fn):
             continue
 
@@ -41,18 +41,13 @@ def cli(catalog_file):
                 if is_translated(msg):
                     translated_count += 1
         pct = translated_count / float(total_count) * 100
-        click.echo('% -7s % 2d%%' % (
-            locale,
-            pct,
-        ), err=True)
+        click.echo("% -7s % 2d%%" % (locale, pct), err=True)
         if pct >= MINIMUM and locale not in rv:
             rv.append(locale)
-    with open(catalog_file, 'w') as f:
-        json.dump({
-            'supported_locales': sorted(rv)
-        }, f, indent=2)
-        f.write('\n')
+    with open(catalog_file, "w") as f:
+        json.dump({"supported_locales": sorted(rv)}, f, indent=2)
+        f.write("\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
