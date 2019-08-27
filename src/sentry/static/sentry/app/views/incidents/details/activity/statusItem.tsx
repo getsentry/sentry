@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -6,8 +5,15 @@ import {IncidentActivityType, IncidentStatus} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import Chart from 'app/views/incidents/details/chart';
-import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
+import {ActivityType, Incident} from '../../types';
+
+type Props = {
+  activity: ActivityType;
+  authorName: string;
+  incident?: Incident;
+  showTime: boolean;
+};
 
 /**
  * StatusItem renders status changes for Incidents
@@ -17,15 +23,9 @@ import getDynamicText from 'app/utils/getDynamicText';
  * Note `activity.dateCreated` refers to when the activity was created vs.
  * `incident.dateStarted` which is when an incident was first detected or created
  */
-class StatusItem extends React.Component {
-  static propTypes = {
-    activity: SentryTypes.IncidentActivity.isRequired,
-    incident: SentryTypes.Incident,
-    authorName: PropTypes.string,
-  };
-
+class StatusItem extends React.Component<Props> {
   render() {
-    const {activity, authorName, incident} = this.props;
+    const {activity, authorName, incident, showTime} = this.props;
 
     const isCreated = activity.type === IncidentActivityType.CREATED;
     const isDetected = activity.type === IncidentActivityType.DETECTED;
@@ -44,7 +44,7 @@ class StatusItem extends React.Component {
 
     return (
       <ActivityItem
-        showTime
+        showTime={showTime}
         author={{
           type: activity.user ? 'user' : 'system',
           user: activity.user,
@@ -64,7 +64,9 @@ class StatusItem extends React.Component {
             value: (
               <Chart
                 data={activity.eventStats.data}
-                detected={(isCreated || isDetected) && incident && incident.dateStarted}
+                detected={
+                  ((isCreated || isDetected) && incident && incident.dateStarted) || ''
+                }
               />
             ),
             fixed: 'Chart Placeholder for Percy',

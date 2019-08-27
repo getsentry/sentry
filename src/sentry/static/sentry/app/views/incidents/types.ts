@@ -1,4 +1,7 @@
 import {User, Group, Repository} from 'app/types';
+import {IncidentActivityType} from './utils';
+
+type Data = [number, {count: number}[]][];
 
 export type Incident = {
   dateClosed: string;
@@ -6,7 +9,7 @@ export type Incident = {
   dateDetected: string;
   dateAdded: string;
   eventStats: {
-    data: [number, {count: number}[]][];
+    data: Data;
   };
   id: string;
   identifier: string;
@@ -28,4 +31,24 @@ export type IncidentSuspect = {
   id: string;
   message: string;
   repository: Repository;
+};
+
+export type ActivityTypeDraft = {
+  comment: null | string;
+  dateCreated: string;
+  id: string;
+  incidentIdentifier: string;
+  type: IncidentActivityType;
+  user: User;
+};
+
+export type ActivityType = ActivityTypeDraft & {
+  eventStats: {data: Data};
+  previousValue: null;
+  value: null;
+};
+
+export type NoteType = {
+  text: string;
+  mentions: [string, string][];
 };
