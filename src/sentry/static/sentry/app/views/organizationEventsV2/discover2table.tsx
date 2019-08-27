@@ -212,6 +212,18 @@ class Table extends React.Component<TableProps> {
 
     const {meta} = dataPayload;
     const fields = eventView.getFieldSnubaCols();
+
+    // TODO: deal with this
+    // if (fields.length <= 0) {
+    //   return (
+    //     <PanelGridInfo numOfCols={1}>
+    //       <EmptyStateWarning>
+    //         <p>{t('No field column selected')}</p>
+    //       </EmptyStateWarning>
+    //     </PanelGridInfo>
+    //   );
+    // }
+
     const lastRowIndex = dataPayload.data.length - 1;
 
     const firstCellIndex = 0;
