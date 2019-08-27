@@ -4,11 +4,14 @@ import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {browserHistory} from 'react-router';
 
 import EventDetails from 'app/views/organizationEventsV2/eventDetails';
-import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW_V1} from 'app/views/organizationEventsV2/data';
+import EventView from 'app/views/organizationEventsV2/eventView';
 
 describe('OrganizationEventsV2 > EventDetails', function() {
-  const allEventsView = ALL_VIEWS.find(view => view.id === 'all');
-  const errorsView = ALL_VIEWS.find(view => view.id === 'errors');
+  const allEventsView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+  const errorsView = EventView.fromEventViewv1(
+    ALL_VIEWS.find(view => view.id === 'errors')
+  );
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -153,7 +156,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        view={allEventsView}
+        eventView={allEventsView}
       />,
       TestStubs.routerContext()
     );
@@ -170,7 +173,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:abad1"
         location={{query: {eventSlug: 'project-slug:abad1'}}}
-        view={allEventsView}
+        eventView={allEventsView}
       />,
       TestStubs.routerContext()
     );
@@ -184,7 +187,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        view={errorsView}
+        eventView={errorsView}
       />,
       TestStubs.routerContext()
     );
@@ -204,7 +207,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
           pathname: '/organizations/org-slug/events/',
           query: {eventSlug: 'project-slug:deadbeef'},
         }}
-        view={allEventsView}
+        eventView={allEventsView}
       />,
       TestStubs.routerContext()
     );
@@ -233,7 +236,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         organization={organization}
         eventSlug="project-slug:deadbeef"
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        view={allEventsView}
+        eventView={allEventsView}
       />,
       routerContext
     );
@@ -269,7 +272,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         organization={organization}
         eventSlug="project-slug:deadbeef"
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        view={allEventsView}
+        eventView={allEventsView}
       />,
       routerContext
     );
