@@ -49,7 +49,7 @@ describe('OrganizationEventsV2', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders a link list', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
@@ -60,13 +60,27 @@ describe('OrganizationEventsV2', function() {
     );
     const content = wrapper.find('PageContent');
     expect(content.text()).toContain('Events');
+    expect(content.find('LinkContainer').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('renders a list of events', function() {
+    const wrapper = mount(
+      <OrganizationEventsV2
+        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
+        location={{query: {view: 'all'}}}
+        router={{}}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('PageContent');
+    expect(content.find('Events Cell').length).toBeGreaterThan(0);
   });
 
   it('handles no projects', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features})}
-        location={{query: {}}}
+        location={{query: {view: 'all'}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -80,7 +94,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {}}}
+        location={{query: {view: 'all'}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -102,25 +116,28 @@ describe('OrganizationEventsV2', function() {
     ).toEqual('icon-chevron-down');
 
     // Sort link should reverse.
-    expect(timestamp.props().to.query).toEqual({sort: 'timestamp'});
+    expect(timestamp.props().to.query).toEqual({view: 'all', sort: 'timestamp'});
 
     const userlink = findLink('user.id');
     // User link should be descending.
-    expect(userlink.props().to.query).toEqual({sort: '-user.id'});
+    expect(userlink.props().to.query).toEqual({view: 'all', sort: '-user.id'});
   });
 
   it('generates links to modals', async function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {}}}
+        location={{query: {view: 'all'}}}
         router={{}}
       />,
       TestStubs.routerContext()
     );
 
     const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
-    expect(link.props().to.query).toEqual({eventSlug: 'project-slug:deadbeef'});
+    expect(link.props().to.query).toEqual({
+      view: 'all',
+      eventSlug: 'project-slug:deadbeef',
+    });
   });
 
   it('opens a modal when eventSlug is present', async function() {

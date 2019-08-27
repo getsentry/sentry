@@ -18,17 +18,22 @@ export default class Subscriptions extends React.Component {
     permissions: PropTypes.object.isRequired,
     events: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
+    webhookDisabled: PropTypes.bool.isRequired,
   };
 
   constructor(...args) {
     super(...args);
-    this.state = {events: this.props.events};
     this.context.form.setValue('events', this.props.events);
   }
 
-  componentDidUpdate(prevProps) {
-    const {events} = this.state;
-    const {permissions} = this.props;
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.webhookDisabled && this.props.events.length) {
+      this.save([]);
+    }
+  }
+
+  componentDidUpdate() {
+    const {permissions, events} = this.props;
 
     const permittedEvents = events.filter(resource => {
       return permissions[PERMISSIONS_MAP[resource]] !== 'no-access';
@@ -40,31 +45,32 @@ export default class Subscriptions extends React.Component {
   }
 
   onChange = (resource, checked) => {
-    const events = new Set(this.state.events);
+    const events = new Set(this.props.events);
     checked ? events.add(resource) : events.delete(resource);
     this.save(Array.from(events));
   };
 
   save = events => {
-    this.setState({events});
     this.props.onChange(events);
     this.context.form.setValue('events', events);
   };
 
   render() {
-    const {permissions} = this.props;
-    const {events} = this.state;
+    const {permissions, webhookDisabled, events} = this.props;
 
     return (
       <SubscriptionGrid>
         {EVENT_CHOICES.map(choice => {
-          const disabled = permissions[PERMISSIONS_MAP[choice]] === 'no-access';
+          const disabledFromPermissions =
+            permissions[PERMISSIONS_MAP[choice]] === 'no-access';
           return (
             <React.Fragment key={choice}>
               <SubscriptionBox
-                key={`${choice}${disabled}`}
-                disabled={disabled}
-                checked={events.includes(choice) && !disabled}
+                key={choice}
+                disabledFromPermissions={disabledFromPermissions}
+                webhookDisabled={webhookDisabled}
+                checked={events.includes(choice) && !disabledFromPermissions}
+                // checked={events.includes(choice)}
                 resource={choice}
                 onChange={this.onChange}
               />

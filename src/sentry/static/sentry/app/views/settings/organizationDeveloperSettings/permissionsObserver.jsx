@@ -16,6 +16,7 @@ export default class PermissionsObserver extends React.Component {
   static propTypes = {
     scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
     events: PropTypes.arrayOf(PropTypes.string).isRequired,
+    webhookDisabled: PropTypes.bool.isRequired,
   };
 
   constructor(...args) {
@@ -68,6 +69,7 @@ export default class PermissionsObserver extends React.Component {
               permissions={permissions}
               events={events}
               onChange={this.onEventChange}
+              webhookDisabled={this.props.webhookDisabled}
             />
           </PanelBody>
         </Panel>

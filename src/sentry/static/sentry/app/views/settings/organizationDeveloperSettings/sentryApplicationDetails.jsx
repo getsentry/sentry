@@ -60,7 +60,16 @@ export default class SentryApplicationDetails extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    this.form = new SentryAppFormModel();
+    this.form = new SentryAppFormModel({
+      initialData: {
+        ...this.state.app,
+      },
+    });
+  }
+
+  onRequestSuccess() {
+    //cause the form to re-render
+    this.forceUpdate();
   }
 
   getDefaultState() {
@@ -168,14 +177,13 @@ export default class SentryApplicationDetails extends AsyncView {
   };
 
   onFieldChange = (name, value) => {
-    // Only checking for internal integrations without a webhookUrl
-    if (!this.isInternal || this.form.getValue('webhookUrl')) {
-      return;
-    }
-
-    //if the user clears events or sets isAlertable to true, we can reset the webhookUrl error
-    if ((name === 'events' && value.length === 0) || (name === 'isAlertable' && !value)) {
-      this.form.setError('webhookUrl');
+    if (name === 'webhookUrl' && this.isInternal) {
+      if (!value) {
+        //if no webhook, then set isAlertable to false
+        this.form.setValue('isAlertable', false);
+      }
+      //trigger an update so the disable messages show
+      this.forceUpdate();
     }
   };
 
@@ -197,6 +205,14 @@ export default class SentryApplicationDetails extends AsyncView {
       verifyInstall = app ? app.verifyInstall : true;
     }
 
+    let webhookDisabled = false;
+    if (this.isInternal) {
+      // webhookDisabled = !(this.form.getValue('webhookUrl') || (app && app.webhookUrl));
+      webhookDisabled = !this.form.getValue('webhookUrl');
+    }
+
+    console.log('top level events', events);
+
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -217,9 +233,17 @@ export default class SentryApplicationDetails extends AsyncView {
           onSubmitSuccess={this.onSubmitSuccess}
           onFieldChange={this.onFieldChange}
         >
-          <JsonForm location={this.props.location} forms={forms} />
+          <JsonForm
+            location={this.props.location}
+            additionalFieldProps={{webhookDisabled}}
+            forms={forms}
+          />
 
-          <PermissionsObserver scopes={scopes} events={events} />
+          <PermissionsObserver
+            webhookDisabled={webhookDisabled}
+            scopes={scopes}
+            events={events}
+          />
 
           {app && app.status === 'internal' && (
             <Panel>

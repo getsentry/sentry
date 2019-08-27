@@ -6,8 +6,8 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from django.template.defaultfilters import slugify
-from sentry.api.validators.sentry_apps.schema import validate as validate_schema
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
@@ -48,7 +48,7 @@ class SchemaField(serializers.Field):
             return {}
 
         try:
-            validate_schema(data)
+            validate_ui_element_schema(data)
         except SchemaValidationError as e:
             raise ValidationError(e.message)
         return data

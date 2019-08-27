@@ -46,6 +46,8 @@ const getPublicFormFields = () => [
     name: 'isAlertable',
     type: 'boolean',
     label: 'Alert Rule Action',
+    disabled: ({webhookDisabled}) => webhookDisabled,
+    disabledReason: 'Cannot enable alert rule action without a webhook url',
     help: tct(
       'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
       {
