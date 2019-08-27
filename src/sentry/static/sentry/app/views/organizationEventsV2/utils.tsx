@@ -2,7 +2,6 @@ import {partial, pick} from 'lodash';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
   AGGREGATE_ALIASES,
@@ -36,55 +35,6 @@ export function hasAggregateField(eventView: EventView): boolean {
         AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)
     );
 }
-
-/**
- * Takes an EventView instance and converts it into the format required for the events API
- *
- * @param {Object} view
- * @returns {Object}
- */
-export const getQuery = (eventView: EventView, location: Location): EventQuery => {
-  const query = location.query || {};
-
-  type LocationQuery = {
-    project?: string;
-    environment?: string;
-    start?: string;
-    end?: string;
-    utc?: string;
-    statsPeriod?: string;
-    cursor?: string;
-    sort?: string;
-  };
-
-  const picked = pick<LocationQuery>(query || {}, [
-    'project',
-    'environment',
-    'start',
-    'end',
-    'utc',
-    'statsPeriod',
-    'cursor',
-    'sort',
-  ]);
-
-  const fieldNames = eventView.getFieldSnubaCols();
-
-  const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
-
-  const eventQuery: EventQuery = Object.assign(picked, {
-    field: [...new Set(fieldNames)],
-    sort: picked.sort ? picked.sort : defaultSort,
-    per_page: DEFAULT_PER_PAGE,
-    query: eventView.getQuery(query.query),
-  });
-
-  if (!eventQuery.sort) {
-    delete eventQuery.sort;
-  }
-
-  return eventQuery;
-};
 
 /**
  * Return a location object for the current pathname

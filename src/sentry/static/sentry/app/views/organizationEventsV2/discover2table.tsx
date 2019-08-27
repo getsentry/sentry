@@ -16,7 +16,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
-import {MetaType, getFieldRenderer, getQuery} from './utils';
+import {MetaType, getFieldRenderer} from './utils';
 import EventView from './eventView';
 import SortLink from './sortLink';
 
@@ -91,7 +91,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     this.props.api.request(url, {
-      query: getQuery(this.state.eventView, location),
+      query: this.state.eventView.getEventsAPIPayload(location),
       success: (dataPayload, __textStatus, jqxhr) => {
         this.setState(prevState => {
           return {

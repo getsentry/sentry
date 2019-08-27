@@ -16,7 +16,6 @@ import {
   fetchTagDistribution,
   fetchTotalCount,
   getEventTagSearchUrl,
-  getQuery,
   Tag,
   TagTopValue,
 } from './utils';
@@ -75,7 +74,7 @@ class Tags extends React.Component<Props, State> {
           api,
           organization.slug,
           tag,
-          getQuery(eventView, location)
+          eventView.getEventsAPIPayload(location)
         );
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));
@@ -88,7 +87,7 @@ class Tags extends React.Component<Props, State> {
       const totalValues = await fetchTotalCount(
         api,
         organization.slug,
-        getQuery(eventView, location)
+        eventView.getEventsAPIPayload(location)
       );
       this.setState({totalValues});
     } catch (err) {

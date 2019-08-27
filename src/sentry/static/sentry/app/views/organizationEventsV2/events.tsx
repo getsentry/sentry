@@ -14,7 +14,6 @@ import {getParams} from 'app/views/events/utils/getParams';
 
 import Discover2Table from './discover2table';
 import Tags from './tags';
-import {getQuery} from './utils';
 import EventView from './eventView';
 
 const CHART_AXIS_OPTIONS = [
@@ -52,7 +51,7 @@ export default class Events extends React.Component<EventsProps> {
             value: (
               <EventsChart
                 router={router}
-                query={getQuery(eventView, location).query}
+                query={eventView.getEventsAPIPayload(location).query}
                 organization={organization}
                 showLegend
                 yAxisOptions={CHART_AXIS_OPTIONS}

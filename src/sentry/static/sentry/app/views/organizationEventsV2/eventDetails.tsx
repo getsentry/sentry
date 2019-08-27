@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import {Organization, Event} from 'app/types';
 
 import EventModalContent from './eventModalContent';
-import {EventQuery, getQuery} from './utils';
+import {EventQuery} from './utils';
 import EventView from './eventView';
 
 const slugValidator = function(
@@ -67,7 +67,7 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
 
   getEndpoints(): Array<[string, string, {query: EventQuery}]> {
     const {organization, eventSlug, eventView, location} = this.props;
-    const query = getQuery(eventView, location);
+    const query = eventView.getEventsAPIPayload(location);
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from

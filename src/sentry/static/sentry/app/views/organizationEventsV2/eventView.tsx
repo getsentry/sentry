@@ -1,10 +1,11 @@
 import {Location, Query} from 'history';
-import {isString} from 'lodash';
+import {isString, pick} from 'lodash';
 
 import {EventViewv1} from 'app/types';
+import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType} from './utils';
+import {MetaType, EventQuery} from './utils';
 
 type Descending = {
   kind: 'desc';
@@ -279,6 +280,50 @@ class EventView {
     }
 
     return queryParts.join(' ');
+  };
+
+  // Takes an EventView instance and converts it into the format required for the events API
+  getEventsAPIPayload = (location: Location): EventQuery => {
+    const query = location.query || {};
+
+    type LocationQuery = {
+      project?: string;
+      environment?: string;
+      start?: string;
+      end?: string;
+      utc?: string;
+      statsPeriod?: string;
+      cursor?: string;
+      sort?: string;
+    };
+
+    const picked = pick<LocationQuery>(query || {}, [
+      'project',
+      'environment',
+      'start',
+      'end',
+      'utc',
+      'statsPeriod',
+      'cursor',
+      'sort',
+    ]);
+
+    const fieldNames = this.getFieldSnubaCols();
+
+    const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
+
+    const eventQuery: EventQuery = Object.assign(picked, {
+      field: [...new Set(fieldNames)],
+      sort: picked.sort ? picked.sort : defaultSort,
+      per_page: DEFAULT_PER_PAGE,
+      query: this.getQuery(query.query),
+    });
+
+    if (!eventQuery.sort) {
+      delete eventQuery.sort;
+    }
+
+    return eventQuery;
   };
 
   getDefaultSort = (): string | undefined => {
