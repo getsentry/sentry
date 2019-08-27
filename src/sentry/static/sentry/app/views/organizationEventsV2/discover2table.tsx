@@ -378,13 +378,8 @@ const PanelGridInfo = styled('div')<PanelGridInfoProps>`
 `;
 
 const PanelItemCell = styled('div')<{hideBottomBorder: boolean}>`
-  ${props => {
-    if (props.hideBottomBorder) {
-      return null;
-    }
-
-    return `border-bottom: 1px solid ${p => p.theme.borderLight};`;
-  }};
+  border-bottom: ${p =>
+    p.hideBottomBorder ? 'none' : `1px solid ${p.theme.borderLight}`};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
