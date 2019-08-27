@@ -55,7 +55,6 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         group = self.create_group(project=self.project)
-        # import pdb; pdb.set_trace();
         ts = group.last_seen
         assert build_group_attachment(group) == {
             "color": "#E03E2F",
