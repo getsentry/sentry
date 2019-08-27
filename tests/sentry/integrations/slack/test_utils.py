@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -54,7 +55,7 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         group = self.create_group(project=self.project)
-
+        # import pdb; pdb.set_trace();
         ts = group.last_seen
         assert build_group_attachment(group) == {
             "color": "#E03E2F",
@@ -66,11 +67,21 @@ class BuildIncidentAttachmentTest(TestCase):
                     "option_groups": [
                         {
                             "text": "Teams",
-                            "options": [{"text": u"#mariachi-band", "value": u"team:25"}],
+                            "options": [
+                                {
+                                    "text": u"#mariachi-band",
+                                    "value": u"team:" + six.text_type(self.team.id),
+                                }
+                            ],
                         },
                         {
                             "text": "People",
-                            "options": [{"text": u"foo@example.com", "value": u"user:35"}],
+                            "options": [
+                                {
+                                    "text": u"foo@example.com",
+                                    "value": u"user:" + six.text_type(self.user.id),
+                                }
+                            ],
                         },
                     ],
                     "text": "Select Assignee...",
@@ -84,8 +95,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
-            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/23/?referrer=slack",
-            "callback_id": '{"issue":23}',
+            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/"
+            + six.text_type(group.id)
+            + "/?referrer=slack",
+            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
             "fallback": u"[{}] {}".format(self.project.slug, group.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
@@ -101,11 +114,21 @@ class BuildIncidentAttachmentTest(TestCase):
                     "option_groups": [
                         {
                             "text": "Teams",
-                            "options": [{"text": u"#mariachi-band", "value": u"team:25"}],
+                            "options": [
+                                {
+                                    "text": u"#mariachi-band",
+                                    "value": u"team:" + six.text_type(self.team.id),
+                                }
+                            ],
                         },
                         {
                             "text": "People",
-                            "options": [{"text": u"foo@example.com", "value": u"user:35"}],
+                            "options": [
+                                {
+                                    "text": u"foo@example.com",
+                                    "value": u"user:" + six.text_type(self.user.id),
+                                }
+                            ],
                         },
                     ],
                     "text": "Select Assignee...",
@@ -119,8 +142,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
-            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/23/?referrer=slack",
-            "callback_id": '{"issue":23}',
+            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/"
+            + six.text_type(group.id)
+            + "/?referrer=slack",
+            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
             "fallback": u"[{}] {}".format(self.project.slug, event.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
