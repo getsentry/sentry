@@ -11,7 +11,7 @@ import {Incident} from './types';
 import {isOpen} from './utils';
 
 type Props = {
-  className: string;
+  className?: string;
   incident: Incident;
 };
 
