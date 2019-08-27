@@ -57,10 +57,8 @@ class OrganizationReleases extends AsyncView {
   }
 
   onSearch = query => {
-    const targetQueryParams = {};
-    if (query !== '') {
-      targetQueryParams.query = query;
-    }
+    const targetQueryParams = getQuery(this.props.location).query;
+    targetQueryParams.query = query;
 
     const {orgId} = this.props.params;
     browserHistory.push({
