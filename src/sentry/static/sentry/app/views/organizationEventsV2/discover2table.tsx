@@ -252,7 +252,7 @@ const PanelGrid = styled((props: PanelGridProps) => {
   ${(props: PanelGridProps) => {
     // TODO: change this
     return `
-      grid-template-columns: repeat(${props.numOfCols}, minmax(min-content, 400px));
+      grid-template-columns: repeat(${props.numOfCols}, minmax(auto, max-content));
     `;
   }};
 `;
