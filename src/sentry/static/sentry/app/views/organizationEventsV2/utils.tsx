@@ -16,17 +16,6 @@ import {
 } from './data';
 import EventView from './eventView';
 
-/**
- * Given a view id, return the corresponding view object
- *
- * @param {String} requestedView
- * @returns {Object}
- *
- */
-export function getCurrentView(requestedView?: string): EventViewv1 {
-  return ALL_VIEWS.find(view => view.id === requestedView) || DEFAULT_EVENT_VIEW_V1;
-}
-
 export type EventQuery = {
   field: Array<string>;
   project?: string;
