@@ -21,6 +21,10 @@ export default class Subscriptions extends React.Component {
     webhookDisabled: PropTypes.bool.isRequired,
   };
 
+  static defaultProps = {
+    webhookDisabled: false,
+  };
+
   constructor(...args) {
     super(...args);
     this.context.form.setValue('events', this.props.events);

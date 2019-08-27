@@ -19,6 +19,10 @@ export default class PermissionsObserver extends React.Component {
     webhookDisabled: PropTypes.bool.isRequired,
   };
 
+  static defaultProps = {
+    webhookDisabled: false,
+  };
+
   constructor(...args) {
     super(...args);
     this.state = {

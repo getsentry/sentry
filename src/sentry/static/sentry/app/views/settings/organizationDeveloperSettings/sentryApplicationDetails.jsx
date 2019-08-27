@@ -205,13 +205,7 @@ export default class SentryApplicationDetails extends AsyncView {
       verifyInstall = app ? app.verifyInstall : true;
     }
 
-    let webhookDisabled = false;
-    if (this.isInternal) {
-      // webhookDisabled = !(this.form.getValue('webhookUrl') || (app && app.webhookUrl));
-      webhookDisabled = !this.form.getValue('webhookUrl');
-    }
-
-    console.log('top level events', events);
+    const webhookDisabled = this.isInternal && !this.form.getValue('webhookUrl');
 
     return (
       <div>
