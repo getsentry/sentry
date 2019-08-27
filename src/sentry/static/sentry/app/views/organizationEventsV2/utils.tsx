@@ -12,6 +12,7 @@ import {
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
+  DEFAULT_EVENT_VIEW_V1,
 } from './data';
 
 /**
@@ -22,7 +23,7 @@ import {
  *
  */
 export function getCurrentView(requestedView?: string): EventViewv1 {
-  return ALL_VIEWS.find(view => view.id === requestedView) || ALL_VIEWS[0];
+  return ALL_VIEWS.find(view => view.id === requestedView) || DEFAULT_EVENT_VIEW_V1;
 }
 
 export type EventQuery = {
