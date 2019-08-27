@@ -117,21 +117,16 @@ class OrganizationReleaseDetails extends AsyncView {
       return (
         <PageContent>
           <Alert type="error" icon="icon-circle-exclamation">
-            <h3>{t('Release Not Found')}</h3>
-            <p>
-              {t(
-                'This release may not be in your selected project' +
-                  (selected_projects.length > 1 ? 's' : '')
-              )}
-              :{' '}
-              {selected_projects
-                .map(p => {
-                  return all_projects.find(pp => {
-                    return parseInt(pp.id, 10) === p;
-                  }).name;
-                })
-                .join(', ')}
-            </p>
+            {t(
+              'This release may not be in your selected project' +
+                (selected_projects.length > 1 ? 's' : '')
+            )}
+            :{' '}
+            {selected_projects
+              .map(p => {
+                return all_projects.find(pp => parseInt(pp.id, 10) === p).name;
+              })
+              .join(', ')}
           </Alert>
         </PageContent>
       );
