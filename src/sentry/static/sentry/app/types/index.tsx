@@ -288,23 +288,6 @@ export type EventViewv1 = {
   columnWidths: string[];
 };
 
-export type EventViewv1___ = {
-  // id: string;  -- not needed
-  // name: string; -- not needed
-  data: {
-    // fields: string[]; -- done
-    // columnNames: string[]; -- done
-    sort: string[];
-    query?: string;
-
-    // TODO: removed as of https://github.com/getsentry/sentry/pull/14321
-    // groupby: string[];
-    // orderby: string[];
-  };
-  tags: string[];
-  // columnWidths: string[]; -- done
-};
-
 export type Repository = {
   dateCreated: string;
   externalSlug: string;
