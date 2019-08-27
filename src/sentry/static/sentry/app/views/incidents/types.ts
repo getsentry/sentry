@@ -1,19 +1,31 @@
+import {User, Group, Repository} from 'app/types';
+
 export type Incident = {
-  id: string;
-  identifier: string;
-  organizationId: string;
-  title: string;
-  status: number;
-  query: string;
-  projects: number[];
-  eventStats: {
-    data: Array<Array<number | Array<any>>>;
-  };
-  totalEvents: number;
-  uniqueUsers: number;
-  isSubscribed: boolean;
   dateClosed: string;
   dateStarted: string;
   dateDetected: string;
   dateAdded: string;
+  eventStats: {
+    data: [number, {count: number}[]][];
+  };
+  id: string;
+  identifier: string;
+  isSubscribed: boolean;
+  groups: Group[];
+  query: string;
+  organizationId: string;
+  projects: number[];
+  seenBy: User[];
+  status: number;
+  title: string;
+  totalEvents: number;
+  uniqueUsers: number;
+};
+
+export type IncidentSuspect = {
+  author: User;
+  dateCreated: string;
+  id: string;
+  message: string;
+  repository: Repository;
 };

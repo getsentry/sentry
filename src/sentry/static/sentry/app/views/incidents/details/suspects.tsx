@@ -14,13 +14,18 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import SideHeader from './sideHeader';
+import {IncidentSuspect} from '../types';
 
-class Suspects extends React.Component {
-  static propTypes = {
-    suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect),
-    loading: PropTypes.bool,
-  };
+type Props = {
+  className?: string;
+  loading: boolean;
+  suspects: {
+    type: 'commit';
+    data: IncidentSuspect;
+  }[];
+};
 
+class Suspects extends React.Component<Props> {
   render() {
     const {className, loading, suspects} = this.props;
 
@@ -59,12 +64,12 @@ class Suspects extends React.Component {
   }
 }
 
-const StyledSuspects = styled(Suspects)`
+const StyledSuspects = styled(Suspects)<Props>`
   margin-top: ${space(1)};
 `;
 
 export default class SuspectsContainer extends AsyncComponent {
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, incidentId} = this.props.params;
 
     return [['data', `/organizations/${orgId}/incidents/${incidentId}/suspects/`]];

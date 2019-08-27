@@ -291,3 +291,14 @@ export type EventView = {
   tags: string[];
   columnWidths: string[];
 };
+
+export type Repository = {
+  dateCreated: string;
+  externalSlug: string;
+  id: string;
+  integrationId: string;
+  name: string;
+  provider: {id: string; name: string};
+  status: string;
+  url: string;
+};

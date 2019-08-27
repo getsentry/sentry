@@ -2,7 +2,7 @@ import React from 'react';
 
 import Feature from 'app/components/acl/feature';
 
-export default function OrganizationIncidentRules({children}) {
+export default function IncidentRules({children}) {
   return (
     <Feature features={['incidents']} renderDisabled>
       {children}

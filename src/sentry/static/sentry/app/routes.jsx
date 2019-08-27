@@ -1041,7 +1041,7 @@ function routes() {
             <Route
               path=":incidentId/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidentDetails" */ 'app/views/incidents/details')
+                import(/* webpackChunkName: "IncidentDetails" */ 'app/views/incidents/details')
               }
               component={errorHandler(LazyLoad)}
             />

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
@@ -9,6 +8,8 @@ import MarkPoint from 'app/components/charts/components/markPoint';
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
 
+type Data = [number, {count: number}[]][];
+
 /**
  * So we'll have to see how this looks with real data, but echarts requires
  * an explicit (x,y) value to draw a symbol (incident detected/closed bubble).
@@ -18,8 +19,11 @@ import detectedSymbol from './detectedSymbol';
  * AFAICT we can't give it an x-axis value and have it draw on the line,
  * so we probably need to calculate the y-axis value ourselves if we want it placed
  * at the exact time.
+ *
+ * @param data Data array
+ * @param needle the target timestamp
  */
-function getNearbyIndex(data, needle) {
+function getNearbyIndex(data: Data, needle: number) {
   // `data` is sorted, return the first index whose value (timestamp) is > `needle`
   const index = data.findIndex(([ts]) => ts > needle);
 
@@ -31,20 +35,13 @@ function getNearbyIndex(data, needle) {
   return index !== -1 ? index - 1 : data.length - 1;
 }
 
-export default class Chart extends React.PureComponent {
-  static propTypes = {
-    data: PropTypes.arrayOf(
-      PropTypes.arrayOf(
-        PropTypes.oneOfType([
-          PropTypes.number,
-          PropTypes.arrayOf(PropTypes.shape({count: PropTypes.number})),
-        ])
-      )
-    ),
-    detected: PropTypes.string,
-    closed: PropTypes.string,
-  };
+type Props = {
+  data: Data;
+  detected: string;
+  closed: string;
+};
 
+export default class Chart extends React.PureComponent<Props> {
   render() {
     const {data, detected, closed} = this.props;
 
