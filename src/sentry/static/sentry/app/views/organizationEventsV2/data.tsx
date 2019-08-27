@@ -119,6 +119,11 @@ type FieldFormatterRenderFunction = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
+export type FieldFormatterRenderFunctionPartial = (
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
 type FieldFormatter = {
   sortField: boolean;
   renderFunc: FieldFormatterRenderFunction;
@@ -131,6 +136,8 @@ type FieldFormatters = {
   date: FieldFormatter;
   string: FieldFormatter;
 };
+
+export type FieldTypes = keyof FieldFormatters;
 
 /**
  * A mapping of field types to their rendering function.

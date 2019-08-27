@@ -5,7 +5,14 @@ import {Client} from 'app/api';
 import {EventViewv1} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {ALL_VIEWS, AGGREGATE_ALIASES, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {
+  ALL_VIEWS,
+  AGGREGATE_ALIASES,
+  SPECIAL_FIELDS,
+  FIELD_FORMATTERS,
+  FieldTypes,
+  FieldFormatterRenderFunctionPartial,
+} from './data';
 
 /**
  * Given a view id, return the corresponding view object
@@ -208,6 +215,10 @@ export function fetchTotalCount(
     .then((res: Response) => res.count);
 }
 
+export type MetaType = {
+  [key: string]: FieldTypes;
+};
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -215,7 +226,10 @@ export function fetchTotalCount(
  * @param {object} metadata mapping.
  * @returns {Function}
  */
-export function getFieldRenderer(field: string, meta) {
+export function getFieldRenderer(
+  field: string,
+  meta: MetaType
+): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }

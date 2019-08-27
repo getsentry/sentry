@@ -18,8 +18,18 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
-import {EventQuery} from './utils';
+import {EventQuery, MetaType, getFieldRenderer} from './utils';
 import EventView from './eventView';
+
+type DataRow = {
+  [key: string]: string;
+};
+
+// TODO: move this
+type DataPayload = {
+  data: Array<DataRow>;
+  meta: MetaType;
+};
 
 type Props = {
   api: Client;
@@ -31,12 +41,8 @@ type State = {
   eventView: EventView;
   loading: boolean;
   hasError: boolean;
-
   pageLinks: null | string;
-
-  // TODO(ts): type this
-
-  data: any[] | null;
+  dataPayload: DataPayload | null | undefined;
 };
 
 class Discover2Table extends React.PureComponent<Props, State> {
@@ -45,7 +51,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
     loading: true,
     hasError: false,
     pageLinks: null,
-    data: null,
+    dataPayload: null,
   };
 
   static getDerivedStateFromProps(props: Props, state: State): State {
@@ -82,8 +88,6 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
   getQuery = () => {
     const {query} = this.props.location;
-
-    // TODO: consolidate this
 
     type LocationQuery = {
       project?: string;
@@ -132,16 +136,13 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
     this.props.api.request(url, {
       query: this.getQuery(),
-      success: (data, __textStatus, jqxhr) => {
-        // TODO: remove
-        console.log('data', data);
-
+      success: (dataPayload, __textStatus, jqxhr) => {
         this.setState(prevState => {
           return {
             loading: false,
             hasError: false,
             pageLinks: jqxhr ? jqxhr.getResponseHeader('Link') : prevState.pageLinks,
-            data,
+            dataPayload,
           };
         });
       },
@@ -155,14 +156,14 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
   render() {
     const {organization, location} = this.props;
-    const {pageLinks, eventView, loading, data} = this.state;
+    const {pageLinks, eventView, loading, dataPayload} = this.state;
 
     return (
       <div>
         <Table
           eventView={eventView}
           organization={organization}
-          data={data || []}
+          dataPayload={dataPayload}
           isLoading={loading}
           location={location}
         />
@@ -176,7 +177,7 @@ type TableProps = {
   organization: Organization;
   eventView: EventView;
   isLoading: boolean;
-  data: any[];
+  dataPayload: DataPayload | null | undefined;
   location: Location;
 };
 
@@ -197,24 +198,49 @@ class Table extends React.Component<TableProps> {
     });
   };
 
-  renderContent = () => {
-    const {data, eventView} = this.props;
+  renderContent = (): React.ReactNode => {
+    const {dataPayload, eventView, organization, location} = this.props;
 
-    if (data.length === 0) {
+    if (!(dataPayload && dataPayload.data && dataPayload.data.length > 0)) {
       return (
-        <EmptyStateWarning>
-          <p>{t('No results found')}</p>
-        </EmptyStateWarning>
+        <PanelGridInfo numOfCols={eventView.numOfColumns()}>
+          <EmptyStateWarning>
+            <p>{t('No results found')}</p>
+          </EmptyStateWarning>
+        </PanelGridInfo>
       );
     }
 
-    return (
-      <PanelGridInfo numOfCols={eventView.numOfColumns()}>
-        <EmptyStateWarning>
-          <p>{t('No results found')}</p>
-        </EmptyStateWarning>
-      </PanelGridInfo>
-    );
+    const {meta} = dataPayload;
+    const fields = eventView.getFieldSnubaCols();
+    const lastRowIndex = dataPayload.data.length - 1;
+
+    const firstCellIndex = 0;
+    const lastCellIndex = fields.length - 1;
+
+    return dataPayload.data.map((row, rowIndex) => {
+      return (
+        <React.Fragment key={rowIndex}>
+          {fields.map((field, index) => {
+            const key = `${field}.${index}`;
+
+            const fieldRenderer = getFieldRenderer(field, meta);
+            return (
+              <PanelItemCell
+                hideBottomBorder={rowIndex === lastRowIndex}
+                style={{
+                  paddingLeft: index === firstCellIndex ? space(1) : void 0,
+                  paddingRight: index === lastCellIndex ? space(1) : void 0,
+                }}
+                key={key}
+              >
+                {fieldRenderer(row, {organization, location})}
+              </PanelItemCell>
+            );
+          })}
+        </React.Fragment>
+      );
+    });
   };
 
   renderTable = () => {
@@ -252,7 +278,7 @@ const PanelGrid = styled((props: PanelGridProps) => {
   ${(props: PanelGridProps) => {
     // TODO: change this
     return `
-      grid-template-columns: repeat(${props.numOfCols}, minmax(auto, max-content));
+      grid-template-columns: repeat(${props.numOfCols}, 1fr);
     `;
   }};
 `;
@@ -281,6 +307,21 @@ const PanelGridInfo = styled('div')<PanelGridInfoProps>`
   grid-column: 1 / span ${props.numOfCols};
   `;
   }};
+`;
+
+const PanelItemCell = styled('div')<{hideBottomBorder: boolean}>`
+  ${props => {
+    if (props.hideBottomBorder) {
+      return null;
+    }
+
+    return `border-bottom: 1px solid ${p => p.theme.borderLight};`;
+  }};
+
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
 
 export default withApi<Props>(Discover2Table);
