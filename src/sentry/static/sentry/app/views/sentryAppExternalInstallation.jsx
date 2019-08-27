@@ -62,8 +62,9 @@ export default class SentryAppExternalInstallation extends AsyncView {
   hasAccess = org => org.access.includes('org:integrations');
 
   onClose = () => {
-    //if we came from somewhere, go back there. Otherwise, back to the root
-    const newUrl = document.referrer || '/';
+    //if we came from somewhere, go back there. Otherwise, back to the integrations page
+    const {selectedOrgSlug} = this.state;
+    const newUrl = document.referrer || `/settings/${selectedOrgSlug}/integrations/`;
     window.location.assign(newUrl);
   };
 
