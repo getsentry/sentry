@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
+import {Params} from 'react-router/lib/Router';
 import React from 'react';
 
-import {IncidentActivityType} from 'app/views/incidents/utils';
+import {Client} from 'app/api';
 import {
   createIncidentNote,
   deleteIncidentNote,
@@ -14,29 +14,46 @@ import ConfigStore from 'app/stores/configStore';
 import withApi from 'app/utils/withApi';
 
 import Activity from './activity';
+import {IncidentActivityType, IncidentStatus} from '../../utils';
+import {ActivityType, ActivityTypeDraft, NoteType} from '../../types';
 
 function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
 }
+
+type Activities = Array<ActivityType | ActivityType>;
+
+type Props = {
+  api: Client;
+  incidentStatus: IncidentStatus | null;
+  params: Params;
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  noteInputId: string;
+  noteInputText: string;
+  createBusy: boolean;
+  createError: boolean;
+  createErrorJSON: null | object;
+  activities: null | Activities;
+};
 
 /**
  * Activity component on Incident Details view
  * Allows user to leave a comment on an incidentId as well as
  * fetch and render existing activity items.
  */
-class ActivityContainer extends React.PureComponent {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    incidentStatus: PropTypes.number,
-  };
-
-  state = {
+class ActivityContainer extends React.PureComponent<Props, State> {
+  state: State = {
     loading: true,
     error: false,
     noteInputId: uniqueId(),
     noteInputText: '',
     createBusy: false,
     createError: false,
+    createErrorJSON: null,
     activities: null,
   };
 
@@ -44,7 +61,7 @@ class ActivityContainer extends React.PureComponent {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     // Only refetch if incidentStatus changes.
     //
     // This component can mount before incident details is fully loaded.
@@ -70,14 +87,14 @@ class ActivityContainer extends React.PureComponent {
     }
   }
 
-  handleCreateNote = async note => {
+  handleCreateNote = async (note: NoteType) => {
     const {api, params} = this.props;
     const {incidentId, orgId} = params;
 
-    const newActivity = {
+    const newActivity: ActivityTypeDraft = {
       comment: note.text,
       type: IncidentActivityType.COMMENT,
-      dateCreated: new Date(),
+      dateCreated: new Date().toISOString(),
       user: ConfigStore.get('user'),
       id: uniqueId(),
       incidentIdentifier: incidentId,
@@ -88,7 +105,7 @@ class ActivityContainer extends React.PureComponent {
       // This is passed as a key to NoteInput that re-mounts
       // (basically so we can reset text input to empty string)
       noteInputId: uniqueId(),
-      activities: [newActivity, ...(state.activities || [])],
+      activities: [newActivity, ...(state.activities || [])] as Activities,
       noteInputText: '',
     }));
 
@@ -99,7 +116,9 @@ class ActivityContainer extends React.PureComponent {
         // Update activities to replace our fake new activity with activity object from server
         const activities = [
           newNote,
-          ...state.activities.filter(activity => activity !== newActivity),
+          ...(state.activities!.filter(
+            activity => activity !== newActivity
+          ) as ActivityType[]),
         ];
 
         return {
@@ -109,7 +128,7 @@ class ActivityContainer extends React.PureComponent {
       });
     } catch (error) {
       this.setState(state => {
-        const activities = state.activities.filter(activity => activity !== newActivity);
+        const activities = state.activities!.filter(activity => activity !== newActivity);
 
         return {
           // We clear the textarea immediately when submitting, restore
@@ -124,39 +143,45 @@ class ActivityContainer extends React.PureComponent {
     }
   };
 
-  getIndexAndActivityFromState = activity => {
+  getIndexAndActivityFromState = (activity: ActivityType | ActivityTypeDraft) => {
     // `index` should probably be found, if not let error hit Sentry
-    const index = this.state.activities.findIndex(({id}) => id === activity.id);
-    return [index, this.state.activities[index]];
+    const index =
+      this.state.activities !== null
+        ? this.state.activities.findIndex(({id}) => id === activity.id)
+        : '';
+    return [index, this.state.activities![index]];
   };
 
-  handleDeleteNote = async activity => {
+  handleDeleteNote = async (activity: ActivityType | ActivityTypeDraft) => {
     const {api, params} = this.props;
     const {incidentId, orgId} = params;
 
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
     this.setState(state => ({
-      activities: removeFromArrayIndex(state.activities, index),
+      activities: removeFromArrayIndex(state.activities!, index),
     }));
 
     try {
       await deleteIncidentNote(api, orgId, incidentId, activity.id);
     } catch (error) {
       this.setState(state => ({
-        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
       }));
     }
   };
 
-  handleUpdateNote = async (note, activity) => {
+  handleUpdateNote = async (
+    note: NoteType,
+    activity: ActivityType | ActivityTypeDraft
+  ) => {
     const {api, params} = this.props;
     const {incidentId, orgId} = params;
 
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
     this.setState(state => ({
-      activities: replaceAtArrayIndex(state.activities, index, {
+      activities: replaceAtArrayIndex(state.activities!, index, {
         ...oldActivity,
         comment: note.text,
       }),
@@ -166,26 +191,22 @@ class ActivityContainer extends React.PureComponent {
       await updateIncidentNote(api, orgId, incidentId, activity.id, note);
     } catch (error) {
       this.setState(state => ({
-        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
       }));
     }
   };
 
   render() {
     const {api, params, ...props} = this.props;
-    const {incidentId, orgId} = params;
+    const {incidentId} = params;
     const me = ConfigStore.get('user');
 
     return (
       <Activity
         noteInputId={this.state.noteInputId}
         incidentId={incidentId}
-        orgId={orgId}
         me={me}
         api={api}
-        noteProps={{
-          text: this.state.noteInputText,
-        }}
         {...this.state}
         onCreateNote={this.handleCreateNote}
         onUpdateNote={this.handleUpdateNote}
@@ -197,13 +218,13 @@ class ActivityContainer extends React.PureComponent {
 }
 export default withApi(ActivityContainer);
 
-function removeFromArrayIndex(array, index) {
+function removeFromArrayIndex<T>(array: T[], index: number): T[] {
   const newArray = [...array];
   newArray.splice(index, 1);
   return newArray;
 }
 
-function replaceAtArrayIndex(array, index, obj) {
+function replaceAtArrayIndex<T>(array: T[], index: number, obj: T): T[] {
   const newArray = [...array];
   newArray.splice(index, 1, obj);
   return newArray;

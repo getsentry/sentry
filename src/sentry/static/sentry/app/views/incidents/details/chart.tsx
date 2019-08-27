@@ -38,7 +38,7 @@ function getNearbyIndex(data: Data, needle: number) {
 type Props = {
   data: Data;
   detected: string;
-  closed: string;
+  closed?: string;
 };
 
 export default class Chart extends React.PureComponent<Props> {
@@ -60,7 +60,10 @@ export default class Chart extends React.PureComponent<Props> {
 
     const detectedCoordinate = chartData && chartData[nearbyDetectedTimestampIndex];
     const closedCoordinate =
-      chartData && closedTs && chartData[nearbyClosedTimestampIndex];
+      chartData &&
+      closedTs &&
+      typeof nearbyClosedTimestampIndex !== 'undefined' &&
+      chartData[nearbyClosedTimestampIndex];
 
     return (
       <LineChart
