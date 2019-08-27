@@ -193,7 +193,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return installation_resp
 
     def build_integration(self, state):
-        installation = self.get_installation_info(state['installation_id'])
+        installation = self.get_installation_info(state["installation_id"])
 
         integration = {
             "name": installation["account"]["login"],
@@ -210,15 +210,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
             },
-            << << << < HEAD
-            "user_identity": {
-                "type": "github",
-                "external_id": user["id"],
-                "scopes": [],  # GitHub apps do not have user scopes
-                "data": {"access_token": identity["access_token"]},
-            },
-            == == == =
-            >>>>>> > remove github identity creation
         }
 
         if state.get("reinstall_id"):
