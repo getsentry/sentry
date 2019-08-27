@@ -308,6 +308,24 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             "sync_reverse_assignment",
         ]
 
+    def test_get_organization_config_failure(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(integration.organizations.first().id)
+
+        # Set the `default_identity` property and force token expiration
+        installation.get_client()
+        installation.default_identity.data["expires"] = 1566851050
+
+        responses.replace(
+            responses.POST,
+            "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"$id": 1, "message": "The provided authorization grant failed"},
+        )
+        fields = installation.get_organization_config()
+        assert fields[0]["disabled"], "Fields should be disabled"
+
     def test_update_organization_config_remove_all(self):
         self.assert_installation()
 

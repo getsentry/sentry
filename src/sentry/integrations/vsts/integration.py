@@ -7,6 +7,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http, features
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel,
@@ -173,8 +174,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
             all_states = [(state, state) for state in all_states]
             disabled = False
-
-        except ApiError:
+        except (ApiError, IdentityNotValid):
             all_states = []
             disabled = True
 
