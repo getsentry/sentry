@@ -1,4 +1,4 @@
-import {SpanEntry} from 'app/views/organizationEventsV2/transactionView/types';
+import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 
 export type Organization = {
   id: string;

@@ -12,7 +12,7 @@ type PropType = {
   event: SentryTransactionEvent;
 };
 
-class TransanctionView extends React.Component<PropType> {
+class SpansInterface extends React.Component<PropType> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
   };
@@ -32,4 +32,4 @@ class TransanctionView extends React.Component<PropType> {
   }
 }
 
-export default TransanctionView;
+export default SpansInterface;

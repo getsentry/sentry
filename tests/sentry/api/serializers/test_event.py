@@ -173,6 +173,13 @@ class EventSerializerTest(TestCase):
         assert "crashFile" not in result
         assert "fingerprints" not in result
 
+    def test_transaction_event_empty_spans(self):
+        event_data = load_data("transaction")
+        event_data["spans"] = []
+        event = self.store_event(data=event_data, project_id=self.project.id)
+        result = serialize(event)
+        assert result["entries"][0]["type"] == "spans"
+
 
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
