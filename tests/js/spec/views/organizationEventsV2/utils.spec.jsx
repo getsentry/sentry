@@ -1,8 +1,4 @@
-import {
-  getQuery,
-  getQueryString,
-  getEventTagSearchUrl,
-} from 'app/views/organizationEventsV2/utils';
+import {getQuery, getEventTagSearchUrl} from 'app/views/organizationEventsV2/utils';
 import EventView from 'app/views/organizationEventsV2/eventView';
 
 describe('getQuery()', function() {
