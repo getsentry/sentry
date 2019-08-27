@@ -1,6 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
+import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -13,14 +14,13 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
-import NavTabs from 'app/components/navTabs';
-import ListLink from 'app/components/links/listLink';
+import Link from 'app/components/links/link';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import {ALL_VIEWS} from './data';
 import {getCurrentView, getFirstQueryString} from './utils';
 
 type Props = {
@@ -37,31 +37,57 @@ class OrganizationEventsV2 extends React.Component<Props> {
     router: PropTypes.object.isRequired,
   };
 
-  renderTabs(): React.ReactNode {
+  renderQueryList() {
     const {location} = this.props;
-    const firstView = getFirstQueryString(location.query, 'view');
-    const currentView = getCurrentView(firstView);
-
+    const allEvents = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        view: 'all',
+      },
+    };
+    const errors = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        view: 'errors',
+        cursor: undefined,
+        sort: undefined,
+      },
+    };
+    const csp = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        view: 'csp',
+        cursor: undefined,
+        sort: undefined,
+      },
+    };
+    const transactions = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        view: 'transactions',
+        cursor: undefined,
+        sort: undefined,
+      },
+    };
     return (
-      <NavTabs underlined={true}>
-        {ALL_VIEWS.map(view => (
-          <ListLink
-            key={view.id}
-            to={{
-              pathname: location.pathname,
-              query: {
-                ...this.props.location.query,
-                view: view.id,
-                cursor: undefined,
-                sort: undefined,
-              },
-            }}
-            isActive={() => view.id === currentView.id}
-          >
-            {view.name}
-          </ListLink>
-        ))}
-      </NavTabs>
+      <LinkList>
+        <LinkContainer>
+          <Link to={allEvents}>All Events</Link>
+        </LinkContainer>
+        <LinkContainer>
+          <Link to={errors}>Errors</Link>
+        </LinkContainer>
+        <LinkContainer>
+          <Link to={csp}>CSP</Link>
+        </LinkContainer>
+        <LinkContainer>
+          <Link to={transactions}>Transactions</Link>
+        </LinkContainer>
+      </LinkList>
     );
   }
 
@@ -71,6 +97,8 @@ class OrganizationEventsV2 extends React.Component<Props> {
     const view = getFirstQueryString(location.query, 'view');
 
     const currentView = getCurrentView(view);
+    const hasQuery =
+      location.query.field || location.query.eventSlug || location.query.view;
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
@@ -84,23 +112,25 @@ class OrganizationEventsV2 extends React.Component<Props> {
                     {t('Events')} <BetaTag />
                   </PageHeading>
                 </PageHeader>
-                {this.renderTabs()}
-                <Events
-                  organization={organization}
-                  view={currentView}
-                  location={location}
-                  router={router}
-                />
+                {!hasQuery && this.renderQueryList()}
+                {hasQuery && (
+                  <Events
+                    organization={organization}
+                    view={currentView}
+                    location={location}
+                    router={router}
+                  />
+                )}
+                {hasQuery && eventSlug && (
+                  <EventDetails
+                    organization={organization}
+                    params={this.props.params}
+                    eventSlug={eventSlug}
+                    view={currentView}
+                    location={location}
+                  />
+                )}
               </NoProjectMessage>
-              {eventSlug && (
-                <EventDetails
-                  organization={organization}
-                  params={this.props.params}
-                  eventSlug={eventSlug}
-                  view={currentView}
-                  location={location}
-                />
-              )}
             </PageContent>
           </React.Fragment>
         </DocumentTitle>
@@ -108,6 +138,21 @@ class OrganizationEventsV2 extends React.Component<Props> {
     );
   }
 }
+
+const LinkList = styled('ul')`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const LinkContainer = styled('li')`
+  background: ${p => p.theme.white};
+  line-height: 1.4;
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(1)};
+  padding: ${space(1)};
+`;
 
 export default withOrganization(OrganizationEventsV2);
 export {OrganizationEventsV2};
