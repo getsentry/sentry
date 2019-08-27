@@ -1,7 +1,17 @@
+import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
-const Well = styled('div')`
+type Props = {
+  hasImage: boolean | undefined;
+  centered: boolean | undefined;
+  children: React.ReactNode;
+  theme: any;
+};
+
+type WellProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+
+const Well = styled('div')<WellProps>`
   border: 1px solid ${p => p.theme.borderLight};
   box-shadow: none;
   background: ${p => p.theme.whiteDark};
@@ -14,11 +24,6 @@ const Well = styled('div')`
 Well.propTypes = {
   hasImage: PropTypes.bool,
   centered: PropTypes.bool,
-};
-
-Well.defaultProps = {
-  hasImage: false,
-  centered: false,
 };
 
 export default Well;
