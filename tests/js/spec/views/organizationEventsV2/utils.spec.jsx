@@ -1,34 +1,4 @@
-import {getQuery, getEventTagSearchUrl} from 'app/views/organizationEventsV2/utils';
-import EventView from 'app/views/organizationEventsV2/eventView';
-
-describe('getQuery()', function() {
-  it('appends any additional conditions defined for view', function() {
-    const eventView = new EventView({
-      fields: ['id'],
-      sorts: [],
-      tags: [],
-      query: 'event.type:csp',
-    });
-
-    expect(getQuery(eventView, {}).query).toEqual('event.type:csp');
-  });
-
-  it('appends query conditions in location', function() {
-    const eventView = new EventView({
-      fields: ['id'],
-      sorts: [],
-      tags: [],
-      query: 'event.type:csp',
-    });
-
-    const location = {
-      query: {
-        query: 'TypeError',
-      },
-    };
-    expect(getQuery(eventView, location).query).toEqual('event.type:csp TypeError');
-  });
-});
+import {getEventTagSearchUrl} from 'app/views/organizationEventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
   let location;
