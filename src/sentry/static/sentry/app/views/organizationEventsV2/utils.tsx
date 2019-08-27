@@ -44,7 +44,7 @@ export function hasAggregateField(eventView: EventView): boolean {
  * @returns {Object}
  */
 export const getQuery = (eventView: EventView, location: Location): EventQuery => {
-  const {query} = location;
+  const query = location.query || {};
 
   type LocationQuery = {
     project?: string;

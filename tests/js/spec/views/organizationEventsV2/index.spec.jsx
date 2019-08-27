@@ -3,6 +3,10 @@ import {mount} from 'enzyme';
 
 import {OrganizationEventsV2} from 'app/views/organizationEventsV2';
 
+const encodeFields = () => {
+  return JSON.stringify(['foo', 'bar']);
+};
+
 describe('OrganizationEventsV2', function() {
   const eventTitle = 'Oh no something bad';
   const features = ['events-v2'];
@@ -67,7 +71,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {view: 'all'}}}
+        location={{query: {field: encodeFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -80,7 +84,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features})}
-        location={{query: {view: 'all'}}}
+        location={{query: {field: encodeFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -94,7 +98,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {view: 'all'}}}
+        location={{query: {field: encodeFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -127,7 +131,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {view: 'all'}}}
+        location={{query: {field: encodeFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
