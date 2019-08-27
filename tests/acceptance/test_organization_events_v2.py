@@ -114,7 +114,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAME):
             # Get the list page.
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?view=all")
             self.wait_until_loaded()
 
             # Click the event link to open the modal
