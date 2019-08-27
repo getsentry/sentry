@@ -276,7 +276,7 @@ const PanelGrid = styled((props: PanelGridProps) => {
   ${(props: PanelGridProps) => {
     const {expandColumn} = props;
 
-    const firstColumn = expandColumn === 0 ? 'min-content' : '3fr';
+    const firstColumn = expandColumn === 0 ? 'minmax(min-content, 3fr)' : '3fr';
 
     function generateRestColumns(): string {
       if (props.numOfCols <= 1) {
