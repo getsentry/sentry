@@ -2,9 +2,25 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {OrganizationEventsV2} from 'app/views/organizationEventsV2';
+import {encodeFields} from 'app/views/organizationEventsV2/eventView';
 
-const encodeFields = () => {
-  return JSON.stringify(['foo', 'bar']);
+const FIELDS = [
+  {
+    snuba_column: 'title',
+    title: 'Custom Title',
+  },
+  {
+    snuba_column: 'timestamp',
+    title: 'Custom Time',
+  },
+  {
+    snuba_column: 'user',
+    title: 'Custom User',
+  },
+];
+
+const generateFields = () => {
+  return encodeFields(FIELDS);
 };
 
 describe('OrganizationEventsV2', function() {
@@ -20,10 +36,12 @@ describe('OrganizationEventsV2', function() {
           title: 'string',
           'project.name': 'string',
           timestamp: 'date',
+          'user.id': 'string',
         },
         data: [
           {
             id: 'deadbeef',
+            'user.id': 'alberto leal',
             title: eventTitle,
             'project.name': 'project-slug',
             timestamp: '2019-05-23T22:12:48+00:00',
@@ -71,20 +89,21 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {field: encodeFields()}}}
+        location={{query: {field: generateFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
     );
     const content = wrapper.find('PageContent');
-    expect(content.find('Events Cell').length).toBeGreaterThan(0);
+    expect(content.find('Events PanelHeaderCell').length).toBeGreaterThan(0);
+    expect(content.find('Events PanelItemCell').length).toBeGreaterThan(0);
   });
 
   it('handles no projects', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features})}
-        location={{query: {field: encodeFields()}}}
+        location={{query: {field: generateFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -98,7 +117,7 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {field: encodeFields()}}}
+        location={{query: {field: generateFields(), sort: ['-timestamp']}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -111,6 +130,7 @@ describe('OrganizationEventsV2', function() {
         .find('StyledLink');
 
     const timestamp = findLink('timestamp');
+
     // Sort should be active
     expect(
       timestamp
@@ -120,18 +140,25 @@ describe('OrganizationEventsV2', function() {
     ).toEqual('icon-chevron-down');
 
     // Sort link should reverse.
-    expect(timestamp.props().to.query).toEqual({view: 'all', sort: 'timestamp'});
+    expect(timestamp.props().to.query).toEqual({
+      field: generateFields(),
+      sort: 'timestamp',
+    });
 
     const userlink = findLink('user.id');
+
     // User link should be descending.
-    expect(userlink.props().to.query).toEqual({view: 'all', sort: '-user.id'});
+    expect(userlink.props().to.query).toEqual({
+      field: generateFields(),
+      sort: '-user.id',
+    });
   });
 
   it('generates links to modals', async function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {field: encodeFields()}}}
+        location={{query: {field: generateFields()}}}
         router={{}}
       />,
       TestStubs.routerContext()
@@ -139,8 +166,8 @@ describe('OrganizationEventsV2', function() {
 
     const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
     expect(link.props().to.query).toEqual({
-      view: 'all',
       eventSlug: 'project-slug:deadbeef',
+      field: generateFields(),
     });
   });
 

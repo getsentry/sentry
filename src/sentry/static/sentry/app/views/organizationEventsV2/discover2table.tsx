@@ -159,7 +159,11 @@ class Table extends React.Component<TableProps, TableState> {
   renderHeader = () => {
     const {eventView, location, dataPayload} = this.props;
 
-    const defaultSort = eventView.getDefaultSort();
+    if (eventView.fields.length <= 0) {
+      return null;
+    }
+
+    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].snuba_column;
 
     return eventView.fields.map((field, index) => {
       if (!dataPayload) {

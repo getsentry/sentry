@@ -87,7 +87,7 @@ const decodeFields = (location: Location): Array<Field> => {
   }, []);
 };
 
-const encodeFields = (fields: Array<Field>): Array<string> => {
+export const encodeFields = (fields: Array<Field>): Array<string> => {
   return fields.map(field => {
     return JSON.stringify([field.snuba_column, field.title]);
   });
