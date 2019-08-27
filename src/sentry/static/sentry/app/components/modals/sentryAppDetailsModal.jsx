@@ -68,6 +68,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
   onInstall() {
     const {onInstall, closeModal, closeOnInstall} = this.props;
     onInstall();
+    // let onInstall handle redirection post install when onCloseInstall is false
     closeOnInstall && closeModal();
   }
 
