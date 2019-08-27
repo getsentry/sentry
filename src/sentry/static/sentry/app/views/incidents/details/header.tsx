@@ -1,5 +1,5 @@
+import {Params} from 'react-router/lib/Router';
 import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
@@ -14,23 +14,25 @@ import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
 import SubscribeButton from 'app/components/subscribeButton';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {isOpen} from '../utils';
 import Status from '../status';
+import {Incident} from '../types';
 
-export default class DetailsHeader extends React.Component {
-  static propTypes = {
-    incident: SentryTypes.Incident,
-    params: PropTypes.object.isRequired,
-    hasIncidentDetailsError: PropTypes.bool.isRequired,
-    onSubscriptionChange: PropTypes.func.isRequired,
-    onStatusChange: PropTypes.func.isRequired,
-  };
+type Props = {
+  className?: string;
+  hasIncidentDetailsError: boolean;
+  // Can be undefined when loading
+  incident?: Incident;
+  onSubscriptionChange: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  onStatusChange: (eventKey: any) => void;
+  params: Params;
+};
 
+export default class DetailsHeader extends React.Component<Props> {
   renderStatus() {
     const {incident, onStatusChange} = this.props;
 
@@ -59,15 +61,18 @@ export default class DetailsHeader extends React.Component {
   render() {
     const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
-    const eventLink = incident && {
-      pathname: `/organizations/${params.orgId}/events/`,
+    const eventLink = incident
+      ? {
+          pathname: `/organizations/${params.orgId}/events/`,
 
-      // Note we don't have project selector on here so there should be
-      // no query params to forward
-      query: {
-        group: incident.groups,
-      },
-    };
+          // Note we don't have project selector on here so there should be
+          // no query params to forward
+          query: {
+            group: incident.groups,
+          },
+        }
+      : '';
+
     const dateStarted = incident && moment(incident.dateStarted).format('LL');
     const duration =
       incident &&
@@ -93,7 +98,7 @@ export default class DetailsHeader extends React.Component {
               )}
             </Breadcrumb>
             <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
-              {isIncidentReady ? incident.title : 'Loading'}
+              {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
             </IncidentTitle>
           </PageHeading>
         </HeaderItem>
@@ -107,7 +112,7 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Duration')}</ItemTitle>
-              {isIncidentReady && (
+              {incident && (
                 <ItemValue>
                   <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
                 </ItemValue>
@@ -115,7 +120,7 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
-              {isIncidentReady && (
+              {incident && (
                 <ItemValue>
                   <Count value={incident.uniqueUsers} />
                 </ItemValue>
@@ -123,7 +128,7 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Total events')}</ItemTitle>
-              {isIncidentReady && (
+              {incident && (
                 <ItemValue>
                   <Count value={incident.totalEvents} />
                   <OpenLink to={eventLink}>
@@ -198,7 +203,7 @@ const Breadcrumb = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const IncidentTitle = styled('div')`
+const IncidentTitle = styled('div')<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
 `;
 

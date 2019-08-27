@@ -1,6 +1,7 @@
-import PropTypes from 'prop-types';
+import {Params} from 'react-router/lib/Router';
 import React from 'react';
 
+import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
@@ -16,16 +17,21 @@ import {
 } from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
+import {Incident} from '../types';
 
-class OrganizationIncidentDetails extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-  };
+type Props = {
+  api: Client;
+  params: Params;
+};
 
-  constructor(props) {
-    super(props);
-    this.state = {isLoading: false, hasError: false};
-  }
+type State = {
+  isLoading: boolean;
+  hasError: boolean;
+  incident?: Incident;
+};
+
+class IncidentDetails extends React.Component<Props, State> {
+  state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -33,50 +39,60 @@ class OrganizationIncidentDetails extends React.Component {
     this.fetchData();
   }
 
-  fetchData = () => {
+  fetchData = async () => {
     this.setState({isLoading: true, hasError: false});
+
     const {
       api,
       params: {orgId, incidentId},
     } = this.props;
 
-    fetchIncident(api, orgId, incidentId)
-      .then(incident => {
-        this.setState({incident, isLoading: false, hasError: false});
-        markIncidentAsSeen(api, orgId, incident);
-      })
-      .catch(() => {
-        this.setState({isLoading: false, hasError: true});
-      });
+    try {
+      const incident = await fetchIncident(api, orgId, incidentId);
+      this.setState({incident, isLoading: false, hasError: false});
+      markIncidentAsSeen(api, orgId, incident);
+    } catch (_err) {
+      this.setState({isLoading: false, hasError: true});
+    }
   };
 
-  handleSubscriptionChange = () => {
+  handleSubscriptionChange = async () => {
     const {
       api,
       params: {orgId, incidentId},
     } = this.props;
+
+    if (!this.state.incident) {
+      return;
+    }
 
     const isSubscribed = this.state.incident.isSubscribed;
 
     const newIsSubscribed = !isSubscribed;
 
     this.setState(state => ({
-      incident: {...state.incident, isSubscribed: newIsSubscribed},
+      incident: {...(state.incident as Incident), isSubscribed: newIsSubscribed},
     }));
 
-    updateSubscription(api, orgId, incidentId, newIsSubscribed).catch(() => {
+    try {
+      updateSubscription(api, orgId, incidentId, newIsSubscribed);
+    } catch (_err) {
       this.setState(state => ({
-        incident: {...state.incident, isSubscribed},
+        incident: {...(state.incident as Incident), isSubscribed},
       }));
       addErrorMessage(t('An error occurred, your subscription status was not changed.'));
-    });
+    }
   };
 
-  handleStatusChange = () => {
+  handleStatusChange = async () => {
     const {
       api,
       params: {orgId, incidentId},
     } = this.props;
+
+    if (!this.state.incident) {
+      return;
+    }
 
     const {status} = this.state.incident;
 
@@ -85,22 +101,21 @@ class OrganizationIncidentDetails extends React.Component {
       : IncidentStatus.CREATED;
 
     this.setState(state => ({
-      incident: {...state.incident, status: newStatus},
+      incident: {...(state.incident as Incident), status: newStatus},
     }));
 
-    updateStatus(api, orgId, incidentId, newStatus)
-      .then(incident => {
-        // Update entire incident object because updating status can cause other parts
-        // of the model to change (e.g close date)
-        this.setState({incident});
-      })
-      .catch(() => {
-        this.setState(state => ({
-          incident: {...state.incident, status},
-        }));
+    try {
+      const incident = await updateStatus(api, orgId, incidentId, newStatus);
+      // Update entire incident object because updating status can cause other parts
+      // of the model to change (e.g close date)
+      this.setState({incident});
+    } catch (_err) {
+      this.setState(state => ({
+        incident: {...(state.incident as Incident), status},
+      }));
 
-        addErrorMessage(t('An error occurred, your incident status was not changed.'));
-      });
+      addErrorMessage(t('An error occurred, your incident status was not changed.'));
+    }
   };
 
   render() {
@@ -117,15 +132,10 @@ class OrganizationIncidentDetails extends React.Component {
           onStatusChange={this.handleStatusChange}
         />
 
-        <DetailsBody
-          hasIncidentDetailsError={hasError}
-          params={params}
-          incident={incident}
-        />
+        <DetailsBody params={params} incident={incident} />
       </React.Fragment>
     );
   }
 }
 
-export {OrganizationIncidentDetails};
-export default withApi(OrganizationIncidentDetails);
+export default withApi(IncidentDetails);
