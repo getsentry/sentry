@@ -81,7 +81,6 @@ export default class Events extends React.Component<EventsProps> {
         />
         <Container>
           <Discover2Table organization={organization} location={location} />
-          <EventsTable organization={organization} location={location} view={view} />
           <Tags view={view} organization={organization} location={location} />
         </Container>
       </React.Fragment>
@@ -145,7 +144,7 @@ export class EventsTable extends AsyncComponent<EventsTableProps> {
           view={view}
           organization={organization}
           data={data}
-          isLoading={loading}
+          isLoading={loading || true}
           location={location}
         />
         <Pagination pageLinks={dataPageLinks} />

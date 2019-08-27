@@ -2,11 +2,17 @@ import React from 'react';
 import {Location} from 'history';
 import {pick} from 'lodash';
 import {browserHistory} from 'react-router';
+import styled from 'react-emotion';
+import {omit} from 'lodash';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+// import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import LoadingContainer from 'app/components/loading/loadingContainer';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
 import {EventQuery} from './utils';
@@ -23,8 +29,10 @@ type State = {
   loading: boolean;
   hasError: boolean;
 
+  pageLinks: null | string;
+
   // TODO(ts): type this
-  pageLinks: any;
+
   data: any;
 };
 
@@ -143,8 +151,60 @@ class Discover2Table extends React.PureComponent<Props, State> {
   };
 
   render() {
-    return <div>foo</div>;
+    const {organization, location} = this.props;
+    const {pageLinks, eventView, loading, data} = this.state;
+
+    return (
+      <div>
+        <Table
+          eventView={eventView}
+          organization={organization}
+          data={data}
+          isLoading={loading}
+          location={location}
+        />
+        <Pagination pageLinks={pageLinks} />
+      </div>
+    );
   }
 }
 
-export default withApi(Discover2Table);
+type TableProps = {
+  organization: Organization;
+  eventView: EventView;
+  isLoading: boolean;
+  data: any;
+  location: Location;
+};
+
+class Table extends React.Component<TableProps> {
+  renderLoading = () => {
+    return (
+      <Panel>
+        <StyledPanelBody isLoading={true}>
+          <LoadingContainer isLoading={true} />
+        </StyledPanelBody>
+      </Panel>
+    );
+  };
+
+  render() {
+    const {isLoading} = this.props;
+
+    if (isLoading) {
+      return this.renderLoading();
+    }
+
+    return <Panel>foo</Panel>;
+  }
+}
+
+// TODO(ts): adjust types
+const StyledPanelBody = styled(props => {
+  const otherProps = omit(props, 'isLoading');
+  return <PanelBody {...otherProps} />;
+})`
+  ${(p: {isLoading: boolean}) => p.isLoading && 'min-height: 240px;'};
+`;
+
+export default withApi<Props>(Discover2Table);
