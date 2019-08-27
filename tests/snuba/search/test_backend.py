@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -34,7 +35,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.backend = SnubaSearchBackend()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
-        event1_timestamp = (self.base_datetime - timedelta(days=21)).isoformat()[:19]
+        event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
         self.event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -54,7 +55,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "message": "group1",
                 "environment": "production",
                 "tags": {"server": "example.com"},
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
             project_id=self.project.id,
@@ -75,7 +76,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group2"],
                 "event_id": "b" * 32,
-                "timestamp": (self.base_datetime - timedelta(days=20)).isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
                 "message": "bar",
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "environment": "staging",
@@ -126,7 +127,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["put-me-in-groupP2"],
-                "timestamp": (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                 "message": "foo",
                 "stacktrace": {"frames": [{"module": "group_p2"}]},
                 "tags": {"server": "example.com"},
@@ -265,7 +266,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group2"],
-                    "timestamp": dt.isoformat()[:19],
+                    "timestamp": iso_format(dt),
                     "stacktrace": {"frames": [{"module": "group2"}]},
                     "environment": "production",
                     "message": "group2",
@@ -387,7 +388,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": (self.group2.first_seen + timedelta(days=1)).isoformat()[:19],
+                "timestamp": iso_format(self.group2.first_seen + timedelta(days=1)),
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "message": "group2",
                 "tags": {"priority": priority},
@@ -405,7 +406,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group1"],
-                    "timestamp": (self.group2.last_seen + timedelta(days=i)).isoformat()[:19],
+                    "timestamp": iso_format(self.group2.last_seen + timedelta(days=i)),
                     "stacktrace": {"frames": [{"module": "group1"}]},
                     "message": "group1",
                     "tags": {"priority": priority},
@@ -415,7 +416,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": (self.group2.last_seen + timedelta(days=2)).isoformat()[:19],
+                "timestamp": iso_format(self.group2.last_seen + timedelta(days=2)),
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "message": "group2",
                 "tags": {"priority": priority},
@@ -493,7 +494,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group2"],
-                    "timestamp": dt.isoformat()[:19],
+                    "timestamp": iso_format(dt),
                     "environment": "production",
                     "message": "group2",
                     "stacktrace": {"frames": [{"module": "group2"}]},
@@ -601,7 +602,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": (group1_first_seen + timedelta(days=1)).isoformat()[:19],
+                "timestamp": iso_format(group1_first_seen + timedelta(days=1)),
                 "message": "group1",
                 "stacktrace": {"frames": [{"module": "group1"}]},
                 "environment": "development",
@@ -668,7 +669,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": (self.group1.last_seen + timedelta(days=1)).isoformat()[:19],
+                "timestamp": iso_format(self.group1.last_seen + timedelta(days=1)),
                 "message": "group1",
                 "stacktrace": {"frames": [{"module": "group1"}]},
                 "environment": "development",
@@ -980,7 +981,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 data={
                     "event_id": md5("event {}".format(i)).hexdigest(),
                     "fingerprint": ["put-me-in-group{}".format(i)],
-                    "timestamp": (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                    "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": "group {} event".format(i),
                     "stacktrace": {"frames": [{"module": "module {}".format(i)}]},
                     "tags": {"match": "{}".format(i % 2)},
@@ -1230,7 +1231,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "message": "somet[hing]",
                 "environment": "production",
                 "tags": {"server": "example.net"},
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
             project_id=self.project.id,
@@ -1272,7 +1273,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "message": "something",
                 "environment": "production",
                 "tags": {"server": "example.net"},
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
             project_id=self.project.id,
@@ -1283,7 +1284,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "event_id": "5" * 32,
                 "message": "something",
                 "environment": "production",
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group2"}]},
             },
             project_id=self.project.id,
@@ -1309,7 +1310,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "message": "something",
                 "environment": "production",
                 "tags": {"logger": "csp"},
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
             },
             project_id=self.project.id,
@@ -1320,7 +1321,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "event_id": "5" * 32,
                 "message": "something",
                 "environment": "production",
-                "timestamp": self.base_datetime.isoformat()[:19],
+                "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group2"}]},
             },
             project_id=self.project.id,

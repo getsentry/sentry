@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
@@ -16,7 +17,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
         self.org = self.create_organization(owner=self.user, name="foo")
 
         self.project = self.create_project(organization=self.org, name="Bengal")
-        sec_ago = (datetime.utcnow() - timedelta(seconds=1)).isoformat()[:19]
+        sec_ago = iso_format(before_now(seconds=1))
 
         self.event = self.store_event(
             data={

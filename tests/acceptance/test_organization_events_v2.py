@@ -7,6 +7,7 @@ from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 FEATURE_NAME = "organizations:events-v2"
@@ -37,7 +38,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_all_events(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -57,7 +58,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_errors(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -97,7 +98,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_modal_from_all_events(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
 
         event_data = load_data("python")
         event_data.update(
@@ -139,7 +140,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = load_data("javascript")
         event_data["fingerprint"] = ["group-1"]
         for id_prefix, offset in event_source:
-            event_time = (timezone.now() - timedelta(minutes=offset)).isoformat()[:19]
+            event_time = iso_format(timezone.now() - timedelta(minutes=offset))
             event_data.update(
                 {
                     "timestamp": event_time,

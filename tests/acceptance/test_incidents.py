@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.utils import timezone
 import pytz
 from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.incidents.logic import create_incident
 from sentry.incidents.models import IncidentType
 
 FEATURE_NAME = "organizations:incidents"
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
@@ -59,7 +60,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

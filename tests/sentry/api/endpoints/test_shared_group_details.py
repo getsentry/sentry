@@ -1,10 +1,9 @@
 from __future__ import absolute_import, print_function
 
 import six
-from datetime import timedelta
-from django.utils import timezone
 
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import GroupShare
 
 
@@ -12,7 +11,7 @@ class SharedGroupDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
         group = event.group
 

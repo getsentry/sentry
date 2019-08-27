@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from mock import patch
 import pytz
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
@@ -29,7 +30,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "level": "error",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
             },
             project_id=self.project.id,
             assert_no_errors=False,
