@@ -66,16 +66,17 @@ class OrganizationEventsV2 extends React.Component<Props> {
     return <LinkList>{list}</LinkList>;
   }
 
-  getEventViewName = () => {
+  getEventViewName = (): Array<string> => {
     const {location} = this.props;
 
     const name = getFirstQueryString(location.query, 'name');
 
     if (typeof name === 'string' && String(name).trim().length > 0) {
-      return `${t('Events')} \u2014 ${String(name).trim()}`;
+      return [t('Events'), String(name).trim()];
+      // return `${} \u2014 ${}`;
     }
 
-    return t('Events');
+    return [t('Events')];
   };
 
   render() {
@@ -87,16 +88,21 @@ class OrganizationEventsV2 extends React.Component<Props> {
     const hasQuery =
       location.query.field || location.query.eventSlug || location.query.view;
 
+    const documentTitle = this.getEventViewName()
+      .reverse()
+      .join(' - ');
+    const pageTitle = this.getEventViewName().join(' \u2014 ');
+
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
-        <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
+        <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
               <NoProjectMessage organization={organization}>
                 <PageHeader>
                   <PageHeading>
-                    {this.getEventViewName()} <BetaTag />
+                    {pageTitle} <BetaTag />
                   </PageHeading>
                 </PageHeader>
                 {!hasQuery && this.renderQueryList()}
