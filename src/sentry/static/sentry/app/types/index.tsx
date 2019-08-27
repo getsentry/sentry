@@ -1,4 +1,4 @@
-import {SpanEntry} from 'app/views/organizationEventsV2/transactionView/types';
+import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 
 export type Organization = {
   id: string;
@@ -290,4 +290,15 @@ export type EventView = {
   };
   tags: string[];
   columnWidths: string[];
+};
+
+export type Repository = {
+  dateCreated: string;
+  externalSlug: string;
+  id: string;
+  integrationId: string;
+  name: string;
+  provider: {id: string; name: string};
+  status: string;
+  url: string;
 };
