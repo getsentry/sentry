@@ -40,6 +40,7 @@ class Tags extends React.Component<Props, State> {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
+    eventView: PropTypes.object.isRequired,
   };
 
   state: State = {
