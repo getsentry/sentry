@@ -1,27 +1,21 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {omit, isEqual} from 'lodash';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 
-import {Organization, EventViewv1} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
-import AsyncComponent from 'app/components/asyncComponent';
-import Pagination from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import EventsChart from 'app/views/events/eventsChart';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {getParams} from 'app/views/events/utils/getParams';
 
-import Table from './table';
 import Discover2Table from './discover2table';
 import Tags from './tags';
-import {getQuery, EventQuery} from './utils';
-import {MODAL_QUERY_KEYS} from './data';
+import {getQuery} from './utils';
+import EventView from './eventView';
 
 const CHART_AXIS_OPTIONS = [
   {label: 'Count', value: 'event_count'},
@@ -32,17 +26,10 @@ type EventsProps = {
   router: ReactRouter.InjectedRouter;
   location: Location;
   organization: Organization;
-  view: EventViewv1;
+  eventView: EventView;
 };
 
 export default class Events extends React.Component<EventsProps> {
-  static propTypes = {
-    router: PropTypes.object.isRequired,
-    location: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    view: SentryTypes.EventView.isRequired,
-  };
-
   handleSearch = query => {
     const {router, location} = this.props;
     router.push({
@@ -55,7 +42,7 @@ export default class Events extends React.Component<EventsProps> {
   };
 
   render() {
-    const {organization, view, location, router} = this.props;
+    const {organization, eventView, location, router} = this.props;
     const query = location.query.query || '';
 
     return (
@@ -65,7 +52,7 @@ export default class Events extends React.Component<EventsProps> {
             value: (
               <EventsChart
                 router={router}
-                query={getQuery(view, location).query}
+                query={getQuery(eventView, location).query}
                 organization={organization}
                 showLegend
                 yAxisOptions={CHART_AXIS_OPTIONS}
@@ -81,74 +68,9 @@ export default class Events extends React.Component<EventsProps> {
         />
         <Container>
           <Discover2Table organization={organization} location={location} />
-          <Tags view={view} organization={organization} location={location} />
+          <Tags eventView={eventView} organization={organization} location={location} />
         </Container>
       </React.Fragment>
-    );
-  }
-}
-
-type EventsTableProps = {
-  location: Location;
-  organization: Organization;
-  view: EventViewv1;
-};
-
-// TODO: refactor this
-export class EventsTable extends AsyncComponent<EventsTableProps> {
-  static propTypes = {
-    location: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    view: SentryTypes.EventView.isRequired,
-  };
-
-  shouldReload = false;
-
-  componentDidUpdate(prevProps: EventsTableProps, prevContext) {
-    // Do not update if we are just opening/closing the modal
-    const locationHasChanged = !isEqual(
-      omit(prevProps.location.query, MODAL_QUERY_KEYS),
-      omit(this.props.location.query, MODAL_QUERY_KEYS)
-    );
-
-    if (locationHasChanged) {
-      super.componentDidUpdate(prevProps, prevContext);
-    }
-  }
-
-  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
-    const {location, organization, view} = this.props;
-
-    return [
-      [
-        'data',
-        `/organizations/${organization.slug}/eventsv2/`,
-        {
-          query: getQuery(view, location),
-        },
-      ],
-    ];
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderBody() {
-    const {organization, view, location} = this.props;
-    const {data, dataPageLinks, loading} = this.state;
-
-    return (
-      <div>
-        <Table
-          view={view}
-          organization={organization}
-          data={data}
-          isLoading={loading || true}
-          location={location}
-        />
-        <Pagination pageLinks={dataPageLinks} />
-      </div>
     );
   }
 }

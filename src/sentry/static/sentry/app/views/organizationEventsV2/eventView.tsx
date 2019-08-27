@@ -273,8 +273,6 @@ class EventView {
     }
 
     return queryParts.join(' ');
-
-    return '';
   };
 }
 

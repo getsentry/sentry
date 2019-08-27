@@ -1,6 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import {pick, omit} from 'lodash';
+import {omit} from 'lodash';
 import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 
@@ -8,7 +8,6 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
-import {DEFAULT_PER_PAGE} from 'app/constants';
 import Pagination from 'app/components/pagination';
 import Panel from 'app/components/panels/panel';
 import {PanelBody} from 'app/components/panels';
@@ -17,7 +16,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
-import {EventQuery, MetaType, getFieldRenderer} from './utils';
+import {MetaType, getFieldRenderer, getQuery} from './utils';
 import EventView from './eventView';
 
 type DataRow = {
@@ -85,56 +84,13 @@ class Discover2Table extends React.PureComponent<Props, State> {
     }
   }
 
-  getQuery = () => {
-    const {query} = this.props.location;
-
-    type LocationQuery = {
-      project?: string;
-      environment?: string;
-      start?: string;
-      end?: string;
-      utc?: string;
-      statsPeriod?: string;
-      cursor?: string;
-      sort?: string;
-    };
-
-    const picked = pick<LocationQuery>(query || {}, [
-      'project',
-      'environment',
-      'start',
-      'end',
-      'utc',
-      'statsPeriod',
-      'cursor',
-      'sort',
-    ]);
-
-    const fieldNames = this.state.eventView.getFieldSnubaCols();
-
-    const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
-
-    const eventQuery: EventQuery = Object.assign(picked, {
-      field: [...new Set(fieldNames)],
-      sort: picked.sort ? picked.sort : defaultSort,
-      per_page: DEFAULT_PER_PAGE,
-      query: this.state.eventView.getQuery(query.query),
-    });
-
-    if (!eventQuery.sort) {
-      delete eventQuery.sort;
-    }
-
-    return eventQuery;
-  };
-
   fetchData = () => {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     this.props.api.request(url, {
-      query: this.getQuery(),
+      query: getQuery(this.state.eventView, location),
       success: (dataPayload, __textStatus, jqxhr) => {
         this.setState(prevState => {
           return {

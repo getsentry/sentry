@@ -1,4 +1,4 @@
-import {partial, pick, get} from 'lodash';
+import {partial, pick} from 'lodash';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -14,6 +14,7 @@ import {
   FieldFormatterRenderFunctionPartial,
   DEFAULT_EVENT_VIEW_V1,
 } from './data';
+import EventView from './eventView';
 
 /**
  * Given a view id, return the corresponding view object
@@ -37,27 +38,27 @@ export type EventQuery = {
 /**
  * Takes a view and determines if there are any aggregate fields in it.
  *
- * TODO(mark) This function should be part of an EventViewv1 abstraction
  *
  * @param {Object} view
  * @returns {Boolean}
  */
-export function hasAggregateField(view) {
-  return view.data.fields.some(
-    field => AGGREGATE_ALIASES.includes(field) || field.match(/[a-z_]+\([a-z_\.]+\)/)
-  );
+export function hasAggregateField(eventView: EventView): boolean {
+  return eventView
+    .getFieldSnubaCols()
+    .some(
+      field =>
+        AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)
+    );
 }
 
 /**
- * Takes a view and converts it into the format required for the events API
- *
- * TODO(mark) This function should be part of an EventViewv1 abstraction
+ * Takes an EventView instance and converts it into the format required for the events API
  *
  * @param {Object} view
  * @returns {Object}
  */
-export function getQuery(view: EventViewv1, location: Location) {
-  const fields: Array<string> = get(view, 'data.fields', []);
+export const getQuery = (eventView: EventView, location: Location): EventQuery => {
+  const {query} = location;
 
   type LocationQuery = {
     project?: string;
@@ -70,7 +71,7 @@ export function getQuery(view: EventViewv1, location: Location) {
     sort?: string;
   };
 
-  const picked = pick<LocationQuery>(location.query, [
+  const picked = pick<LocationQuery>(query || {}, [
     'project',
     'environment',
     'start',
@@ -81,46 +82,23 @@ export function getQuery(view: EventViewv1, location: Location) {
     'sort',
   ]);
 
-  const data: EventQuery = Object.assign(picked, {
-    field: [...new Set(fields)],
-    sort: picked.sort ? picked.sort : view.data.sort,
+  const fieldNames = eventView.getFieldSnubaCols();
+
+  const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
+
+  const eventQuery: EventQuery = Object.assign(picked, {
+    field: [...new Set(fieldNames)],
+    sort: picked.sort ? picked.sort : defaultSort,
     per_page: DEFAULT_PER_PAGE,
-    query: getQueryString(view, location),
+    query: eventView.getQuery(query.query),
   });
 
-  return data;
-}
-
-/**
- * Generate a querystring based on the view defaults, current
- * location and any additional parameters
- *
- * TODO(mark) This function should be part of an EventViewv1 abstraction
- *
- * @param {Object} view defaults containing `.data.query`
- * @param {Location} browser location
- */
-export function getQueryString(view: EventViewv1, location: Location): string {
-  const queryParts: Array<string> = [];
-  if (view.data.query) {
-    queryParts.push(view.data.query);
-  }
-  if (location.query && location.query.query) {
-    // there may be duplicate query in the query string
-    // e.g. query=hello&query=world
-    if (Array.isArray(location.query.query)) {
-      location.query.query.forEach(query => {
-        queryParts.push(query);
-      });
-    }
-
-    if (typeof location.query.query === 'string') {
-      queryParts.push(location.query.query);
-    }
+  if (!eventQuery.sort) {
+    delete eventQuery.sort;
   }
 
-  return queryParts.join(' ');
-}
+  return eventQuery;
+};
 
 /**
  * Return a location object for the current pathname

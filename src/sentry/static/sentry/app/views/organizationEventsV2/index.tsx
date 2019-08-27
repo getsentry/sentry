@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import {getCurrentView, getFirstQueryString} from './utils';
+import {getFirstQueryString} from './utils';
 import {ALL_VIEWS} from './data';
 import EventView from './eventView';
 
@@ -81,9 +81,9 @@ class OrganizationEventsV2 extends React.Component<Props> {
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
-    const view = getFirstQueryString(location.query, 'view');
 
-    const currentView = getCurrentView(view);
+    const eventView = EventView.fromLocation(location);
+
     const hasQuery =
       location.query.field || location.query.eventSlug || location.query.view;
 
@@ -103,9 +103,9 @@ class OrganizationEventsV2 extends React.Component<Props> {
                 {hasQuery && (
                   <Events
                     organization={organization}
-                    view={currentView}
                     location={location}
                     router={router}
+                    eventView={eventView}
                   />
                 )}
                 {hasQuery && eventSlug && (
@@ -113,7 +113,7 @@ class OrganizationEventsV2 extends React.Component<Props> {
                     organization={organization}
                     params={this.props.params}
                     eventSlug={eventSlug}
-                    view={currentView}
+                    eventView={eventView}
                     location={location}
                   />
                 )}

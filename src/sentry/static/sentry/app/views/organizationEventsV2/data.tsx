@@ -16,10 +16,8 @@ import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
 
-// TODO(ts): add as const after babel upgrade
 export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-// TODO(ts): add as const after babel upgrade
 export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
 
 export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {

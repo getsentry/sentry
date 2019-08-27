@@ -20,10 +20,10 @@ import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
-import {Event, Organization, EventViewv1} from 'app/types';
+import {Event, Organization} from 'app/types';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
-import {getQueryString} from './utils';
+import EventView from './eventView';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -135,7 +135,7 @@ type ModalLineGraphProps = {
   organization: Organization;
   location: Location;
   currentEvent: Event;
-  view: EventViewv1;
+  eventView: EventView;
   // TODO(ts): adjust
   selection: any;
 };
@@ -144,7 +144,7 @@ type ModalLineGraphProps = {
  * Render a graph of event volumes for the current group + event.
  */
 const ModalLineGraph = (props: ModalLineGraphProps) => {
-  const {api, organization, location, selection, currentEvent, view} = props;
+  const {api, organization, location, selection, currentEvent, eventView} = props;
 
   const isUtc = selection.datetime.utc;
   const dateFormat = 'lll';
@@ -169,7 +169,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
     },
   };
 
-  const queryString = getQueryString(view, location);
+  const queryString = eventView.getQuery(location.query.query);
   const referenceEvent = `${currentEvent.projectSlug}:${currentEvent.eventID}`;
 
   return (
@@ -185,7 +185,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
         interval={interval}
         showLoading={true}
         query={queryString}
-        field={view.data.fields}
+        field={eventView.getFieldSnubaCols()}
         referenceEvent={referenceEvent}
         includePrevious={false}
       >
@@ -199,7 +199,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
             }}
             onClick={series =>
               handleClick(series, {
-                field: view.data.fields,
+                field: eventView.getFieldSnubaCols(),
                 api,
                 organization,
                 currentEvent,
@@ -227,7 +227,6 @@ ModalLineGraph.propTypes = {
   location: PropTypes.object.isRequired,
   organization: SentryTypes.Organization.isRequired,
   selection: PropTypes.object.isRequired,
-  view: PropTypes.object.isRequired,
 } as any;
 
 export default withGlobalSelection(withApi(ModalLineGraph));
