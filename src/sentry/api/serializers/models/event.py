@@ -46,7 +46,8 @@ class EventSerializer(Serializer):
 
             data = interface.get_api_context(is_public=is_public, platform=platform)
             # data might not be returned for e.g. a public HTTP repr
-            if not data:
+            # However, spans can be an empty list and should still be included.
+            if not data and interface.path != "spans":
                 continue
 
             entry = {"data": data, "type": interface.external_type}

@@ -19,9 +19,7 @@ import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
-import TransanctionView from './transactionView';
 import {hasAggregateField} from './utils';
-import {SentryTransactionEvent} from './transactionView/types';
 
 type EventModalContentProps = {
   event: Event;
@@ -63,11 +61,7 @@ const EventModalContent = (props: EventModalContentProps) => {
           })}
       </HeaderBox>
       <ContentColumn>
-        {event.type === 'transaction' ? (
-          <TransanctionView event={event as SentryTransactionEvent} />
-        ) : (
-          <EventInterfaces event={event} projectId={projectId} />
-        )}
+        <EventInterfaces event={event} projectId={projectId} />
       </ContentColumn>
       <SidebarColumn>
         {event.groupID && (
