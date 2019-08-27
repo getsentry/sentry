@@ -137,15 +137,7 @@ type TableProps = {
   location: Location;
 };
 
-type TableState = {
-  expandColumn: null | number;
-};
-
-class Table extends React.Component<TableProps, TableState> {
-  state: TableState = {
-    expandColumn: null,
-  };
-
+class Table extends React.Component<TableProps> {
   renderLoading = () => {
     return (
       <Panel>
@@ -237,21 +229,6 @@ class Table extends React.Component<TableProps, TableState> {
                   paddingRight: columnIndex === lastCellIndex ? space(1) : void 0,
                 }}
                 key={key}
-                onMouseEnter={() => {
-                  this.setState({
-                    expandColumn: columnIndex,
-                  });
-                }}
-                onMouseLeave={() => {
-                  this.setState({
-                    expandColumn: null,
-                  });
-                }}
-                onMouseOver={() => {
-                  this.setState({
-                    expandColumn: columnIndex,
-                  });
-                }}
               >
                 {fieldRenderer(row, {organization, location})}
               </PanelItemCell>
@@ -279,23 +256,17 @@ class Table extends React.Component<TableProps, TableState> {
     }
 
     return (
-      <PanelGrid
-        expandColumn={this.state.expandColumn}
-        numOfCols={eventView.numOfColumns()}
-      >
-        {this.renderTable()}
-      </PanelGrid>
+      <PanelGrid numOfCols={eventView.numOfColumns()}>{this.renderTable()}</PanelGrid>
     );
   }
 }
 
 type PanelGridProps = {
   numOfCols: number;
-  expandColumn: number | null;
 };
 
 const PanelGrid = styled((props: PanelGridProps) => {
-  const otherProps = omit(props, 'numOfCols', 'expandColumn');
+  const otherProps = omit(props, 'numOfCols');
   return <Panel {...otherProps} />;
 })<PanelGridProps>`
   display: grid;
@@ -303,36 +274,14 @@ const PanelGrid = styled((props: PanelGridProps) => {
   overflow-x: auto;
 
   ${(props: PanelGridProps) => {
-    const {expandColumn} = props;
-
-    const firstColumn = expandColumn === 0 ? 'minmax(min-content, 3fr)' : '3fr';
+    const firstColumn = '3fr';
 
     function generateRestColumns(): string {
       if (props.numOfCols <= 1) {
         return '';
       }
 
-      if (expandColumn === null) {
-        return `repeat(${props.numOfCols - 1}, auto)`;
-      }
-
-      const defaultWidth = 'auto';
-
-      if (expandColumn === 0) {
-        return `repeat(${props.numOfCols - 1}, ${defaultWidth})`;
-      }
-
-      let restColumns: string = '';
-      for (let index = 1; index <= props.numOfCols - 1; index++) {
-        if (expandColumn === index) {
-          restColumns += ' min-content';
-          continue;
-        }
-
-        restColumns += ` ${defaultWidth}`;
-      }
-
-      return restColumns;
+      return `repeat(${props.numOfCols - 1}, auto)`;
     }
 
     return `
