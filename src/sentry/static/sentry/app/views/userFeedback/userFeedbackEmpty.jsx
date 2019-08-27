@@ -20,6 +20,21 @@ class UserFeedbackEmpty extends React.Component {
   componentDidMount() {
     const {organization, projectIds} = this.props;
 
+    window.sentryEmbedCallback = function(embed) {
+      // Mock the embed's submit xhr to always be successful
+      // NOTE: this will not have errors if the form is empty
+      embed.submit = function(_body) {
+        this._submitInProgress = true;
+        setTimeout(
+          function() {
+            this._submitInProgress = false;
+            this.onSuccess();
+          }.bind(this),
+          500
+        );
+      };
+    };
+
     if (this.hasAnyFeedback === false) {
       // send to reload only due to higher event volume
       trackAdhocEvent({
@@ -28,6 +43,10 @@ class UserFeedbackEmpty extends React.Component {
         projects: projectIds,
       });
     }
+  }
+
+  componentWillUnmount() {
+    window.sentryEmbedCallback = null;
   }
 
   get hasAnyFeedback() {
