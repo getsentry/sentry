@@ -315,18 +315,26 @@ const PanelGrid = styled((props: PanelGridProps) => {
 })<PanelGridProps>`
   display: grid;
 
+  overflow-x: auto;
+
   ${(props: PanelGridProps) => {
     const {expandColumn} = props;
 
-    const firstColumn = expandColumn === 0 ? 'minmax(min-content, 3fr)' : '3fr';
+    const firstColumn = expandColumn === 0 ? 'min-content' : '3fr';
 
     function generateRestColumns(): string {
       if (props.numOfCols <= 1) {
         return '';
       }
 
-      if (expandColumn === null || expandColumn === 0) {
+      if (expandColumn === null) {
         return `repeat(${props.numOfCols - 1}, auto)`;
+      }
+
+      const defaultWidth = 'auto';
+
+      if (expandColumn === 0) {
+        return `repeat(${props.numOfCols - 1}, ${defaultWidth})`;
       }
 
       let restColumns: string = '';
@@ -336,7 +344,7 @@ const PanelGrid = styled((props: PanelGridProps) => {
           continue;
         }
 
-        restColumns += ' auto';
+        restColumns += ` ${defaultWidth}`;
       }
 
       return restColumns;
@@ -360,6 +368,7 @@ const PanelHeaderCell = styled('div')`
 
   text-overflow: ellipsis;
   overflow: hidden;
+  white-space: nowrap;
 
   padding: ${space(2)};
 
