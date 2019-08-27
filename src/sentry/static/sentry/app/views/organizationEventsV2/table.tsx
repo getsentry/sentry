@@ -64,7 +64,7 @@ export default class Table extends React.Component<Props> {
   render() {
     const {isLoading, location, view} = this.props;
     const {fields, columnNames, sort} = view.data;
-    const defaultSort = sort.length ? sort[0] : null;
+    const defaultSort = sort.length ? sort[0] : undefined;
 
     return (
       <Panel>

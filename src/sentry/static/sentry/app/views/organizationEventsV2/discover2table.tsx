@@ -18,6 +18,7 @@ import {t} from 'app/locale';
 import {DEFAULT_EVENT_VIEW_V1} from './data';
 import {MetaType, getFieldRenderer, getQuery} from './utils';
 import EventView from './eventView';
+import SortLink from './sortLink';
 
 type DataRow = {
   [key: string]: string;
@@ -155,9 +156,34 @@ class Table extends React.Component<TableProps, TableState> {
     );
   };
 
-  renderTitle = () => {
-    return this.props.eventView.getFieldTitles().map((title, index) => {
-      return <PanelHeaderCell key={index}>{title}</PanelHeaderCell>;
+  renderHeader = () => {
+    const {eventView, location, dataPayload} = this.props;
+
+    const defaultSort = eventView.getDefaultSort();
+
+    return eventView.fields.map((field, index) => {
+      if (!dataPayload) {
+        return <PanelHeaderCell key={index}>{field.title}</PanelHeaderCell>;
+      }
+
+      const {meta} = dataPayload;
+
+      const sortKey = eventView.getSortKey(field.snuba_column, meta);
+
+      if (sortKey === null) {
+        return <PanelHeaderCell key={index}>{field.title}</PanelHeaderCell>;
+      }
+
+      return (
+        <PanelHeaderCell key={index}>
+          <SortLink
+            defaultSort={defaultSort}
+            sortKey={sortKey}
+            title={field.title}
+            location={location}
+          />
+        </PanelHeaderCell>
+      );
     });
   };
 
@@ -236,7 +262,7 @@ class Table extends React.Component<TableProps, TableState> {
   renderTable = () => {
     return (
       <React.Fragment>
-        {this.renderTitle()}
+        {this.renderHeader()}
         {this.renderContent()}
       </React.Fragment>
     );

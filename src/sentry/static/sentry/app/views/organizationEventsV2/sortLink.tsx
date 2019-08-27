@@ -9,7 +9,7 @@ import Link from 'app/components/links/link';
 type Props = {
   title: string;
   sortKey: string;
-  defaultSort: string | null;
+  defaultSort: string | undefined;
   location: Location;
 };
 

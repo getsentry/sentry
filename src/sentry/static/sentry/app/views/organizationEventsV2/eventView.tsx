@@ -3,6 +3,9 @@ import {isString} from 'lodash';
 
 import {EventViewv1} from 'app/types';
 
+import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {MetaType} from './utils';
+
 type Descending = {
   kind: 'desc';
   snuba_col: string;
@@ -123,20 +126,22 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSorts = (sorts: Array<Sort>): Array<string> => {
-  return sorts.map(sort => {
-    switch (sort.kind) {
-      case 'desc': {
-        return `-${sort.snuba_col}`;
-      }
-      case 'asc': {
-        return String(sort.snuba_col);
-      }
-      default: {
-        throw new Error('unexpected sort type');
-      }
+const encodeSort = (sort: Sort): string => {
+  switch (sort.kind) {
+    case 'desc': {
+      return `-${sort.snuba_col}`;
     }
-  });
+    case 'asc': {
+      return String(sort.snuba_col);
+    }
+    default: {
+      throw new Error('unexpected sort type');
+    }
+  }
+};
+
+const encodeSorts = (sorts: Array<Sort>): Array<string> => {
+  return sorts.map(encodeSort);
 };
 
 const decodeTags = (location: Location): Array<string> => {
@@ -273,6 +278,29 @@ class EventView {
     }
 
     return queryParts.join(' ');
+  };
+
+  getDefaultSort = (): string | undefined => {
+    if (this.sorts.length <= 0) {
+      return void 0;
+    }
+
+    return encodeSort(this.sorts[0]);
+  };
+
+  getSortKey = (snuba_column: string, meta: MetaType): string | null => {
+    if (SPECIAL_FIELDS.hasOwnProperty(snuba_column)) {
+      return SPECIAL_FIELDS[snuba_column as keyof typeof SPECIAL_FIELDS].sortField;
+    }
+
+    if (FIELD_FORMATTERS.hasOwnProperty(meta[snuba_column])) {
+      return FIELD_FORMATTERS[meta[snuba_column] as keyof typeof FIELD_FORMATTERS]
+        .sortField
+        ? snuba_column
+        : null;
+    }
+
+    return null;
   };
 }
 

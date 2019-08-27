@@ -197,7 +197,7 @@ type SpecialField = {
 type SpecialFields = {
   transaction: SpecialField;
   title: SpecialField;
-  type: SpecialField;
+  'event.type': SpecialField;
   project: SpecialField;
   user: SpecialField;
   last_seen: SpecialField;
@@ -246,7 +246,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  type: {
+  'event.type': {
     sortField: 'event.type',
     renderFunc: (data, {location}) => {
       const target = {
