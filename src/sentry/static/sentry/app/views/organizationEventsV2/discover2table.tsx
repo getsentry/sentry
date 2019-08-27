@@ -63,7 +63,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
   componentDidMount() {
     const {location} = this.props;
 
-    if (!this.state.eventView.isComplete()) {
+    if (!this.state.eventView.isValid()) {
       const nextEventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
 
       browserHistory.replace({

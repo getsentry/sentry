@@ -235,8 +235,7 @@ class EventView {
     };
   };
 
-  // TODO: need better name
-  isComplete = (): boolean => {
+  isValid = (): boolean => {
     return this.fields.length > 0;
   };
 
