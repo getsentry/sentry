@@ -2,8 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import {pick} from 'lodash';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
-import {omit} from 'lodash';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -11,7 +9,7 @@ import {Organization} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
-// import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+// import { PanelHeader, PanelItem} from 'app/components/panels';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
@@ -181,9 +179,9 @@ class Table extends React.Component<TableProps> {
   renderLoading = () => {
     return (
       <Panel>
-        <StyledPanelBody isLoading={true}>
+        <PanelBody style={{minHeight: '240px'}}>
           <LoadingContainer isLoading={true} />
-        </StyledPanelBody>
+        </PanelBody>
       </Panel>
     );
   };
@@ -198,13 +196,5 @@ class Table extends React.Component<TableProps> {
     return <Panel>foo</Panel>;
   }
 }
-
-// TODO(ts): adjust types
-const StyledPanelBody = styled(props => {
-  const otherProps = omit(props, 'isLoading');
-  return <PanelBody {...otherProps} />;
-})`
-  ${(p: {isLoading: boolean}) => p.isLoading && 'min-height: 240px;'};
-`;
 
 export default withApi<Props>(Discover2Table);
