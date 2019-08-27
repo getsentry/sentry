@@ -1,3 +1,11 @@
 [tool.black]
 line-length=100
 target-version=['py27']
+include='\.py$'
+exclude='''
+(
+      \.venv/
+    | node_modules/
+    | south_migrations/
+)
+'''
