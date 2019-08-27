@@ -705,6 +705,14 @@ function routes() {
         }
       />
 
+      <Route
+        path="/sentry-apps/:sentryAppSlug/external-install/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppExternalInstallation')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
       {EXPERIMENTAL_SPA && (
         <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
           <IndexRoute
