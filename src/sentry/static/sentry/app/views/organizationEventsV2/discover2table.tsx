@@ -171,7 +171,6 @@ class Table extends React.Component<TableProps, TableState> {
       }
 
       const {meta} = dataPayload;
-
       const sortKey = eventView.getSortKey(field.snuba_column, meta);
 
       if (sortKey === null) {

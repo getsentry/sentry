@@ -181,6 +181,8 @@ const decodeQuery = (location: Location): string | undefined => {
   return isString(query) ? query.trim() : undefined;
 };
 
+const AGGREGATE_PATTERN = /^([a-z0-9_]+)\(([a-z\._]*)\)$/i;
+
 class EventView {
   fields: Field[];
   sorts: Sort[];
@@ -288,15 +290,18 @@ class EventView {
     return encodeSort(this.sorts[0]);
   };
 
-  getSortKey = (snuba_column: string, meta: MetaType): string | null => {
-    if (SPECIAL_FIELDS.hasOwnProperty(snuba_column)) {
-      return SPECIAL_FIELDS[snuba_column as keyof typeof SPECIAL_FIELDS].sortField;
+  getSortKey = (snubaColumn: string, meta: MetaType): string | null => {
+    let column = snubaColumn;
+    if (snubaColumn.match(AGGREGATE_PATTERN)) {
+      column = snubaColumn.replace(AGGREGATE_PATTERN, '$1_$2').toLowerCase();
+    }
+    if (SPECIAL_FIELDS.hasOwnProperty(column)) {
+      return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
     }
 
-    if (FIELD_FORMATTERS.hasOwnProperty(meta[snuba_column])) {
-      return FIELD_FORMATTERS[meta[snuba_column] as keyof typeof FIELD_FORMATTERS]
-        .sortField
-        ? snuba_column
+    if (FIELD_FORMATTERS.hasOwnProperty(meta[column])) {
+      return FIELD_FORMATTERS[meta[column] as keyof typeof FIELD_FORMATTERS].sortField
+        ? column
         : null;
     }
 
