@@ -14,6 +14,8 @@ import Panel from 'app/components/panels/panel';
 import {PanelBody} from 'app/components/panels';
 // import { PanelHeader, PanelItem} from 'app/components/panels';
 import LoadingContainer from 'app/components/loading/loadingContainer';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {t} from 'app/locale';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
 import {EventQuery} from './utils';
@@ -34,7 +36,7 @@ type State = {
 
   // TODO(ts): type this
 
-  data: any;
+  data: any[] | null;
 };
 
 class Discover2Table extends React.PureComponent<Props, State> {
@@ -160,7 +162,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
         <Table
           eventView={eventView}
           organization={organization}
-          data={data}
+          data={data || []}
           isLoading={loading}
           location={location}
         />
@@ -174,7 +176,7 @@ type TableProps = {
   organization: Organization;
   eventView: EventView;
   isLoading: boolean;
-  data: any;
+  data: any[];
   location: Location;
 };
 
@@ -195,8 +197,33 @@ class Table extends React.Component<TableProps> {
     });
   };
 
+  renderContent = () => {
+    const {data, eventView} = this.props;
+
+    if (data.length === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('No results found')}</p>
+        </EmptyStateWarning>
+      );
+    }
+
+    return (
+      <PanelGridInfo numOfCols={eventView.numOfColumns()}>
+        <EmptyStateWarning>
+          <p>{t('No results found')}</p>
+        </EmptyStateWarning>
+      </PanelGridInfo>
+    );
+  };
+
   renderTable = () => {
-    return <React.Fragment>{this.renderTitle()}</React.Fragment>;
+    return (
+      <React.Fragment>
+        {this.renderTitle()}
+        {this.renderContent()}
+      </React.Fragment>
+    );
   };
 
   render() {
@@ -216,10 +243,10 @@ type PanelGridProps = {
   numOfCols: number;
 };
 
-const PanelGrid = styled(props => {
+const PanelGrid = styled((props: PanelGridProps) => {
   const otherProps = omit(props, 'numOfCols');
   return <Panel {...otherProps} />;
-})`
+})<PanelGridProps>`
   display: grid;
 
   ${(props: PanelGridProps) => {
@@ -227,7 +254,7 @@ const PanelGrid = styled(props => {
     return `
       grid-template-columns: repeat(${props.numOfCols}, minmax(min-content, 400px));
     `;
-  }}
+  }};
 `;
 
 const PanelHeaderCell = styled('div')`
@@ -242,6 +269,18 @@ const PanelHeaderCell = styled('div')`
   position: relative;
 
   padding: ${space(2)};
+`;
+
+type PanelGridInfoProps = {
+  numOfCols: number;
+};
+
+const PanelGridInfo = styled('div')<PanelGridInfoProps>`
+  ${(props: PanelGridInfoProps) => {
+    return `
+  grid-column: 1 / span ${props.numOfCols};
+  `;
+  }};
 `;
 
 export default withApi<Props>(Discover2Table);
