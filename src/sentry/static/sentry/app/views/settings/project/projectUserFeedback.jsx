@@ -30,13 +30,10 @@ class ProjectUserFeedbackSettings extends AsyncView {
       // NOTE: this will not have errors if the form is empty
       embed.submit = function(_body) {
         this._submitInProgress = true;
-        setTimeout(
-          function() {
-            this._submitInProgress = false;
-            this.onSuccess();
-          }.bind(this),
-          500
-        );
+        setTimeout(() => {
+          this._submitInProgress = false;
+          this.onSuccess();
+        }, 500);
       };
     };
   }
@@ -68,9 +65,9 @@ class ProjectUserFeedbackSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
         <TextBlock>
           {t(
-            `Enabling User Feedback allows you to interact with your users,
-            collect additional details about the Sentry issues impacting them,
-            and reach out with resolutions.`
+            `Don't rely on stack traces and graphs alone to understand
+            the cause and impact of errors. Enable User Feedback to collect
+            your users' comments when they encounter a crash or bug.`
           )}
         </TextBlock>
         <TextBlock>
@@ -80,14 +77,17 @@ class ProjectUserFeedbackSettings extends AsyncView {
             the issue in Sentry.`
           )}
         </TextBlock>
-        <TextBlock>
-          <Button href="https://docs.sentry.io/enriching-error-data/user-feedback/">
+        <ButtonList>
+          <Button
+            external
+            href="https://docs.sentry.io/enriching-error-data/user-feedback/"
+          >
             {t('Read the docs')}
           </Button>
-          <StyledButton priority="primary" onClick={this.handleClick}>
+          <Button priority="primary" onClick={this.handleClick}>
             {t('Open the report dialog')}
-          </StyledButton>
-        </TextBlock>
+          </Button>
+        </ButtonList>
 
         <Form
           saveOnBlur
@@ -104,8 +104,11 @@ class ProjectUserFeedbackSettings extends AsyncView {
   }
 }
 
-const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+const ButtonList = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 export default ProjectUserFeedbackSettings;

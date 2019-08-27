@@ -90,10 +90,9 @@ class GroupUserFeedback extends React.Component {
       );
     }
 
-    const projectIds = [group.project.id];
     return (
       <Panel>
-        <UserFeedbackEmpty projectIds={projectIds} />
+        <UserFeedbackEmpty projectIds={[group.project.id]} />
       </Panel>
     );
   }

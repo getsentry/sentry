@@ -61,10 +61,7 @@ class OrganizationUserFeedback extends AsyncView {
   }
 
   renderEmpty() {
-    const {
-      location: {query},
-    } = this.props;
-    const {project} = query;
+    const {project} = this.props.location.query;
     const projectIds = project ? [].concat(project) : [];
 
     return <UserFeedbackEmpty projectIds={projectIds} />;

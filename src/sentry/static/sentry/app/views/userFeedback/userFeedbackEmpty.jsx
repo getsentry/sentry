@@ -25,13 +25,10 @@ class UserFeedbackEmpty extends React.Component {
       // NOTE: this will not have errors if the form is empty
       embed.submit = function(_body) {
         this._submitInProgress = true;
-        setTimeout(
-          function() {
-            this._submitInProgress = false;
-            this.onSuccess();
-          }.bind(this),
-          500
-        );
+        setTimeout(() => {
+          this._submitInProgress = false;
+          this.onSuccess();
+        }, 500);
       };
     };
 
@@ -55,11 +52,10 @@ class UserFeedbackEmpty extends React.Component {
       projectIds,
     } = this.props;
 
-    let selectedProjects = projects;
-
-    if (projectIds && projectIds.length) {
-      selectedProjects = selectedProjects.filter(({id}) => projectIds.includes(id));
-    }
+    const selectedProjects =
+      projectIds && projectIds.length
+        ? projects.filter(({id}) => projectIds.includes(id))
+        : projects;
 
     return selectedProjects.some(
       ({hasAccess, hasUserReports}) => hasAccess && !!hasUserReports
@@ -78,60 +74,59 @@ class UserFeedbackEmpty extends React.Component {
   }
 
   render() {
-    if (this.hasAnyFeedback === false) {
+    if (this.hasAnyFeedback === true) {
       return (
-        <UserFeedbackLanding>
-          <StyledContainer>{/* Placeholder for dreamy component */}</StyledContainer>
-
-          <StyledContainer>
-            <h3>{t('No User Feedback Collected')}</h3>
-            <p>
-              {t(
-                `Enabling User Feedback allows you to interact with your users,
-                collect additional details about the Sentry issues impacting them,
-                and reach out with resolutions.`
-              )}
-            </p>
-            <ButtonList>
-              <Button
-                onClick={() =>
-                  this.trackAnalytics({
-                    eventKey: 'user_feedback.docs_clicked',
-                    eventName: 'User Feedback Docs Clicked',
-                  })
-                }
-                href="https://docs.sentry.io/enriching-error-data/user-feedback/"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                {t('Read the docs')}
-              </Button>
-              <Button
-                priority="primary"
-                onClick={() => {
-                  Sentry.showReportDialog({
-                    // should never make it to the Sentry API, but just in case, use throwaway id
-                    eventId: '00000000000000000000000000000000',
-                  });
-
-                  this.trackAnalytics({
-                    eventKey: 'user_feedback.dialog_opened',
-                    eventName: 'User Feedback Dialog Opened',
-                  });
-                }}
-              >
-                {t('Open the report dialog')}
-              </Button>
-            </ButtonList>
-          </StyledContainer>
-        </UserFeedbackLanding>
+        <EmptyStateWarning>
+          <p>{t('Sorry, no user reports match your filters.')}</p>
+        </EmptyStateWarning>
       );
     }
 
     return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no user reports match your filters.')}</p>
-      </EmptyStateWarning>
+      <UserFeedbackLanding>
+        <StyledContainer>{/* dreamy component place holder */}</StyledContainer>
+
+        <StyledContainer>
+          <h3>{t('No User Feedback Collected')}</h3>
+          <p>
+            {t(
+              `Don't rely on stack traces and graphs alone to understand
+              the cause and impact of errors. Enable User Feedback to collect
+              your users' comments when they encounter a crash or bug.`
+            )}
+          </p>
+          <ButtonList>
+            <Button
+              external
+              onClick={() =>
+                this.trackAnalytics({
+                  eventKey: 'user_feedback.docs_clicked',
+                  eventName: 'User Feedback Docs Clicked',
+                })
+              }
+              href="https://docs.sentry.io/enriching-error-data/user-feedback/"
+            >
+              {t('Read the docs')}
+            </Button>
+            <Button
+              priority="primary"
+              onClick={() => {
+                Sentry.showReportDialog({
+                  // should never make it to the Sentry API, but just in case, use throwaway id
+                  eventId: '00000000000000000000000000000000',
+                });
+
+                this.trackAnalytics({
+                  eventKey: 'user_feedback.dialog_opened',
+                  eventName: 'User Feedback Dialog Opened',
+                });
+              }}
+            >
+              {t('Open the report dialog')}
+            </Button>
+          </ButtonList>
+        </StyledContainer>
+      </UserFeedbackLanding>
     );
   }
 }
