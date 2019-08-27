@@ -10,6 +10,8 @@ import Alert from 'app/components/alert';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withProjects from 'app/utils/withProjects';
+
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -32,6 +34,14 @@ class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
+    /**
+     * Currently selected values(s)
+     */
+    selection: SentryTypes.GlobalSelection,
+    /**
+     * List of projects to display in project selector
+     */
+    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
   };
 
   static childContextTypes = {
@@ -101,14 +111,26 @@ class OrganizationReleaseDetails extends AsyncView {
     );
     if (has404Errors) {
       // This catches a 404 coming from the release endpoint and displays a custom error message.
+      const {projects: all_projects} = this.props;
+      const {projects: selected_projects} = this.props.selection;
+
       return (
         <PageContent>
           <Alert type="error" icon="icon-circle-exclamation">
-            <h3>{t('The Release you are looking for could not be found.')}</h3>
+            <h3>{t('Release Not Found')}</h3>
             <p>
               {t(
-                'If you have just changed projects, it is possible that this release is not associated with any of your selected projects. If so, include a project that this release is associated with.'
+                'This release may not be in your selected project' +
+                  (selected_projects.length > 1 ? 's' : '')
               )}
+              :{' '}
+              {selected_projects
+                .map(p => {
+                  return all_projects.find(pp => {
+                    return parseInt(pp.id, 10) === p;
+                  }).name;
+                })
+                .join(', ')}
             </p>
           </Alert>
         </PageContent>
@@ -118,4 +140,6 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 }
 
-export default withOrganization(withGlobalSelection(ReleaseDetailsContainer));
+export default withProjects(
+  withOrganization(withGlobalSelection(ReleaseDetailsContainer))
+);
