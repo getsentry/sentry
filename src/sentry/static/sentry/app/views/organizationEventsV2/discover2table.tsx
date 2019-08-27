@@ -294,6 +294,12 @@ const PanelHeaderCell = styled('div')`
   position: relative;
 
   padding: ${space(2)};
+
+  /*
+    By default, a grid item cannot be smaller than the size of its content.
+    We override this by setting it to be 0.
+  */
+  min-width: 0;
 `;
 
 type PanelGridInfoProps = {
@@ -321,6 +327,12 @@ const PanelItemCell = styled('div')<{hideBottomBorder: boolean}>`
 
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
+
+  /*
+    By default, a grid item cannot be smaller than the size of its content.
+    We override this by setting it to be 0.
+  */
+  min-width: 0;
 `;
 
 export default withApi<Props>(Discover2Table);
