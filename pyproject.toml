@@ -2,4 +2,10 @@
 line-length=100
 target-version=['py27']
 include='\.py$'
-exclude='(.eggs|.git|.venv|build|dist|south_migrations|node_modules)'
+exclude='''
+(
+      \.venv/
+    | node_modules/
+    | south_migrations/
+)
+'''
