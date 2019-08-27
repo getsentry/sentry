@@ -158,7 +158,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
     const {pageLinks, eventView, loading, dataPayload} = this.state;
 
     return (
-      <div>
+      <Container>
         <Table
           eventView={eventView}
           organization={organization}
@@ -167,7 +167,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
           location={location}
         />
         <Pagination pageLinks={pageLinks} />
-      </div>
+      </Container>
     );
   }
 }
@@ -180,7 +180,15 @@ type TableProps = {
   location: Location;
 };
 
-class Table extends React.Component<TableProps> {
+type TableState = {
+  expandColumn: null | number;
+};
+
+class Table extends React.Component<TableProps, TableState> {
+  state: TableState = {
+    expandColumn: null,
+  };
+
   renderLoading = () => {
     return (
       <Panel>
@@ -232,18 +240,33 @@ class Table extends React.Component<TableProps> {
     return dataPayload.data.map((row, rowIndex) => {
       return (
         <React.Fragment key={rowIndex}>
-          {fields.map((field, index) => {
-            const key = `${field}.${index}`;
+          {fields.map((field, columnIndex) => {
+            const key = `${field}.${columnIndex}`;
 
             const fieldRenderer = getFieldRenderer(field, meta);
             return (
               <PanelItemCell
                 hideBottomBorder={rowIndex === lastRowIndex}
                 style={{
-                  paddingLeft: index === firstCellIndex ? space(1) : void 0,
-                  paddingRight: index === lastCellIndex ? space(1) : void 0,
+                  paddingLeft: columnIndex === firstCellIndex ? space(1) : void 0,
+                  paddingRight: columnIndex === lastCellIndex ? space(1) : void 0,
                 }}
                 key={key}
+                onMouseEnter={() => {
+                  this.setState({
+                    expandColumn: columnIndex,
+                  });
+                }}
+                onMouseLeave={() => {
+                  this.setState({
+                    expandColumn: null,
+                  });
+                }}
+                onMouseOver={() => {
+                  this.setState({
+                    expandColumn: columnIndex,
+                  });
+                }}
               >
                 {fieldRenderer(row, {organization, location})}
               </PanelItemCell>
@@ -271,25 +294,56 @@ class Table extends React.Component<TableProps> {
     }
 
     return (
-      <PanelGrid numOfCols={eventView.numOfColumns()}>{this.renderTable()}</PanelGrid>
+      <PanelGrid
+        expandColumn={this.state.expandColumn}
+        numOfCols={eventView.numOfColumns()}
+      >
+        {this.renderTable()}
+      </PanelGrid>
     );
   }
 }
 
 type PanelGridProps = {
   numOfCols: number;
+  expandColumn: number | null;
 };
 
 const PanelGrid = styled((props: PanelGridProps) => {
-  const otherProps = omit(props, 'numOfCols');
+  const otherProps = omit(props, 'numOfCols', 'expandColumn');
   return <Panel {...otherProps} />;
 })<PanelGridProps>`
   display: grid;
 
   ${(props: PanelGridProps) => {
-    // TODO: revise this
+    const {expandColumn} = props;
+
+    const firstColumn = expandColumn === 0 ? 'minmax(min-content, 3fr)' : '3fr';
+
+    function generateRestColumns(): string {
+      if (props.numOfCols <= 1) {
+        return '';
+      }
+
+      if (expandColumn === null || expandColumn === 0) {
+        return `repeat(${props.numOfCols - 1}, auto)`;
+      }
+
+      let restColumns: string = '';
+      for (let index = 1; index <= props.numOfCols - 1; index++) {
+        if (expandColumn === index) {
+          restColumns += ' min-content';
+          continue;
+        }
+
+        restColumns += ' auto';
+      }
+
+      return restColumns;
+    }
+
     return `
-      grid-template-columns: repeat(${props.numOfCols}, 1fr);
+      grid-template-columns:  ${firstColumn} ${generateRestColumns()};
     `;
   }};
 `;
@@ -303,7 +357,9 @@ const PanelHeaderCell = styled('div')`
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
   line-height: 1;
-  position: relative;
+
+  text-overflow: ellipsis;
+  overflow: hidden;
 
   padding: ${space(2)};
 
@@ -345,6 +401,11 @@ const PanelItemCell = styled('div')<{hideBottomBorder: boolean}>`
     We override this by setting it to be 0.
   */
   min-width: 0;
+`;
+
+const Container = styled('div')`
+  min-width: 0;
+  overflow: hidden;
 `;
 
 export default withApi<Props>(Discover2Table);
