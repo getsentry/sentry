@@ -15,7 +15,7 @@ class ApiScopesField(serializers.Field):
     def to_internal_value(self, data):
         valid_scopes = ApiScopes()
 
-        if not data:
+        if data is None:
             return
 
         for scope in data:
