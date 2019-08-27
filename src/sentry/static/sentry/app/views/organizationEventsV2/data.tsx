@@ -35,7 +35,7 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
 };
 
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
-  DEFAULT_EVENT_VIEW_V1
+  DEFAULT_EVENT_VIEW_V1,
   {
     id: 'errors',
     name: t('Errors'),
