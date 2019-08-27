@@ -159,14 +159,14 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
     this.setState(state => ({
-      activities: removeFromArrayIndex(state.activities, index),
+      activities: removeFromArrayIndex(state.activities!, index),
     }));
 
     try {
       await deleteIncidentNote(api, orgId, incidentId, activity.id);
     } catch (error) {
       this.setState(state => ({
-        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
       }));
     }
   };
@@ -181,7 +181,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
     this.setState(state => ({
-      activities: replaceAtArrayIndex(state.activities, index, {
+      activities: replaceAtArrayIndex(state.activities!, index, {
         ...oldActivity,
         comment: note.text,
       }),
@@ -191,7 +191,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
       await updateIncidentNote(api, orgId, incidentId, activity.id, note);
     } catch (error) {
       this.setState(state => ({
-        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
       }));
     }
   };
@@ -218,13 +218,13 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 }
 export default withApi(ActivityContainer);
 
-function removeFromArrayIndex(array, index) {
+function removeFromArrayIndex<T>(array: T[], index: number): T[] {
   const newArray = [...array];
   newArray.splice(index, 1);
   return newArray;
 }
 
-function replaceAtArrayIndex(array, index, obj) {
+function replaceAtArrayIndex<T>(array: T[], index: number, obj: T): T[] {
   const newArray = [...array];
   newArray.splice(index, 1, obj);
   return newArray;

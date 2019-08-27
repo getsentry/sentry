@@ -14,6 +14,7 @@ type Props = {
   incident?: Incident;
   showTime: boolean;
 };
+
 /**
  * StatusItem renders status changes for Incidents
  *
