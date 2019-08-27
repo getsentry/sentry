@@ -2,17 +2,14 @@ import {partial, pick} from 'lodash';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {EventViewv1} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
-  ALL_VIEWS,
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
-  DEFAULT_EVENT_VIEW_V1,
 } from './data';
 import EventView from './eventView';
 
