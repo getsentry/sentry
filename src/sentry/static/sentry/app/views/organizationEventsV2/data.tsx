@@ -34,27 +34,8 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
 };
 
-// TODO(ts): eventually defer to TS compile-time check to ensure this is readonly instead
-//       of deepfreezing it in runtime
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
-  {
-    id: 'all',
-    name: t('All Events'),
-    data: {
-      fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-      columnNames: ['title', 'type', 'project', 'user', 'time'],
-      sort: ['-timestamp'],
-    },
-    tags: [
-      'event.type',
-      'release',
-      'project.name',
-      'user.email',
-      'user.ip',
-      'environment',
-    ],
-    columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
-  },
+  DEFAULT_EVENT_VIEW_V1
   {
     id: 'errors',
     name: t('Errors'),
