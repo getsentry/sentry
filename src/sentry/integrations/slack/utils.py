@@ -76,25 +76,16 @@ def get_assignee(group):
         return None
 
 
-def build_attachment_title(group, event=None):
-    # XXX(mitsuhiko): This is all super event specific and ideally could just use a
-    # combination of `group.title` and `group.title + group.culprit`.
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        if "type" in ev_metadata:
-            if group.culprit:
-                return u"{} - {}".format(ev_metadata["type"][:40], group.culprit)
-            return ev_metadata["type"]
-        if group.culprit:
-            return u"{} - {}".format(group.title, group.culprit)
-        return group.title
+def build_attachment_title(obj):
+    ev_metadata = obj.get_event_metadata()
+    ev_type = obj.get_event_type()
+
+    if ev_type == "error" and "type" in ev_metadata:
+        return ev_metadata["type"]
     elif ev_type == "csp":
         return u"{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
     else:
-        if group.culprit:
-            return u"{} - {}".format(group.title, group.culprit)
-        return group.title
+        return obj.title
 
 
 def build_attachment_text(group, event=None):
@@ -254,9 +245,10 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)
 
+    obj = event if event is not None else group
     return {
-        "fallback": u"[{}] {}".format(group.project.slug, group.title),
-        "title": build_attachment_title(group, event),
+        "fallback": u"[{}] {}".format(obj.project.slug, obj.title),
+        "title": build_attachment_title(obj),
         "title_link": group.get_absolute_url(params={"referrer": "slack"}),
         "text": text,
         "fields": fields,
