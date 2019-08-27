@@ -12,7 +12,6 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import Pagination from 'app/components/pagination';
 import Panel from 'app/components/panels/panel';
 import {PanelBody} from 'app/components/panels';
-// import { PanelHeader, PanelItem} from 'app/components/panels';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
@@ -276,7 +275,7 @@ const PanelGrid = styled((props: PanelGridProps) => {
   display: grid;
 
   ${(props: PanelGridProps) => {
-    // TODO: change this
+    // TODO: revise this
     return `
       grid-template-columns: repeat(${props.numOfCols}, 1fr);
     `;
