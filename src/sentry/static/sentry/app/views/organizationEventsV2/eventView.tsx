@@ -233,10 +233,20 @@ class EventView {
     return this.fields.length > 0;
   };
 
+  getFieldTitles = () => {
+    return this.fields.map(field => {
+      return field.title;
+    });
+  };
+
   getFieldSnubaCols = () => {
     return this.fields.map(field => {
       return field.snuba_column;
     });
+  };
+
+  numOfColumns = (): number => {
+    return this.fields.length;
   };
 
   getQuery = (inputQuery: string | string[] | null | undefined): string => {

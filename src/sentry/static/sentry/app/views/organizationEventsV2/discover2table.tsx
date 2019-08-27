@@ -1,14 +1,17 @@
 import React from 'react';
 import {Location} from 'history';
-import {pick} from 'lodash';
+import {pick, omit} from 'lodash';
 import {browserHistory} from 'react-router';
+import styled from 'react-emotion';
 
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import Panel from 'app/components/panels/panel';
+import {PanelBody} from 'app/components/panels';
 // import { PanelHeader, PanelItem} from 'app/components/panels';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
@@ -186,15 +189,59 @@ class Table extends React.Component<TableProps> {
     );
   };
 
+  renderTitle = () => {
+    return this.props.eventView.getFieldTitles().map((title, index) => {
+      return <PanelHeaderCell key={index}>{title}</PanelHeaderCell>;
+    });
+  };
+
+  renderTable = () => {
+    return <React.Fragment>{this.renderTitle()}</React.Fragment>;
+  };
+
   render() {
-    const {isLoading} = this.props;
+    const {isLoading, eventView} = this.props;
 
     if (isLoading) {
       return this.renderLoading();
     }
 
-    return <Panel>foo</Panel>;
+    return (
+      <PanelGrid numOfCols={eventView.numOfColumns()}>{this.renderTable()}</PanelGrid>
+    );
   }
 }
+
+type PanelGridProps = {
+  numOfCols: number;
+};
+
+const PanelGrid = styled(props => {
+  const otherProps = omit(props, 'numOfCols');
+  return <Panel {...otherProps} />;
+})`
+  display: grid;
+
+  ${(props: PanelGridProps) => {
+    // TODO: change this
+    return `
+      grid-template-columns: repeat(${props.numOfCols}, minmax(min-content, 400px));
+    `;
+  }}
+`;
+
+const PanelHeaderCell = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  background: ${p => p.theme.offWhite};
+  line-height: 1;
+  position: relative;
+
+  padding: ${space(2)};
+`;
 
 export default withApi<Props>(Discover2Table);
