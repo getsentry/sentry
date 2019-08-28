@@ -601,14 +601,18 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const bounds = this.getBounds();
 
-    console.log(bounds)
+    console.log(bounds);
 
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     let durationDisplay = 'right';
-    if (bounds.left && bounds.width && bounds.left + bounds.width > 0.8) durationDisplay = 'left';
-    if (bounds.left && bounds.width && bounds.left > 0.2 && bounds.width > 0.8) durationDisplay = 'none';
+    if (bounds.left && bounds.width && bounds.left + bounds.width > 0.8) {
+      durationDisplay = 'left';
+    }
+    if (bounds.left && bounds.width && bounds.left > 0.2 && bounds.width > 0.8) {
+      durationDisplay = 'none';
+    }
 
     return (
       <SpanRowCellContainer>
@@ -636,7 +640,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 width: toPercent(bounds.width || 0),
               }}
             >
-              <DurationPill durationDisplay={durationDisplay}>{durationString}</DurationPill>
+              <DurationPill durationDisplay={durationDisplay}>
+                {durationString}
+              </DurationPill>
             </SpanBarRectangle>
           )}
           {this.renderWarningText({warningText: bounds.warning})}
@@ -847,8 +853,8 @@ const DurationPill = styled('div')`
   height: ${SPAN_ROW_HEIGHT - 11}px;
 
   border-radius: 99px;
-  ${({durationDisplay}:{durationDisplay:String}) => {
-    return ((durationDisplay == 'left') ? `right` : `left`) + `: calc(100% + ${space(1)});`;
+  ${({durationDisplay}: {durationDisplay: String}) => {
+    return (durationDisplay == 'left' ? 'right' : 'left') + `: calc(100% + ${space(1)});`;
   }}
   position: absolute;
 

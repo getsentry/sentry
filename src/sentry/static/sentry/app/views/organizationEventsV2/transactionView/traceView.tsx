@@ -177,7 +177,7 @@ class TraceView extends React.Component<PropType> {
             start_timestamp: 1566588805.998,
             description:
               'GET /api/0/projects/food52/food52-frontend/stats/?stat=web-crawlers&since=1563996804&until=1566588804&resolution=1d',
-            timestamp: 1566588806.100,
+            timestamp: 1566588806.1,
             parent_span_id: 'abbd52b605bba1c5',
             trace_id: '39b7c04185204bb0b1320b60e979803c',
             op: 'http',
