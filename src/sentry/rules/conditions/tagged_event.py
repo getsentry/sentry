@@ -14,6 +14,8 @@ class MatchType(object):
     ENDS_WITH = "ew"
     CONTAINS = "co"
     NOT_CONTAINS = "nc"
+    IS_SET = "is"
+    NOT_SET = "ns"
 
 
 MATCH_CHOICES = OrderedDict(
@@ -24,6 +26,8 @@ MATCH_CHOICES = OrderedDict(
         (MatchType.ENDS_WITH, "ends with"),
         (MatchType.CONTAINS, "contains"),
         (MatchType.NOT_CONTAINS, "does not contain"),
+        (MatchType.IS_SET, "is set"),
+        (MatchType.NOT_SET, "is not set"),
     ]
 )
 
@@ -55,44 +59,52 @@ class TaggedEventCondition(EventCondition):
         value = value.lower()
         key = key.lower()
 
-        tags = (
+        tags = [k.lower() for k, v in event.tags]
+
+        values = (
             v.lower()
             for k, v in event.tags
             if k.lower() == key or tagstore.get_standardized_key(k) == key
         )
 
-        if match == MatchType.EQUAL:
-            for t_value in tags:
+        if match == MatchType.IS_SET:
+            return key in tags
+
+        elif match == MatchType.NOT_SET:
+            return key not in tags
+
+        elif match == MatchType.EQUAL:
+            for t_value in values:
                 if t_value == value:
                     return True
             return False
 
         elif match == MatchType.NOT_EQUAL:
-            for t_value in tags:
+            for t_value in values:
                 if t_value == value:
                     return False
             return True
 
         elif match == MatchType.STARTS_WITH:
-            for t_value in tags:
+            for t_value in values:
                 if t_value.startswith(value):
                     return True
             return False
 
         elif match == MatchType.ENDS_WITH:
-            for t_value in tags:
+            for t_value in values:
                 if t_value.endswith(value):
                     return True
             return False
 
         elif match == MatchType.CONTAINS:
-            for t_value in tags:
+            for t_value in values:
                 if value in t_value:
                     return True
             return False
 
         elif match == MatchType.NOT_CONTAINS:
-            for t_value in tags:
+            for t_value in values:
                 if value in t_value:
                     return False
             return True
