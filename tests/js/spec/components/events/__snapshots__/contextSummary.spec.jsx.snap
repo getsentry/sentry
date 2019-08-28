@@ -7,6 +7,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
   className="context-summary"
 >
   <UserSummary
+    contextKey="user"
     data={
       Object {
         "email": "mail@example.org",
@@ -16,6 +17,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     key="user"
   />
   <GenericSummary
+    contextKey="browser"
     data={
       Object {
         "name": "Chrome",
@@ -26,6 +28,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     unknownTitle="Unknown Browser"
   />
   <GenericSummary
+    contextKey="runtime"
     data={
       Object {
         "name": "Electron",
@@ -37,6 +40,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     unknownTitle="Unknown Runtime"
   />
   <OsSummary
+    contextKey="client_os"
     data={
       Object {
         "build": "17E199",
@@ -56,6 +60,7 @@ exports[`ContextSummary render() should render at least three contexts 1`] = `
   className="context-summary"
 >
   <UserSummary
+    contextKey="user"
     data={
       Object {
         "email": "mail@example.org",
@@ -65,11 +70,13 @@ exports[`ContextSummary render() should render at least three contexts 1`] = `
     key="user"
   />
   <GenericSummary
+    contextKey="browser"
     data={Object {}}
     key="browser"
     unknownTitle="Unknown Browser"
   />
   <DeviceSummary
+    contextKey="device"
     data={
       Object {
         "arch": "x86",
@@ -88,6 +95,7 @@ exports[`ContextSummary render() should render client_os too 1`] = `
   className="context-summary"
 >
   <UserSummary
+    contextKey="user"
     data={
       Object {
         "email": "mail@example.org",
@@ -97,6 +105,7 @@ exports[`ContextSummary render() should render client_os too 1`] = `
     key="user"
   />
   <GenericSummary
+    contextKey="browser"
     data={
       Object {
         "name": "Chrome",
@@ -107,6 +116,7 @@ exports[`ContextSummary render() should render client_os too 1`] = `
     unknownTitle="Unknown Browser"
   />
   <GenericSummary
+    contextKey="runtime"
     data={
       Object {
         "name": "Electron",
@@ -118,6 +128,7 @@ exports[`ContextSummary render() should render client_os too 1`] = `
     unknownTitle="Unknown Runtime"
   />
   <OsSummary
+    contextKey="client_os"
     data={
       Object {
         "build": "17E199",
@@ -141,6 +152,7 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
   className="context-summary"
 >
   <UserSummary
+    contextKey="user"
     data={
       Object {
         "email": "mail@example.org",
@@ -150,6 +162,7 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
     key="user"
   />
   <GenericSummary
+    contextKey="browser"
     data={
       Object {
         "name": "Chrome",
@@ -160,6 +173,7 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
     unknownTitle="Unknown Browser"
   />
   <GenericSummary
+    contextKey="runtime"
     data={
       Object {
         "name": "Electron",
@@ -171,6 +185,7 @@ exports[`ContextSummary render() should render up to four contexts 1`] = `
     unknownTitle="Unknown Runtime"
   />
   <OsSummary
+    contextKey="os"
     data={
       Object {
         "build": "17E199",
@@ -190,6 +205,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
   className="context-summary"
 >
   <GenericSummary
+    contextKey="runtime"
     data={
       Object {
         "name": "Electron",
@@ -201,6 +217,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
     unknownTitle="Unknown Runtime"
   />
   <OsSummary
+    contextKey="os"
     data={
       Object {
         "build": "17E199",
@@ -213,6 +230,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
     key="os"
   />
   <DeviceSummary
+    contextKey="device"
     data={
       Object {
         "arch": "x86",
@@ -231,6 +249,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
   className="context-summary"
 >
   <UserSummary
+    contextKey="user"
     data={
       Object {
         "email": "mail@example.org",
@@ -240,6 +259,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     key="user"
   />
   <GenericSummary
+    contextKey="runtime"
     data={
       Object {
         "name": "Electron",
@@ -251,6 +271,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     unknownTitle="Unknown Runtime"
   />
   <OsSummary
+    contextKey="os"
     data={
       Object {
         "build": "17E199",
@@ -263,6 +284,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     key="os"
   />
   <DeviceSummary
+    contextKey="device"
     data={
       Object {
         "arch": "x86",
@@ -333,6 +355,11 @@ exports[`OsSummary render() should render the kernel version when no version 1`]
      
     17.5.0
   </p>
+  <p>
+    <small>
+      Crashsite
+    </small>
+  </p>
 </div>
 `;
 
@@ -353,6 +380,11 @@ exports[`OsSummary render() should render the version string 1`] = `
      
     10.13.4
   </p>
+  <p>
+    <small>
+      Crashsite
+    </small>
+  </p>
 </div>
 `;
 
@@ -372,6 +404,11 @@ exports[`OsSummary render() should render unknown when no version 1`] = `
     </strong>
      
     Unknown
+  </p>
+  <p>
+    <small>
+      Crashsite
+    </small>
   </p>
 </div>
 `;
