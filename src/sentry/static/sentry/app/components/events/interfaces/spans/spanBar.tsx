@@ -14,6 +14,7 @@ import {
   SpanGeneratedBoundsType,
   getHumanDuration,
 } from './utils';
+import {defined} from 'app/utils';
 import {SpanType, ParsedTraceType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -183,8 +184,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   getBounds = (): {
     warning: undefined | string;
-    left: undefined | string;
-    width: undefined | string;
+    left: undefined | number;
+    width: undefined | number;
     isSpanVisibleInView: boolean;
   } => {
     const {span, generateBounds} = this.props;
@@ -214,24 +215,24 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       case 'TIMESTAMPS_EQUAL': {
         return {
           warning: t('The start and end timestamps are equal'),
-          left: toPercent(bounds.start),
-          width: `${bounds.width}px`,
+          left: bounds.start,
+          width: bounds.width,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
       case 'TIMESTAMPS_REVERSED': {
         return {
           warning: t('The start and end timestamps are reversed'),
-          left: toPercent(bounds.start),
-          width: toPercent(bounds.end - bounds.start),
+          left: bounds.start,
+          width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
       case 'TIMESTAMPS_STABLE': {
         return {
           warning: void 0,
-          left: toPercent(bounds.start),
-          width: toPercent(bounds.end - bounds.start),
+          left: bounds.start,
+          width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
@@ -600,9 +601,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const bounds = this.getBounds();
 
+    console.log(bounds)
+
     const {dividerPosition} = dividerHandlerChildrenProps;
 
-    const displaySpanBar = bounds.left && bounds.width;
+    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
+    let durationDisplay = 'right';
+    if (bounds.left && bounds.width && bounds.left + bounds.width > 0.8) durationDisplay = 'left';
+    if (bounds.left && bounds.width && bounds.left > 0.2 && bounds.width > 0.8) durationDisplay = 'none';
 
     return (
       <SpanRowCellContainer>
@@ -626,14 +632,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             <SpanBarRectangle
               style={{
                 backgroundColor: spanBarColour,
-                left: bounds.left,
-                width: bounds.width,
+                left: toPercent(bounds.left || 0),
+                width: toPercent(bounds.width || 0),
               }}
-            />
+            >
+              <DurationPill durationDisplay={durationDisplay}>{durationString}</DurationPill>
+            </SpanBarRectangle>
           )}
-          <Duration>
-            <DurationPill>{durationString}</DurationPill>
-          </Duration>
           {this.renderWarningText({warningText: bounds.warning})}
           {this.renderCursorGuide()}
         </SpanRowCell>
@@ -838,31 +843,22 @@ const SpanTreeToggler = styled('div')`
   line-height: 0;
 `;
 
-const Duration = styled('div')`
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: ${SPAN_ROW_HEIGHT}px;
-  line-height: ${SPAN_ROW_HEIGHT}px;
-
-  color: #9585a3;
-  font-size: 12px;
-  padding-right: ${space(1)};
-
-  user-select: none;
-
-  display: flex;
-  align-items: center;
-`;
-
 const DurationPill = styled('div')`
-  height: ${SPAN_ROW_HEIGHT - 10}px;
-  line-height: ${SPAN_ROW_HEIGHT - 10}px;
+  height: ${SPAN_ROW_HEIGHT - 11}px;
 
   border-radius: 99px;
+  ${({durationDisplay}:{durationDisplay:String}) => {
+    return ((durationDisplay == 'left') ? `right` : `left`) + `: calc(100% + ${space(1)});`;
+  }}
+  position: absolute;
 
-  padding-left: 10px;
-  padding-right: 10px;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  top: 50%;
+  transform: translateY(-53%); /* unsure why 53% */
 
   background-color: rgba(255, 255, 255, 0.6);
 `;
@@ -878,8 +874,6 @@ const SpanBarRectangle = styled('div')`
   margin-top: 2px;
   margin-bottom: 2px;
   border-radius: 3px;
-
-  overflow: hidden;
 
   user-select: none;
 
