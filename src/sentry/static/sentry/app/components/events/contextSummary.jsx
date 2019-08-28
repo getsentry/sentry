@@ -66,6 +66,7 @@ export class OsSummary extends React.Component {
 
   render() {
     const data = this.props.data;
+    const contextKey = this.props.contextKey;
 
     if (objectIsEmpty(data) || !data.name) {
       return <NoSummary title={t('Unknown OS')} />;
@@ -99,7 +100,9 @@ export class OsSummary extends React.Component {
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
         {versionElement}
-        <p><small>{this.contextKey == "client_os" ? "Clientside" : "Crashsite"}</small></p>
+        <p>
+          <small>{contextKey === 'client_os' ? 'Clientside' : 'Crashsite'}</small>
+        </p>
       </div>
     );
   }
@@ -259,16 +262,12 @@ class EventContextSummary extends React.Component {
       if (contextCount >= MAX_CONTEXTS) {
         return null;
       }
-      let data = {};
-      let key;
-      for(key of keys) {
-        data = evt.contexts[key] || evt[key];
-        if(!objectIsEmpty(data)) {
-          break;
-        }
-      }
 
-      if (objectIsEmpty(data)) {
+      const [key, data] = keys
+        .map(k => [k, evt.contexts[k] || evt[k]])
+        .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
+
+      if (!key) {
         return null;
       }
 
