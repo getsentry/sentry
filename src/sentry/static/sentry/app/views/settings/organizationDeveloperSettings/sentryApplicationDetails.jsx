@@ -61,7 +61,7 @@ export default class SentryApplicationDetails extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    this.form = new SentryAppFormModel({});
+    this.form = new SentryAppFormModel();
   }
 
   getDefaultState() {
@@ -169,11 +169,9 @@ export default class SentryApplicationDetails extends AsyncView {
   };
 
   onFieldChange = (name, value) => {
-    if (name === 'webhookUrl' && this.isInternal) {
-      if (!value) {
-        //if no webhook, then set isAlertable to false
-        this.form.setValue('isAlertable', false);
-      }
+    if (name === 'webhookUrl' && !value && this.isInternal) {
+      //if no webhook, then set isAlertable to false
+      this.form.setValue('isAlertable', false);
     }
   };
 
