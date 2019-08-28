@@ -85,22 +85,21 @@ class Updater(Mediator):
             for hook in hooks:
                 # update the url and events
                 if self.webhook_url:
-                    print("updater run")
-                    service_hooks.Updater.run(service_hook=hook, events=self.events, url=self.webhook_url)
+                    service_hooks.Updater.run(
+                        service_hook=hook, events=self.sentry_app.events, url=self.webhook_url
+                    )
                 # if no url, then the service hook is no longer active in which case we need to delete it
                 else:
-                    print("destroyer run")
                     service_hooks.Destroyer.run(service_hook=hook)
         # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
         elif self.webhook_url and self.sentry_app.is_internal:
             installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
-            print("creator run")
             service_hooks.Creator.run(
                 application=self.sentry_app.application,
                 actor=installation,
                 projects=[],
                 organization=self.sentry_app.owner,
-                events=self.sentry_app.events,  # pull off events from the sentry_app as it will be updated already
+                events=self.sentry_app.events,
                 url=self.webhook_url,
             )
 

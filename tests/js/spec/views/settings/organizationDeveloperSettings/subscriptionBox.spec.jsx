@@ -89,4 +89,24 @@ describe('SubscriptionBox', () => {
       expect(wrapper.find('Tooltip').prop('disabled')).toBe(true);
     });
   });
+
+  it('disables checkbox when webhookDisabled=true', () => {
+    wrapper = mount(
+      <SubscriptionBox
+        resource="issue"
+        checked={false}
+        disabledFromPermissions={false}
+        webhookDisabled={true}
+        onChange={onChange}
+        organization={org}
+      />,
+      TestStubs.routerContext()
+    );
+    const tooltip = wrapper.find('Tooltip');
+    expect(tooltip.prop('disabled')).toBe(false);
+    expect(tooltip.prop('title')).toBe(
+      'Cannot enable webhook subscription without specifying a webhook url'
+    );
+    expect(wrapper.find('Checkbox').prop('disabled')).toBe(true);
+  });
 });

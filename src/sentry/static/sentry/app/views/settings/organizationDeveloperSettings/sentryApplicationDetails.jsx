@@ -61,11 +61,7 @@ export default class SentryApplicationDetails extends AsyncView {
 
   constructor(...args) {
     super(...args);
-    this.form = new SentryAppFormModel({
-      initialData: {
-        ...this.state.app,
-      },
-    });
+    this.form = new SentryAppFormModel({});
   }
 
   getDefaultState() {

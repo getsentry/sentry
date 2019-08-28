@@ -72,9 +72,21 @@ class TestUpdater(TestCase):
         assert set(service_hook.events) == expand_events(["issue"])
 
     def test_updates_webhook_url(self):
-        self.updater.webhook_url = "http://example.com/hooks"
-        self.updater.call()
-        assert self.sentry_app.webhook_url == "http://example.com/hooks"
+        sentry_app = self.create_sentry_app(
+            name="sentry",
+            organization=self.org,
+            scopes=("project:read", "event:read"),
+            events=("event.alert",),
+        )
+        self.create_sentry_app_installation(slug="sentry")
+        updater = Updater(
+            sentry_app=sentry_app, webhook_url="http://example.com/hooks", user=self.user
+        )
+        updater.call()
+        assert sentry_app.webhook_url == "http://example.com/hooks"
+        service_hook = ServiceHook.objects.get(application=sentry_app.application)
+        assert service_hook.url == "http://example.com/hooks"
+        assert set(service_hook.events) == expand_events(["event.alert"])
 
     def test_updates_redirect_url(self):
         self.updater.redirect_url = "http://example.com/finish-setup"
@@ -113,14 +125,24 @@ class TestUpdater(TestCase):
     def test_create_service_hook_on_update(self):
         self.create_project(organization=self.org)
         internal_app = self.create_internal_integration(
-            name="Internal", organization=self.org,
-            webhook_url=None, scopes=("event:read",)
+            name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)
         )
         assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
         updater = Updater(sentry_app=internal_app, user=self.user)
-        updater.webhook_url = 'https://sentry.io/hook'
+        updater.webhook_url = "https://sentry.io/hook"
         updater.events = ("issue",)
         updater.call()
         service_hook = ServiceHook.objects.get(application=internal_app.application)
-        assert service_hook.url == 'https://sentry.io/hook'
+        assert service_hook.url == "https://sentry.io/hook"
         assert set(service_hook.events) == expand_events(["issue"])
+
+    def test_delete_service_hook_on_update(self):
+        self.create_project(organization=self.org)
+        internal_app = self.create_internal_integration(
+            name="Internal", organization=self.org, webhook_url="https://sentry.io/hook"
+        )
+        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 1
+        updater = Updater(sentry_app=internal_app, user=self.user)
+        updater.webhook_url = None
+        updater.call()
+        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
