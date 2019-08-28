@@ -1,50 +1,51 @@
 import {groupBy} from 'lodash';
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
+import {Client} from 'app/api';
 import {IncidentActivityType} from 'app/views/incidents/utils';
+import {User} from 'app/types';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
-import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';
+import {Incident, ActivityType, NoteType} from '../../types';
+
+type Props = {
+  api: Client;
+  incidentId: string;
+  incident?: Incident;
+  loading: boolean;
+  error: boolean;
+  me: User;
+  activities: null | ActivityType[];
+  noteInputId: string;
+  noteInputProps?: object;
+
+  createError: boolean;
+  createBusy: boolean;
+  createErrorJSON: null | object;
+  onCreateNote: (note: NoteType) => void;
+  onUpdateNote: (note: NoteType, activity: ActivityType) => void;
+  onDeleteNote: (activity: ActivityType) => void;
+};
 
 /**
  * Activity component on Incident Details view
  * Allows user to leave a comment on an incidentId as well as
  * fetch and render existing activity items.
  */
-class Activity extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    incidentId: PropTypes.string.isRequired,
-    incident: SentryTypes.Incident,
-    loading: PropTypes.bool,
-    error: PropTypes.bool,
-    me: SentryTypes.User,
-    activities: PropTypes.arrayOf(SentryTypes.IncidentActivity),
-    noteInputId: PropTypes.string,
-    noteInputProps: PropTypes.object,
-
-    createError: PropTypes.bool,
-    createBusy: PropTypes.bool,
-    createErrorJSON: PropTypes.object,
-    onCreateNote: PropTypes.func.isRequired,
-    onUpdateNote: PropTypes.func.isRequired,
-    onDeleteNote: PropTypes.func.isRequired,
-  };
-
-  handleUpdateNote = (note, {activity}) => {
+class Activity extends React.Component<Props> {
+  handleUpdateNote = (note: Note, {activity}) => {
     const {onUpdateNote} = this.props;
     onUpdateNote(note, activity);
   };
