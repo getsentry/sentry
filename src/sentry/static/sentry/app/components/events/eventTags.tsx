@@ -4,7 +4,7 @@ import _ from 'lodash';
 import queryString from 'query-string';
 
 import {Location} from 'history';
-import {Event, Group} from 'app/types';
+import {Event, EventTag, Group} from 'app/types';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
@@ -30,7 +30,7 @@ class EventTags extends React.Component<EventTagsProps> {
     hideGuide: false,
   };
 
-  renderPill(tag: Event['tags'][number], streamPath: string, releasesPath: string) {
+  renderPill(tag: EventTag, streamPath: string, releasesPath: string) {
     const {orgId, projectId, location} = this.props;
     const query = {...location.query};
 
