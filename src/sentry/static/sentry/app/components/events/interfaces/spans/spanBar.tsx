@@ -696,9 +696,8 @@ const SpanRowCellContainer = styled('div')`
 
 const SpanRowCell = styled('div')`
   position: absolute;
-
-  height: ${SPAN_ROW_HEIGHT}px;
-
+  padding: 4px 0;
+  height: 100%;
   overflow: hidden;
 `;
 
@@ -710,12 +709,12 @@ const CursorGuide = styled('div')`
 
   transform: translateX(-50%);
 
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: 100%;
 `;
 
 export const DividerLine = styled('div')`
   position: absolute;
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: 100%;
 
   transform: translateX(-50%);
 
@@ -742,8 +741,7 @@ export const DividerLine = styled('div')`
 const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: 100%;
   position: absolute;
   left: 0;
   top: 0;
@@ -753,17 +751,11 @@ const SpanBarTitleContainer = styled('div')`
 const SpanBarTitle = styled('div')`
   position: relative;
   top: 0;
-
-  height: ${SPAN_ROW_HEIGHT}px;
-  line-height: ${SPAN_ROW_HEIGHT}px;
-
+  height: 100%;
   color: #4a3e56;
   font-size: 12px;
-
   user-select: none;
-
   white-space: nowrap;
-
   display: flex;
   align-items: center;
 `;
@@ -771,34 +763,24 @@ const SpanBarTitle = styled('div')`
 const SpanTreeTogglerContainer = styled('div')`
   position: relative;
   top: 0;
-
   height: 15px;
-
   max-width: 40px;
   width: 40px;
   min-width: 40px;
-
   margin-right: 8px;
-
   z-index: ${zIndex.spanTreeToggler};
-
   user-select: none;
-
   display: flex;
   justify-content: flex-end;
 `;
 
 const SpanTreeToggler = styled('div')`
   position: relative;
-
   white-space: nowrap;
-
   height: 15px;
   min-width: 25px;
-
   padding-left: 4px;
   padding-right: 4px;
-
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -857,12 +839,12 @@ const SpanTreeToggler = styled('div')`
 const getAlignment = ({durationDisplay}) => {
   switch (durationDisplay) {
     case 'left':
-      return `right: calc(100% + ${space(1)});`;
+      return `right: calc(100% + ${space(0.5)});`;
     case 'right':
-      return `left: calc(100% + ${space(1)});`;
+      return `left: calc(100% + ${space(0.75)});`;
     default:
       return `
-        right: ${space(1)};
+        right: ${space(0.75)};
         color: #fff;
       `;
   }
@@ -888,20 +870,13 @@ const DurationPill = styled('div')`
 
 const SpanBarRectangle = styled('div')`
   position: relative;
-  min-height: ${SPAN_ROW_HEIGHT - 4}px;
-  height: ${SPAN_ROW_HEIGHT - 4}px;
-  max-height: ${SPAN_ROW_HEIGHT - 4}px;
+  height: 100%;
 
   min-width: 1px;
-
-  margin-top: 2px;
-  margin-bottom: 2px;
-  border-radius: 3px;
-
   user-select: none;
 
   transition: border-color 0.15s ease-in-out;
-  border: 1px solid rgba(0, 0, 0, 0);
+  border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
 const StyledWarningIcon = styled(InlineSvg)`
