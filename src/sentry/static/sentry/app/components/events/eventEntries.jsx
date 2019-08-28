@@ -156,6 +156,7 @@ class EventEntries extends React.Component {
       event,
       orgId,
       showExampleCommit,
+      location,
     } = this.props;
 
     const features = organization ? new Set(organization.features) : new Set();
@@ -198,6 +199,7 @@ class EventEntries extends React.Component {
           event={event}
           orgId={orgId}
           projectId={project.slug}
+          location={location}
         />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
