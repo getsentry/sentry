@@ -63,7 +63,7 @@ class OnboardingWelcome extends React.Component {
           </Button>
           <SecondaryAction>
             {tct('Not your first Sentry rodeo? [exitLink:Skip this onboarding].', {
-              exitLink: <Button priority="link" onClick={this.skipOnboarding} to="/" />,
+              exitLink: <Button priority="link" onClick={this.skipOnboarding} href="/" />,
             })}
           </SecondaryAction>
         </ActionGroup>

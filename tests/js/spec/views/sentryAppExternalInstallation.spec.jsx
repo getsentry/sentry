@@ -34,7 +34,6 @@ describe('SentryAppExternalInstallation', () => {
     org2Lite = _.pick(org2, ['slug', 'name', 'id']);
 
     sentryApp = TestStubs.SentryApp({
-      owner: org2,
       status: 'published',
       redirectUrl: 'https://google.com',
     });
