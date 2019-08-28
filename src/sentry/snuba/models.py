@@ -14,7 +14,9 @@ class QuerySubscription(Model):
     subscription_id = models.TextField(unique=True)
     dataset = models.TextField()
     query = models.TextField()
-    aggregations = ArrayField(of=models.IntegerField)
+    # TODO: Remove this default after we migrate
+    aggregation = models.IntegerField(default=0)
+    aggregations = ArrayField(of=models.IntegerField, null=True)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)

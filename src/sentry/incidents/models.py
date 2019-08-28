@@ -263,16 +263,37 @@ class AlertRuleManager(BaseManager):
         return self.filter(project=project)
 
 
+class AlertRuleQuerySubscription(Model):
+    __core__ = True
+
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertrulequerysubscription"
+
+
 class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
     objects_with_deleted = BaseManager()
 
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True, null=True)
+    organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
+    query_subscriptions = models.ManyToManyField(
+        "sentry.QuerySubscription",
+        related_name="query_subscriptions",
+        through=AlertRuleQuerySubscription,
+    )
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    dataset = models.TextField()
+    query = models.TextField()
+    # TODO: Remove this default after we migrate
+    aggregation = models.IntegerField(default=AlertRuleAggregations.TOTAL.value)
+    time_window = models.IntegerField()
+    resolution = models.IntegerField()
     threshold_type = models.SmallIntegerField()
     alert_threshold = models.IntegerField()
     resolve_threshold = models.IntegerField()
@@ -282,13 +303,11 @@ class AlertRule(Model):
     # These will be removed after we've made these columns nullable. Moving to
     # QuerySubscription
     subscription_id = models.UUIDField(db_index=True, null=True)
-    dataset = models.TextField(null=True)
-    query = models.TextField(null=True)
-    aggregations = ArrayField(of=models.IntegerField, null=True)
-    time_window = models.IntegerField(null=True)
-    resolution = models.IntegerField(null=True)
+    aggregations = ArrayField(of=models.IntegerField)
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True, null=True)
+    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False, null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertrule"
-        unique_together = (("project", "name"),)
+        unique_together = (("organization", "name"),)
