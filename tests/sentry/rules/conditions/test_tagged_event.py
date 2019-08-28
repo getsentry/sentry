@@ -88,3 +88,20 @@ class TaggedEventConditionTest(RuleTestCase):
             data={"match": MatchType.NOT_CONTAINS, "key": "logger", "value": "bar.foo"}
         )
         self.assertPasses(rule, event)
+
+    def test_is_set(self):
+        event = self.get_event()
+
+        rule = self.get_rule(data={"match": MatchType.IS_SET, "key": "logger"})
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(data={"match": MatchType.IS_SET, "key": "missing"})
+        self.assertDoesNotPass(rule, event)
+
+    def test_is_not_set(self):
+        event = self.get_event()
+        rule = self.get_rule(data={"match": MatchType.NOT_SET, "key": "logger"})
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(data={"match": MatchType.NOT_SET, "key": "missing"})
+        self.assertPasses(rule, event)
