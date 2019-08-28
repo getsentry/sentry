@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
+import _ from 'lodash';
 
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -49,7 +50,7 @@ export default class SentryAppExternalInstallation extends AsyncView {
     //if the app is unpublished for a different org
     return (
       selectedOrgSlug &&
-      sentryApp.owner.slug !== selectedOrgSlug &&
+      _.get(sentryApp, 'owner.slug') !== selectedOrgSlug &&
       sentryApp.status === 'unpublished'
     );
   }
@@ -163,13 +164,15 @@ export default class SentryAppExternalInstallation extends AsyncView {
     }
 
     if (this.isSentryAppUnavailableForOrg) {
+      // use the slug of the owner if we have it, otherwise use the other organiztion
+      const ownerSlug = _.get(sentryApp, 'owner.slug', 'another organization');
       return (
         <Alert type="error" icon="icon-circle-exclamation">
           {tct(
             'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
             {
               sentryAppName: <strong>{sentryApp.name}</strong>,
-              otherOrg: <strong>{sentryApp.owner.slug}</strong>,
+              otherOrg: <strong>{ownerSlug}</strong>,
             }
           )}
         </Alert>
