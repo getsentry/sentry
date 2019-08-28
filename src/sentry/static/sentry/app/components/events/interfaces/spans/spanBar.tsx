@@ -4,9 +4,11 @@ import {get} from 'lodash';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
+import InlineSvg from 'app/components/inlineSvg';
 
 import {
   toPercent,
@@ -14,7 +16,6 @@ import {
   SpanGeneratedBoundsType,
   getHumanDuration,
 } from './utils';
-import {defined} from 'app/utils';
 import {SpanType, ParsedTraceType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -577,14 +578,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     return (
-      <WarningTextWrapper>
-        <Tooltip title={warningText}>
-          <span style={{marginLeft: '8px', lineHeight: 0, height: '15px'}}>
-            <WarningIcon />
-          </span>
-        </Tooltip>
-      </WarningTextWrapper>
+      <Tooltip title={warningText}>
+        <StyledWarningIcon src="icon-circle-exclamation" />
+      </Tooltip>
     );
+  };
+
+  getDurationDisplay = ({width, left}) => {
+    const spaceNeeded = 0.3;
+
+    if (!defined(left) || !defined(width)) {
+      return 'inset';
+    }
+    if (left + width < 1 - spaceNeeded) {
+      return 'right';
+    }
+    if (left > spaceNeeded) {
+      return 'left';
+    }
+    return 'inset';
   };
 
   renderHeader = (
@@ -601,18 +613,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const bounds = this.getBounds();
 
-    console.log(bounds);
-
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-    let durationDisplay = 'right';
-    if (bounds.left && bounds.width && bounds.left + bounds.width > 0.8) {
-      durationDisplay = 'left';
-    }
-    if (bounds.left && bounds.width && bounds.left > 0.2 && bounds.width > 0.8) {
-      durationDisplay = 'none';
-    }
+
+    const durationDisplay = this.getDurationDisplay(bounds);
 
     return (
       <SpanRowCellContainer>
@@ -642,10 +647,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             >
               <DurationPill durationDisplay={durationDisplay}>
                 {durationString}
+                {this.renderWarningText({warningText: bounds.warning})}
               </DurationPill>
             </SpanBarRectangle>
           )}
-          {this.renderWarningText({warningText: bounds.warning})}
           {this.renderCursorGuide()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
@@ -849,24 +854,36 @@ const SpanTreeToggler = styled('div')`
   line-height: 0;
 `;
 
-const DurationPill = styled('div')`
-  height: ${SPAN_ROW_HEIGHT - 11}px;
+const getAlignment = ({durationDisplay}) => {
+  switch (durationDisplay) {
+    case 'left':
+      return `right: calc(100% + ${space(1)});`;
+    case 'right':
+      return `left: calc(100% + ${space(1)});`;
+    default:
+      return `
+        right: ${space(1)};
+        color: #fff;
+      `;
+  }
+};
 
-  border-radius: 99px;
-  ${({durationDisplay}: {durationDisplay: String}) => {
-    return (durationDisplay == 'left' ? 'right' : 'left') + `: calc(100% + ${space(1)});`;
-  }}
+const DurationPill = styled('div')`
   position: absolute;
 
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   white-space: nowrap;
   display: flex;
   align-items: center;
   top: 50%;
-  transform: translateY(-53%); /* unsure why 53% */
+  transform: translateY(-50%);
 
-  background-color: rgba(255, 255, 255, 0.6);
+  ${getAlignment}
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    font-size: 10px;
+  }
 `;
 
 const SpanBarRectangle = styled('div')`
@@ -885,6 +902,10 @@ const SpanBarRectangle = styled('div')`
 
   transition: border-color 0.15s ease-in-out;
   border: 1px solid rgba(0, 0, 0, 0);
+`;
+
+const StyledWarningIcon = styled(InlineSvg)`
+  margin-left: ${space(0.25)};
 `;
 
 const ChevronOpen = props => (
@@ -910,28 +931,5 @@ const ChevronClosed = props => (
     />
   </svg>
 );
-
-const WarningIcon = props => (
-  <svg width={15} height={15} fill="none" {...props}>
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M7.012 4.463v3.825a.638.638 0 001.275 0V4.463a.637.637 0 10-1.275 0zM7.65 10.2a.637.637 0 100 1.275.637.637 0 000-1.275z"
-      fill="#493A05"
-    />
-    <rect x={0.5} y={0.5} width={14} height={14} rx={7} stroke="#493A05" />
-  </svg>
-);
-
-const WarningTextWrapper = styled('div')`
-  height: ${SPAN_ROW_HEIGHT}px;
-
-  position: absolute;
-  left: 0;
-  top: 0;
-
-  display: flex;
-  align-items: center;
-`;
 
 export default SpanBar;
