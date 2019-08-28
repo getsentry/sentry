@@ -277,23 +277,30 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(user=self.user)
         response = self.client.put(self.url, data={"webhookUrl": ""}, format="json")
         assert response.status_code == 400
-        assert response.data == {'webhookUrl': ['webhookUrl required for public integrations']}
+        assert response.data == {"webhookUrl": ["webhookUrl required for public integrations"]}
 
     def test_no_webhook_has_events(self):
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-sentry-app-details", args=[self.internal_integration.slug])
-        response = self.client.put(url, data={"webhookUrl": "", "events": ("issue",)}, format="json")
+        response = self.client.put(
+            url, data={"webhookUrl": "", "events": ("issue",)}, format="json"
+        )
         assert response.status_code == 400
-        assert response.data == {'webhookUrl': ['webhookUrl required if webhook events are enabled']}
+        assert response.data == {
+            "webhookUrl": ["webhookUrl required if webhook events are enabled"]
+        }
 
     def test_no_webhook_has_alerts(self):
         self.login_as(user=self.user)
         # make sure we test at least one time with the webhookUrl set to none before the put request
-        app = self.create_internal_integration(organization=self.org, webhookUrl=None)
-        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        self.internal_integration.webhook_url = None
+        self.internal_integration.save()
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.internal_integration.slug])
         response = self.client.put(url, data={"isAlertable": True}, format="json")
         assert response.status_code == 400
-        assert response.data == {'webhookUrl': ['webhookUrl required if alert rule action is enabled']}
+        assert response.data == {
+            "webhookUrl": ["webhookUrl required if alert rule action is enabled"]
+        }
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
