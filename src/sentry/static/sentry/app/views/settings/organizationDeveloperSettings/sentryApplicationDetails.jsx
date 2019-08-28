@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {Observer} from 'mobx-react';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -65,11 +66,6 @@ export default class SentryApplicationDetails extends AsyncView {
         ...this.state.app,
       },
     });
-  }
-
-  onRequestSuccess() {
-    //cause the form to re-render
-    this.forceUpdate();
   }
 
   getDefaultState() {
@@ -182,8 +178,6 @@ export default class SentryApplicationDetails extends AsyncView {
         //if no webhook, then set isAlertable to false
         this.form.setValue('isAlertable', false);
       }
-      //trigger an update so the disable messages show
-      this.forceUpdate();
     }
   };
 
@@ -205,7 +199,6 @@ export default class SentryApplicationDetails extends AsyncView {
       verifyInstall = app ? app.verifyInstall : true;
     }
 
-    const webhookDisabled = this.isInternal && !this.form.getValue('webhookUrl');
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -226,17 +219,27 @@ export default class SentryApplicationDetails extends AsyncView {
           onSubmitSuccess={this.onSubmitSuccess}
           onFieldChange={this.onFieldChange}
         >
-          <JsonForm
-            location={this.props.location}
-            additionalFieldProps={{webhookDisabled}}
-            forms={forms}
-          />
+          <Observer>
+            {() => {
+              const webhookDisabled =
+                this.isInternal && !this.form.getValue('webhookUrl');
+              return (
+                <React.Fragment>
+                  <JsonForm
+                    location={this.props.location}
+                    additionalFieldProps={{webhookDisabled}}
+                    forms={forms}
+                  />
 
-          <PermissionsObserver
-            webhookDisabled={webhookDisabled}
-            scopes={scopes}
-            events={events}
-          />
+                  <PermissionsObserver
+                    webhookDisabled={webhookDisabled}
+                    scopes={scopes}
+                    events={events}
+                  />
+                </React.Fragment>
+              );
+            }}
+          </Observer>
 
           {app && app.status === 'internal' && (
             <Panel>
