@@ -462,15 +462,16 @@ describe('SmartSearchBar', function() {
       searchBar.updateAutoCompleteItems();
 
       jest.advanceTimersByTime(301);
-      expect(mock).toHaveBeenCalledWith('/organizations/org-slug/releases/', {
-        method: 'GET',
-        query: {
-          project: '0',
-          per_page: 5, // Limit results to 5 for autocomplete
-        },
-        success: expect.any(Function), // Promise.then is added by Releases actionCreator
-        error: expect.any(Function), // Promise.catch is added by Releases actionCreator
-      });
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            project: '0',
+            per_page: 5, // Limit results to 5 for autocomplete
+          },
+        })
+      );
     });
   });
 

@@ -1,7 +1,7 @@
-// import ReleaseStore from 'app/stores/releaseStore';
 import ReleaseActions from 'app/actions/releaseActions';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import {Client} from 'app/api';
 
 /**
  * Fetch a subset of releases for an organization or project. To fetch releases
@@ -10,7 +10,7 @@ import {t} from 'app/locale';
  * TODO(leedongwei): Replace `any` types.
  */
 export function fetchReleases(
-  api: any,
+  api: Client,
   orgId: string,
   project?: string,
   releaseVersion?: string,
