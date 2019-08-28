@@ -78,6 +78,7 @@ class SentryAppSerializer(Serializer):
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
 
+    # an abstraction to pull fields from attrs if they are available or the sentry_app if not
     def get_current_value_wrapper(self, attrs):
         def get_current_value(field_name):
             if field_name in attrs:
