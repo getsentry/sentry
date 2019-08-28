@@ -102,14 +102,14 @@ export const publicIntegrationForms = [
 
 const getInternalFormFields = () => {
   /***
-   * Generate internal form fields copy copying the public form fields and making adjustments
+   * Generate internal form fields copy copying the public form fields and making adjustments:
+   *    1. remove fields not needed for internal integrations
+   *    2. make webhookUrl optional
    ***/
 
-  // remove fields not needed for internal integrations
   const internalFormFields = getPublicFormFields().filter(
     formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
   );
-  //make webhookUrl optional
   const webhookField = internalFormFields.find(field => field.name === 'webhookUrl');
   webhookField.required = false;
   return internalFormFields;

@@ -34,13 +34,13 @@ class Updater(Mediator):
         self._update_status()
         self._update_scopes()
         self._update_events()
-        self._update_service_hooks()
         self._update_webhook_url()
         self._update_redirect_url()
         self._update_is_alertable()
         self._update_verify_install()
         self._update_overview()
         self._update_schema()
+        self._update_service_hooks()
         self.sentry_app.save()
         return self.sentry_app
 
@@ -81,18 +81,19 @@ class Updater(Mediator):
 
     def _update_service_hooks(self):
         hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
-        if len(hooks) > 0:
-            for hook in hooks:
-                # update the url and events
-                if self.webhook_url:
-                    service_hooks.Updater.run(
-                        service_hook=hook, events=self.sentry_app.events, url=self.webhook_url
-                    )
-                # if no url, then the service hook is no longer active in which case we need to delete it
-                else:
-                    service_hooks.Destroyer.run(service_hook=hook)
+        # sentry_app.webhook_url will be updated at this point
+        webhook_url = self.sentry_app.webhook_url
+        for hook in hooks:
+            # update the url and events
+            if webhook_url:
+                service_hooks.Updater.run(
+                    service_hook=hook, events=self.sentry_app.events, url=webhook_url
+                )
+            # if no url, then the service hook is no longer active in which case we need to delete it
+            else:
+                service_hooks.Destroyer.run(service_hook=hook)
         # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
-        elif self.webhook_url and self.sentry_app.is_internal:
+        if webhook_url and len(hooks) == 0 and self.sentry_app.is_internal:
             installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
             service_hooks.Creator.run(
                 application=self.sentry_app.application,
@@ -100,7 +101,7 @@ class Updater(Mediator):
                 projects=[],
                 organization=self.sentry_app.owner,
                 events=self.sentry_app.events,
-                url=self.webhook_url,
+                url=webhook_url,
             )
 
     @if_param("webhook_url")

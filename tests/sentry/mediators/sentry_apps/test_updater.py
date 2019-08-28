@@ -143,6 +143,6 @@ class TestUpdater(TestCase):
         )
         assert len(ServiceHook.objects.filter(application=internal_app.application)) == 1
         updater = Updater(sentry_app=internal_app, user=self.user)
-        updater.webhook_url = None
+        updater.webhook_url = ""
         updater.call()
         assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
