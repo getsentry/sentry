@@ -164,7 +164,7 @@ export default class SentryAppExternalInstallation extends AsyncView {
     }
 
     if (this.isSentryAppUnavailableForOrg) {
-      // use the slug of the owner if we have it, otherwise use the other organiztion
+      // use the slug of the owner if we have it, otherwise use 'another organization'
       const ownerSlug = _.get(sentryApp, 'owner.slug', 'another organization');
       return (
         <Alert type="error" icon="icon-circle-exclamation">
