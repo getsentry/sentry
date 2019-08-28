@@ -18,7 +18,6 @@ class TestUpdater(TestCase):
             scopes=("project:read",),
             schema={"elements": [self.create_issue_link_schema()]},
         )
-
         self.updater = Updater(sentry_app=self.sentry_app, user=self.user)
 
     def test_updates_name(self):
@@ -110,3 +109,18 @@ class TestUpdater(TestCase):
         self.updater.status = "published"
         self.updater.call()
         assert self.sentry_app.status == SentryAppStatus.UNPUBLISHED
+
+    def test_create_service_hook_on_update(self):
+        self.create_project(organization=self.org)
+        internal_app = self.create_internal_integration(
+            name="Internal", organization=self.org,
+            webhook_url=None, scopes=("event:read",)
+        )
+        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
+        updater = Updater(sentry_app=internal_app, user=self.user)
+        updater.webhook_url = 'https://sentry.io/hook'
+        updater.events = ("issue",)
+        updater.call()
+        service_hook = ServiceHook.objects.get(application=internal_app.application)
+        assert service_hook.url == 'https://sentry.io/hook'
+        assert set(service_hook.events) == expand_events(["issue"])

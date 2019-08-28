@@ -31,6 +31,7 @@ export default class Subscriptions extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    // if webhooks are disabled, unset the events
     if (nextProps.webhookDisabled && this.props.events.length) {
       this.save([]);
     }
@@ -74,7 +75,6 @@ export default class Subscriptions extends React.Component {
                 disabledFromPermissions={disabledFromPermissions}
                 webhookDisabled={webhookDisabled}
                 checked={events.includes(choice) && !disabledFromPermissions}
-                // checked={events.includes(choice)}
                 resource={choice}
                 onChange={this.onChange}
               />

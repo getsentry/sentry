@@ -10,7 +10,7 @@ from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook
+from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 
@@ -34,6 +34,7 @@ class Updater(Mediator):
         self._update_status()
         self._update_scopes()
         self._update_events()
+        self._update_service_hooks()
         self._update_webhook_url()
         self._update_redirect_url()
         self._update_is_alertable()
@@ -77,12 +78,31 @@ class Updater(Mediator):
         from sentry.mediators.service_hooks.creator import expand_events
 
         self.sentry_app.events = expand_events(self.events)
-        self._update_service_hook_events()
 
-    def _update_service_hook_events(self):
+    def _update_service_hooks(self):
         hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
-        for hook in hooks:
-            service_hooks.Updater.run(service_hook=hook, events=self.events)
+        if len(hooks) > 0:
+            for hook in hooks:
+                # update the url and events
+                if self.webhook_url:
+                    print("updater run")
+                    service_hooks.Updater.run(service_hook=hook, events=self.events, url=self.webhook_url)
+                # if no url, then the service hook is no longer active in which case we need to delete it
+                else:
+                    print("destroyer run")
+                    service_hooks.Destroyer.run(service_hook=hook)
+        # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
+        elif self.webhook_url and self.sentry_app.is_internal:
+            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
+            print("creator run")
+            service_hooks.Creator.run(
+                application=self.sentry_app.application,
+                actor=installation,
+                projects=[],
+                organization=self.sentry_app.owner,
+                events=self.sentry_app.events,  # pull off events from the sentry_app as it will be updated already
+                url=self.webhook_url,
+            )
 
     @if_param("webhook_url")
     def _update_webhook_url(self):

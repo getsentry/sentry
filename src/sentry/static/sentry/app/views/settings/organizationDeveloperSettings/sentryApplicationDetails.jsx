@@ -206,7 +206,6 @@ export default class SentryApplicationDetails extends AsyncView {
     }
 
     const webhookDisabled = this.isInternal && !this.form.getValue('webhookUrl');
-
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
