@@ -5,6 +5,7 @@ import six
 
 from time import time
 
+from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
 from sentry.utils.redis import get_cluster_from_options, load_script, redis_clusters
@@ -12,13 +13,13 @@ from sentry.utils.redis import get_cluster_from_options, load_script, redis_clus
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
 
-def get_dynamic_cluster_from_options(setting, options):
-    cluster_name = options.get("cluster", "default")
+def get_dynamic_cluster_from_options(setting, config):
+    cluster_name = config.get("cluster", "default")
     cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        return True, redis_clusters.get(cluster_name), options
+        return True, redis_clusters.get(cluster_name), config
 
-    return (False,) + get_cluster_from_options(setting, options)
+    return (False,) + get_cluster_from_options(setting, config)
 
 
 class BasicRedisQuota(object):
