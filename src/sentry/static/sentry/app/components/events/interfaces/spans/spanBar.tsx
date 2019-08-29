@@ -249,7 +249,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeToggler = ({left}: {left: number}) => {
     const {numOfSpanChildren} = this.props;
 
-    const chevron = this.props.showSpanTree ? <ChevronOpen /> : <ChevronClosed />;
+    const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
+    const chevron = <Chevron src={chevronSrc} />;
 
     if (numOfSpanChildren <= 0) {
       return <SpanTreeTogglerContainer style={{left: `${left}px`}} />;
@@ -579,7 +580,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip title={warningText}>
-        <StyledWarningIcon src="icon-circle-exclamation" />
+        <WarningIcon src="icon-circle-exclamation" />
       </Tooltip>
     );
   };
@@ -897,32 +898,12 @@ const SpanBarRectangle = styled('div')`
   border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
-const StyledWarningIcon = styled(InlineSvg)`
+const WarningIcon = styled(InlineSvg)`
   margin-left: ${space(0.25)};
 `;
 
-const ChevronOpen = props => (
-  <svg width={5} height={4} fill="none" {...props}>
-    <path
-      d="M.5 1.25l2 2 2-2"
-      stroke="#6E5F7D"
-      strokeWidth={0.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const ChevronClosed = props => (
-  <svg width={3} height={6} fill="none" {...props}>
-    <path
-      d="M.5 5.25l2-2-2-2"
-      stroke="#6E5F7D"
-      strokeWidth={0.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+const Chevron = styled(InlineSvg)`
+  width: 7px;
+`;
 
 export default SpanBar;
