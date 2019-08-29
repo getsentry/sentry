@@ -234,12 +234,12 @@ export class GpuSummary extends React.Component {
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
 const KNOWN_CONTEXTS = [
-  {key: 'user', Component: UserSummary},
-  {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
-  {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
-  {key: 'os', Component: OsSummary},
-  {key: 'device', Component: DeviceSummary},
-  {key: 'gpu', Component: GpuSummary},
+  {keys: ['user'], Component: UserSummary},
+  {keys: ['browser'], Component: GenericSummary, unknownTitle: t('Unknown Browser')},
+  {keys: ['runtime'], Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
+  {keys: ['client_os', 'os'], Component: OsSummary},
+  {keys: ['device'], Component: DeviceSummary},
+  {keys: ['gpu'], Component: GpuSummary},
 ];
 
 class EventContextSummary extends React.Component {
@@ -253,14 +253,19 @@ class EventContextSummary extends React.Component {
 
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
-    let contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}) => {
+    let contexts = KNOWN_CONTEXTS.map(({keys, Component, ...props}) => {
       if (contextCount >= MAX_CONTEXTS) {
         return null;
       }
-      const data = evt.contexts[key] || evt[key];
-      if (objectIsEmpty(data)) {
+
+      const [key, data] = keys
+        .map(k => [k, evt.contexts[k] || evt[k]])
+        .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
+
+      if (!key) {
         return null;
       }
+
       contextCount += 1;
       return <Component key={key} data={data} {...props} />;
     });
@@ -273,7 +278,7 @@ class EventContextSummary extends React.Component {
     if (contextCount < MIN_CONTEXTS) {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
-      contexts = KNOWN_CONTEXTS.map(({key, Component, ...props}, index) => {
+      contexts = KNOWN_CONTEXTS.map(({keys, Component, ...props}, index) => {
         if (contexts[index]) {
           return contexts[index];
         }
@@ -281,7 +286,7 @@ class EventContextSummary extends React.Component {
           return null;
         }
         contextCount += 1;
-        return <Component key={key} data={{}} {...props} />;
+        return <Component key={keys[0]} data={{}} {...props} />;
       });
     }
 

@@ -2,6 +2,55 @@
 
 exports[`ContextSummary render() should bail out with empty contexts 1`] = `""`;
 
+exports[`ContextSummary render() should prefer client_os over os 1`] = `
+<div
+  className="context-summary"
+>
+  <UserSummary
+    data={
+      Object {
+        "email": "mail@example.org",
+        "id": "1",
+      }
+    }
+    key="user"
+  />
+  <GenericSummary
+    data={
+      Object {
+        "name": "Chrome",
+        "version": "65.0.3325",
+      }
+    }
+    key="browser"
+    unknownTitle="Unknown Browser"
+  />
+  <GenericSummary
+    data={
+      Object {
+        "name": "Electron",
+        "type": "runtime",
+        "version": "1.7.13",
+      }
+    }
+    key="runtime"
+    unknownTitle="Unknown Runtime"
+  />
+  <OsSummary
+    data={
+      Object {
+        "build": "17E199",
+        "kernel_version": "17.5.0",
+        "name": "Mac OS X",
+        "type": "os",
+        "version": "10.13.4",
+      }
+    }
+    key="client_os"
+  />
+</div>
+`;
+
 exports[`ContextSummary render() should render at least three contexts 1`] = `
 <div
   className="context-summary"
@@ -30,6 +79,55 @@ exports[`ContextSummary render() should render at least three contexts 1`] = `
       }
     }
     key="device"
+  />
+</div>
+`;
+
+exports[`ContextSummary render() should render client_os too 1`] = `
+<div
+  className="context-summary"
+>
+  <UserSummary
+    data={
+      Object {
+        "email": "mail@example.org",
+        "id": "1",
+      }
+    }
+    key="user"
+  />
+  <GenericSummary
+    data={
+      Object {
+        "name": "Chrome",
+        "version": "65.0.3325",
+      }
+    }
+    key="browser"
+    unknownTitle="Unknown Browser"
+  />
+  <GenericSummary
+    data={
+      Object {
+        "name": "Electron",
+        "type": "runtime",
+        "version": "1.7.13",
+      }
+    }
+    key="runtime"
+    unknownTitle="Unknown Runtime"
+  />
+  <OsSummary
+    data={
+      Object {
+        "build": "17E199",
+        "kernel_version": "17.5.0",
+        "name": "Mac OS X",
+        "type": "os",
+        "version": "10.13.4",
+      }
+    }
+    key="client_os"
   />
 </div>
 `;
