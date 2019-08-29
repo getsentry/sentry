@@ -3,8 +3,7 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http, options
-from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.github import get_user_info
+
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -16,9 +15,8 @@ from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import PipelineView
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils.http import absolute_uri
 
 from .client import GitHubAppsClient
 from .issues import GitHubIssueBasic
@@ -178,21 +176,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             )
 
     def get_pipeline_views(self):
-        identity_pipeline_config = {
-            "oauth_scopes": (),
-            "redirect_url": absolute_uri("/extensions/github/setup/"),
-        }
+        return [GitHubInstallationRedirect()]
 
-        identity_pipeline_view = NestedPipelineView(
-            bind_key="identity",
-            provider_key="github",
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
-        return [GitHubInstallationRedirect(), identity_pipeline_view]
-
-    def get_installation_info(self, access_token, installation_id):
+    def get_installation_info(self, installation_id):
         session = http.build_session()
         resp = session.get(
             "https://api.github.com/app/installations/%s" % installation_id,
@@ -204,28 +190,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp.raise_for_status()
         installation_resp = resp.json()
 
-        resp = session.get(
-            "https://api.github.com/user/installations",
-            params={"access_token": access_token},
-            headers={"Accept": "application/vnd.github.machine-man-preview+json"},
-        )
-        resp.raise_for_status()
-        user_installations_resp = resp.json()
-
-        # verify that user actually has access to the installation
-        for installation in user_installations_resp["installations"]:
-            if installation["id"] == installation_resp["id"]:
-                return installation_resp
-
-        return None
+        return installation_resp
 
     def build_integration(self, state):
-        identity = state["identity"]["data"]
-
-        user = get_user_info(identity["access_token"])
-        installation = self.get_installation_info(
-            identity["access_token"], state["installation_id"]
-        )
+        installation = self.get_installation_info(state["installation_id"])
 
         integration = {
             "name": installation["account"]["login"],
@@ -241,12 +209,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
-            },
-            "user_identity": {
-                "type": "github",
-                "external_id": user["id"],
-                "scopes": [],  # GitHub apps do not have user scopes
-                "data": {"access_token": identity["access_token"]},
             },
         }
 
