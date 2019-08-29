@@ -1,7 +1,9 @@
 import React from 'react';
+import _ from 'lodash';
+
 import {tct} from 'app/locale';
 
-const publicFormFields = [
+const getPublicFormFields = () => [
   {
     name: 'name',
     type: 'string',
@@ -44,6 +46,8 @@ const publicFormFields = [
     name: 'isAlertable',
     type: 'boolean',
     label: 'Alert Rule Action',
+    disabled: ({webhookDisabled}) => webhookDisabled,
+    disabledReason: 'Cannot enable alert rule action without a webhook url',
     help: tct(
       'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
       {
@@ -92,18 +96,28 @@ const publicFormFields = [
 export const publicIntegrationForms = [
   {
     title: 'Public Integration Details',
-    fields: publicFormFields,
+    fields: getPublicFormFields(),
   },
 ];
 
-// remove fields not needed for internal integrations
-const internalFormFields = publicFormFields.filter(
-  formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
-);
+const getInternalFormFields = () => {
+  /***
+   * Generate internal form fields copy copying the public form fields and making adjustments:
+   *    1. remove fields not needed for internal integrations
+   *    2. make webhookUrl optional
+   ***/
+
+  const internalFormFields = getPublicFormFields().filter(
+    formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
+  );
+  const webhookField = internalFormFields.find(field => field.name === 'webhookUrl');
+  webhookField.required = false;
+  return internalFormFields;
+};
 
 export const internalIntegrationForms = [
   {
     title: 'Internal Integration Details',
-    fields: internalFormFields,
+    fields: getInternalFormFields(),
   },
 ];

@@ -37,7 +37,7 @@ describe('Resource Subscriptions', () => {
         wrapper
           .find('SubscriptionBox')
           .first()
-          .prop('disabled')
+          .prop('disabledFromPermissions')
       ).toBe(true);
     });
 
@@ -55,7 +55,7 @@ describe('Resource Subscriptions', () => {
         wrapper
           .find('SubscriptionBox')
           .first()
-          .prop('disabled')
+          .prop('disabledFromPermissions')
       ).toBe(false);
     });
   });
@@ -89,7 +89,7 @@ describe('Resource Subscriptions', () => {
         wrapper
           .find('SubscriptionBox')
           .first()
-          .prop('disabled')
+          .prop('disabledFromPermissions')
       ).toBe(false);
     });
 
@@ -103,12 +103,11 @@ describe('Resource Subscriptions', () => {
       };
 
       wrapper.setProps({permissions});
-      expect(wrapper.state('events')).toEqual([]);
       expect(
         wrapper
           .find('SubscriptionBox')
           .first()
-          .prop('disabled')
+          .prop('disabledFromPermissions')
       ).toBe(true);
     });
   });

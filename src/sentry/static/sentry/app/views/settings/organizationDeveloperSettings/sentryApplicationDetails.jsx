@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {Observer} from 'mobx-react';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -167,6 +168,13 @@ export default class SentryApplicationDetails extends AsyncView {
     }
   };
 
+  onFieldChange = (name, value) => {
+    if (name === 'webhookUrl' && !value && this.isInternal) {
+      //if no webhook, then set isAlertable to false
+      this.form.setValue('isAlertable', false);
+    }
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -203,10 +211,29 @@ export default class SentryApplicationDetails extends AsyncView {
           }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
+          onFieldChange={this.onFieldChange}
         >
-          <JsonForm location={this.props.location} forms={forms} />
+          <Observer>
+            {() => {
+              const webhookDisabled =
+                this.isInternal && !this.form.getValue('webhookUrl');
+              return (
+                <React.Fragment>
+                  <JsonForm
+                    location={this.props.location}
+                    additionalFieldProps={{webhookDisabled}}
+                    forms={forms}
+                  />
 
-          <PermissionsObserver scopes={scopes} events={events} />
+                  <PermissionsObserver
+                    webhookDisabled={webhookDisabled}
+                    scopes={scopes}
+                    events={events}
+                  />
+                </React.Fragment>
+              );
+            }}
+          </Observer>
 
           {app && app.status === 'internal' && (
             <Panel>

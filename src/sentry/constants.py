@@ -432,23 +432,26 @@ class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
+    UNPUBLISHED_STR = "unpublished"
+    PUBLISHED_STR = "published"
+    INTERNAL_STR = "internal"
 
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNPUBLISHED, "unpublished"),
-            (cls.PUBLISHED, "published"),
-            (cls.INTERNAL, "internal"),
+            (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
+            (cls.PUBLISHED, cls.PUBLISHED_STR),
+            (cls.INTERNAL, cls.INTERNAL_STR),
         )
 
     @classmethod
     def as_str(cls, status):
         if status == cls.UNPUBLISHED:
-            return "unpublished"
+            return cls.UNPUBLISHED_STR
         elif status == cls.PUBLISHED:
-            return "published"
+            return cls.PUBLISHED_STR
         elif status == cls.INTERNAL:
-            return "internal"
+            return cls.INTERNAL_STR
 
 
 class SentryAppInstallationStatus(object):

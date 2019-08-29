@@ -433,6 +433,7 @@ class PostSentryAppsTest(SentryAppsTest):
             "webhookUrl": "https://example.com",
             "redirectUrl": "",
             "isAlertable": False,
+            "isInternal": False,
             "verifyInstall": True,
         }
 

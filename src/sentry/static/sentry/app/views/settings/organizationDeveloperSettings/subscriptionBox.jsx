@@ -10,41 +10,41 @@ import {Flex} from 'grid-emotion';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
 
-class SubscriptionBox extends React.Component {
+export class SubscriptionBox extends React.Component {
   static propTypes = {
     resource: PropTypes.string.isRequired,
-    disabled: PropTypes.bool.isRequired,
+    disabledFromPermissions: PropTypes.bool.isRequired,
+    webhookDisabled: PropTypes.bool.isRequired,
     checked: PropTypes.bool.isRequired,
     onChange: PropTypes.func.isRequired,
     organization: SentryTypes.Organization,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      checked: this.props.checked,
-    };
-  }
+  static defaultProps = {
+    webhookDisabled: false,
+  };
 
   onChange = evt => {
     const checked = evt.target.checked;
     const {resource} = this.props;
-    this.setState({checked});
     this.props.onChange(resource, checked);
   };
 
   render() {
-    const {resource, organization} = this.props;
+    const {resource, organization, webhookDisabled, checked} = this.props;
     const features = new Set(organization.features);
-    const {checked} = this.state;
 
-    let disabled = this.props.disabled;
+    let disabled = this.props.disabledFromPermissions || webhookDisabled;
     let message = `Must have at least 'Read' permissions enabled for ${resource}`;
     if (resource === 'error' && !features.has('integrations-event-hooks')) {
       disabled = true;
       message =
         'Your organization does not have access to the error subscription resource.';
     }
+    if (webhookDisabled) {
+      message = 'Cannot enable webhook subscription without specifying a webhook url';
+    }
+
     return (
       <React.Fragment>
         <SubscriptionGridItemWrapper key={resource}>
@@ -72,7 +72,6 @@ class SubscriptionBox extends React.Component {
   }
 }
 
-export {SubscriptionBox};
 export default withOrganization(SubscriptionBox);
 
 const SubscriptionInfo = styled(Flex)`
