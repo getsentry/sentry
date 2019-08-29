@@ -852,8 +852,6 @@ SENTRY_FEATURES = {
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
-    # Enable require 2FA across organization
-    "organizations:require-2fa": False,
     # Sentry 10 - multi project interfaces.
     "organizations:sentry10": True,
     # Enable basic SSO functionality, providing configurable single sign on

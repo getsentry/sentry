@@ -85,7 +85,6 @@ const formGroups = [
             'Are you sure you want to allow users to access your organization without having two-factor authentication enabled?'
           ),
         },
-        visible: ({features}) => features.has('require-2fa'),
       },
       {
         name: 'allowSharedIssues',
