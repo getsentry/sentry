@@ -742,21 +742,28 @@ export const DividerLine = styled('div')`
 
   transform: translateX(-50%);
 
+  /* increase hit target */
+  border-width: 0 5px;
+  border-color: rgba(0, 0, 0, 0);
+  border-style: solid;
+  box-sizing: content-box;
+  background-clip: content-box;
+
   background-color: #cdc7d5;
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    width: 4px !important;
+    width: 3px;
     cursor: col-resize;
   }
 
   ${({hovering}: {hovering: boolean}) => {
     if (!hovering) {
-      return 'width: 2px;';
+      return 'width: 1px;';
     }
 
     return `
-      width: 4px;
+      width: 3px;
       cursor: col-resize;
       `;
   }};
