@@ -5,6 +5,7 @@ import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
+import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
@@ -602,7 +603,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    const {span, spanBarColour} = this.props;
+    const {span, spanBarColour, spanNumber} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -622,19 +623,20 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <SpanRowCellContainer>
         <SpanRowCell
+          showDetail={this.state.showDetail}
           style={{
             left: 0,
             width: toPercent(dividerPosition),
-            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {this.renderTitle()}
         </SpanRowCell>
         <SpanRowCell
+          showDetail={this.state.showDetail}
+          showStriping={spanNumber % 2 !== 0}
           style={{
             left: toPercent(dividerPosition),
             width: toPercent(1 - dividerPosition),
-            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {displaySpanBar && (
@@ -694,11 +696,25 @@ const SpanRowCellContainer = styled('div')`
   height: ${SPAN_ROW_HEIGHT}px;
 `;
 
+const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+}) => {
+  if (showDetail) {
+    return theme.offWhite2;
+  }
+  return showStriping ? theme.offWhite : 'white';
+};
+
 const SpanRowCell = styled('div')`
   position: absolute;
-  padding: 4px 0;
+  padding: ${space(0.5)} 0;
   height: 100%;
   overflow: hidden;
+  background-color: ${getBackgroundColor};
 `;
 
 const CursorGuide = styled('div')`
