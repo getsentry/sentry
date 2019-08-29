@@ -64,6 +64,7 @@ class IssueListSearchBar extends React.Component {
   }
 
   fetchData = async () => {
+    this.props.api.clear();
     const resp = await this.getRecentSearches();
 
     this.setState({

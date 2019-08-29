@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
-import {Client} from 'app/api';
 
+import {Client} from 'app/api';
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
 
@@ -42,11 +42,25 @@ describe('SmartSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = {};
+    supportedTags = TagStore.getAllTags();
     organization = TestStubs.Organization({id: '123'});
 
-    options = TestStubs.routerContext([{organization}]);
+    const location = {
+      pathname: '/organizations/org-slug/recent-searches/',
+      query: {
+        projectId: '0',
+      },
+    };
 
+    options = TestStubs.routerContext([
+      {
+        organization,
+        location,
+        router: {location},
+      },
+    ]);
+
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -419,10 +433,45 @@ describe('SmartSearchBar', function() {
         organization,
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(mock).not.toHaveBeenCalled();
+    });
+
+    it('requests values when tag is `firstRelease`', function() {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      const props = {
+        orgId: 'org-slug',
+        projectId: '0',
+        query: 'firstRelease:',
+        organization,
+        supportedTags,
+      };
+
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
+      searchBar.updateAutoCompleteItems();
+
+      jest.advanceTimersByTime(301);
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            project: '0',
+            per_page: 5, // Limit results to 5 for autocomplete
+          },
+        })
+      );
     });
   });
 
