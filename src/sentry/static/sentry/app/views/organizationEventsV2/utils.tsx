@@ -29,7 +29,7 @@ export type EventQuery = {
  */
 export function hasAggregateField(eventView: EventView): boolean {
   return eventView
-    .getFieldSnubaCols()
+    .getFieldNames()
     .some(
       field =>
         AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)

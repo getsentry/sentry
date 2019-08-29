@@ -9,25 +9,25 @@ import {MetaType, EventQuery} from './utils';
 
 type Descending = {
   kind: 'desc';
-  snuba_col: string;
+  field: string;
 };
 
 type Ascending = {
   kind: 'asc';
-  snuba_col: string;
+  field: string;
 };
 
 type Sort = Descending | Ascending;
 
 type QueryStringField = [
-  /* snuba_column */ string,
+  /* field */ string,
   /* title */ string
   // TODO: implement later
   // /* width */ number
 ];
 
 type Field = {
-  snuba_column: string;
+  field: string;
   title: string;
   // TODO: implement later
   // width: number;
@@ -69,11 +69,10 @@ const decodeFields = (location: Location): Array<Field> => {
       const result = JSON.parse(field);
 
       if (isValidQueryStringField(result)) {
-        const snuba_column = result[0].trim();
-
-        if (snuba_column.length > 0) {
+        field = result[0].trim();
+        if (field.length > 0) {
           acc.push({
-            snuba_column,
+            field,
             title: result[1],
           });
         }
@@ -90,7 +89,7 @@ const decodeFields = (location: Location): Array<Field> => {
 
 export const encodeFields = (fields: Array<Field>): Array<string> => {
   return fields.map(field => {
-    return JSON.stringify([field.snuba_column, field.title]);
+    return JSON.stringify([field.field, field.title]);
   });
 };
 
@@ -101,14 +100,14 @@ const fromSorts = (sorts: Array<string>): Array<Sort> => {
     if (sort.startsWith('-')) {
       acc.push({
         kind: 'desc',
-        snuba_col: sort.substring(1),
+        field: sort.substring(1),
       });
       return acc;
     }
 
     acc.push({
       kind: 'asc',
-      snuba_col: sort,
+      field: sort,
     });
 
     return acc;
@@ -130,10 +129,10 @@ const decodeSorts = (location: Location): Array<Sort> => {
 const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
-      return `-${sort.snuba_col}`;
+      return `-${sort.field}`;
     }
     case 'asc': {
-      return String(sort.snuba_col);
+      return String(sort.field);
     }
     default: {
       throw new Error('unexpected sort type');
@@ -212,9 +211,9 @@ class EventView {
   }
 
   static fromEventViewv1(eventViewV1: EventViewv1): EventView {
-    const fields = eventViewV1.data.fields.map((snubaColName: string, index: number) => {
+    const fields = eventViewV1.data.fields.map((fieldName: string, index: number) => {
       return {
-        snuba_column: snubaColName,
+        field: fieldName,
         title: eventViewV1.data.columnNames[index],
       };
     });
@@ -246,9 +245,9 @@ class EventView {
     });
   };
 
-  getFieldSnubaCols = () => {
+  getFieldNames = () => {
     return this.fields.map(field => {
-      return field.snuba_column;
+      return field.field;
     });
   };
 
@@ -308,7 +307,7 @@ class EventView {
       'sort',
     ]);
 
-    const fieldNames = this.getFieldSnubaCols();
+    const fieldNames = this.getFieldNames();
 
     const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
 
@@ -334,10 +333,10 @@ class EventView {
     return encodeSort(this.sorts[0]);
   };
 
-  getSortKey = (snubaColumn: string, meta: MetaType): string | null => {
-    let column = snubaColumn;
-    if (snubaColumn.match(AGGREGATE_PATTERN)) {
-      column = snubaColumn.replace(AGGREGATE_PATTERN, '$1_$2').toLowerCase();
+  getSortKey = (fieldname: string, meta: MetaType): string | null => {
+    let column = fieldname;
+    if (fieldname.match(AGGREGATE_PATTERN)) {
+      column = fieldname.replace(AGGREGATE_PATTERN, '$1_$2').toLowerCase();
     }
     if (SPECIAL_FIELDS.hasOwnProperty(column)) {
       return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;

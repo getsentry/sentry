@@ -285,7 +285,6 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
-  columnWidths: string[];
 };
 
 export type Repository = {

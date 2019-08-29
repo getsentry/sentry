@@ -185,7 +185,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
         interval={interval}
         showLoading={true}
         query={queryString}
-        field={eventView.getFieldSnubaCols()}
+        field={eventView.getFieldNames()}
         referenceEvent={referenceEvent}
         includePrevious={false}
       >
@@ -199,7 +199,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
             }}
             onClick={series =>
               handleClick(series, {
-                field: eventView.getFieldSnubaCols(),
+                field: eventView.getFieldNames(),
                 api,
                 organization,
                 currentEvent,

@@ -29,7 +29,6 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
     sort: ['-timestamp'],
   },
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
-  columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
 };
 
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
@@ -44,7 +43,6 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
-    columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
   {
     id: 'csp',
@@ -62,7 +60,6 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       'os.name',
       'effective-directive',
     ],
-    columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
   {
     id: 'transactions',
@@ -81,7 +78,6 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       'user.ip',
       'environment',
     ],
-    columnWidths: ['3fr', '1fr', '70px'],
   },
 ];
 

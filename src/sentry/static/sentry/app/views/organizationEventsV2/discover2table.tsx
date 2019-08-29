@@ -155,7 +155,7 @@ class Table extends React.Component<TableProps> {
       return null;
     }
 
-    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].snuba_column;
+    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
 
     return eventView.fields.map((field, index) => {
       if (!dataPayload) {
@@ -163,7 +163,7 @@ class Table extends React.Component<TableProps> {
       }
 
       const {meta} = dataPayload;
-      const sortKey = eventView.getSortKey(field.snuba_column, meta);
+      const sortKey = eventView.getSortKey(field.field, meta);
 
       if (sortKey === null) {
         return <PanelHeaderCell key={index}>{field.title}</PanelHeaderCell>;
@@ -196,7 +196,7 @@ class Table extends React.Component<TableProps> {
     }
 
     const {meta} = dataPayload;
-    const fields = eventView.getFieldSnubaCols();
+    const fields = eventView.getFieldNames();
 
     // TODO: deal with this
     // if (fields.length <= 0) {
