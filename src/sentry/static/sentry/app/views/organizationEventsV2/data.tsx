@@ -21,7 +21,6 @@ export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
 
 export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
-  id: 'all',
   name: t('All Events'),
   data: {
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
@@ -34,23 +33,41 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   DEFAULT_EVENT_VIEW_V1,
   {
-    id: 'errors',
-    name: t('Errors'),
+    name: t('Project Summary'),
     data: {
-      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-      columnNames: ['error', 'events', 'users', 'project', 'last seen'],
-      sort: ['-last_seen', '-title'],
+      fields: ['project', 'count()', 'count_unique(title)'],
+      columnNames: ['project', 'events', 'unique errors'],
+      sort: ['-count'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
   },
   {
-    id: 'csp',
+    name: t('Errors'),
+    data: {
+      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
+      columnNames: ['error', 'events', 'users', 'project', 'last seen'],
+      sort: ['-count', '-title'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name'],
+  },
+  {
+    name: t('Errors by URL'),
+    data: {
+      fields: ['url', 'count()', 'count_unique(title)'],
+      columnNames: ['URL', 'events', 'unique errors'],
+      sort: ['-count'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name', 'url'],
+  },
+  {
     name: t('CSP'),
     data: {
-      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
       columnNames: ['csp', 'events', 'users', 'project', 'last seen'],
-      sort: ['-last_seen', '-title'],
+      sort: ['-count', '-title'],
       query: 'event.type:csp',
     },
     tags: [
@@ -62,22 +79,54 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     ],
   },
   {
-    id: 'transactions',
+    name: t('CSP Report by Directive'),
+    data: {
+      fields: ['effective-directive', 'count()', 'count_unique(title)'],
+      columnNames: ['directive', 'events', 'reports'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+  },
+  {
+    name: t('CSP Report by Blocked URI'),
+    data: {
+      fields: ['blocked-uri', 'count()'],
+      columnNames: ['URI', 'events'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+  },
+  {
+    name: t('CSP Report by User'),
+    data: {
+      fields: ['user', 'count()', 'count_unique(title)'],
+      columnNames: ['User', 'events', 'reports'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+  },
+  {
     name: t('Transactions'),
     data: {
-      fields: ['transaction', 'project', 'count(id)'],
+      fields: ['transaction', 'project', 'count()'],
       columnNames: ['transaction', 'project', 'volume'],
-      sort: ['-transaction'],
+      sort: ['-count'],
       query: 'event.type:transaction',
     },
-    tags: [
-      'event.type',
-      'release',
-      'project.name',
-      'user.email',
-      'user.ip',
-      'environment',
-    ],
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  },
+  {
+    name: t('Transactions by User'),
+    data: {
+      fields: ['user', 'count()', 'count_unique(transaction)'],
+      columnNames: ['user', 'events', 'unique transactions'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
   },
 ];
 
@@ -166,7 +215,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   string: {
-    sortField: false,
+    sortField: true,
     renderFunc: (field, data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,

@@ -211,6 +211,8 @@ class Table extends React.Component<TableProps> {
 
     const lastRowIndex = dataPayload.data.length - 1;
 
+    // TODO add links to the first column even if it isn't one of our
+    // preferred link columns (title, transaction, latest_event)
     const firstCellIndex = 0;
     const lastCellIndex = fields.length - 1;
 
