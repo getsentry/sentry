@@ -535,7 +535,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           left: toPercent(dividerPosition),
           display: 'none',
         }}
-        hovering={true}
         onClick={event => {
           // the ghost divider line should not be interactive.
           // we prevent the propagation of the clicks from this component to prevent
@@ -553,7 +552,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           style={{
             left: toPercent(dividerPosition),
           }}
-          hovering={false}
           onMouseEnter={() => {
             dividerHandlerChildrenProps.setHover(true);
           }}
@@ -739,7 +737,7 @@ const CursorGuide = styled('div')`
 export const DividerLine = styled('div')`
   position: absolute;
   height: 100%;
-
+  width: 1px;
   transform: translateX(-50%);
 
   /* increase hit target */
@@ -756,17 +754,6 @@ export const DividerLine = styled('div')`
     width: 3px;
     cursor: col-resize;
   }
-
-  ${({hovering}: {hovering: boolean}) => {
-    if (!hovering) {
-      return 'width: 1px;';
-    }
-
-    return `
-      width: 3px;
-      cursor: col-resize;
-      `;
-  }};
 `;
 
 const SpanBarTitleContainer = styled('div')`

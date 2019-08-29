@@ -9,7 +9,7 @@ import {
 } from './utils';
 
 // divider handle is positioned at 50% width from the left-hand side
-const DEFAULT_DIVIDER_POSITION = 0.5;
+const DEFAULT_DIVIDER_POSITION = 0.4;
 
 const selectRefs = (
   refs: Array<React.RefObject<HTMLDivElement>>,
