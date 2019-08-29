@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import {omit} from 'lodash';
 import {Location} from 'history';
 
-import {Organization, EventView, Event, Project} from 'app/types';
+import {Organization, EventViewv1, Event, Project} from 'app/types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -23,7 +23,7 @@ import {EventQuery} from './utils';
 type Props = {
   location: Location;
   organization: Organization;
-  view: EventView;
+  view: EventViewv1;
   event: Event;
   projects: Array<Project>;
 };

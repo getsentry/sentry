@@ -21,7 +21,9 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import {getCurrentView, getFirstQueryString} from './utils';
+import {getFirstQueryString} from './utils';
+import {ALL_VIEWS} from './data';
+import EventView from './eventView';
 
 type Props = {
   organization: Organization;
@@ -39,86 +41,77 @@ class OrganizationEventsV2 extends React.Component<Props> {
 
   renderQueryList() {
     const {location} = this.props;
-    const allEvents = {
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        view: 'all',
-      },
-    };
-    const errors = {
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        view: 'errors',
-        cursor: undefined,
-        sort: undefined,
-      },
-    };
-    const csp = {
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        view: 'csp',
-        cursor: undefined,
-        sort: undefined,
-      },
-    };
-    const transactions = {
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        view: 'transactions',
-        cursor: undefined,
-        sort: undefined,
-      },
-    };
-    return (
-      <LinkList>
-        <LinkContainer>
-          <Link to={allEvents}>All Events</Link>
+
+    const list = ALL_VIEWS.map((eventViewv1, index) => {
+      const eventView = EventView.fromEventViewv1(eventViewv1);
+
+      const name = eventViewv1.name;
+
+      const to = {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          name,
+          ...eventView.generateQueryStringObject(),
+        },
+      };
+
+      return (
+        <LinkContainer key={index}>
+          <Link to={to}>{name}</Link>
         </LinkContainer>
-        <LinkContainer>
-          <Link to={errors}>Errors</Link>
-        </LinkContainer>
-        <LinkContainer>
-          <Link to={csp}>CSP</Link>
-        </LinkContainer>
-        <LinkContainer>
-          <Link to={transactions}>Transactions</Link>
-        </LinkContainer>
-      </LinkList>
-    );
+      );
+    });
+
+    return <LinkList>{list}</LinkList>;
   }
+
+  getEventViewName = (): Array<string> => {
+    const {location} = this.props;
+
+    const name = getFirstQueryString(location.query, 'name');
+
+    if (typeof name === 'string' && String(name).trim().length > 0) {
+      return [t('Events'), String(name).trim()];
+      // return `${} \u2014 ${}`;
+    }
+
+    return [t('Events')];
+  };
 
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
-    const view = getFirstQueryString(location.query, 'view');
 
-    const currentView = getCurrentView(view);
+    const eventView = EventView.fromLocation(location);
+
     const hasQuery =
       location.query.field || location.query.eventSlug || location.query.view;
 
+    const documentTitle = this.getEventViewName()
+      .reverse()
+      .join(' - ');
+    const pageTitle = this.getEventViewName().join(' \u2014 ');
+
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
-        <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
+        <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
               <NoProjectMessage organization={organization}>
                 <PageHeader>
                   <PageHeading>
-                    {t('Events')} <BetaTag />
+                    {pageTitle} <BetaTag />
                   </PageHeading>
                 </PageHeader>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (
                   <Events
                     organization={organization}
-                    view={currentView}
                     location={location}
                     router={router}
+                    eventView={eventView}
                   />
                 )}
                 {hasQuery && eventSlug && (
@@ -126,7 +119,7 @@ class OrganizationEventsV2 extends React.Component<Props> {
                     organization={organization}
                     params={this.props.params}
                     eventSlug={eventSlug}
-                    view={currentView}
+                    eventView={eventView}
                     location={location}
                   />
                 )}
