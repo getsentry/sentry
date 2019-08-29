@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import {get} from 'lodash';
+import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
@@ -691,11 +692,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 }
 
-const SpanRowCellContainer = styled('div')`
-  position: relative;
-  height: ${SPAN_ROW_HEIGHT}px;
-`;
-
 const getBackgroundColor = ({
   showStriping,
   showDetail,
@@ -715,6 +711,18 @@ const SpanRowCell = styled('div')`
   height: 100%;
   overflow: hidden;
   background-color: ${getBackgroundColor};
+`;
+
+const SpanRowCellContainer = styled('div')`
+  position: relative;
+  height: ${SPAN_ROW_HEIGHT}px;
+
+  &:hover ${SpanRowCell} {
+    background-color: ${p =>
+      color(p.theme.offWhite2)
+        .alpha(0.4)
+        .string()};
+  }
 `;
 
 const CursorGuide = styled('div')`
