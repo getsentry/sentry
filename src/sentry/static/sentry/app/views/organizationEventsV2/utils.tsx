@@ -167,6 +167,7 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
+    .replace('.', '_')
     .replace(/_+$/, '')
     .toLowerCase();
 }
