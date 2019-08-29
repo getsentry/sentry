@@ -195,6 +195,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 project={project}
+                location={location}
                 showExampleCommit={this.showExampleCommit}
               />
             )}

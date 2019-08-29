@@ -246,33 +246,41 @@ type EventOrGroupType = [
 // TODO(ts): incomplete
 export type Group = {
   id: string;
+  activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
   count: string;
   culprit: string;
+  currentRelease: any; // TODO(ts)
+  firstRelease: any; // TODO(ts)
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
+  lastRelease: any; // TODO(ts)
   lastSeen: string;
   level: string;
   logger: string;
   metadata: Metadata;
   numComments: number;
+  participants: any[]; // TODO(ts)
   permalink: string;
-  project: {
-    name: string;
-    slug: string;
-  };
+  platform: string;
+  pluginActions: any[]; // TODO(ts)
+  pluginContexts: any[]; // TODO(ts)
+  pluginIssues: any[]; // TODO(ts)
+  project: Project;
+  seenBy: User[];
   shareId: string;
   shortId: string;
+  stats: any; // TODO(ts)
   status: string;
   statusDetails: {};
   title: string;
   type: EventOrGroupType;
   userCount: number;
-  seenBy: User[];
+  userReportCount: number;
 };
 
 export type EventViewv1 = {
