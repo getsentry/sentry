@@ -1,23 +1,14 @@
 from __future__ import absolute_import
 
 import responses
-import six
 import sentry
 
 from mock import MagicMock
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from six.moves.urllib.parse import urlencode, urlparse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-    Repository,
-    Project,
-)
+from sentry.models import Integration, OrganizationIntegration, Repository, Project
 from sentry.plugins import plugins
 from sentry.testutils import IntegrationTestCase
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
@@ -51,17 +42,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            "https://github.com/login/oauth/access_token",
-            json={"access_token": self.access_token},
-        )
-
-        responses.add(
-            responses.POST,
             self.base_url + "/installations/{}/access_tokens".format(self.installation_id),
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
-
-        responses.add(responses.GET, self.base_url + "/user", json={"id": self.user_id})
 
         responses.add(
             responses.GET,
@@ -89,12 +72,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         )
 
-        responses.add(
-            responses.GET,
-            self.base_url + "/user/installations",
-            json={"installations": [{"id": self.installation_id}]},
-        )
-
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
 
     def assert_setup_flow(self):
@@ -110,42 +87,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
-        redirect = urlparse(resp["Location"])
-
-        assert resp.status_code == 302
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "github.com"
-        assert redirect.path == "/login/oauth/authorize"
-
-        params = parse_qs(redirect.query)
-
-        assert params["state"]
-        assert params["redirect_uri"] == ["http://testserver/extensions/github/setup/"]
-        assert params["response_type"] == ["code"]
-        assert params["client_id"] == ["github-client-id"]
-
-        # Compact list values into singular values, since there's only ever one.
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
-
-        resp = self.client.get(
-            u"{}?{}".format(
-                self.setup_path,
-                urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
-            )
-        )
-
-        oauth_exchange = responses.calls[0]
-        req_params = parse_qs(oauth_exchange.request.body)
-
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == ["http://testserver/extensions/github/setup/"]
-        assert req_params["client_id"] == ["github-client-id"]
-        assert req_params["client_secret"] == ["github-client-secret"]
-
-        assert oauth_exchange.response.status_code == 200
-
-        auth_header = responses.calls[2].request.headers["Authorization"]
+        auth_header = responses.calls[0].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
@@ -182,30 +124,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
-    def test_disables_plugin_when_fully_migrated(self):
-        project = Project.objects.create(organization_id=self.organization.id)
-
-        plugin = plugins.get("github")
-        plugin.enable(project)
-
-        # Accessible to new Integration
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="github",
-            external_id=123,
-            config={"name": "Test-Organization/foo"},
-        )
-
-        assert "github" in [p.slug for p in plugins.for_project(project)]
-
-        with self.tasks():
-            self.assert_setup_flow()
-
-        assert "github" not in [p.slug for p in plugins.for_project(project)]
-
-    @responses.activate
     def test_basic_flow(self):
         with self.tasks():
             self.assert_setup_flow()
@@ -227,32 +145,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             integration=integration, organization=self.organization
         )
         assert oi.config == {}
-
-        idp = IdentityProvider.objects.get(type="github")
-        identity = Identity.objects.get(idp=idp, user=self.user, external_id=self.user_id)
-        assert identity.status == IdentityStatus.VALID
-        assert identity.data == {"access_token": self.access_token}
-
-    @responses.activate
-    def test_reassign_user(self):
-        self.assert_setup_flow()
-
-        # Associate the identity with a user that has a password.
-        # Identity should be relinked.
-        user2 = self.create_user()
-        Identity.objects.get().update(user=user2)
-        self.assert_setup_flow()
-        identity = Identity.objects.get()
-        assert identity.user == self.user
-
-        # Associate the identity with a user without a password.
-        # Identity should not be relinked.
-        user2.set_unusable_password()
-        user2.save()
-        Identity.objects.get().update(user=user2)
-        resp = self.assert_setup_flow()
-        assert '"success":false' in resp.content
-        assert "The provided GitHub account is linked to a different Sentry user" in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
@@ -277,47 +169,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # New Installation
         self.installation_id = "install_2"
 
+        self._stub_github()
+
         resp = self.client.get(
             u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
-        redirect = urlparse(resp["Location"])
-
-        assert resp.status_code == 302
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "github.com"
-        assert redirect.path == "/login/oauth/authorize"
-
-        params = parse_qs(redirect.query)
-
-        assert params["state"]
-        assert params["redirect_uri"] == ["http://testserver/extensions/github/setup/"]
-        assert params["response_type"] == ["code"]
-        assert params["client_id"] == ["github-client-id"]
-
-        # Compact list values to make the rest of this easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
-
-        self._stub_github()
-
-        resp = self.client.get(
-            u"{}?{}".format(
-                self.setup_path,
-                urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
-            )
-        )
-
-        mock_access_token_request = responses.calls[0].request
-        req_params = parse_qs(mock_access_token_request.body)
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == ["http://testserver/extensions/github/setup/"]
-        assert req_params["client_id"] == ["github-client-id"]
-        assert req_params["client_secret"] == ["github-client-secret"]
-
         assert resp.status_code == 200
 
-        auth_header = responses.calls[2].request.headers["Authorization"]
+        auth_header = responses.calls[0].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
