@@ -765,30 +765,27 @@ const SpanBarTitleContainer = styled('div')`
   left: 0;
   top: 0;
   width: 100%;
+  user-select: none;
 `;
 
 const SpanBarTitle = styled('div')`
   position: relative;
-  top: 0;
   height: 100%;
-  color: #4a3e56;
-  font-size: 12px;
-  user-select: none;
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   display: flex;
+  flex: 1;
   align-items: center;
 `;
 
 const SpanTreeTogglerContainer = styled('div')`
   position: relative;
-  top: 0;
   height: 15px;
-  max-width: 40px;
   width: 40px;
-  min-width: 40px;
-  margin-right: 8px;
+  min-width: 40px; /* annoying flex thing */
+  margin-right: ${space(1)};
   z-index: ${zIndex.spanTreeToggler};
-  user-select: none;
   display: flex;
   justify-content: flex-end;
 `;
