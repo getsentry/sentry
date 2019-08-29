@@ -61,12 +61,10 @@ class GenericSummary extends React.Component {
 export class OsSummary extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
-    contextKey: PropTypes.string,
   };
 
   render() {
     const data = this.props.data;
-    const contextKey = this.props.contextKey;
 
     if (objectIsEmpty(data) || !data.name) {
       return <NoSummary title={t('Unknown OS')} />;
@@ -100,9 +98,6 @@ export class OsSummary extends React.Component {
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
         {versionElement}
-        <p>
-          <small>{contextKey === 'client_os' ? 'Clientside' : 'Crashsite'}</small>
-        </p>
       </div>
     );
   }
@@ -272,7 +267,7 @@ class EventContextSummary extends React.Component {
       }
 
       contextCount += 1;
-      return <Component key={key} contextKey={key} data={data} {...props} />;
+      return <Component key={key} data={data} {...props} />;
     });
 
     // Bail out if all contexts are empty or only the user context is set
@@ -291,7 +286,7 @@ class EventContextSummary extends React.Component {
           return null;
         }
         contextCount += 1;
-        return <Component key={keys[0]} contextKey={keys[0]} data={{}} {...props} />;
+        return <Component key={keys[0]} data={{}} {...props} />;
       });
     }
 
