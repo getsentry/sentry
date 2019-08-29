@@ -9,6 +9,7 @@ from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
+from sentry.constants import SentryAppStatus
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(sentry_app, data=request.data, partial=True)
+        # isInternal is not field of our model but it is a field of the serializer
+        data = request.data.copy()
+        data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
+        serializer = SentryAppSerializer(sentry_app, data=data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data

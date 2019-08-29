@@ -43,14 +43,16 @@ class Creator(Mediator):
         )
 
     def _create_service_hooks(self):
-        service_hooks.Creator.run(
-            application=self.api_application,
-            actor=self.install,
-            projects=[],
-            organization=self.organization,
-            events=self.sentry_app.events,
-            url=self.sentry_app.webhook_url,
-        )
+        # only make the service hook if there is a webhook url
+        if self.sentry_app.webhook_url:
+            service_hooks.Creator.run(
+                application=self.api_application,
+                actor=self.install,
+                projects=[],
+                organization=self.organization,
+                events=self.sentry_app.events,
+                url=self.sentry_app.webhook_url,
+            )
 
     def _notify_service(self):
         if self.notify:
