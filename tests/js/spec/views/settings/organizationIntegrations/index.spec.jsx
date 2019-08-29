@@ -147,11 +147,11 @@ describe('OrganizationIntegrations', () => {
     it('places installed Integrations above uninstalled ones', () => {
       // Installed apps are shown at the top of the list
       const installed = wrapper.find('SentryAppInstallations').at(0);
-      expect(installed.find('Status').prop('enabled')).toBe(true);
+      expect(installed.find('Status').prop('status')).toBe('Installed');
 
       // Uninstalled are shown lower.
       const uninstalled = wrapper.find('SentryAppInstallations').at(1);
-      expect(uninstalled.find('Status').prop('enabled')).toBeFalsy();
+      expect(uninstalled.find('Status').prop('status')).toBe('Not Installed');
     });
 
     it('sorts Sentry App Integrations among Integrations, alphabetically', () => {
