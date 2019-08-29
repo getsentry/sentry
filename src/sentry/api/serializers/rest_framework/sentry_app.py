@@ -124,7 +124,7 @@ class SentryAppSerializer(Serializer):
         if not get_current_value("webhookUrl"):
             if get_current_value("isInternal"):
                 # for internal apps, make sure there aren't any events if webhookUrl is null
-                if get_current_value("events") and len(get_current_value("events")) > 0:
+                if get_current_value("events"):
                     raise ValidationError(
                         {"webhookUrl": "webhookUrl required if webhook events are enabled"}
                     )

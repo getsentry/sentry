@@ -93,7 +93,7 @@ class Updater(Mediator):
             else:
                 service_hooks.Destroyer.run(service_hook=hook)
         # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
-        if webhook_url and len(hooks) == 0 and self.sentry_app.is_internal:
+        if webhook_url and self.sentry_app.is_internal and not hooks:
             installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
             service_hooks.Creator.run(
                 application=self.sentry_app.application,
