@@ -276,7 +276,6 @@ export type Group = {
 };
 
 export type EventViewv1 = {
-  id: string;
   name: string;
   data: {
     fields: string[];

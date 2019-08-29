@@ -5,7 +5,7 @@ import {EventViewv1} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery} from './utils';
+import {MetaType, EventQuery, getAggregateAlias} from './utils';
 
 type Descending = {
   kind: 'desc';
@@ -181,8 +181,6 @@ const decodeQuery = (location: Location): string | undefined => {
   return isString(query) ? query.trim() : undefined;
 };
 
-const AGGREGATE_PATTERN = /^([a-z0-9_]+)\(([a-z\._]*)\)$/i;
-
 class EventView {
   fields: Field[];
   sorts: Sort[];
@@ -334,10 +332,7 @@ class EventView {
   };
 
   getSortKey = (fieldname: string, meta: MetaType): string | null => {
-    let column = fieldname;
-    if (fieldname.match(AGGREGATE_PATTERN)) {
-      column = fieldname.replace(AGGREGATE_PATTERN, '$1_$2').toLowerCase();
-    }
+    const column = getAggregateAlias(fieldname);
     if (SPECIAL_FIELDS.hasOwnProperty(column)) {
       return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
     }
