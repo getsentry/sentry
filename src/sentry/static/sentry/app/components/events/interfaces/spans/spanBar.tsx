@@ -793,66 +793,36 @@ const SpanTreeTogglerContainer = styled('div')`
   justify-content: flex-end;
 `;
 
-const SpanTreeToggler = styled('div')`
-  position: relative;
+const getTogglerTheme = ({isExpanded}) => {
+  return isExpanded ? theme.button.default : theme.button.primary;
+};
+
+const getTogglerHoverTheme = ({isExpanded}) => {
+  return getTogglerTheme({isExpanded: !isExpanded});
+};
+
+const SpanTreeToggler = styled.div<{isExpanded: boolean}>`
   white-space: nowrap;
   height: 15px;
   min-width: 25px;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding: 0 4px;
   display: flex;
-  flex-wrap: nowrap;
   align-items: center;
-  align-content: center;
   justify-content: center;
-
-  > span {
-    flex-grow: 999;
-  }
-
-  transition: all 0.15s ease-in-out;
-
   border-radius: 99px;
-
-  ${({isExpanded}: {isExpanded: boolean}) => {
-    if (!isExpanded) {
-      return `
-      background: #6e5f7d;
-      border: 1px solid #452650;
-      color: #ffffff;
-      & svg path {
-        stroke: #ffffff;
-      }
-
-      &:hover {
-        background: #fbfaf9;
-        border: 1px solid #6e5f7d;
-        color: #6e5f7d;
-        & svg path {
-          stroke: #452650;
-        }
-      }
-      `;
-    }
-
-    return `
-      background: #fbfaf9;
-      border: 1px solid #6e5f7d;
-      color: #6e5f7d;
-
-      &:hover {
-        background: #6e5f7d;
-        border: 1px solid #452650;
-        color: #ffffff;
-        & svg path {
-          stroke: #ffffff;
-        }
-      }
-    `;
-  }};
-
-  font-size: 9px;
+  transition: all 0.15s ease-in-out;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   line-height: 0;
+
+  background: ${p => getTogglerTheme(p).background};
+  border: 1px solid ${p => getTogglerTheme(p).border};
+  color: ${p => getTogglerTheme(p).color};
+
+  &:hover {
+    background: ${p => getTogglerHoverTheme(p).background};
+    border: 1px solid ${p => getTogglerHoverTheme(p).border};
+    color: ${p => getTogglerHoverTheme(p).color};
+  }
 `;
 
 const getAlignment = ({durationDisplay}) => {
