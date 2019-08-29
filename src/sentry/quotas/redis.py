@@ -7,9 +7,18 @@ from time import time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
-from sentry.utils.redis import get_cluster_from_options, load_script
+from sentry.utils.redis import get_cluster_from_options, load_script, redis_clusters
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
+
+
+def get_dynamic_cluster_from_options(setting, options):
+    cluster_name = options.get("cluster", "default")
+    cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
+    if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
+        return True, redis_clusters.get(cluster_name), options
+
+    return (False,) + get_cluster_from_options(setting, options)
 
 
 class BasicRedisQuota(object):
@@ -34,19 +43,30 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options("SENTRY_QUOTA_OPTIONS", options)
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_QUOTA_OPTIONS", options
+        )
+
+        # NB: RedisCluster is a client, whereas RB needs to resolve one
+
         super(RedisQuota, self).__init__(**options)
         self.namespace = "quota"
 
     def validate(self):
         try:
-            with self.cluster.all() as client:
-                client.ping()
+            if self.is_redis_cluster:
+                self.cluster.ping()
+            else:
+                with self.cluster.all() as client:
+                    client.ping()
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
-    def __get_redis_key(self, key, timestamp, interval, shift):
-        return u"{}:{}:{}".format(self.namespace, key, int((timestamp - shift) // interval))
+    def __get_redis_key(self, key, timestamp, interval, shift, organization_id):
+        redis_key = u"{}:{}:{}".format(self.namespace, key, int((timestamp - shift) // interval))
+        if self.is_redis_cluster:
+            redis_key = "{{{}}}:{}".format(organization_id, redis_key)
+        return redis_key
 
     def get_quotas_with_limits(self, project, key=None):
         return [
@@ -96,7 +116,7 @@ class RedisQuota(Quota):
                 return (None, None)
 
             key = self.__get_redis_key(
-                quota.key, timestamp, quota.window, organization_id % quota.window
+                quota.key, timestamp, quota.window, organization_id % quota.window, organization_id
             )
             refund_key = self.get_refunded_quota_key(key)
 
@@ -108,13 +128,16 @@ class RedisQuota(Quota):
 
             return int(result.value or 0) - int(refund_result.value or 0)
 
-        with self.cluster.fanout() as client:
-            results = map(
-                functools.partial(
-                    get_usage_for_quota, client.target_key(six.text_type(organization_id))
-                ),
-                quotas,
-            )
+        if self.is_redis_cluster:
+            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+        else:
+            with self.cluster.fanout() as client:
+                results = map(
+                    functools.partial(
+                        get_usage_for_quota, client.target_key(six.text_type(organization_id))
+                    ),
+                    quotas,
+                )
 
         return [get_value_for_result(*r) for r in results]
 
@@ -139,7 +162,9 @@ class RedisQuota(Quota):
             # sure the window is over?
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
-                self.__get_redis_key(quota.key, timestamp, quota.window, shift)
+                self.__get_redis_key(
+                    quota.key, timestamp, quota.window, shift, project.organization_id
+                )
             )
             pipe.incr(return_key, 1)
             pipe.expireat(return_key, int(expiry))
@@ -164,14 +189,20 @@ class RedisQuota(Quota):
         args = []
         for quota in quotas:
             shift = project.organization_id % quota.window
-            key = self.__get_redis_key(quota.key, timestamp, quota.window, shift)
+            key = self.__get_redis_key(
+                quota.key, timestamp, quota.window, shift, project.organization_id
+            )
             return_key = self.get_refunded_quota_key(key)
             keys.extend((key, return_key))
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             args.extend((quota.limit, int(expiry)))
 
-        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
-        rejections = is_rate_limited(client, keys, args)
+        if self.is_redis_cluster:
+            rejections = is_rate_limited(self.cluster, keys, args)
+        else:
+            client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
+            rejections = is_rate_limited(client, keys, args)
+
         if any(rejections):
             enforce = False
             worst_case = (0, None)
