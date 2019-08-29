@@ -5,7 +5,6 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-import SettingsBackButton from './settingsBackButton';
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
@@ -42,10 +41,7 @@ class SettingsLayout extends React.Component {
 
           <MaxWidthContainer>
             {typeof renderNavigation === 'function' && (
-              <SidebarWrapper>
-                <SettingsBackButton />
-                <SidebarWrapperContent>{renderNavigation()}</SidebarWrapperContent>
-              </SidebarWrapper>
+              <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
             )}
             <Content>{children}</Content>
           </MaxWidthContainer>
@@ -66,9 +62,6 @@ const SidebarWrapper = styled('div')`
   width: ${p => p.theme.settings.sidebarWidth};
   background: #fff;
   border-right: 1px solid ${p => p.theme.borderLight};
-`;
-
-const SidebarWrapperContent = styled('div')`
   padding: ${space(4)};
 `;
 
