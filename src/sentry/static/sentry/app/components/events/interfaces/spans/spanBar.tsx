@@ -668,12 +668,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <SpanRow
         innerRef={this.spanRowDOMRef}
-        style={{
-          display: isSpanVisibleInView ? 'block' : 'none',
-
-          // TODO: this is a border-top; this needs polishing from a real CSS ninja
-          boxShadow: this.state.showDetail ? '0 -1px 0 #d1cad8' : void 0,
-        }}
+        visible={isSpanVisibleInView}
+        showBorder={this.state.showDetail}
         onClick={() => {
           this.toggleDisplayDetail();
         }}

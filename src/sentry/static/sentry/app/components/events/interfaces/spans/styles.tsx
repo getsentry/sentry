@@ -10,7 +10,9 @@ export const zIndex = {
 
 export const SPAN_ROW_HEIGHT = 25;
 
-export const SpanRow = styled('div')`
+export const SpanRow = styled.div<{visible?: boolean; showBorder?: boolean}>`
+  display: ${p => (p.visible ? 'block' : 'none')};
+  border-top: ${p => (p.showBorder ? `1px solid  ${p.theme.gray1}` : null)};
   position: relative;
   overflow: hidden;
 
