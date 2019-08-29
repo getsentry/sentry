@@ -23,10 +23,11 @@ def get_dynamic_cluster_from_options(setting, config):
 
 
 class BasicRedisQuota(object):
-    __slots__ = ["key", "limit", "window", "reason_code", "enforce"]
+    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code", "enforce"]
 
-    def __init__(self, key, limit=0, window=60, reason_code=None, enforce=True):
-        self.key = key
+    def __init__(self, prefix, subscope=None, limit=0, window=60, reason_code=None, enforce=True):
+        self.prefix = prefix
+        self.subscope = subscope
         # maximum number of events in the given window, 0 indicates "no limit"
         self.limit = limit
         # time in seconds that this quota reflects
@@ -63,10 +64,19 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
-    def __get_redis_key(self, key, timestamp, interval, shift, organization_id):
-        redis_key = u"{}:{}:{}".format(self.namespace, key, int((timestamp - shift) // interval))
+    def __get_redis_key(self, quota, timestamp, shift, organization_id):
+        interval = quota.window
         if self.is_redis_cluster:
-            redis_key = "{{{}}}:{}".format(organization_id, redis_key)
+            # new style redis cluster format which always has the organization id in
+            local_key = '%s{%s}%s' % (
+                quota.prefix,
+                self.organization_id,
+                quota.subscope or '',
+            )
+        else:
+            # legacy key format
+            local_key = '%s:%s' % (quota.prefix, quota.subscope or self.organization_id)
+        redis_key = u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
         return redis_key
 
     def get_quotas_with_limits(self, project, key=None):
@@ -84,13 +94,14 @@ class RedisQuota(Quota):
         oquota = self.get_organization_quota(project.organization)
         results = [
             BasicRedisQuota(
-                key=u"p:{}".format(project.id),
+                prefix="p",
+                subscope=project.id,
                 limit=pquota[0],
                 window=pquota[1],
                 reason_code="project_quota",
             ),
             BasicRedisQuota(
-                key=u"o:{}".format(project.organization_id),
+                prefix="o",
                 limit=oquota[0],
                 window=oquota[1],
                 reason_code="org_quota",
@@ -100,7 +111,8 @@ class RedisQuota(Quota):
             kquota = self.get_key_quota(key)
             results.append(
                 BasicRedisQuota(
-                    key=u"k:{}".format(key.id),
+                    prefix="k",
+                    subscope=key.id,
                     limit=kquota[0],
                     window=kquota[1],
                     reason_code="key_quota",
@@ -117,7 +129,7 @@ class RedisQuota(Quota):
                 return (None, None)
 
             key = self.__get_redis_key(
-                quota.key, timestamp, quota.window, organization_id % quota.window, organization_id
+                quota, timestamp, organization_id % quota.window, organization_id
             )
             refund_key = self.get_refunded_quota_key(key)
 
@@ -164,7 +176,7 @@ class RedisQuota(Quota):
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
                 self.__get_redis_key(
-                    quota.key, timestamp, quota.window, shift, project.organization_id
+                    quota, timestamp, shift, project.organization_id
                 )
             )
             pipe.incr(return_key, 1)
@@ -191,7 +203,7 @@ class RedisQuota(Quota):
         for quota in quotas:
             shift = project.organization_id % quota.window
             key = self.__get_redis_key(
-                quota.key, timestamp, quota.window, shift, project.organization_id
+                quota, timestamp, shift, project.organization_id
             )
             return_key = self.get_refunded_quota_key(key)
             keys.extend((key, return_key))
