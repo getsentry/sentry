@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {Location} from 'history';
 
-import {deepFreeze} from 'app/utils';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
@@ -12,37 +12,28 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import space from 'app/styles/space';
-import {EventView} from 'app/types';
+import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
 
-// TODO(ts): add as const after babel upgrade
-export const MODAL_QUERY_KEYS = ['eventSlug'];
+export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-// TODO(ts): add as const after babel upgrade
-export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'];
+export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
 
-// TODO(ts): eventually defer to TS compile-time check to ensure this is readonly instead
-//       of deepfreezing it in runtime
-export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
-  {
-    id: 'all',
-    name: t('All Events'),
-    data: {
-      fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-      columnNames: ['title', 'type', 'project', 'user', 'time'],
-      sort: ['-timestamp'],
-    },
-    tags: [
-      'event.type',
-      'release',
-      'project.name',
-      'user.email',
-      'user.ip',
-      'environment',
-    ],
-    columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
+export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
+  id: 'all',
+  name: t('All Events'),
+  data: {
+    fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+    columnNames: ['title', 'type', 'project', 'user', 'time'],
+    sort: ['-timestamp'],
   },
+  tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
+};
+
+export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
+  DEFAULT_EVENT_VIEW_V1,
   {
     id: 'errors',
     name: t('Errors'),
@@ -92,14 +83,47 @@ export const ALL_VIEWS: Readonly<Array<EventView>> = deepFreeze([
     ],
     columnWidths: ['3fr', '1fr', '70px'],
   },
-]);
+];
+
+type EventData = {[key: string]: any};
+
+type RenderFunctionBaggage = {
+  organization: Organization;
+  location: Location;
+};
+
+type FieldFormatterRenderFunction = (
+  field: string,
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+export type FieldFormatterRenderFunctionPartial = (
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type FieldFormatter = {
+  sortField: boolean;
+  renderFunc: FieldFormatterRenderFunction;
+};
+
+type FieldFormatters = {
+  boolean: FieldFormatter;
+  integer: FieldFormatter;
+  number: FieldFormatter;
+  date: FieldFormatter;
+  string: FieldFormatter;
+};
+
+export type FieldTypes = keyof FieldFormatters;
 
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-export const FIELD_FORMATTERS = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     sortField: true,
     renderFunc: (field, data, {organization, location}) => {
@@ -160,12 +184,31 @@ export const FIELD_FORMATTERS = {
   },
 };
 
+type SpecialFieldRenderFunc = (
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type SpecialField = {
+  sortField: string | null;
+  renderFunc: SpecialFieldRenderFunc;
+};
+
+type SpecialFields = {
+  transaction: SpecialField;
+  title: SpecialField;
+  'event.type': SpecialField;
+  project: SpecialField;
+  user: SpecialField;
+  last_seen: SpecialField;
+};
+
 /**
  * "Special fields" do not map 1:1 to an single column in the event database,
  * they are a UI concept that combines the results of multiple fields and
  * displays with a custom render function.
  */
-export const SPECIAL_FIELDS = {
+export const SPECIAL_FIELDS: SpecialFields = {
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {
@@ -203,7 +246,7 @@ export const SPECIAL_FIELDS = {
       );
     },
   },
-  type: {
+  'event.type': {
     sortField: 'event.type',
     renderFunc: (data, {location}) => {
       const target = {
@@ -218,7 +261,7 @@ export const SPECIAL_FIELDS = {
     },
   },
   project: {
-    sortField: false,
+    sortField: null,
     renderFunc: (data, {organization}) => {
       const project = organization.projects.find(p => p.slug === data['project.name']);
       return (

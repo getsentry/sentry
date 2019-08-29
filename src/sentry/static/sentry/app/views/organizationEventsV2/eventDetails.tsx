@@ -13,10 +13,11 @@ import NotFound from 'app/components/errors/notFound';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
-import {Organization, EventView, Event} from 'app/types';
+import {Organization, Event} from 'app/types';
 
 import EventModalContent from './eventModalContent';
-import {EventQuery, getQuery} from './utils';
+import {EventQuery} from './utils';
+import EventView from './eventView';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -49,8 +50,8 @@ type Props = {
   organization: Organization;
   location: Location;
   eventSlug: string;
-  view: EventView;
   params: Params;
+  eventView: EventView;
 };
 
 type State = {
@@ -62,12 +63,11 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
     location: PropTypes.object.isRequired,
-    view: PropTypes.object.isRequired,
   };
 
   getEndpoints(): Array<[string, string, {query: EventQuery}]> {
-    const {organization, eventSlug, view, location} = this.props;
-    const query = getQuery(view, location);
+    const {organization, eventSlug, eventView, location} = this.props;
+    const query = eventView.getEventsAPIPayload(location);
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
@@ -91,7 +91,7 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
   }
 
   renderBody() {
-    const {organization, view, location} = this.props;
+    const {organization, eventView, location} = this.props;
     const {event} = this.state;
 
     return (
@@ -100,7 +100,7 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
           event={event}
           projectId={this.projectId}
           organization={organization}
-          view={view}
+          eventView={eventView}
           location={location}
         />
       </ModalDialog>

@@ -275,7 +275,7 @@ export type Group = {
   seenBy: User[];
 };
 
-export type EventView = {
+export type EventViewv1 = {
   id: string;
   name: string;
   data: {
@@ -283,10 +283,6 @@ export type EventView = {
     columnNames: string[];
     sort: string[];
     query?: string;
-
-    // TODO: removed as of https://github.com/getsentry/sentry/pull/14321
-    // groupby: string[];
-    // orderby: string[];
   };
   tags: string[];
   columnWidths: string[];

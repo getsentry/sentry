@@ -10,22 +10,22 @@ import SentryTypes from 'app/sentryTypes';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
-import {Organization, EventView} from 'app/types';
+import {Organization} from 'app/types';
 
 import {
   fetchTagDistribution,
   fetchTotalCount,
   getEventTagSearchUrl,
-  getQuery,
   Tag,
   TagTopValue,
 } from './utils';
 import {MODAL_QUERY_KEYS} from './data';
+import EventView from './eventView';
 
 type Props = {
   api: Client;
   organization: Organization;
-  view: EventView;
+  eventView: EventView;
   location: Location;
 };
 
@@ -38,8 +38,8 @@ class Tags extends React.Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
-    view: SentryTypes.EventView.isRequired,
     location: PropTypes.object.isRequired,
+    eventView: PropTypes.object.isRequired,
   };
 
   state: State = {
@@ -58,23 +58,23 @@ class Tags extends React.Component<Props, State> {
       omit(this.props.location.query, MODAL_QUERY_KEYS)
     );
 
-    if (this.props.view.id !== prevProps.view.id || locationHasChanged) {
+    if (locationHasChanged) {
       this.fetchData();
     }
   }
 
   fetchData = async () => {
-    const {api, organization, view, location} = this.props;
+    const {api, organization, eventView, location} = this.props;
 
     this.setState({tags: {}, totalValues: null});
 
-    view.tags.forEach(async tag => {
+    eventView.tags.forEach(async tag => {
       try {
         const val = await fetchTagDistribution(
           api,
           organization.slug,
           tag,
-          getQuery(view, location)
+          eventView.getEventsAPIPayload(location)
         );
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));
@@ -87,7 +87,7 @@ class Tags extends React.Component<Props, State> {
       const totalValues = await fetchTotalCount(
         api,
         organization.slug,
-        getQuery(view, location)
+        eventView.getEventsAPIPayload(location)
       );
       this.setState({totalValues});
     } catch (err) {
@@ -123,7 +123,7 @@ class Tags extends React.Component<Props, State> {
   }
 
   render() {
-    return <div>{this.props.view.tags.map(tag => this.renderTag(tag))}</div>;
+    return <div>{this.props.eventView.tags.map(tag => this.renderTag(tag))}</div>;
   }
 }
 

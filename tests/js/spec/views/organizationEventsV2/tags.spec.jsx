@@ -3,6 +3,7 @@ import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import {Tags} from 'app/views/organizationEventsV2/tags';
+import EventView from 'app/views/organizationEventsV2/eventView';
 
 describe('Tags', function() {
   const org = TestStubs.Organization();
@@ -58,17 +59,17 @@ describe('Tags', function() {
 
   it('renders', async function() {
     const api = new Client();
-    const view = {
-      id: 'test',
-      name: 'Test',
-      data: {
-        query: 'event.type:csp',
-      },
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
       tags: ['release', 'environment'],
-    };
+      query: 'event.type:csp',
+    });
+
     const wrapper = mount(
       <Tags
-        view={view}
+        eventView={view}
         api={api}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}

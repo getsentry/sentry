@@ -10,7 +10,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Event, Organization, EventView} from 'app/types';
+import {Event, Organization} from 'app/types';
 import {Location} from 'history';
 
 import EventInterfaces from './eventInterfaces';
@@ -20,13 +20,14 @@ import ModalLineGraph from './modalLineGraph';
 import RelatedEvents from './relatedEvents';
 import TagsTable from './tagsTable';
 import {hasAggregateField} from './utils';
+import EventView from './eventView';
 
 type EventModalContentProps = {
   event: Event;
   projectId: string;
   organization: Organization;
   location: Location;
-  view: EventView;
+  eventView: EventView;
 };
 
 /**
@@ -34,10 +35,10 @@ type EventModalContentProps = {
  * Controlled by the EventDetails View.
  */
 const EventModalContent = (props: EventModalContentProps) => {
-  const {event, projectId, organization, location, view} = props;
+  const {event, projectId, organization, location, eventView} = props;
 
   // Having an aggregate field means we want to show pagination/graphs
-  const isGroupedView = hasAggregateField(view);
+  const isGroupedView = hasAggregateField(eventView);
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
     event.eventID
   }/json/`;
@@ -54,7 +55,7 @@ const EventModalContent = (props: EventModalContentProps) => {
                 organization={organization}
                 currentEvent={event}
                 location={location}
-                view={view}
+                eventView={eventView}
               />
             ),
             fixed: 'events chart',
@@ -82,7 +83,6 @@ EventModalContent.propTypes = {
   event: SentryTypes.Event.isRequired,
   projectId: PropTypes.string.isRequired,
   organization: SentryTypes.Organization.isRequired,
-  view: PropTypes.object.isRequired,
   location: PropTypes.object.isRequired,
 };
 

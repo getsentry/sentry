@@ -9,7 +9,7 @@ import Link from 'app/components/links/link';
 type Props = {
   title: string;
   sortKey: string;
-  defaultSort: string | null;
+  defaultSort: string;
   location: Location;
 };
 
@@ -21,9 +21,9 @@ class SortLink extends React.Component<Props> {
     location: PropTypes.object.isRequired,
   };
 
-  getCurrentSort() {
+  getCurrentSort(): string {
     const {defaultSort, location} = this.props;
-    return location.query.sort ? location.query.sort : defaultSort;
+    return typeof location.query.sort === 'string' ? location.query.sort : defaultSort;
   }
 
   getSort() {
