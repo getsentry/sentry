@@ -1,5 +1,7 @@
+import {isNil} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
@@ -168,16 +170,22 @@ class Thread extends React.Component {
       exception,
       stacktrace,
     } = this.props;
+
+    const renderPills = !isNil(data.id) || !!data.name;
+
     return (
       <div className="thread">
-        <Pills>
-          <Pill name="id" value={data.id} />
-          <Pill name="name" value={data.name} />
-          <Pill name="was active" value={data.current} />
-          <Pill name="crashed" className={data.crashed ? 'false' : 'true'}>
-            {data.crashed ? 'yes' : 'no'}
-          </Pill>
-        </Pills>
+        {renderPills && (
+          <Pills>
+            <Pill name="id" value={data.id} />
+            <Pill name="name" value={data.name} />
+            <Pill name="was active" value={data.current} />
+            <Pill name="crashed" className={data.crashed ? 'false' : 'true'}>
+              {data.crashed ? 'yes' : 'no'}
+            </Pill>
+          </Pills>
+        )}
+
         {this.hasMissingStacktrace() ? (
           this.renderMissingStacktrace()
         ) : (
@@ -258,6 +266,8 @@ class ThreadsInterface extends React.Component {
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
 
+    const threads = this.props.data.values || [];
+
     const threadSelector = (
       <div className="pull-left btn-group">
         <DropdownLink
@@ -266,7 +276,7 @@ class ThreadsInterface extends React.Component {
           className="btn btn-default btn-sm"
           title={getThreadTitle(activeThread, this.props.event, true)}
         >
-          {this.props.data.values.map((thread, idx) => {
+          {threads.map((thread, idx) => {
             return (
               <MenuItem key={idx} noAnchor={true}>
                 <a onClick={this.onSelectNewThread.bind(this, thread)}>
@@ -279,23 +289,28 @@ class ThreadsInterface extends React.Component {
       </div>
     );
 
-    const title = (
-      <CrashHeader
-        title={null}
-        beforeTitle={threadSelector}
-        platform={evt.platform}
-        thread={activeThread}
-        stacktrace={stacktrace}
-        exception={exception}
-        hideGuide={hideGuide}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        stackType={stackType}
-        onChange={newState => {
-          this.setState(newState);
-        }}
-      />
-    );
+    const titleProps = {
+      platform: evt.platform,
+      stacktrace,
+      stackView,
+      newestFirst,
+      hideGuide,
+      stackType,
+      onChange: newState => this.setState(newState),
+    };
+
+    const title =
+      threads.length > 1 ? (
+        <CrashHeader
+          title={null}
+          beforeTitle={threadSelector}
+          thread={activeThread}
+          exception={exception}
+          {...titleProps}
+        />
+      ) : (
+        <CrashHeader title={t('Stacktrace')} {...titleProps} />
+      );
 
     return (
       <EventDataSection
