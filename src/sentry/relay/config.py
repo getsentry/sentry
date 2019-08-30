@@ -108,7 +108,8 @@ def get_project_config(project_id, full_config=True, for_store=False):
     for flt in get_all_filters():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        filter_settings[filter_id] = settings
+        if settings.get("is_enabled"):
+            filter_settings[filter_id] = settings
 
     invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
     if invalid_releases:
