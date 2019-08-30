@@ -24,7 +24,7 @@ class SentryAppPublishRequestTest(APITestCase):
         response = self.client.post(self.url, format="json")
         assert response.status_code == 201
         send_mail.assert_called_with(
-            "Sentry App Publication Request",
+            "Sentry Integration Publication Request from my-org",
             "User boop@example.com of organization my-org wants to publish testin",
             "root@localhost",
             ["partners@sentry.io"],
