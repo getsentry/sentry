@@ -12878,10 +12878,10 @@ send@0.16.2:
     range-parser "~1.2.0"
     statuses "~1.4.0"
 
-sentry-dreamy-components@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-2.0.0.tgz#674679f0e2dcf594abc3f5888f46911907a86a08"
-  integrity sha512-tndDgfnkMoGyaWnabrAi+PQnFatddMYruhoS0HYGbqJOrFd0qG4FAGnUfojmQooYVh63a7aifxLn+MfF9r6RqA==
+sentry-dreamy-components@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-2.0.1.tgz#f4d24113a5a75cc45b2b7c7a624f2b70291be027"
+  integrity sha512-/xAOY62uFxnkX33AOiKsHFSc6u3s7L913g04IV2bWhcUdsjWwW1fIvoNc33gXWYZgrMc3B9o4aBamUo7Nkledw==
 
 serialize-javascript@^1.4.0:
   version "1.5.0"
