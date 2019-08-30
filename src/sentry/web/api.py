@@ -256,17 +256,19 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
     config = project_config.config
-    scrub_ip_address = config.get("scrub_ip_addresses")
+    datascrubbing_settings = config.get("datascrubbingSettings") or {}
 
-    scrub_data = config.get("scrub_data")
+    scrub_ip_address = datascrubbing_settings.get("scrubIpAddresses")
+
+    scrub_data = datascrubbing_settings.get("scrubData")
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
-        sensitive_fields = config.get("sensitive_fields")
+        sensitive_fields = datascrubbing_settings.get("sensitiveFields")
 
-        exclude_fields = config.get("exclude_fields")
+        exclude_fields = datascrubbing_settings.get("excludeFields")
 
-        scrub_defaults = config.get("scrub_defaults")
+        scrub_defaults = datascrubbing_settings.get("scrubDefaults")
 
         SensitiveDataFilter(
             fields=sensitive_fields, include_defaults=scrub_defaults, exclude_fields=exclude_fields

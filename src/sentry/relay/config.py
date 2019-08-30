@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import six
 import uuid
 import sentry.utils as utils
@@ -75,7 +74,8 @@ def get_project_config(project_id, full_config=True, for_store=False):
         "config": {
             "allowedDomains": project.get_option("sentry:origins", ["*"]),
             "trustedRelays": org_options.get("sentry:trusted-relays", []),
-            "piiConfig": _get_pii_config(project, org_options),
+            "piiConfig": _get_pii_config(project),
+            "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
         },
         "project_id": project.id,
     }
@@ -135,32 +135,8 @@ def get_project_config(project_id, full_config=True, for_store=False):
 
     project_cfg["scrub_ip_addresses"] = scrub_ip_address
 
-    scrub_data = org_options.get("sentry:require_scrub_data", False) or project.get_option(
-        "sentry:scrub_data", True
-    )
-
-    project_cfg["scrub_data"] = scrub_data
     project_cfg["grouping_config"] = get_grouping_config_dict_for_project(project)
     project_cfg["allowed_domains"] = list(get_origins(project))
-
-    if scrub_data:
-        # We filter data immediately before it ever gets into the queue
-        sensitive_fields_key = "sentry:sensitive_fields"
-        sensitive_fields = org_options.get(sensitive_fields_key, []) + project.get_option(
-            sensitive_fields_key, []
-        )
-        project_cfg["sensitive_fields"] = sensitive_fields
-
-        exclude_fields_key = "sentry:safe_fields"
-        exclude_fields = org_options.get(exclude_fields_key, []) + project.get_option(
-            exclude_fields_key, []
-        )
-        project_cfg["exclude_fields"] = exclude_fields
-
-        scrub_defaults = org_options.get(
-            "sentry:require_scrub_defaults", False
-        ) or project.get_option("sentry:scrub_defaults", True)
-        project_cfg["scrub_defaults"] = scrub_defaults
 
     return ProjectConfig(project, **cfg)
 
@@ -287,58 +263,41 @@ class ProjectConfig(_ConfigBase):
         super(ProjectConfig, self).__init__(**kwargs)
 
 
-def _generate_pii_config(project, org_options):
-    scrub_ip_address = org_options.get(
-        "sentry:require_scrub_ip_address", False
-    ) or project.get_option("sentry:scrub_ip_address", False)
-    scrub_data = org_options.get("sentry:require_scrub_data", False) or project.get_option(
-        "sentry:scrub_data", True
-    )
-    fields = project.get_option("sentry:sensitive_fields")
-
-    if not scrub_data and not scrub_ip_address:
-        return None
-
-    custom_rules = {}
-
-    default_rules = []
-    ip_rules = []
-    databag_rules = []
-
-    if scrub_data:
-        default_rules.extend(("@email", "@mac", "@creditcard", "@userpath"))
-        databag_rules.append("@password")
-        if fields:
-            custom_rules["strip-fields"] = {
-                "type": "redactPair",
-                "redaction": "remove",
-                "keyPattern": r"\b%s\n" % "|".join(re.escape(x) for x in fields),
-            }
-            databag_rules.append("strip-fields")
-
-    if scrub_ip_address:
-        ip_rules.append("@ip")
-
-    return {
-        "rules": custom_rules,
-        "applications": {
-            "freeform": default_rules,
-            "databag": default_rules + databag_rules,
-            "username": scrub_data and ["@userpath"] or [],
-            "email": scrub_data and ["@email"] or [],
-            "ip": ip_rules,
-        },
-    }
-
-
-def _get_pii_config(project, org_options):
+def _get_pii_config(project):
     value = project.get_option("sentry:relay_pii_config")
     if value is not None:
         try:
             return utils.json.loads(value)
         except (TypeError, ValueError):
             return None
-    return _generate_pii_config(project, org_options)
+
+
+def _get_datascrubbing_settings(project, org_options):
+    rv = {}
+
+    exclude_fields_key = "sentry:safe_fields"
+    rv["excludeFields"] = org_options.get(exclude_fields_key, []) + project.get_option(
+        exclude_fields_key, []
+    )
+
+    rv["scrubData"] = org_options.get("sentry:require_scrub_data", False) or project.get_option(
+        "sentry:scrub_data", True
+    )
+
+    rv["scrubIpAddresses"] = org_options.get(
+        "sentry:require_scrub_ip_address", False
+    ) or project.get_option("sentry:scrub_ip_address", False)
+
+    sensitive_fields_key = "sentry:sensitive_fields"
+    rv["sensitiveFields"] = org_options.get(sensitive_fields_key, []) + project.get_option(
+        sensitive_fields_key, []
+    )
+
+    rv["scrubDefaults"] = org_options.get(
+        "sentry:require_scrub_defaults", False
+    ) or project.get_option("sentry:scrub_defaults", True)
+
+    return rv
 
 
 def _to_camel_case_name(name):
