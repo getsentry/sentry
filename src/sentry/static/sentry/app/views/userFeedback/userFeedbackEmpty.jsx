@@ -9,6 +9,7 @@ import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
 
 class UserFeedbackEmpty extends React.Component {
@@ -84,9 +85,13 @@ class UserFeedbackEmpty extends React.Component {
 
     return (
       <UserFeedbackLanding>
-        <StyledContainer>{/* dreamy component place holder */}</StyledContainer>
+        <IllustrationContainer>
+          <CardComponentContainer>
+            <Illustration data={userFeedback} />
+          </CardComponentContainer>
+        </IllustrationContainer>
 
-        <StyledContainer>
+        <StyledBox>
           <h3>{t('No User Feedback Collected')}</h3>
           <p>
             {t(
@@ -125,38 +130,64 @@ class UserFeedbackEmpty extends React.Component {
               {t('Open the report dialog')}
             </Button>
           </ButtonList>
-        </StyledContainer>
+        </StyledBox>
       </UserFeedbackLanding>
     );
   }
 }
 
 const UserFeedbackLanding = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-  grid-gap: ${space(1.5)};
+  display: flex;
   align-items: center;
-  justify-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 450px;
   padding: ${space(1)};
-  margin: 45px 0 45px 0;
+`;
 
-  @media (max-width: 1300px) {
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+const StyledBox = styled('div')`
+  flex: 1;
+  padding: ${space(3)};
+`;
+
+const IllustrationContainer = styled(StyledBox)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CardComponentContainer = styled('div')`
+  width: 550px;
+  height: 340px;
+
+  img {
+    vertical-align: baseline;
+  }
+
+  @media (max-width: 1150px) {
+    font-size: ${p => p.theme.fontSizeMedium};
+    width: 450px;
+  }
+
+  @media (max-width: 1000px) {
+    font-size: ${p => p.theme.fontSizeSmall};
+    width: 320px;
+    max-height: 180px;
   }
 `;
 
-const StyledContainer = styled('div')`
-  width: 450px;
-  padding: 40px 0 40px 0;
-
-  @media (max-width: 1300px) {
-    width: 350px;
-  }
+const Illustration = styled(({data, className}) => (
+  <object data={data} className={className}>
+    <img src={data} className={className} />
+  </object>
+))`
+  width: 100%;
+  height: 100%;
 `;
 
 const ButtonList = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
   grid-gap: ${space(1)};
 `;
 
