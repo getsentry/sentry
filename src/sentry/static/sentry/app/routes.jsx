@@ -993,7 +993,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/eventsv2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "EventsV2" */ 'app/views/organizationEventsV2')
+              import(/* webpackChunkName: "EventsV2" */ 'app/views/eventsV2')
             }
             component={errorHandler(LazyLoad)}
           />

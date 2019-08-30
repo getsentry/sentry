@@ -1,7 +1,4 @@
-import {
-  getAggregateAlias,
-  getEventTagSearchUrl,
-} from 'app/views/organizationEventsV2/utils';
+import {getAggregateAlias, getEventTagSearchUrl} from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
   let location;

@@ -3,11 +3,11 @@ import {mount} from 'enzyme';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {browserHistory} from 'react-router';
 
-import EventDetails from 'app/views/organizationEventsV2/eventDetails';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW_V1} from 'app/views/organizationEventsV2/data';
-import EventView from 'app/views/organizationEventsV2/eventView';
+import EventDetails from 'app/views/eventsV2/eventDetails';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW_V1} from 'app/views/eventsV2/data';
+import EventView from 'app/views/eventsV2/eventView';
 
-describe('OrganizationEventsV2 > EventDetails', function() {
+describe('EventsV2 > EventDetails', function() {
   const allEventsView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
   const errorsView = EventView.fromEventViewv1(
     ALL_VIEWS.find(view => view.name === 'Errors')

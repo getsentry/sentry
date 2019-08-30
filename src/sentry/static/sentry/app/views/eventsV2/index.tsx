@@ -32,7 +32,7 @@ type Props = {
   params: Params;
 };
 
-class OrganizationEventsV2 extends React.Component<Props> {
+class EventsV2 extends React.Component<Props> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
@@ -146,5 +146,5 @@ const LinkContainer = styled('li')`
   padding: ${space(1)};
 `;
 
-export default withOrganization(OrganizationEventsV2);
-export {OrganizationEventsV2};
+export default withOrganization(EventsV2);
+export {EventsV2};
