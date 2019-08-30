@@ -65,19 +65,15 @@ class RedisQuota(Quota):
             raise InvalidConfiguration(six.text_type(e))
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
-        interval = quota.window
         if self.is_redis_cluster:
             # new style redis cluster format which always has the organization id in
-            local_key = '%s{%s}%s' % (
-                quota.prefix,
-                self.organization_id,
-                quota.subscope or '',
-            )
+            local_key = "%s{%s}%s" % (quota.prefix, organization_id, quota.subscope or "")
         else:
             # legacy key format
-            local_key = '%s:%s' % (quota.prefix, quota.subscope or self.organization_id)
-        redis_key = u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
-        return redis_key
+            local_key = "%s:%s" % (quota.prefix, quota.subscope or organization_id)
+
+        interval = quota.window
+        return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
     def get_quotas_with_limits(self, project, key=None):
         return [
@@ -100,12 +96,7 @@ class RedisQuota(Quota):
                 window=pquota[1],
                 reason_code="project_quota",
             ),
-            BasicRedisQuota(
-                prefix="o",
-                limit=oquota[0],
-                window=oquota[1],
-                reason_code="org_quota",
-            ),
+            BasicRedisQuota(prefix="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"),
         ]
         if key:
             kquota = self.get_key_quota(key)
@@ -175,9 +166,7 @@ class RedisQuota(Quota):
             # sure the window is over?
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
-                self.__get_redis_key(
-                    quota, timestamp, shift, project.organization_id
-                )
+                self.__get_redis_key(quota, timestamp, shift, project.organization_id)
             )
             pipe.incr(return_key, 1)
             pipe.expireat(return_key, int(expiry))
@@ -202,9 +191,7 @@ class RedisQuota(Quota):
         args = []
         for quota in quotas:
             shift = project.organization_id % quota.window
-            key = self.__get_redis_key(
-                quota, timestamp, shift, project.organization_id
-            )
+            key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
             return_key = self.get_refunded_quota_key(key)
             keys.extend((key, return_key))
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
