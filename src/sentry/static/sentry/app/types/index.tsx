@@ -306,3 +306,10 @@ export type Repository = {
   status: string;
   url: string;
 };
+
+export type SentryApp = {
+  status: string;
+  scopes: string[];
+  isAlertable: boolean;
+  clientSecret?: string;
+};

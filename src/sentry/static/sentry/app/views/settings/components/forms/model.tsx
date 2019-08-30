@@ -1,4 +1,4 @@
-import {observable, computed, action} from 'mobx';
+import {observable, computed, action, ObservableMap} from 'mobx';
 import _ from 'lodash';
 
 import {Client} from 'app/api';
@@ -12,6 +12,7 @@ class FormModel {
    * Map of field name -> value
    */
   @observable fields = new Map();
+  // fields: ObservableMap<any> = observable.map();
 
   /**
    * Errors for individual fields
@@ -42,7 +43,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots = [];
+  snapshots: Map = [];
 
   /**
    * POJO of field name -> value
@@ -50,7 +51,12 @@ class FormModel {
    */
   initialData = {};
 
-  constructor({initialData, ...options} = {}) {
+  api: Client | null;
+
+  //TODO: set type
+  options: any;
+
+  constructor({initialData, ...options}: {initialData: object | undefined}) {
     this.setFormOptions(options);
 
     if (initialData) {
@@ -64,7 +70,9 @@ class FormModel {
    * Reset state of model
    */
   reset() {
-    this.api.clear();
+    if (this.api) {
+      this.api.clear();
+    }
     this.api = null;
     this.fieldDescriptor.clear();
     this.resetForm();
@@ -108,13 +116,11 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData, {noResetSnapshots} = {}) {
+  setInitialData(initialData) {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
-    if (noResetSnapshots) {
-      return;
-    }
+    new Map(this.fields);
 
     this.snapshots = [new Map(this.fields)];
   }
@@ -245,16 +251,25 @@ class FormModel {
     return (this.getError(id) || []).length === 0;
   }
 
-  doApiRequest({apiEndpoint, apiMethod, data}) {
+  doApiRequest({
+    apiEndpoint,
+    apiMethod,
+    data,
+  }: {
+    apiEndpoint?: string;
+    apiMethod?: string;
+    data: object;
+  }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint;
     const method = apiMethod || this.options.apiMethod;
     return new Promise((resolve, reject) => {
-      this.api.request(endpoint, {
-        method,
-        data,
-        success: response => resolve(response),
-        error: error => reject(error),
-      });
+      this.api &&
+        this.api.request(endpoint, {
+          method,
+          data,
+          success: response => resolve(response),
+          error: error => reject(error),
+        });
     });
   }
 
@@ -281,7 +296,7 @@ class FormModel {
   @action
   validateField(id) {
     const validate = this.getDescriptor(id, 'validate');
-    let errors = [];
+    let errors: any[] = [];
 
     if (typeof validate === 'function') {
       // Returns "tuples" of [id, error string]
@@ -357,7 +372,7 @@ class FormModel {
     if (this.isError) {
       return null;
     }
-    let saveSnapshot = this.createSnapshot();
+    let saveSnapshot: any = this.createSnapshot();
 
     const request = this.doApiRequest({
       data: this.getTransformedData(),

@@ -17,6 +17,7 @@ import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
+import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
@@ -102,6 +103,17 @@ export default class SentryApplicationRow extends React.PureComponent {
   }
 
   renderPublishRequest(app) {
+    return (
+      <SentryAppPublishRequestModal
+        app={app}
+        onPublishRequest={this.props.onPublishRequest}
+      >
+        <StyledButton icon="icon-upgrade" size="small">
+          {t('Publish')}
+        </StyledButton>
+      </SentryAppPublishRequestModal>
+    );
+
     const message = t(
       `Sentry will evaluate your integration ${
         app.slug
