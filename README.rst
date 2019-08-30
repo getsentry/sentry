@@ -33,7 +33,7 @@ Official Sentry SDKs
 * `Python <https://github.com/getsentry/sentry-python>`_
 * `Ruby <https://github.com/getsentry/raven-ruby>`_
 * `PHP <https://github.com/getsentry/sentry-php>`_
-* `Go <https://github.com/getsentry/raven-go>`_
+* `Go <https://github.com/getsentry/sentry-go>`_
 * `Java <https://github.com/getsentry/sentry-java>`_
 * `Objective-C/Swift <https://github.com/getsentry/sentry-cocoa>`_
 * `C# <https://github.com/getsentry/sentry-dotnet>`_
