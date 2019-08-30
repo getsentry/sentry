@@ -354,3 +354,47 @@ def query_subscription_consumer(**options):
     signal.signal(signal.SIGINT, handler)
 
     subscriber.run()
+
+
+@run.command("pre-process-forwarder")
+@log_options()
+@click.option(
+    "--consumer-type",
+    default=None,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
+    type=click.Choice(["events", "transactions", "attachments"]),
+)
+@click.option(
+    "--group",
+    default="pre-process-forwarder",
+    help="Kafka consumer group for the PreProcessForwarder. ",
+)
+@click.option(
+    "--commit-batch-size",
+    default=100,
+    type=int,
+    help="How many messages to process before committing offsets.",
+)
+@configuration
+def pre_process_forwarder(**options):
+    """
+    Runs a "pre process forwarder" task.
+
+    The "pre process forwarder" tasks read events from a kafka topic (coming from Relay) and forwards them
+    into the system. TODO finish the detailed explanation above.
+    """
+    from sentry.pre_process_forwarder import ConsumerType, run_pre_process_forwarder
+
+    consumer_type = options["consumer_type"]
+    if consumer_type == "events":
+        consumer_type = ConsumerType.Events
+    elif consumer_type == "transactions":
+        consumer_type = ConsumerType.Transactions
+    elif consumer_type == "attachments":
+        consumer_type = ConsumerType.Attachments
+
+    run_pre_process_forwarder(
+        commit_batch_size=options["commit_batch_size"],
+        consumer_group=options["group"],
+        consumer_type=consumer_type,
+    )
