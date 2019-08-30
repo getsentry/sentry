@@ -310,10 +310,14 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
 `;
 
+const INSTALLED = 'Installed';
+const NOT_INSTALLED = 'Not Installed';
+const PENDING = 'Pending';
+
 const color = {
-  Installed: 'success',
-  'Not Installed': 'gray2',
-  Pending: 'yellowOrange',
+  [INSTALLED]: 'success',
+  [NOT_INSTALLED]: 'gray2',
+  [PENDING]: 'yellowOrange',
 };
 
 const Status = styled(
