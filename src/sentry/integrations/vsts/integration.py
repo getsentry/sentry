@@ -110,7 +110,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     def get_repositories(self, query=None):
         try:
             repos = self.get_client().get_repos(self.instance)
-        except ApiError as e:
+        except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
         data = []
         for repo in repos["value"]:
@@ -133,7 +133,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
             client.get_repo(self.instance, repo.config["name"], project=repo.config["project"])
-        except ApiError:
+        except (ApiError, IdentityNotValid):
             return False
         return True
 
