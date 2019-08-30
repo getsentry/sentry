@@ -254,6 +254,15 @@ SDK_SUPPORTED_MODULES = [
         ),
     },
     {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "0.11.0",
+        "module_name": "apache_beam",
+        "module_version_min": "2.12.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "beam", "https://docs.sentry.io/platforms/python/beam/"
+        ),
+    },
+    {
         "sdk_name": "sentry.dotnet",
         "sdk_version_added": "0.0.0",
         "module_name": "Microsoft.AspNetCore.Hosting",
