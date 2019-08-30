@@ -49,7 +49,12 @@ class RedisQuota(Quota):
             "SENTRY_QUOTA_OPTIONS", options
         )
 
-        # NB: RedisCluster is a client, whereas RB needs to resolve one
+        # Based on the `is_redis_cluster` flag, self.cluster is set two one of
+        # the following two objects:
+        #  - false: `cluster` is a `RBCluster`. Call `get_local_client_for_key`
+        #    on the cluster to resolve a client to run a script or query a key.
+        #  - true: `cluster` is a `RedisCluster`. It automatically dispatches to
+        #    the correct node and can be used as a client directly.
 
         super(RedisQuota, self).__init__(**options)
         self.namespace = "quota"
