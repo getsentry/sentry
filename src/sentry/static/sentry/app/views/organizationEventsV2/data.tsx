@@ -138,6 +138,16 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     },
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
   },
+  {
+    name: t('Transactions by Region'),
+    data: {
+      fields: ['geo.region', 'count()'],
+      columnNames: ['Region', 'events'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip'],
+  },
 ];
 
 type EventData = {[key: string]: any};
