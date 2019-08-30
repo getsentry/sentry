@@ -1,4 +1,4 @@
-import EventView from 'app/views/organizationEventsV2/eventView';
+import EventView from 'app/views/eventsV2/eventView';
 
 describe('EventView.getEventsAPIPayload()', function() {
   it('appends any additional conditions defined for view', function() {

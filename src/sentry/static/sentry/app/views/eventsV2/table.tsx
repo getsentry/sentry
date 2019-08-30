@@ -44,7 +44,7 @@ type State = {
   dataPayload: DataPayload | null | undefined;
 };
 
-class Discover2Table extends React.PureComponent<Props, State> {
+class Table extends React.PureComponent<Props, State> {
   state: State = {
     eventView: EventView.fromLocation(this.props.location),
     loading: true,
@@ -116,7 +116,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
     return (
       <Container>
-        <Table
+        <TableView
           eventView={eventView}
           organization={organization}
           dataPayload={dataPayload}
@@ -129,7 +129,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
   }
 }
 
-type TableProps = {
+type TableViewProps = {
   organization: Organization;
   eventView: EventView;
   isLoading: boolean;
@@ -137,7 +137,7 @@ type TableProps = {
   location: Location;
 };
 
-class Table extends React.Component<TableProps> {
+class TableView extends React.Component<TableViewProps> {
   renderLoading = () => {
     return (
       <Panel>
@@ -348,4 +348,4 @@ const Container = styled('div')`
   overflow: hidden;
 `;
 
-export default withApi<Props>(Discover2Table);
+export default withApi<Props>(Table);

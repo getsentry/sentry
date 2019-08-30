@@ -12,7 +12,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 
 import {getParams} from 'app/views/events/utils/getParams';
 
-import Discover2Table from './discover2table';
+import Table from './table';
 import Tags from './tags';
 import EventView from './eventView';
 
@@ -66,7 +66,7 @@ export default class Events extends React.Component<EventsProps> {
           onSearch={this.handleSearch}
         />
         <Container>
-          <Discover2Table organization={organization} location={location} />
+          <Table organization={organization} location={location} />
           <Tags eventView={eventView} organization={organization} location={location} />
         </Container>
       </React.Fragment>
