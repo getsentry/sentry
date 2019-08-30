@@ -108,6 +108,7 @@ class Organization(Model):
         settings.AUTH_USER_MODEL,
         through="sentry.OrganizationMember",
         related_name="org_memberships",
+        through_fields=("organization", "user"),
     )
     default_role = models.CharField(
         choices=roles.get_choices(), max_length=32, default=roles.get_default().id
