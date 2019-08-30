@@ -263,6 +263,48 @@ describe('OrganizationIntegrations', () => {
       });
     });
 
+    describe('pending applications', () => {
+      it('renders the pending status', () => {
+        const installedSentryApp = TestStubs.SentryApp({
+          name: 'An Integration',
+          slug: 'an-integration',
+        });
+
+        const sentryAppInstall = TestStubs.SentryAppInstallation({
+          organization: {
+            slug: org.slug,
+          },
+          app: {
+            slug: installedSentryApp.slug,
+            uuid: installedSentryApp.uuid,
+          },
+          status: 'pending',
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [sentryAppInstall],
+        });
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        const pending = wrapper.find('SentryAppInstallations').at(0);
+        expect(pending.find('Status').prop('status')).toBe('Pending');
+      });
+    });
+
     describe('internal apps are separate', () => {
       it('renders internal sentry app', () => {
         const internalApp = {...sentryApp, status: 'internal'};
