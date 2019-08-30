@@ -6,15 +6,15 @@ import {encodeFields} from 'app/views/organizationEventsV2/eventView';
 
 const FIELDS = [
   {
-    snuba_column: 'title',
+    field: 'title',
     title: 'Custom Title',
   },
   {
-    snuba_column: 'timestamp',
+    field: 'timestamp',
     title: 'Custom Time',
   },
   {
-    snuba_column: 'user',
+    field: 'user',
     title: 'Custom User',
   },
 ];

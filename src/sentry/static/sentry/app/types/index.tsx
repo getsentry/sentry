@@ -284,7 +284,6 @@ export type Group = {
 };
 
 export type EventViewv1 = {
-  id: string;
   name: string;
   data: {
     fields: string[];
@@ -293,7 +292,6 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
-  columnWidths: string[];
 };
 
 export type Repository = {

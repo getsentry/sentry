@@ -10,7 +10,7 @@ import EventView from 'app/views/organizationEventsV2/eventView';
 describe('OrganizationEventsV2 > EventDetails', function() {
   const allEventsView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
   const errorsView = EventView.fromEventViewv1(
-    ALL_VIEWS.find(view => view.id === 'errors')
+    ALL_VIEWS.find(view => view.name === 'Errors')
   );
 
   beforeEach(function() {
