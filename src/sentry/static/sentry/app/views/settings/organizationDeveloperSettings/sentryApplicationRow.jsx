@@ -323,7 +323,7 @@ const Status = styled(
     return (
       <Flex align="center">
         <CircleIndicator size={6} color={props.theme[color[status]]} />
-        <div {...propsToPass}>{status}</div>
+        <div {...propsToPass}>{t(`${status}`)}</div>
       </Flex>
     );
   })
