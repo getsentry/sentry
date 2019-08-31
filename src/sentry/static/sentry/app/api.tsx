@@ -85,7 +85,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
 }
 
 // TODO: move this somewhere
-type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
+export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
@@ -231,6 +231,8 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
+
+    console.log('data', data);
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);

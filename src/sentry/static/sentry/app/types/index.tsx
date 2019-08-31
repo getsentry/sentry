@@ -307,9 +307,33 @@ export type Repository = {
   url: string;
 };
 
+export enum WebhookEvents {
+  issue = 'issue',
+  error = 'error',
+}
+
 export type SentryApp = {
   status: string;
   scopes: string[];
   isAlertable: boolean;
+  verifyInstall: boolean;
+  slug: string;
+  name: string;
+  uuid: string;
+  author: string;
+  events: WebhookEvents[];
+  schema: {
+    elements?: object[]; //TODO(ts)
+  };
+  //possible null params
+  webhookUrl: string | null;
+  redirectUrl: string | null;
+  overview: string | null;
+  //optional params below
+  clientId?: string;
   clientSecret?: string;
+  owner?: {
+    id: number;
+    slug: string;
+  };
 };

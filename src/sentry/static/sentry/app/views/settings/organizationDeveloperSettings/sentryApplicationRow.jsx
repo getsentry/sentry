@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
+import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 
 export default class SentryApplicationRow extends React.PureComponent {
@@ -27,7 +27,6 @@ export default class SentryApplicationRow extends React.PureComponent {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
-    onPublishRequest: PropTypes.func,
     showInstallationStatus: PropTypes.bool, //false if we are on the developer settings page where we don't show installation status
   };
 
@@ -104,32 +103,9 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   renderPublishRequest(app) {
     return (
-      <SentryAppPublishRequestModal
-        app={app}
-        onPublishRequest={this.props.onPublishRequest}
-      >
-        <StyledButton icon="icon-upgrade" size="small">
-          {t('Publish')}
-        </StyledButton>
-      </SentryAppPublishRequestModal>
-    );
-
-    const message = t(
-      `Sentry will evaluate your integration ${
-        app.slug
-      } and make it available to all users. \
-       Do you wish to continue?`
-    );
-    return (
-      <Confirm
-        message={message}
-        priority="primary"
-        onConfirm={() => this.props.onPublishRequest(app)}
-      >
-        <StyledButton icon="icon-upgrade" size="small">
-          {t('Publish')}
-        </StyledButton>
-      </Confirm>
+      <StyledButton icon="icon-upgrade" size="small" onClick={this.openPublishAppModal}>
+        {t('Publish')}
+      </StyledButton>
     );
   }
 
@@ -181,6 +157,14 @@ export default class SentryApplicationRow extends React.PureComponent {
   get isInstalled() {
     return this.props.installs && this.props.installs.length > 0;
   }
+
+  openPublishAppModal = () => {
+    const {app} = this.props;
+
+    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />, {
+      modalClassName: 'sentry-app-publish-request',
+    });
+  };
 
   openLearnMore = () => {
     const {app, onInstall, organization} = this.props;

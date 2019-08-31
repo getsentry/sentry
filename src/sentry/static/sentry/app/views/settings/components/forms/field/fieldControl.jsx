@@ -67,7 +67,7 @@ class FieldControl extends React.Component {
     } = this.props;
 
     return (
-      <FieldControlErrorWrapper inline={inline}>
+      <FieldControlErrorWrapper className="field-control-error-wrapper" inline={inline}>
         <FieldControlWrapper>
           <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
 
