@@ -230,7 +230,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return u"Deployed version {} to {}".format(self.release.short_version, self.environment)
+        return u"Deployed version {} to {}".format(self.release.version, self.environment)
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

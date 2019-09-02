@@ -138,10 +138,6 @@ class TagStorage(Service):
                 label = value[len("username:") :]
             elif value.startswith("ip:"):
                 label = value[len("ip:") :]
-        elif key == "sentry:release":
-            from sentry.models import Release
-
-            label = Release.get_display_version(value)
 
         return label
 
