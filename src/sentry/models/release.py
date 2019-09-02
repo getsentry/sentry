@@ -228,19 +228,6 @@ class Release(Model):
 
             release.delete()
 
-    @property
-    def short_version(self):
-        return Release.get_display_version(self.version)
-
-    @staticmethod
-    def get_display_version(version):
-        match = _dotted_path_prefix_re.match(version)
-        if match is not None:
-            version = version[match.end() :]
-        if _sha1_re.match(version):
-            return version[:7]
-        return version
-
     def add_dist(self, name, date_added=None):
         from sentry.models import Distribution
 
