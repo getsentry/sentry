@@ -24,7 +24,7 @@ def serialize_releases(organization, item_list, user, lookup):
     return {
         (r.version,): {
             HEALTH_ID_KEY: make_health_id(lookup, [r.version]),
-            "value": {"id": r.id, "version": r.version, "shortVersion": r.short_version},
+            "value": {"id": r.id, "version": r.version},
         }
         for r in Release.objects.filter(
             organization=organization, version__in={i[0] for i in item_list}
