@@ -107,6 +107,7 @@ class OrganizationMember(Model):
             (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join org")),
         ),
         default=InviteStatus.APPROVED.value,
+        null=True,
     )
 
     # Deprecated -- no longer used
