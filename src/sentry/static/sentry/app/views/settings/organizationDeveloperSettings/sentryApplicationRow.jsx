@@ -18,6 +18,10 @@ import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
 
+const INSTALLED = 'Installed';
+const NOT_INSTALLED = 'Not Installed';
+const PENDING = 'Pending';
+
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
     app: SentryTypes.SentryApplication,
@@ -175,7 +179,7 @@ export default class SentryApplicationRow extends React.PureComponent {
       return capitalize(this.props.installs[0].status);
     }
 
-    return 'Not Installed';
+    return NOT_INSTALLED;
   }
 
   openLearnMore = () => {
@@ -309,10 +313,6 @@ const SentryAppLink = styled(Link)`
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
 `;
-
-const INSTALLED = 'Installed';
-const NOT_INSTALLED = 'Not Installed';
-const PENDING = 'Pending';
 
 const color = {
   [INSTALLED]: 'success',
