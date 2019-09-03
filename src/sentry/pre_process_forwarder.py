@@ -21,15 +21,26 @@ class ConsumerType(object):
     Attachments = "attachments"  # consumes events with attachments ( from the Attachments topic)
     Transactions = "transactions"  # consumes transaction events ( from the Transactions topic)
 
+    @staticmethod
+    def get_topic_name(consumer_type, settings):
+        if consumer_type == ConsumerType.Events:
+            return settings["KAFKA_INGEST_EVENTS"]
+        elif consumer_type == ConsumerType.Attachments:
+            return settings["KAFKA_INGEST_ATTACHMENTS"]
+        elif consumer_type == ConsumerType.Transactions:
+            return settings["KAFKA_INGEST_TRANSACTIONS"]
+        raise ValueError("Invalid consumer type", consumer_type)
 
-def _create_consumer(consumer_group):
+
+def _create_consumer(consumer_group, consumer_type, settings):
     """
     Creates a kafka consumer based on the
     :param consumer_group:
     :return:
     """
-    cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-    bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
+    topic_name = ConsumerType.get_topic_name(consumer_type, settings)
+    cluster_name = settings["KAFKA_TOPICS"][topic_name]["cluster"]
+    bootstrap_servers = settings["KAFKA_CLUSTERS"][cluster_name]["bootstrap.servers"]
 
     consumer_configuration = {
         "bootstrap.servers": bootstrap_servers,
@@ -46,11 +57,32 @@ def _create_consumer(consumer_group):
 
 
 def run_pre_process_forwarder(commit_batch_size, consumer_group, consumer_type):
+    """
+    Entry point for pre_process_forwarder, injects dependencies in the internal runner (so that the
+    internal runner can be easily tested)
+    """
+    return _run_pre_process_forwarder_internal(
+        commit_batch_size,
+        consumer_group,
+        consumer_type,
+        settings=settings,  # by default use the project settings
+        is_shutdown_requested=lambda: False,  # by default run forever (or until keyboard interrupt)
+    )
+
+
+def _run_pre_process_forwarder_internal(
+    commit_batch_size, consumer_group, consumer_type, settings, is_shutdown_requested
+):
+    """
+    Does the pre process forwarder job
+    """
     logger.debug("Starting pre-process-forwarder...")
-    consumer = _create_consumer(consumer_group)
+    consumer = _create_consumer(consumer_group, consumer_type, settings)
+
+    consumer.subscribe([ConsumerType.get_topic_name(consumer_type, settings)])
 
     try:
-        while True:
+        while not (is_shutdown_requested()):
             # get up to commit_batch_size messages
             messages = consumer.consume(num_messages=commit_batch_size, timeout=0.1)
 
@@ -66,11 +98,9 @@ def run_pre_process_forwarder(commit_batch_size, consumer_group, consumer_type):
                         "Bad message received from consumer", consumer_type, message_error
                     )
 
-                message = msgpack.unpackb(message.value(), raw=False, use_list=False)
+                message = msgpack.unpackb(message.value(), use_list=False)
                 body = message["payload"]
-                # body = body.decode('utf-8')
-
-                start_time = float(message("start_time"))
+                start_time = float(message["start_time"])
                 event_id = message["event_id"]
                 project_id = message["project_id"]
 
