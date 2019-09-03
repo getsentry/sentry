@@ -816,6 +816,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enable the Discover v2 query builder
+    "organizations:discover-v2-query-builder": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
     # Allow organizations to configure custom external symbol sources.
