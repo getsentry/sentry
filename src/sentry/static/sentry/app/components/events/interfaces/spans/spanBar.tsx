@@ -850,7 +850,7 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   }
 `;
 
-const getAlignment = ({durationDisplay}) => {
+const getDurationPillAlignment = ({durationDisplay}) => {
   switch (durationDisplay) {
     case 'left':
       return `right: calc(100% + ${space(0.5)});`;
@@ -875,7 +875,7 @@ const DurationPill = styled('div')`
   top: 50%;
   transform: translateY(-50%);
 
-  ${getAlignment}
+  ${getDurationPillAlignment}
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     font-size: 10px;
