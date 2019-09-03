@@ -25,10 +25,14 @@ def get_dynamic_cluster_from_options(setting, config):
 class BasicRedisQuota(object):
     __slots__ = ["prefix", "subscope", "limit", "window", "reason_code", "enforce"]
 
-    def __init__(self, prefix, subscope=None, limit=0, window=60, reason_code=None, enforce=True):
+    def __init__(
+        self, prefix=None, subscope=None, limit=0, window=60, reason_code=None, enforce=True
+    ):
         self.prefix = prefix
         self.subscope = subscope
-        # maximum number of events in the given window, 0 indicates "no limit"
+        # maximum number of events in the given window
+        # 0 indicates "no limit"
+        # -1 indicates "reject all"
         self.limit = limit
         # time in seconds that this quota reflects
         self.window = window
@@ -84,8 +88,9 @@ class RedisQuota(Quota):
         return [
             quota
             for quota in self.get_quotas(project, key=key)
-            # x = (key, limit, interval)
-            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
+            # limit = 0 means "no limit"
+            # limit = -1 means "reject all" (used in getsentry)
+            if quota.limit != 0
         ]
 
     def get_quotas(self, project, key=None):
@@ -192,9 +197,16 @@ class RedisQuota(Quota):
         if not quotas:
             return NotRateLimited()
 
+        for quota in quotas:
+            if quota.enforce and quota.limit < 0:
+                return RateLimited(retry_after=None, reason_code=quota.reason_code)
+
         keys = []
         args = []
         for quota in quotas:
+            if not quota.prefix:
+                continue
+
             shift = project.organization_id % quota.window
             key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
             return_key = self.get_refunded_quota_key(key)
