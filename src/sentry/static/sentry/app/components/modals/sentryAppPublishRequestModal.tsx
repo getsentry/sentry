@@ -23,13 +23,13 @@ class PublishRequestFormModel extends FormModel {
   getTransformedData() {
     const data = this.getData();
     //map object to list of questions
-    const questionaire = this.modal.formFields.map(field => {
+    const questionnaire = this.modal.formFields.map(field => {
       return {
         question: field.label,
         answer: data[field.name],
       };
     });
-    return {questionaire};
+    return {questionnaire};
   }
 }
 
@@ -40,11 +40,11 @@ type Props = {
 };
 
 export default class SentryAppPublishRequestModal extends React.Component<Props> {
-  form = new PublishRequestFormModel(this);
-
   static propTypes = {
     app: PropTypes.object.isRequired,
   };
+
+  form = new PublishRequestFormModel(this);
 
   get formFields() {
     const {app} = this.props;
@@ -102,12 +102,12 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     ];
     return (
       <React.Fragment>
-        <Header>{t('Publish Request Questionaire')}</Header>
+        <Header>{t('Publish Request Questionnaire')}</Header>
         <Body>
           <Explanation>
             {t(
-              'Please fill out this questionaire in order to get your integration evaluated for publication.\
-          Once your integration has been approved, users outside of your organization will be able to install it.'
+              `Please fill out this questionnaire in order to get your integration evaluated for publication.
+              Once your integration has been approved, users outside of your organization will be able to install it.`
             )}
           </Explanation>
           <Form

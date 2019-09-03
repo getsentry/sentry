@@ -22,17 +22,13 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             sentry_app.slug,
         )
 
-        for question_pair in request.data.get('questionaire'):
-            message += '\n\n>%s\n%s' % (question_pair['question'], question_pair['answer'])
+        for question_pair in request.data.get("questionnaire"):
+            message += "\n\n>%s\n%s" % (question_pair["question"], question_pair["answer"])
 
         subject = "Sentry Integration Publication Request from %s" % sentry_app.owner.slug
 
         email.send_mail(
-            subject,
-            message,
-            options.get("mail.from"),
-            ["partners@sentry.io"],
-            fail_silently=False,
+            subject, message, options.get("mail.from"), ["partners@sentry.io"], fail_silently=False
         )
 
         return Response(status=201)
