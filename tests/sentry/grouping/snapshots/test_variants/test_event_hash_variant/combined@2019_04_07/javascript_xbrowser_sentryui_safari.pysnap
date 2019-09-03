@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T21:58:32.702883Z'
+created: '2019-09-03T07:26:06.363401Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       exception*
         stacktrace*
           frame (native code indicated by filename)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'promiseReactionJob'
           frame (non app frame)
             module*
@@ -19,9 +19,9 @@ app:
               u'/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js'
             context-line*
               u'        asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_next'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               25
           frame (non app frame)
             module*
@@ -30,9 +30,9 @@ app:
               u'/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js'
             context-line*
               u'    var info = gen[key](arg);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'asyncGeneratorStep'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               3
           frame (non app frame)
             module*
@@ -41,9 +41,9 @@ app:
               u'/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js'
             context-line*
               u'        var record = tryCatch(innerFn, self, context);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'key'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               288
           frame (non app frame)
             module*
@@ -52,9 +52,9 @@ app:
               u'/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js'
             context-line*
               u'      return { type: "normal", arg: fn.call(obj, arg) };'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'tryCatch'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               62
           frame*
             module*
@@ -63,9 +63,9 @@ app:
               u'./app/components/lazyLoad.jsx'
             context-line*
               u'      this.setState({'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'call'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               100
           frame (non app frame)
             module*
@@ -134,9 +134,9 @@ app:
               u'./app/views/groupDetails/shared/groupEventDetails.jsx'
             context-line*
               u'    this.fetchData();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'q'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               42
           frame*
             module*
@@ -145,9 +145,9 @@ app:
               u'./app/views/groupDetails/shared/groupEventDetails.jsx'
             context-line*
               u'    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fetchData'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               96
           frame*
             module*
@@ -156,9 +156,9 @@ app:
               u'./app/api.jsx'
             context-line*
               u'    const preservedError = new Error();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fetchGroupEventAndMarkSeen'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               276
         type*
           u'NotFoundError'
@@ -172,7 +172,7 @@ system:
       exception*
         stacktrace*
           frame (native code indicated by filename)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'promiseReactionJob'
           frame*
             module*
@@ -181,9 +181,9 @@ system:
               u'/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js'
             context-line*
               u'        asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_next'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               25
           frame*
             module*
@@ -192,9 +192,9 @@ system:
               u'/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js'
             context-line*
               u'    var info = gen[key](arg);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'asyncGeneratorStep'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               3
           frame*
             module*
@@ -203,9 +203,9 @@ system:
               u'/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js'
             context-line*
               u'        var record = tryCatch(innerFn, self, context);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'key'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               288
           frame*
             module*
@@ -214,9 +214,9 @@ system:
               u'/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js'
             context-line*
               u'      return { type: "normal", arg: fn.call(obj, arg) };'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'tryCatch'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               62
           frame*
             module*
@@ -225,9 +225,9 @@ system:
               u'./app/components/lazyLoad.jsx'
             context-line*
               u'      this.setState({'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'call'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               100
           frame*
             module*
@@ -296,9 +296,9 @@ system:
               u'./app/views/groupDetails/shared/groupEventDetails.jsx'
             context-line*
               u'    this.fetchData();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'q'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               42
           frame*
             module*
@@ -307,9 +307,9 @@ system:
               u'./app/views/groupDetails/shared/groupEventDetails.jsx'
             context-line*
               u'    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fetchData'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               96
           frame*
             module*
@@ -318,9 +318,9 @@ system:
               u'./app/api.jsx'
             context-line*
               u'    const preservedError = new Error();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fetchGroupEventAndMarkSeen'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               276
         type*
           u'NotFoundError'

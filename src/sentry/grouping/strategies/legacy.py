@@ -335,23 +335,27 @@ def frame_legacy(frame, event, **meta):
         elif frame.lineno:
             lineno_component.update(values=[frame.lineno])
     else:
+        if context_line_component.contributes:
+            fallback_hint = "is not used if context-line is available"
+        else:
+            fallback_hint = "is not used if module or filename are available"
         if frame.symbol:
             symbol_component.update(
                 contributes=False,
                 values=[frame.symbol],
-                hint="symbol is used only if module or filename are available",
+                hint="symbol " + fallback_hint,
             )
         if func:
             function_component.update(
                 contributes=False,
                 values=[func],
-                hint="function name is used only if module or filename are available",
+                hint="function name " + fallback_hint,
             )
         if frame.lineno:
             lineno_component.update(
                 contributes=False,
                 values=[frame.lineno],
-                hint="line number is used only if module or filename are available",
+                hint="line number " + fallback_hint,
             )
 
     return GroupingComponent(
