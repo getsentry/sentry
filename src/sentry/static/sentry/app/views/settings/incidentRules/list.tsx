@@ -19,22 +19,22 @@ import {deleteRule} from './actions';
 type State = {
   rules: IncidentRule[];
 } & AsyncView['state'];
+
 type RouteParams = {
   orgId: string;
-  projectId: string;
 };
+
 type Props = RouteComponentProps<RouteParams, {}>;
+
 class IncidentRulesList extends AsyncView<Props, State> {
   getEndpoints() {
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
 
-    return [
-      ['rules', `/projects/${orgId}/${projectId}/alert-rules/`] as [string, string],
-    ];
+    return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]];
   }
 
   handleRemoveRule = async (rule: IncidentRule) => {
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
 
     // Optimistic update
     const oldRules = this.state.rules.slice(0);
@@ -46,7 +46,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
         rules: newRules,
       });
 
-      deleteRule(this.api, orgId, projectId, rule);
+      await deleteRule(this.api, orgId, rule);
     } catch (_err) {
       this.setState({
         rules: oldRules,
@@ -59,12 +59,12 @@ class IncidentRulesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
     const action = (
       <Button
         priority="primary"
         size="small"
-        to={`/settings/${orgId}/projects/${projectId}/incident-rules/new/`}
+        to={`/settings/${orgId}/incident-rules/new/`}
         icon="icon-circle-add"
       >
         {t('Create New Rule')}
@@ -73,7 +73,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
     const isLoading = this.state.loading;
 
-    const isEmpty = !isLoading && !this.state.rules.length;
+    const isEmpty = !isLoading && this.state.rules && !this.state.rules.length;
 
     return (
       <div>
@@ -85,13 +85,10 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
             {!isLoading &&
               !isEmpty &&
+              this.state.rules &&
               this.state.rules.map(rule => (
                 <RuleRow key={rule.id}>
-                  <RuleLink
-                    to={`/settings/${orgId}/projects/${projectId}/incident-rules/${
-                      rule.id
-                    }/`}
-                  >
+                  <RuleLink to={`/settings/${orgId}/incident-rules/${rule.id}/`}>
                     {rule.name}
                   </RuleLink>
                   <Confirm

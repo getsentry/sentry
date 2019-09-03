@@ -187,7 +187,7 @@ class MockModel {
  * form model, that will be called to determine the value of the prop upon an
  * observed change in the model.
  */
-const propsToObserver = ['inline', 'highlighted'];
+const propsToObserver = ['inline', 'highlighted', 'visible', 'disabled'];
 
 class FormField extends React.Component {
   static propTypes = {
@@ -391,6 +391,7 @@ class FormField extends React.Component {
           name={name}
           className={className}
           flexibleControlStateSize={flexibleControlStateSize}
+          getValueOfField={model.getValue.bind(model)}
           {...props}
           {...extraProps}
         >
