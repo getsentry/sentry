@@ -809,11 +809,20 @@ const SpanTreeTogglerContainer = styled('div')`
 `;
 
 const getTogglerTheme = ({isExpanded, theme}) => {
-  return isExpanded ? theme.button.default : theme.button.primary;
-};
+  const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
+  const activeButtonTheme = isExpanded ? theme.button.primary : theme.button.default;
 
-const getTogglerHoverTheme = ({isExpanded, theme}) => {
-  return getTogglerTheme({isExpanded: !isExpanded, theme});
+  return `
+    background: ${buttonTheme.background};
+    border: 1px solid ${buttonTheme.border};
+    color: ${buttonTheme.color};
+
+    &:hover {
+      background: ${activeButtonTheme.background};
+      border: 1px solid ${activeButtonTheme.border};
+      color: ${activeButtonTheme.color};
+    }
+  `;
 };
 
 type SpanTreeTogglerProps = {
@@ -839,15 +848,7 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   line-height: 0;
 
-  background: ${p => getTogglerTheme(p).background};
-  border: 1px solid ${p => getTogglerTheme(p).border};
-  color: ${p => getTogglerTheme(p).color};
-
-  &:hover {
-    background: ${p => getTogglerHoverTheme(p).background};
-    border: 1px solid ${p => getTogglerHoverTheme(p).border};
-    color: ${p => getTogglerHoverTheme(p).color};
-  }
+  ${p => getTogglerTheme(p)}
 `;
 
 const getDurationPillAlignment = ({durationDisplay}) => {
