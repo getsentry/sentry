@@ -28,6 +28,11 @@ class BasicRedisQuota(object):
     def __init__(
         self, prefix=None, subscope=None, limit=0, window=60, reason_code=None, enforce=True
     ):
+        if limit == -1:
+            assert (
+                prefix is None and subscope is None and enforce
+            ), "zero-sized quotas are not tracked in redis"
+
         self.prefix = prefix
         self.subscope = subscope
         # maximum number of events in the given window
