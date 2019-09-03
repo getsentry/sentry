@@ -2,8 +2,8 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import {Tags} from 'app/views/organizationEventsV2/tags';
-import EventView from 'app/views/organizationEventsV2/eventView';
+import {Tags} from 'app/views/eventsV2/tags';
+import EventView from 'app/views/eventsV2/eventView';
 
 describe('Tags', function() {
   const org = TestStubs.Organization();

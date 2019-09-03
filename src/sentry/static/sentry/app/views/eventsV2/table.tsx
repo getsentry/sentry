@@ -44,7 +44,7 @@ type State = {
   dataPayload: DataPayload | null | undefined;
 };
 
-class Discover2Table extends React.PureComponent<Props, State> {
+class Table extends React.PureComponent<Props, State> {
   state: State = {
     eventView: EventView.fromLocation(this.props.location),
     loading: true,
@@ -116,7 +116,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
 
     return (
       <Container>
-        <Table
+        <TableView
           eventView={eventView}
           organization={organization}
           dataPayload={dataPayload}
@@ -129,7 +129,7 @@ class Discover2Table extends React.PureComponent<Props, State> {
   }
 }
 
-type TableProps = {
+type TableViewProps = {
   organization: Organization;
   eventView: EventView;
   isLoading: boolean;
@@ -137,7 +137,7 @@ type TableProps = {
   location: Location;
 };
 
-class Table extends React.Component<TableProps> {
+class TableView extends React.Component<TableViewProps> {
   renderLoading = () => {
     return (
       <Panel>
@@ -155,7 +155,7 @@ class Table extends React.Component<TableProps> {
       return null;
     }
 
-    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].snuba_column;
+    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
 
     return eventView.fields.map((field, index) => {
       if (!dataPayload) {
@@ -163,7 +163,7 @@ class Table extends React.Component<TableProps> {
       }
 
       const {meta} = dataPayload;
-      const sortKey = eventView.getSortKey(field.snuba_column, meta);
+      const sortKey = eventView.getSortKey(field.field, meta);
 
       if (sortKey === null) {
         return <PanelHeaderCell key={index}>{field.title}</PanelHeaderCell>;
@@ -196,7 +196,7 @@ class Table extends React.Component<TableProps> {
     }
 
     const {meta} = dataPayload;
-    const fields = eventView.getFieldSnubaCols();
+    const fields = eventView.getFieldNames();
 
     // TODO: deal with this
     // if (fields.length <= 0) {
@@ -211,6 +211,8 @@ class Table extends React.Component<TableProps> {
 
     const lastRowIndex = dataPayload.data.length - 1;
 
+    // TODO add links to the first column even if it isn't one of our
+    // preferred link columns (title, transaction, latest_event)
     const firstCellIndex = 0;
     const lastCellIndex = fields.length - 1;
 
@@ -346,4 +348,4 @@ const Container = styled('div')`
   overflow: hidden;
 `;
 
-export default withApi<Props>(Discover2Table);
+export default withApi<Props>(Table);

@@ -29,7 +29,7 @@ export type EventQuery = {
  */
 export function hasAggregateField(eventView: EventView): boolean {
   return eventView
-    .getFieldSnubaCols()
+    .getFieldNames()
     .some(
       field =>
         AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)
@@ -148,13 +148,28 @@ export function getFieldRenderer(
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
-  // Inflect the field name so it will match the property in the result set.
-  const fieldName = field.replace(/^([^\(]+)\(([a-z\._+]+)\)$/, '$1_$2');
+  const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+
+/**
+ * Get the alias that the API results will have for a given aggregate function name
+ */
+export function getAggregateAlias(field: string): string {
+  if (!field.match(AGGREGATE_PATTERN)) {
+    return field;
+  }
+  return field
+    .replace(AGGREGATE_PATTERN, '$1_$2')
+    .replace('.', '_')
+    .replace(/_+$/, '')
+    .toLowerCase();
 }
 
 /**

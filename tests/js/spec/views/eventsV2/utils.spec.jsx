@@ -1,4 +1,4 @@
-import {getEventTagSearchUrl} from 'app/views/organizationEventsV2/utils';
+import {getAggregateAlias, getEventTagSearchUrl} from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
   let location;
@@ -30,5 +30,23 @@ describe('eventTagSearchUrl()', function() {
       pathname: location.pathname,
       query: {query: 'failure browser:"firefox"'},
     });
+  });
+});
+
+describe('getAggregateAlias', function() {
+  it('no-ops simple fields', function() {
+    expect(getAggregateAlias('field')).toEqual('field');
+    expect(getAggregateAlias('under_field')).toEqual('under_field');
+  });
+
+  it('handles 0 arg functions', function() {
+    expect(getAggregateAlias('count()')).toEqual('count');
+    expect(getAggregateAlias('count_unique()')).toEqual('count_unique');
+  });
+
+  it('handles 1 arg functions', function() {
+    expect(getAggregateAlias('count(id)')).toEqual('count_id');
+    expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
+    expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
   });
 });

@@ -188,13 +188,7 @@ describe('OrganizationGeneralSettings', function() {
   it('shows require2fa switch w/ feature flag', async function() {
     const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({
-            features: ['require-2fa'],
-          }),
-        },
-      ])
+      TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});
@@ -210,13 +204,7 @@ describe('OrganizationGeneralSettings', function() {
     });
     const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({
-            features: ['require-2fa'],
-          }),
-        },
-      ])
+      TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});
@@ -244,13 +232,7 @@ describe('OrganizationGeneralSettings', function() {
 
     const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({
-            features: ['require-2fa'],
-          }),
-        },
-      ])
+      TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});
@@ -288,13 +270,7 @@ describe('OrganizationGeneralSettings', function() {
 
     const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({
-            features: ['require-2fa'],
-          }),
-        },
-      ])
+      TestStubs.routerContext()
     );
 
     wrapper.setState({loading: false});

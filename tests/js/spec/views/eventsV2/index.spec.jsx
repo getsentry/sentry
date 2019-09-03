@@ -1,20 +1,20 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {OrganizationEventsV2} from 'app/views/organizationEventsV2';
-import {encodeFields} from 'app/views/organizationEventsV2/eventView';
+import {EventsV2} from 'app/views/eventsV2';
+import {encodeFields} from 'app/views/eventsV2/eventView';
 
 const FIELDS = [
   {
-    snuba_column: 'title',
+    field: 'title',
     title: 'Custom Title',
   },
   {
-    snuba_column: 'timestamp',
+    field: 'timestamp',
     title: 'Custom Time',
   },
   {
-    snuba_column: 'user',
+    field: 'user',
     title: 'Custom User',
   },
 ];
@@ -23,7 +23,7 @@ const generateFields = () => {
   return encodeFields(FIELDS);
 };
 
-describe('OrganizationEventsV2', function() {
+describe('EventsV2', function() {
   const eventTitle = 'Oh no something bad';
   const features = ['events-v2'];
 
@@ -73,7 +73,7 @@ describe('OrganizationEventsV2', function() {
 
   it('renders a link list', function() {
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
         router={{}}
@@ -87,7 +87,7 @@ describe('OrganizationEventsV2', function() {
 
   it('renders a list of events', function() {
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {field: generateFields()}}}
         router={{}}
@@ -101,7 +101,7 @@ describe('OrganizationEventsV2', function() {
 
   it('handles no projects', function() {
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={TestStubs.Organization({features})}
         location={{query: {field: generateFields()}}}
         router={{}}
@@ -115,7 +115,7 @@ describe('OrganizationEventsV2', function() {
 
   it('generates an active sort link based on default sort', function() {
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {field: generateFields(), sort: ['-timestamp']}}}
         router={{}}
@@ -156,7 +156,7 @@ describe('OrganizationEventsV2', function() {
 
   it('generates links to modals', async function() {
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {field: generateFields()}}}
         router={{}}
@@ -177,7 +177,7 @@ describe('OrganizationEventsV2', function() {
       projects: [TestStubs.Project()],
     });
     const wrapper = mount(
-      <OrganizationEventsV2
+      <EventsV2
         organization={organization}
         params={{orgId: organization.slug}}
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}

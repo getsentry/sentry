@@ -74,7 +74,6 @@ default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
-default_manager.add("organizations:require-2fa", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sentry10", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
