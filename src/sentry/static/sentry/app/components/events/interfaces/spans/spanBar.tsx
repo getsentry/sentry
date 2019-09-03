@@ -6,7 +6,6 @@ import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
@@ -140,6 +139,27 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
 const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+
+const getDurationDisplay = ({
+  width,
+  left,
+}: {
+  width: undefined | number;
+  left: undefined | number;
+}) => {
+  const spaceNeeded = 0.3;
+
+  if (left === undefined || width === undefined) {
+    return 'inset';
+  }
+  if (left + width < 1 - spaceNeeded) {
+    return 'right';
+  }
+  if (left > spaceNeeded) {
+    return 'left';
+  }
+  return 'inset';
+};
 
 type SpanBarProps = {
   trace: Readonly<ParsedTraceType>;
@@ -585,21 +605,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   };
 
-  getDurationDisplay = ({width, left}) => {
-    const spaceNeeded = 0.3;
-
-    if (!defined(left) || !defined(width)) {
-      return 'inset';
-    }
-    if (left + width < 1 - spaceNeeded) {
-      return 'right';
-    }
-    if (left > spaceNeeded) {
-      return 'left';
-    }
-    return 'inset';
-  };
-
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
@@ -618,7 +623,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
 
-    const durationDisplay = this.getDurationDisplay(bounds);
+    const durationDisplay = getDurationDisplay(bounds);
 
     return (
       <SpanRowCellContainer>
@@ -690,22 +695,39 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 const getBackgroundColor = ({
   showStriping,
   showDetail,
+  theme,
 }: {
   showStriping?: boolean;
   showDetail?: boolean;
+  theme: any;
 }) => {
+  if (!theme) {
+    return 'white';
+  }
+
   if (showDetail) {
     return theme.offWhite2;
   }
   return showStriping ? theme.offWhite : 'white';
 };
 
-const SpanRowCell = styled('div')`
+type SpanRowCellProps = {
+  showStriping?: boolean;
+  showDetail?: boolean;
+};
+
+type SpanRowCellAndDivProps = Omit<
+  React.HTMLProps<HTMLDivElement>,
+  keyof SpanRowCellProps
+> &
+  SpanRowCellProps;
+
+const SpanRowCell = styled('div')<SpanRowCellAndDivProps>`
   position: absolute;
   padding: ${space(0.5)} 0;
   height: 100%;
   overflow: hidden;
-  background-color: ${getBackgroundColor};
+  background-color: ${p => getBackgroundColor(p)};
 `;
 
 const SpanRowCellContainer = styled('div')`
@@ -786,12 +808,12 @@ const SpanTreeTogglerContainer = styled('div')`
   justify-content: flex-end;
 `;
 
-const getTogglerTheme = ({isExpanded}) => {
+const getTogglerTheme = ({isExpanded, theme}) => {
   return isExpanded ? theme.button.default : theme.button.primary;
 };
 
-const getTogglerHoverTheme = ({isExpanded}) => {
-  return getTogglerTheme({isExpanded: !isExpanded});
+const getTogglerHoverTheme = ({isExpanded, theme}) => {
+  return getTogglerTheme({isExpanded: !isExpanded, theme});
 };
 
 type SpanTreeTogglerProps = {
