@@ -305,10 +305,7 @@ export type Repository = {
   url: string;
 };
 
-export enum WebhookEvents {
-  issue = 'issue',
-  error = 'error',
-}
+export type WebhookEvents = 'issue' | 'error';
 
 export type SentryApp = {
   status: string;

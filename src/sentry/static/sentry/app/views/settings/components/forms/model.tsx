@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import FormState from 'app/components/forms/state';
 
 type FieldValue = string | number;
+type SaveSnapshot = Function | null;
 
 // type FormOptions = any;
 type FormOptions = {
@@ -28,7 +29,6 @@ class FormModel {
   /**
    * Map of field name -> value
    */
-  // @observable fields = new Map();
   fields: ObservableMap<FieldValue> = observable.map();
 
   /**
@@ -75,8 +75,7 @@ class FormModel {
   options: FormOptions;
 
   constructor({initialData, ...options}: OptionsWithInitial = {}) {
-    this.options = options;
-    // this.setFormOptions(options);
+    this.options = options || {};
     if (initialData) {
       this.setInitialData(initialData);
     }
@@ -88,9 +87,7 @@ class FormModel {
    * Reset state of model
    */
   reset() {
-    if (this.api) {
-      this.api.clear();
-    }
+    this.api && this.api.clear();
     this.api = null;
     this.fieldDescriptor.clear();
     this.resetForm();
@@ -278,14 +275,18 @@ class FormModel {
   }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
+
     return new Promise((resolve, reject) => {
-      this.api &&
-        this.api.request(endpoint, {
-          method,
-          data,
-          success: response => resolve(response),
-          error: error => reject(error),
-        });
+      //should never happen but TS complains if we don't check
+      if (!this.api) {
+        return reject('Api not set');
+      }
+      return this.api.request(endpoint, {
+        method,
+        data,
+        success: response => resolve(response),
+        error: error => reject(error),
+      });
     });
   }
 
@@ -389,7 +390,7 @@ class FormModel {
     if (this.isError) {
       return null;
     }
-    let saveSnapshot: any = this.createSnapshot();
+    let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     const request = this.doApiRequest({
       data: this.getTransformedData(),
@@ -490,7 +491,7 @@ class FormModel {
     }
 
     // shallow clone fields
-    let saveSnapshot: any = this.createSnapshot();
+    let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     // Save field + value
     this.setSaving(id, true);

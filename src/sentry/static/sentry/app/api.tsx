@@ -232,8 +232,6 @@ export class Client {
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
 
-    console.log('data', data);
-
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
     }
