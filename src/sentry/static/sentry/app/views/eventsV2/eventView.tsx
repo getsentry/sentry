@@ -4,7 +4,7 @@ import {isString, pick} from 'lodash';
 import {EventViewv1} from 'app/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
-import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {MetaType, EventQuery, getAggregateAlias} from './utils';
 
 type Descending = {
@@ -224,36 +224,45 @@ class EventView {
     });
   }
 
-  generateQueryStringObject = (): Query => {
+  generateQueryStringObject(): Query {
     return {
       field: encodeFields(this.fields),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,
     };
-  };
+  }
 
-  isValid = (): boolean => {
+  isValid(): boolean {
     return this.fields.length > 0;
-  };
+  }
 
-  getFieldTitles = () => {
+  getFieldTitles(): string[] {
     return this.fields.map(field => {
       return field.title;
     });
-  };
+  }
 
-  getFieldNames = () => {
+  getFieldNames(): string[] {
     return this.fields.map(field => {
       return field.field;
     });
-  };
+  }
 
-  numOfColumns = (): number => {
+  hasAutolinkField(): boolean {
+    // If the field set contains no autolink fields,
+    // and the current field is not a special field,
+    // then it should be forced into a link.
+    return this.fields.some(field => {
+      return AUTOLINK_FIELDS.includes(field.field);
+    });
+  }
+
+  numOfColumns(): number {
     return this.fields.length;
-  };
+  }
 
-  getQuery = (inputQuery: string | string[] | null | undefined): string => {
+  getQuery(inputQuery: string | string[] | null | undefined): string {
     const queryParts: Array<string> = [];
 
     if (this.query) {
@@ -277,10 +286,10 @@ class EventView {
     }
 
     return queryParts.join(' ');
-  };
+  }
 
   // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload = (location: Location): EventQuery => {
+  getEventsAPIPayload(location: Location): EventQuery {
     const query = location.query || {};
 
     type LocationQuery = {
@@ -321,17 +330,17 @@ class EventView {
     }
 
     return eventQuery;
-  };
+  }
 
-  getDefaultSort = (): string | undefined => {
+  getDefaultSort(): string | undefined {
     if (this.sorts.length <= 0) {
       return void 0;
     }
 
     return encodeSort(this.sorts[0]);
-  };
+  }
 
-  getSortKey = (fieldname: string, meta: MetaType): string | null => {
+  getSortKey(fieldname: string, meta: MetaType): string | null {
     const column = getAggregateAlias(fieldname);
     if (SPECIAL_FIELDS.hasOwnProperty(column)) {
       return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
@@ -344,7 +353,7 @@ class EventView {
     }
 
     return null;
-  };
+  }
 }
 
 export default EventView;
