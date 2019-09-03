@@ -56,7 +56,9 @@ def _create_consumer(consumer_group, consumer_type, settings):
     return kafka.Consumer(consumer_configuration)
 
 
-def run_pre_process_forwarder(commit_batch_size, consumer_group, consumer_type):
+def run_pre_process_forwarder(
+    commit_batch_size, consumer_group, consumer_type, max_batch_time_seconds
+):
     """
     Entry point for pre_process_forwarder, injects dependencies in the internal runner (so that the
     internal runner can be easily tested)
@@ -65,13 +67,19 @@ def run_pre_process_forwarder(commit_batch_size, consumer_group, consumer_type):
         commit_batch_size,
         consumer_group,
         consumer_type,
+        max_batch_time_seconds=max_batch_time_seconds,
         settings=settings,  # by default use the project settings
         is_shutdown_requested=lambda: False,  # by default run forever (or until keyboard interrupt)
     )
 
 
 def _run_pre_process_forwarder_internal(
-    commit_batch_size, consumer_group, consumer_type, settings, is_shutdown_requested
+    commit_batch_size,
+    consumer_group,
+    consumer_type,
+    max_batch_time_seconds,
+    settings,
+    is_shutdown_requested,
 ):
     """
     Does the pre process forwarder job
@@ -84,7 +92,9 @@ def _run_pre_process_forwarder_internal(
     try:
         while not (is_shutdown_requested()):
             # get up to commit_batch_size messages
-            messages = consumer.consume(num_messages=commit_batch_size, timeout=0.1)
+            messages = consumer.consume(
+                num_messages=commit_batch_size, timeout=max_batch_time_seconds
+            )
 
             for message in messages:
                 message_error = message.error()

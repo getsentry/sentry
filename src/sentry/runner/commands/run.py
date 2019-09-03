@@ -375,6 +375,13 @@ def query_subscription_consumer(**options):
     type=int,
     help="How many messages to process before committing offsets.",
 )
+@click.option(
+    "--max-batch-time-ms",
+    default=100,
+    type=int,
+    help="Timeout (in milliseconds) for a consume batch operation. Max time the kafka consumer will wait"
+    "before returning the available messages in the topic.",
+)
 @configuration
 def pre_process_forwarder(**options):
     """
@@ -393,8 +400,11 @@ def pre_process_forwarder(**options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
+    max_batch_time_seconds = options["max-batch-time-ms"] / 1000
+
     run_pre_process_forwarder(
         commit_batch_size=options["commit_batch_size"],
         consumer_group=options["group"],
         consumer_type=consumer_type,
+        max_batch_time_seconds=max_batch_time_seconds,
     )

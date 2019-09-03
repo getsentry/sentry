@@ -97,6 +97,7 @@ def test_pre_process_forwarder_reads_from_topic_and_calls_celery_task(
             consumer_group=consumer_group,
             consumer_type=ConsumerType.Events,
             settings=kafka_settings,
+            max_batch_time_seconds=0.1,
             is_shutdown_requested=_shutdown_requested(max_secs=10, num_events=3),
         )
 
