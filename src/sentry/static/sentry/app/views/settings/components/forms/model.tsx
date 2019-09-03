@@ -273,7 +273,7 @@ class FormModel {
     data,
   }: {
     apiEndpoint?: string;
-    apiMethod?: string;
+    apiMethod?: APIRequestMethod;
     data: object;
   }) {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
