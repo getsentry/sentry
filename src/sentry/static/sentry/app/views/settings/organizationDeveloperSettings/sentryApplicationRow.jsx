@@ -101,7 +101,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  renderPublishRequest(app) {
+  renderPublishRequest() {
     return (
       <StyledButton icon="icon-upgrade" size="small" onClick={this.openPublishAppModal}>
         {t('Publish')}
@@ -232,7 +232,6 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   render() {
     const {app, organization} = this.props;
-
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
