@@ -794,7 +794,17 @@ const getTogglerHoverTheme = ({isExpanded}) => {
   return getTogglerTheme({isExpanded: !isExpanded});
 };
 
-const SpanTreeToggler = styled.div<{isExpanded: boolean}>`
+type SpanTreeTogglerProps = {
+  isExpanded: boolean;
+};
+
+type SpanTreeTogglerAndDivProps = Omit<
+  React.HTMLProps<HTMLDivElement>,
+  keyof SpanTreeTogglerProps
+> &
+  SpanTreeTogglerProps;
+
+const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;
   height: 15px;
   min-width: 25px;
