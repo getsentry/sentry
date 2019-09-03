@@ -18,6 +18,7 @@ type Props = {
   isInverted: boolean;
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
+  maxValue?: number;
 };
 
 type State = {
