@@ -311,7 +311,7 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        index_together = (("project", "first_release"),)
+        index_together = [("project", "first_release"), ("project", "id")]
         unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
