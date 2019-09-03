@@ -286,17 +286,15 @@ const HomePanelBody = styled(PanelBody)`
   }
 `;
 
-const getHomeIconMargin = css`
-  margin-bottom: 20px;
-`;
-
 const HomeIcon = styled('div')<{color?: string}>`
   background: ${p => p.theme[p.color || 'gray2']};
   color: #fff;
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;
   border-radius: ${HOME_ICON_SIZE}px;
-  ${getHomeIconMargin} > svg {
+  margin-bottom: 20px;
+
+  ${InlineSvg} {
     margin-top: 14px;
   }
 `;
