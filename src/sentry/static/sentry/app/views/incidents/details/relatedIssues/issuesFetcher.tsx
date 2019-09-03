@@ -1,13 +1,22 @@
-import PropTypes from 'prop-types';
+import {Client} from 'app/api';
+import {Group} from 'app/types';
 import React from 'react';
 
-class IssuesFetcher extends React.PureComponent {
-  static propTypes = {
-    api: PropTypes.object,
-    issueIds: PropTypes.arrayOf(PropTypes.string),
-  };
+type State = {
+  loading: boolean;
+  issues: null | Group[];
+  error: null | Error;
+};
 
-  state = {
+type Props = {
+  api: Client;
+  // If issueIds is not defined, then we are in loading state
+  issueIds?: string[];
+  children: (renderProps: State) => React.ReactNode;
+};
+
+class IssuesFetcher extends React.PureComponent<Props, State> {
+  state: State = {
     loading: true,
     issues: null,
     error: null,
@@ -17,7 +26,7 @@ class IssuesFetcher extends React.PureComponent {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.issueIds !== this.props.issueIds) {
       this.fetchData();
     }
@@ -26,11 +35,11 @@ class IssuesFetcher extends React.PureComponent {
   fetchData = async () => {
     const {api, issueIds} = this.props;
 
+    this.setState({loading: true});
+
     if (!issueIds) {
       return;
     }
-
-    this.setState({loading: true});
 
     try {
       const issues = await Promise.all(
@@ -51,7 +60,7 @@ class IssuesFetcher extends React.PureComponent {
   }
 }
 
-function findIssueById(api, issueId) {
+function findIssueById(api: Client, issueId: string) {
   return api.requestPromise(`/issues/${issueId}/`);
 }
 
