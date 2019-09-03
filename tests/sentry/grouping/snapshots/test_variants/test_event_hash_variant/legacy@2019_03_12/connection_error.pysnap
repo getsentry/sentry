@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.889789Z'
+created: '2019-09-03T07:26:07.121298Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,9 +16,9 @@ app:
               u'sentry/utils/safe.py'
             context-line*
               u'            result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               31
           frame*
             module*
@@ -27,9 +27,9 @@ app:
               u'sentry/utils/services.py'
             context-line*
               u'                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'<lambda>'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
@@ -38,9 +38,9 @@ app:
               u'getsentry/quotas.py'
             context-line*
               u'        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               136
           frame*
             module*
@@ -49,9 +49,9 @@ app:
               u'sentry/quotas/redis.py'
             context-line*
               u'        rejections = is_rate_limited(client, keys, args)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               189
           frame*
             module*
@@ -60,9 +60,9 @@ app:
               u'sentry/utils/redis.py'
             context-line*
               u'        return script(keys, args, client)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'call_script'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               239
           frame (non app frame)
             module*
@@ -71,9 +71,9 @@ app:
               u'redis/client.py'
             context-line*
               u'            return client.evalsha(self.sha, len(keys), *args)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'__call__'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               2694
           frame (non app frame)
             module*
@@ -82,9 +82,9 @@ app:
               u'redis/client.py'
             context-line*
               u"        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'evalsha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1944
           frame (non app frame)
             module*
@@ -93,9 +93,9 @@ app:
               u'redis/client.py'
             context-line*
               u'            return self.parse_response(connection, command_name, **options)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'execute_command'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               579
           frame (non app frame)
             module*
@@ -104,9 +104,9 @@ app:
               u'redis/client.py'
             context-line*
               u'        response = connection.read_response()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'parse_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               585
           frame (non app frame)
             module*
@@ -115,9 +115,9 @@ app:
               u'redis/connection.py'
             context-line*
               u'            response = self._parser.read_response()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'read_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               577
           frame (non app frame)
             module*
@@ -126,9 +126,9 @@ app:
               u'redis/connection.py'
             context-line*
               u'                                      (e.args,))'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'read_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               357
         type*
           u'ConnectionError'
@@ -155,9 +155,9 @@ system:
               u'sentry/utils/safe.py'
             context-line*
               u'            result = func(*args, **kwargs)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'safe_execute'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               31
           frame*
             module*
@@ -166,9 +166,9 @@ system:
               u'sentry/utils/services.py'
             context-line*
               u'                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'<lambda>'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               91
           frame*
             module*
@@ -177,9 +177,9 @@ system:
               u'getsentry/quotas.py'
             context-line*
               u'        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               136
           frame*
             module*
@@ -188,9 +188,9 @@ system:
               u'sentry/quotas/redis.py'
             context-line*
               u'        rejections = is_rate_limited(client, keys, args)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'is_rate_limited'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               189
           frame*
             module*
@@ -199,9 +199,9 @@ system:
               u'sentry/utils/redis.py'
             context-line*
               u'        return script(keys, args, client)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'call_script'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               239
           frame*
             module*
@@ -210,9 +210,9 @@ system:
               u'redis/client.py'
             context-line*
               u'            return client.evalsha(self.sha, len(keys), *args)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'__call__'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               2694
           frame*
             module*
@@ -221,9 +221,9 @@ system:
               u'redis/client.py'
             context-line*
               u"        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'evalsha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1944
           frame*
             module*
@@ -232,9 +232,9 @@ system:
               u'redis/client.py'
             context-line*
               u'            return self.parse_response(connection, command_name, **options)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'execute_command'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               579
           frame*
             module*
@@ -243,9 +243,9 @@ system:
               u'redis/client.py'
             context-line*
               u'        response = connection.read_response()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'parse_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               585
           frame*
             module*
@@ -254,9 +254,9 @@ system:
               u'redis/connection.py'
             context-line*
               u'            response = self._parser.read_response()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'read_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               577
           frame*
             module*
@@ -265,9 +265,9 @@ system:
               u'redis/connection.py'
             context-line*
               u'                                      (e.args,))'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'read_response'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               357
         type*
           u'ConnectionError'

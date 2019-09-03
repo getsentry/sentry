@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:44:34.467623Z'
+created: '2019-09-03T07:26:07.657855Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -55,7 +55,7 @@ app:
           frame (frame considered in-app because no frame is in-app)
             filename (anonymous filename discarded)
               u'<anonymous>'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Array.map'
           frame* (frame considered in-app because no frame is in-app)
             module*
@@ -148,7 +148,7 @@ system:
           frame
             filename (anonymous filename discarded)
               u'<anonymous>'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Array.map'
           frame*
             module*
