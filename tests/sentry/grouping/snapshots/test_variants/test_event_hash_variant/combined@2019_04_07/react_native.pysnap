@@ -1,5 +1,5 @@
 ---
-created: '2019-04-09T18:49:35.213236Z'
+created: '2019-09-03T07:26:06.668409Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -16,9 +16,9 @@ app:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    return this.flushedQueue();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'value'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               119
           frame (non app frame)
             module*
@@ -27,9 +27,9 @@ app:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'      this._inCall--;'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'flushedQueue'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               318
           frame (non app frame)
             module*
@@ -38,9 +38,9 @@ app:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    return this.flushedQueue();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_inCall'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               119
           frame (non app frame)
             module*
@@ -49,9 +49,9 @@ app:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    this._lastFlush = new Date().getTime();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'flushedQueue'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               357
           frame (non app frame)
             module*
@@ -60,9 +60,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'      _receiveRootNodeIDEvent(index, eventTopLevelType, i);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_lastFlush'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1160
           frame (non app frame)
             module*
@@ -71,9 +71,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  batchedUpdates(function() {'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_receiveRootNodeIDEvent'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1095
           frame (non app frame)
             module*
@@ -82,9 +82,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    return _batchedUpdates(fn, bookkeeping);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'batchedUpdates'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1054
           frame (non app frame)
             module*
@@ -93,9 +93,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'        return fn(a);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_batchedUpdates'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               5928
           frame (non app frame)
             module*
@@ -104,9 +104,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fn'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1113
           frame (non app frame)
             module*
@@ -115,12 +115,12 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'forEachAccumulated'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               219
           frame (non app frame)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'[native code] forEach'
           frame (non app frame)
             module*
@@ -129,9 +129,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'        executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'D'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               235
           frame (non app frame)
             module*
@@ -140,9 +140,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'executeDispatch'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               181
           frame (non app frame)
             module*
@@ -151,9 +151,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'invokeGuardedCallbackAndCatchFirstError'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               54
           frame (non app frame)
             module*
@@ -162,9 +162,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'apply'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               41
           frame (non app frame)
             module*
@@ -173,9 +173,9 @@ app:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  var funcArgs = Array.prototype.slice.call(arguments, 3);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'apply'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               28
           frame (non app frame)
             module*
@@ -184,9 +184,9 @@ app:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'  touchableHandleResponderRelease: function(e) {'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'arguments'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               430
           frame (non app frame)
             module*
@@ -195,9 +195,9 @@ app:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'      this._performSideEffectsForTransition(curState, nextState, signal, e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_receiveSignal'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               662
           frame (non app frame)
             module*
@@ -206,9 +206,9 @@ app:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'        this.touchableHandlePress(e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_performSideEffectsForTransition'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               744
           frame (non app frame)
             module*
@@ -217,9 +217,9 @@ app:
               u'node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js'
             context-line*
               u'    this.props.onPress && this.props.onPress(e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'this'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               175
           frame*
             module*
@@ -228,9 +228,9 @@ app:
               u'App.js'
             context-line*
               u'        <Button'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'onPress'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               143
           frame*
             module*
@@ -239,9 +239,9 @@ app:
               u'App.js'
             context-line*
               u'        <Button'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Button'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               115
         type*
           u'TypeError'
@@ -261,9 +261,9 @@ system:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    return this.flushedQueue();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'value'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               119
           frame*
             module*
@@ -272,9 +272,9 @@ system:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'      this._inCall--;'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'flushedQueue'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               318
           frame*
             module*
@@ -283,9 +283,9 @@ system:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    return this.flushedQueue();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_inCall'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               119
           frame*
             module*
@@ -294,9 +294,9 @@ system:
               u'node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js'
             context-line*
               u'    this._lastFlush = new Date().getTime();'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'flushedQueue'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               357
           frame*
             module*
@@ -305,9 +305,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'      _receiveRootNodeIDEvent(index, eventTopLevelType, i);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_lastFlush'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1160
           frame*
             module*
@@ -316,9 +316,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  batchedUpdates(function() {'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_receiveRootNodeIDEvent'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1095
           frame*
             module*
@@ -327,9 +327,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    return _batchedUpdates(fn, bookkeeping);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'batchedUpdates'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1054
           frame*
             module*
@@ -338,9 +338,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'        return fn(a);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_batchedUpdates'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               5928
           frame*
             module*
@@ -349,9 +349,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'      (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'fn'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               1113
           frame*
             module*
@@ -360,12 +360,12 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'forEachAccumulated'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               219
           frame
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'[native code] forEach'
           frame*
             module*
@@ -374,9 +374,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'        executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'D'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               235
           frame*
             module*
@@ -385,9 +385,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'executeDispatch'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               181
           frame*
             module*
@@ -396,9 +396,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'invokeGuardedCallbackAndCatchFirstError'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               54
           frame*
             module*
@@ -407,9 +407,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'    invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'apply'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               41
           frame*
             module*
@@ -418,9 +418,9 @@ system:
               u'node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js'
             context-line*
               u'  var funcArgs = Array.prototype.slice.call(arguments, 3);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'apply'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               28
           frame*
             module*
@@ -429,9 +429,9 @@ system:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'  touchableHandleResponderRelease: function(e) {'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'arguments'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               430
           frame*
             module*
@@ -440,9 +440,9 @@ system:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'      this._performSideEffectsForTransition(curState, nextState, signal, e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_receiveSignal'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               662
           frame*
             module*
@@ -451,9 +451,9 @@ system:
               u'node_modules/react-native/Libraries/Components/Touchable/Touchable.js'
             context-line*
               u'        this.touchableHandlePress(e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'_performSideEffectsForTransition'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               744
           frame*
             module*
@@ -462,9 +462,9 @@ system:
               u'node_modules/react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android.js'
             context-line*
               u'    this.props.onPress && this.props.onPress(e);'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'this'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               175
           frame*
             module*
@@ -473,9 +473,9 @@ system:
               u'App.js'
             context-line*
               u'        <Button'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'onPress'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               143
           frame*
             module*
@@ -484,9 +484,9 @@ system:
               u'App.js'
             context-line*
               u'        <Button'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Button'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               115
         type*
           u'TypeError'

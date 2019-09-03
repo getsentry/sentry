@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.853169Z'
+created: '2019-09-03T07:26:07.084393Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,10 +10,10 @@ app:
       exception*
         stacktrace*
           frame
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'__pthread_start'
           frame
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'__pthread_body'
           frame (non app frame)
             filename*
@@ -552,10 +552,10 @@ system:
       exception*
         stacktrace*
           frame
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'__pthread_start'
           frame
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'__pthread_body'
           frame*
             filename*
