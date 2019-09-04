@@ -14,19 +14,13 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import space from 'app/styles/space';
 
 class PublishRequestFormModel extends FormModel {
-  modal: SentryAppPublishRequestModal;
-
-  constructor(modal, ...args) {
-    super(...args);
-    this.modal = modal;
-  }
-
   getTransformedData() {
     const data = this.getData();
     //map object to list of questions
-    const questionnaire = this.modal.formFields.map(field => {
+    const questionnaire = Array.from(this.fieldDescriptor.values()).map(field => {
+      //we read the meta for the question that has a react node for the label
       return {
-        question: field.label,
+        question: field.meta || field.label,
         answer: data[field.name],
       };
     });
@@ -45,19 +39,21 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     app: PropTypes.object.isRequired,
   };
 
-  form = new PublishRequestFormModel(this);
+  form = new PublishRequestFormModel();
 
   get formFields() {
     const {app} = this.props;
-    // const wrappedScopes = app.scopes.map(scope => `<code>${scope}</code>`);
     //replace the : with a . so we can reserve the colon for the question
     const scopes = app.scopes.map(scope => scope.replace(/:/, '-'));
+    const scopeQuestionBaseText =
+      'Please justify why you are requesting each of the following scopes: ';
+    const scopeQuestionPlainText = `${scopeQuestionBaseText}${scopes.join(', ')}.`;
 
     const scopeLabel = (
       <span>
-        Please justify why you are requesting each of the following scopes:{' '}
+        {scopeQuestionBaseText}
         {scopes.map((scope, i) => (
-          <React.Fragment>
+          <React.Fragment key={i}>
             {i > 0 && ', '} <code>{scope}</code>
           </React.Fragment>
         ))}
@@ -72,6 +68,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         required: true,
         label: 'What does your integration do? Please be as detailed as possible.',
         autosize: true,
+        rows: 1,
         inline: false,
       },
       {
@@ -79,6 +76,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         required: true,
         label: 'What value does it offer customers?',
         autosize: true,
+        rows: 1,
         inline: false,
       },
       {
@@ -86,13 +84,16 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         required: true,
         label: scopeLabel,
         autosize: true,
+        rows: 1,
         inline: false,
+        meta: scopeQuestionPlainText,
       },
       {
         type: 'textarea',
         required: true,
         label: 'Do you operate the web service your integration communicates with?',
         autosize: true,
+        rows: 1,
         inline: false,
       },
     ];
