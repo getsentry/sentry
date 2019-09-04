@@ -6,6 +6,7 @@ import {find, flatMap} from 'lodash';
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
 import SelectField from 'app/views/settings/components/forms/selectField';
+import {Permissions} from 'app/types/index';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -76,7 +77,21 @@ import SelectField from 'app/views/settings/components/forms/selectField';
  *       ['project:read', 'project:write', 'project:admin', 'org:read', 'org:write']
  *
  */
-export default class PermissionSelection extends React.Component {
+
+type PermissionSelectionProps = {
+  permissions: Permissions;
+  onChange: Function;
+  appPublished: Boolean;
+};
+
+type PermissionSelectionState = {
+  permissions: Permissions;
+};
+
+export default class PermissionSelection extends React.Component<
+  PermissionSelectionProps,
+  PermissionSelectionState
+> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -85,10 +100,11 @@ export default class PermissionSelection extends React.Component {
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
+    appPublished: PropTypes.bool,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
     this.state = {
       permissions: this.props.permissions,
     };
@@ -105,10 +121,10 @@ export default class PermissionSelection extends React.Component {
     const {permissions} = this.state;
     const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
 
-    return flatMap(
-      Object.entries(permissions),
-      ([r, p]) => findResource(r).choices[p].scopes
-    );
+    return flatMap(Object.entries(permissions), ([r, p]) => {
+      const resource = findResource(r);
+      return resource && resource.choices[p as string].scopes;
+    });
   }
 
   onChange = (resource, choice) => {
@@ -118,8 +134,10 @@ export default class PermissionSelection extends React.Component {
   };
 
   save = permissions => {
+    console.log('permissions', permissions);
     this.setState({permissions});
     this.props.onChange(permissions);
+    console.log('list', this.permissionStateToList());
     this.context.form.setValue('scopes', this.permissionStateToList());
   };
 
@@ -147,6 +165,8 @@ export default class PermissionSelection extends React.Component {
               onChange={this.onChange.bind(this, config.resource)}
               value={value}
               defaultValue={value}
+              disabled={this.props.appPublished}
+              disabledReason="Cannot update scopes on a published integration"
             />
           );
         })}

@@ -63,7 +63,7 @@ class Updater(Mediator):
     @if_param("scopes")
     def _update_scopes(self):
         if self.sentry_app.status == SentryAppStatus.PUBLISHED:
-            raise APIError("Cannot update scopes on published App.")
+            raise APIError("Cannot update scopes on a published integration.")
         self.sentry_app.scope_list = self.scopes
 
     @if_param("events")

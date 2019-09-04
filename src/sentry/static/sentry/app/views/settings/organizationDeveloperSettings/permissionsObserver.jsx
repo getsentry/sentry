@@ -17,10 +17,12 @@ export default class PermissionsObserver extends React.Component {
     scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
     events: PropTypes.arrayOf(PropTypes.string).isRequired,
     webhookDisabled: PropTypes.bool.isRequired,
+    appPublished: PropTypes.bool.isRequired,
   };
 
   static defaultProps = {
     webhookDisabled: false,
+    appPublished: false,
   };
 
   constructor(...args) {
@@ -63,6 +65,7 @@ export default class PermissionsObserver extends React.Component {
             <PermissionSelection
               permissions={permissions}
               onChange={this.onPermissionChange}
+              appPublished={this.props.appPublished}
             />
           </PanelBody>
         </Panel>

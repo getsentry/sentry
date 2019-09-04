@@ -2,8 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
+import _ from 'lodash';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -97,10 +98,19 @@ export default class SentryApplicationDetails extends AsyncView {
     return events.map(e => e.split('.').shift());
   }
 
-  onSubmitSuccess = data => {
+  handleSubmitSuccess = data => {
     const {orgId} = this.props.params;
     addSuccessMessage(t(`${data.name} successfully saved.`));
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
+  };
+
+  handleSubmitError = err => {
+    console.log('err', err);
+    let errorMessage = 'Unknown Error';
+    if (err.status >= 400 && err.status < 500) {
+      errorMessage = _.get(err, 'responseJSON.detail', errorMessage);
+    }
+    addErrorMessage(t(errorMessage));
   };
 
   get isInternal() {
@@ -210,7 +220,8 @@ export default class SentryApplicationDetails extends AsyncView {
             verifyInstall, //need to overwrite the value in app for internal if it is true
           }}
           model={this.form}
-          onSubmitSuccess={this.onSubmitSuccess}
+          onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={this.handleSubmitError}
           onFieldChange={this.onFieldChange}
         >
           <Observer>
@@ -227,6 +238,7 @@ export default class SentryApplicationDetails extends AsyncView {
 
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
+                    appPublished={app.status === 'published'}
                     scopes={scopes}
                     events={events}
                   />
