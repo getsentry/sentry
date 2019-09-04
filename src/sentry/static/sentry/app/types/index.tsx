@@ -1,4 +1,5 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {API_SCOPES} from 'app/constants';
 
 export type Organization = {
   id: string;
@@ -336,18 +337,20 @@ export type Repository = {
   url: string;
 };
 
-export type WebhookEvents = 'issue' | 'error';
+export type WebhookEvent = 'issue' | 'error';
+
+export type Scope = typeof API_SCOPES[number];
 
 export type SentryApp = {
   status: string;
-  scopes: string[];
+  scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
   slug: string;
   name: string;
   uuid: string;
   author: string;
-  events: WebhookEvents[];
+  events: WebhookEvent[];
   schema: {
     elements?: object[]; //TODO(ts)
   };
@@ -373,4 +376,19 @@ export type Permissions = {
   Project: PermissionValue;
   Release: PermissionValue;
   Team: PermissionValue;
+};
+
+//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+type BaseApiToken = {
+  id: string;
+  scopes: Scope[];
+  expiresAt: string;
+  dateCreated: string;
+  state: string;
+};
+
+export type ApiTokenNoApp = BaseApiToken & {
+  application: null;
+  token: string;
+  refreshToken: string;
 };

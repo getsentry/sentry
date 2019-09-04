@@ -6,18 +6,18 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
-import {WebhookEvents, Permissions} from 'app/types';
+import {WebhookEvent, Permissions, Scope} from 'app/types';
 
 type Props = {
-  scopes: string[];
-  events: WebhookEvents[];
+  scopes: Scope[];
+  events: WebhookEvent[];
   webhookDisabled: boolean;
   appPublished: boolean;
 };
 
 type State = {
   permissions: Permissions;
-  events: WebhookEvents[];
+  events: WebhookEvent[];
 };
 
 export default class PermissionsObserver extends React.Component<Props, State> {
