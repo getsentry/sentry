@@ -1,10 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
-from django.utils import timezone
-import pytz
-from mock import patch
-
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -35,9 +30,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events empty state")
 
-    @patch("django.utils.timezone.now")
-    def test_all_events(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    def test_all_events(self):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
@@ -55,9 +48,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
 
-    @patch("django.utils.timezone.now")
-    def test_errors(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    def test_errors(self):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
@@ -95,9 +86,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
-    @patch("django.utils.timezone.now")
-    def test_modal_from_all_events(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    def test_modal_from_all_events(self):
         min_ago = iso_format(before_now(minutes=1))
 
         event_data = load_data("python")
@@ -131,16 +120,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("events-v2 - single error modal")
 
-    @patch("django.utils.timezone.now")
-    def test_modal_from_errors_view(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-
+    def test_modal_from_errors_view(self):
         event_source = (("a", 1), ("b", 39), ("c", 69))
         event_ids = []
         event_data = load_data("javascript")
         event_data["fingerprint"] = ["group-1"]
         for id_prefix, offset in event_source:
-            event_time = iso_format(timezone.now() - timedelta(minutes=offset))
+            event_time = iso_format(before_now(minutes=offset))
             event_data.update(
                 {
                     "timestamp": event_time,
