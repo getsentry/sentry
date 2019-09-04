@@ -45,7 +45,7 @@ class nooplogger(object):
 
 
 def _get_size_and_checksum(fileobj, logger=nooplogger):
-    logger.info("_get_size_and_checksum.start")
+    logger.debug("_get_size_and_checksum.start")
     size = 0
     checksum = sha1()
     while True:
@@ -55,23 +55,23 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
         size += len(chunk)
         checksum.update(chunk)
 
-    logger.info("_get_size_and_checksum.end")
+    logger.debug("_get_size_and_checksum.end")
     return size, checksum.hexdigest()
 
 
 @contextmanager
 def _locked_blob(checksum, logger=nooplogger):
-    logger.info("_locked_blob.start", extra={"checksum": checksum})
+    logger.debug("_locked_blob.start", extra={"checksum": checksum})
     lock = locks.get(u"fileblob:upload:{}".format(checksum), duration=UPLOAD_RETRY_TIME)
     with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
-        logger.info("_locked_blob.acquired", extra={"checksum": checksum})
+        logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
         try:
             existing = FileBlob.objects.get(checksum=checksum)
         except FileBlob.DoesNotExist:
             existing = None
         yield existing
-    logger.info("_locked_blob.end", extra={"checksum": checksum})
+    logger.debug("_locked_blob.end", extra={"checksum": checksum})
 
 
 class AssembleChecksumMismatch(Exception):
@@ -114,7 +114,7 @@ class FileBlob(Model):
 
         If the checksums mismatch an `IOError` is raised.
         """
-        logger.info("FileBlob.from_files.start")
+        logger.debug("FileBlob.from_files.start")
 
         files_with_checksums = []
         for fileobj in files:
@@ -130,7 +130,7 @@ class FileBlob(Model):
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
         def _upload_and_pend_chunk(fileobj, size, checksum, lock):
-            logger.info(
+            logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.start",
                 extra={"checksum": checksum, "size": size},
             )
@@ -140,7 +140,7 @@ class FileBlob(Model):
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
             metrics.timing("filestore.blob-size", size, tags={"function": "from_files"})
-            logger.info(
+            logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.end",
                 extra={"checksum": checksum, "path": blob.path},
             )
@@ -155,10 +155,10 @@ class FileBlob(Model):
                 pass
 
         def _save_blob(blob):
-            logger.info("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
+            logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
             blob.save()
             _ensure_blob_owned(blob)
-            logger.info("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
+            logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
         def _flush_blobs():
             while True:
@@ -175,7 +175,7 @@ class FileBlob(Model):
         try:
             with ThreadPoolExecutor(max_workers=MULTI_BLOB_UPLOAD_CONCURRENCY) as exe:
                 for fileobj, reference_checksum in files_with_checksums:
-                    logger.info(
+                    logger.debug(
                         "FileBlob.from_files.executor_start", extra={"checksum": reference_checksum}
                     )
                     _flush_blobs()
@@ -214,7 +214,7 @@ class FileBlob(Model):
                     # blobs and associate them with the database.
                     semaphore.acquire()
                     exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
-                    logger.info("FileBlob.from_files.end", extra={"checksum": reference_checksum})
+                    logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
 
             _flush_blobs()
         finally:
@@ -223,14 +223,14 @@ class FileBlob(Model):
                     lock.__exit__(None, None, None)
                 except Exception:
                     pass
-            logger.info("FileBlob.from_files.end")
+            logger.debug("FileBlob.from_files.end")
 
     @classmethod
     def from_file(cls, fileobj, logger=nooplogger):
         """
         Retrieve a single FileBlob instances for the given file.
         """
-        logger.info("FileBlob.from_file.start")
+        logger.debug("FileBlob.from_file.start")
 
         size, checksum = _get_size_and_checksum(fileobj)
 
@@ -247,7 +247,7 @@ class FileBlob(Model):
             blob.save()
 
         metrics.timing("filestore.blob-size", size)
-        logger.info("FileBlob.from_file.end")
+        logger.debug("FileBlob.from_file.end")
         return blob
 
     @classmethod
