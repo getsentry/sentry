@@ -50,15 +50,15 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     const scopeQuestionPlainText = `${scopeQuestionBaseText}${scopes.join(', ')}.`;
 
     const scopeLabel = (
-      <span>
+      <React.Fragment>
         {scopeQuestionBaseText}
         {scopes.map((scope, i) => (
-          <React.Fragment key={i}>
+          <React.Fragment key={scope}>
             {i > 0 && ', '} <code>{scope}</code>
           </React.Fragment>
         ))}
         .
-      </span>
+      </React.Fragment>
     );
 
     //No translations since we need to be able to read this email :)
