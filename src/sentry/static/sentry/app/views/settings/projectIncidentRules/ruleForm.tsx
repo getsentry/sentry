@@ -416,6 +416,7 @@ class RuleForm extends React.Component<Props, State> {
                                   {({onChange, onBlur, onKeyDown}) => {
                                     return (
                                       <SearchBar
+                                        useFormWrapper={false}
                                         organization={organization}
                                         onChange={onChange}
                                         onBlur={onBlur}
