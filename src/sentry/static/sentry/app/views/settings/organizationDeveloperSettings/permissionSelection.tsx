@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {find, flatMap} from 'lodash';
+import {find, flatMap, get} from 'lodash';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
@@ -78,20 +78,17 @@ import {Permissions} from 'app/types/index';
  *
  */
 
-type PermissionSelectionProps = {
+type Props = {
   permissions: Permissions;
-  onChange: Function;
+  onChange: (permissions: Permissions) => void;
   appPublished: Boolean;
 };
 
-type PermissionSelectionState = {
+type State = {
   permissions: Permissions;
 };
 
-export default class PermissionSelection extends React.Component<
-  PermissionSelectionProps,
-  PermissionSelectionState
-> {
+export default class PermissionSelection extends React.Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -120,11 +117,9 @@ export default class PermissionSelection extends React.Component<
   permissionStateToList() {
     const {permissions} = this.state;
     const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
-
-    return flatMap(Object.entries(permissions), ([r, p]) => {
-      const resource = findResource(r);
-      return resource && resource.choices[p as string].scopes;
-    });
+    return flatMap(Object.entries(permissions), ([r, p]) =>
+      get(findResource(r), `choices[${p}].scopes`)
+    );
   }
 
   onChange = (resource, choice) => {
@@ -134,10 +129,8 @@ export default class PermissionSelection extends React.Component<
   };
 
   save = permissions => {
-    console.log('permissions', permissions);
     this.setState({permissions});
     this.props.onChange(permissions);
-    console.log('list', this.permissionStateToList());
     this.context.form.setValue('scopes', this.permissionStateToList());
   };
 
