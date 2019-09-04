@@ -149,7 +149,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
   }
 }
 
-const Explanation = styled.div`
-  margin: ${space(1.5)};
+const Explanation = styled('div')`
+  margin: ${space(1.5)} 0px;
   font-size: 18px;
 `;
