@@ -7,20 +7,24 @@ import {defined} from 'app/utils';
 import {t} from 'app/locale';
 import FormState from 'app/components/forms/state';
 
-type FieldValue = string | number;
-type SaveSnapshot = Function | null;
+type Snapshot = Map<string, FieldValue>;
+type FieldValue = string | number | undefined; //is undefined valid here?
+type SaveSnapshot = (() => number) | null;
 
-// type FormOptions = any;
 type FormOptions = {
   apiEndpoint?: string;
   apiMethod?: APIRequestMethod;
   allowUndo?: boolean;
   resetOnError?: boolean;
   saveOnBlur?: boolean;
-  // onFieldChange?: (id: string, finalValue: FieldValue) => void;
-  onFieldChange?: Function;
-  onSubmitSuccess?: Function;
-  onSubmitError?: Function;
+  onFieldChange?: (id: string, finalValue: FieldValue) => void;
+  onSubmitSuccess?: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {old: FieldValue; new: FieldValue}
+  ) => void;
+  onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
 };
 
 type OptionsWithInitial = FormOptions & {initialData?: object};
@@ -60,7 +64,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots: Array<Map<string, FieldValue>> = [];
+  snapshots: Array<Snapshot> = [];
 
   /**
    * POJO of field name -> value
@@ -279,7 +283,7 @@ class FormModel {
     return new Promise((resolve, reject) => {
       //should never happen but TS complains if we don't check
       if (!this.api) {
-        return reject('Api not set');
+        return reject(new Error('Api not set'));
       }
       return this.api.request(endpoint, {
         method,

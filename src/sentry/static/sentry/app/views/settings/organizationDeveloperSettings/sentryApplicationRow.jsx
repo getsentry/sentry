@@ -107,7 +107,7 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   renderPublishRequest() {
     return (
-      <StyledButton icon="icon-upgrade" size="small" onClick={this.openPublishAppModal}>
+      <StyledButton icon="icon-upgrade" size="small" onClick={this.handlePublish}>
         {t('Publish')}
       </StyledButton>
     );
@@ -162,12 +162,10 @@ export default class SentryApplicationRow extends React.PureComponent {
     return this.props.installs && this.props.installs.length > 0;
   }
 
-  openPublishAppModal = () => {
+  handlePublish = () => {
     const {app} = this.props;
 
-    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />, {
-      modalClassName: 'sentry-app-publish-request',
-    });
+    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />);
   };
 
   get installationStatus() {

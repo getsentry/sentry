@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import space from 'app/styles/space';
 
 class PublishRequestFormModel extends FormModel {
   modal: SentryAppPublishRequestModal;
@@ -48,32 +49,51 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
   get formFields() {
     const {app} = this.props;
+    // const wrappedScopes = app.scopes.map(scope => `<code>${scope}</code>`);
     //replace the : with a . so we can reserve the colon for the question
-    const scopeString = app.scopes.join(', ').replace(/:/g, '-');
+    const scopes = app.scopes.map(scope => scope.replace(/:/, '-'));
+
+    const scopeLabel = (
+      <span>
+        Please justify why you are requesting each of the following scopes:{' '}
+        {scopes.map((scope, i) => (
+          <React.Fragment>
+            {i > 0 && ', '} <code>{scope}</code>
+          </React.Fragment>
+        ))}
+        .
+      </span>
+    );
+
+    //No translations since we need to be able to read this email :)
     const baseFields = [
       {
         type: 'textarea',
         required: true,
         label: 'What does your integration do? Please be as detailed as possible.',
         autosize: true,
+        inline: false,
       },
       {
         type: 'textarea',
         required: true,
         label: 'What value does it offer customers?',
         autosize: true,
+        inline: false,
       },
       {
         type: 'textarea',
         required: true,
-        label: `Please justify why you are requesting each of the following scopes: ${scopeString}.`,
+        label: scopeLabel,
         autosize: true,
+        inline: false,
       },
       {
         type: 'textarea',
         required: true,
         label: 'Do you operate the web service your integration communicates with?',
         autosize: true,
+        inline: false,
       },
     ];
     //dynamically generate the name based off the index
@@ -82,12 +102,12 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     );
   }
 
-  onSubmitSuccess = () => {
+  handleSubmitSuccess = () => {
     addSuccessMessage(t('Request to publish %s successful.', this.props.app.slug));
     this.props.closeModal();
   };
 
-  onSubmitError = () => {
+  handleSubmitError = () => {
     addErrorMessage(t('Request to publish %s fails.', this.props.app.slug));
   };
 
@@ -114,8 +134,8 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
             allowUndo
             apiMethod="POST"
             apiEndpoint={endpoint}
-            onSubmitSuccess={this.onSubmitSuccess}
-            onSubmitError={this.onSubmitError}
+            onSubmitSuccess={this.handleSubmitSuccess}
+            onSubmitError={this.handleSubmitError}
             model={this.form}
             submitLabel={t('Request Publication')}
             onCancel={() => this.props.closeModal()}
@@ -129,5 +149,6 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 }
 
 const Explanation = styled.div`
-  margin: 10px;
+  margin: ${space(1.5)};
+  font-size: 18px;
 `;
