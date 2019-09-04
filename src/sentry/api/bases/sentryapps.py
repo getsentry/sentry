@@ -14,16 +14,12 @@ from sentry.models import SentryApp, SentryAppInstallation, Organization
 from sentry.coreapi import APIError
 
 
-
-
 def catch_raised_errors(func):
     @wraps(func)
     def wrapped(self, *args, **kwargs):
         try:
-            print ('before call')
             return func(self, *args, **kwargs)
         except APIError as e:
-            print ('after call')
             return Response({"detail": e.msg}, status=400)
 
     return wrapped
