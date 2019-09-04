@@ -3,6 +3,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
+import App from 'app/views/app';
 
 describe('Organization Developer Settings', function() {
   const org = TestStubs.Organization();
@@ -79,17 +80,88 @@ describe('Organization Developer Settings', function() {
     });
 
     it('can make a request to publish an integration', async () => {
+      //add mocks that App calls
+      Client.addMockResponse({
+        url: '/internal/health/',
+        body: {
+          problems: [],
+        },
+      });
+      Client.addMockResponse({
+        url: '/assistant/',
+        body: [],
+      });
+      Client.addMockResponse({
+        url: '/organizations/',
+        body: [TestStubs.Organization()],
+      });
+      Client.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'DELETE',
+        statusCode: 401,
+        body: {
+          detail: {
+            code: 'sudo-required',
+            username: 'test@test.com',
+          },
+        },
+      });
+      Client.addMockResponse({
+        url: '/authenticators/',
+        body: [],
+      });
+
       const mock = Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
 
+      //mock with App to render modal
+      wrapper = mount(
+        <App>
+          <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
+        </App>,
+        routerContext
+      );
+
       expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
       wrapper.find(publishButtonSelector).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+
       await tick();
       wrapper.update();
-      expect(mock).toHaveBeenCalled();
+
+      wrapper.find('textarea').forEach((node, i) => {
+        node
+          .simulate('change', {target: {value: `Answer ${i}`}})
+          .simulate('keyDown', {keyCode: 13});
+      });
+      expect(wrapper.find('button[aria-label="Request Publication"]')).toBeTruthy();
+      wrapper.find('form').simulate('submit');
+      expect(mock).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/publish-request/`,
+        expect.objectContaining({
+          data: {
+            questionnaire: [
+              {
+                answer: 'Answer 0',
+                question:
+                  'What does your integration do? Please be as detailed as possible.',
+              },
+              {answer: 'Answer 1', question: 'What value does it offer customers?'},
+              {
+                answer: 'Answer 2',
+                question:
+                  'Please justify why you are requesting each of the following scopes: project-read.',
+              },
+              {
+                answer: 'Answer 3',
+                question:
+                  'Do you operate the web service your integration communicates with?',
+              },
+            ],
+          },
+        })
+      );
     });
   });
 

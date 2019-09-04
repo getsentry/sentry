@@ -85,7 +85,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
 }
 
 // TODO: move this somewhere
-type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
+export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 

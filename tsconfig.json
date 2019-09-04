@@ -23,6 +23,7 @@
     "strict": true,
     "target": "es5",
     "strictBindCallApply": false,
+    "experimentalDecorators": true,
 
     "esModuleInterop": true,
     "jsx": "react",
