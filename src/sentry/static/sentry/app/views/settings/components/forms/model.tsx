@@ -1,17 +1,39 @@
-import {observable, computed, action} from 'mobx';
+import {observable, computed, action, ObservableMap} from 'mobx';
 import _ from 'lodash';
 
-import {Client} from 'app/api';
+import {Client, APIRequestMethod} from 'app/api';
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
 import FormState from 'app/components/forms/state';
 
+type Snapshot = Map<string, FieldValue>;
+type FieldValue = string | number | undefined; //is undefined valid here?
+type SaveSnapshot = (() => number) | null;
+
+type FormOptions = {
+  apiEndpoint?: string;
+  apiMethod?: APIRequestMethod;
+  allowUndo?: boolean;
+  resetOnError?: boolean;
+  saveOnBlur?: boolean;
+  onFieldChange?: (id: string, finalValue: FieldValue) => void;
+  onSubmitSuccess?: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {old: FieldValue; new: FieldValue}
+  ) => void;
+  onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
+};
+
+type OptionsWithInitial = FormOptions & {initialData?: object};
+
 class FormModel {
   /**
    * Map of field name -> value
    */
-  @observable fields = new Map();
+  fields: ObservableMap<FieldValue> = observable.map();
 
   /**
    * Errors for individual fields
@@ -42,7 +64,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots = [];
+  snapshots: Array<Snapshot> = [];
 
   /**
    * POJO of field name -> value
@@ -50,9 +72,14 @@ class FormModel {
    */
   initialData = {};
 
-  constructor({initialData, ...options} = {}) {
-    this.setFormOptions(options);
+  api: Client | null;
 
+  formErrors: any;
+
+  options: FormOptions;
+
+  constructor({initialData, ...options}: OptionsWithInitial = {}) {
+    this.options = options || {};
     if (initialData) {
       this.setInitialData(initialData);
     }
@@ -64,7 +91,7 @@ class FormModel {
    * Reset state of model
    */
   reset() {
-    this.api.clear();
+    this.api && this.api.clear();
     this.api = null;
     this.fieldDescriptor.clear();
     this.resetForm();
@@ -108,15 +135,11 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData, {noResetSnapshots} = {}) {
+  setInitialData(initialData) {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
-    if (noResetSnapshots) {
-      return;
-    }
-
-    this.snapshots = [new Map(this.fields)];
+    this.snapshots = [new Map(this.fields.entries())];
   }
 
   /**
@@ -166,7 +189,7 @@ class FormModel {
    * will save Map to `snapshots
    */
   createSnapshot() {
-    const snapshot = new Map(this.fields);
+    const snapshot = new Map(this.fields.entries());
     return () => this.snapshots.unshift(snapshot);
   }
 
@@ -245,11 +268,24 @@ class FormModel {
     return (this.getError(id) || []).length === 0;
   }
 
-  doApiRequest({apiEndpoint, apiMethod, data}) {
-    const endpoint = apiEndpoint || this.options.apiEndpoint;
+  doApiRequest({
+    apiEndpoint,
+    apiMethod,
+    data,
+  }: {
+    apiEndpoint?: string;
+    apiMethod?: APIRequestMethod;
+    data: object;
+  }) {
+    const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
+
     return new Promise((resolve, reject) => {
-      this.api.request(endpoint, {
+      //should never happen but TS complains if we don't check
+      if (!this.api) {
+        return reject(new Error('Api not set'));
+      }
+      return this.api.request(endpoint, {
         method,
         data,
         success: response => resolve(response),
@@ -281,7 +317,7 @@ class FormModel {
   @action
   validateField(id) {
     const validate = this.getDescriptor(id, 'validate');
-    let errors = [];
+    let errors: any[] = [];
 
     if (typeof validate === 'function') {
       // Returns "tuples" of [id, error string]
@@ -298,6 +334,7 @@ class FormModel {
     errors = errors.length === 0 ? [[id, null]] : errors;
 
     errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
+    return undefined;
   }
 
   @action
@@ -357,7 +394,7 @@ class FormModel {
     if (this.isError) {
       return null;
     }
-    let saveSnapshot = this.createSnapshot();
+    let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     const request = this.doApiRequest({
       data: this.getTransformedData(),
@@ -376,7 +413,7 @@ class FormModel {
           this.options.onSubmitSuccess(resp, this);
         }
       })
-      .catch((resp, ...args) => {
+      .catch(resp => {
         // should we revert field value to last known state?
         saveSnapshot = null;
         if (this.options.resetOnError) {
@@ -458,7 +495,7 @@ class FormModel {
     }
 
     // shallow clone fields
-    let saveSnapshot = this.createSnapshot();
+    let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     // Save field + value
     this.setSaving(id, true);
@@ -628,7 +665,7 @@ class FormModel {
   }
 
   @action
-  handleErrorResponse({responseJSON: resp} = {}) {
+  handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
     if (!resp) {
       return;
     }
