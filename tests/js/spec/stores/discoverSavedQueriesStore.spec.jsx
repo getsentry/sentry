@@ -11,9 +11,9 @@ describe('DiscoverSavedQueriesStore', function() {
   let api;
   const now = '2019-09-03T12:13:14';
 
-  beforeAll(function() {
+  beforeAll(async function() {
     api = new Client();
-    DiscoverSavedQueriesStore.reset();
+    await DiscoverSavedQueriesStore.reset();
   });
 
   beforeEach(function() {
@@ -61,6 +61,7 @@ describe('DiscoverSavedQueriesStore', function() {
   it('fetching queries updates the store', async function() {
     fetchSavedQueries(api, 'org-1');
     await tick();
+    await tick();
 
     const state = DiscoverSavedQueriesStore.get();
     expect(state.isLoading).toEqual(false);
@@ -76,6 +77,7 @@ describe('DiscoverSavedQueriesStore', function() {
       statusCode: 500,
     });
     fetchSavedQueries(api, 'org-1');
+    await tick();
     await tick();
 
     const state = DiscoverSavedQueriesStore.get();
