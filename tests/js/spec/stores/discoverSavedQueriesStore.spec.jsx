@@ -13,7 +13,8 @@ describe('DiscoverSavedQueriesStore', function() {
 
   beforeAll(async function() {
     api = new Client();
-    await DiscoverSavedQueriesStore.reset();
+    DiscoverSavedQueriesStore.reset();
+    await tick();
   });
 
   beforeEach(function() {
