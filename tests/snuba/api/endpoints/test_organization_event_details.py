@@ -139,6 +139,56 @@ class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
         assert response.data["oldestEventID"] == "e" * 32, "e is oldest matching message"
         assert response.data["latestEventID"] == "1" * 32, "1 is newest matching message"
 
+    def test_event_links_with_tag_fields(self):
+        # Create events that overlap with other event messages but
+        # with different tags
+        ten_sec_ago = iso_format(before_now(seconds=10))
+        self.store_event(
+            data={
+                "event_id": "2" * 32,
+                "message": "very bad",
+                "timestamp": ten_sec_ago,
+                "tags": {"important": "yes"},
+            },
+            project_id=self.project.id,
+        )
+        thirty_sec_ago = iso_format(before_now(seconds=30))
+        self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "message": "very bad",
+                "timestamp": thirty_sec_ago,
+                "tags": {"important": "yes"},
+            },
+            project_id=self.project.id,
+        )
+        five_min_ago = iso_format(before_now(minutes=5))
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "very bad",
+                "timestamp": five_min_ago,
+                "tags": {"important": "no"},
+            },
+            project_id=self.project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "1" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json", data={"field": ["important", "count()"]})
+        assert response.data["eventID"] == "1" * 32
+        assert response.data["previousEventID"] is None, "no matching tags"
+        assert response.data["oldestEventID"] is None, "no older matching events"
+        assert response.data["nextEventID"] == "2" * 32, "2 is older and has matching tags "
+        assert response.data["latestEventID"] == "2" * 32, "2 is oldest matching message"
+
 
 class OrganizationEventDetailsLatestEndpointTest(OrganizationEventDetailsTestBase):
     def test_simple(self):
