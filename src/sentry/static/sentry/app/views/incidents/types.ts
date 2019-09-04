@@ -1,4 +1,4 @@
-import {User, Group, Repository} from 'app/types';
+import {User, Repository} from 'app/types';
 import {IncidentActivityType} from './utils';
 
 type Data = [number, {count: number}[]][];
@@ -14,7 +14,7 @@ export type Incident = {
   id: string;
   identifier: string;
   isSubscribed: boolean;
-  groups: Group[];
+  groups: string[]; // Array of group ids
   query: string;
   organizationId: string;
   projects: number[];
