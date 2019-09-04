@@ -140,6 +140,7 @@ export type MetaType = {
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} Whether or not to coerce a field into a link.
  * @returns {Function}
  */
 export function getFieldRenderer(

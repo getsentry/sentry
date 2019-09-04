@@ -249,10 +249,10 @@ class EventView {
     });
   }
 
+  /**
+   * Check if the field set contains no automatically linked fields
+   */
   hasAutolinkField(): boolean {
-    // If the field set contains no autolink fields,
-    // and the current field is not a special field,
-    // then it should be forced into a link.
     return this.fields.some(field => {
       return AUTOLINK_FIELDS.includes(field.field);
     });
