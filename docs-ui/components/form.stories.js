@@ -224,6 +224,7 @@ storiesOf('Forms|Fields', module)
           <TextareaField
             name="simpletextfieldvalue"
             label="Simple Textarea Field with Value"
+            help="Additional help text"
             placeholder="Simple Textarea Field"
             defaultValue="With a value present"
           />
@@ -266,6 +267,12 @@ storiesOf('Forms|Fields', module)
             placeholder="I am disabled"
             disabled
             disabledReason="This is the reason this field is disabled"
+          />
+          <TextareaField
+            name="textareafielderror"
+            label="Textarea Field with error"
+            placeholder="I have an error"
+            error="An error has occurred"
           />
         </Form>
       </Panel>
