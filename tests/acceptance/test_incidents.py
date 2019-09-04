@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 import pytz
+from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -51,7 +52,9 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("incidents - details")
 
-    def test_open_create_incident_modal(self):
+    @patch("django.utils.timezone.now")
+    def test_open_create_incident_modal(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         self.store_event(
             data={
                 "event_id": "a" * 32,
