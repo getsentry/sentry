@@ -28,6 +28,7 @@ from sentry.models import (
     ProjectTeam,
     Release,
     UserOption,
+    UserReport,
     DEFAULT_SUBJECT_TEMPLATE,
 )
 from sentry.utils.data_filters import FilterTypes
@@ -266,6 +267,10 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def get_attrs(self, item_list, user):
         attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
 
+        projects_with_user_reports = set(
+            UserReport.objects.filter(project_id__in=item_list).values_list("project", flat=True)
+        )
+
         project_envs = (
             EnvironmentProject.objects.filter(
                 project_id__in=[i.id for i in item_list],
@@ -329,8 +334,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                 "dateFinished": date_finished,
             }
 
-        # We  just return the version key here so that we cut down on response
-        # size
+        # We just return the version key here so that we cut down on response size
         latest_release_verions = {
             release.actual_project_id: {"version": release.version}
             for release in bulk_fetch_project_latest_releases(item_list)
@@ -340,6 +344,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["latest_release"] = latest_release_verions.get(item.id)
             attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
+            attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
 
         return attrs
 
@@ -362,6 +367,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "platforms": attrs["platforms"],
             "latestDeploys": attrs["deploys"],
             "latestRelease": attrs["latest_release"],
+            "hasUserReports": attrs["has_user_reports"],
         }
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
