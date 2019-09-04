@@ -11,6 +11,9 @@ from sentry.utils.samples import load_data
 
 FEATURE_NAME = "organizations:events-v2"
 
+all_view = 'field=%5B"title"%2C"title"%5D&field=%5B"event.type"%2C"type"%5D&field=%5B"project"%2C"project"%5D&field=%5B"user"%2C"user"%5D&field=%5B"timestamp"%2C"time"%5D&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment'
+error_view = 'field=%5B"title"%2C"error"%5D&field=%5B"count%28id%29"%2C"events"%5D&field=%5B"count_unique%28user%29"%2C"users"%5D&field=%5B"project"%2C"project"%5D&field=%5B"last_seen"%2C"last+seen"%5D&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name'
+
 
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
@@ -30,7 +33,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_all_events_empty(self):
         with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events empty state")
 
@@ -50,7 +53,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
 
@@ -90,7 +93,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAME):
-            self.browser.get(self.path + "?view=errors")
+            self.browser.get(self.path + "?" + error_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
@@ -114,7 +117,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAME):
             # Get the list page.
-            self.browser.get(self.path)
+            self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
 
             # Click the event link to open the modal
@@ -152,8 +155,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             event_ids.append(event.event_id)
 
         with self.feature(FEATURE_NAME):
+
             # Get the list page
-            self.browser.get(self.path + "?view=errors&statsPeriod=24h")
+            self.browser.get(self.path + "?" + error_view + "&statsPeriod=24h")
             self.wait_until_loaded()
 
             # Click the event link to open the modal

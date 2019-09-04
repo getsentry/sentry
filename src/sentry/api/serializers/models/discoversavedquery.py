@@ -10,6 +10,9 @@ class DiscoverSavedQuerySerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
 
         query_keys = [
+            "fieldnames",
+            "environment",
+            "query",
             "fields",
             "conditions",
             "aggregations",

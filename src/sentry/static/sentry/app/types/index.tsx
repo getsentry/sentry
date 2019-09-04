@@ -1,3 +1,5 @@
+import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+
 export type Organization = {
   id: string;
   slug: string;
@@ -64,18 +66,49 @@ export type EventAttachment = {
   type: string;
 };
 
-// This type is incomplete
-export type Event = {
+type EntryType = {
+  data: {[key: string]: any} | any[];
+  type: string;
+};
+
+export type EventTag = {key: string; value: string};
+
+type SentryEventBase = {
   id: string;
   eventID: string;
   groupID?: string;
-  type: string;
   title: string;
   culprit: string;
   metadata: EventMetadata;
   message: string;
   platform?: string;
+  dateCreated?: string;
+  endTimestamp?: number;
+  entries: EntryType[];
+
+  previousEventID?: string;
+  nextEventID?: string;
+  projectSlug: string;
+
+  tags: EventTag[];
+
+  size: number;
+
+  location: string;
+
+  oldestEventID: string | null;
+  latestEventID: string | null;
 };
+
+// This type is incomplete
+export type Event =
+  | ({type: string} & SentryEventBase)
+  | {
+      type: 'transaction';
+      entries: SpanEntry[];
+      startTimestamp: number;
+      endTimestamp: number;
+    } & SentryEventBase;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -189,4 +222,85 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
+};
+
+type Metadata = {
+  value: string;
+  message: string;
+  directive: string;
+  type: string;
+  title: string;
+  uri: string;
+};
+
+type EventOrGroupType = [
+  'error',
+  'csp',
+  'hpkp',
+  'expectct',
+  'expectstaple',
+  'default',
+  'transaction'
+];
+
+// TODO(ts): incomplete
+export type Group = {
+  id: string;
+  activity: any[]; // TODO(ts)
+  annotations: string[];
+  assignedTo: User;
+  count: string;
+  culprit: string;
+  currentRelease: any; // TODO(ts)
+  firstRelease: any; // TODO(ts)
+  firstSeen: string;
+  hasSeen: boolean;
+  isBookmarked: boolean;
+  isPublic: boolean;
+  isSubscribed: boolean;
+  lastRelease: any; // TODO(ts)
+  lastSeen: string;
+  level: string;
+  logger: string;
+  metadata: Metadata;
+  numComments: number;
+  participants: any[]; // TODO(ts)
+  permalink: string;
+  platform: string;
+  pluginActions: any[]; // TODO(ts)
+  pluginContexts: any[]; // TODO(ts)
+  pluginIssues: any[]; // TODO(ts)
+  project: Project;
+  seenBy: User[];
+  shareId: string;
+  shortId: string;
+  stats: any; // TODO(ts)
+  status: string;
+  statusDetails: {};
+  title: string;
+  type: EventOrGroupType;
+  userCount: number;
+  userReportCount: number;
+};
+
+export type EventViewv1 = {
+  name: string;
+  data: {
+    fields: string[];
+    columnNames: string[];
+    sort: string[];
+    query?: string;
+  };
+  tags: string[];
+};
+
+export type Repository = {
+  dateCreated: string;
+  externalSlug: string;
+  id: string;
+  integrationId: string;
+  name: string;
+  provider: {id: string; name: string};
+  status: string;
+  url: string;
 };

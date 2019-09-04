@@ -42,6 +42,11 @@ export default class SentryAppDetailsModal extends AsyncComponent {
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
+    closeOnInstall: PropTypes.bool.isRequired,
+  };
+
+  static defaultProps = {
+    closeOnInstall: true,
   };
 
   getEndpoints() {
@@ -61,9 +66,10 @@ export default class SentryAppDetailsModal extends AsyncComponent {
   }
 
   onInstall() {
-    const {onInstall, closeModal} = this.props;
+    const {onInstall, closeModal, closeOnInstall} = this.props;
     onInstall();
-    closeModal();
+    // let onInstall handle redirection post install when onCloseInstall is false
+    closeOnInstall && closeModal();
   }
 
   renderPermissions() {

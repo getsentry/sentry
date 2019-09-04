@@ -158,21 +158,11 @@ export function formatBytes(bytes: number): string {
   return bytes.toFixed(1) + ' ' + units[u];
 }
 
-export function getShortVersion(version: string): string {
-  if (version.length < 12) {
-    return version;
+export function getShortCommitHash(hash: string): string {
+  if (hash.match(/^[a-f0-9]{40}$/)) {
+    hash = hash.substr(0, 7);
   }
-
-  const match = version.match(
-    /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
-  );
-  if (match) {
-    version = match[1];
-  }
-  if (version.match(/^[a-f0-9]{40}$/)) {
-    version = version.substr(0, 7);
-  }
-  return version;
+  return hash;
 }
 
 export function parseRepo<T>(repo: T): T {
@@ -238,7 +228,7 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
   );
 }
 
-export function deepFreeze(object: {[x: string]: any}) {
+export function deepFreeze<T>(object: T) {
   // Retrieve the property names defined on object
   const propNames = Object.getOwnPropertyNames(object);
   // Freeze properties before freezing self

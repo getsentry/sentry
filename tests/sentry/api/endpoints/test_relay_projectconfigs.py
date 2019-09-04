@@ -95,12 +95,12 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert safe.get_path(cfg, "config", "filterSettings") is not None
         assert safe.get_path(cfg, "config", "groupingConfig", "enhancements") is not None
         assert safe.get_path(cfg, "config", "groupingConfig", "id") is not None
-        assert safe.get_path(cfg, "config", "piiConfig", "applications") is not None
-        assert safe.get_path(cfg, "config", "piiConfig", "rules") is not None
-        assert safe.get_path(cfg, "config", "scrubData") is True
-        assert safe.get_path(cfg, "config", "scrubDefaults") is True
-        assert safe.get_path(cfg, "config", "scrubIpAddresses") is True
-        assert safe.get_path(cfg, "config", "sensitiveFields") == []
+        assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
+        assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is True
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
 
     def test_trusted_external_relays_should_not_be_able_to_request_full_configs(self):
         self._setup_relay(False, True)
@@ -154,12 +154,10 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         assert safe.get_path(cfg, "config", "trustedRelays") == [self.relay.public_key]
         assert safe.get_path(cfg, "config", "filterSettings") is None
         assert safe.get_path(cfg, "config", "groupingConfig") is None
-        assert safe.get_path(cfg, "config", "piiConfig", "applications") is not None
-        assert safe.get_path(cfg, "config", "piiConfig", "rules") is not None
-        assert safe.get_path(cfg, "config", "scrubData") is None
-        assert safe.get_path(cfg, "config", "scrubDefaults") is None
-        assert safe.get_path(cfg, "config", "scrubIpAddresses") is None
-        assert safe.get_path(cfg, "config", "sensitiveFields") is None
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is not None
+        assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is not None
+        assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
+        assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
 
     def test_untrusted_external_relays_should_not_receive_configs(self):
         self._setup_relay(False, False)

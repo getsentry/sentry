@@ -143,15 +143,10 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                   pluginId="sample-app"
                   size={36}
                 >
-                  <IntegrationIcon
-                    image={Object {}}
+                  <div
+                    className="css-19ydruf-PluginIcon e7e65lm0"
                     size={36}
-                  >
-                    <div
-                      className="css-1c5rb9q-IntegrationIcon e1bhjds90"
-                      size={36}
-                    />
-                  </IntegrationIcon>
+                  />
                 </PluginIcon>
                 <SentryAppBox>
                   <Base
@@ -180,14 +175,17 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           >
                             <Status
                               isInternal={false}
+                              status="Not Installed"
                             >
                               <WithTheme(Component)
                                 className="css-lk5f1o-Status eac2pqx8"
                                 isInternal={false}
+                                status="Not Installed"
                               >
                                 <Component
                                   className="css-lk5f1o-Status eac2pqx8"
                                   isInternal={false}
+                                  status="Not Installed"
                                   theme={
                                     Object {
                                       "alert": Object {
@@ -452,17 +450,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           enabled={true}
                                           size={6}
                                         >
-                                          <Circle
+                                          <div
+                                            className="css-ghzigi-CircleIndicator exfjg1y0"
                                             color="#9585A3"
-                                            enabled={true}
                                             size={6}
-                                          >
-                                            <div
-                                              className="css-xhz9xw-Circle eljqieg0"
-                                              color="#9585A3"
-                                              size={6}
-                                            />
-                                          </Circle>
+                                          />
                                         </CircleIndicator>
                                         <div
                                           className="css-lk5f1o-Status eac2pqx8"

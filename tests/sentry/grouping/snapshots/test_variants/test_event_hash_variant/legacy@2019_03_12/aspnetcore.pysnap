@@ -1,5 +1,5 @@
 ---
-created: '2019-04-09T18:49:35.432802Z'
+created: '2019-09-03T07:26:07.106321Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,189 +14,189 @@ app:
               u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeAsync'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeFilterPipelineAsync'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Next'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Rethrow'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeNextResourceFilter'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeInnerFilterAsync'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Next'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Rethrow'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeNextActionFilterAsync'
           frame (non app frame)
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame (non app frame)
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeActionMethodAsync'
           frame (non app frame)
             module*
@@ -209,14 +209,14 @@ app:
               u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
             context-line*
               u'System.Object Execute(System.Object, System.Object[])'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Execute'
           frame*
             module*
               u'(unknown)'
             context-line*
               u'System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'lambda_method'
           frame*
             module*
@@ -225,9 +225,9 @@ app:
               u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
               u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Get'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               27
         type*
           u'System.Exception'
@@ -252,189 +252,189 @@ system:
               u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Invoke'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeAsync'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeFilterPipelineAsync'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Next'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Rethrow'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeNextResourceFilter'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeInnerFilterAsync'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Next'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Rethrow'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeNextActionFilterAsync'
           frame*
             module*
               u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
               u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
               u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
               u'Void Throw()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Throw'
           frame*
             module*
               u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
               u'Void MoveNext()'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'InvokeActionMethodAsync'
           frame*
             module*
@@ -447,14 +447,14 @@ system:
               u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
             context-line*
               u'System.Object Execute(System.Object, System.Object[])'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Execute'
           frame*
             module*
               u'(unknown)'
             context-line*
               u'System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'lambda_method'
           frame*
             module*
@@ -463,9 +463,9 @@ system:
               u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
               u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if context-line is available)
               u'Get'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if context-line is available)
               27
         type*
           u'System.Exception'

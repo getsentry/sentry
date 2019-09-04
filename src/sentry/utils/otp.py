@@ -102,4 +102,6 @@ class TOTP(object):
     def get_provision_qrcode(self, user, issuer=None):
         qr = qrcode.QRCode(border=0)
         qr.add_data(self.get_provision_url(user, issuer=issuer))
-        return qr.get_matrix()
+
+        # Frontend expects the matrix to be serialized as 1/0, not True/False
+        return [[int(c) for c in row] for row in qr.get_matrix()]

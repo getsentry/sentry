@@ -32,13 +32,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "aggregations",
         ]
         extra_kwargs = {
-            "query": {"allow_blank": True},
+            "query": {"allow_blank": True, "required": True},
             "threshold_period": {"default": 1, "min_value": 1, "max_value": 20},
+            "alert_threshold": {"required": True},
+            "resolve_threshold": {"required": True},
             "time_window": {
                 "min_value": 1,
                 "max_value": int(timedelta(days=1).total_seconds() / 60),
+                "required": True,
             },
-            "aggregations": {"min_length": 1, "max_length": 10},
+            "aggregations": {"min_length": 1, "max_length": 10, "required": True},
             "name": {"min_length": 1, "max_length": 64},
         }
 

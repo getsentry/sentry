@@ -1,4 +1,4 @@
-import {ECharts} from 'echarts';
+import {ECharts, EChartOption} from 'echarts';
 import {debounce, maxBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
@@ -11,12 +11,14 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 type Props = {
+  xAxis: EChartOption.XAxis;
   data: Series[];
   alertThreshold: number | null;
   resolveThreshold: number | null;
   isInverted: boolean;
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
+  maxValue?: number;
 };
 
 type State = {
@@ -225,6 +227,8 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   };
 
   render() {
+    const {data, xAxis} = this.props;
+
     const alertThresholdPosition =
       this.chartRef &&
       this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.alertThreshold}`);
@@ -238,6 +242,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
           isGroupedByDate
           forwardedRef={this.handleRef}
           grid={CHART_GRID}
+          xAxis={xAxis}
           yAxis={{
             max: this.state.yAxisMax,
           }}
@@ -255,7 +260,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
               ),
             ],
           })}
-          series={this.props.data}
+          series={data}
         />
       </ChartPanel>
     );
