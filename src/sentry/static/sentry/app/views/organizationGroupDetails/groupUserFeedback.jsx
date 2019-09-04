@@ -1,16 +1,14 @@
 import React from 'react';
-import {Link} from 'react-router';
 import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import withOrganization from 'app/utils/withOrganization';
+import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
 import {fetchGroupUserReports} from './utils';
 
 class GroupUserFeedback extends React.Component {
@@ -62,12 +60,6 @@ class GroupUserFeedback extends React.Component {
       });
   };
 
-  getUserFeedbackUrl() {
-    const {organization, group} = this.props;
-
-    return `/${organization.slug}/${group.project.slug}/settings/user-feedback/`;
-  }
-
   render() {
     const {reportList} = this.state;
     const {organization, group} = this.props;
@@ -98,20 +90,9 @@ class GroupUserFeedback extends React.Component {
       );
     }
 
-    const emptyStateMessage = isEqual(this.props.params, {})
-      ? t('No user reports match your selected filters.')
-      : t('No user reports have been collected.');
-
     return (
       <Panel>
-        <EmptyStateWarning>
-          <p>{emptyStateMessage}</p>
-          <p>
-            <Link to={this.getUserFeedbackUrl()}>
-              {t('Learn how to integrate User Feedback')}
-            </Link>
-          </p>
-        </EmptyStateWarning>
+        <UserFeedbackEmpty projectIds={[group.project.id]} />
       </Panel>
     );
   }

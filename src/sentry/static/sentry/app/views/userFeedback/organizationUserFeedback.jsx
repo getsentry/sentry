@@ -5,7 +5,6 @@ import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import CompactIssue from 'app/components/issues/compactIssue';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -15,6 +14,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import UserFeedbackContainer from './container';
+import UserFeedbackEmpty from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
 class OrganizationUserFeedback extends AsyncView {
@@ -61,11 +61,10 @@ class OrganizationUserFeedback extends AsyncView {
   }
 
   renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no results match your search query.')}</p>
-      </EmptyStateWarning>
-    );
+    const {project} = this.props.location.query;
+    const projectIds = project ? [].concat(project) : [];
+
+    return <UserFeedbackEmpty projectIds={projectIds} />;
   }
 
   renderLoading() {
