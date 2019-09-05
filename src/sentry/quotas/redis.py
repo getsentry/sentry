@@ -128,7 +128,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         def get_usage_for_quota(client, quota):
-            if quota.limit in (-1, 0):
+            if quota.limit is None:
                 return (None, None)
 
             key = self.__get_redis_key(
