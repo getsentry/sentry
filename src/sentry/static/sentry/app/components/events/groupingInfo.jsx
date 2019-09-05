@@ -23,8 +23,7 @@ const GroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
-// eslint-disable-next-line no-unused-vars
-const GroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
+const GroupVariantListItem = styled(({contributes: _contributes, ...props}) => <li {...props} />)`
   padding: 15px 0 20px 0;
   margin-top: 15px;
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
@@ -53,8 +52,7 @@ const GroupingComponentListItem = styled('li')`
   margin: 2px 0 1px 13px;
 `;
 
-// eslint-disable-next-line no-unused-vars
-const GroupingComponentWrapper = styled(({contributes, ...props}) => <div {...props} />)`
+const GroupingComponentWrapper = styled(({contributes: _contributes, ...props}) => <div {...props} />)`
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 

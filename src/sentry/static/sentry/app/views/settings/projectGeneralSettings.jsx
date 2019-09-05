@@ -387,9 +387,9 @@ class ProjectGeneralSettings extends AsyncView {
             <JsonForm
               {...jsonFormProps}
               title={
-                <>
+                <React.Fragment>
                   {t('Grouping Settings')} <BetaTag />
-                </>
+                </React.Fragment>
               }
               fields={[
                 fields.groupingConfig,
@@ -398,7 +398,7 @@ class ProjectGeneralSettings extends AsyncView {
                 fields.fingerprintingRules,
               ]}
               renderHeader={() => (
-                <>
+                <React.Fragment>
                   <PanelAlert type="warning">
                     <TextBlock noMargin>
                       {t(
@@ -408,7 +408,7 @@ class ProjectGeneralSettings extends AsyncView {
                   </PanelAlert>
                   {jsonFormProps.features.has('tweak-grouping-config') &&
                     this.renderUpgradeGrouping()}
-                </>
+                </React.Fragment>
               )}
             />
           )}
