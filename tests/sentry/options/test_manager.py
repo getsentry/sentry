@@ -198,6 +198,14 @@ class OptionsManagerTest(TestCase):
         with self.settings(SENTRY_OPTIONS={"prioritize_disk": "something-else!"}):
             assert self.manager.get("prioritize_disk") == "something-else!"
 
+        # Ensure empty values on disk are preferred over DB values (See #14557)
+        with self.settings(SENTRY_OPTIONS={"prioritize_disk": ""}):
+            assert self.manager.get("prioritize_disk") == ""
+
+        # Ensure None on disk are NOT preferred over DB (See #14557)
+        with self.settings(SENTRY_OPTIONS={"prioritize_disk": None}):
+            assert self.manager.get("prioritize_disk") == "foo"
+
     def test_db_unavailable(self):
         with patch.object(Option.objects, "get_queryset", side_effect=Exception()):
             # we can't update options if the db is unavailable
