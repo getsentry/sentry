@@ -4,8 +4,6 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
-from sentry.utils.db import is_postgres
-
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
@@ -15,34 +13,28 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding index on 'Group', fields ['project', 'id'] to have
         # project_id in the replication identity
+        db.commit_transaction()
         index_name = db.create_index_name('sentry_groupedmessage', [u'project_id', 'id'])
-        if is_postgres():
-            db.commit_transaction()
-            db.execute(
-                "CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_groupedmessage (project_id, id)".format(
-                    index_name,
-                )
+        db.execute(
+            "CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_groupedmessage (project_id, id)".format(
+                index_name,
             )
-            db.start_transaction()
-            db.execute(
-                "ALTER TABLE sentry_groupedmessage REPLICA IDENTITY USING INDEX {}".format(
-                    index_name,
-                )
+        )
+        db.execute(
+            "ALTER TABLE sentry_groupedmessage REPLICA IDENTITY USING INDEX {}".format(
+                index_name,
             )
-        else:
-            db.create_index('sentry_groupedmessage', [u'project_id', 'id'])
+        )
+        db.start_transaction()
 
     def backwards(self, orm):
         # Removing index on 'Group', fields ['project', 'id']
-        if is_postgres():
-            db.execute(
-                "ALTER TABLE sentry_groupedmessage REPLICA IDENTITY DEFAULT",
-            )
-            db.execute("DROP INDEX CONCURRENTLY {}".format(
-                db.create_index_name('sentry_groupedmessage', [u'project_id', 'id'])
-            ))
-        else:
-            db.delete_index('sentry_groupedmessage', [u'project_id', 'id'])
+        db.execute(
+            "ALTER TABLE sentry_groupedmessage REPLICA IDENTITY DEFAULT",
+        )
+        db.execute("DROP INDEX CONCURRENTLY {}".format(
+            db.create_index_name('sentry_groupedmessage', [u'project_id', 'id'])
+        ))
 
 
     models = {
