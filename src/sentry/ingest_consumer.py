@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import logging
 import msgpack
+import signal
+from contextlib import contextmanager
 
 from django.conf import settings
 from django.core.cache import cache
@@ -58,6 +60,19 @@ def _create_consumer(consumer_group, consumer_type, settings):
     return kafka.Consumer(consumer_configuration)
 
 
+@contextmanager
+def set_termination_request_handlers(handler):
+    # hook the new handlers
+    old_sigint = signal.signal(signal.SIGINT, handler)
+    old_sigterm = signal.signal(signal.SIGTERM, handler)
+    try:
+        yield
+    finally:
+        # set back the old handlers
+        signal.signal(signal.SIGINT, old_sigint)
+        signal.signal(signal.SIGTERM, old_sigterm)
+
+
 def run_ingest_consumer(
     commit_batch_size,
     consumer_group,
@@ -86,59 +101,64 @@ def run_ingest_consumer(
     consumer = _create_consumer(consumer_group, consumer_type, settings)
 
     consumer.subscribe([ConsumerType.get_topic_name(consumer_type, settings)])
+    termination_signal_received = [False]
+
+    def termination_signal_handler(_sig_id, _frame):
+        termination_signal_received[0] = True
 
     try:
-        while not is_shutdown_requested():
-            # get up to commit_batch_size messages
-            messages = consumer.consume(
-                num_messages=commit_batch_size, timeout=max_batch_time_seconds
-            )
-
-            for message in messages:
-                message_error = message.error()
-                if message_error is not None:
-                    logger.error(
-                        "Received message with error on %s, error:'%s'",
-                        consumer_type,
-                        message_error,
-                    )
-                    raise ValueError(
-                        "Bad message received from consumer", consumer_type, message_error
-                    )
-
-                message = msgpack.unpackb(message.value(), use_list=False)
-                body = message["payload"]
-                start_time = float(message["start_time"])
-                event_id = message["event_id"]
-                project_id = message["project_id"]
-
-                # check that we haven't already processed this event (a previous instance of the forwarder
-                # died before it could commit the event queue offset)
-                deduplication_key = "ev:{}:{}".format(project_id, event_id)
-                if cache.get(deduplication_key) is not None:
-                    logger.warning(
-                        "pre-process-forwarder detected a duplicated event"
-                        " with id:%s for project:%s.",
-                        event_id,
-                        project_id,
-                    )
-                    continue
-
-                cache_key = cache_key_from_project_id_and_event_id(
-                    project_id=project_id, event_id=event_id
-                )
-                cache_timeout = 3600
-                default_cache.set(cache_key, body, cache_timeout, raw=True)
-                preprocess_event.delay(
-                    cache_key=cache_key, start_time=start_time, event_id=event_id
+        with set_termination_request_handlers(termination_signal_handler):
+            while not is_shutdown_requested() or termination_signal_received[0]:
+                # get up to commit_batch_size messages
+                messages = consumer.consume(
+                    num_messages=commit_batch_size, timeout=max_batch_time_seconds
                 )
 
-                # remember for an 1 hour that we saved this event (deduplication protection)
-                cache.set(deduplication_key, "", 3600)
+                for message in messages:
+                    message_error = message.error()
+                    if message_error is not None:
+                        logger.error(
+                            "Received message with error on %s, error:'%s'",
+                            consumer_type,
+                            message_error,
+                        )
+                        raise ValueError(
+                            "Bad message received from consumer", consumer_type, message_error
+                        )
 
-            if len(messages) > 0:
-                # we have read some messages in the previous consume, commit the offset
-                consumer.commit(asynchronous=False)
+                    message = msgpack.unpackb(message.value(), use_list=False)
+                    body = message["payload"]
+                    start_time = float(message["start_time"])
+                    event_id = message["event_id"]
+                    project_id = message["project_id"]
+
+                    # check that we haven't already processed this event (a previous instance of the forwarder
+                    # died before it could commit the event queue offset)
+                    deduplication_key = "ev:{}:{}".format(project_id, event_id)
+                    if cache.get(deduplication_key) is not None:
+                        logger.warning(
+                            "pre-process-forwarder detected a duplicated event"
+                            " with id:%s for project:%s.",
+                            event_id,
+                            project_id,
+                        )
+                        continue
+
+                    cache_key = cache_key_from_project_id_and_event_id(
+                        project_id=project_id, event_id=event_id
+                    )
+                    cache_timeout = 3600
+                    default_cache.set(cache_key, body, cache_timeout, raw=True)
+                    preprocess_event.delay(
+                        cache_key=cache_key, start_time=start_time, event_id=event_id
+                    )
+
+                    # remember for an 1 hour that we saved this event (deduplication protection)
+                    cache.set(deduplication_key, "", 3600)
+
+                if len(messages) > 0:
+                    # we have read some messages in the previous consume, commit the offset
+                    consumer.commit(asynchronous=False)
 
     except KeyboardInterrupt:
         pass
