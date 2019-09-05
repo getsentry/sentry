@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.http import Http404
 from functools import wraps
+from rest_framework.response import Response
 
 from sentry.utils.sdk import configure_scope
 from sentry.api.authentication import ClientIdSecretAuthentication
@@ -10,6 +11,18 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models import SentryApp, SentryAppInstallation, Organization
+from sentry.coreapi import APIError
+
+
+def catch_raised_errors(func):
+    @wraps(func)
+    def wrapped(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except APIError as e:
+            return Response({"detail": e.msg}, status=400)
+
+    return wrapped
 
 
 def ensure_scoped_permission(request, allowed_scopes):
