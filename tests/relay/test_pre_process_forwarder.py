@@ -8,9 +8,10 @@ import msgpack
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.pre_process_forwarder import _run_pre_process_forwarder_internal, ConsumerType
+from sentry.pre_process_forwarder import ConsumerType, run_pre_process_forwarder
 from sentry.models.event import Event
 from sentry.testutils.factories import Factories
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -72,18 +73,17 @@ def _shutdown_requested(max_secs, num_events):
 
 @pytest.mark.django_db
 def test_pre_process_forwarder_reads_from_topic_and_calls_celery_task(
-    task_runner, kafka_producer, kafka_settings, kafka_admin
+    task_runner, kafka_producer, kafka_admin
 ):
     consumer_group = "test-consumer"
-    admin = kafka_admin()
+    admin = kafka_admin(settings)
     admin.delete_events_topic()
-    producer = kafka_producer()
-    kafka_settings = kafka_settings()
+    producer = kafka_producer(settings)
 
     organization = Factories.create_organization()
     project = Factories.create_project(organization=organization)
 
-    topic_event_name = kafka_settings["KAFKA_INGEST_EVENTS"]
+    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events, settings)
 
     event_ids = set()
     for i in range(1, 4):
@@ -92,11 +92,10 @@ def test_pre_process_forwarder_reads_from_topic_and_calls_celery_task(
         producer.produce(topic_event_name, message)
 
     with task_runner():
-        _run_pre_process_forwarder_internal(
+        run_pre_process_forwarder(
             commit_batch_size=2,
             consumer_group=consumer_group,
             consumer_type=ConsumerType.Events,
-            settings=kafka_settings,
             max_batch_time_seconds=0.1,
             is_shutdown_requested=_shutdown_requested(max_secs=10, num_events=3),
         )
