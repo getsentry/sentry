@@ -1,7 +1,5 @@
-// import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-// import {Params} from 'react-router/lib/Router';
 import {Observer} from 'mobx-react';
 import _ from 'lodash';
 
