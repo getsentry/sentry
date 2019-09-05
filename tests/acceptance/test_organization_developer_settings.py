@@ -52,7 +52,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_xpath("//button//span[contains(text(), 'New Token')]")
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
