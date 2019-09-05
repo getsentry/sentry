@@ -41,7 +41,6 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
   form = new PublishRequestFormModel();
 
-  //fake
   get formFields() {
     const {app} = this.props;
     //replace the : with a . so we can reserve the colon for the question
