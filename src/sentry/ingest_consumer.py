@@ -106,7 +106,7 @@ def run_ingest_consumer(
 
     try:
         with set_termination_request_handlers(termination_signal_handler):
-            while not is_shutdown_requested() or termination_signal_received[0]:
+            while not (is_shutdown_requested() or termination_signal_received[0]):
                 # get up to commit_batch_size messages
                 messages = consumer.consume(
                     num_messages=commit_batch_size, timeout=max_batch_time_seconds
