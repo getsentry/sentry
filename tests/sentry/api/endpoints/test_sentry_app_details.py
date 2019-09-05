@@ -188,7 +188,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format="json",
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot update scopes on a published integration."
+        assert response.data["detail"] == "Cannot update permissions on a published integration."
 
     def test_cannot_update_non_owned_apps(self):
         self.login_as(user=self.user)

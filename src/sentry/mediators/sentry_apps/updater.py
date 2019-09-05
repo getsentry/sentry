@@ -66,7 +66,7 @@ class Updater(Mediator):
             self.sentry_app.status == SentryAppStatus.PUBLISHED
             and self.sentry_app.scope_list != self.scopes
         ):
-            raise APIError("Cannot update scopes on a published integration.")
+            raise APIError("Cannot update permissions on a published integration.")
         self.sentry_app.scope_list = self.scopes
 
     @if_param("events")

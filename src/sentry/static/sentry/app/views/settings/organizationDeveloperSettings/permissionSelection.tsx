@@ -159,7 +159,7 @@ export default class PermissionSelection extends React.Component<Props, State> {
               value={value}
               defaultValue={value}
               disabled={this.props.appPublished}
-              disabledReason={t('Cannot update scopes on a published integration')}
+              disabledReason={t('Cannot update permissions on a published integration')}
             />
           );
         })}
