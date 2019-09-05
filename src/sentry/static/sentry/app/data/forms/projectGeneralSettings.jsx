@@ -136,7 +136,14 @@ export const fields = {
       );
     },
     choices: ({groupingConfigs}) => {
-      return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
+      return groupingConfigs.map(({id, hidden}) => {
+        return [
+          id.toString(),
+          <code key={id} style={{opacity: hidden ? '0.5' : 1.0}}>
+            {id}
+          </code>,
+        ];
+      });
     },
     help: t('Sets the grouping algorithm to be used for new events.'),
     visible: ({features}) => features.has('set-grouping-config'),
@@ -206,9 +213,7 @@ export const fields = {
         </pre>
       </React.Fragment>
     ),
-    validate: ({id, form}) => {
-      return [];
-    },
+    validate: () => [],
     visible: ({features}) =>
       features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },

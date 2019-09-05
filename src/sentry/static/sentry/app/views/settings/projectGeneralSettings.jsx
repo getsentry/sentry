@@ -26,6 +26,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import BetaTag from 'app/components/betaTag';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -117,21 +118,20 @@ class ProjectGeneralSettings extends AsyncView {
       }
     });
 
-    if (Object.keys(newData).length === 0) {
-      return null;
-    }
+    const noUpdates = Object.keys(newData).length === 0;
 
     return (
       <Field
         label={t('Upgrade Grouping Strategy')}
         help={tct(
-          'This project uses an old grouping strategy and an update is possible.[linebreak]Doing so will cause new events to group differently.',
+          'If the project uses an old grouping strategy an update is possible.[linebreak]Doing so will cause new events to group differently.',
           {
             linebreak: <br />,
           }
         )}
       >
         <Confirm
+          disabled={noUpdates}
           onConfirm={() => {
             addLoadingMessage(t('Changing grouping...'));
             this.api
@@ -171,6 +171,8 @@ class ProjectGeneralSettings extends AsyncView {
         >
           <div>
             <Button
+              disabled={noUpdates}
+              title={noUpdates ? t('You are already on the latest version') : null}
               className="ref-upgrade-grouping-strategy"
               type="button"
               priority="primary"
@@ -287,7 +289,7 @@ class ProjectGeneralSettings extends AsyncView {
                   <Form
                     hideFooter
                     onFieldChange={this.handleTransferFieldChange}
-                    onSubmit={(data, onSuccess, onError, e) => {
+                    onSubmit={(_data, _onSuccess, _onError, e) => {
                       e.stopPropagation();
                       confirm();
                     }}
@@ -384,7 +386,11 @@ class ProjectGeneralSettings extends AsyncView {
             jsonFormProps.features.has('tweak-grouping-config')) && (
             <JsonForm
               {...jsonFormProps}
-              title={t('Grouping Settings')}
+              title={
+                <>
+                  {t('Grouping Settings')} <BetaTag />
+                </>
+              }
               fields={[
                 fields.groupingConfig,
                 fields.groupingEnhancementsBase,
@@ -469,7 +475,7 @@ class ProjectGeneralSettings extends AsyncView {
 
 const ProjectGeneralSettingsContainer = createReactClass({
   mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
-  onProjectsUpdate(projects) {
+  onProjectsUpdate(_projects) {
     if (!this.changedSlug) {
       return;
     }

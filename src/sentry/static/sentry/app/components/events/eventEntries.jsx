@@ -216,7 +216,11 @@ class EventEntries extends React.Component {
           <EventSdkUpdates event={event} />
         )}
         {!isShare && features.has('grouping-info') && (
-          <EventGroupingInfo projectId={project.slug} event={event} />
+          <EventGroupingInfo
+            projectId={project.slug}
+            event={event}
+            showSelector={features.has('set-grouping-config')}
+          />
         )}
       </div>
     );

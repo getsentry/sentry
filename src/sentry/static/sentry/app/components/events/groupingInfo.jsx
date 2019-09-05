@@ -6,6 +6,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
+import BetaTag from 'app/components/betaTag';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -22,6 +23,7 @@ const GroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
+// eslint-disable-next-line no-unused-vars
 const GroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
   padding: 15px 0 20px 0;
   margin-top: 15px;
@@ -51,6 +53,7 @@ const GroupingComponentListItem = styled('li')`
   margin: 2px 0 1px 13px;
 `;
 
+// eslint-disable-next-line no-unused-vars
 const GroupingComponentWrapper = styled(({contributes, ...props}) => <div {...props} />)`
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
@@ -225,12 +228,14 @@ class GroupingConfigSelect extends AsyncComponent {
         {...props}
         alignMenu="left"
         selectedItem={configId}
-        items={this.state.data.map(item => {
-          return {
-            value: item.id,
-            label: renderIdLabel(item.id),
-          };
-        })}
+        items={this.state.data
+          .filter(item => !item.hidden || item.id === eventConfigId)
+          .map(item => {
+            return {
+              value: item.id,
+              label: renderIdLabel(item.id),
+            };
+          })}
       >
         {({isOpen}) => (
           <Tooltip title="Click here to experiment with other grouping configs">
@@ -250,6 +255,7 @@ class EventGroupingInfo extends AsyncComponent {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
+    showSelector: PropTypes.object,
   };
 
   getEndpoints() {
@@ -325,19 +331,21 @@ class EventGroupingInfo extends AsyncComponent {
     return (
       <GroupVariantList>
         <div style={{float: 'right'}}>
-          <GroupingConfigSelect
-            name="groupingConfig"
-            eventConfigId={eventConfigId}
-            configId={configId}
-            onSelect={selection => {
-              this.setState(
-                {
-                  configOverride: selection.value,
-                },
-                () => this.reloadData()
-              );
-            }}
-          />
+          {this.props.showSelector && (
+            <GroupingConfigSelect
+              name="groupingConfig"
+              eventConfigId={eventConfigId}
+              configId={configId}
+              onSelect={selection => {
+                this.setState(
+                  {
+                    configOverride: selection.value,
+                  },
+                  () => this.reloadData()
+                );
+              }}
+            />
+          )}
         </div>
         {variants.map(variant => (
           <GroupVariant variant={variant} key={variant.key} />
@@ -356,7 +364,7 @@ class EventGroupingInfo extends AsyncComponent {
       >
         <div className="box-header">
           <a className="pull-right grouping-info-toggle" onClick={this.toggle}>
-            {isOpen ? t('Hide Details') : t('Show Details')}
+            {isOpen ? t('Hide Details') : t('Show Details')} <BetaTag />
           </a>
           <h3>
             {t('Event Grouping Information')}
