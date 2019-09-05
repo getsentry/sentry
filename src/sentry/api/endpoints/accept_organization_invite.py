@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from sentry.utils import auth
 from sentry.api.base import Endpoint
 from sentry.models import OrganizationMember, AuthProvider
-from sentry.api.invite_helper import ApiInviteHelper
+from sentry.api.invite_helper import ApiInviteHelper, add_invite_cookie, remove_invite_cookie
 
 
 class AcceptOrganizationInvite(Endpoint):
@@ -51,9 +51,7 @@ class AcceptOrganizationInvite(Endpoint):
             "existingMember": helper.member_already_exists,
         }
 
-        if auth_provider is not None:
-            provider = auth_provider.get_provider()
-            data["ssoProvider"] = provider.name
+        response = Response(None)
 
         # Allow users to register an account when accepting an invite
         if not helper.user_authenticated:
@@ -61,10 +59,19 @@ class AcceptOrganizationInvite(Endpoint):
             auth.initiate_login(self.request, next_url=url)
             request.session["can_register"] = True
 
-        response = Response(data)
+        # If the org has SSO setup, we'll store the invite cookie to later
+        # associate the org member after authentication. We can avoid needing
+        # to come back to the accept invite page since 2FA will *not* be
+        # required if SSO is required.
+        if auth_provider is not None:
+            add_invite_cookie(request, response, member_id, token)
+            provider = auth_provider.get_provider()
+            data["ssoProvider"] = provider.name
 
         if helper.needs_2fa:
-            helper.add_invite_cookie(request, response, member_id, token)
+            add_invite_cookie(request, response, member_id, token)
+
+        response.data = data
 
         return response
 
@@ -88,6 +95,6 @@ class AcceptOrganizationInvite(Endpoint):
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
         helper.accept_invite()
-        helper.remove_invite_cookie(response)
+        remove_invite_cookie(request, response)
 
         return response

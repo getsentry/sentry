@@ -70,44 +70,47 @@ export function updateOrganization(org) {
   OrganizationsActions.update(org);
 }
 
-export function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
+export async function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
   const api = new Client();
-  const request = api.requestPromise(`/organizations/?query=member_id:${memberId}`);
+  const data = await api.requestPromise(`/organizations/?query=member_id:${memberId}`);
 
-  request.then(data => {
-    if (data.length) {
-      if (addOrg) {
-        // add org to SwitchOrganization dropdown
-        OrganizationsStore.add(data[0]);
-      }
+  if (!data.length) {
+    return null;
+  }
 
-      if (fetchOrgDetails) {
-        // load SidebarDropdown with org details including `access`
-        fetchOrganizationDetails(data[0].slug, {setActive: true, loadProjects: true});
-      }
-    }
-  });
+  const org = data[0];
 
-  return request;
+  if (addOrg) {
+    // add org to SwitchOrganization dropdown
+    OrganizationsStore.add(org);
+  }
+
+  if (fetchOrgDetails) {
+    // load SidebarDropdown with org details including `access`
+    await fetchOrganizationDetails(org.slug, {setActive: true, loadProjects: true});
+  }
+
+  return org;
 }
 
-export function fetchOrganizationDetails(orgId, {setActive, loadProjects, loadTeam}) {
+export async function fetchOrganizationDetails(
+  orgId,
+  {setActive, loadProjects, loadTeam}
+) {
   const api = new Client();
-  const request = api.requestPromise(`/organizations/${orgId}/`);
+  const data = await api.requestPromise(`/organizations/${orgId}/`);
 
-  request.then(data => {
-    if (setActive) {
-      setActiveOrganization(data);
-    }
+  if (setActive) {
+    setActiveOrganization(data);
+  }
 
-    if (loadTeam) {
-      TeamStore.loadInitialData(data.teams);
-    }
+  if (loadTeam) {
+    TeamStore.loadInitialData(data.teams);
+  }
 
-    if (loadProjects) {
-      ProjectsStore.loadInitialData(data.projects || []);
-    }
-  });
+  if (loadProjects) {
+    ProjectsStore.loadInitialData(data.projects || []);
+  }
 
-  return request;
+  return data;
 }
