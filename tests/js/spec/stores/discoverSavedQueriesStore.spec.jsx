@@ -39,10 +39,6 @@ describe('DiscoverSavedQueriesStore', function() {
         },
       ],
     });
-    Client.addMockResponse({
-      url: '/organizations/org-1/discover/saved/1/',
-      method: 'DELETE',
-    });
   });
 
   afterEach(async function() {
@@ -148,10 +144,17 @@ describe('DiscoverSavedQueriesStore', function() {
   });
 
   it('deleting a query updates the store', async function() {
+    Client.addMockResponse({
+      url: '/organizations/org-1/discover/saved/1/',
+      method: 'DELETE',
+      statusCode: 200,
+    });
+
     fetchSavedQueries(api, 'org-1');
     await tick();
 
     deleteSavedQuery(api, 'org-1', '1');
+    await tick();
     await tick();
 
     const state = DiscoverSavedQueriesStore.get();
