@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-from django.conf import settings
-import confluent_kafka as kafka
 import msgpack
+
+from django.conf import settings
+from django.core.cache import cache
+import confluent_kafka as kafka
 
 from sentry.coreapi import cache_key_from_project_id_and_event_id
 from sentry.cache import default_cache
@@ -90,7 +92,7 @@ def _run_pre_process_forwarder_internal(
     consumer.subscribe([ConsumerType.get_topic_name(consumer_type, settings)])
 
     try:
-        while not (is_shutdown_requested()):
+        while not is_shutdown_requested():
             # get up to commit_batch_size messages
             messages = consumer.consume(
                 num_messages=commit_batch_size, timeout=max_batch_time_seconds
@@ -114,6 +116,16 @@ def _run_pre_process_forwarder_internal(
                 event_id = message["event_id"]
                 project_id = message["project_id"]
 
+                # check that we haven't already processed this event (a previous instance of the forwarder
+                # died before it could commit the event queue offset)
+                deduplication_key = "ev:{}:{}".format(project_id, event_id)
+                if cache.get(deduplication_key) is not None:
+                    logger.warning(
+                        "pre-process-forwarder detected a duplicated event"
+                        " with id:{} for project:{}.".format(event_id, project_id)
+                    )
+                    continue
+
                 cache_key = cache_key_from_project_id_and_event_id(
                     project_id=project_id, event_id=event_id
                 )
@@ -122,6 +134,9 @@ def _run_pre_process_forwarder_internal(
                 preprocess_event.delay(
                     cache_key=cache_key, start_time=start_time, event_id=event_id
                 )
+
+                # remember for an 1 hour that we saved this event (deduplication protection)
+                cache.set(deduplication_key, "", 3600)
 
             if len(messages) > 0:
                 # we have read some messages in the previous consume, commit the offset

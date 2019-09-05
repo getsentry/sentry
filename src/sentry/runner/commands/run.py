@@ -400,7 +400,7 @@ def pre_process_forwarder(**options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    max_batch_time_seconds = options["max-batch-time-ms"] / 1000
+    max_batch_time_seconds = options["max-batch-time-ms"] / 1000.0
 
     run_pre_process_forwarder(
         commit_batch_size=options["commit_batch_size"],
