@@ -52,9 +52,7 @@ def _create_consumer(consumer_group, consumer_type, settings):
         "enable.auto.commit": "false",  # we commit manually
         "enable.auto.offset.store": "true",  # we let the broker keep count of the current offset (when committing)
         "enable.partition.eof": "false",  # stop EOF errors when we read all messages in the topic
-        "default.topic.config": {
-            "auto.offset.reset": "earliest"  # TODO RaduW check what we want to do earliest/latest/error
-        },
+        "default.topic.config": {"auto.offset.reset": "earliest"},
     }
 
     return kafka.Consumer(consumer_configuration)

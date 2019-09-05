@@ -1687,7 +1687,6 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
     },
-    # TODO RaduW 29.08.2019 confirm the default configuration for ingestion topics
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
