@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import pytz
+from mock import patch
+
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -30,7 +33,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events empty state")
 
-    def test_all_events(self):
+    @patch("django.utils.timezone.now")
+    def test_all_events(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
@@ -48,7 +53,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
 
-    def test_errors(self):
+    @patch("django.utils.timezone.now")
+    def test_errors(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={
@@ -86,7 +93,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
-    def test_modal_from_all_events(self):
+    @patch("django.utils.timezone.now")
+    def test_modal_from_all_events(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
 
         event_data = load_data("python")
@@ -120,7 +129,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("events-v2 - single error modal")
 
-    def test_modal_from_errors_view(self):
+    @patch("django.utils.timezone.now")
+    def test_modal_from_errors_view(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         event_source = (("a", 1), ("b", 39), ("c", 69))
         event_ids = []
         event_data = load_data("javascript")
