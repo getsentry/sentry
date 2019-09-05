@@ -108,7 +108,7 @@ class SentryAppSerializer(Serializer):
     def validate(self, attrs):
         # validates events against scopes
         if attrs.get("scopes"):
-            for resource in attrs.get("events"):
+            for resource in attrs.get("events") or []:
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
