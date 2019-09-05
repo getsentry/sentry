@@ -23,15 +23,11 @@ def get_dynamic_cluster_from_options(setting, config):
 
 
 class BasicRedisQuota(object):
-    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code", "enforce"]
+    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
 
-    def __init__(
-        self, prefix=None, subscope=None, limit=None, window=60, reason_code=None, enforce=True
-    ):
+    def __init__(self, prefix=None, subscope=None, limit=None, window=60, reason_code=None):
         if limit == 0:
-            assert (
-                prefix is None and subscope is None and enforce
-            ), "zero-sized quotas are not tracked in redis"
+            assert prefix is None and subscope is None, "zero-sized quotas are not tracked in redis"
         else:
             assert prefix, "measured quotas need a prefix to run in redis"
 
@@ -48,8 +44,6 @@ class BasicRedisQuota(object):
         self.window = window
         # a machine readable string
         self.reason_code = reason_code
-        # should this quota be hard-enforced (or just tracked)
-        self.enforce = enforce
 
 
 class RedisQuota(Quota):
@@ -202,7 +196,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         for quota in quotas:
-            if quota.enforce and quota.limit == 0:
+            if quota.limit == 0:
                 return RateLimited(retry_after=None, reason_code=quota.reason_code)
 
         keys = []
@@ -225,17 +219,15 @@ class RedisQuota(Quota):
             rejections = is_rate_limited(client, keys, args)
 
         if any(rejections):
-            enforce = False
             worst_case = (0, None)
             for quota, rejected in zip(quotas, rejections):
                 if not rejected:
                     continue
-                if quota.enforce:
-                    enforce = True
-                    shift = project.organization_id % quota.window
-                    delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
-                    if delay > worst_case[0]:
-                        worst_case = (delay, quota.reason_code)
-            if enforce:
-                return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])
+
+                shift = project.organization_id % quota.window
+                delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
+                if delay > worst_case[0]:
+                    worst_case = (delay, quota.reason_code)
+
+            return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])
         return NotRateLimited()
