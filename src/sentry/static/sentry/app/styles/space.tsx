@@ -8,6 +8,8 @@ const space = (size: number): string => {
       return '2px';
     case 0.5:
       return '4px';
+    case 0.75:
+      return '6px';
     case 1:
       return '8px';
     case 1.5:
