@@ -8,7 +8,7 @@ import msgpack
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.pre_process_forwarder import ConsumerType, run_pre_process_forwarder
+from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
 from sentry.models.event import Event
 from sentry.testutils.factories import Factories
 from django.conf import settings
@@ -72,7 +72,7 @@ def _shutdown_requested(max_secs, num_events):
 
 
 @pytest.mark.django_db
-def test_pre_process_forwarder_reads_from_topic_and_calls_celery_task(
+def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin
 ):
     consumer_group = "test-consumer"
@@ -92,7 +92,7 @@ def test_pre_process_forwarder_reads_from_topic_and_calls_celery_task(
         producer.produce(topic_event_name, message)
 
     with task_runner():
-        run_pre_process_forwarder(
+        run_ingest_consumer(
             commit_batch_size=2,
             consumer_group=consumer_group,
             consumer_type=ConsumerType.Events,

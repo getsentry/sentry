@@ -356,7 +356,7 @@ def query_subscription_consumer(**options):
     subscriber.run()
 
 
-@run.command("pre-process-forwarder")
+@run.command("ingest-consumer")
 @log_options()
 @click.option(
     "--consumer-type",
@@ -365,9 +365,7 @@ def query_subscription_consumer(**options):
     type=click.Choice(["events", "transactions", "attachments"]),
 )
 @click.option(
-    "--group",
-    default="pre-process-forwarder",
-    help="Kafka consumer group for the PreProcessForwarder. ",
+    "--group", default="ingest-consumer", help="Kafka consumer group for the ingest consumer. "
 )
 @click.option(
     "--commit-batch-size",
@@ -383,14 +381,14 @@ def query_subscription_consumer(**options):
     "before returning the available messages in the topic.",
 )
 @configuration
-def pre_process_forwarder(**options):
+def ingest_consumer(**options):
     """
-    Runs a "pre process forwarder" task.
+    Runs an "ingest consumer" task.
 
-    The "pre process forwarder" tasks read events from a kafka topic (coming from Relay) and forwards them
-    into the system. TODO finish the detailed explanation above.
+    The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
+    process event celery tasks for them
     """
-    from sentry.pre_process_forwarder import ConsumerType, run_pre_process_forwarder
+    from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
 
     consumer_type = options["consumer_type"]
     if consumer_type == "events":
@@ -402,7 +400,7 @@ def pre_process_forwarder(**options):
 
     max_batch_time_seconds = options["max-batch-time-ms"] / 1000.0
 
-    run_pre_process_forwarder(
+    run_ingest_consumer(
         commit_batch_size=options["commit_batch_size"],
         consumer_group=options["group"],
         consumer_type=consumer_type,

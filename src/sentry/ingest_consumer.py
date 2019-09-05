@@ -58,7 +58,7 @@ def _create_consumer(consumer_group, consumer_type, settings):
     return kafka.Consumer(consumer_configuration)
 
 
-def run_pre_process_forwarder(
+def run_ingest_consumer(
     commit_batch_size,
     consumer_group,
     consumer_type,
@@ -82,7 +82,7 @@ def run_pre_process_forwarder(
         For unit testing it offers a way to cleanly stop the forwarder after some particular condition is achieved.
     """
 
-    logger.debug("Starting pre-process-forwarder...")
+    logger.debug("Starting ingest-consumer...")
     consumer = _create_consumer(consumer_group, consumer_type, settings)
 
     consumer.subscribe([ConsumerType.get_topic_name(consumer_type, settings)])
@@ -118,7 +118,9 @@ def run_pre_process_forwarder(
                 if cache.get(deduplication_key) is not None:
                     logger.warning(
                         "pre-process-forwarder detected a duplicated event"
-                        " with id:{} for project:{}.".format(event_id, project_id)
+                        " with id:%s for project:%s.",
+                        event_id,
+                        project_id,
                     )
                     continue
 
@@ -141,5 +143,5 @@ def run_pre_process_forwarder(
     except KeyboardInterrupt:
         pass
 
-    logger.debug("Closing consumer {}...".format(consumer_type))
+    logger.debug("Closing ingest-consumer %s...", consumer_type)
     consumer.close()
