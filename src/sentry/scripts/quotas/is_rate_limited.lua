@@ -24,7 +24,7 @@ local results = {}
 local failed = false
 for i=1, #KEYS, 2 do
     local limit = tonumber(ARGV[i])
-    local rejected = (redis.call('GET', KEYS[i]) or 0) - (redis.call('GET', KEYS[i + 1]) or 0) + 1 > limit
+    local rejected = limit != -1 and (redis.call('GET', KEYS[i]) or 0) - (redis.call('GET', KEYS[i + 1]) or 0) + 1 > limit
     if rejected then
         failed = true
     end

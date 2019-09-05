@@ -189,7 +189,7 @@ class RedisQuota(Quota):
         if timestamp is None:
             timestamp = time()
 
-        quotas = self.get_quotas_with_limits(project, key=key)
+        quotas = self.get_quotas(project, key=key)
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:
@@ -210,7 +210,7 @@ class RedisQuota(Quota):
             return_key = self.get_refunded_quota_key(key)
             keys.extend((key, return_key))
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
-            args.extend((quota.limit, int(expiry)))
+            args.extend((quota.limit if quota.limit is not None else -1, int(expiry)))
 
         if self.is_redis_cluster:
             rejections = is_rate_limited(self.cluster, keys, args)
