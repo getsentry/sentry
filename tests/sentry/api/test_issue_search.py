@@ -142,7 +142,7 @@ class ConvertStatusValueTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidSearchQuery, expected_regex="invalid status value"):
             convert_query_values(filters, [self.project], self.user, None)
 
 
