@@ -69,7 +69,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
         ? projects.filter(({id}) => projectIds.includes(id))
         : projects;
 
-    return selectedProjects.some(({hasUserReports}) => !!hasUserReports);
+    return selectedProjects.some(({hasUserReports}) => hasUserReports);
   }
 
   trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
