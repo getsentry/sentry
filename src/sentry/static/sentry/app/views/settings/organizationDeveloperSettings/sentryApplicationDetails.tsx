@@ -29,7 +29,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
-import {SentryApp, ApiTokenNoApp} from 'app/types';
+import {SentryApp, InternalAppApiToken} from 'app/types';
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -63,7 +63,7 @@ type Props = AsyncView['props'] & {
 
 type State = AsyncView['state'] & {
   app: SentryApp | null;
-  tokens: ApiTokenNoApp[];
+  tokens: InternalAppApiToken[];
 };
 
 export default class SentryApplicationDetails extends AsyncView<Props, State> {
@@ -139,7 +139,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     this.setState({tokens: newTokens});
   };
 
-  onRemoveToken = async (token: ApiTokenNoApp, evt: React.MouseEvent) => {
+  onRemoveToken = async (token: InternalAppApiToken, evt: React.MouseEvent) => {
     evt.preventDefault();
     const {app, tokens} = this.state;
     if (!app) {

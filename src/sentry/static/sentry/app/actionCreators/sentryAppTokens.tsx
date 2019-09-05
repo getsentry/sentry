@@ -4,7 +4,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import {SentryApp, ApiTokenNoApp} from 'app/types';
+import {SentryApp, InternalAppApiToken} from 'app/types';
 import {Client} from 'app/api';
 
 /**
@@ -16,7 +16,7 @@ import {Client} from 'app/api';
 export async function addSentryAppToken(
   client: Client,
   app: SentryApp
-): Promise<ApiTokenNoApp> {
+): Promise<InternalAppApiToken> {
   addLoadingMessage();
   try {
     const token = await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/`, {

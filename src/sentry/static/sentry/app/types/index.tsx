@@ -387,7 +387,8 @@ type BaseApiToken = {
   state: string;
 };
 
-export type ApiTokenNoApp = BaseApiToken & {
+//We include the token for API tokens used for internal apps
+export type InternalAppApiToken = BaseApiToken & {
   application: null;
   token: string;
   refreshToken: string;
