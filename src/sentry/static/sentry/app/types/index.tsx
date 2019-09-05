@@ -73,6 +73,35 @@ type EntryType = {
 
 export type EventTag = {key: string; value: string};
 
+type EventUser = {
+  username?: string;
+  name?: string;
+  ip_address?: string;
+  email?: string;
+  id?: string;
+};
+
+type RuntimeContext = {
+  type: 'runtime';
+  version: number;
+  build?: string;
+  name?: string;
+};
+
+type TraceContext = {
+  type: 'trace';
+  op: string;
+  description: string;
+  parent_span_id: string;
+  span_id: string;
+  trace_id: string;
+};
+
+type EventContexts = {
+  runtime?: RuntimeContext;
+  trace?: TraceContext;
+};
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -80,6 +109,8 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   metadata: EventMetadata;
+  contexts: EventContexts;
+  user: EventUser;
   message: string;
   platform?: string;
   dateCreated?: string;
@@ -303,4 +334,32 @@ export type Repository = {
   provider: {id: string; name: string};
   status: string;
   url: string;
+};
+
+export type WebhookEvents = 'issue' | 'error';
+
+export type SentryApp = {
+  status: string;
+  scopes: string[];
+  isAlertable: boolean;
+  verifyInstall: boolean;
+  slug: string;
+  name: string;
+  uuid: string;
+  author: string;
+  events: WebhookEvents[];
+  schema: {
+    elements?: object[]; //TODO(ts)
+  };
+  //possible null params
+  webhookUrl: string | null;
+  redirectUrl: string | null;
+  overview: string | null;
+  //optional params below
+  clientId?: string;
+  clientSecret?: string;
+  owner?: {
+    id: number;
+    slug: string;
+  };
 };

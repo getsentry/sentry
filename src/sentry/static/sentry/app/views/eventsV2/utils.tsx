@@ -6,6 +6,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
+  LINK_FORMATTERS,
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
@@ -139,17 +140,26 @@ export type MetaType = {
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} Whether or not to coerce a field into a link.
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  forceLink: boolean
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
+
+  // If the current field is being coerced to a link
+  // use a different formatter set based on the type.
+  if (forceLink && LINK_FORMATTERS.hasOwnProperty(fieldType)) {
+    return partial(LINK_FORMATTERS[fieldType], fieldName);
+  }
+
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }

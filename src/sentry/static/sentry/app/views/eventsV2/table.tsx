@@ -44,6 +44,9 @@ type State = {
   dataPayload: DataPayload | null | undefined;
 };
 
+/**
+ * Container element that fetches events and handles pagination
+ */
 class Table extends React.PureComponent<Props, State> {
   state: State = {
     eventView: EventView.fromLocation(this.props.location),
@@ -137,6 +140,9 @@ type TableViewProps = {
   location: Location;
 };
 
+/**
+ * Renders the table headers and rows for the result set.
+ */
 class TableView extends React.Component<TableViewProps> {
   renderLoading = () => {
     return (
@@ -208,11 +214,8 @@ class TableView extends React.Component<TableViewProps> {
     //     </PanelGridInfo>
     //   );
     // }
-
     const lastRowIndex = dataPayload.data.length - 1;
-
-    // TODO add links to the first column even if it isn't one of our
-    // preferred link columns (title, transaction, latest_event)
+    const hasLinkField = eventView.hasAutolinkField();
     const firstCellIndex = 0;
     const lastCellIndex = fields.length - 1;
 
@@ -221,8 +224,9 @@ class TableView extends React.Component<TableViewProps> {
         <React.Fragment key={rowIndex}>
           {fields.map((field, columnIndex) => {
             const key = `${field}.${columnIndex}`;
+            const forceLinkField = !hasLinkField && columnIndex === 0;
 
-            const fieldRenderer = getFieldRenderer(field, meta);
+            const fieldRenderer = getFieldRenderer(field, meta, forceLinkField);
             return (
               <PanelItemCell
                 hideBottomBorder={rowIndex === lastRowIndex}

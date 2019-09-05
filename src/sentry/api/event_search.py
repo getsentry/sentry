@@ -831,13 +831,21 @@ def get_reference_event_conditions(snuba_args, reference_event):
     """
     conditions = []
 
+    tags = {}
+    if "tags.key" in reference_event and "tags.value" in reference_event:
+        tags = dict(zip(reference_event["tags.key"], reference_event["tags.value"]))
+
     # If we were given an project/event to use build additional
     # conditions using that event and the non-aggregated columns
     # we received in the querystring. This lets us find the oldest/newest.
     # This only handles simple fields on the snuba_data dict.
     for field in snuba_args.get("groupby", []):
         prop = get_snuba_column_name(field)
-        value = reference_event.get(prop, None)
+        if prop.startswith("tags["):
+            value = tags.get(field, None)
+        else:
+            value = reference_event.get(prop, None)
         if value:
             conditions.append([prop, "=", value])
+
     return conditions
