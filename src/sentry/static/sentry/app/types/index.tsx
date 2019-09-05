@@ -36,6 +36,7 @@ export type Project = {
   features: string[];
 
   isBookmarked: boolean;
+  hasUserReports?: boolean;
 };
 
 export type Team = {
