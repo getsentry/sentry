@@ -26,9 +26,9 @@ class BasicRedisQuota(object):
     __slots__ = ["prefix", "subscope", "limit", "window", "reason_code", "enforce"]
 
     def __init__(
-        self, prefix=None, subscope=None, limit=0, window=60, reason_code=None, enforce=True
+        self, prefix=None, subscope=None, limit=None, window=60, reason_code=None, enforce=True
     ):
-        if limit == -1:
+        if limit == 0:
             assert (
                 prefix is None and subscope is None and enforce
             ), "zero-sized quotas are not tracked in redis"
@@ -36,8 +36,11 @@ class BasicRedisQuota(object):
         self.prefix = prefix
         self.subscope = subscope
         # maximum number of events in the given window
-        # 0 indicates "no limit"
-        # -1 indicates "reject all"
+        #
+        # None indicates "unlimited amount"
+        # 0 indicates "reject all"
+        # NOTE: In options/settings, 0 represents "unlimited amount" and is
+        # mapped to None when reading.
         self.limit = limit
         # time in seconds that this quota reflects
         self.window = window
@@ -90,13 +93,7 @@ class RedisQuota(Quota):
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
     def get_quotas_with_limits(self, project, key=None):
-        return [
-            quota
-            for quota in self.get_quotas(project, key=key)
-            # limit = 0 means "no limit"
-            # limit = -1 means "reject all" (used in getsentry)
-            if quota.limit != 0
-        ]
+        return [quota for quota in self.get_quotas(project, key=key) if quota.limit is not None]
 
     def get_quotas(self, project, key=None):
         if key:
@@ -131,7 +128,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         def get_usage_for_quota(client, quota):
-            if quota.limit == 0:
+            if quota.limit in (-1, 0):
                 return (None, None)
 
             key = self.__get_redis_key(
@@ -203,7 +200,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         for quota in quotas:
-            if quota.enforce and quota.limit < 0:
+            if quota.enforce and quota.limit == 0:
                 return RateLimited(retry_after=None, reason_code=quota.reason_code)
 
         keys = []

@@ -83,8 +83,8 @@ class Quota(Service):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:
-            return int(parent_quota or 0)
-        return int(quota or 0)
+            return int(parent_quota or 0) or None
+        return int(quota or 0) or None
 
     def get_key_quota(self, key):
         from sentry import features
@@ -99,7 +99,11 @@ class Quota(Service):
             has_rate_limits = features.has("projects:rate-limits", key.project)
             cache.set(cache_key, has_rate_limits, 600)
 
-        return key.rate_limit if has_rate_limits else (0, 0)
+        if not has_rate_limits:
+            return (None, 0)
+
+        limit, window = key.rate_limit
+        return limit or None, window
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
@@ -118,20 +122,20 @@ class Quota(Service):
         if max_quota_share != 100 and org_quota:
             quota = self.translate_quota(u"{}%".format(max_quota_share), org_quota)
         else:
-            quota = 0
+            quota = None
 
         return (quota, window)
 
     def get_organization_quota(self, organization):
         from sentry.models import OrganizationOption
 
-        account_limit = int(
-            OrganizationOption.objects.get_value(
-                organization=organization, key="sentry:account-rate-limit", default=0
-            )
+        account_limit = OrganizationOption.objects.get_value(
+            organization=organization, key="sentry:account-rate-limit", default=None
         )
 
-        system_limit = options.get("system.rate-limit")
+        account_limit = int(account_limit) if account_limit else None
+
+        system_limit = options.get("system.rate-limit") or None
 
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
@@ -151,7 +155,7 @@ class Quota(Service):
         """
         Return the maximum capable rate for an organization.
         """
-        return (options.get("system.rate-limit"), 60)
+        return (options.get("system.rate-limit") or None, 60)
 
     def get_event_retention(self, organization):
         return options.get("system.event-retention-days") or None

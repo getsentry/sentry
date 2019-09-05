@@ -17,7 +17,7 @@ class QuotaTest(TestCase):
 
         with self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
             with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (0, 60)
+                assert self.backend.get_project_quota(project) == (None, 60)
 
             OrganizationOption.objects.set_value(org, "sentry:project-rate-limit", 80)
 
@@ -25,7 +25,7 @@ class QuotaTest(TestCase):
                 assert self.backend.get_project_quota(project) == (80, 60)
 
             with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (0, 60)
+                assert self.backend.get_project_quota(project) == (None, 60)
 
     def test_get_key_quota(self):
         key = ProjectKey.objects.create(
