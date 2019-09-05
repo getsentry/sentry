@@ -103,6 +103,7 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 declare global {
   interface Window {
     csrfCookieName?: string;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
   }
 }
 

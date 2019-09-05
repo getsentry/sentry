@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/browser';
 
+import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';
 import Button from 'app/components/button';
@@ -12,7 +13,17 @@ import space from 'app/styles/space';
 import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
 
-class UserFeedbackEmpty extends React.Component {
+type Props = {
+  organization: Organization;
+  projectIds?: string[];
+};
+
+type IllustrationProps = {
+  data: string;
+  className?: string;
+};
+
+class UserFeedbackEmpty extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     projectIds: PropTypes.arrayOf(PropTypes.string.isRequired),
@@ -58,10 +69,10 @@ class UserFeedbackEmpty extends React.Component {
         ? projects.filter(({id}) => projectIds.includes(id))
         : projects;
 
-    return selectedProjects.some(({hasUserReports}) => !!hasUserReports);
+    return selectedProjects.some(({hasUserReports}) => hasUserReports);
   }
 
-  trackAnalytics({eventKey, eventName}) {
+  trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
     const {organization, projectIds} = this.props;
 
     trackAnalyticsEvent({
@@ -73,7 +84,7 @@ class UserFeedbackEmpty extends React.Component {
   }
 
   render() {
-    if (this.hasAnyFeedback === true) {
+    if (this.hasAnyFeedback !== false) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no user reports match your filters.')}</p>
@@ -174,7 +185,7 @@ const CardComponentContainer = styled('div')`
   }
 `;
 
-const Illustration = styled(({data, className}) => (
+const Illustration = styled(({data, className}: IllustrationProps) => (
   <object data={data} className={className}>
     <img src={data} className={className} />
   </object>
