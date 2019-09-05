@@ -32,6 +32,11 @@ class BasicRedisQuota(object):
             assert (
                 prefix is None and subscope is None and enforce
             ), "zero-sized quotas are not tracked in redis"
+        else:
+            assert prefix, "measured quotas need a prefix to run in redis"
+
+        if limit is None:
+            assert reason_code is None and not enforce, "unlimited quotas cannot reject events"
 
         self.prefix = prefix
         self.subscope = subscope
