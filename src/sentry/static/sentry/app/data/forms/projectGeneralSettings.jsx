@@ -11,6 +11,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
+import GroupingConfigItem from 'app/components/events/groupingInfo';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -139,9 +140,9 @@ export const fields = {
       return groupingConfigs.map(({id, hidden}) => {
         return [
           id.toString(),
-          <code key={id} style={{opacity: hidden ? '0.5' : 1.0}}>
+          <GroupingConfigItem key={id} hidden={hidden}>
             {id}
-          </code>,
+          </GroupingConfigItem>,
         ];
       });
     },

@@ -15,6 +15,13 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 import withOrganization from 'app/utils/withOrganization';
 
+const GroupingConfigItem = styled(({hidden: _hidden, active: _active, ...props}) => (
+  <code {...props} />
+))`
+  ${p => (p.hidden ? 'opacity: 0.5;' : '')}
+  ${p => (p.active ? 'font-weight: bold;' : '')}
+`;
+
 const GroupVariantList = styled('ul')`
   padding: 0;
   margin: 0;
@@ -222,7 +229,7 @@ class GroupingConfigSelect extends AsyncComponent {
     props.value = configId;
 
     function renderIdLabel(id) {
-      return <code>{eventConfigId === id ? <strong>{id}</strong> : id}</code>;
+      return <GroupingConfigItem active={eventConfigId === id}>{id}</GroupingConfigItem>;
     }
 
     return (
