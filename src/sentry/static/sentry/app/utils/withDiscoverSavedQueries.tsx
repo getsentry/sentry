@@ -6,11 +6,15 @@ import DiscoverSavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
 import getDisplayName from 'app/utils/getDisplayName';
 import {SavedQuery} from 'app/views/discover/types';
 
+type Props = {
+  savedQueries: SavedQuery[];
+};
+
 /**
  * Higher order component that uses DiscoverSavedQueryStor and provides the
  * saved queries for the current organization
  */
-const withDiscoverSavedQueries = <P extends object>(
+const withDiscoverSavedQueries = <P extends Props>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   createReactClass({
