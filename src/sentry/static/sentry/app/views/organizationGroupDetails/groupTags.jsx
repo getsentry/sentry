@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
+import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import Count from 'app/components/count';
@@ -14,12 +15,14 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 class GroupTags extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
+    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
   };
 
   constructor() {
@@ -35,14 +38,21 @@ class GroupTags extends React.Component {
     this.fetchData();
   }
 
+  componentDidUpdate(prevProps) {
+    if (!isEqual(prevProps.environments, this.props.environments)) {
+      this.fetchData();
+    }
+  }
+
   fetchData = () => {
-    const {api, group} = this.props;
+    const {api, group, environments} = this.props;
+    // const envNames = environments.map(e => e.name);
+    const env_query = environments.map(e => '&environment=' + e.name).join('');
     this.setState({
       loading: true,
       error: false,
     });
-
-    api.request('/issues/' + group.id + '/tags/', {
+    api.request('/issues/' + group.id + '/tags/?' + env_query, {
       success: data => {
         this.setState({
           tagList: data,
@@ -143,4 +153,4 @@ class GroupTags extends React.Component {
   }
 }
 
-export default withApi(withOrganization(GroupTags));
+export default withApi(withOrganization(withGlobalSelection(GroupTags)));
