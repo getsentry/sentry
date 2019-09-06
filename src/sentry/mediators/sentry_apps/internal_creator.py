@@ -20,7 +20,7 @@ class InternalCreator(Mediator):
     organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
-    webhook_url = Param(six.string_types)
+    webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})

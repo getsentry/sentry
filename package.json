@@ -24,6 +24,7 @@
     "@types/echarts": "^4.1.10",
     "@types/jest": "^24.0.17",
     "@types/jquery": "^2.0.53",
+    "@types/js-cookie": "^2.2.2",
     "@types/lodash": "^4.14.134",
     "@types/moment-timezone": "^0.5.12",
     "@types/papaparse": "^4.5.11",
@@ -32,6 +33,7 @@
     "@types/react-document-title": "^2.0.3",
     "@types/react-dom": "^16.7.0",
     "@types/react-router": "^3.0.20",
+    "@types/react-sparklines": "^1.7.0",
     "@types/react-virtualized": "^9.20.1",
     "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
@@ -64,7 +66,7 @@
     "ios-device-list": "^1.1.30",
     "jed": "^1.1.0",
     "jquery": "2.2.2",
-    "js-cookie": "2.0.4",
+    "js-cookie": "2.2.1",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.11",
@@ -104,7 +106,7 @@
     "reflux": "0.4.1",
     "regenerator-runtime": "^0.13.3",
     "scroll-to-element": "^2.0.0",
-    "sentry-dreamy-components": "^1.0.2",
+    "sentry-dreamy-components": "^2.0.1",
     "sprintf-js": "1.0.3",
     "style-loader": "^0.23.1",
     "svg-sprite-loader": "^3.9.0",
@@ -176,7 +178,7 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "volta": {
-    "node": "8.15.1",
-    "yarn": "1.16.0"
+    "node": "10.16.3",
+    "yarn": "1.17.3"
   }
 }

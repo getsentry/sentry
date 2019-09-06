@@ -29,6 +29,7 @@ import Hook from 'app/components/hook';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
 import SentryTypes from 'app/sentryTypes';
+import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
@@ -48,6 +49,7 @@ export const INTERFACES = {
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
   debugmeta: DebugMetaInterface,
+  spans: SpansInterface,
 };
 
 class EventEntries extends React.Component {
@@ -156,6 +158,7 @@ class EventEntries extends React.Component {
       event,
       orgId,
       showExampleCommit,
+      location,
     } = this.props;
 
     const features = organization ? new Set(organization.features) : new Set();
@@ -198,6 +201,7 @@ class EventEntries extends React.Component {
           event={event}
           orgId={orgId}
           projectId={project.slug}
+          location={location}
         />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}

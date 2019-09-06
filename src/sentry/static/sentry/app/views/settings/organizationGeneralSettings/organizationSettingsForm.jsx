@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
@@ -12,17 +11,15 @@ import SentryTypes from 'app/sentryTypes';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
 
-const OrganizationSettingsForm = createReactClass({
-  displayName: 'OrganizationSettingsForm',
-
-  propTypes: {
+class OrganizationSettingsForm extends React.Component {
+  static propTypes = {
     location: PropTypes.object,
     organization: SentryTypes.Organization,
     orgId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
     initialData: PropTypes.object.isRequired,
     onSave: PropTypes.func.isRequired,
-  },
+  };
 
   render() {
     const {initialData, organization, orgId, onSave, access} = this.props;
@@ -35,13 +32,13 @@ const OrganizationSettingsForm = createReactClass({
         saveOnBlur
         allowUndo
         initialData={initialData}
-        onSubmitSuccess={(resp, model, fieldName, change) => {
+        onSubmitSuccess={(_resp, model) => {
           // Special case for slug, need to forward to new slug
           if (typeof onSave === 'function') {
             onSave(initialData, model.initialData);
           }
         }}
-        onSubmitError={err => addErrorMessage('Unable to save change')}
+        onSubmitError={() => addErrorMessage('Unable to save change')}
       >
         <PermissionAlert />
         <JsonForm
@@ -61,7 +58,7 @@ const OrganizationSettingsForm = createReactClass({
         />
       </Form>
     );
-  },
-});
+  }
+}
 
 export default withOrganization(OrganizationSettingsForm);

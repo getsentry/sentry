@@ -22,6 +22,7 @@ from sentry.models import (
     EnvironmentProject,
     Release,
     ReleaseProjectEnvironment,
+    UserReport,
 )
 from sentry.testutils import TestCase
 
@@ -210,6 +211,28 @@ class ProjectSummarySerializerTest(TestCase):
         }
         assert result["latestRelease"] == {"version": self.release.version}
         assert result["environments"] == ["production", "staging"]
+
+    def test_user_reports(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasUserReports"] is False
+
+        UserReport.objects.create(
+            project=self.project,
+            event_id="1",
+            name="foo",
+            email="bar@example.com",
+            comments="It broke!",
+        )
+        UserReport.objects.create(
+            project=self.project,
+            event_id="2",
+            name="foo",
+            email="bar@example.com",
+            comments="It broke again!",
+        )
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasUserReports"] is True
 
     def test_no_enviroments(self):
         # remove environments and related models

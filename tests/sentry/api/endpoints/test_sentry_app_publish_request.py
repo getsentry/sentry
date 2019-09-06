@@ -18,20 +18,35 @@ class SentryAppPublishRequestTest(APITestCase):
 
         self.url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_request(self, send_mail):
         self.login_as(user=self.user)
-        response = self.client.post(self.url, format="json")
+        response = self.client.post(
+            self.url,
+            format="json",
+            data={
+                "questionnaire": [
+                    {"question": "First question", "answer": "First response"},
+                    {"question": "Second question", "answer": "Second response"},
+                ]
+            },
+        )
         assert response.status_code == 201
+        message = (
+            "User boop@example.com of organization my-org wants to publish testin"
+            "\n\n\n>First question\nFirst response"
+            "\n\n>Second question\nSecond response"
+        )
+
         send_mail.assert_called_with(
-            "Sentry App Publication Request",
-            "User boop@example.com of organization my-org wants to publish testin",
+            "Sentry Integration Publication Request from my-org",
+            message,
             "root@localhost",
             ["partners@sentry.io"],
             fail_silently=False,
         )
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_already_published(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         self.login_as(user=self.user)
@@ -40,7 +55,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.data["detail"] == "Cannot publish already published integration"
         send_mail.asssert_not_called()
 
-    @mock.patch('sentry.utils.email.send_mail')
+    @mock.patch("sentry.utils.email.send_mail")
     def test_publish_internal(self, send_mail):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         self.login_as(user=self.user)

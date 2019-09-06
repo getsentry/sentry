@@ -1,6 +1,5 @@
 import {PoseGroup} from 'react-pose';
 import {ThemeProvider} from 'emotion-theming';
-import {cx} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -40,10 +39,10 @@ class Indicators extends React.Component {
   };
 
   render() {
-    const {items, className, ...props} = this.props;
+    const {items, ...props} = this.props;
 
     return (
-      <Toasts {...props} className={cx(className, 'ref-toasts')}>
+      <Toasts {...props}>
         {items.map((indicator, i) => {
           // We purposefully use `i` as key here because of transitions
           // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],

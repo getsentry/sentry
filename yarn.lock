@@ -2109,6 +2109,11 @@
   resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-2.0.53.tgz#89c53bc83d820e50c3b667ae2fdf4276df8b3aba"
   integrity sha512-MZKPWUhp5TKkoJ/58NSq6io+CSUCOHm2b3Z6U4+r9v70kktB0JM+eRjdp6YmDHtw0kK2XB7L2K7/FMIoziHjUA==
 
+"@types/js-cookie@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@types/js-cookie/-/js-cookie-2.2.2.tgz#84e8848e14d44418726ceb52dd887c7bfe45d678"
+  integrity sha512-vkuGzldF9mNsWS9cmmMFfW1rufa7IdPUorS150gKoU/2fzLJ/0LXiMMtRqIBWz0sZ/VF2VxwB25WXEOo6akU6w==
+
 "@types/json5@^0.0.29":
   version "0.0.29"
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
@@ -2180,6 +2185,13 @@
   integrity sha512-0sx2ThGYgblXPf8we/c+umFzP3RCbBp1bbFmd3pO1UaOYnTDno82iql3MQTVqB09rhopKORNfakDU/9xZ4QR6g==
   dependencies:
     "@types/history" "^3"
+    "@types/react" "*"
+
+"@types/react-sparklines@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@types/react-sparklines/-/react-sparklines-1.7.0.tgz#f956d0f7b0e746ad445ce1cd250fe81f8a384684"
+  integrity sha512-Vd+cME7+Yy3kFNhnid9EBIKiyCQ/at8nqDczIs0UYfIB8AtaRJPqekigv02biOsIbQCvxyvIAIjiTKOC+hHNbA==
+  dependencies:
     "@types/react" "*"
 
 "@types/react-virtualized@^9.20.1":
@@ -8523,10 +8535,10 @@ js-base64@^2.1.9:
   resolved "https://registry.yarnpkg.com/js-base64/-/js-base64-2.4.0.tgz#9e566fee624751a1d720c966cd6226d29d4025aa"
   integrity sha512-Wehd+7Pf9tFvGb+ydPm9TjYjV8X1YHOVyG8QyELZxEMqOhemVwGRmoG8iQ/soqI3n8v4xn59zaLxiCJiaaRzKA==
 
-js-cookie@2.0.4:
-  version "2.0.4"
-  resolved "https://registry.yarnpkg.com/js-cookie/-/js-cookie-2.0.4.tgz#5f43d1872118aaf5e7a16029b70976eb7315c6a5"
-  integrity sha1-X0PRhyEYqvXnoWAptwl263MVxqU=
+js-cookie@2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/js-cookie/-/js-cookie-2.2.1.tgz#69e106dc5d5806894562902aa5baec3744e9b2b8"
+  integrity sha512-HvdH2LzI/EAZcUwA8+0nKNtWHqS+ZmijLA30RwZA0bo7ToCckjK5MkGhjED9KoRcXO6BaGI3I9UIzSA1FKFPOQ==
 
 js-levenshtein@^1.1.3:
   version "1.1.4"
@@ -12866,10 +12878,10 @@ send@0.16.2:
     range-parser "~1.2.0"
     statuses "~1.4.0"
 
-sentry-dreamy-components@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-1.0.2.tgz#18f5c1997e4a2c42faf079304a2d920466db87f3"
-  integrity sha512-z/L3AFA8YBF4BmxrMd4HVxQ1LFChJor7SfESSVqpwtWloQJPIFiBJQbolq0VxEDNS850WwIE4C8lfzyJRFk04w==
+sentry-dreamy-components@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-2.0.1.tgz#f4d24113a5a75cc45b2b7c7a624f2b70291be027"
+  integrity sha512-/xAOY62uFxnkX33AOiKsHFSc6u3s7L913g04IV2bWhcUdsjWwW1fIvoNc33gXWYZgrMc3B9o4aBamUo7Nkledw==
 
 serialize-javascript@^1.4.0:
   version "1.5.0"

@@ -448,29 +448,23 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
     def test_calculated_limit(self):
 
-        with patch('sentry.tsdb.snuba.snuba') as snuba:
+        with patch("sentry.tsdb.snuba.snuba") as snuba:
             # 24h test
             rollup = 3600
             end = self.now
             start = end + timedelta(days=-1, seconds=rollup)
-            self.db.get_data(TSDBModel.group,
-                             [1, 2, 3, 4, 5], start, end,
-                             rollup=rollup)
-            assert snuba.query.call_args[1]['limit'] == 120
+            self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
+            assert snuba.query.call_args[1]["limit"] == 120
 
             # 14 day test
             rollup = 86400
             start = end + timedelta(days=-14, seconds=rollup)
-            self.db.get_data(TSDBModel.group,
-                             [1, 2, 3, 4, 5], start, end,
-                             rollup=rollup)
-            assert snuba.query.call_args[1]['limit'] == 70
+            self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
+            assert snuba.query.call_args[1]["limit"] == 70
 
             # 1h test
             rollup = 3600
             end = self.now
             start = end + timedelta(hours=-1, seconds=rollup)
-            self.db.get_data(TSDBModel.group,
-                             [1, 2, 3, 4, 5], start, end,
-                             rollup=rollup)
-            assert snuba.query.call_args[1]['limit'] == 5
+            self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
+            assert snuba.query.call_args[1]["limit"] == 5

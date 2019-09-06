@@ -132,9 +132,7 @@ export function openIntegrationDetails(options = {}) {
   import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'integration-details',
-      });
+      openModal(deps => <Modal {...deps} {...options} />);
     });
 }
 
@@ -160,9 +158,7 @@ export function openSentryAppDetailsModal(options = {}) {
   import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'sentry-app-details',
-      });
+      openModal(deps => <Modal {...deps} {...options} />);
     });
 }
 

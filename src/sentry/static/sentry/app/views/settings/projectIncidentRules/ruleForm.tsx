@@ -1,11 +1,13 @@
-import {debounce} from 'lodash';
+import {debounce, maxBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment-timezone';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import {Config, EventsStatsData, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
+import {SeriesDataUnit} from 'app/types/echarts';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
@@ -28,24 +30,6 @@ import {
 } from './constants';
 import {IncidentRule} from './types';
 import IncidentRulesChart from './chart';
-
-type Props = {
-  api: Client;
-  config: Config;
-  data: EventsStatsData;
-  organization: Organization;
-  project: Project;
-  initialData?: IncidentRule;
-};
-
-type State = {
-  width?: number;
-  aggregations: AlertRuleAggregations[];
-  isInverted: boolean;
-  timeWindow: number;
-  alertThreshold: number | null;
-  resolveThreshold: number | null;
-};
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
@@ -92,6 +76,26 @@ const TIME_WINDOW_TO_PERIOD: TimeWindowMapType = {
 
 const DEFAULT_TIME_WINDOW = 60;
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
+const DEFAULT_MAX_THRESHOLD = 100;
+
+type Props = {
+  api: Client;
+  config: Config;
+  data: EventsStatsData;
+  organization: Organization;
+  project: Project;
+  initialData?: IncidentRule;
+};
+
+type State = {
+  width?: number;
+  aggregations: AlertRuleAggregations[];
+  isInverted: boolean;
+  timeWindow: number;
+  alertThreshold: number | null;
+  resolveThreshold: number | null;
+  maxThreshold: number | null;
+};
 
 class RuleForm extends React.Component<Props, State> {
   static contextTypes = {
@@ -115,6 +119,12 @@ class RuleForm extends React.Component<Props, State> {
     alertThreshold: this.props.initialData ? this.props.initialData.alertThreshold : null,
     resolveThreshold: this.props.initialData
       ? this.props.initialData.resolveThreshold
+      : null,
+    maxThreshold: this.props.initialData
+      ? Math.max(
+          this.props.initialData.alertThreshold,
+          this.props.initialData.resolveThreshold
+        ) || null
       : null,
   };
 
@@ -158,6 +168,14 @@ class RuleForm extends React.Component<Props, State> {
       : value >= otherValue;
   };
 
+  /**
+   * Happens if the target threshold value is in valid. We do not pre-validate because
+   * it's difficult to do so with our charting library, so we validate after the
+   * change propagates.
+   *
+   * Show an error message and reset form value, as well as force a re-rendering of chart
+   * with old values (so the dragged line "resets")
+   */
   revertThresholdUpdate = (type: AlertRuleThreshold) => {
     const isIncident = type === AlertRuleThreshold.INCIDENT;
     const typeDisplay = isIncident ? t('Incident boundary') : t('Resolution boundary');
@@ -180,17 +198,25 @@ class RuleForm extends React.Component<Props, State> {
     this.context.form.setValue(thresholdKey, this.state[thresholdKey]);
   };
 
+  /**
+   * Handler for the range slider input. Needs to update state (as well as max threshold)
+   */
   updateThresholdInput = (type: AlertRuleThreshold, value: number) => {
     if (this.canUpdateThreshold(type, value)) {
       this.setState(state => ({
         ...state,
         [this.getThresholdKey(type)]: value,
+        ...(value > (state.maxThreshold || 0) && {maxThreshold: value}),
       }));
     } else {
       this.revertThresholdUpdate(type);
     }
   };
 
+  /**
+   * Handler for threshold changes coming from slider or chart.
+   * Needs to sync state with the form.
+   */
   updateThreshold = (type: AlertRuleThreshold, value: number) => {
     if (this.canUpdateThreshold(type, value)) {
       const thresholdKey = this.getThresholdKey(type);
@@ -198,6 +224,7 @@ class RuleForm extends React.Component<Props, State> {
       this.setState(state => ({
         ...state,
         [thresholdKey]: newValue,
+        ...(newValue > (state.maxThreshold || 0) && {maxThreshold: newValue}),
       }));
       this.context.form.setValue(thresholdKey, Math.round(newValue));
     } else {
@@ -256,6 +283,7 @@ class RuleForm extends React.Component<Props, State> {
       aggregations,
       alertThreshold,
       resolveThreshold,
+      maxThreshold,
       isInverted,
       timeWindow,
     } = this.state;
@@ -273,151 +301,206 @@ class RuleForm extends React.Component<Props, State> {
           }
           includePrevious={false}
         >
-          {({loading, reloading, timeseriesData}) =>
-            loading ? (
-              <Placeholder height="200px" bottomGutter={1} />
-            ) : (
-              <React.Fragment>
-                <TransparentLoadingMask visible={reloading} />
-                <IncidentRulesChart
-                  xAxis={{
-                    axisLabel: {
-                      formatter: (value, index) => {
-                        const firstItem = index === 0;
-                        const format =
-                          timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
-                            ? 'LT'
-                            : 'MMM Do';
-                        return getFormattedDate(value, format, {
-                          local: config.user.options.timezone !== 'UTC',
-                        });
-                      },
-                    },
-                  }}
-                  onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
-                  alertThreshold={alertThreshold}
-                  onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
-                  resolveThreshold={resolveThreshold}
-                  isInverted={isInverted}
-                  data={timeseriesData}
-                />
-              </React.Fragment>
-            )
-          }
-        </EventsRequest>
-        <JsonForm
-          renderHeader={() => {
+          {({loading, reloading, timeseriesData}) => {
+            let maxValue: SeriesDataUnit | undefined;
+            if (timeseriesData && timeseriesData.length && timeseriesData[0].data) {
+              maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
+            }
+
+            // Take the max value from chart data OR use a static default value
+            const defaultMaxThresholdOrDefault =
+              (maxValue && maxValue.value) || DEFAULT_MAX_THRESHOLD;
+
+            // If not inverted, the alert threshold will be the upper bound
+            // If we have a stateful max threshold (e.g. from input field), use that value, otherwise use a default
+            // If this is the lower bound, then max should be the max of: stateful max threshold, or the default
+            // This logic is inverted for the resolve threshold
+            const alertMaxThreshold = !isInverted
+              ? {
+                  max:
+                    maxThreshold === null ? defaultMaxThresholdOrDefault : maxThreshold,
+                }
+              : resolveThreshold !== null && {
+                  max:
+                    maxThreshold && maxThreshold > defaultMaxThresholdOrDefault
+                      ? maxThreshold
+                      : defaultMaxThresholdOrDefault,
+                };
+            const resolveMaxThreshold = !isInverted
+              ? alertThreshold !== null && {
+                  max:
+                    maxThreshold && maxThreshold > defaultMaxThresholdOrDefault
+                      ? maxThreshold
+                      : defaultMaxThresholdOrDefault,
+                }
+              : {
+                  max:
+                    maxThreshold === null ? defaultMaxThresholdOrDefault : maxThreshold,
+                };
+
             return (
-              <PanelAlert type="info">
-                {t(
-                  'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. Use the sliders to control frequency.'
+              <React.Fragment>
+                {loading ? (
+                  <Placeholder height="200px" bottomGutter={1} />
+                ) : (
+                  <React.Fragment>
+                    <TransparentLoadingMask visible={reloading} />
+                    <IncidentRulesChart
+                      xAxis={{
+                        axisLabel: {
+                          formatter: (value: moment.MomentInput, index: number) => {
+                            const firstItem = index === 0;
+                            const format =
+                              timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
+                                ? 'LT'
+                                : 'MMM Do';
+                            return getFormattedDate(value, format, {
+                              local: config.user.options.timezone !== 'UTC',
+                            });
+                          },
+                        },
+                      }}
+                      maxValue={maxValue ? maxValue.value : maxValue}
+                      onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
+                      alertThreshold={alertThreshold}
+                      onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
+                      resolveThreshold={resolveThreshold}
+                      isInverted={isInverted}
+                      data={timeseriesData}
+                    />
+                  </React.Fragment>
                 )}
-              </PanelAlert>
+
+                <div>
+                  <TransparentLoadingMask visible={loading} />
+                  <JsonForm
+                    renderHeader={() => {
+                      return (
+                        <PanelAlert type="warning">
+                          {t(
+                            'Sentry will automatically digest alerts sent by some services to avoid flooding your inbox with individual issue notifications. Use the sliders to control frequency.'
+                          )}
+                        </PanelAlert>
+                      );
+                    }}
+                    forms={[
+                      {
+                        title: t('Metric'),
+                        fields: [
+                          {
+                            name: 'aggregations',
+                            type: 'select',
+                            label: t('Metric'),
+                            help: t('Choose which metric to display on the Y-axis'),
+                            choices: [
+                              [AlertRuleAggregations.UNIQUE_USERS, 'Users Affected'],
+                              [AlertRuleAggregations.TOTAL, 'Events'],
+                            ],
+                            required: true,
+                            setValue: value => (value && value.length ? value[0] : value),
+                            getValue: value => [value],
+                            onChange: this.handleChangeMetric,
+                          },
+                          {
+                            name: 'query',
+                            type: 'custom',
+                            label: t('Filter'),
+                            defaultValue: '',
+                            placeholder: 'error.type:TypeError',
+                            help: t(
+                              'You can apply standard Sentry filter syntax to filter by status, user, etc.'
+                            ),
+                            Component: props => {
+                              return (
+                                <FormField {...props}>
+                                  {({onChange, onBlur, onKeyDown}) => {
+                                    return (
+                                      <SearchBar
+                                        useFormWrapper={false}
+                                        organization={organization}
+                                        onChange={onChange}
+                                        onBlur={onBlur}
+                                        onKeyDown={onKeyDown}
+                                        onSearch={query => onChange(query, {})}
+                                      />
+                                    );
+                                  }}
+                                </FormField>
+                              );
+                            },
+                          },
+                          {
+                            name: 'alertThreshold',
+                            type: 'range',
+                            label: t('Incident Boundary'),
+                            help: !isInverted
+                              ? t(
+                                  'Anything trending above this limit will trigger an Incident'
+                                )
+                              : t(
+                                  'Anything trending below this limit will trigger an Incident'
+                                ),
+                            onChange: this.handleChangeIncidentThresholdInput,
+                            showCustomInput: true,
+                            required: true,
+                            min: 1,
+                            ...alertMaxThreshold,
+                          },
+                          {
+                            name: 'resolveThreshold',
+                            type: 'range',
+                            label: t('Resolution Boundary'),
+                            help: !isInverted
+                              ? t(
+                                  'Anything trending below this limit will resolve an Incident'
+                                )
+                              : t(
+                                  'Anything trending above this limit will resolve an Incident'
+                                ),
+                            onChange: this.handleChangeResolutionThresholdInput,
+                            showCustomInput: true,
+                            placeholder: resolveThreshold === null ? t('Off') : '',
+                            min: 1,
+                            ...resolveMaxThreshold,
+                          },
+                          {
+                            name: 'thresholdType',
+                            type: 'boolean',
+                            label: t('Reverse the Boundaries'),
+                            defaultValue: AlertRuleThresholdType.ABOVE,
+                            help: t(
+                              'This is a metric that needs to stay above a certain threshold'
+                            ),
+                            onChange: this.handleChangeThresholdType,
+                          },
+                          {
+                            name: 'timeWindow',
+                            type: 'select',
+                            label: t('Time Window'),
+                            help: t('The time window to use when evaluating the Metric'),
+                            onChange: this.handleTimeWindowChange,
+                            choices: Object.entries(TIME_WINDOW_MAP),
+                            required: true,
+                          },
+                          {
+                            name: 'name',
+                            type: 'text',
+                            label: t('Name'),
+                            help: t(
+                              'Give your Incident Rule a name so it is easy to manage later'
+                            ),
+                            placeholder: t('My Incident Rule Name'),
+                            required: true,
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                </div>
+              </React.Fragment>
             );
           }}
-          forms={[
-            {
-              title: t('Metric'),
-              fields: [
-                {
-                  name: 'aggregations',
-                  type: 'select',
-                  label: t('Metric'),
-                  help: t('Choose which metric to display on the Y-axis'),
-                  choices: [
-                    [AlertRuleAggregations.UNIQUE_USERS, 'Users Affected'],
-                    [AlertRuleAggregations.TOTAL, 'Events'],
-                  ],
-                  required: true,
-                  setValue: value => (value && value.length ? value[0] : value),
-                  getValue: value => [value],
-                  onChange: this.handleChangeMetric,
-                },
-                {
-                  name: 'query',
-                  type: 'custom',
-                  label: t('Filter'),
-                  defaultValue: '',
-                  placeholder: 'error.type:TypeError',
-                  help: t(
-                    'You can apply standard Sentry filter syntax to filter by status, user, etc.'
-                  ),
-                  Component: props => {
-                    return (
-                      <FormField {...props}>
-                        {({onChange, onBlur, onKeyDown}) => {
-                          return (
-                            <SearchBar
-                              organization={organization}
-                              onChange={onChange}
-                              onBlur={onBlur}
-                              onKeyDown={onKeyDown}
-                              onSearch={query => onChange(query, {})}
-                            />
-                          );
-                        }}
-                      </FormField>
-                    );
-                  },
-                },
-                {
-                  name: 'alertThreshold',
-                  type: 'range',
-                  label: t('Incident Boundary'),
-                  help: !isInverted
-                    ? t('Anything trending above this limit will trigger an Incident')
-                    : t('Anything trending below this limit will trigger an Incident'),
-                  onChange: this.handleChangeIncidentThresholdInput,
-                  showCustomInput: true,
-                  required: true,
-                  min: 1,
-                },
-                {
-                  name: 'resolveThreshold',
-                  type: 'range',
-                  label: t('Resolution Boundary'),
-                  help: !isInverted
-                    ? t('Anything trending below this limit will resolve an Incident')
-                    : t('Anything trending above this limit will resolve an Incident'),
-                  onChange: this.handleChangeResolutionThresholdInput,
-                  showCustomInput: true,
-                  placeholder: resolveThreshold === null ? t('Off') : '',
-                  ...(!isInverted &&
-                    alertThreshold !== null && {min: 1, max: alertThreshold}),
-                  ...(isInverted &&
-                    alertThreshold !== null && {min: alertThreshold || 1}),
-                },
-                {
-                  name: 'thresholdType',
-                  type: 'boolean',
-                  label: t('Reverse the Boundaries'),
-                  defaultValue: AlertRuleThresholdType.ABOVE,
-                  help: t(
-                    'This is a metric that needs to stay above a certain threshold'
-                  ),
-                  onChange: this.handleChangeThresholdType,
-                },
-                {
-                  name: 'timeWindow',
-                  type: 'select',
-                  label: t('Time Window'),
-                  help: t('The time window to use when evaluating the Metric'),
-                  onChange: this.handleTimeWindowChange,
-                  choices: Object.entries(TIME_WINDOW_MAP),
-                  required: true,
-                },
-                {
-                  name: 'name',
-                  type: 'text',
-                  label: t('Name'),
-                  help: t('Give your Incident Rule a name so it is easy to manage later'),
-                  placeholder: t('My Incident Rule Name'),
-                  required: true,
-                },
-              ],
-            },
-          ]}
-        />
+        </EventsRequest>
       </React.Fragment>
     );
   }
@@ -434,6 +517,7 @@ type RuleFormContainerProps = {
   initialData?: IncidentRule;
   onSubmitSuccess?: Function;
 };
+
 function RuleFormContainer({
   api,
   organization,

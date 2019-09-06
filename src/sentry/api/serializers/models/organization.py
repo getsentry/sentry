@@ -93,8 +93,6 @@ class OrganizationSerializer(Serializer):
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
-        if getattr(obj.flags, "require_2fa"):
-            feature_list.add("require-2fa")
 
         return {
             "id": six.text_type(obj.id),

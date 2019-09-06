@@ -5,10 +5,11 @@ from rest_framework.response import Response
 import logging
 
 from sentry import features, analytics
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
+from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
+from sentry.constants import SentryAppStatus
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def get(self, request, sentry_app):
         return Response(serialize(sentry_app, request.user))
 
+    @catch_raised_errors
     def put(self, request, sentry_app):
         if self._has_hook_events(request) and not features.has(
             "organizations:integrations-event-hooks", sentry_app.owner, actor=request.user
@@ -32,7 +34,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(sentry_app, data=request.data, partial=True)
+        # isInternal is not field of our model but it is a field of the serializer
+        data = request.data.copy()
+        data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
+        serializer = SentryAppSerializer(sentry_app, data=data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data

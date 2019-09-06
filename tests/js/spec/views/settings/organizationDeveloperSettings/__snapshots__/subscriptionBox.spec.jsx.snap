@@ -3,7 +3,7 @@
 exports[`SubscriptionBox renders resource checkbox 1`] = `
 <SubscriptionBox
   checked={false}
-  disabled={false}
+  disabledFromPermissions={false}
   onChange={[MockFunction]}
   organization={
     Object {
@@ -34,6 +34,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
     }
   }
   resource="issue"
+  webhookDisabled={false}
 >
   <SubscriptionGridItemWrapper
     key="issue"

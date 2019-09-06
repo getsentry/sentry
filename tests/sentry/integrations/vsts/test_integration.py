@@ -149,101 +149,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert resp.status_code == 200, resp.content
         assert "No accounts found" in resp.content
 
-    def test_build_integration(self):
-        state = {
-            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
-            "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
-            },
-        }
-
-        integration = VstsIntegrationProvider()
-        integration_dict = integration.build_integration(state)
-
-        assert integration_dict["name"] == self.vsts_account_name
-        assert integration_dict["external_id"] == self.vsts_account_id
-        assert integration_dict["metadata"]["domain_name"] == self.vsts_base_url
-
-        assert integration_dict["user_identity"]["type"] == "vsts"
-        assert integration_dict["user_identity"]["external_id"] == self.vsts_account_id
-        assert integration_dict["user_identity"]["scopes"] == sorted(
-            VSTSIdentityProvider.oauth_scopes
-        )
-
-    def test_build_integration__create_subscription_forbidden(self):
-        responses.replace(
-            responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
-            status=403,
-            json={
-                "$id": 1,
-                "message": "The user bob is does not have permission to access this resource",
-                "typeKey": "UnauthorizedRequestException",
-                "errorCode": 0,
-                "eventId": 3000,
-            },
-        )
-        state = {
-            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
-            "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
-            },
-        }
-
-        integration = VstsIntegrationProvider()
-
-        with pytest.raises(IntegrationError) as err:
-            integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
-
-    def test_build_integration__create_subscription_unauthorized(self):
-        responses.replace(
-            responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
-            status=401,
-            json={
-                "$id": 1,
-                "message": "The user bob is not authorized to access this resource",
-                "typeKey": "UnauthorizedRequestException",
-                "errorCode": 0,
-                "eventId": 3000,
-            },
-        )
-        state = {
-            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
-            "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
-            },
-        }
-
-        integration = VstsIntegrationProvider()
-
-        with pytest.raises(IntegrationError) as err:
-            integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
-
     def test_webhook_subscription_created_once(self):
         self.assert_installation()
 
@@ -291,6 +196,103 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
 
 
+class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
+    def test_success(self):
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+        }
+
+        integration = VstsIntegrationProvider()
+        integration_dict = integration.build_integration(state)
+
+        assert integration_dict["name"] == self.vsts_account_name
+        assert integration_dict["external_id"] == self.vsts_account_id
+        assert integration_dict["metadata"]["domain_name"] == self.vsts_base_url
+
+        assert integration_dict["user_identity"]["type"] == "vsts"
+        assert integration_dict["user_identity"]["external_id"] == self.vsts_account_id
+        assert integration_dict["user_identity"]["scopes"] == sorted(
+            VSTSIdentityProvider.oauth_scopes
+        )
+
+    def test_create_subscription_forbidden(self):
+        responses.replace(
+            responses.POST,
+            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+                self.vsts_account_name.lower()
+            ),
+            status=403,
+            json={
+                "$id": 1,
+                "message": "The user bob is does not have permission to access this resource",
+                "typeKey": "UnauthorizedRequestException",
+                "errorCode": 0,
+                "eventId": 3000,
+            },
+        )
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+        }
+
+        integration = VstsIntegrationProvider()
+
+        with pytest.raises(IntegrationError) as err:
+            integration.build_integration(state)
+        assert "sufficient account access to create webhooks" in six.text_type(err)
+
+    def test_create_subscription_unauthorized(self):
+        responses.replace(
+            responses.POST,
+            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+                self.vsts_account_name.lower()
+            ),
+            status=401,
+            json={
+                "$id": 1,
+                "message": "The user bob is not authorized to access this resource",
+                "typeKey": "UnauthorizedRequestException",
+                "errorCode": 0,
+                "eventId": 3000,
+            },
+        )
+        state = {
+            "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
+            "base_url": self.vsts_base_url,
+            "identity": {
+                "data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
+                }
+            },
+        }
+
+        integration = VstsIntegrationProvider()
+
+        with pytest.raises(IntegrationError) as err:
+            integration.build_integration(state)
+        assert "sufficient account access to create webhooks" in six.text_type(err)
+
+
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()
@@ -307,6 +309,24 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             "sync_status_reverse",
             "sync_reverse_assignment",
         ]
+
+    def test_get_organization_config_failure(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(integration.organizations.first().id)
+
+        # Set the `default_identity` property and force token expiration
+        installation.get_client()
+        installation.default_identity.data["expires"] = 1566851050
+
+        responses.replace(
+            responses.POST,
+            "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
+        fields = installation.get_organization_config()
+        assert fields[0]["disabled"], "Fields should be disabled"
 
     def test_update_organization_config_remove_all(self):
         self.assert_installation()
@@ -450,3 +470,29 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             mock_update_work_item.call_args[1]["comment"]
             == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
         )
+
+    def test_get_repositories(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(self.organization.id)
+
+        result = installation.get_repositories()
+        assert len(result) == 1
+        assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
+
+    def test_get_repositories_identity_error(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(self.organization.id)
+
+        # Set the `default_identity` property and force token expiration
+        installation.get_client()
+        installation.default_identity.data["expires"] = 1566851050
+        responses.replace(
+            responses.POST,
+            "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
+        with pytest.raises(IntegrationError):
+            installation.get_repositories()

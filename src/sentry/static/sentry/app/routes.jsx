@@ -705,6 +705,14 @@ function routes() {
         }
       />
 
+      <Route
+        path="/sentry-apps/:sentryAppSlug/external-install/"
+        componentPromise={() =>
+          import(/* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppExternalInstallation')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
       {EXPERIMENTAL_SPA && (
         <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
           <IndexRoute
@@ -985,7 +993,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/eventsv2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "EventsV2" */ 'app/views/organizationEventsV2')
+              import(/* webpackChunkName: "EventsV2" */ 'app/views/eventsV2')
             }
             component={errorHandler(LazyLoad)}
           />
@@ -1027,13 +1035,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/incidents/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ 'app/views/organizationIncidents')
+              import(/* webpackChunkName: "IncidentsContainer" */ 'app/views/incidents')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidents" */ 'app/views/organizationIncidents/list')
+                import(/* webpackChunkName: "Incidents" */ 'app/views/incidents/list')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -1041,7 +1049,7 @@ function routes() {
             <Route
               path=":incidentId/"
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidentDetails" */ 'app/views/organizationIncidents/details')
+                import(/* webpackChunkName: "IncidentDetails" */ 'app/views/incidents/details')
               }
               component={errorHandler(LazyLoad)}
             />

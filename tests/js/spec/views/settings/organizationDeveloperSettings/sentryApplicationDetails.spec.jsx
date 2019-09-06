@@ -4,6 +4,8 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import {selectByValue} from '../../../../helpers/select';
 
 describe('Sentry Application Details', function() {
@@ -208,6 +210,7 @@ describe('Sentry Application Details', function() {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
+        isAlertable: true,
       });
       token = TestStubs.SentryAppToken();
       sentryApp.events = ['issue'];
@@ -257,6 +260,17 @@ describe('Sentry Application Details', function() {
       wrapper.update();
 
       expect(wrapper.find('EmptyMessage').exists()).toBe(true);
+    });
+
+    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
+      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(false);
+      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(true);
+      wrapper.find('Input[name="webhookUrl"]').simulate('change', {target: {value: ''}});
+      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(false);
+      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(true);
+      expect(wrapper.find(JsonForm).prop('additionalFieldProps')).toEqual({
+        webhookDisabled: true,
+      });
     });
   });
 

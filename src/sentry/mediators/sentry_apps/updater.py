@@ -10,7 +10,7 @@ from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook
+from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 
@@ -40,6 +40,7 @@ class Updater(Mediator):
         self._update_verify_install()
         self._update_overview()
         self._update_schema()
+        self._update_service_hooks()
         self.sentry_app.save()
         return self.sentry_app
 
@@ -54,15 +55,18 @@ class Updater(Mediator):
     @if_param("status")
     def _update_status(self):
         if self.user.is_superuser:
-            if self.status == "published":
+            if self.status == SentryAppStatus.PUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.PUBLISHED
-            if self.status == "unpublished":
+            if self.status == SentryAppStatus.UNPUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.UNPUBLISHED
 
     @if_param("scopes")
     def _update_scopes(self):
-        if self.sentry_app.status == SentryAppStatus.PUBLISHED:
-            raise APIError("Cannot update scopes on published App.")
+        if (
+            self.sentry_app.status == SentryAppStatus.PUBLISHED
+            and self.sentry_app.scope_list != self.scopes
+        ):
+            raise APIError("Cannot update permissions on a published integration.")
         self.sentry_app.scope_list = self.scopes
 
     @if_param("events")
@@ -77,12 +81,31 @@ class Updater(Mediator):
         from sentry.mediators.service_hooks.creator import expand_events
 
         self.sentry_app.events = expand_events(self.events)
-        self._update_service_hook_events()
 
-    def _update_service_hook_events(self):
+    def _update_service_hooks(self):
         hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
+        # sentry_app.webhook_url will be updated at this point
+        webhook_url = self.sentry_app.webhook_url
         for hook in hooks:
-            service_hooks.Updater.run(service_hook=hook, events=self.events)
+            # update the url and events
+            if webhook_url:
+                service_hooks.Updater.run(
+                    service_hook=hook, events=self.sentry_app.events, url=webhook_url
+                )
+            # if no url, then the service hook is no longer active in which case we need to delete it
+            else:
+                service_hooks.Destroyer.run(service_hook=hook)
+        # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
+        if webhook_url and self.sentry_app.is_internal and not hooks:
+            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
+            service_hooks.Creator.run(
+                application=self.sentry_app.application,
+                actor=installation,
+                projects=[],
+                organization=self.sentry_app.owner,
+                events=self.sentry_app.events,
+                url=webhook_url,
+            )
 
     @if_param("webhook_url")
     def _update_webhook_url(self):

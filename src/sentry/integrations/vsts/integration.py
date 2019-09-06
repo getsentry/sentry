@@ -7,6 +7,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http, features
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel,
@@ -109,7 +110,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     def get_repositories(self, query=None):
         try:
             repos = self.get_client().get_repos(self.instance)
-        except ApiError as e:
+        except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
         data = []
         for repo in repos["value"]:
@@ -132,7 +133,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
             client.get_repo(self.instance, repo.config["name"], project=repo.config["project"])
-        except ApiError:
+        except (ApiError, IdentityNotValid):
             return False
         return True
 
@@ -173,8 +174,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
             all_states = [(state, state) for state in all_states]
             disabled = False
-
-        except ApiError:
+        except (ApiError, IdentityNotValid):
             all_states = []
             disabled = True
 
