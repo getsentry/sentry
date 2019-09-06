@@ -1,3 +1,4 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -14,7 +15,15 @@ import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import formGroups from 'app/data/forms/userFeedback';
 
-class ProjectUserFeedbackSettings extends AsyncView {
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+};
+type Props = RouteComponentProps<RouteParams, {}> & {
+  setProjectNavSection: (section: string) => void;
+};
+
+class ProjectUserFeedbackSettings extends AsyncView<Props> {
   static propTypes = {
     setProjectNavSection: PropTypes.func,
   };
@@ -42,7 +51,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
     window.sentryEmbedCallback = null;
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
