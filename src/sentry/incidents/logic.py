@@ -575,7 +575,7 @@ def create_alert_rule(
     name,
     threshold_type,
     query,
-    aggregations,
+    aggregation,
     time_window,
     alert_threshold,
     resolve_threshold,
@@ -608,7 +608,7 @@ def create_alert_rule(
         raise AlertRuleNameAlreadyUsedError()
     try:
         subscription_id = create_snuba_subscription(
-            project, dataset, query, aggregations, time_window, resolution
+            project, dataset, query, aggregation, time_window, resolution
         )
         alert_rule = AlertRule.objects.create(
             project=project,
@@ -617,7 +617,7 @@ def create_alert_rule(
             threshold_type=threshold_type.value,
             dataset=SnubaDatasets.EVENTS.value,
             query=query,
-            aggregations=[agg.value for agg in aggregations],
+            aggregation=aggregation.value,
             time_window=time_window,
             resolution=resolution,
             alert_threshold=alert_threshold,
@@ -638,7 +638,7 @@ def update_alert_rule(
     name=None,
     threshold_type=None,
     query=None,
-    aggregations=None,
+    aggregation=None,
     time_window=None,
     alert_threshold=None,
     resolve_threshold=None,
@@ -652,8 +652,7 @@ def update_alert_rule(
     incident name, and must be unique per project.
     :param threshold_type: An AlertRuleThresholdType
     :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregations: A list of AlertRuleAggregations that we want to fetch
-    for this alert rule
+    :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param alert_threshold: Value that the subscription needs to reach to
     trigger the alert
@@ -680,8 +679,8 @@ def update_alert_rule(
     if query is not None:
         validate_alert_rule_query(query)
         updated_fields["query"] = query
-    if aggregations:
-        updated_fields["aggregations"] = [a.value for a in aggregations]
+    if aggregation is not None:
+        updated_fields["aggregation"] = aggregation.value
     if time_window:
         updated_fields["time_window"] = time_window
     if alert_threshold:
@@ -691,16 +690,14 @@ def update_alert_rule(
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
 
-    if query or aggregations or time_window:
+    if query is not None or aggregation is not None or time_window is not None:
         old_subscription_id = alert_rule.subscription_id
         # If updating any details of the query, create a new subscription
         subscription_id = create_snuba_subscription(
             alert_rule.project,
             SnubaDatasets(alert_rule.dataset),
             query if query is not None else alert_rule.query,
-            aggregations
-            if aggregations
-            else [AlertRuleAggregations(agg) for agg in alert_rule.aggregations],
+            aggregation if aggregation else AlertRuleAggregations(alert_rule.aggregation),
             time_window if time_window else alert_rule.time_window,
             DEFAULT_ALERT_RULE_RESOLUTION,
         )
@@ -750,7 +747,7 @@ def validate_alert_rule_query(query):
     get_snuba_query_args(query)
 
 
-def create_snuba_subscription(project, dataset, query, aggregations, time_window, resolution):
+def create_snuba_subscription(project, dataset, query, aggregation, time_window, resolution):
     """
     Creates a subscription to a snuba query.
 
@@ -777,7 +774,7 @@ def create_snuba_subscription(project, dataset, query, aggregations, time_window
                 # filtering to project and groups. Projects are handled with an
                 # explicit param, and groups can't be queried here.
                 "conditions": get_snuba_query_args(query)["conditions"],
-                "aggregates": [alert_aggregation_to_snuba[agg] for agg in aggregations],
+                "aggregates": alert_aggregation_to_snuba[aggregation],
                 "time_window": time_window,
                 "resolution": resolution,
             }

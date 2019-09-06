@@ -50,7 +50,7 @@ class ProcessUpdateTest(TestCase):
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
-            aggregations=[AlertRuleAggregations.TOTAL],
+            aggregation=AlertRuleAggregations.TOTAL,
             time_window=1,
             alert_threshold=100,
             resolve_threshold=10,

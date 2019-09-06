@@ -30,7 +30,7 @@ class AlertRuleDetailsBase(object):
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
-            [AlertRuleAggregations.TOTAL],
+            AlertRuleAggregations.TOTAL,
             10,
             1000,
             400,
@@ -105,7 +105,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 self.alert_rule.id,
-                aggregations=self.alert_rule.aggregations,
+                aggregation=self.alert_rule.aggregation,
             )
 
         # Alert rule should be exactly the same

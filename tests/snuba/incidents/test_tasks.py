@@ -48,7 +48,7 @@ class HandleSubaQueryUpdateTest(TestCase):
             subscription_id="some_id",
             dataset=SnubaDatasets.EVENTS.value,
             query="",
-            aggregations=[AlertRuleAggregations.TOTAL.value],
+            aggregation=AlertRuleAggregations.TOTAL.value,
             time_window=1,
             resolution=1,
         )
@@ -61,7 +61,7 @@ class HandleSubaQueryUpdateTest(TestCase):
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
-            aggregations=[AlertRuleAggregations.TOTAL],
+            aggregation=AlertRuleAggregations.TOTAL,
             time_window=1,
             alert_threshold=100,
             resolve_threshold=10,
@@ -98,7 +98,7 @@ class HandleSubaQueryUpdateTest(TestCase):
             raise KeyboardInterrupt()
 
         value_name = alert_aggregation_to_snuba[
-            AlertRuleAggregations(self.subscription.aggregations[0])
+            AlertRuleAggregations(self.subscription.aggregation)
         ][2]
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = exception_callback

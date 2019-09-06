@@ -96,7 +96,7 @@ class SubscriptionProcessor(object):
 
         # TODO: At the moment we only have individual aggregations. Handle multiple
         # later
-        aggregation = AlertRuleAggregations(self.alert_rule.aggregations[0])
+        aggregation = AlertRuleAggregations(self.alert_rule.aggregation)
         aggregation_name = alert_aggregation_to_snuba[aggregation][2]
         aggregation_value = subscription_update["values"][aggregation_name]
 
