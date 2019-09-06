@@ -10,7 +10,7 @@ describe('GroupTags', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
+      url: '/issues/1/tags/?&environment=dev',
       body: TestStubs.Tags(),
     });
   });
@@ -20,6 +20,7 @@ describe('GroupTags', function() {
       <GroupTags
         group={group}
         query={{}}
+        environments={['dev']}
         params={{orgId: 'org-slug', groupId: group.id}}
       />,
       routerContext

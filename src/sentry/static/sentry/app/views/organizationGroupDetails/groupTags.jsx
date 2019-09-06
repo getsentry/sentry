@@ -22,7 +22,7 @@ class GroupTags extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
-    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
+    environments: PropTypes.arrayOf(PropTypes.string).isRequired,
   };
 
   constructor() {
@@ -46,8 +46,7 @@ class GroupTags extends React.Component {
 
   fetchData = () => {
     const {api, group, environments} = this.props;
-    // const envNames = environments.map(e => e.name);
-    const env_query = environments.map(e => '&environment=' + e.name).join('');
+    const env_query = environments.map(e => '&environment=' + e).join('');
     this.setState({
       loading: true,
       error: false,
