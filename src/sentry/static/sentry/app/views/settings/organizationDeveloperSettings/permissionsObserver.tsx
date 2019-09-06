@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
+import {toResourcePermissions} from 'app/utils/consolidatedScopes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
@@ -57,7 +57,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
    *
    */
   scopeListToPermissionState() {
-    return new ConsolidatedScopes(this.props.scopes).toResourcePermissions();
+    return toResourcePermissions(this.props.scopes);
   }
 
   onPermissionChange = permissions => {
