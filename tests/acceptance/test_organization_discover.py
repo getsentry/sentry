@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import pytz
+from mock import patch
+
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
@@ -61,13 +64,16 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(".is-disabled")
             self.browser.snapshot("discover - query builder")
 
-    def test_run_query(self):
+    @patch("django.utils.timezone.now")
+    def test_run_query(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         with self.feature("organizations:discover"):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
             self.browser.find_element_by_xpath("//button//span[contains(text(), 'Run')]").click()
             self.browser.wait_until_not(".loading")
             self.browser.snapshot("discover - query results")
+            self.browser.save_screenshot("discover1.png")
 
     def test_save_query_edit(self):
         with self.feature("organizations:discover"):
