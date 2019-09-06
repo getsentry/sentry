@@ -34,7 +34,7 @@ class AlertRuleListEndpointTest(APITestCase):
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
-            [AlertRuleAggregations.TOTAL],
+            AlertRuleAggregations.TOTAL,
             10,
             1000,
             400,
@@ -79,7 +79,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         name = "an alert"
         threshold_type = 1
         query = "hi"
-        aggregations = [0]
+        aggregation = 0
         time_window = 10
         alert_threshold = 1000
         resolve_threshold = 300
@@ -90,7 +90,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 name=name,
                 thresholdType=threshold_type,
                 query=query,
-                aggregations=aggregations,
+                aggregation=aggregation,
                 timeWindow=time_window,
                 alertThreshold=alert_threshold,
                 resolveThreshold=resolve_threshold,

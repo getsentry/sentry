@@ -17,7 +17,7 @@ class TestAlertRuleSerializer(TestCase):
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
-            "aggregations": [0],
+            "aggregation": 0,
             "threshold_period": 1,
         }
 
@@ -39,7 +39,6 @@ class TestAlertRuleSerializer(TestCase):
             "thresholdType": field_is_required,
             "resolveThreshold": field_is_required,
             "alertThreshold": field_is_required,
-            "aggregations": field_is_required,
         }
 
     def test_time_window(self):
@@ -64,15 +63,15 @@ class TestAlertRuleSerializer(TestCase):
         )
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
-    def test_aggregations(self):
+    def test_aggregation(self):
         invalid_values = [
             "Invalid aggregation, valid values are %s"
             % [item.value for item in AlertRuleAggregations]
         ]
         self.run_fail_validation_test(
-            {"aggregations": ["a"]}, {"aggregations": ["A valid integer is required."]}
+            {"aggregation": "a"}, {"aggregation": ["A valid integer is required."]}
         )
-        self.run_fail_validation_test({"aggregations": [50]}, {"aggregations": invalid_values})
+        self.run_fail_validation_test({"aggregation": 50}, {"aggregation": invalid_values})
 
     def _run_changed_fields_test(self, alert_rule, params, expected):
         serializer = AlertRuleSerializer(
@@ -87,11 +86,9 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = AlertRule(**self.valid_params)
         self._run_changed_fields_test(alert_rule, self.valid_params, {})
         self._run_changed_fields_test(alert_rule, {"name": "a name"}, {"name": "a name"})
-        self._run_changed_fields_test(alert_rule, {"aggregations": [0]}, {})
+        self._run_changed_fields_test(alert_rule, {"aggregation": 0}, {})
         self._run_changed_fields_test(
-            alert_rule,
-            {"aggregations": [1]},
-            {"aggregations": [AlertRuleAggregations.UNIQUE_USERS]},
+            alert_rule, {"aggregation": 1}, {"aggregation": AlertRuleAggregations.UNIQUE_USERS}
         )
         self._run_changed_fields_test(alert_rule, {"threshold_type": 0}, {})
         self._run_changed_fields_test(

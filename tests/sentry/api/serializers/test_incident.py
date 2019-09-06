@@ -71,7 +71,7 @@ class DetailedIncidentSerializerTest(TestCase):
             "hi",
             AlertRuleThresholdType.ABOVE,
             "test query",
-            [AlertRuleAggregations.TOTAL],
+            AlertRuleAggregations.TOTAL,
             10,
             1000,
             400,
