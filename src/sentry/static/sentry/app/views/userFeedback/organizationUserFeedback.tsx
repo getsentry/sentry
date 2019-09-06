@@ -21,13 +21,9 @@ import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
   reportList: UserReport[];
-  reportListPageLinks: string | undefined;
 };
 
-type RouteParams = {
-  orgId: string;
-};
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
 };
 
@@ -53,11 +49,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     ];
   }
 
-  getTitle(): string {
+  getTitle() {
     return `${t('User Feedback')} - ${this.props.organization.slug}`;
   }
 
-  get projectIds(): string[] {
+  get projectIds() {
     const {project} = this.props.location.query;
 
     return Array.isArray(project)
