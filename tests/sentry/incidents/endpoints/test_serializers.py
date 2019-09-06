@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
-from sentry.incidents.models import AlertRule, AlertRuleAggregations, AlertRuleThresholdType
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
 
@@ -65,8 +66,7 @@ class TestAlertRuleSerializer(TestCase):
 
     def test_aggregation(self):
         invalid_values = [
-            "Invalid aggregation, valid values are %s"
-            % [item.value for item in AlertRuleAggregations]
+            "Invalid aggregation, valid values are %s" % [item.value for item in QueryAggregations]
         ]
         self.run_fail_validation_test(
             {"aggregation": "a"}, {"aggregation": ["A valid integer is required."]}
@@ -88,7 +88,7 @@ class TestAlertRuleSerializer(TestCase):
         self._run_changed_fields_test(alert_rule, {"name": "a name"}, {"name": "a name"})
         self._run_changed_fields_test(alert_rule, {"aggregation": 0}, {})
         self._run_changed_fields_test(
-            alert_rule, {"aggregation": 1}, {"aggregation": AlertRuleAggregations.UNIQUE_USERS}
+            alert_rule, {"aggregation": 1}, {"aggregation": QueryAggregations.UNIQUE_USERS}
         )
         self._run_changed_fields_test(alert_rule, {"threshold_type": 0}, {})
         self._run_changed_fields_test(

@@ -11,7 +11,8 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import create_alert_rule, subscribe_to_incident
-from sentry.incidents.models import AlertRuleAggregations, AlertRuleThresholdType, IncidentGroup
+from sentry.incidents.models import AlertRuleThresholdType, IncidentGroup
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
 
@@ -71,7 +72,7 @@ class DetailedIncidentSerializerTest(TestCase):
             "hi",
             AlertRuleThresholdType.ABOVE,
             "test query",
-            AlertRuleAggregations.TOTAL,
+            QueryAggregations.TOTAL,
             10,
             1000,
             400,

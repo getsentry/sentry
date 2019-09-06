@@ -7,7 +7,8 @@ from enum import Enum
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.incidents.models import AlertRule, AlertRuleAggregations, AlertRuleThresholdType
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.snuba.models import QueryAggregations
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     create_alert_rule,
@@ -57,21 +58,21 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_aggregation(self, aggregation):
         try:
-            return AlertRuleAggregations(aggregation)
+            return QueryAggregations(aggregation)
         except ValueError:
             raise serializers.ValidationError(
                 "Invalid aggregation, valid values are %s"
-                % [item.value for item in AlertRuleAggregations]
+                % [item.value for item in QueryAggregations]
             )
 
     def validate_aggregations(self, aggregations):
         # TODO: Remove this once FE transitions
         try:
-            return [AlertRuleAggregations(agg) for agg in aggregations]
+            return [QueryAggregations(agg) for agg in aggregations]
         except ValueError:
             raise serializers.ValidationError(
                 "Invalid aggregation, valid values are %s"
-                % [item.value for item in AlertRuleAggregations]
+                % [item.value for item in QueryAggregations]
             )
 
     def validate(self, attrs):

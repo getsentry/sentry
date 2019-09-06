@@ -5,7 +5,8 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import AlertRule, AlertRuleAggregations, AlertRuleThresholdType
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
 
@@ -34,7 +35,7 @@ class AlertRuleListEndpointTest(APITestCase):
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
-            AlertRuleAggregations.TOTAL,
+            QueryAggregations.TOTAL,
             10,
             1000,
             400,
