@@ -16,7 +16,6 @@ from sentry.mediators.sentry_app_installation_tokens import (
 
 class InternalCreator(Mediator):
     name = Param(six.string_types)
-    author = Param(six.string_types)
     organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
@@ -29,6 +28,8 @@ class InternalCreator(Mediator):
     user = Param("sentry.models.User")
 
     def call(self):
+        # SentryAppCreator expects an author so just set it to the org name
+        self.kwargs["author"] = self.organization.name
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.verify_install = False

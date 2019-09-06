@@ -108,7 +108,7 @@ const getInternalFormFields = () => {
    ***/
 
   const internalFormFields = getPublicFormFields().filter(
-    formField => !['redirectUrl', 'verifyInstall'].includes(formField.name)
+    formField => !['redirectUrl', 'verifyInstall', 'author'].includes(formField.name)
   );
   const webhookField = internalFormFields.find(field => field.name === 'webhookUrl');
   webhookField.required = false;

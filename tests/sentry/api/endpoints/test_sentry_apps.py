@@ -422,6 +422,20 @@ class PostSentryAppsTest(SentryAppsTest):
         # Below line will fail once we stop assigning api_token on the sentry_app_installation
         assert sentry_app_installation_token.api_token == sentry_app_installation.api_token
 
+    def test_no_author_public_integration(self):
+        self.login_as(user=self.user)
+        response = self._post(author=None)
+
+        assert response.status_code == 400
+        assert response.data == {"author": ["author required for public integrations"]}
+
+    def test_no_author_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        response = self._post(isInternal=True, author=None)
+
+        assert response.status_code == 201
+
     def _post(self, **kwargs):
         body = {
             "name": "MyApp",
