@@ -129,6 +129,23 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
 
+class ConvertStatusValueTest(TestCase):
+    def test_valid(self):
+        for status_string, status_val in STATUS_CHOICES.items():
+            filters = [SearchFilter(SearchKey("status"), "=", SearchValue(status_string))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == status_val
+
+            filters = [SearchFilter(SearchKey("status"), "=", SearchValue(status_val))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == status_val
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
+        with self.assertRaises(InvalidSearchQuery, expected_regex="invalid status value"):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertActorValueTest(TestCase):
     def test_user(self):
         assert convert_actor_value("me", [self.project], self.user, None) == convert_user_value(

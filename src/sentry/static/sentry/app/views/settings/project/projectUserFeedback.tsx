@@ -1,18 +1,29 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import * as Sentry from '@sentry/browser';
 
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import formGroups from 'app/data/forms/userFeedback';
 
-class ProjectUserFeedbackSettings extends AsyncView {
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+};
+type Props = RouteComponentProps<RouteParams, {}> & {
+  setProjectNavSection: (section: string) => void;
+};
+
+class ProjectUserFeedbackSettings extends AsyncView<Props> {
   static propTypes = {
     setProjectNavSection: PropTypes.func,
   };
@@ -26,15 +37,12 @@ class ProjectUserFeedbackSettings extends AsyncView {
     window.sentryEmbedCallback = function(embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(body) {
+      embed.submit = function(_body) {
         this._submitInProgress = true;
-        setTimeout(
-          function() {
-            this._submitInProgress = false;
-            this.onSuccess();
-          }.bind(this),
-          500
-        );
+        setTimeout(() => {
+          this._submitInProgress = false;
+          this.onSuccess();
+        }, 500);
       };
     };
   }
@@ -43,7 +51,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
     window.sentryEmbedCallback = null;
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
@@ -66,31 +74,29 @@ class ProjectUserFeedbackSettings extends AsyncView {
         <SettingsPageHeader title={t('User Feedback')} />
         <TextBlock>
           {t(
-            'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'
+            `Don't rely on stack traces and graphs alone to understand
+            the cause and impact of errors. Enable User Feedback to collect
+            your users' comments when they encounter a crash or bug.`
           )}
         </TextBlock>
         <TextBlock>
           {t(
-            'When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry.'
+            `When configured, your users will be presented with a dialog prompting
+            them for additional information. That information will get attached to
+            the issue in Sentry.`
           )}
         </TextBlock>
-        <TextBlock>
-          {tct(
-            'A detailed guide how to integrate it with our different SDKs can be found in [link].',
-            {
-              link: (
-                <a href="https://docs.sentry.io/enriching-error-data/user-feedback/">
-                  our docs
-                </a>
-              ),
-            }
-          )}
-        </TextBlock>
-        <TextBlock>
-          <Button priority="primary" onClick={this.handleClick}>
-            {t('See the report dialog in action')}
+        <ButtonList>
+          <Button
+            external
+            href="https://docs.sentry.io/enriching-error-data/user-feedback/"
+          >
+            {t('Read the docs')}
           </Button>
-        </TextBlock>
+          <Button priority="primary" onClick={this.handleClick}>
+            {t('Open the report dialog')}
+          </Button>
+        </ButtonList>
 
         <Form
           saveOnBlur
@@ -106,5 +112,12 @@ class ProjectUserFeedbackSettings extends AsyncView {
     );
   }
 }
+
+const ButtonList = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
 
 export default ProjectUserFeedbackSettings;

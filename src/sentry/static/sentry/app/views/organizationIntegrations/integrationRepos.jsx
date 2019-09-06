@@ -5,6 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {migrateRepository, addRepository} from 'app/actionCreators/integrations';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -80,7 +81,7 @@ export default class IntegrationRepos extends AsyncComponent {
       success: data => {
         this.setState({integrationRepos: data, dropdownBusy: false});
       },
-      error: error => {
+      error: () => {
         this.setState({dropdownBusy: false});
       },
     });
@@ -173,6 +174,23 @@ export default class IntegrationRepos extends AsyncComponent {
         )}
       </DropdownAutoComplete>
     );
+  }
+
+  renderError(error) {
+    const badRequest = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 400
+    );
+    if (badRequest) {
+      return (
+        <Alert type="error" icon="icon-circle-exclamation">
+          {t(
+            'We were unable to fetch repositories for this integration. Try again later, or reconnect this integration.'
+          )}
+        </Alert>
+      );
+    }
+
+    return super.renderError(error);
   }
 
   renderBody() {

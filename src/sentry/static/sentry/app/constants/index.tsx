@@ -19,7 +19,7 @@ export const API_SCOPES = [
   'org:admin',
   'member:read',
   'member:admin',
-];
+] as const;
 
 // Default API scopes when adding a new API token or org API token
 export const DEFAULT_API_SCOPES = [
@@ -103,6 +103,7 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 declare global {
   interface Window {
     csrfCookieName?: string;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
   }
 }
 

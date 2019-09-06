@@ -66,7 +66,7 @@
     "ios-device-list": "^1.1.30",
     "jed": "^1.1.0",
     "jquery": "2.2.2",
-    "js-cookie": "2.0.4",
+    "js-cookie": "2.2.1",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.11",
@@ -178,7 +178,7 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "volta": {
-    "node": "8.15.1",
-    "yarn": "1.16.0"
+    "node": "10.16.3",
+    "yarn": "1.17.3"
   }
 }
