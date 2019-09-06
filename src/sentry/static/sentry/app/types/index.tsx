@@ -394,3 +394,9 @@ export type InternalAppApiToken = BaseApiToken & {
   token: string;
   refreshToken: string;
 };
+
+export type UserReport = {
+  id: string;
+  eventID: string;
+  issue: Group;
+};
