@@ -105,10 +105,13 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
     const {orgId} = this.props.params;
-    const verb = app ? 'saved' : 'created';
     const baseUrl = `/settings/${orgId}/developer-settings/`;
     const url = app ? baseUrl : `${baseUrl}${data.slug}/`;
-    addSuccessMessage(t(`%s successfully ${verb}.`, data.name));
+    if (app) {
+      addSuccessMessage(t('%s successfully saved.', data.name));
+    } else {
+      addSuccessMessage(t('%s successfully created.', data.name));
+    }
     browserHistory.push(url);
   };
 
