@@ -45,12 +45,12 @@ class GroupTags extends React.Component {
 
   fetchData = () => {
     const {api, group, environments} = this.props;
-    const env_query = environments.map(e => '&environment=' + e).join('');
     this.setState({
       loading: true,
       error: false,
     });
-    api.request('/issues/' + group.id + '/tags/?' + env_query, {
+    api.request(`/issues/${group.id}/tags/`, {
+      query: {environment: environments},
       success: data => {
         this.setState({
           tagList: data,

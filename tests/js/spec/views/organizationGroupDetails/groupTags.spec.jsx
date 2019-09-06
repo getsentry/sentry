@@ -10,7 +10,11 @@ describe('GroupTags', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/?&environment=dev',
+      url: '/issues/1/tags/',
+      body: TestStubs.Tags(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/1/tags/?environment=dev',
       body: TestStubs.Tags(),
     });
   });
