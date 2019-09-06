@@ -163,6 +163,7 @@ class GitlabWebhookEndpoint(View):
         return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def post(self, request):
+        token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
             # gitlab hook payloads don't give us enough unique context
