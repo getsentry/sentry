@@ -15,7 +15,6 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 class GroupTags extends React.Component {
   static propTypes = {
@@ -152,4 +151,4 @@ class GroupTags extends React.Component {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(GroupTags)));
+export default withApi(withOrganization(GroupTags));
