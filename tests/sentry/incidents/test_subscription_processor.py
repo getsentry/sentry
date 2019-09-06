@@ -9,18 +9,12 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-from sentry.incidents.logic import alert_aggregation_to_snuba, create_alert_rule
-from sentry.incidents.models import (
-    AlertRuleAggregations,
-    AlertRuleThresholdType,
-    Incident,
-    IncidentStatus,
-    IncidentType,
-    SnubaDatasets,
-)
+from sentry.incidents.logic import create_alert_rule
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
+from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
 from sentry.incidents.subscription_processor import get_alert_rule_stats, SubscriptionProcessor
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 
@@ -35,9 +29,9 @@ class ProcessUpdateTest(TestCase):
             project=self.project,
             type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             subscription_id="some_id",
-            dataset=SnubaDatasets.EVENTS.value,
+            dataset=QueryDatasets.EVENTS.value,
             query="",
-            aggregations=[AlertRuleAggregations.TOTAL.value],
+            aggregations=[QueryAggregations.TOTAL.value],
             time_window=1,
             resolution=1,
         )
@@ -50,7 +44,7 @@ class ProcessUpdateTest(TestCase):
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
-            aggregation=AlertRuleAggregations.TOTAL,
+            aggregation=QueryAggregations.TOTAL,
             time_window=1,
             alert_threshold=100,
             resolve_threshold=10,
@@ -68,8 +62,8 @@ class ProcessUpdateTest(TestCase):
         values = {}
 
         if subscription:
-            aggregation_type = alert_aggregation_to_snuba[
-                AlertRuleAggregations(subscription.aggregations[0])
+            aggregation_type = query_aggregation_to_snuba[
+                QueryAggregations(subscription.aggregations[0])
             ]
             value = randint(0, 100) if value is None else value
             values = {aggregation_type[2]: value}

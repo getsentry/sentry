@@ -1,9 +1,20 @@
 from __future__ import absolute_import
 
+from enum import Enum
+
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import ArrayField, FlexibleForeignKey, Model
+
+
+class QueryAggregations(Enum):
+    TOTAL = 0
+    UNIQUE_USERS = 1
+
+
+class QueryDatasets(Enum):
+    EVENTS = "events"
 
 
 class QuerySubscription(Model):

@@ -9,25 +9,19 @@ from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.incidents.logic import alert_aggregation_to_snuba, create_alert_rule
-from sentry.incidents.models import (
-    AlertRuleAggregations,
-    AlertRuleThresholdType,
-    Incident,
-    IncidentStatus,
-    IncidentType,
-    SnubaDatasets,
-)
+from sentry.incidents.logic import create_alert_rule
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
+from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 
 from sentry.testutils import TestCase
 
 
-class HandleSubaQueryUpdateTest(TestCase):
+class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
-        super(HandleSubaQueryUpdateTest, self).setUp()
+        super(HandleSnubaQueryUpdateTest, self).setUp()
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
         )
@@ -35,7 +29,7 @@ class HandleSubaQueryUpdateTest(TestCase):
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self):
-        super(HandleSubaQueryUpdateTest, self).tearDown()
+        super(HandleSnubaQueryUpdateTest, self).tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
@@ -46,9 +40,9 @@ class HandleSubaQueryUpdateTest(TestCase):
             project=self.project,
             type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             subscription_id="some_id",
-            dataset=SnubaDatasets.EVENTS.value,
+            dataset=QueryDatasets.EVENTS.value,
             query="",
-            aggregation=AlertRuleAggregations.TOTAL.value,
+            aggregation=QueryAggregations.TOTAL.value,
             time_window=1,
             resolution=1,
         )
@@ -61,7 +55,7 @@ class HandleSubaQueryUpdateTest(TestCase):
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
-            aggregation=AlertRuleAggregations.TOTAL,
+            aggregation=QueryAggregations.TOTAL,
             time_window=1,
             alert_threshold=100,
             resolve_threshold=10,
@@ -97,9 +91,7 @@ class HandleSubaQueryUpdateTest(TestCase):
             callback(*args, **kwargs)
             raise KeyboardInterrupt()
 
-        value_name = alert_aggregation_to_snuba[
-            AlertRuleAggregations(self.subscription.aggregation)
-        ][2]
+        value_name = query_aggregation_to_snuba[QueryAggregations(self.subscription.aggregation)][2]
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = exception_callback
         message = {

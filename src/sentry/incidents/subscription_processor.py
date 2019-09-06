@@ -7,19 +7,16 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 
-from sentry.incidents.logic import (
-    alert_aggregation_to_snuba,
-    create_incident,
-    update_incident_status,
-)
+from sentry.incidents.logic import create_incident, update_incident_status
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleAggregations,
     AlertRuleThresholdType,
     Incident,
     IncidentStatus,
     IncidentType,
 )
+from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 
@@ -94,10 +91,8 @@ class SubscriptionProcessor(object):
 
         self.last_update = subscription_update["timestamp"]
 
-        # TODO: At the moment we only have individual aggregations. Handle multiple
-        # later
-        aggregation = AlertRuleAggregations(self.alert_rule.aggregation)
-        aggregation_name = alert_aggregation_to_snuba[aggregation][2]
+        aggregation = QueryAggregations(self.alert_rule.aggregation)
+        aggregation_name = query_aggregation_to_snuba[aggregation][2]
         aggregation_value = subscription_update["values"][aggregation_name]
 
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[

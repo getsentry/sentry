@@ -8,6 +8,7 @@ from enum import Enum
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.snuba.models import QueryAggregations
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -232,16 +233,6 @@ class AlertRuleThresholdType(Enum):
     BELOW = 1
 
 
-class AlertRuleAggregations(Enum):
-    TOTAL = 0
-    UNIQUE_USERS = 1
-
-
-# TODO: This should probably live in the snuba app.
-class SnubaDatasets(Enum):
-    EVENTS = "events"
-
-
 class AlertRuleManager(BaseManager):
     """
     A manager that excludes all rows that are pending deletion.
@@ -291,7 +282,7 @@ class AlertRule(Model):
     dataset = models.TextField()
     query = models.TextField()
     # TODO: Remove this default after we migrate
-    aggregation = models.IntegerField(default=AlertRuleAggregations.TOTAL.value)
+    aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     threshold_type = models.SmallIntegerField()
