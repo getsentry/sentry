@@ -13,7 +13,7 @@ import {
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {openModal} from 'app/actionCreators/modal';
 
-import InstallationIdModal from 'app/views/organizationIntegrations/installationIdModal';
+import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
@@ -53,11 +53,7 @@ class SentryAppInstallations extends React.Component {
     //Will remove once the proper fix is in place
     if (organization.slug === 'split') {
       openModal(({closeModal}) => (
-        <InstallationIdModal
-          installationId={install.uuid}
-          link="https://split.com/stuff" //TODO (Stephen): Get updated URL
-          closeModal={closeModal}
-        />
+        <SplitInstallationIdModal installationId={install.uuid} closeModal={closeModal} />
       ));
     }
   };
