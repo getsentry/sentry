@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import {SavedQuery} from 'app/views/discover/types';
 import DiscoverSavedQueryActions from 'app/actions/discoverSavedQueryActions';
 
-type SavedQueryState = {
+export type SavedQueryState = {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
