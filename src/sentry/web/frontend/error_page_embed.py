@@ -208,7 +208,7 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe("*/" + sentry_options.get("system.url-prefix") + ";/*"),
+            "endpoint": mark_safe("*/'" + sentry_options.get("system.url-prefix") + "';/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {
