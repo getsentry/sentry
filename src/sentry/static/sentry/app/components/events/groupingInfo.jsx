@@ -264,7 +264,7 @@ class EventGroupingInfo extends AsyncComponent {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
-    showSelector: PropTypes.object,
+    showSelector: PropTypes.bool,
   };
 
   getEndpoints() {
