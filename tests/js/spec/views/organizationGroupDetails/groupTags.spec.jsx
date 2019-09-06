@@ -13,10 +13,6 @@ describe('GroupTags', function() {
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),
     });
-    MockApiClient.addMockResponse({
-      url: '/issues/1/tags/?environment=dev',
-      body: TestStubs.Tags(),
-    });
   });
 
   it('navigates to issue details events tab with correct query params', function() {
