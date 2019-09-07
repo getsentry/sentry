@@ -101,7 +101,6 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user)
         assert result["version"] == release.version
-        assert result["shortVersion"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
         # should be tags from all projects
@@ -118,11 +117,6 @@ class ReleaseSerializerTest(TestCase):
         # should be tags from one project
         assert result["firstEvent"] == tagvalue1.first_seen
         assert result["lastEvent"] == tagvalue1.last_seen
-
-        # Make sure a sha1 value gets truncated
-        release.version = "0" * 40
-        result = serialize(release, user)
-        assert result["shortVersion"] == "0" * 7
 
     def test_no_tag_data(self):
         user = self.create_user()

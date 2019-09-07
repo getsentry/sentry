@@ -1,7 +1,7 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
-import {omit} from 'lodash';
+import {capitalize, omit} from 'lodash';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -16,7 +16,12 @@ import space from 'app/styles/space';
 import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
+import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
+import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
+
+const INSTALLED = 'Installed';
+const NOT_INSTALLED = 'Not Installed';
+const PENDING = 'Pending';
 
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
@@ -26,7 +31,6 @@ export default class SentryApplicationRow extends React.PureComponent {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
-    onPublishRequest: PropTypes.func,
     showInstallationStatus: PropTypes.bool, //false if we are on the developer settings page where we don't show installation status
   };
 
@@ -101,23 +105,11 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  renderPublishRequest(app) {
-    const message = t(
-      `Sentry will evaluate your integration ${
-        app.slug
-      } and make it available to all users. \
-       Do you wish to continue?`
-    );
+  renderPublishRequest() {
     return (
-      <Confirm
-        message={message}
-        priority="primary"
-        onConfirm={() => this.props.onPublishRequest(app)}
-      >
-        <StyledButton icon="icon-upgrade" size="small">
-          {t('Publish')}
-        </StyledButton>
-      </Confirm>
+      <StyledButton icon="icon-upgrade" size="small" onClick={this.handlePublish}>
+        {t('Publish')}
+      </StyledButton>
     );
   }
 
@@ -147,18 +139,18 @@ export default class SentryApplicationRow extends React.PureComponent {
   renderStatus() {
     const {app, showInstallationStatus} = this.props;
     const isInternal = this.isInternal;
-    const isInstalled = this.isInstalled;
+    const status = this.installationStatus;
     if (this.hideStatus()) {
       return null;
     }
     if (showInstallationStatus) {
       //if internal and we show installation status, we don't show the learn more
       if (isInternal) {
-        return <Status enabled isInternal={isInternal} />;
+        return <Status status={status} isInternal={isInternal} />;
       }
       return (
         <React.Fragment>
-          <Status enabled={isInstalled} isInternal={false} />
+          <Status status={status} isInternal={false} />
           <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
         </React.Fragment>
       );
@@ -168,6 +160,20 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   get isInstalled() {
     return this.props.installs && this.props.installs.length > 0;
+  }
+
+  handlePublish = () => {
+    const {app} = this.props;
+
+    openModal(deps => <SentryAppPublishRequestModal app={app} {...deps} />);
+  };
+
+  get installationStatus() {
+    if (this.props.installs && this.props.installs.length > 0) {
+      return capitalize(this.props.installs[0].status);
+    }
+
+    return NOT_INSTALLED;
   }
 
   openLearnMore = () => {
@@ -236,7 +242,6 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   render() {
     const {app, organization} = this.props;
-
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
@@ -302,22 +307,25 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
 `;
 
+const color = {
+  [INSTALLED]: 'success',
+  [NOT_INSTALLED]: 'gray2',
+  [PENDING]: 'yellowOrange',
+};
+
 const Status = styled(
-  withTheme(({enabled, ...props}) => {
+  withTheme(({status, ...props}) => {
     //need to omit isInternal
     const propsToPass = omit(props, ['isInternal']);
     return (
       <Flex align="center">
-        <CircleIndicator
-          size={6}
-          color={enabled ? props.theme.success : props.theme.gray2}
-        />
-        <div {...propsToPass}>{enabled ? t('Installed') : t('Not Installed')}</div>
+        <CircleIndicator size={6} color={props.theme[color[status]]} />
+        <div {...propsToPass}>{t(`${status}`)}</div>
       </Flex>
     );
   })
 )`
-  color: ${props => (props.enabled ? props.theme.success : props.theme.gray2)};
+  color: ${props => props.theme[color[props.status]]};
   margin-left: ${space(0.5)};
   font-weight: light;
   &:after {

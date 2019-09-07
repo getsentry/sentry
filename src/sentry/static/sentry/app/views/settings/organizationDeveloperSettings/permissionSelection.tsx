@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {find, flatMap} from 'lodash';
+import {find, flatMap, get} from 'lodash';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
 import SelectField from 'app/views/settings/components/forms/selectField';
+import {Permissions} from 'app/types/index';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -76,7 +77,18 @@ import SelectField from 'app/views/settings/components/forms/selectField';
  *       ['project:read', 'project:write', 'project:admin', 'org:read', 'org:write']
  *
  */
-export default class PermissionSelection extends React.Component {
+
+type Props = {
+  permissions: Permissions;
+  onChange: (permissions: Permissions) => void;
+  appPublished: Boolean;
+};
+
+type State = {
+  permissions: Permissions;
+};
+
+export default class PermissionSelection extends React.Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -85,10 +97,11 @@ export default class PermissionSelection extends React.Component {
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
+    appPublished: PropTypes.bool,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
     this.state = {
       permissions: this.props.permissions,
     };
@@ -104,10 +117,8 @@ export default class PermissionSelection extends React.Component {
   permissionStateToList() {
     const {permissions} = this.state;
     const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
-
-    return flatMap(
-      Object.entries(permissions),
-      ([r, p]) => findResource(r).choices[p].scopes
+    return flatMap(Object.entries(permissions), ([r, p]) =>
+      get(findResource(r), `choices[${p}].scopes`)
     );
   }
 
@@ -147,6 +158,8 @@ export default class PermissionSelection extends React.Component {
               onChange={this.onChange.bind(this, config.resource)}
               value={value}
               defaultValue={value}
+              disabled={this.props.appPublished}
+              disabledReason={t('Cannot update permissions on a published integration')}
             />
           );
         })}

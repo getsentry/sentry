@@ -175,14 +175,17 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           >
                             <Status
                               isInternal={false}
+                              status="Not Installed"
                             >
                               <WithTheme(Component)
-                                className="css-lk5f1o-Status eac2pqx8"
+                                className="css-1uxco7x-Status eac2pqx8"
                                 isInternal={false}
+                                status="Not Installed"
                               >
                                 <Component
-                                  className="css-lk5f1o-Status eac2pqx8"
+                                  className="css-1uxco7x-Status eac2pqx8"
                                   isInternal={false}
+                                  status="Not Installed"
                                   theme={
                                     Object {
                                       "alert": Object {
@@ -326,6 +329,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "dropShadowLightest": "0 1px 2px rgba(0, 0, 0, 0.04)",
                                       "error": "#e03e2f",
                                       "fontSizeExtraLarge": "18px",
+                                      "fontSizeExtraSmall": "11px",
                                       "fontSizeLarge": "16px",
                                       "fontSizeMedium": "14px",
                                       "fontSizeSmall": "12px",
@@ -454,7 +458,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           />
                                         </CircleIndicator>
                                         <div
-                                          className="css-lk5f1o-Status eac2pqx8"
+                                          className="css-1uxco7x-Status eac2pqx8"
                                           theme={
                                             Object {
                                               "alert": Object {
@@ -598,6 +602,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "dropShadowLightest": "0 1px 2px rgba(0, 0, 0, 0.04)",
                                               "error": "#e03e2f",
                                               "fontSizeExtraLarge": "18px",
+                                              "fontSizeExtraSmall": "11px",
                                               "fontSizeLarge": "16px",
                                               "fontSizeMedium": "14px",
                                               "fontSizeSmall": "12px",

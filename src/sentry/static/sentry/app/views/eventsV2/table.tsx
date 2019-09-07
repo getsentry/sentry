@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import Alert from 'app/components/alert';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import Pagination from 'app/components/pagination';
@@ -39,16 +40,19 @@ type Props = {
 type State = {
   eventView: EventView;
   loading: boolean;
-  hasError: boolean;
+  error: null | string;
   pageLinks: null | string;
   dataPayload: DataPayload | null | undefined;
 };
 
+/**
+ * Container element that fetches events and handles pagination
+ */
 class Table extends React.PureComponent<Props, State> {
   state: State = {
     eventView: EventView.fromLocation(this.props.location),
     loading: true,
-    hasError: false,
+    error: null,
     pageLinks: null,
     dataPayload: null,
   };
@@ -96,15 +100,16 @@ class Table extends React.PureComponent<Props, State> {
         this.setState(prevState => {
           return {
             loading: false,
-            hasError: false,
+            error: null,
             pageLinks: jqxhr ? jqxhr.getResponseHeader('Link') : prevState.pageLinks,
             dataPayload,
           };
         });
       },
-      error: _err => {
+      error: err => {
         this.setState({
-          hasError: true,
+          loading: false,
+          error: err.responseJSON.detail,
         });
       },
     });
@@ -112,7 +117,7 @@ class Table extends React.PureComponent<Props, State> {
 
   render() {
     const {organization, location} = this.props;
-    const {pageLinks, eventView, loading, dataPayload} = this.state;
+    const {pageLinks, eventView, loading, dataPayload, error} = this.state;
 
     return (
       <Container>
@@ -122,6 +127,7 @@ class Table extends React.PureComponent<Props, State> {
           dataPayload={dataPayload}
           isLoading={loading}
           location={location}
+          error={error}
         />
         <Pagination pageLinks={pageLinks} />
       </Container>
@@ -134,9 +140,13 @@ type TableViewProps = {
   eventView: EventView;
   isLoading: boolean;
   dataPayload: DataPayload | null | undefined;
+  error: string | null;
   location: Location;
 };
 
+/**
+ * Renders the table headers and rows for the result set.
+ */
 class TableView extends React.Component<TableViewProps> {
   renderLoading = () => {
     return (
@@ -197,22 +207,8 @@ class TableView extends React.Component<TableViewProps> {
 
     const {meta} = dataPayload;
     const fields = eventView.getFieldNames();
-
-    // TODO: deal with this
-    // if (fields.length <= 0) {
-    //   return (
-    //     <PanelGridInfo numOfCols={1}>
-    //       <EmptyStateWarning>
-    //         <p>{t('No field column selected')}</p>
-    //       </EmptyStateWarning>
-    //     </PanelGridInfo>
-    //   );
-    // }
-
     const lastRowIndex = dataPayload.data.length - 1;
-
-    // TODO add links to the first column even if it isn't one of our
-    // preferred link columns (title, transaction, latest_event)
+    const hasLinkField = eventView.hasAutolinkField();
     const firstCellIndex = 0;
     const lastCellIndex = fields.length - 1;
 
@@ -221,8 +217,9 @@ class TableView extends React.Component<TableViewProps> {
         <React.Fragment key={rowIndex}>
           {fields.map((field, columnIndex) => {
             const key = `${field}.${columnIndex}`;
+            const forceLinkField = !hasLinkField && columnIndex === 0;
 
-            const fieldRenderer = getFieldRenderer(field, meta);
+            const fieldRenderer = getFieldRenderer(field, meta, forceLinkField);
             return (
               <PanelItemCell
                 hideBottomBorder={rowIndex === lastRowIndex}
@@ -241,22 +238,36 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  renderTable = () => {
+  renderTable() {
     return (
       <React.Fragment>
         {this.renderHeader()}
         {this.renderContent()}
       </React.Fragment>
     );
-  };
+  }
+
+  renderError() {
+    const {error, eventView} = this.props;
+    return (
+      <React.Fragment>
+        <Alert type="error" icon="icon-circle-exclamation">
+          {error}
+        </Alert>
+        <PanelGrid numOfCols={eventView.numOfColumns()}>{this.renderHeader()}</PanelGrid>
+      </React.Fragment>
+    );
+  }
 
   render() {
-    const {isLoading, eventView} = this.props;
+    const {isLoading, error, eventView} = this.props;
 
     if (isLoading) {
       return this.renderLoading();
     }
-
+    if (error) {
+      return this.renderError();
+    }
     return (
       <PanelGrid numOfCols={eventView.numOfColumns()}>{this.renderTable()}</PanelGrid>
     );

@@ -39,7 +39,7 @@ class TagValueSerializerTest(TestCase):
         result = serialize(tagvalue, user)
         assert result["key"] == "release"
         assert result["value"] == "df84bccbb23ca15f2868be1f2a5f7c7a6464fadd"
-        assert result["name"] == "df84bcc"
+        assert result["name"] == "df84bccbb23ca15f2868be1f2a5f7c7a6464fadd"
         assert "query" not in result
 
 
