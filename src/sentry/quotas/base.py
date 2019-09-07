@@ -100,7 +100,7 @@ class Quota(Service):
             cache.set(cache_key, has_rate_limits, 600)
 
         if not has_rate_limits:
-            return (None, 0)
+            return (None, 60)
 
         limit, window = key.rate_limit
         return limit or None, window
