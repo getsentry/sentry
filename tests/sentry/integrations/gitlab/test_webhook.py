@@ -15,6 +15,25 @@ from .testutils import (
 class WebhookTest(GitLabTestCase):
     url = "/extensions/gitlab/webhook/"
 
+    def assert_commit_author(self, author):
+        assert author.email
+        assert author.name
+        assert author.organization_id == self.organization.id
+
+    def assert_pull_request(self, pull, author):
+        assert pull.title
+        assert pull.message
+        assert pull.date_added
+        assert pull.author == author
+        assert pull.merge_commit_sha is None
+        assert pull.organization_id == self.organization.id
+
+    def assert_group_link(self, group, pull):
+        link = GroupLink.objects.all().first()
+        assert link.group_id == group.id
+        assert link.linked_type == GroupLink.LinkedType.pull_request
+        assert link.linked_id == pull.id
+
     def test_get(self):
         response = self.client.get(self.url)
         assert response.status_code == 405
@@ -253,22 +272,3 @@ class WebhookTest(GitLabTestCase):
 
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
-
-    def assert_commit_author(self, author):
-        assert author.email
-        assert author.name
-        assert author.organization_id == self.organization.id
-
-    def assert_pull_request(self, pull, author):
-        assert pull.title
-        assert pull.message
-        assert pull.date_added
-        assert pull.author == author
-        assert pull.merge_commit_sha is None
-        assert pull.organization_id == self.organization.id
-
-    def assert_group_link(self, group, pull):
-        link = GroupLink.objects.all().first()
-        assert link.group_id == group.id
-        assert link.linked_type == GroupLink.LinkedType.pull_request
-        assert link.linked_id == pull.id
