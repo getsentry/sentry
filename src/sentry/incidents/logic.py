@@ -66,10 +66,12 @@ def create_incident(
     query,
     date_started=None,
     date_detected=None,
+    # TODO: Probably remove detection_uuid?
     detection_uuid=None,
     projects=None,
     groups=None,
     user=None,
+    alert_rule=None,
 ):
     if groups:
         group_projects = [g.project for g in groups]
@@ -93,6 +95,7 @@ def create_incident(
             query=query,
             date_started=date_started,
             date_detected=date_detected,
+            alert_rule=alert_rule,
         )
         if projects:
             IncidentProject.objects.bulk_create(

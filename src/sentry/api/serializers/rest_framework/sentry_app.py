@@ -66,7 +66,7 @@ class URLField(serializers.URLField):
 
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
-    author = serializers.CharField()
+    author = serializers.CharField(required=False, allow_null=True)
     scopes = ApiScopesField(allow_null=True)
     status = serializers.CharField(required=False, allow_null=True)
     events = EventListField(required=False, allow_null=True)
@@ -108,7 +108,7 @@ class SentryAppSerializer(Serializer):
     def validate(self, attrs):
         # validates events against scopes
         if attrs.get("scopes"):
-            for resource in attrs.get("events"):
+            for resource in attrs.get("events", []):
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
@@ -135,5 +135,9 @@ class SentryAppSerializer(Serializer):
                     )
             else:
                 raise ValidationError({"webhookUrl": "webhookUrl required for public integrations"})
+
+        # validate author for public integrations
+        if not get_current_value("isInternal") and not get_current_value("author"):
+            raise ValidationError({"author": "author required for public integrations"})
 
         return attrs

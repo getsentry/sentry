@@ -1,4 +1,5 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {API_SCOPES} from 'app/constants';
 
 export type Organization = {
   id: string;
@@ -35,6 +36,7 @@ export type Project = {
   features: string[];
 
   isBookmarked: boolean;
+  hasUserReports?: boolean;
 };
 
 export type Team = {
@@ -336,18 +338,20 @@ export type Repository = {
   url: string;
 };
 
-export type WebhookEvents = 'issue' | 'error';
+export type WebhookEvent = 'issue' | 'error';
+
+export type Scope = typeof API_SCOPES[number];
 
 export type SentryApp = {
   status: string;
-  scopes: string[];
+  scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
   slug: string;
   name: string;
   uuid: string;
   author: string;
-  events: WebhookEvents[];
+  events: WebhookEvent[];
   schema: {
     elements?: object[]; //TODO(ts)
   };
@@ -362,4 +366,37 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+};
+
+export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
+
+export type Permissions = {
+  Event: PermissionValue;
+  Member: PermissionValue;
+  Organization: PermissionValue;
+  Project: PermissionValue;
+  Release: PermissionValue;
+  Team: PermissionValue;
+};
+
+//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+type BaseApiToken = {
+  id: string;
+  scopes: Scope[];
+  expiresAt: string;
+  dateCreated: string;
+  state: string;
+};
+
+//We include the token for API tokens used for internal apps
+export type InternalAppApiToken = BaseApiToken & {
+  application: null;
+  token: string;
+  refreshToken: string;
+};
+
+export type UserReport = {
+  id: string;
+  eventID: string;
+  issue: Group;
 };
