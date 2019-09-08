@@ -11,7 +11,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
-import GroupingConfigItem from 'app/components/events/groupingInfo';
+import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';

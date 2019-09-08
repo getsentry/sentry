@@ -15,9 +15,9 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 import withOrganization from 'app/utils/withOrganization';
 
-const GroupingConfigItem = styled(({hidden: _hidden, active: _active, ...props}) => (
-  <code {...props} />
-))`
+export const GroupingConfigItem = styled(
+  ({hidden: _hidden, active: _active, ...props}) => <code {...props} />
+)`
   ${p => (p.hidden ? 'opacity: 0.5;' : '')}
   ${p => (p.active ? 'font-weight: bold;' : '')}
 `;
