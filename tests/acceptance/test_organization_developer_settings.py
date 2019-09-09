@@ -37,7 +37,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_xpath("//div[contains(text(), 'Client ID')]")
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
@@ -50,7 +50,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_xpath("//button//span[contains(text(), 'New Token')]")
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
