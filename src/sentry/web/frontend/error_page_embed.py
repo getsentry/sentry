@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import eventstore
+from sentry import eventstore, options as sentry_options
 from sentry.models import Event, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
@@ -208,7 +208,9 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe("*/" + json.dumps(request.build_absolute_uri()) + ";/*"),
+            "endpoint": mark_safe(
+                "*/" + json.dumps(sentry_options.get("system.url-prefix")) + ";/*"
+            ),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {
