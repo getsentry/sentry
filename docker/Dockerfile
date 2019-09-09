@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     # Needed for fetching stuff
     wget \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Fetch trusted keys
 RUN for key in \
@@ -50,19 +50,22 @@ RUN set -x \
     && chmod +x /usr/local/bin/tini
 
 # Get and set up Node for front-end asset building
-ENV NODE_VERSION 10.16.3
-RUN wget "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
+COPY .nvmrc /usr/src/sentry
+RUN export NODE_VERSION="$(cat .nvmrc)" \
+    && wget "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
     && wget "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
     && gpg --batch --verify SHASUMS256.txt.asc \
     && grep " node-v$NODE_VERSION-linux-x64.tar.gz\$" SHASUMS256.txt.asc | sha256sum -c - \
     && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
     && rm -r "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
+ENV SENTRY_BUILD=${SENTRY_BUILD:-master}
 COPY . /usr/src/sentry
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
+    && cd /usr/src/sentry \
     && python setup.py bdist_wheel \
     && rm -r "$YARN_CACHE_FOLDER" \
-    && mv /usr/src/sentry/dist /dist \
+    && mv /usr/src/sentry/dist /dist
 
 # This is the image to be run
 FROM python:2.7.16-slim-buster
@@ -136,7 +139,7 @@ RUN set -x \
     && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
     && mkdir -p $SENTRY_CONF && mkdir -p $SENTRY_FILESTORE_DIR
 
-COPY docker-entrypoint.sh sentry.conf.py config.yml $SENTRY_CONF/
+COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 
 EXPOSE 9000
 VOLUME /var/lib/sentry/files
