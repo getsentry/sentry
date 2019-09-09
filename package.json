@@ -160,6 +160,10 @@
   "optionalDependencies": {
     "fsevents": "^1.1.2"
   },
+  "resolutions": {
+    "caniuse-lite": "1.0.30000989",
+    "browserslist": "4.7.0"
+  },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
