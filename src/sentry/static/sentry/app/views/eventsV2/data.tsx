@@ -183,17 +183,20 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
+const emptyValue = <span>{t('n/a')}</span>;
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
+ * and the field is not being coerced to a link.
+ *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
 export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     sortField: true,
-    renderFunc: (field, data, {organization, location}) => {
+    renderFunc: (field, data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `${field}:${data[field]}`,
@@ -207,7 +210,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
@@ -215,7 +218,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
@@ -223,22 +226,20 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <Container>
-        {data[field] ? (
-          getDynamicText({
-            value: <StyledDateTime date={data[field]} />,
-            fixed: 'timestamp',
-          })
-        ) : (
-          <span>t('n/a')</span>
-        )}
+        {data[field]
+          ? getDynamicText({
+              value: <StyledDateTime date={data[field]} />,
+              fixed: 'timestamp',
+            })
+          : emptyValue}
       </Container>
     ),
   },
   string: {
     sortField: true,
-    renderFunc: (field, data, {organization, location}) => {
+    renderFunc: (field, data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `${field}:${data[field]}`,
@@ -246,6 +247,69 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       };
       return <QueryLink to={target}>{data[field]}</QueryLink>;
     },
+  },
+};
+
+const eventLink = (
+  location: Location,
+  data: EventData,
+  content: string | React.ReactNode
+): React.ReactNode => {
+  const id = data.id || data.latest_event;
+  const target = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      eventSlug: `${data['project.name']}:${id}`,
+    },
+  };
+  return <OverflowLink to={target}>{content}</OverflowLink>;
+};
+
+type LinkFormatter = (
+  field: string,
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type LinkFormatters = {
+  integer: LinkFormatter;
+  number: LinkFormatter;
+  date: LinkFormatter;
+  string: LinkFormatter;
+};
+
+export const LINK_FORMATTERS: LinkFormatters = {
+  string: (field, data, {location}) => {
+    return <Container>{eventLink(location, data, data[field])}</Container>;
+  },
+  number: (field, data, {location}) => {
+    return (
+      <NumberContainer>
+        {typeof data[field] === 'number'
+          ? eventLink(location, data, <Count value={data[field]} />)
+          : emptyValue}
+      </NumberContainer>
+    );
+  },
+  integer: (field, data, {location}) => {
+    return (
+      <NumberContainer>
+        {typeof data[field] === 'number'
+          ? eventLink(location, data, <Count value={data[field]} />)
+          : emptyValue}
+      </NumberContainer>
+    );
+  },
+  date: (field, data, {location}) => {
+    let content = emptyValue;
+    if (data[field]) {
+      content = getDynamicText({
+        value: <StyledDateTime date={data[field]} />,
+        fixed: <span>timestamp</span>,
+      });
+    }
+    return <Container>{eventLink(location, data, content)}</Container>;
   },
 };
 
@@ -287,9 +351,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.transaction}>
+          <OverflowLink to={target} aria-label={data.transaction}>
             {data.transaction}
-          </Link>
+          </OverflowLink>
         </Container>
       );
     },
@@ -304,9 +368,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.title}>
+          <OverflowLink to={target} aria-label={data.title}>
             {data.title}
-          </Link>
+          </OverflowLink>
         </Container>
       );
     },
@@ -375,19 +439,22 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       return (
         <Container>
-          {data.last_seen ? (
-            getDynamicText({
-              value: <StyledDateTime date={data.last_seen} />,
-              fixed: 'time',
-            })
-          ) : (
-            <span>n/a</span>
-          )}
+          {data.last_seen
+            ? getDynamicText({
+                value: <StyledDateTime date={data.last_seen} />,
+                fixed: 'time',
+              })
+            : emptyValue}
         </Container>
       );
     },
   },
 };
+
+/**
+ * List of fields that have links auto-generated
+ */
+export const AUTOLINK_FIELDS: string[] = ['transaction', 'title'];
 
 const Container = styled('div')`
   padding: ${space(1)};
@@ -402,5 +469,9 @@ const NumberContainer = styled('div')`
 
 const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
+`;
+
+const OverflowLink = styled(Link)`
   ${overflowEllipsis};
 `;

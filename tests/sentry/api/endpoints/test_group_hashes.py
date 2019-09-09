@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import copy
-from datetime import timedelta
-from django.utils import timezone
 
 from six.moves.urllib.parse import urlencode
 
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstream.snuba import SnubaEventStream
 
 
@@ -16,9 +15,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)
 
-        # remove microseconds and timezone from iso format cause that's what store_event expects
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
         new_event_id = "b" * 32
 
         old_event = self.store_event(
@@ -55,9 +53,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_return_multiple_hashes(self):
         self.login_as(user=self.user)
 
-        # remove microseconds and timezone from iso format cause that's what store_event expects
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
 
         event1 = self.store_event(
             data={

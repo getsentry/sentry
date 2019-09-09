@@ -1081,7 +1081,6 @@ const Container = styled('div')`
 
   position: relative;
 
-  z-index: ${p => p.theme.zIndex.dropdown};
   display: flex;
 
   .show-sidebar & {

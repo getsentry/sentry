@@ -62,6 +62,7 @@ from sentry.incidents.models import (
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class CreateIncidentTest(TestCase):
@@ -76,6 +77,18 @@ class CreateIncidentTest(TestCase):
         other_project = self.create_project()
         other_group = self.create_group(project=other_project)
         self.record_event.reset_mock()
+        alert_rule = create_alert_rule(
+            self.project,
+            "hello",
+            AlertRuleThresholdType.ABOVE,
+            "level:error",
+            [AlertRuleAggregations.TOTAL],
+            10,
+            1000,
+            400,
+            1,
+        )
+
         incident = create_incident(
             self.organization,
             type=incident_type,
@@ -84,6 +97,7 @@ class CreateIncidentTest(TestCase):
             date_started=date_started,
             projects=[self.project],
             groups=[self.group, other_group],
+            alert_rule=alert_rule,
         )
         assert incident.identifier == 1
         assert incident.status == incident_type.value
@@ -91,6 +105,7 @@ class CreateIncidentTest(TestCase):
         assert incident.query == query
         assert incident.date_started == date_started
         assert incident.date_detected == date_started
+        assert incident.alert_rule == alert_rule
         assert (
             IncidentGroup.objects.filter(
                 incident=incident, group__in=[self.group, other_group]
@@ -213,7 +228,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": timestamp.isoformat()[:19],
+            "timestamp": iso_format(timestamp),
         }
         if user:
             data["user"] = user
@@ -583,7 +598,7 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
         included_commits = set([letter * 40 for letter in ("a", "b", "c", "d")])
         commit_iter = iter(included_commits)
 
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "fingerprint": ["group-1"],

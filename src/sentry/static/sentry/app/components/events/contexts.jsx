@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {get} from 'lodash';
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
@@ -34,7 +35,7 @@ function getSourcePlugin(pluginContexts, contextType) {
 class ContextChunk extends React.Component {
   static propTypes = {
     event: PropTypes.object.isRequired,
-    group: PropTypes.object.isRequired,
+    group: PropTypes.object,
     type: PropTypes.string.isRequired,
     alias: PropTypes.string.isRequired,
     value: PropTypes.object.isRequired,
@@ -51,10 +52,10 @@ class ContextChunk extends React.Component {
     this.syncPlugin();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (
-      prevProps.group.id !== this.props.group.id ||
-      prevProps.type !== this.props.type
+      prevProps.type !== this.props.type ||
+      get(prevProps, 'group.id') !== get(this.props, 'group.id')
     ) {
       this.syncPlugin();
     }
@@ -62,6 +63,10 @@ class ContextChunk extends React.Component {
 
   syncPlugin = () => {
     const {group, type, alias} = this.props;
+    // If we don't have a grouped event we can't sync with plugins.
+    if (!group) {
+      return;
+    }
 
     // Search using `alias` first because old plugins rely on it and type is set to "default"
     // e.g. sessionstack
@@ -117,7 +122,6 @@ class ContextChunk extends React.Component {
       return null;
     }
 
-    const group = this.props.group;
     const evt = this.props.event;
     const {type, alias, value} = this.props;
     const Component =
@@ -132,7 +136,6 @@ class ContextChunk extends React.Component {
 
     return (
       <EventDataSection
-        group={group}
         event={evt}
         key={`context-${alias}`}
         type={`context-${alias}`}
@@ -147,7 +150,7 @@ class ContextChunk extends React.Component {
 class ContextsInterface extends React.Component {
   static propTypes = {
     event: PropTypes.object.isRequired,
-    group: PropTypes.object.isRequired,
+    group: PropTypes.object,
   };
 
   render() {
