@@ -1676,6 +1676,9 @@ KAFKA_CLUSTERS = {
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
+KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
+KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -1684,6 +1687,12 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
     },
+    # Topic for receiving simple events (error events without attachments) from Relay
+    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    # Topic for receiving 'complex' events (error events with attachments) from Relay
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    # Topic for receiving transaction events (APM events) from Relay
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely
