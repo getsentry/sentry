@@ -13,7 +13,7 @@ def clear_expired_resolutions(release_id):
     the system that any pending resolutions older than the given release can now
     be safely transitioned to resolved.
 
-    This is currenlty only used for ``in_next_release`` resolutions.
+    This is currently only used for ``in_next_release`` resolutions.
     """
     try:
         release = Release.objects.get_from_cache(id=release_id)

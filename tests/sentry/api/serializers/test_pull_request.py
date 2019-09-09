@@ -51,14 +51,14 @@ class PullRequestSerializerTest(TestCase):
         repository = Repository.objects.create(
             organization_id=project.organization_id, name="test/test"
         )
-        pull_requst = PullRequest.objects.create(
+        pull_request = PullRequest.objects.create(
             organization_id=project.organization_id,
             repository_id=repository.id,
             key="abc",
             message="waddap",
         )
 
-        result = serialize(pull_requst, user)
+        result = serialize(pull_request, user)
 
         assert result["author"] == {}
 

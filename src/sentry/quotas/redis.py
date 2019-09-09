@@ -123,7 +123,7 @@ class BasicRedisQuota(object):
 
 
 class RedisQuota(Quota):
-    #: The ``grace`` period allows accomodating for clock drift in TTL
+    #: The ``grace`` period allows accommodating for clock drift in TTL
     #: calculation since the clock on the Redis instance used to store quota
     #: metrics may not be in sync with the computer running this code.
     grace = 60

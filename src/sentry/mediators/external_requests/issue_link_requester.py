@@ -22,7 +22,7 @@ class IssueLinkRequester(Mediator):
 
     The data sent to the other service is always in the following format:
         {
-            'installtionId': <install_uuid>,
+            'installationId': <install_uuid>,
             'issueId': <sentry_group_id>,
             'webUrl': <sentry_group_web_url>,
             <fields>,
