@@ -5,6 +5,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 import Link from 'app/components/links/link';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
 import EventView from 'app/views/eventsV2/eventView';
@@ -16,16 +17,7 @@ import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import SidebarItem from './sidebarItem';
 
-type Props = {
-  id: string;
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  orientation: 'top' | 'left';
-  collapsed: boolean;
-  hasPanel: boolean;
-  onClick: (event: React.MouseEvent<HTMLElement>) => void;
-
+type Props = React.ComponentProps<SidebarItem> & {
   api: Client;
   organization: Organization;
   savedQueries: SavedQuery[];
@@ -64,7 +56,7 @@ class Discover2Item extends React.Component<Props, State> {
         query: EventView.fromSavedQuery(item).generateQueryStringObject(),
       };
       return (
-        <MenuItem to={target} key={item.id}>
+        <MenuItem aria-role="menuitem" to={target} key={item.id}>
           {item.name}
         </MenuItem>
       );
@@ -74,6 +66,15 @@ class Discover2Item extends React.Component<Props, State> {
   render() {
     const {organization, savedQueries: _, ...sidebarItemProps} = this.props;
     const {isOpen} = this.state;
+    const navProps = {
+      'aria-label': t('Discover Saved Queries'),
+      'aria-haspopup': true,
+      onMouseLeave: this.handleLeave,
+      onMouseEnter: this.handleEnter,
+    };
+    if (isOpen) {
+      navProps['aria-expanded'] = 'true';
+    }
 
     const sidebarItem = <SidebarItem {...sidebarItemProps} />;
     return (
@@ -82,12 +83,12 @@ class Discover2Item extends React.Component<Props, State> {
         organization={organization}
         renderDisabled={() => sidebarItem}
       >
-        <div onMouseLeave={this.handleLeave} onMouseEnter={this.handleEnter}>
+        <nav {...navProps}>
           {sidebarItem}
           <Hitbox isOpen={isOpen}>
-            <Menu>{this.renderSavedQueries()}</Menu>
+            <Menu aria-role="menu">{this.renderSavedQueries()}</Menu>
           </Hitbox>
-        </div>
+        </nav>
       </Feature>
     );
   }
@@ -107,7 +108,7 @@ const Hitbox = styled('div')<HitboxProps>`
   right: -330px;
   width: 350px;
   height: 200px;
-  padding-left: 20px;
+  padding-left: ${space(3)};
   transform: translateY(-30px);
 `;
 

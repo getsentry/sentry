@@ -1,5 +1,5 @@
 import {Location, Query} from 'history';
-import {isString, pick} from 'lodash';
+import {isString, cloneDeep, pick} from 'lodash';
 
 import {EventViewv1} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
@@ -171,8 +171,8 @@ const queryStringFromSavedQuery = (saved: SavedQuery): string => {
   }
   if (saved.conditions) {
     const conditions = saved.conditions.map(item => {
-      const [field, , value] = item;
-      let operator = item[1];
+      const [field, op, value] = item;
+      let operator = op;
       // TODO handle all the other operator types
       if (operator === '=') {
         operator = '';
@@ -284,7 +284,8 @@ class EventView {
         output[field] = this[field];
       }
     }
-    return output;
+
+    return cloneDeep(output);
   }
 
   isValid(): boolean {
