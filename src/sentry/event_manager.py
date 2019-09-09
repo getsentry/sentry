@@ -13,7 +13,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, nodestore, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -513,14 +513,13 @@ class EventManager(object):
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-        # there's a race condition between here and when the event is actually
-        # saved, but it's an improvement. See GH-7677.)
-        try:
-            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
-        except Event.DoesNotExist:
-            pass
-        else:
+        # isn't a perfect solution -- there's a race condition between here and
+        # when the event is actually saved, but it's an improvement. See GH-7677.)
+
+        node_data = nodestore.get(Event.generate_node_id(project_id, data["event_id"]))
+
+        if node_data:
+            event = self._get_event_instance(project_id=project_id)
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
@@ -528,7 +527,7 @@ class EventManager(object):
                 exc_info=True,
                 extra={
                     "event_uuid": data["event_id"],
-                    "project_id": project.id,
+                    "project_id": project_id,
                     "model": Event.__name__,
                 },
             )

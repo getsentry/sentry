@@ -43,7 +43,7 @@ from sentry.relay.config import get_project_config
 
 def make_event(**kwargs):
     result = {
-        "event_id": "a" * 32,
+        "event_id": uuid.uuid1().hex,
         "message": "foo",
         "level": logging.ERROR,
         "logger": "default",
