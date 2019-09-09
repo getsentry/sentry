@@ -246,7 +246,7 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = async () => {
-    let next = '/settings/account/security';
+    let next = '/settings/account/security/';
 
     // If we're pending approval of an invite, the user will have just joined
     // the organization when completing 2fa enrollment. We should reload the
