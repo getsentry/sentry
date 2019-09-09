@@ -15,13 +15,9 @@ export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuer
     .then(resp => {
       DiscoverSavedQueryActions.fetchSavedQueriesSuccess(resp);
     })
-    .catch(err => {
-      if (err.status === 404) {
-        DiscoverSavedQueryActions.fetchSavedQueriesSuccess([]);
-      } else {
-        DiscoverSavedQueryActions.fetchSavedQueriesError();
-        addErrorMessage(t('Unable to load saved queries'));
-      }
+    .catch(() => {
+      DiscoverSavedQueryActions.fetchSavedQueriesError();
+      addErrorMessage(t('Unable to load saved queries'));
     });
   return promise;
 }
