@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
-
 from sentry import eventstore
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.base import EventStorage
 
 
@@ -22,7 +20,7 @@ class EventStorageTest(TestCase):
         """
         Test that bind_nodes populates _node_data
         """
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": u"user1"}},
             project_id=self.project.id,
