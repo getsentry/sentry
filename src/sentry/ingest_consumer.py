@@ -100,8 +100,7 @@ def run_ingest_consumer(
     consumer = _create_consumer(consumer_group, consumer_type, settings)
 
     consumer.subscribe([ConsumerType.get_topic_name(consumer_type, settings)])
-    # setup a flag to mark
-    # see below why we use an array
+    # setup a flag to mark termination signals received, see below why we use an array
     termination_signal_received = [False]
 
     def termination_signal_handler(_sig_id, _frame):
