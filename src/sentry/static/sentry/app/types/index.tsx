@@ -1,6 +1,12 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
 
+export type ObjectStatus =
+  | 'active'
+  | 'disabled'
+  | 'pending_deletion'
+  | 'deletion_in_progress';
+
 export type Organization = {
   id: string;
   slug: string;
@@ -365,6 +371,23 @@ export type SentryApp = {
   owner?: {
     id: number;
     slug: string;
+  };
+};
+
+export type Integration = {
+  id: string;
+  name: string;
+  icon: string;
+  domainName: string;
+  accountType: string;
+  status: ObjectStatus;
+  provider: {
+    key: string;
+    name: string;
+    canAdd: boolean;
+    canDisable: boolean;
+    features: string[];
+    aspects: any; //TODO(ts)
   };
 };
 
