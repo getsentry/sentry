@@ -10,8 +10,8 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 FEATURE_NAME = "organizations:events-v2"
 
-all_view = 'field=%5B"title"%2C"title"%5D&field=%5B"event.type"%2C"type"%5D&field=%5B"project"%2C"project"%5D&field=%5B"user"%2C"user"%5D&field=%5B"timestamp"%2C"time"%5D&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment'
-error_view = 'field=%5B"title"%2C"error"%5D&field=%5B"count%28id%29"%2C"events"%5D&field=%5B"count_unique%28user%29"%2C"users"%5D&field=%5B"project"%2C"project"%5D&field=%5B"last_seen"%2C"last+seen"%5D&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name'
+all_view = "field=title&field=event.type&field=project&field=user&field=timestamp&alias=title&alias=type&alias=project&alias=user&alias=time&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment"
+error_view = "field=title&alias=error&field=count%28id%29&alias=events&field=count_unique%28user%29&alias=users&field=project&alias=project&field=last_seen&alias=last+seen&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name"
 
 
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
