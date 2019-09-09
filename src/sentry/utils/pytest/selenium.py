@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import sys
 import pytest
 
 from datetime import datetime
@@ -332,6 +333,9 @@ def browser(request, percy, live_server):
     driver.set_window_size(window_width, window_height)
 
     def fin():
+        # dump console log to stdout, will be shown when test fails
+        for entry in driver.get_log("browser"):
+            sys.stderr.write(repr(entry))
         # Teardown Selenium.
         try:
             driver.quit()
