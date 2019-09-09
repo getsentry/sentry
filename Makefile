@@ -190,7 +190,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
+	pre-commit run flake8 -a
 	@echo ""
 
 review-python-snapshots:

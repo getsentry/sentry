@@ -12,13 +12,12 @@ exclude: >
         ^src/sentry/data/
     )
 repos:
--   repo: local
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.8
     hooks:
     - id: flake8
-      name: flake8
-      entry: flake8
-      language: python
-      files: \.py$
+      types: [python]
+      language_version: 'python2.7'
       log_file: '.artifacts/flake8.pycodestyle.log'
 -   repo: https://github.com/ambv/black
     rev: 19.3b0
