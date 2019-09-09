@@ -78,6 +78,12 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
+    def __get_redis_client(self, routing_key):
+        if self.is_redis_cluster:
+            return self.cluster
+        else:
+            return self.cluster.get_local_client_for_key(routing_key)
+
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
         if self.is_redis_cluster:
             # new style redis cluster format which always has the organization id in
@@ -166,7 +172,7 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
+        client = self.__get_redis_client(six.text_type(project.organization_id))
         pipe = client.pipeline()
 
         for quota in quotas:
@@ -213,11 +219,8 @@ class RedisQuota(Quota):
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             args.extend((quota.limit if quota.limit is not None else -1, int(expiry)))
 
-        if self.is_redis_cluster:
-            rejections = is_rate_limited(self.cluster, keys, args)
-        else:
-            client = self.cluster.get_local_client_for_key(six.text_type(project.organization_id))
-            rejections = is_rate_limited(client, keys, args)
+        client = self.__get_redis_client(six.text_type(project.organization_id))
+        rejections = is_rate_limited(client, keys, args)
 
         if any(rejections):
             worst_case = (0, None)
