@@ -51,7 +51,8 @@ RUN set -x \
 
 # Get and set up Node for front-end asset building
 COPY .nvmrc /usr/src/sentry
-RUN export NODE_VERSION="$(cat .nvmrc)" \
+RUN cd /usr/src/sentry \
+    && export NODE_VERSION="$(cat .nvmrc)" \
     && wget "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
     && wget "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
     && gpg --batch --verify SHASUMS256.txt.asc \
