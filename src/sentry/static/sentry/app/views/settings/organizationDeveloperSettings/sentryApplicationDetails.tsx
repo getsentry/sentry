@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
 import _ from 'lodash';
+import scrollToElement from 'scroll-to-element';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -121,6 +122,16 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
       errorMessage = _.get(err, 'responseJSON.detail', errorMessage);
     }
     addErrorMessage(t(errorMessage));
+
+    if (this.form.formErrors) {
+      const firstErrorFieldId = Object.keys(this.form.formErrors)[0];
+
+      if (firstErrorFieldId) {
+        scrollToElement(`#${firstErrorFieldId}`, {
+          align: 'middle',
+        });
+      }
+    }
   };
 
   get isInternal() {
