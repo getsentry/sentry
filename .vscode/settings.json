@@ -53,7 +53,7 @@
     "editor.formatOnSave": false
   },
 
-  "python.linting.pylintEnabled": false,
+  "python.linting.enabled": true,
   "python.linting.flake8Enabled": true,
   // https://github.com/DonJayamanne/pythonVSCode/issues/992
   "python.pythonPath": "${workspaceFolder}/.venv/bin/python",
@@ -64,8 +64,5 @@
   "python.testing.nosetestsEnabled": false,
   "editor.tabSize": 4,
   "restructuredtext.confPath": "",
-  "python.linting.enabled": true,
-  "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
-  "python.linting.pep8Path": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest"
 }
