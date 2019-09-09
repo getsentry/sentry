@@ -1,20 +1,18 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-from django.utils import timezone
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_multi_env(self):
-        now = timezone.now()
-        min_ago = now - timedelta(minutes=1)
+        min_ago = before_now(minutes=1)
         env = self.create_environment(project=self.project, name="prod")
         env2 = self.create_environment(project=self.project, name="staging")
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": min_ago.isoformat()[:19],
+                "timestamp": iso_format(min_ago),
                 "environment": env.name,
                 "tags": {"foo": "bar"},
             },
@@ -23,7 +21,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         event2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": min_ago.isoformat()[:19],
+                "timestamp": iso_format(min_ago),
                 "environment": env2.name,
                 "tags": {"biz": "baz"},
             },

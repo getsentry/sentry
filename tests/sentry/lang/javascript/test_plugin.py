@@ -6,14 +6,13 @@ import pytest
 import os.path
 import responses
 from mock import patch
-from datetime import timedelta
 
 from django.conf import settings
-from django.utils import timezone
 
 from sentry import eventstore
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
@@ -37,7 +36,7 @@ def load_fixture(name):
 class JavascriptIntegrationTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(JavascriptIntegrationTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
 
     def get_event(self):
         return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]

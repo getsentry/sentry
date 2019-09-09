@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
-
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import GroupShare
 from sentry.utils.samples import load_data
 
@@ -18,7 +17,7 @@ class SharedIssueTest(AcceptanceTestCase):
 
     def test_python_event(self):
         data = load_data(platform="python")
-        data["timestamp"] = (datetime.now() - timedelta(days=1)).isoformat()[:19]
+        data["timestamp"] = iso_format(before_now(days=1))
         event = self.store_event(data=data, project_id=self.project.id)
 
         GroupShare.objects.create(project_id=event.group.project_id, group=event.group)

@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class ProjectEventDetailsTest(APITestCase):
@@ -14,9 +13,9 @@ class ProjectEventDetailsTest(APITestCase):
         self.login_as(user=self.user)
         project = self.create_project()
 
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
-        three_min_ago = (timezone.now() - timedelta(minutes=3)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
+        three_min_ago = iso_format(before_now(minutes=3))
 
         self.prev_event = self.store_event(
             data={"timestamp": three_min_ago, "fingerprint": ["group-1"]}, project_id=project.id

@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 import copy
 
-from datetime import timedelta
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 
@@ -19,7 +18,7 @@ class EventCommittersTest(APITestCase):
         project = self.create_project()
 
         release = self.create_release(project, self.user)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -59,7 +58,7 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=project.id
         )
@@ -84,7 +83,7 @@ class EventCommittersTest(APITestCase):
 
         release = self.create_release(project, self.user)
 
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],

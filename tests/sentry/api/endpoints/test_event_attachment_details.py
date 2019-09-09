@@ -2,19 +2,16 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
-from six import BytesIO
-
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class CreateAttachmentMixin(object):
     def create_attachment(self):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -25,7 +22,7 @@ class CreateAttachmentMixin(object):
         )
 
         self.file = File.objects.create(name="hello.png", type="image/png")
-        self.file.putfile(BytesIO("File contents here"))
+        self.file.putfile(six.BytesIO("File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -67,7 +64,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == six.text_type(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert "File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert "File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
 
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):

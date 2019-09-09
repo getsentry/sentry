@@ -2,18 +2,16 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
-
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventAttachmentsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

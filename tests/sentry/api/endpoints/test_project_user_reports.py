@@ -1,18 +1,18 @@
 from __future__ import absolute_import
-
 import six
 from datetime import timedelta
 from django.utils import timezone
 from uuid import uuid4
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import EventUser, GroupStatus, UserReport
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectUserReportListTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
             data={
@@ -164,8 +164,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(CreateProjectUserReportTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.hour_ago = (timezone.now() - timedelta(minutes=60)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.hour_ago = iso_format(before_now(minutes=60))
 
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)

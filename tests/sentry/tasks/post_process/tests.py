@@ -11,6 +11,7 @@ from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
 
@@ -374,7 +375,7 @@ class PostProcessGroupTest(TestCase):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "shits on fiah yo"},
                 "level": "error",
-                "timestamp": timezone.now().isoformat()[:19],
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -404,11 +405,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
         event = self.store_event(
-            data={
-                "message": "Foo bar",
-                "level": "info",
-                "timestamp": timezone.now().isoformat()[:19],
-            },
+            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -426,11 +423,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
         event = self.store_event(
-            data={
-                "message": "Foo bar",
-                "level": "info",
-                "timestamp": timezone.now().isoformat()[:19],
-            },
+            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -453,7 +446,7 @@ class PostProcessGroupTest(TestCase):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "shits on fiah yo"},
-                "timestamp": timezone.now().isoformat()[:19],
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,

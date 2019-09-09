@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
 import six
-from datetime import timedelta
-from django.utils import timezone
 
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaEventStorageTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
         self.project1 = self.create_project()
         self.project2 = self.create_project()
 

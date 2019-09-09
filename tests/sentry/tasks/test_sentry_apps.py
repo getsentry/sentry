@@ -4,15 +4,14 @@ import six
 
 from celery import Task
 from collections import namedtuple
-from datetime import timedelta
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 from mock import patch
 
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.faux import faux
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
@@ -214,7 +213,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "message": "Foo bar",

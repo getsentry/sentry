@@ -62,6 +62,7 @@ from sentry.incidents.models import (
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class CreateIncidentTest(TestCase):
@@ -227,7 +228,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": timestamp.isoformat()[:19],
+            "timestamp": iso_format(timestamp),
         }
         if user:
             data["user"] = user
@@ -597,7 +598,7 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
         included_commits = set([letter * 40 for letter in ("a", "b", "c", "d")])
         commit_iter = iter(included_commits)
 
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "fingerprint": ["group-1"],
