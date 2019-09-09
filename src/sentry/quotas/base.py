@@ -103,7 +103,9 @@ class Quota(Service):
             return (None, 60)
 
         limit, window = key.rate_limit
-        return limit or None, window
+        limit = limit or None
+        window = window or 60
+        return limit, window
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
