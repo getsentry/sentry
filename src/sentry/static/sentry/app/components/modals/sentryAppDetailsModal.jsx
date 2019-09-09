@@ -15,7 +15,7 @@ import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
+import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 
 const defaultFeatureGateComponents = {
@@ -62,7 +62,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
   }
 
   get permissions() {
-    return new ConsolidatedScopes(this.props.sentryApp.scopes).toPermissions();
+    return toPermissions(this.props.sentryApp.scopes);
   }
 
   onInstall() {

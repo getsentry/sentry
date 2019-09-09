@@ -1,19 +1,14 @@
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
+import {toPermissions, toResourcePermissions} from 'app/utils/consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {
   let scopes;
 
   beforeEach(() => {
-    scopes = new ConsolidatedScopes([
-      'event:read',
-      'event:admin',
-      'project:releases',
-      'org:read',
-    ]);
+    scopes = ['event:read', 'event:admin', 'project:releases', 'org:read'];
   });
 
   it('exposes scopes, grouped for each resource', () => {
-    expect(scopes.toResourcePermissions()).toEqual(
+    expect(toResourcePermissions(scopes)).toEqual(
       expect.objectContaining({
         Event: 'admin',
         Release: 'admin',
@@ -23,7 +18,7 @@ describe('ConsolidatedScopes', () => {
   });
 
   it('exposes scopes, grouped by access level', () => {
-    expect(scopes.toPermissions()).toEqual({
+    expect(toPermissions(scopes)).toEqual({
       admin: expect.arrayContaining(['Event', 'Release']),
       read: ['Organization'],
       write: [],
