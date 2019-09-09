@@ -19,40 +19,11 @@ type Ascending = {
 
 type Sort = Descending | Ascending;
 
-type QueryStringField = [
-  /* field */ string,
-  /* title */ string
-  // TODO: implement later
-  // /* width */ number
-];
-
 type Field = {
   field: string;
   title: string;
   // TODO: implement later
   // width: number;
-};
-
-const isValidQueryStringField = (maybe: any): maybe is QueryStringField => {
-  if (!Array.isArray(maybe)) {
-    return false;
-  }
-
-  if (maybe.length !== 2) {
-    return false;
-  }
-
-  const hasSnubaCol = isString(maybe[0]);
-  const hasTitle = isString(maybe[1]);
-
-  // TODO: implement later
-  // const hasWidth = typeof maybe[2] === 'number' && isFinite(maybe[2]);
-  // TODO: implement later
-  // const validTypes = hasSnubaCol && hasTitle && hasWidth;
-
-  const validTypes = hasSnubaCol && hasTitle;
-
-  return validTypes;
 };
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -62,35 +33,23 @@ const decodeFields = (location: Location): Array<Field> => {
     return [];
   }
 
-  const fields: Array<string> = isString(query.field) ? [query.field] : query.field;
+  const fields: string[] = isString(query.field) ? [query.field] : query.field;
+  const aliases: string[] = Array.isArray(query.alias)
+    ? query.alias
+    : isString(query.alias)
+    ? [query.alias]
+    : [];
 
-  return fields.reduce((acc: Array<Field>, field: string) => {
-    try {
-      const result = JSON.parse(field);
-
-      if (isValidQueryStringField(result)) {
-        field = result[0].trim();
-        if (field.length > 0) {
-          acc.push({
-            field,
-            title: result[1],
-          });
-        }
-
-        return acc;
-      }
-    } catch (_err) {
-      // no-op
+  const parsed: Field[] = [];
+  fields.forEach((field, i) => {
+    let title = field;
+    if (aliases[i]) {
+      title = aliases[i];
     }
-
-    return acc;
-  }, []);
-};
-
-export const encodeFields = (fields: Array<Field>): Array<string> => {
-  return fields.map(field => {
-    return JSON.stringify([field.field, field.title]);
+    parsed.push({field, title});
   });
+
+  return parsed;
 };
 
 const fromSorts = (sorts: Array<string>): Array<Sort> => {
@@ -226,7 +185,8 @@ class EventView {
 
   generateQueryStringObject(): Query {
     return {
-      field: encodeFields(this.fields),
+      field: this.fields.map(item => item.field),
+      alias: this.fields.map(item => item.title),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,
