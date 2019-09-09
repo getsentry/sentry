@@ -336,6 +336,7 @@ def browser(request, percy, live_server):
         # dump console log to stdout, will be shown when test fails
         for entry in driver.get_log("browser"):
             sys.stderr.write(repr(entry))
+            sys.stderr.write("\n")
         # Teardown Selenium.
         try:
             driver.quit()
