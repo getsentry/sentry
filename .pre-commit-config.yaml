@@ -19,6 +19,7 @@ repos:
       types: [python]
       language_version: 'python2.7'
       log_file: '.artifacts/flake8.pycodestyle.log'
+      exclude: (south_migrations/|^src/south/|^examples/)
 -   repo: https://github.com/ambv/black
     rev: 19.3b0
     hooks:
