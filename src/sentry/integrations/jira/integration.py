@@ -384,7 +384,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             fkwargs["url"] = self.search_url(group.organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
-            # TODO: Implement timetracking (currently unsupported alltogether)
+            # TODO: Implement timetracking (currently unsupported altogether)
             return None
         elif schema.get("items") in ["worklog", "attachment"]:
             # TODO: Implement worklogs and attachments someday
@@ -830,7 +830,7 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         # Most information is not available during integration installation,
-        # since the integration won't have been fully configired on JIRA's side
+        # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.
         return {

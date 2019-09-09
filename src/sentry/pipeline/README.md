@@ -72,7 +72,7 @@ The model is configured by the `provider_model_cls` pipeline class attribute.
 Pipeline views are objects that implement the `PipelineView` interface and are
 used as part of the list of views that a pipeline executes. The pipeline views
 receive the executing request object when they are the step being executed,
-along with the `piepeline` instance itself.
+along with the `pipeline` instance itself.
 
 It's the job of the pipeline view to transition the pipeline to the next step
 in the pipeline and bind any data that may need to be used later in the

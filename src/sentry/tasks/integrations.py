@@ -390,7 +390,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
             integration.metadata["subscription"]["id"] = subscription["id"]
             integration.metadata["subscription"]["secret"] = secret
             logger.info(
-                "vsts_subscription_check.updated_diabled_subscription",
+                "vsts_subscription_check.updated_disabled_subscription",
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,

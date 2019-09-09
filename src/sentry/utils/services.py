@@ -188,7 +188,7 @@ class ServiceDelegator(Service):
 
     - Only method access is delegated to the individual backends. Attribute
       values are returned from the base backend. Only methods that are defined
-      on the base backend are eligble for delegation (since these methods are
+      on the base backend are eligible for delegation (since these methods are
       considered the public API.)
     - The backend makes no attempt to synchronize common backend option values
       between backends (e.g. TSDB rollup configuration) to ensure equivalency

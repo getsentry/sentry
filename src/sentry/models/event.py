@@ -158,7 +158,7 @@ class EventCommon(object):
         """
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
-        # this if we do not force a dfferent config.
+        # this if we do not force a different config.
         if force_config is None:
             hashes = self.data.get("hashes")
             if hashes is not None:
@@ -526,7 +526,7 @@ class SnubaEvent(EventCommon):
             }
         )
 
-    # If the data for these is availablle from snuba, we asssume
+    # If the data for these is available from snuba, we assume
     # it was already normalized on the way in and we can just return
     # it, otherwise we defer to EventCommon implementation.
     def get_event_type(self):

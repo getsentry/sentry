@@ -151,7 +151,7 @@ def test_timed_future_cancel():
     assert future.get_timing() == (2.0, 1.0)
 
 
-def test_sychronous_executor():
+def test_synchronous_executor():
     executor = SynchronousExecutor()
 
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT

@@ -210,7 +210,7 @@ def build_cursor(
     )
 
     if cursor.is_prev and has_prev:
-        # A prev cursor with more reults should have the first item chopped off
+        # A prev cursor with more results should have the first item chopped off
         # as this is the item that indicates we have more items before, and
         # should not be included on this page.
         results = results[1:]

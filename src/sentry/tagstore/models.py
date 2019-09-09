@@ -32,7 +32,7 @@ for i, backend in enumerate(backends):
                 # If this is the first iteration of the loop, we need to
                 # emulate ``from x import *`` by copying the module contents
                 # into the local (module) scope. This follows the same rules as
-                # the import statement itself, as defined in the refrence docs:
+                # the import statement itself, as defined in the reference docs:
                 # https://docs.python.org/2.7/reference/simple_stmts.html#import
                 if getattr(models, "__all__", None) is not None:
 

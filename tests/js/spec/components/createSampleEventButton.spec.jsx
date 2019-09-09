@@ -51,7 +51,7 @@ describe('CreateSampleEventButton', function() {
       body: {},
     });
 
-    // There is a timeout before we check for the existance of the latest
+    // There is a timeout before we check for the existence of the latest
     // event. Wait for it then wait for the request to complete
     jest.runAllTimers();
     await Promise.resolve();

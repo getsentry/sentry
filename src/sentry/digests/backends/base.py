@@ -175,7 +175,7 @@ class Backend(Service):
 
         This method moves all timelines that are in the ready state back to the
         waiting state if their schedule time is prior to the deadline. (This
-        does not reschdule any tasks directly, and should generally be
+        does not reschedule any tasks directly, and should generally be
         performed as part of the scheduler task, before the ``schedule``
         call.)
 

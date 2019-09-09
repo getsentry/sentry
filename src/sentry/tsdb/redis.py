@@ -349,7 +349,7 @@ class RedisTSDB(BaseTSDB):
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
-        Record an occurence of an item in a distinct counter.
+        Record an occurrence of an item in a distinct counter.
         """
         self.validate_arguments([model for model, key, values in items], [environment_id])
 
@@ -421,7 +421,7 @@ class RedisTSDB(BaseTSDB):
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
                 # master, so should be available in the next release) and only
                 # supports a single key argument -- not the variadic signature
-                # supported by the protocol -- so we have to call the commnand
+                # supported by the protocol -- so we have to call the command
                 # directly here instead.
                 ks = []
                 for timestamp in series:

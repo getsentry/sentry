@@ -65,7 +65,7 @@ def translate_message(original_message):
     type = None
     message = original_message.strip()
 
-    # Handle both cases. Just a message and message preceeded with error type
+    # Handle both cases. Just a message and message preceded with error type
     # eg. `ReferenceError: foo`, `TypeError: bar`
     match = message_type_regexp.search(message)
 

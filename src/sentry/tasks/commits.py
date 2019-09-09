@@ -62,7 +62,7 @@ def handle_invalid_identity(identity, commit_failure=False):
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
-    # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
+    # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []
 
     release = Release.objects.get(id=release_id)

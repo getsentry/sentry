@@ -433,7 +433,7 @@ class DatabaseOperations(object):
         """
         Returns a field's type suitable for ALTER COLUMN.
         By default it just returns field.db_type().
-        To be overriden by backend specific subclasses
+        To be overridden by backend specific subclasses
         @param field: The field to generate type for
         """
         try:
@@ -469,7 +469,7 @@ class DatabaseOperations(object):
         """
         Alters the given column name so it will match the given field.
         Note that conversion between the two by the database must be possible.
-        Will not automatically add _id by default; to have this behavour, pass
+        Will not automatically add _id by default; to have this behavior, pass
         explicit_name=False.
 
         @param table_name: The name of the table to add the column to

@@ -210,7 +210,7 @@ class ConnectionManager(object):
             "retries": host.get("retries", 2),
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
-            # above 5 if needed becuase we're also setting
+            # above 5 if needed because we're also setting
             # block=False
             "maxsize": host.get("maxsize", 5),
             "block": False,

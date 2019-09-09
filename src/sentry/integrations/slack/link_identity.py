@@ -30,7 +30,7 @@ def build_linking_url(integration, organization, slack_id, channel_id, response_
     )
 
 
-class SlackLinkIdentitiyView(BaseView):
+class SlackLinkIdentityView(BaseView):
     @never_cache
     def handle(self, request, signed_params):
         params = unsign(signed_params.encode("ascii", errors="ignore"))

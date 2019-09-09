@@ -216,7 +216,7 @@ def load_script(path):
     # This changes the argument order of the ``Script.__call__`` method to
     # encourage using the script with a specific Redis client, rather
     # than implicitly using the first client that the script was registered
-    # with. (This can prevent lots of bizzare behavior when dealing with
+    # with. (This can prevent lots of bizarre behavior when dealing with
     # clusters of Redis servers.)
     def call_script(client, keys, args):
         u"""

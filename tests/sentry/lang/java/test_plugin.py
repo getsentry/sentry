@@ -27,7 +27,7 @@ PROGUARD_BUG_SOURCE = b"x"
 class BasicResolvingIntegrationTest(TestCase):
     @pytest.mark.skipif(
         settings.SENTRY_TAGSTORE == "sentry.tagstore.v2.V2TagStorage",
-        reason="Queries are completly different when using tagstore",
+        reason="Queries are completely different when using tagstore",
     )
     def test_basic_resolving(self):
         url = reverse(

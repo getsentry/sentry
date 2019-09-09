@@ -43,7 +43,7 @@ class RiakNodeStorage(NodeStorage):
         automatic_expiry=False,
     ):
         # protocol being defined is useless, but is needed for backwards
-        # compatability and leveraged as an opportunity to yell at the user
+        # compatibility and leveraged as an opportunity to yell at the user
         if protocol == "pbc":
             raise ValueError("'pbc' protocol is no longer supported")
         if protocol is not None:

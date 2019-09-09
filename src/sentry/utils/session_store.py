@@ -10,7 +10,7 @@ EXPIRATION_TTL = 10 * 60
 
 class RedisSessionStore(object):
     """
-    RedisSessionStore provides a convinience object, which when initalized will
+    RedisSessionStore provides a convenience object, which when initalized will
     store attributes assigned to it into redis. The redis key is stored into
     the request session. Useful for storing data too large to be stored into
     the session cookie.

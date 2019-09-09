@@ -59,7 +59,7 @@ def is_recursion_v1(frame1, frame2):
 
 
 def get_filename_component(abs_path, filename, platform, allow_file_origin=False):
-    """Attempt to normalize filenames by detecing special filenames and by
+    """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
     """
     if filename is None:

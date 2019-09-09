@@ -136,7 +136,7 @@ class S3Boto3StorageFile(File):
         # NOTE(mattrobenolt): This is an explicit deviation from
         # django-storages. This adds an extra HEAD request before
         # every GET. This effectively doubles the time it takes for
-        # every chunk in our filestore. We explicilty are opting
+        # every chunk in our filestore. We explicitly are opting
         # out of this behavior to avoid this overhead.
         #
         # if 'w' not in mode:

@@ -62,7 +62,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             r.event_id for r in userreports
         )
 
-    def test_specified_enviroment(self):
+    def test_specified_environment(self):
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + "?environment=" + self.env1.name)

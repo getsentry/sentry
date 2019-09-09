@@ -401,7 +401,7 @@ storiesOf('Forms|Fields', module)
   )
   .add(
     'Without a parent Form',
-    withInfo('New form fields used withing having a parent Form')(() => {
+    withInfo('New form fields used without having a parent Form')(() => {
       return (
         <div>
           <TextField

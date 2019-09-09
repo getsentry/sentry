@@ -19,7 +19,7 @@ import six
 from datetime import datetime
 
 
-# These chars cannot be used in Windows paths so repalce them:
+# These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 

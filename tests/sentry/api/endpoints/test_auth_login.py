@@ -14,7 +14,7 @@ class AuthLoginEndpointTest(APITestCase):
         return reverse("sentry-api-0-auth-login")
 
     def setUp(self):
-        # Requets to set the test cookie
+        # Requests to set the test cookie
         self.client.get(reverse("sentry-api-0-auth-config"))
 
     def test_login_invalid_password(self):

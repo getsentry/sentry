@@ -160,7 +160,7 @@ class AvatarCropper extends React.Component {
     });
   };
 
-  // Normalize diff accross dimensions so that negative diffs
+  // Normalize diff across dimensions so that negative diffs
   // are always making the cropper smaller and positive ones
   // are making the cropper larger
   getDiffNW = (yDiff, xDiff) => {

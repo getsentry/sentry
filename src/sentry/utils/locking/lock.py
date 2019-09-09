@@ -51,7 +51,7 @@ class Lock(object):
         Attempt to release the lock.
 
         Any exceptions raised when attempting to release the lock are logged
-        and supressed.
+        and suppressed.
         """
         try:
             self.backend.release(self.key, self.routing_key)

@@ -1,7 +1,7 @@
 """
 This file implements the legacy culprit system.  The culprit at this point is
 just used as a fallback if no transaction is set.  When a transaction is set
-the culprit is overriden by the transaction value.
+the culprit is overridden by the transaction value.
 
 Over time we want to fully phase out the culprit.  Until then this is the
 code that generates it.
