@@ -224,13 +224,23 @@ class AccountSecurityEnroll extends AsyncView {
   };
 
   // Handle u2f device tap
-  handleU2fTap = data =>
-    this.api
-      .requestPromise(this.enrollEndpoint, {data: {...data, ...this._form}})
-      .then(this.handleEnrollSuccess, this.handleEnrollError);
+  handleU2fTap = async tapData => {
+    const data = {...tapData, ...this._form};
+
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {data});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
+  };
 
   // Currently only TOTP uses this
-  handleTotpSubmit = dataModel => {
+  handleTotpSubmit = async dataModel => {
     const data = {
       ...this._form,
       ...(dataModel || {}),
@@ -239,13 +249,18 @@ class AccountSecurityEnroll extends AsyncView {
 
     this.setState({loading: true});
 
-    this.api
-      .requestPromise(this.enrollEndpoint, {method: 'POST', data})
-      .then(this.handleEnrollSuccess, this.handleEnrollError);
+    try {
+      await this.api.requestPromise(this.enrollEndpoint, {method: 'POST', data});
+    } catch (err) {
+      this.handleEnrollError();
+      return;
+    }
+
+    this.handleEnrollSuccess();
   };
 
   // Handler when we successfully add a 2fa device
-  handleEnrollSuccess = async () => {
+  async handleEnrollSuccess() {
     let next = '/settings/account/security/';
 
     // If we're pending approval of an invite, the user will have just joined
@@ -262,13 +277,13 @@ class AccountSecurityEnroll extends AsyncView {
 
     this.props.router.push(next);
     openRecoveryOptions({authenticatorName: this.authenticatorName});
-  };
+  }
 
   // Handler when we failed to add a 2fa device
-  handleEnrollError = () => {
+  handleEnrollError() {
     this.setState({loading: false});
     addErrorMessage(t('Error adding %s authenticator', this.authenticatorName));
-  };
+  }
 
   // Removes an authenticator
   handleRemove = async () => {
