@@ -115,10 +115,24 @@ class RedisQuotaTest(TestCase):
         assert self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, True))
-    def test_limited(self, mock_is_rate_limited, mock_get_quotas):
+    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
+    def test_not_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
-            BasicRedisQuota(prefix="p", subscope=1, limit=1, window=1, reason_code="project_quota"),
+            BasicRedisQuota(
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
+            ),
+            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
+        )
+
+        assert not self.quota.is_rate_limited(self.project).is_limited
+
+    @mock.patch.object(RedisQuota, "get_quotas")
+    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, True))
+    def test_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
+            ),
             BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
