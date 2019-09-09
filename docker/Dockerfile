@@ -50,7 +50,7 @@ RUN set -x \
     && chmod +x /usr/local/bin/tini
 
 # Get and set up Node for front-end asset building
-COPY .nvmrc /usr/src/sentry
+COPY .nvmrc /usr/src/sentry/
 RUN cd /usr/src/sentry \
     && export NODE_VERSION="$(cat .nvmrc)" \
     && wget "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
@@ -61,7 +61,7 @@ RUN cd /usr/src/sentry \
     && rm -r "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
 ENV SENTRY_BUILD=${SENTRY_BUILD:-master}
-COPY . /usr/src/sentry
+COPY . /usr/src/sentry/
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \
     && python setup.py bdist_wheel \
