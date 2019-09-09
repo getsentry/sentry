@@ -43,7 +43,7 @@ class TestUpdater(TestCase):
         ]
 
     def test_updates_unpublished_app_scopes(self):
-        # create both expired token and not expired token
+        # create both expired token and not expired tokens
         ApiToken.objects.create(
             application=self.sentry_app.application,
             user=self.sentry_app.proxy_user,
