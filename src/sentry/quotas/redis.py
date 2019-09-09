@@ -25,12 +25,13 @@ def get_dynamic_cluster_from_options(setting, config):
 class BasicRedisQuota(object):
     __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
 
-    def __init__(self, prefix=None, subscope=None, limit=None, window=60, reason_code=None):
+    def __init__(self, prefix=None, subscope=None, limit=None, window=None, reason_code=None):
         if limit == 0:
             assert prefix is None and subscope is None, "zero-sized quotas are not tracked in redis"
+            assert window is None, "zero-sized quotas cannot have a window"
         else:
             assert prefix, "measured quotas need a prefix to run in redis"
-            assert window > 0, "window cannot be zero"
+            assert window and window > 0, "window cannot be zero"
 
         self.prefix = prefix
         self.subscope = subscope
@@ -202,14 +203,12 @@ class RedisQuota(Quota):
         if not quotas:
             return NotRateLimited()
 
-        for quota in quotas:
-            if quota.limit == 0:
-                return RateLimited(retry_after=None, reason_code=quota.reason_code)
-
+        rejections = []
         keys = []
         args = []
         for quota in quotas:
-            if not quota.prefix:
+            if quota.limit == 0:
+                rejections.append(True)
                 continue
 
             shift = project.organization_id % quota.window
@@ -220,12 +219,16 @@ class RedisQuota(Quota):
             args.extend((quota.limit if quota.limit is not None else -1, int(expiry)))
 
         client = self.__get_redis_client(six.text_type(project.organization_id))
-        rejections = is_rate_limited(client, keys, args)
+        rejections.extend(is_rate_limited(client, keys, args))
 
         if any(rejections):
             worst_case = (0, None)
             for quota, rejected in zip(quotas, rejections):
                 if not rejected:
+                    continue
+
+                if quota.window is None:
+                    worst_case = (None, quota.reason_code)
                     continue
 
                 shift = project.organization_id % quota.window
