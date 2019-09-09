@@ -492,6 +492,13 @@ class RuleForm extends React.Component<Props, State> {
                             placeholder: t('My Incident Rule Name'),
                             required: true,
                           },
+                          {
+                            name: 'includeFutureProjects',
+                            type: 'boolean',
+                            label: t('Include Future Projects'),
+                            help: t('Apply this rule to all future projects as well'),
+                            required: false,
+                          },
                         ],
                       },
                     ]}
