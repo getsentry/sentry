@@ -4,7 +4,107 @@ import * as Sentry from '@sentry/browser';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
-class DropdownMenu extends React.Component {
+type ActorCallbacks = {
+  onClick?: Function;
+  onMouseEnter?: Function;
+  onMouseLeave?: Function;
+  onKeyDown?: Function;
+};
+
+// Props for the "actor" element of `<DropdownMenu>`
+// This is the element that handles visibility of the dropdown menu
+type ActorProps = {
+  onClick: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseLeave: (e: React.MouseEvent<HTMLElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
+} & RefProps;
+
+type MenuCallbacks = {
+  onClick?: Function;
+  onMouseEnter?: Function;
+  onMouseLeave?: Function;
+  onKeyDown?: Function;
+};
+
+type MenuProps = {
+  onClick: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseLeave: (e: React.MouseEvent<HTMLElement>) => void;
+} & RefProps;
+
+type IsStyled = {
+  isStyled?: boolean;
+};
+
+type RefProps = {
+  ref?: Function;
+  innerRef?: Function;
+};
+
+type GetActorArgs = ActorCallbacks & IsStyled & {style?: object};
+type GetMenuArgs = MenuCallbacks & IsStyled;
+
+type RenderProps = {
+  isOpen: boolean;
+  getRootProps: Function;
+  getActorProps: (props: GetActorArgs) => ActorProps;
+  getMenuProps: (props: GetMenuArgs) => MenuProps;
+  actions: {
+    open: Function;
+    close: Function;
+  };
+};
+
+type Props = {
+  onOpen: Function;
+  onClose: Function;
+  /**
+   * Callback for when we get a click outside of dropdown menus.
+   * Useful for when menu is controlled.
+   */
+  onClickOutside: Function;
+
+  /**
+   * Callback function to check if we should ignore click outside to
+   * hide dropdown menu
+   */
+  shouldIgnoreClickOutside: (event: React.MouseEvent<HTMLElement>) => boolean;
+
+  /**
+   * If this is set, then this will become a "controlled" component.
+   * It will no longer set local state and dropdown visiblity will
+   * only follow `isOpen`.
+   */
+  isOpen: boolean;
+
+  /** Keeps dropdown menu open when menu is clicked */
+  keepMenuOpen: boolean;
+
+  // Compatibility for <DropdownLink>
+  // This will change where we attach event handlers
+  alwaysRenderMenu: boolean;
+
+  // closes menu on "Esc" keypress
+  closeOnEscape: boolean;
+
+  /**
+   * If this is set to true, the dropdown behaves as a "nested dropdown" and is
+   * triggered on mouse enter and mouse leave
+   */
+  isNestedDropdown: boolean;
+
+  /**
+   * Render function
+   */
+  children: (renderProps: RenderProps) => React.ReactNode;
+};
+
+type State = {
+  isOpen: boolean;
+};
+
+class DropdownMenu extends React.Component<Props, State> {
   static propTypes = {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
@@ -49,12 +149,15 @@ class DropdownMenu extends React.Component {
     closeOnEscape: true,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      isOpen: false,
-    };
-  }
+  state: State = {
+    isOpen: false,
+  };
+
+  dropdownMenu: HTMLElement | null = null;
+  dropdownActor: HTMLElement | null = null;
+
+  mouseLeaveId: number | null = null;
+  mouseEnterId: number | null = null;
 
   componentWillUnmount() {
     document.removeEventListener('click', this.checkClickOutside, true);
@@ -83,7 +186,7 @@ class DropdownMenu extends React.Component {
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
       Sentry.withScope(scope => {
-        scope.setLevel('warning');
+        scope.setLevel(Sentry.Severity.Warning);
         Sentry.captureException(new Error('DropdownMenu does not have "Actor" attached'));
       });
     }
@@ -107,24 +210,11 @@ class DropdownMenu extends React.Component {
     // ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 
-    this.handleClose();
-  };
-
-  // Callback function from <DropdownMenu> to see if we should close menu
-  shouldIgnoreClickOutside = e => {
-    const {shouldIgnoreClickOutside} = this.props;
-    if (this.dropdownActor.contains(e.target)) {
-      return true;
-    }
-    if (typeof shouldIgnoreClickOutside === 'function') {
-      return shouldIgnoreClickOutside(e);
-    }
-
-    return false;
+    this.handleClose(null);
   };
 
   // Opens dropdown menu
-  handleOpen = e => {
+  handleOpen = (e: React.MouseEvent<HTMLElement>) => {
     const {onOpen, isOpen, alwaysRenderMenu} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
@@ -150,16 +240,19 @@ class DropdownMenu extends React.Component {
 
   // Decide whether dropdown should be closed when mouse leaves element
   // Only for nested dropdowns
-  handleMouseLeave = e => {
+  handleMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
     const {isNestedDropdown} = this.props;
     if (!isNestedDropdown) {
       return;
     }
 
-    const toElement = e.toElement || e.relatedTarget;
+    const toElement = e.relatedTarget;
 
     try {
-      if (this.dropdownMenu && !this.dropdownMenu.contains(toElement)) {
+      if (
+        this.dropdownMenu &&
+        (!(toElement instanceof Element) || !this.dropdownMenu.contains(toElement))
+      ) {
         this.mouseLeaveId = window.setTimeout(() => {
           this.handleClose(e);
         }, MENU_CLOSE_DELAY);
@@ -167,7 +260,6 @@ class DropdownMenu extends React.Component {
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setExtra('event', e);
-        scope.setExtra('toElement', e.toElement);
         scope.setExtra('relatedTarget', e.relatedTarget);
         Sentry.captureException(err);
       });
@@ -175,7 +267,9 @@ class DropdownMenu extends React.Component {
   };
 
   // Closes dropdown menu
-  handleClose = e => {
+  handleClose = (
+    e: React.KeyboardEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null
+  ) => {
     const {onClose, isOpen, alwaysRenderMenu} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
 
@@ -197,7 +291,7 @@ class DropdownMenu extends React.Component {
   // When dropdown menu is displayed and mounted to DOM,
   // bind a click handler to `document` to listen for clicks outside of
   // this component and close menu if so
-  handleMenuMount = ref => {
+  handleMenuMount = (ref: HTMLElement | null) => {
     if (ref && !(ref instanceof HTMLElement)) {
       return;
     }
@@ -219,14 +313,14 @@ class DropdownMenu extends React.Component {
     }
   };
 
-  handleActorMount = ref => {
+  handleActorMount = (ref: HTMLElement | null) => {
     if (ref && !(ref instanceof HTMLElement)) {
       return;
     }
     this.dropdownActor = ref;
   };
 
-  handleToggle = e => {
+  handleToggle = (e: React.MouseEvent<HTMLElement>) => {
     if (this.isOpen()) {
       this.handleClose(e);
     } else {
@@ -235,7 +329,7 @@ class DropdownMenu extends React.Component {
   };
 
   // Control whether we should hide dropdown menu when it is clicked
-  handleDropdownMenuClick = e => {
+  handleDropdownMenuClick = (e: React.MouseEvent<HTMLElement>) => {
     if (this.props.keepMenuOpen) {
       return;
     }
@@ -254,7 +348,7 @@ class DropdownMenu extends React.Component {
     isStyled,
     style,
     ...props
-  } = {}) => {
+  }: GetActorArgs = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
     // Props that the actor needs to have <DropdownMenu> work
@@ -268,7 +362,7 @@ class DropdownMenu extends React.Component {
         outline: 'none',
       },
       ref: !isStyled ? this.handleActorMount : undefined,
-      onKeyDown: e => {
+      onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
         if (typeof onKeyDown === 'function') {
           onKeyDown(e);
         }
@@ -278,9 +372,9 @@ class DropdownMenu extends React.Component {
         }
       },
 
-      onMouseEnter: (...args) => {
+      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
         if (typeof onMouseEnter === 'function') {
-          onMouseEnter(...args);
+          onMouseEnter(e);
         }
 
         // Only handle mouse enter for nested dropdowns
@@ -293,34 +387,40 @@ class DropdownMenu extends React.Component {
         }
 
         this.mouseEnterId = window.setTimeout(() => {
-          this.handleOpen(...args);
+          this.handleOpen(e);
         }, MENU_CLOSE_DELAY);
       },
 
-      onMouseLeave: (...args) => {
+      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => {
         if (typeof onMouseLeave === 'function') {
-          onMouseLeave(...args);
+          onMouseLeave(e);
         }
 
         if (this.mouseEnterId) {
           window.clearTimeout(this.mouseEnterId);
         }
-        this.handleMouseLeave(...args);
+        this.handleMouseLeave(e);
       },
-      onClick: (...args) => {
+      onClick: (e: React.MouseEvent<HTMLElement>) => {
         // Note: clicking on an actor that has a nested menu will close the dropdown menus
         // This is because we currently do not try to find the deepest non-nested dropdown menu
-        this.handleToggle(...args);
+        this.handleToggle(e);
 
         if (typeof onClick === 'function') {
-          onClick(...args);
+          onClick(e);
         }
       },
     };
   };
 
   // Menu is the menu component that <DropdownMenu> will control
-  getMenuProps = ({onClick, onMouseLeave, onMouseEnter, isStyled, ...props} = {}) => {
+  getMenuProps = ({
+    onClick,
+    onMouseLeave,
+    onMouseEnter,
+    isStyled,
+    ...props
+  }: GetMenuArgs = {}): MenuProps => {
     // Props that the menu needs to have <DropdownMenu> work
     //
     // `isStyled`: with styled-components we need to pass `innerRef` to get DOM el's ref vs `ref` otherwise
@@ -328,9 +428,9 @@ class DropdownMenu extends React.Component {
       ...props,
       ...((isStyled && {innerRef: this.handleMenuMount}) || {}),
       ref: !isStyled ? this.handleMenuMount : undefined,
-      onMouseEnter: (...args) => {
+      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
         if (typeof onMouseEnter === 'function') {
-          onMouseEnter(...args);
+          onMouseEnter(e);
         }
 
         // There is a delay before closing a menu on mouse leave, cancel this action if mouse enters menu again
@@ -338,14 +438,14 @@ class DropdownMenu extends React.Component {
           window.clearTimeout(this.mouseLeaveId);
         }
       },
-      onMouseLeave: (...args) => {
+      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => {
         if (typeof onMouseLeave === 'function') {
-          onMouseLeave(...args);
+          onMouseLeave(e);
         }
 
-        this.handleMouseLeave(...args);
+        this.handleMouseLeave(e);
       },
-      onClick: e => {
+      onClick: (e: React.MouseEvent<HTMLElement>) => {
         // Note: clicking on an actor that has a nested menu will close the dropdown menus
         // This is because we currently do not try to find the deepest non-nested dropdown menu
         this.handleDropdownMenuClick(e);
