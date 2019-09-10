@@ -10,7 +10,7 @@ from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation
+from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation, ApiToken
 
 
 class SentryAppsTest(APITestCase):
@@ -448,6 +448,44 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
+
+    def test_create_internal_integration_with_allowed_origins_and_test_route(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        response = self._post(
+            isInternal=True,
+            allowedOrigins=("example.com",),
+            scopes=("project:read", "event:read", "org:read"),
+        )
+
+        assert response.status_code == 201
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application.get_allowed_origins() == ["example.com"]
+
+        token = ApiToken.objects.get(application=sentry_app.application)
+
+        url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
+        response = self.client.get(
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+        )
+        assert response.status_code == 200
+
+    def test_create_internal_integration_without_allowed_origins_and_test_route(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        response = self._post(isInternal=True, scopes=("project:read", "event:read", "org:read"))
+
+        assert response.status_code == 201
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application.get_allowed_origins() == []
+
+        token = ApiToken.objects.get(application=sentry_app.application)
+
+        url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
+        response = self.client.get(
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+        )
+        assert response.status_code == 400
 
     def _post(self, **kwargs):
         body = {
