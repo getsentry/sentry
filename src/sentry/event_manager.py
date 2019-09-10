@@ -13,7 +13,17 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, nodestore, tagstore, tsdb
+from sentry import (
+    buffer,
+    eventstore,
+    eventtypes,
+    eventstream,
+    features,
+    nodestore,
+    options,
+    tagstore,
+    tsdb,
+)
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -497,6 +507,19 @@ class EventManager(object):
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
+    def __get_event(self, project_id, event_id):
+        if options.get("store.use-nodestore"):
+            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
+            if node_data:
+                return eventstore.get_event_by_id(project_id, event_id)
+        else:
+            try:
+                event = Event.objects.get(project_id=project_id, event_id=event_id)
+                return event
+            except Event.DoesNotExist:
+                pass
+        return None
+
     def save(self, project_id, raw=False, assume_normalized=False):
         # Normalize if needed
         if not self._normalized:
@@ -515,19 +538,18 @@ class EventManager(object):
         # already been done if we've processed an event with this ID. (This
         # isn't a perfect solution -- there's a race condition between here and
         # when the event is actually saved, but it's an improvement. See GH-7677.)
+        event = self.__get_event(project_id, data["event_id"])
 
-        node_data = nodestore.get(Event.generate_node_id(project_id, data["event_id"]))
-
-        if node_data:
-            event = eventstore.get_event_by_id(project_id, data["event_id"])
+        if event:
             # Make sure we cache on the project before returning
             event._project_cache = project
+
             logger.info(
                 "duplicate.found",
                 exc_info=True,
                 extra={
                     "event_uuid": data["event_id"],
-                    "project_id": project_id,
+                    "project_id": project.id,
                     "model": Event.__name__,
                 },
             )
