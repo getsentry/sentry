@@ -218,8 +218,9 @@ class RedisQuota(Quota):
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             args.extend((quota.limit if quota.limit is not None else -1, int(expiry)))
 
-        client = self.__get_redis_client(six.text_type(project.organization_id))
-        rejections.extend(is_rate_limited(client, keys, args))
+        if keys or args:
+            client = self.__get_redis_client(six.text_type(project.organization_id))
+            rejections.extend(is_rate_limited(client, keys, args))
 
         if any(rejections):
             worst_case = (0, None)
