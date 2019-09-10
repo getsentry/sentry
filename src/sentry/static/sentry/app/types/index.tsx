@@ -344,6 +344,15 @@ export type Repository = {
   url: string;
 };
 
+export type IntegrationProvider = {
+  key: string;
+  name: string;
+  canAdd: boolean;
+  canDisable: boolean;
+  features: string[];
+  aspects: any; //TODO(ts)
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
@@ -381,14 +390,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: {
-    key: string;
-    name: string;
-    canAdd: boolean;
-    canDisable: boolean;
-    features: string[];
-    aspects: any; //TODO(ts)
-  };
+  provider: IntegrationProvider;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

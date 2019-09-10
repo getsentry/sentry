@@ -15,8 +15,21 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {growDown, highlight} from 'app/styles/animations';
+import {IntegrationProvider, Integration} from 'app/types';
 
-export default class ProviderRow extends React.Component {
+type Props = {
+  //TODO(TS): We shouldn't find a better way of passing this info down so we don't have to make this new type
+  provider: IntegrationProvider & {integrations: any[]};
+  orgId: string;
+  onInstall: (integration: Integration) => void;
+  onRemove: (integration: Integration) => void;
+  onDisable: (integration: Integration) => void;
+  onReinstall: (integration: Integration) => void;
+  enabledPlugins: any[];
+  newlyInstalledIntegrationId: string;
+};
+
+export default class ProviderRow extends React.Component<Props> {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -30,6 +43,7 @@ export default class ProviderRow extends React.Component {
     onDisable: PropTypes.func.isRequired,
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
+    newlyInstalledIntegrationId: PropTypes.string,
   };
 
   static defaultProps = {
@@ -37,8 +51,6 @@ export default class ProviderRow extends React.Component {
   };
 
   static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
-
-  // State
 
   get integrations() {
     return this.props.provider.integrations;
@@ -91,6 +103,7 @@ export default class ProviderRow extends React.Component {
         onDisable={this.props.onDisable}
         onReinstallIntegration={this.props.onReinstall}
         data-test-id={integration.id}
+        newlyAdded={integration.id === this.props.newlyInstalledIntegrationId}
       />
     ));
   }
@@ -127,18 +140,27 @@ const ProviderDetails = styled(Flex)`
   font-size: 0.8em;
 `;
 
+type StatusProps = {
+  enabled: boolean;
+  theme?: any; //TS complains if we don't make this optional
+};
+
 const Status = styled(
-  withTheme(props => {
+  withTheme((props: StatusProps) => {
     const {enabled, ...p} = props;
     return (
       <Flex align="center">
-        <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
+        <CircleIndicator
+          enabled={enabled}
+          size={6}
+          color={enabled ? p.theme.success : p.theme.gray2}
+        />
         <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
       </Flex>
     );
   })
 )`
-  color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
+  color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
   &:after {
     content: '|';
@@ -156,8 +178,8 @@ const NewInstallation = styled('div')`
     ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
 `;
 
-const StyledInstalledIntegration = styled(p =>
-  p.integration.newlyAdded ? (
+const StyledInstalledIntegration = styled((p: any) =>
+  p.newlyAdded ? (
     <NewInstallation>
       <InstalledIntegration {...p} />
     </NewInstallation>

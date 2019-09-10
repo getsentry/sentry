@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-type Props = {
+export type Props = {
   enabled: boolean;
   size: number;
   color?: string;

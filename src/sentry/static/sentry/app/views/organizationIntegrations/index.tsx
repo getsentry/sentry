@@ -19,13 +19,18 @@ import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettin
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
+import {Organization, Integration} from 'app/types';
+import {RequestOptions} from 'app/api';
 
 type Props = {
   organization: Organization;
+  hideHeader: boolean;
 };
 
-type State = {};
+type State = {
+  integrations: Integration[];
+  newlyInstalledIntegrationId: string;
+};
 
 class OrganizationIntegrations extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -92,7 +97,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
   // Actions
 
-  onInstall = integration => {
+  onInstall = (integration: Integration) => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.integrations, i => i.id);
@@ -100,7 +105,7 @@ class OrganizationIntegrations extends AsyncComponent<
     // Mark this integration as newlyAdded if it didn't already exist, allowing
     // us to animate the element in.
     if (!keyedItems.hasOwnProperty(integration.id)) {
-      integration.newlyAdded = true;
+      this.setState({newlyInstalledIntegrationId: integration.id});
     }
 
     const integrations = sortArray(
@@ -110,7 +115,7 @@ class OrganizationIntegrations extends AsyncComponent<
     this.setState({integrations});
   };
 
-  onRemove = integration => {
+  onRemove = (integration: Integration) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.integrations];
@@ -118,7 +123,7 @@ class OrganizationIntegrations extends AsyncComponent<
     const integrations = this.state.integrations.filter(i => i.id !== integration.id);
     this.setState({integrations});
 
-    const options = {
+    const options: RequestOptions = {
       method: 'DELETE',
       error: () => {
         this.setState({integrations: origIntegrations});
@@ -129,7 +134,7 @@ class OrganizationIntegrations extends AsyncComponent<
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = integration => {
+  onDisable = (integration: Integration) => {
     let url;
     const [domainName, orgName] = integration.domainName.split('/');
 
@@ -151,12 +156,12 @@ class OrganizationIntegrations extends AsyncComponent<
         data-test-id="integration-row"
         provider={provider}
         orgId={this.props.params.orgId}
-        integrations={provider.integrations}
         onInstall={this.onInstall}
         onRemove={this.onRemove}
         onDisable={this.onDisable}
         onReinstall={this.onInstall}
         enabledPlugins={this.enabledPlugins}
+        newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
       />
     );
   }
