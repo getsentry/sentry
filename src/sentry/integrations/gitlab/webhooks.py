@@ -59,7 +59,7 @@ class Webhook(object):
 
         project = event["project"]
 
-        name_from_event = "{} / {}".format(project["namespace"], project["name"])
+        name_from_event = u"{} / {}".format(project["namespace"], project["name"])
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
 
