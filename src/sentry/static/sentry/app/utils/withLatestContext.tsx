@@ -15,6 +15,7 @@ const withLatestContext = <P extends object>(WrappedComponent: React.ComponentTy
     createReactClass({
       displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
       propTypes: {
+        organization: SentryTypes.Organization,
         organizations: PropTypes.arrayOf(SentryTypes.Organization),
       },
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
@@ -46,10 +47,10 @@ const withLatestContext = <P extends object>(WrappedComponent: React.ComponentTy
         return (
           <WrappedComponent
             organizations={organizations as Organization[]}
-            organization={latestOrganization as Organization}
             project={project as Project}
             lastRoute={lastRoute as string}
             {...this.props as P}
+            organization={(this.props.organization || latestOrganization) as Organization}
           />
         );
       },
