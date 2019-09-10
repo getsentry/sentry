@@ -31,7 +31,7 @@ FLAG_STOREONLY = 1 << 3
 # Values that must be defined for setup to be considered complete
 FLAG_REQUIRED = 1 << 4
 # If the value is defined on disk, use that and don't attempt to fetch from db.
-# This also make the value immutible to changes from web UI.
+# This also make the value immutable to changes from web UI.
 FLAG_PRIORITIZE_DISK = 1 << 5
 # If the value is allowed to be empty to be considered valid
 FLAG_ALLOW_EMPTY = 1 << 6
@@ -139,7 +139,7 @@ class OptionsManager(object):
             except KeyError:
                 pass
             else:
-                if result:
+                if result is not None:
                     return result
 
         if not (opt.flags & FLAG_NOSTORE):

@@ -1,13 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
+import {toResourcePermissions} from 'app/utils/consolidatedScopes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {WebhookEvent, Permissions, Scope} from 'app/types';
 
-export default class PermissionsObserver extends React.Component {
+type Props = {
+  scopes: Scope[];
+  events: WebhookEvent[];
+  webhookDisabled: boolean;
+  appPublished: boolean;
+};
+
+type State = {
+  permissions: Permissions;
+  events: WebhookEvent[];
+};
+
+export default class PermissionsObserver extends React.Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -17,14 +30,16 @@ export default class PermissionsObserver extends React.Component {
     scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
     events: PropTypes.arrayOf(PropTypes.string).isRequired,
     webhookDisabled: PropTypes.bool.isRequired,
+    appPublished: PropTypes.bool.isRequired,
   };
 
   static defaultProps = {
     webhookDisabled: false,
+    appPublished: false,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
     this.state = {
       permissions: this.scopeListToPermissionState(),
       events: this.props.events,
@@ -42,7 +57,7 @@ export default class PermissionsObserver extends React.Component {
    *
    */
   scopeListToPermissionState() {
-    return new ConsolidatedScopes(this.props.scopes).toResourcePermissions();
+    return toResourcePermissions(this.props.scopes);
   }
 
   onPermissionChange = permissions => {
@@ -63,6 +78,7 @@ export default class PermissionsObserver extends React.Component {
             <PermissionSelection
               permissions={permissions}
               onChange={this.onPermissionChange}
+              appPublished={this.props.appPublished}
             />
           </PanelBody>
         </Panel>

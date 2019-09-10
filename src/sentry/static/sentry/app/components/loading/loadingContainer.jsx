@@ -5,12 +5,12 @@ import styled from 'react-emotion';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 export default function LoadingContainer(props) {
-  const {children, isReloading, isLoading} = props;
+  const {className, children, isReloading, isLoading} = props;
 
   const isLoadingOrReloading = isLoading || isReloading;
 
   return (
-    <Container>
+    <Container className={className}>
       {isLoadingOrReloading && (
         <div>
           <LoadingMask isReloading={isReloading} />

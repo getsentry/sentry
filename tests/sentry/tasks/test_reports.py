@@ -37,6 +37,7 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import TestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.utils.dates import to_datetime, to_timestamp, floor_to_utc_day
+from sentry.testutils.helpers.datetime import iso_format
 
 from six.moves import xrange
 
@@ -268,7 +269,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         now = timezone.now()
-        min_ago = (now - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(now - timedelta(minutes=1))
         two_min_ago = now - timedelta(minutes=2)
 
         self.store_event(
@@ -301,7 +302,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
         now = timezone.now()
         two_days_ago = now - timedelta(days=2)
-        three_days_ago = (now - timedelta(days=3)).isoformat()[:19]
+        three_days_ago = iso_format(now - timedelta(days=3))
         seven_days_back = now - timedelta(days=7)
 
         event1 = self.store_event(

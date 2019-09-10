@@ -1,11 +1,12 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {PageContent} from 'app/styles/organization';
+import {Organization, UserReport} from 'app/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import CompactIssue from 'app/components/issues/compactIssue';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -15,14 +16,23 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import UserFeedbackContainer from './container';
+import UserFeedbackEmpty from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-class OrganizationUserFeedback extends AsyncView {
+type State = AsyncView['state'] & {
+  reportList: UserReport[];
+};
+
+type Props = RouteComponentProps<{orgId: string}, {}> & {
+  organization: Organization;
+};
+
+class OrganizationUserFeedback extends AsyncView<Props, State> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
 
-  getEndpoints() {
+  getEndpoints(): [string, string, any][] {
     const {
       organization,
       location: {search},
@@ -43,6 +53,16 @@ class OrganizationUserFeedback extends AsyncView {
     return `${t('User Feedback')} - ${this.props.organization.slug}`;
   }
 
+  get projectIds() {
+    const {project} = this.props.location.query;
+
+    return Array.isArray(project)
+      ? project
+      : typeof project === 'string'
+      ? [project]
+      : [];
+  }
+
   renderResults() {
     const {orgId} = this.props.params;
 
@@ -61,11 +81,7 @@ class OrganizationUserFeedback extends AsyncView {
   }
 
   renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no results match your search query.')}</p>
-      </EmptyStateWarning>
-    );
+    return <UserFeedbackEmpty projectIds={this.projectIds} />;
   }
 
   renderLoading() {

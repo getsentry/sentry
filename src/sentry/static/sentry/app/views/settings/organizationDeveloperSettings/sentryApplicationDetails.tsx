@@ -1,9 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
+import _ from 'lodash';
+import scrollToElement from 'scroll-to-element';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -29,6 +30,7 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
+import {SentryApp, InternalAppApiToken} from 'app/types';
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -54,17 +56,21 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-export default class SentryApplicationDetails extends AsyncView {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
+type Props = AsyncView['props'] & {
+  route: {
+    path: string;
   };
+};
 
-  constructor(...args) {
-    super(...args);
-    this.form = new SentryAppFormModel();
-  }
+type State = AsyncView['state'] & {
+  app: SentryApp | null;
+  tokens: InternalAppApiToken[];
+};
 
-  getDefaultState() {
+export default class SentryApplicationDetails extends AsyncView<Props, State> {
+  form = new SentryAppFormModel();
+
+  getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       app: null,
@@ -72,7 +78,7 @@ export default class SentryApplicationDetails extends AsyncView {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): Array<[string, string]> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       return [
@@ -97,10 +103,35 @@ export default class SentryApplicationDetails extends AsyncView {
     return events.map(e => e.split('.').shift());
   }
 
-  onSubmitSuccess = data => {
+  handleSubmitSuccess = (data: SentryApp) => {
+    const {app} = this.state;
     const {orgId} = this.props.params;
-    addSuccessMessage(t(`${data.name} successfully saved.`));
-    browserHistory.push(`/settings/${orgId}/developer-settings/`);
+    const baseUrl = `/settings/${orgId}/developer-settings/`;
+    const url = app ? baseUrl : `${baseUrl}${data.slug}/`;
+    if (app) {
+      addSuccessMessage(t('%s successfully saved.', data.name));
+    } else {
+      addSuccessMessage(t('%s successfully created.', data.name));
+    }
+    browserHistory.push(url);
+  };
+
+  handleSubmitError = err => {
+    let errorMessage = 'Unknown Error';
+    if (err.status >= 400 && err.status < 500) {
+      errorMessage = _.get(err, 'responseJSON.detail', errorMessage);
+    }
+    addErrorMessage(t(errorMessage));
+
+    if (this.form.formErrors) {
+      const firstErrorFieldId = Object.keys(this.form.formErrors)[0];
+
+      if (firstErrorFieldId) {
+        scrollToElement(`#${firstErrorFieldId}`, {
+          align: 'middle',
+        });
+      }
+    }
   };
 
   get isInternal() {
@@ -112,9 +143,13 @@ export default class SentryApplicationDetails extends AsyncView {
     return this.props.route.path === 'new-internal/';
   }
 
-  onAddToken = async evt => {
+  onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
     const {app, tokens} = this.state;
+    if (!app) {
+      return;
+    }
+
     const api = this.api;
 
     const token = await addSentryAppToken(api, app);
@@ -122,9 +157,13 @@ export default class SentryApplicationDetails extends AsyncView {
     this.setState({tokens: newTokens});
   };
 
-  onRemoveToken = async (token, evt) => {
+  onRemoveToken = async (token: InternalAppApiToken, evt: React.MouseEvent) => {
     evt.preventDefault();
     const {app, tokens} = this.state;
+    if (!app) {
+      return;
+    }
+
     const api = this.api;
     const newTokens = tokens.filter(tok => tok.token !== token.token);
 
@@ -168,7 +207,7 @@ export default class SentryApplicationDetails extends AsyncView {
     }
   };
 
-  onFieldChange = (name, value) => {
+  onFieldChange = (name: string, value: string | number): void => {
     if (name === 'webhookUrl' && !value && this.isInternal) {
       //if no webhook, then set isAlertable to false
       this.form.setValue('isAlertable', false);
@@ -210,7 +249,8 @@ export default class SentryApplicationDetails extends AsyncView {
             verifyInstall, //need to overwrite the value in app for internal if it is true
           }}
           model={this.form}
-          onSubmitSuccess={this.onSubmitSuccess}
+          onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={this.handleSubmitError}
           onFieldChange={this.onFieldChange}
         >
           <Observer>
@@ -227,6 +267,7 @@ export default class SentryApplicationDetails extends AsyncView {
 
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
+                    appPublished={app ? app.status === 'published' : false}
                     scopes={scopes}
                     events={events}
                   />

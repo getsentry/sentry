@@ -92,9 +92,13 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
   } else if (type === 'error') {
     icon = <InlineSvg src="icon-circle-close" size="24px" />;
   }
+
+  // TODO(billy): Remove ref- className after removing usage from getsentry
+
   return (
     <Toast
       onClick={handleClick}
+      data-test-id={type ? `toast-${type}` : 'toast'}
       className={cx(className, 'ref-toast', `ref-${type}`)}
       {...props}
     >

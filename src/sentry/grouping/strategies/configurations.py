@@ -67,6 +67,7 @@ register_strategy_config(
         * New grouping strategy optimized for native and javascript
         * Not compatible with the old legacy grouping
     """,
+    hidden=True,
 )
 
 register_strategy_config(
@@ -87,6 +88,7 @@ register_strategy_config(
         * messages are now preprocessed to increase change of grouping together
         * exceptions without stacktraces are now grouped by a trimmed message
     """,
+    hidden=True,
 )
 
 register_strategy_config(
@@ -134,4 +136,5 @@ register_strategy_config(
         * Uses `newstyle:2019-04-05` for native platforms
         * Uses `legacy:2019-03-12` for all other platforms
     """,
+    hidden=True,
 )
