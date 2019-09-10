@@ -27,8 +27,8 @@ const Placeholder = styled((props: Props) => {
   justify-content: center;
 
   background-color: ${p => p.theme.placeholderBackground};
-  width: ${p => p.width || '100%'};
-  height: ${p => p.height || '60px'};
+  width: ${p => p.width};
+  height: ${p => p.height};
   ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}
   ${p =>
     typeof p.bottomGutter === 'number' && p.bottomGutter > 0
