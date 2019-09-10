@@ -1,15 +1,19 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
+import AutoComplete from 'app/components/autoComplete';
 import Feature from 'app/components/acl/feature';
 import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
-import Link from 'app/components/links/link';
+import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
 import EventView from 'app/views/eventsV2/eventView';
 
+import {domId} from 'app/utils/domId';
+import color from 'color';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withApi from 'app/utils/withApi';
@@ -25,17 +29,22 @@ type Props = React.ComponentProps<SidebarItem> & {
 
 type State = {
   isOpen: boolean;
+  search: string;
 };
 
 class Discover2Item extends React.Component<Props, State> {
   state = {
+    search: '',
     isOpen: false,
   };
 
   componentDidMount() {
     const {api, organization} = this.props;
     fetchSavedQueries(api, organization.slug);
+    this.menuId = domId('discover-menu');
   }
+
+  private menuId: string = '';
 
   handleEnter = () => {
     this.setState({isOpen: true});
@@ -45,22 +54,39 @@ class Discover2Item extends React.Component<Props, State> {
     this.setState({isOpen: false});
   };
 
-  renderSavedQueries() {
-    const {savedQueries, organization} = this.props;
+  handleSelect = item => {
+    const {organization} = this.props;
+    const target = {
+      pathname: `/organizations/${organization.slug}/eventsv2/`,
+      query: EventView.fromSavedQuery(item).generateQueryStringObject(),
+    };
+    browserHistory.push(target);
+  };
+
+  renderSavedQueries({inputValue, getItemProps, highlightedIndex}) {
+    const {savedQueries} = this.props;
     if (!savedQueries || savedQueries.length === 0) {
       return <span>No saved queries</span>;
     }
-    return savedQueries.map(item => {
-      const target = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
-        query: EventView.fromSavedQuery(item).generateQueryStringObject(),
-      };
-      return (
-        <MenuItem aria-role="menuitem" to={target} key={item.id}>
-          {item.name}
-        </MenuItem>
-      );
-    });
+    const lowerInputValue = inputValue.toLowerCase();
+    return savedQueries
+      .filter(item => {
+        return lowerInputValue.length
+          ? item.name.toLowerCase().indexOf(lowerInputValue) > -1
+          : true;
+      })
+      .map((item, index) => {
+        return (
+          <MenuItem
+            {...getItemProps({item, index})}
+            active={highlightedIndex === index}
+            role="menuitem"
+            key={item.id}
+          >
+            {item.name}
+          </MenuItem>
+        );
+      });
   }
 
   render() {
@@ -69,6 +95,8 @@ class Discover2Item extends React.Component<Props, State> {
     const navProps = {
       'aria-label': t('Discover Saved Queries'),
       'aria-haspopup': true,
+      'aria-controls': this.menuId,
+      role: 'menubutton',
       onMouseLeave: this.handleLeave,
       onMouseEnter: this.handleEnter,
     };
@@ -77,6 +105,8 @@ class Discover2Item extends React.Component<Props, State> {
     }
 
     const sidebarItem = <SidebarItem {...sidebarItemProps} />;
+    const inputId = `${this.menuId}-input`;
+
     return (
       <Feature
         features={['discover-v2-query-builder']}
@@ -85,9 +115,38 @@ class Discover2Item extends React.Component<Props, State> {
       >
         <nav {...navProps}>
           {sidebarItem}
-          <Hitbox isOpen={isOpen}>
-            <Menu aria-role="menu">{this.renderSavedQueries()}</Menu>
-          </Hitbox>
+          <AutoComplete
+            inputIsActor={false}
+            itemToString={item => item.name}
+            isOpen={isOpen}
+            onSelect={this.handleSelect}
+            resetInputOnClose
+          >
+            {({getInputProps, getItemProps, inputValue, highlightedIndex}) => {
+              return (
+                <Hitbox role="menu" id={this.menuId} isOpen={isOpen}>
+                  <InputContainer>
+                    <StyledLabel for={inputId}>
+                      <InlineSvg src="icon-search" size="16" />
+                    </StyledLabel>
+                    <StyledInput
+                      type="text"
+                      id={inputId}
+                      placeholder={t('Filter searches')}
+                      {...getInputProps({})}
+                    />
+                  </InputContainer>
+                  <Menu>
+                    {this.renderSavedQueries({
+                      getItemProps,
+                      inputValue,
+                      highlightedIndex,
+                    })}
+                  </Menu>
+                </Hitbox>
+              );
+            }}
+          </AutoComplete>
         </nav>
       </Feature>
     );
@@ -107,26 +166,83 @@ const Hitbox = styled('div')<HitboxProps>`
   position: absolute;
   right: -330px;
   width: 350px;
-  height: 200px;
   padding-left: ${space(3)};
   transform: translateY(-30px);
+  box-shadow: ${p => p.theme.dropShadowHeavy};
 `;
 
 const Menu = styled('div')`
   height: 100%;
-  background: ${p => p.theme.gray4};
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border: 1px solid ${p => p.theme.sidebar.background};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-top: none;
+  max-height: 245px;
+  overflow: auto;
+  background-clip: border-box;
 `;
 
-const MenuItem = styled(Link)`
+type MenuItemProps = {
+  active: boolean;
+};
+const MenuItem = styled('span')<MenuItemProps>`
   display: block;
-  padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.sidebar.color};
-  border-bottom: 1px solid ${p => p.theme.gray3};
+  padding: ${space(1.5)} ${space(2)};
+  color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+  background: ${p =>
+    p.active
+      ? color(p.theme.offWhite)
+          .darken(0.05)
+          .string()
+      : p.theme.offWhite};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   &:focus,
   &:hover {
-    color: ${p => p.theme.gray1};
+    background: ${p =>
+      color(p.theme.offWhite)
+        .darken(0.05)
+        .string()};
+    color: ${p => p.theme.gray3};
+    cursor: pointer;
   }
   ${overflowEllipsis};
+`;
+
+const StyledLabel = styled('label')<{for: string}>`
+  margin: 0;
+  color: ${p => p.theme.gray2};
+  padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
+`;
+
+const InputContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  background: ${p => p.theme.white};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 0;
+
+  /* Border triangle */
+  &::before {
+    content: '';
+    margin: auto;
+    display: block;
+    position: absolute;
+    left: 11px;
+    top: 11px;
+    width: 5px;
+    height: 10px;
+    border-style: solid;
+    border-width: 10px 10px 10px 0;
+    border-color: transparent #fff transparent transparent;
+  }
+`;
+
+const StyledInput = styled('input')`
+  color: ${p => p.theme.gray2};
+  flex-grow: 1;
+  height: 38px;
+  line-height: 38px;
+  background: none;
+  outline: none;
+  border: none;
 `;
