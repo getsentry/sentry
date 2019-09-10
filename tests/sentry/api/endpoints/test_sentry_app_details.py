@@ -119,6 +119,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "clientId": self.published_app.application.client_id,
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
         }
@@ -302,6 +303,14 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data == {
             "webhookUrl": ["webhookUrl required if alert rule action is enabled"]
         }
+
+    def test_set_allowed_origins(self):
+        self.login_as(user=self.user)
+        response = self.client.put(
+            self.url, data={"allowedOrigins": ["google.com", "sentry.io"]}, format="json"
+        )
+        assert response.status_code == 200
+        assert self.published_app.application.get_allowed_origins() == ["google.com", "sentry.io"]
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):

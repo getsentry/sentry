@@ -75,6 +75,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.published_app.application.client_id,
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
         } in json.loads(response.content)
@@ -98,6 +99,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "isAlertable": self.internal_app.is_alertable,
             "verifyInstall": self.internal_app.verify_install,
             "overview": self.internal_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
@@ -133,6 +135,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "isAlertable": self.internal_app.is_alertable,
             "verifyInstall": self.internal_app.verify_install,
             "overview": self.internal_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
@@ -166,6 +169,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.published_app.application.client_id,
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
         } in json.loads(response.content)
@@ -206,6 +210,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.unpublished_app.application.client_id,
             "clientSecret": self.unpublished_app.application.client_secret,
             "overview": self.unpublished_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
         } in json.loads(response.content)
@@ -435,6 +440,14 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self._post(isInternal=True, author=None)
 
         assert response.status_code == 201
+
+    def test_create_integration_with_allowed_origins(self):
+        self.login_as(user=self.user)
+        response = self._post(allowedOrigins=("google.com", "example.com"))
+
+        assert response.status_code == 201
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
 
     def _post(self, **kwargs):
         body = {

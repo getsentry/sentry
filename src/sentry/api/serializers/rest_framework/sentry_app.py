@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from django.template.defaultfilters import slugify
+from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes, SentryApp
@@ -77,6 +78,7 @@ class SentryAppSerializer(Serializer):
     isAlertable = serializers.BooleanField(required=False, default=False)
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
+    allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
     def get_current_value_wrapper(self, attrs):
