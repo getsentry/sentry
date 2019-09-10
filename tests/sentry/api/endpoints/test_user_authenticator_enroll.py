@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import mock
 
+from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db.models import F
@@ -173,9 +174,10 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def assert_2fa_cookie_set(self, response, om):
+    def _assert_pending_invite_cookie_set(self, response, om):
         invite_link = om.get_invite_link()
-        self.assertIn(response.client.cookies["pending-invite"].value, invite_link)
+        invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
+        self.assertIn(invite_data.get("url"), invite_link)
 
     def create_existing_om(self):
         OrganizationMember.objects.create(
@@ -191,7 +193,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
-        self.assert_2fa_cookie_set(resp, om)
+        self._assert_pending_invite_cookie_set(resp, om)
 
         return om
 
@@ -210,7 +212,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         self.assertFalse(response.client.cookies["pending-invite"].value)
 
-    def setup_u2f(self, om, member_id=None, token=None):
+    def setup_u2f(self):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
@@ -225,8 +227,6 @@ class AcceptOrganizationInviteTest(APITestCase):
                     "deviceName": "device name",
                     "challenge": "challenge",
                     "response": "response",
-                    "memberId": member_id or om.id,
-                    "token": token or om.token,
                 },
             )
             assert resp.status_code == 204
@@ -243,7 +243,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.models.U2fInterface.try_enroll", return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
         om = self.get_om_and_init_invite()
-        resp = self.setup_u2f(om)
+        resp = self.setup_u2f()
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -311,7 +311,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def test_user_already_org_member(self, try_enroll, log):
         om = self.get_om_and_init_invite()
         self.create_existing_om()
-        self.setup_u2f(om)
+        self.setup_u2f()
 
         assert not OrganizationMember.objects.filter(id=om.id).exists()
 
@@ -324,7 +324,12 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.models.U2fInterface.try_enroll", return_value=True)
     def test_org_member_does_not_exist(self, try_enroll, log):
         om = self.get_om_and_init_invite()
-        self.setup_u2f(om, member_id=om.id + 20)
+
+        # Mutate the OrganizationMember, putting it out of sync with the
+        # pending member cookie.
+        om.update(id=om.id + 1)
+
+        self.setup_u2f()
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
@@ -337,7 +342,12 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.models.U2fInterface.try_enroll", return_value=True)
     def test_invalid_token(self, try_enroll, log):
         om = self.get_om_and_init_invite()
-        self.setup_u2f(om, token="123")
+
+        # Mutate the OrganizationMember, putting it out of sync with the
+        # pending member cookie.
+        om.update(token="123")
+
+        self.setup_u2f()
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None

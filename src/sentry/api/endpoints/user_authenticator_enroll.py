@@ -12,7 +12,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator, OrganizationMember
 from sentry.security import capture_security_activity
-from sentry.api.invite_helper import ApiInviteHelper
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie, get_invite_cookie
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +21,7 @@ INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
 SEND_SMS_ERR = {"details": "Error sending SMS"}
 
 
-class BaseRestSerializer(serializers.Serializer):
-    # Fields needed to accept an org invite
-    # pending 2FA enrollment
-    memberId = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    token = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-
-
-class TotpRestSerializer(BaseRestSerializer):
+class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
         label="Authenticator code",
         help_text="Code from authenticator",
@@ -37,7 +30,7 @@ class TotpRestSerializer(BaseRestSerializer):
     )
 
 
-class SmsRestSerializer(BaseRestSerializer):
+class SmsRestSerializer(serializers.Serializer):
     phone = serializers.CharField(
         label="Phone number",
         help_text="Phone number to send SMS code",
@@ -54,7 +47,7 @@ class SmsRestSerializer(BaseRestSerializer):
     )
 
 
-class U2fRestSerializer(BaseRestSerializer):
+class U2fRestSerializer(serializers.Serializer):
     deviceName = serializers.CharField(
         label="Device name",
         required=False,
@@ -67,8 +60,6 @@ class U2fRestSerializer(BaseRestSerializer):
     response = serializers.CharField(required=True)
 
 
-hidden_fields = ["memberId", "token"]
-
 serializer_map = {"totp": TotpRestSerializer, "sms": SmsRestSerializer, "u2f": U2fRestSerializer}
 
 
@@ -76,7 +67,7 @@ def get_serializer_field_metadata(serializer, fields=None):
     """Returns field metadata for serializer"""
     meta = []
     for field_name, field in serializer.fields.items():
-        if (fields is None or field_name in fields) and field_name not in hidden_fields:
+        if (fields is None or field_name in fields) and field_name:
             try:
                 default = field.get_default()
             except SkipField:
@@ -215,42 +206,41 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             interface.enroll(request.user)
         except Authenticator.AlreadyEnrolled:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            context.update({"authenticator": interface.authenticator})
-            capture_security_activity(
-                account=request.user,
-                type="mfa-added",
-                actor=request.user,
-                ip_address=request.META["REMOTE_ADDR"],
-                context=context,
-                send_email=True,
-            )
-            request.user.clear_lost_passwords()
-            request.user.refresh_session_nonce(self.request)
-            request.user.save()
-            Authenticator.objects.auto_add_recovery_codes(request.user)
 
-            # Try to accept an org invite pending 2FA enrollment
-            member_id = serializer.data.get("memberId")
-            token = serializer.data.get("token")
+        context.update({"authenticator": interface.authenticator})
+        capture_security_activity(
+            account=request.user,
+            type="mfa-added",
+            actor=request.user,
+            ip_address=request.META["REMOTE_ADDR"],
+            context=context,
+            send_email=True,
+        )
+        request.user.clear_lost_passwords()
+        request.user.refresh_session_nonce(self.request)
+        request.user.save()
+        Authenticator.objects.auto_add_recovery_codes(request.user)
 
-            if member_id and token:
-                try:
-                    helper = ApiInviteHelper(
-                        instance=self,
-                        request=request,
-                        member_id=member_id,
-                        token=token,
-                        logger=logger,
-                    )
-                except OrganizationMember.DoesNotExist:
-                    logger.error("Failed to accept pending org invite", exc_info=True)
-                else:
-                    if helper.valid_request:
-                        helper.accept_invite()
+        response = Response(status=status.HTTP_204_NO_CONTENT)
 
-                        response = Response(status=status.HTTP_204_NO_CONTENT)
-                        helper.remove_invite_cookie(response)
-                        return response
+        # If there is a pending organization invite accept after the
+        # authenticator has been configured.
+        org_invite = get_invite_cookie(request)
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if org_invite:
+            try:
+                helper = ApiInviteHelper(
+                    instance=self,
+                    request=request,
+                    member_id=org_invite["memberId"],
+                    token=org_invite["token"],
+                    logger=logger,
+                )
+            except OrganizationMember.DoesNotExist:
+                logger.error("Failed to accept pending org invite", exc_info=True)
+            else:
+                if helper.valid_request:
+                    helper.accept_invite()
+                    remove_invite_cookie(request, response)
+
+        return response
