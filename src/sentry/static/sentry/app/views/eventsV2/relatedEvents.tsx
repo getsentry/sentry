@@ -36,8 +36,11 @@ class RelatedEvents extends AsyncComponent<Props> {
     projects: PropTypes.arrayOf(SentryTypes.Project),
   };
 
+  hasGlobalViews(): boolean {
+    return this.props.organization.features.includes('global-views');
+  }
+
   getEndpoints(): Array<[string, string, {query: EventQuery}]> {
-    // TODO what happens when global-views feature is not on the org?
     const {event, organization} = this.props;
     const eventsUrl = `/organizations/${organization.slug}/eventsv2/`;
     const trace = event.tags.find(tag => tag.key === 'trace');
@@ -68,6 +71,15 @@ class RelatedEvents extends AsyncComponent<Props> {
 
   renderLoading() {
     return <Placeholder height="120px" bottomGutter={2} />;
+  }
+
+  renderError(error) {
+    // Hide the related events if the user doesn't have global-views
+    if (!this.hasGlobalViews()) {
+      return null;
+    }
+
+    return super.renderError(error);
   }
 
   renderBody() {
