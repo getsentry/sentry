@@ -6,5 +6,4 @@ sut:
   build:
     context: ../
     dockerfile: docker/Dockerfile
-
   command: config get system.secret-key
