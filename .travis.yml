@@ -107,9 +107,6 @@ base_acceptance: &acceptance_default
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
-#    - |
-#      CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
-#      wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
     - wget -N "https://chromedriver.storage.googleapis.com/2.33/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
