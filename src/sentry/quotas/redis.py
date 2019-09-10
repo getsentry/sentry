@@ -37,6 +37,15 @@ class BasicRedisQuota(object):
         # should this quota be hard-enforced (or just tracked)
         self.enforce = enforce
 
+    def to_json(self):
+        return {
+            "prefix": self.prefix,
+            "subscope": self.subscope,
+            "limit": self.limit,
+            "window": self.window,
+            "reasonCode": self.reason_code,
+        }
+
 
 class RedisQuota(Quota):
     #: The ``grace`` period allows accomodating for clock drift in TTL
