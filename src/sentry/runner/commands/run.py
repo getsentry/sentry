@@ -383,7 +383,7 @@ def query_subscription_consumer(**options):
 @click.option(
     "--initial-offset-reset",
     default="latest",
-    type=click.Choice(["earliest", "latest"]),
+    type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @configuration
