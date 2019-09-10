@@ -60,7 +60,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             subscription_id="an_id",
             dataset="something",
             query="hello",
-            aggregations=[],
+            aggregation=0,
             time_window=1,
             resolution=1,
         )
@@ -81,7 +81,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             subscription_id="an_id",
             dataset="something",
             query="hello",
-            aggregations=[],
+            aggregation=0,
             time_window=1,
             resolution=1,
         )
