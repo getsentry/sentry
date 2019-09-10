@@ -34,14 +34,14 @@ export function remove(api, {successMessage, errorMessage, orgId} = {}) {
     .requestPromise(endpoint, {
       method: 'DELETE',
     })
-    .then(data => {
+    .then(() => {
       OrganizationsActions.removeSuccess(orgId);
 
       if (successMessage) {
         IndicatorStore.add(successMessage, 'success', {duration: 3000});
       }
     })
-    .catch(err => {
+    .catch(() => {
       OrganizationsActions.removeError();
 
       if (errorMessage) {
@@ -50,7 +50,7 @@ export function remove(api, {successMessage, errorMessage, orgId} = {}) {
     });
 }
 
-export function switchOrganization(prevOrgId, nextOrgId) {
+export function switchOrganization() {
   resetGlobalSelection();
 }
 
