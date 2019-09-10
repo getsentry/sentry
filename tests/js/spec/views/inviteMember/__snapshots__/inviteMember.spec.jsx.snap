@@ -723,29 +723,29 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     className="css-a4ya23-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper
-                        data-test-id="empty-message"
+                      <Component
+                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                       >
                         <div
-                          className="css-ev9qm0-Wrapper e1h3yfdx0"
+                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                           data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}
                           >
                             <Component
-                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
+                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                               noMargin={true}
                             >
                               <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
+                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                               >
                                 No Teams assigned
                               </div>
                             </Component>
                           </Description>
                         </div>
-                      </Wrapper>
+                      </Component>
                     </EmptyMessage>
                   </div>
                 </PanelBody>
