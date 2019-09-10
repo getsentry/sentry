@@ -33,6 +33,7 @@ index 89821ce..9e09a8a 100644
 \ No newline at end of file
 +A twitter bot to when words are said by the NYT for the first time.sdfsdf
 \ No newline at end of file"""
+
 PUSH_EVENT_EXAMPLE = b"""{
     "push": {
         "changes": [

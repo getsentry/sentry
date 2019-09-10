@@ -67,6 +67,123 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 401
 
+    def test_update_repo_name(self):
+        project = self.project  # force creation
+        url = "/extensions/github/webhook/"
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = Integration.objects.create(
+            provider="github",
+            external_id="12345",
+            name="octocat",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        repo_out_of_date_name = Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="emmathehacker/public-repo",  # out of date
+            url="https://github.com/baxterthehacker/public-repo",
+            config={"name": "baxterthehacker/public-repo"},
+        )
+
+        response = self.client.post(
+            path=url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        # name has been updated
+        repo_out_of_date_name.refresh_from_db()
+        assert repo_out_of_date_name.name == "baxterthehacker/public-repo"
+
+    def test_update_repo_config_name(self):
+        project = self.project  # force creation
+        url = "/extensions/github/webhook/"
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = Integration.objects.create(
+            provider="github",
+            external_id="12345",
+            name="octocat",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        repo_out_of_date_config_name = Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+            url="https://github.com/baxterthehacker/public-repo",
+            config={"name": "emmathehacker/public-repo"},  # out of date
+        )
+
+        response = self.client.post(
+            path=url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        # config name has been updated
+        repo_out_of_date_config_name.refresh_from_db()
+        assert repo_out_of_date_config_name.config["name"] == "baxterthehacker/public-repo"
+
+    def test_update_repo_url(self):
+        project = self.project  # force creation
+        url = "/extensions/github/webhook/"
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = Integration.objects.create(
+            provider="github",
+            external_id="12345",
+            name="octocat",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        repo_out_of_date_url = Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+            url="https://github.com/emmathehacker/public-repo",  # out of date
+            config={"name": "baxterthehacker/public-repo"},
+        )
+
+        response = self.client.post(
+            path=url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        # url has been updated
+        repo_out_of_date_url.refresh_from_db()
+        assert repo_out_of_date_url.url == "https://github.com/baxterthehacker/public-repo"
+
 
 class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.client.get_jwt")
