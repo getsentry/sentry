@@ -76,7 +76,7 @@ class RelatedEvents extends AsyncComponent<Props> {
   renderError(error) {
     // Hide the related events if the user doesn't have global-views
     if (!this.hasGlobalViews()) {
-      return <span />;
+      return null;
     }
 
     return super.renderError(error);
