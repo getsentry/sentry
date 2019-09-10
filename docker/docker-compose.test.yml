@@ -3,5 +3,8 @@ sut:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SENTRY_SECRET_KEY=abc
     - SENTRY_REDIS_HOST=localhost
-  build: .
+  build:
+    context: ../
+    dockerfile: docker/Dockerfile
+
   command: config get system.secret-key
