@@ -26,7 +26,12 @@ _lambda_re = re.compile(
     (?:
         \$_\d+\b
     )
-"""
+    """
+)
+_anon_namespace_re = re.compile(
+    r"""(?x)
+    \?A0x[a-f0-9]{8}::
+    """
 )
 
 
@@ -121,6 +126,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
         .replace("operator<", u"operator⟨")
         .replace("operator()", u"operator◯")
         .replace(" -> ", u" ⟿ ")
+        .replace("`anonymous namespace'", u"〔anonymousnamespace〕")
     )
 
     # normalize C++ lambdas.  This is necessary because different
@@ -132,6 +138,14 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     # function it was declared.
     if normalize_lambdas:
         function = _lambda_re.sub("lambda", function)
+
+    # Normalize MSVC anonymous namespaces from inline functions.  For inline
+    # functions, the compiler inconsistently renders anonymous namespaces with
+    # their hash.  For regular functions,  "`anonymous namespace'" is used.
+    # The regular expression matches the trailing "::" to avoid accidental
+    # replacement in mangled function names.
+    if normalize_lambdas:
+        function = _anon_namespace_re.sub(u"〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
     def process_args(value, start):
@@ -170,7 +184,12 @@ def trim_function_name(function, platform, normalize_lambdas=True):
             func_token = None
 
     if func_token:
-        function = func_token.replace(u"⟨", "<").replace(u"◯", "()").replace(u" ⟿ ", " -> ")
+        function = (
+            func_token.replace(u"⟨", "<")
+            .replace(u"◯", "()")
+            .replace(u" ⟿ ", " -> ")
+            .replace(u"〔anonymousnamespace〕", "`anonymous namespace'")
+        )
 
     # This really should never happen
     else:

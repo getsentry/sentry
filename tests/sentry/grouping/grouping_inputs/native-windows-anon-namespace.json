@@ -1,0 +1,60 @@
+{
+  "event_id": "f79bf3f80cb444e0a2eda68ad7c95d93",
+  "platform": "native",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__scrt_common_main_seh",
+              "filename": "exe_common.inl",
+              "lineno": 288,
+              "in_app": false,
+              "instruction_addr": "0xeb2d91"
+            },
+            {
+              "function": "invoke_main",
+              "filename": "exe_common.inl",
+              "lineno": 78,
+              "in_app": false,
+              "instruction_addr": "0xeb2dac"
+            },
+            {
+              "function": "main",
+              "filename": "main.cpp",
+              "lineno": 35,
+              "in_app": false,
+              "instruction_addr": "0xeb2a4d"
+            },
+            {
+              "function": "`anonymous namespace'::start",
+              "filename": "main.cpp",
+              "in_app": false,
+              "instruction_addr": "0xeb2a4d",
+              "lineno": 28
+            },
+            {
+              "function": "?A0xc3a0617d::crash",
+              "filename": "main.cpp",
+              "in_app": false,
+              "instruction_addr": "0xeb2a4d",
+              "lineno": 24
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "mechanism": {
+          "synthetic": true,
+          "type": "minidump",
+          "handled": false
+        },
+        "thread_id": 3804
+      }
+    ]
+  }
+}
