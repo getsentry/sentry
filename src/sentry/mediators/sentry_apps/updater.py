@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
+from django.utils import timezone
+from django.db.models import Q
 
 from sentry import analytics
 from sentry.coreapi import APIError
@@ -10,7 +12,7 @@ from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation
+from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation, ApiToken
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 
@@ -68,6 +70,11 @@ class Updater(Mediator):
         ):
             raise APIError("Cannot update permissions on a published integration.")
         self.sentry_app.scope_list = self.scopes
+        # update the scopes of active tokens tokens
+        ApiToken.objects.filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
+            application=self.sentry_app.application,
+        ).update(scope_list=list(self.scopes))
 
     @if_param("events")
     def _update_events(self):
