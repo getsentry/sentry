@@ -1,5 +1,4 @@
-dist: trusty
-group: deprecated-2017Q4
+dist: xenial
 language: python
 python: 2.7
 
