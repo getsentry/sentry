@@ -507,19 +507,6 @@ class EventManager(object):
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
-    def __get_event(self, project_id, event_id):
-        if options.get("store.use-nodestore"):
-            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
-            if node_data:
-                return eventstore.get_event_by_id(project_id, event_id)
-        else:
-            try:
-                event = Event.objects.get(project_id=project_id, event_id=event_id)
-                return event
-            except Event.DoesNotExist:
-                pass
-        return None
-
     def save(self, project_id, raw=False, assume_normalized=False):
         # Normalize if needed
         if not self._normalized:
@@ -538,7 +525,7 @@ class EventManager(object):
         # already been done if we've processed an event with this ID. (This
         # isn't a perfect solution -- there's a race condition between here and
         # when the event is actually saved, but it's an improvement. See GH-7677.)
-        event = self.__get_event(project_id, data["event_id"])
+        event = self._get_event(project_id, data["event_id"])
 
         if event:
             # Make sure we cache on the project before returning
@@ -895,6 +882,19 @@ class EventManager(object):
         metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
 
         return event
+
+    def _get_event(self, project_id, event_id):
+        if options.get("store.use-nodestore"):
+            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
+            if node_data:
+                return eventstore.get_event_by_id(project_id, event_id)
+        else:
+            try:
+                event = Event.objects.get(project_id=project_id, event_id=event_id)
+                return event
+            except Event.DoesNotExist:
+                pass
+        return None
 
     def _get_event_user(self, project, data):
         user_data = data.get("user")
