@@ -6,7 +6,8 @@ import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
-const Wrapper = styled('div')`
+type WrapperProps = Pick<EmptyMessageProps, 'size'>;
+const Wrapper = styled('div')<WrapperProps>`
   display: flex;
   text-align: center;
   align-items: center;
@@ -14,7 +15,7 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.gray4};
   padding: ${p => p.theme.grid * 4}px 15%;
   font-size: ${p =>
-    p.size && p.size.large ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
+    p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
 `;
 
 const MarginStyles = css`
@@ -49,7 +50,25 @@ const Action = styled('div')`
   ${MarginStyles};
 `;
 
-const EmptyMessage = ({title, description, icon, children, action, size, className}) => (
+type Props = {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  icon?: string;
+  action?: React.ReactElement;
+  size?: 'large' | 'medium';
+};
+
+type EmptyMessageProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+
+const EmptyMessage = ({
+  title,
+  description,
+  icon,
+  children,
+  action,
+  size,
+  className,
+}: EmptyMessageProps) => (
   <Wrapper className={className} data-test-id="empty-message" size={size}>
     {icon && <StyledInlineSvg src={icon} size="36px" />}
     {title && <Title>{title}</Title>}
