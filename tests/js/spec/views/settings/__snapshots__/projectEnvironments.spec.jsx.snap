@@ -378,18 +378,18 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   data-test-id="empty-message"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper e1h3yfdx0"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
                       <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
                         noMargin={true}
                       >
                         <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
                         >
                           You don't have any environments yet.
                         </div>
@@ -785,18 +785,18 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   data-test-id="empty-message"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper e1h3yfdx0"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
                       <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
                         noMargin={true}
                       >
                         <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx1"
                         >
                           You don't have any hidden environments.
                         </div>
