@@ -48,14 +48,31 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(query.project).toBeUndefined();
   });
 
-  it('encodes fields', function() {
+  it('encodes fields and alias', function() {
     const eventView = new EventView({
       fields: [{field: 'id', title: 'ID'}, {field: 'title', title: 'Event'}],
       tags: [],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
-    expect(query.field).toEqual(['["id","ID"]', '["title","Event"]']);
+    expect(query.field).toEqual(['id', 'title']);
+    expect(query.alias).toEqual(['ID', 'Event']);
+  });
+
+  it('returns a copy of data preventing mutation', function() {
+    const eventView = new EventView({
+      fields: [{field: 'id', title: 'ID'}, {field: 'title', title: 'Event'}],
+      tags: [],
+      sorts: [],
+    });
+    const query = eventView.generateQueryStringObject();
+    query.field.push('newthing');
+    query.alias.push('new thing');
+
+    // Getting the query again should return the original values.
+    const secondQuery = eventView.generateQueryStringObject();
+    expect(secondQuery.field).toEqual(['id', 'title']);
+    expect(secondQuery.alias).toEqual(['ID', 'Event']);
   });
 });
 
