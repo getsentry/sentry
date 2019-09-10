@@ -125,7 +125,8 @@ matrix:
         - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
         # temporarily place python3.6 on path so it's possible for pre-commit to install black
-        - pyenv global 3.6.7 2.7.15
+        - pyenv global
+        - pyenv global 3.7.4 2.7.15
         - make setup-git
         - pyenv global system
         - find "$NODE_DIR" -type d -empty -delete
