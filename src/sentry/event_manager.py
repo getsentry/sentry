@@ -13,7 +13,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, nodestore, tagstore, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, features, nodestore, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -519,7 +519,7 @@ class EventManager(object):
         node_data = nodestore.get(Event.generate_node_id(project_id, data["event_id"]))
 
         if node_data:
-            event = self._get_event_instance(project_id=project_id)
+            event = eventstore.get_event_by_id(project_id, data["event_id"])
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
