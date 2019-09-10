@@ -261,21 +261,17 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   async handleEnrollSuccess() {
-    let next = '/settings/account/security/';
-
     // If we're pending approval of an invite, the user will have just joined
     // the organization when completing 2fa enrollment. We should reload the
     // organization context in that case to assign them to the org.
     if (this.pendingInvitation) {
-      const org = await fetchOrganizationByMember(this.pendingInvitation.memberId, {
+      await fetchOrganizationByMember(this.pendingInvitation.memberId, {
         addOrg: true,
         fetchOrgDetails: true,
       });
-
-      next = `/organizations/${org.slug}/`;
     }
 
-    this.props.router.push(next);
+    this.props.router.push('/settings/account/security/');
     openRecoveryOptions({authenticatorName: this.authenticatorName});
   }
 
