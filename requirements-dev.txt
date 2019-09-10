@@ -2,4 +2,3 @@ Babel
 docker>=3.7.0,<3.8.0
 isort>=4.3.4,<4.4.0
 pycodestyle>=2.3.1,<2.4.0
-sentry-flake8>=0.1.0,<0.2.0
