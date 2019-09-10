@@ -306,6 +306,10 @@ def browser(request, percy, live_server):
     headless = not request.config.getoption("no_headless")
     if driver_type == "chrome":
         options = webdriver.ChromeOptions()
+        # TODO: Temporarily adding this to work around chromedriver issues. We should
+        # remove this once a new version of chromedriver is released and we test that
+        # acceptance tests work ok.
+        options.add_experimental_option("w3c", False)
         options.add_argument("no-sandbox")
         options.add_argument("disable-gpu")
         options.add_argument(u"window-size={}".format(window_size))
