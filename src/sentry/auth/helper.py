@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
@@ -156,6 +157,20 @@ def handle_existing_identity(
 def handle_new_membership(auth_provider, organization, request, auth_identity):
     user = auth_identity.user
 
+    # If the user is either currently *pending* invite acceptance (as indicated
+    # from the pending-invite cookie) OR an existing invite exists on this
+    # organziation for the email provided by the identity provider.
+    invite_helper = ApiInviteHelper.from_cookie_or_email(
+        request=request, organization=organization, email=user.email
+    )
+
+    # If we are able to accept an existing invite for the user for this
+    # organization, do so, otherwise handle new membership
+    if invite_helper:
+        invite_helper.accept_invite(user)
+        return
+
+    # Otherwise create a new membership
     om = OrganizationMember.objects.create(
         organization=organization,
         role=organization.default_role,
@@ -305,6 +320,16 @@ def respond(template, organization, request, context=None, status=200):
     return render_to_response(template, default_context, request, status=status)
 
 
+def post_login_redirect(request):
+    response = HttpResponseRedirect(auth.get_login_redirect(request))
+
+    # Always remove any pending invite cookies, pending invites will have been
+    # accepted during the SSO flow.
+    remove_invite_cookie(request, response)
+
+    return response
+
+
 def handle_unknown_identity(request, organization, auth_provider, provider, state, identity):
     """
     Flow is activated upon a user logging in to where an AuthIdentity is
@@ -361,7 +386,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 organization_id=organization.id,
             ):
                 if acting_user.has_usable_password():
-                    return HttpResponseRedirect(auth.get_login_redirect(request))
+                    return post_login_redirect(request)
                 else:
                     acting_user = None
             else:
@@ -397,7 +422,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 after_2fa=request.build_absolute_uri(),
                 organization_id=organization.id,
             ):
-                return HttpResponseRedirect(auth.get_login_redirect(request))
+                return post_login_redirect(request)
         else:
             auth.log_auth_failure(request, request.POST.get("username"))
     else:
@@ -437,11 +462,11 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
     if not auth.login(
         request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
     ):
-        return HttpResponseRedirect(auth.get_login_redirect(request))
+        return post_login_redirect(request)
 
     state.clear()
 
-    return HttpResponseRedirect(auth.get_login_redirect(request))
+    return post_login_redirect(request)
 
 
 def handle_new_user(auth_provider, organization, request, identity):
@@ -466,14 +491,7 @@ def handle_new_user(auth_provider, organization, request, identity):
 
     user.send_confirm_emails(is_new_user=True)
 
-    # If the user has a pending invitation in this organization, we can
-    # immediately assocaite their user.
-    try:
-        member = OrganizationMember.objects.get(organization=organization, email=user.email)
-        member.set_user(user)
-        member.save()
-    except OrganizationMember.DoesNotExist:
-        handle_new_membership(auth_provider, organization, request, auth_identity)
+    handle_new_membership(auth_provider, organization, request, auth_identity)
 
     return auth_identity
 
