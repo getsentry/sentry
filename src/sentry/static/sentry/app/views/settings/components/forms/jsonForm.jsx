@@ -33,7 +33,7 @@ class JsonForm extends React.Component {
     /**
      * Panel title if `forms` is not defined
      */
-    title: PropTypes.string,
+    title: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     access: PropTypes.object,
     features: PropTypes.object,
@@ -152,7 +152,7 @@ class FormPanel extends React.Component {
     /**
      * Panel title
      */
-    title: PropTypes.string,
+    title: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     /**
      * List of fields to render
      */
