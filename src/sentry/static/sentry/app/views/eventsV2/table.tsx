@@ -362,7 +362,7 @@ const Container = styled('div')`
   overflow: hidden;
 `;
 
-const FloatingLoadingContainer = styled(LoadingContainer)`
+const FloatingLoadingContainer = styled(LoadingContainer)<LoadingContainer['props']>`
   position: absolute;
   top: 0;
   left: 0;
