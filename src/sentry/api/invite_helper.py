@@ -5,6 +5,7 @@ from django.utils.crypto import constant_time_compare
 from django.core.urlresolvers import reverse
 
 from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
 from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember
 from sentry.signals import member_joined
 
@@ -38,17 +39,46 @@ def get_invite_cookie(request):
 
 
 class ApiInviteHelper(object):
-    def __init__(self, instance, request, member_id, token, logger=None):
+    @classmethod
+    def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
+        """
+        Initializes the ApiInviteHelper by locating the pending organization
+        member via the currently set pending invite cookie, or via the passed
+        email if no cookie is currently set.
+        """
+        pending_invite = get_invite_cookie(request)
+
+        try:
+            if pending_invite is not None:
+                om = OrganizationMember.objects.get(
+                    id=pending_invite["memberId"], token=pending_invite["token"]
+                )
+            else:
+                om = OrganizationMember.objects.get(
+                    email=email, organization=organization, user=None
+                )
+        except OrganizationMember.DoesNotExist:
+            # Unable to locate the pending organization member. Cannot setup
+            # the invite helper.
+            return None
+
+        return cls(
+            request=request, member_id=om.id, token=om.token, instance=instance, logger=logger
+        )
+
+    def __init__(self, request, member_id, token, instance=None, logger=None):
         self.request = request
-        self.instance = instance
         self.member_id = member_id
         self.token = token
+        self.instance = instance
         self.logger = logger
         self.om = self.organization_member
 
     def handle_success(self):
         member_joined.send_robust(
-            member=self.om, organization=self.om.organization, sender=self.instance
+            member=self.om,
+            organization=self.om.organization,
+            sender=self.instance if self.instance else self,
         )
 
     def handle_member_already_exists(self):
@@ -115,8 +145,9 @@ class ApiInviteHelper(object):
             om.set_user(user)
             om.save()
 
-            self.instance.create_audit_entry(
+            create_audit_entry(
                 self.request,
+                actor=user,
                 organization=om.organization,
                 target_object=om.id,
                 target_user=user,
