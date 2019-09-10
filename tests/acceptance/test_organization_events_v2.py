@@ -8,7 +8,7 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAME = "organizations:events-v2"
+FEATURE_NAMES = ("organizations:events-v2", "organizations:discover-v2-query-builder")
 
 all_view = "field=title&field=event.type&field=project&field=user&field=timestamp&alias=title&alias=type&alias=project&alias=user&alias=time&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment"
 error_view = "field=title&alias=error&field=count%28id%29&alias=events&field=count_unique%28user%29&alias=users&field=project&alias=project&field=last_seen&alias=last+seen&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name"
@@ -31,7 +31,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_all_events_empty(self):
-        with self.feature(FEATURE_NAME):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events empty state")
@@ -51,7 +51,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        with self.feature(FEATURE_NAME):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
@@ -91,7 +91,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        with self.feature(FEATURE_NAME):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(self.path + "?" + error_view)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
@@ -114,7 +114,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data=event_data, project_id=self.project.id, assert_no_errors=False
         )
 
-        with self.feature(FEATURE_NAME):
+        with self.feature(FEATURE_NAMES):
             # Get the list page.
             self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
@@ -152,8 +152,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             event = self.store_event(data=event_data, project_id=self.project.id)
             event_ids.append(event.event_id)
 
-        with self.feature(FEATURE_NAME):
-
+        with self.feature(FEATURE_NAMES):
             # Get the list page
             self.browser.get(self.path + "?" + error_view + "&statsPeriod=24h")
             self.wait_until_loaded()

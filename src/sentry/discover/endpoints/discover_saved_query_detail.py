@@ -13,11 +13,18 @@ from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverSavedQueryPermission,)
 
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has(
+            "organizations:discover-v2-query-builder", organization, actor=request.user
+        )
+
     def get(self, request, organization, query_id):
         """
         Get a saved query
         """
-        if not features.has("organizations:discover", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:
@@ -31,7 +38,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Modify a saved query
         """
-        if not features.has("organizations:discover", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:
@@ -58,7 +65,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Delete a saved query
         """
-        if not features.has("organizations:discover", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:
