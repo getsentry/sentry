@@ -71,13 +71,10 @@ class Updater(Mediator):
             raise APIError("Cannot update permissions on a published integration.")
         self.sentry_app.scope_list = self.scopes
         # update the scopes of active tokens tokens
-        tokens = ApiToken.objects.filter(
+        ApiToken.objects.filter(
             Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
             application=self.sentry_app.application,
-        )
-        for token in tokens:
-            token.scope_list = self.scopes
-            token.save()
+        ).update(scope_list=list(self.scopes))
 
     @if_param("events")
     def _update_events(self):
