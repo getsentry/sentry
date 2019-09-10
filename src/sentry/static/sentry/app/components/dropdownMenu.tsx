@@ -214,7 +214,7 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Opens dropdown menu
-  handleOpen = e => {
+  handleOpen = (e: React.MouseEvent<HTMLElement>) => {
     const {onOpen, isOpen, alwaysRenderMenu} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
