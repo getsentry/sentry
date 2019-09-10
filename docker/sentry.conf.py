@@ -1,3 +1,6 @@
+# flake8: noqa
+from __future__ import absolute_import
+
 # This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.
 
@@ -29,7 +32,7 @@
 #  SENTRY_MAILGUN_API_KEY
 #  SENTRY_SINGLE_ORGANIZATION
 #  SENTRY_SECRET_KEY
-from sentry.conf.server import *  # NOQA
+from sentry.conf.server import *
 from sentry.utils.types import Bool
 
 import os
