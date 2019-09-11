@@ -48,10 +48,10 @@ class RateLimited(RateLimit):
         super(RateLimited, self).__init__(True, **kwargs)
 
 
-def _integer_or_none(x):
+def _limit_from_settings(x):
     """
-    Convert limit=0 from the database (which means no limit there) to
-    limit=None, as limit=0 in code now means "reject all events"
+    limit=0 (or any falsy value) in database means "no limit". Convert that to
+    limit=None as limit=0 in code means "reject all"
     """
 
     return int(x or 0) or None
@@ -92,8 +92,8 @@ class Quota(Service):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:
-            return _integer_or_none(parent_quota)
-        return _integer_or_none(quota)
+            return _limit_from_settings(parent_quota)
+        return _limit_from_settings(quota)
 
     def get_key_quota(self, key):
         from sentry import features
@@ -112,7 +112,7 @@ class Quota(Service):
             return (None, 60)
 
         limit, window = key.rate_limit
-        limit = _integer_or_none(limit)
+        limit = _limit_from_settings(limit)
         window = window or 60
         return limit, window
 
@@ -144,9 +144,9 @@ class Quota(Service):
             organization=organization, key="sentry:account-rate-limit", default=None
         )
 
-        account_limit = _integer_or_none(account_limit)
+        account_limit = _limit_from_settings(account_limit)
 
-        system_limit = _integer_or_none(options.get("system.rate-limit"))
+        system_limit = _limit_from_settings(options.get("system.rate-limit"))
 
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
@@ -166,7 +166,7 @@ class Quota(Service):
         """
         Return the maximum capable rate for an organization.
         """
-        return (_integer_or_none(options.get("system.rate-limit")), 60)
+        return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_event_retention(self, organization):
-        return _integer_or_none(options.get("system.event-retention-days"))
+        return _limit_from_settings(options.get("system.event-retention-days"))
