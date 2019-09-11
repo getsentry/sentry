@@ -154,3 +154,75 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+
+    def test_update_repo_name(self):
+        repo_out_of_date_name = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
+            provider=PROVIDER_NAME,
+            name="maxbittker/newssames",  # out of date
+            url="https://bitbucket.org/maxbittker/newsdiffs",
+            config={"name": "maxbittker/newsdiffs"},
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_EVENT_KEY="repo:push",
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+        # name has been updated
+        repo_out_of_date_name.refresh_from_db()
+        assert repo_out_of_date_name.name == "maxbittker/newsdiffs"
+
+    def test_update_repo_config_name(self):
+        repo_out_of_date_config_name = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
+            provider=PROVIDER_NAME,
+            name="maxbittker/newsdiffs",
+            url="https://bitbucket.org/maxbittker/newsdiffs",
+            config={"name": "maxbittker/newssames"},  # out of date
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_EVENT_KEY="repo:push",
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+        # config name has been updated
+        repo_out_of_date_config_name.refresh_from_db()
+        assert repo_out_of_date_config_name.config["name"] == "maxbittker/newsdiffs"
+
+    def test_update_repo_url(self):
+        repo_out_of_date_url = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="{c78dfb25-7882-4550-97b1-4e0d38f32859}",
+            provider=PROVIDER_NAME,
+            name="maxbittker/newsdiffs",
+            url="https://bitbucket.org/maxbittker/newssames",  # out of date
+            config={"name": "maxbittker/newsdiffs"},
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_EVENT_KEY="repo:push",
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+        # url has been updated
+        repo_out_of_date_url.refresh_from_db()
+        assert repo_out_of_date_url.url == "https://bitbucket.org/maxbittker/newsdiffs"

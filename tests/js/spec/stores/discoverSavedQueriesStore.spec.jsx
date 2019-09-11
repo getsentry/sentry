@@ -136,6 +136,7 @@ describe('DiscoverSavedQueriesStore', function() {
     };
     createSavedQuery(api, 'org-1', query);
     await tick();
+    await tick();
 
     const state = DiscoverSavedQueriesStore.get();
     expect(state.isLoading).toEqual(false);
