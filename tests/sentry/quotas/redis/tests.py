@@ -165,7 +165,9 @@ class RedisQuotaTest(TestCase):
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
-            BasicRedisQuota(prefix="p", subscope=1, limit=1, window=1, reason_code="project_quota"),
+            BasicRedisQuota(
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
+            ),
             BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 

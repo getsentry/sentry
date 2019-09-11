@@ -113,7 +113,6 @@ class Quota(Service):
 
         limit, window = key.rate_limit
         limit = _limit_from_settings(limit)
-        window = window or 60
         return limit, window
 
     def get_project_quota(self, project):

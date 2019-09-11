@@ -66,8 +66,7 @@ class BasicRedisQuota(object):
         #
         # None indicates "unlimited amount"
         # 0 indicates "reject all"
-        # NOTE: In options/settings, 0 represents "unlimited amount" and is
-        # mapped to None when reading.
+        # NOTE: Use `quotas.base._limit_from_settings` to map from settings
         self.limit = limit
         # time in seconds that this quota reflects
         self.window = window
@@ -75,8 +74,38 @@ class BasicRedisQuota(object):
         self.reason_code = reason_code
 
     @classmethod
-    def reject_all(cls, **kwargs):
-        return cls(limit=0, **kwargs)
+    def reject_all(cls, reason_code):
+        """
+        A zero-sized quota, which is never counted in Redis. Unconditionally
+        reject the event.
+        """
+
+        return cls(limit=0, reason_code=reason_code)
+
+    @classmethod
+    def limited(cls, prefix, limit, window, reason_code, subscope=None):
+        """
+        A regular quota with limit.
+        """
+
+        assert limit and limit > 0
+        return cls(prefix=prefix, window=window, subscope=subscope, reason_code=reason_code)
+
+    @classmethod
+    def unlimited(cls, prefix, window, subscope=None):
+        """
+        Unlimited quota that is still being counted.
+        """
+
+        return cls(prefix=prefix, window=window, subscope=subscope)
+
+    @property
+    def should_track(self):
+        """
+        Whether the quotas service should track this quota at all.
+        """
+
+        return self.prefix is not None
 
 
 class RedisQuota(Quota):
@@ -127,35 +156,45 @@ class RedisQuota(Quota):
         interval = quota.window
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
-    def get_quotas_with_limits(self, project, key=None):
-        return [quota for quota in self.get_quotas(project, key=key) if quota.limit is not None]
-
     def get_quotas(self, project, key=None):
         if key:
             key.project = project
+
+        results = []
+
         pquota = self.get_project_quota(project)
-        oquota = self.get_organization_quota(project.organization)
-        results = [
-            BasicRedisQuota(
-                prefix="p",
-                subscope=project.id,
-                limit=pquota[0],
-                window=pquota[1],
-                reason_code="project_quota",
-            ),
-            BasicRedisQuota(prefix="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"),
-        ]
-        if key:
-            kquota = self.get_key_quota(key)
+        if pquota[0] is not None:
             results.append(
-                BasicRedisQuota(
-                    prefix="k",
-                    subscope=key.id,
-                    limit=kquota[0],
-                    window=kquota[1],
-                    reason_code="key_quota",
+                BasicRedisQuota.limited(
+                    prefix="p",
+                    subscope=project.id,
+                    limit=pquota[0],
+                    window=pquota[1],
+                    reason_code="project_quota",
                 )
             )
+
+        oquota = self.get_organization_quota(project.organization)
+        if oquota[0] is not None:
+            results.append(
+                BasicRedisQuota.limited(
+                    prefix="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"
+                )
+            )
+
+        if key:
+            kquota = self.get_key_quota(key)
+            if kquota[0] is not None:
+                results.append(
+                    BasicRedisQuota(
+                        prefix="k",
+                        subscope=key.id,
+                        limit=kquota[0],
+                        window=kquota[1],
+                        reason_code="key_quota",
+                    )
+                )
+
         return results
 
     def get_usage(self, organization_id, quotas, timestamp=None):
@@ -163,7 +202,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         def get_usage_for_quota(client, quota):
-            if quota.limit is None:
+            if quota.should_track:
                 return (None, None)
 
             key = self.__get_redis_key(
@@ -199,7 +238,7 @@ class RedisQuota(Quota):
         if timestamp is None:
             timestamp = time()
 
-        quotas = self.get_quotas_with_limits(project, key=key)
+        quotas = [quota for quota in self.get_quotas(project, key=key) if quota.should_track]
 
         if not quotas:
             return
@@ -234,13 +273,19 @@ class RedisQuota(Quota):
         if not quotas:
             return NotRateLimited()
 
-        rejections = []
         keys = []
         args = []
         for quota in quotas:
             if quota.limit == 0:
-                rejections.append(True)
-                continue
+                # A zero-sized quota is the absolute worst-case. Do not call
+                # into Redis at all, and do not increment any keys, as one
+                # quota has reached capacity (this is how regular quotas behave
+                # as well).
+                assert quota.window is None
+                assert not quota.should_track
+                return RateLimited(retry_after=None, reason_code=quota.reason_code)
+
+            assert quota.should_track
 
             shift = project.organization_id % quota.window
             key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
@@ -252,24 +297,23 @@ class RedisQuota(Quota):
             lua_quota = quota.limit if quota.limit is not None else -1
             args.extend((lua_quota, int(expiry)))
 
-        if keys or args:
-            client = self.__get_redis_client(six.text_type(project.organization_id))
-            rejections.extend(is_rate_limited(client, keys, args))
+        if not keys or not args:
+            return NotRateLimited()
 
-        if any(rejections):
-            worst_case = (0, None)
-            for quota, rejected in zip(quotas, rejections):
-                if not rejected:
-                    continue
+        client = self.__get_redis_client(six.text_type(project.organization_id))
+        rejections = is_rate_limited(client, keys, args)
 
-                if quota.window is None:
-                    worst_case = (None, quota.reason_code)
-                    continue
+        if not any(rejections):
+            return NotRateLimited()
 
-                shift = project.organization_id % quota.window
-                delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
-                if delay > worst_case[0]:
-                    worst_case = (delay, quota.reason_code)
+        worst_case = (0, None)
+        for quota, rejected in zip(quotas, rejections):
+            if not rejected:
+                continue
 
-            return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])
-        return NotRateLimited()
+            shift = project.organization_id % quota.window
+            delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
+            if delay > worst_case[0]:
+                worst_case = (delay, quota.reason_code)
+
+        return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])
