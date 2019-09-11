@@ -1,10 +1,12 @@
 #!/bin/bash
 
+set -x;
+
 if [[ -z "$SOURCE_COMMIT" ]]; then
-	export SOURCE_COMMIT="${SOURCE_COMMIT:-$(git rev-parse HEAD)}"
-	echo "Updating SOURCE_COMMIT from 'git rev-parse HEAD'"
+	export SOURCE_COMMIT="${SOURCE_COMMIT:-$(git rev-parse HEAD)}";
+	echo "Updating SOURCE_COMMIT from 'git rev-parse HEAD'";
 fi
 
-echo "SOURCE_COMMIT: $SOURCE_COMMIT"
+echo "SOURCE_COMMIT: $SOURCE_COMMIT";
 
-docker build --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t "$DOCKER_REPO:$SOURCE_COMMIT" -f $DOCKERFILE_PATH .
+docker build --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t "$DOCKER_REPO:$SOURCE_COMMIT" -f "$DOCKERFILE_PATH" .
