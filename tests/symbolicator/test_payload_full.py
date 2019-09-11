@@ -12,6 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TransactionTestCase
 from sentry.models import File, ProjectDebugFile
 from sentry import eventstore
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
@@ -145,6 +146,7 @@ class ResolvingIntegrationTestBase(object):
                 "value": u"Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
             },
             "platform": "native",
+            "timestamp": iso_format(before_now(seconds=1)),
         }
 
         resp = self._postWithHeader(event_data)
