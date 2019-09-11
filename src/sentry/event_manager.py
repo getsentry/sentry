@@ -515,8 +515,8 @@ class EventManager(object):
         # Ensure an event with the same ID does not exist before processing it.
         # We use a first write wins approach since Clickhouse cannot merge
         # events from different days. (The timestamp rounded to
-        # start of day is part of the ordering key in Clickhouse).
-        event = self._get_event(project_id, data["event_id"])
+        # start of day is part of the primary key in Clickhouse).
+        event = self._get_event_from_storage(project_id, data["event_id"])
 
         if event:
             # Make sure we cache on the project before returning
@@ -873,7 +873,7 @@ class EventManager(object):
 
         return event
 
-    def _get_event(self, project_id, event_id):
+    def _get_event_from_storage(self, project_id, event_id):
         nodestore_sample_rate = options.get("store.nodestore-sample-rate")
         use_nodestore = random.random() < nodestore_sample_rate
 
