@@ -5,7 +5,17 @@ import ReactDOM from 'react-dom';
 
 import IndicatorStore from 'app/stores/indicatorStore';
 
-class Clipboard extends React.Component {
+type Props = {
+  value: string;
+  successMessage: string;
+  errorMessage: string;
+  hideMessages: string;
+  hideUnsupported: boolean;
+  onSuccess: () => void;
+  onError: () => void;
+};
+
+class Clipboard extends React.Component<Props> {
   static propTypes = {
     value: PropTypes.string,
     successMessage: PropTypes.string,
@@ -26,13 +36,15 @@ class Clipboard extends React.Component {
     errorMessage: 'Error copying to clipboard',
   };
 
+  clipboard!: ClipboardJS;
+
   componentWillUnmount() {
     if (this.clipboard) {
       this.clipboard.destroy();
     }
   }
 
-  handleMount = ref => {
+  handleMount = (ref: HTMLElement) => {
     if (!ref) {
       return;
     }
@@ -42,7 +54,7 @@ class Clipboard extends React.Component {
     const hasErrorCb = typeof onError === 'function';
     const bindEventHandlers = !hideMessages || hasSuccessCb || hasErrorCb;
 
-    this.clipboard = new Clip(ReactDOM.findDOMNode(ref), {
+    this.clipboard = new Clip(ReactDOM.findDOMNode(ref) as Element, {
       text: () => this.props.value,
     });
 
@@ -74,6 +86,10 @@ class Clipboard extends React.Component {
 
     // Browser doesn't support `execCommand`
     if (hideUnsupported && !Clip.isSupported()) {
+      return null;
+    }
+
+    if (!React.isValidElement(children)) {
       return null;
     }
 
