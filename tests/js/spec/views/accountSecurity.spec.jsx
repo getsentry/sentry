@@ -59,7 +59,7 @@ describe('AccountSecurity', function() {
     ).toBe('Info');
 
     // Remove button
-    expect(wrapper.find('Button .icon-trash')).toHaveLength(1);
+    expect(wrapper.find('Button[icon="icon-trash"]')).toHaveLength(1);
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
 
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
@@ -92,7 +92,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
 
     // This will open confirm modal
-    wrapper.find('Button .icon-trash').simulate('click');
+    wrapper.find('Button[icon="icon-trash"]').simulate('click');
     // Confirm
     wrapper
       .find('Modal Button')
@@ -160,7 +160,7 @@ describe('AccountSecurity', function() {
 
     // This will open confirm modal
     wrapper
-      .find('Button .icon-trash')
+      .find('Button[icon="icon-trash"]')
       .first()
       .simulate('click');
 
@@ -206,7 +206,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('Tooltip').prop('title')).toContain('test 1 and test 2');
 
     // This will open confirm modal
-    wrapper.find('Button .icon-trash').simulate('click');
+    wrapper.find('Button[icon="icon-trash"]').simulate('click');
     // Confirm
     expect(wrapper.find('Modal Button')).toHaveLength(0);
     expect(deleteMock).not.toHaveBeenCalled();
