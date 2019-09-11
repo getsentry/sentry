@@ -124,9 +124,10 @@ matrix:
       install:
         - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
-        # temporarily place python3.6 on path so it's possible for pre-commit to install black
-        - pyenv global
-        - pyenv global 3.7.4 2.7.15
+        # temporarily place python3.6+ on path so it's possible for pre-commit to install black
+        # TODO: put in travis cache
+        - pyenv install 3.6.3
+        - pyenv global 3.6.3 system
         - make setup-git
         - pyenv global system
         - find "$NODE_DIR" -type d -empty -delete
