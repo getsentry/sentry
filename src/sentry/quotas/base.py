@@ -48,6 +48,15 @@ class RateLimited(RateLimit):
         super(RateLimited, self).__init__(True, **kwargs)
 
 
+def _integer_or_none(x):
+    """
+    Convert limit=0 from the database (which means no limit there) to
+    limit=None, as limit=0 in code now means "reject all events"
+    """
+
+    return int(x or 0) or None
+
+
 class Quota(Service):
     """
     Quotas handle tracking a project's event usage (at a per minute tick) and
@@ -83,8 +92,8 @@ class Quota(Service):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:
-            return int(parent_quota or 0) or None
-        return int(quota or 0) or None
+            return _integer_or_none(parent_quota)
+        return _integer_or_none(quota)
 
     def get_key_quota(self, key):
         from sentry import features
@@ -103,7 +112,7 @@ class Quota(Service):
             return (None, 60)
 
         limit, window = key.rate_limit
-        limit = limit or None
+        limit = _integer_or_none(limit)
         window = window or 60
         return limit, window
 
@@ -135,9 +144,9 @@ class Quota(Service):
             organization=organization, key="sentry:account-rate-limit", default=None
         )
 
-        account_limit = int(account_limit) if account_limit else None
+        account_limit = _integer_or_none(account_limit)
 
-        system_limit = options.get("system.rate-limit") or None
+        system_limit = _integer_or_none(options.get("system.rate-limit"))
 
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
@@ -157,7 +166,7 @@ class Quota(Service):
         """
         Return the maximum capable rate for an organization.
         """
-        return (options.get("system.rate-limit") or None, 60)
+        return (_integer_or_none(options.get("system.rate-limit")), 60)
 
     def get_event_retention(self, organization):
-        return options.get("system.event-retention-days") or None
+        return _integer_or_none(options.get("system.event-retention-days"))

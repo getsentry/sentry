@@ -247,7 +247,10 @@ class RedisQuota(Quota):
             return_key = self.get_refunded_quota_key(key)
             keys.extend((key, return_key))
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
-            args.extend((quota.limit if quota.limit is not None else -1, int(expiry)))
+
+            # limit=None is represented as limit=-1 in lua
+            lua_quota = quota.limit if quota.limit is not None else -1
+            args.extend((lua_quota, int(expiry)))
 
         if keys or args:
             client = self.__get_redis_client(six.text_type(project.organization_id))
