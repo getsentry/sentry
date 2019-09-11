@@ -20,7 +20,7 @@ class IssueListPage(BasePage):
 
     def resolve_issues(self):
         self.browser.click('[aria-label="Resolve"]')
-        self.browser.click('[data-test-id="confirm-modal"]')
+        self.browser.click('[data-test-id="confirm-button"]')
 
     def wait_for_resolved_issue(self):
         self.browser.wait_until('[data-test-id="resolved-issue"]')

@@ -381,7 +381,7 @@ describe('OrganizationMemberDetail', function() {
 
       expectButtonEnabled();
       wrapper.find(button).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+      wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
       deleteMocks.map(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
