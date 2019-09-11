@@ -26,7 +26,7 @@ import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import SidebarItem from './sidebarItem';
 
-type Props = React.ComponentProps<SidebarItem> & {
+type Props = {
   api: Client;
   organization: Organization;
   savedQueries: SavedQuery[];
