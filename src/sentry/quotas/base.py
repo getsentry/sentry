@@ -109,11 +109,10 @@ class Quota(Service):
             cache.set(cache_key, has_rate_limits, 600)
 
         if not has_rate_limits:
-            return (None, 60)
+            return (None, None)
 
         limit, window = key.rate_limit
-        limit = _limit_from_settings(limit)
-        return limit, window
+        return _limit_from_settings(limit), window
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
@@ -139,11 +138,11 @@ class Quota(Service):
     def get_organization_quota(self, organization):
         from sentry.models import OrganizationOption
 
-        account_limit = OrganizationOption.objects.get_value(
-            organization=organization, key="sentry:account-rate-limit", default=None
+        account_limit = _limit_from_settings(
+            OrganizationOption.objects.get_value(
+                organization=organization, key="sentry:account-rate-limit", default=0
+            )
         )
-
-        account_limit = _limit_from_settings(account_limit)
 
         system_limit = _limit_from_settings(options.get("system.rate-limit"))
 

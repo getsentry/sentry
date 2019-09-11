@@ -188,7 +188,7 @@ class RedisQuota(Quota):
             kquota = self.get_key_quota(key)
             if kquota[0] is not None:
                 results.append(
-                    BasicRedisQuota(
+                    BasicRedisQuota.limited(
                         prefix="k",
                         subscope=key.id,
                         limit=kquota[0],
