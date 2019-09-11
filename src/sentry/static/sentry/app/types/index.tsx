@@ -370,6 +370,8 @@ export type IntegrationProvider = {
   canDisable: boolean;
   features: string[];
   aspects: any; //TODO(ts)
+  setupDialog: object; //TODO(ts)
+  metadata: any; //TODO(ts)
 };
 
 export type WebhookEvent = 'issue' | 'error';
@@ -377,7 +379,7 @@ export type WebhookEvent = 'issue' | 'error';
 export type Scope = typeof API_SCOPES[number];
 
 export type SentryApp = {
-  status: string;
+  status: 'unpublished' | 'published' | 'internal';
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -411,6 +413,19 @@ export type Integration = {
   status: ObjectStatus;
   provider: IntegrationProvider;
   configOrganization: Array<any>;
+};
+
+export type SentryAppInstallation = {
+  app: {
+    uuid: string;
+    slug: string;
+  };
+  organization: {
+    slug: string;
+  };
+  uuid: string;
+  status: 'installed' | 'pending';
+  code?: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

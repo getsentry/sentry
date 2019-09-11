@@ -111,6 +111,7 @@ describe('OrganizationIntegrations', () => {
       installedSentryApp = TestStubs.SentryApp({
         name: 'An Integration',
         slug: 'an-integration',
+        status: 'published',
       });
 
       sentryAppInstall = TestStubs.SentryAppInstallation({
