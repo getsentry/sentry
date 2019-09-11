@@ -7,4 +7,4 @@ fi
 
 echo "SOURCE_COMMIT: $SOURCE_COMMIT"
 
-git archive --format=tar.gz HEAD | docker build -t "$DOCKER_REPO:$SOURCE_COMMIT" -f $DOCKERFILE_PATH -
+docker build -t "$DOCKER_REPO:$SOURCE_COMMIT" -f $DOCKERFILE_PATH .
