@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import time
 import jsonschema
 import logging
+import random
 import six
 
 from datetime import datetime, timedelta
@@ -520,7 +521,6 @@ class EventManager(object):
         if event:
             # Make sure we cache on the project before returning
             event._project_cache = project
-
             logger.info(
                 "duplicate.found",
                 exc_info=True,
@@ -874,7 +874,10 @@ class EventManager(object):
         return event
 
     def _get_event(self, project_id, event_id):
-        if options.get("store.use-nodestore"):
+        nodestore_sample_rate = options.get("store.nodestore-sample-rate")
+        use_nodestore = random.random() < nodestore_sample_rate
+
+        if use_nodestore:
             node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
             if node_data:
                 return Event(node_data)
