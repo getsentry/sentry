@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.snuba.subscriptions import (
+    bulk_delete_snuba_subscriptions,
     create_snuba_subscription,
     delete_snuba_subscription,
     update_snuba_subscription,
@@ -53,6 +54,31 @@ class UpdateSnubaSubscriptionTest(TestCase):
         assert subscription.aggregation == aggregation.value
         assert subscription.time_window == time_window
         assert subscription.resolution == resolution
+
+
+class BulkDeleteSnubaSubscriptionTest(TestCase):
+    def test(self):
+        subscription = create_snuba_subscription(
+            self.project,
+            "something",
+            QueryDatasets.EVENTS,
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
+        other_subscription = create_snuba_subscription(
+            self.create_project(organization=self.organization),
+            "something",
+            QueryDatasets.EVENTS,
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
+        subscription_ids = [subscription.id, other_subscription.id]
+        bulk_delete_snuba_subscriptions([subscription, other_subscription])
+        assert not QuerySubscription.objects.filter(id__in=subscription_ids).exists()
 
 
 class DeleteSnubaSubscriptionTest(TestCase):

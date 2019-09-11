@@ -111,10 +111,21 @@ def update_snuba_subscription(subscription, query, aggregation, time_window, res
     return subscription
 
 
+def bulk_delete_snuba_subscriptions(subscriptions):
+    """
+    Deletes a list of snuba query subscriptions.
+    :param subscriptions: The subscriptions to delete
+    :return:
+    """
+    for subscription in subscriptions:
+        # TODO: Batch this up properly once we move to tasks.
+        delete_snuba_subscription(subscription)
+
+
 def delete_snuba_subscription(subscription):
     """
     Deletes a subscription to a snuba query.
-    :param subscription_id: The uuid of the subscription to delete
+    :param subscription: The subscription to delete
     :return:
     """
     with transaction.atomic():
