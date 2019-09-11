@@ -13,7 +13,7 @@ type Props = {
   hideSpinner?: boolean;
   size?: number;
   className?: string;
-  style?: object;
+  style?: React.CSSProperties;
   children?: React.ReactChildren;
 };
 
