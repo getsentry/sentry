@@ -15,7 +15,7 @@ import {IntegrationProvider, Integration} from 'app/types';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
-type Props = {
+export type Props = {
   orgId: string;
   provider: IntegrationProvider;
   integration: Integration;

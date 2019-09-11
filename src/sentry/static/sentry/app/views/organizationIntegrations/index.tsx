@@ -161,6 +161,7 @@ class OrganizationIntegrations extends AsyncComponent<
     );
   };
 
+  //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProvider) {
     const {integrations, appInstalls} = this.state;
     if (isSentryApp(integration)) {

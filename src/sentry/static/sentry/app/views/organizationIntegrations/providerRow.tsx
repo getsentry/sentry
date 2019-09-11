@@ -9,7 +9,9 @@ import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
-import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
+import InstalledIntegration, {
+  Props as InstalledIntegrationProps,
+} from 'app/views/organizationIntegrations/installedIntegration';
 import Link from 'app/components/links/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
@@ -24,9 +26,9 @@ type Props = {
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
   onReinstall: (integration: Integration) => void;
-  enabledPlugins: any[];
+  enabledPlugins: string[];
   newlyInstalledIntegrationId: string;
-  integrations: any[];
+  integrations: Integration[];
 };
 
 export default class ProviderRow extends React.Component<Props> {
@@ -35,8 +37,8 @@ export default class ProviderRow extends React.Component<Props> {
   };
 
   static propTypes = {
-    // `provider` is expected to have a list of installed `integrations`.
     provider: PropTypes.object.isRequired,
+    integrations: PropTypes.array.isRequired,
     orgId: PropTypes.string.isRequired,
     onInstall: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
@@ -178,14 +180,15 @@ const NewInstallation = styled('div')`
     ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
 `;
 
-const StyledInstalledIntegration = styled((p: any) =>
-  p.newlyAdded ? (
-    <NewInstallation>
+const StyledInstalledIntegration = styled(
+  (p: InstalledIntegrationProps & {newlyAdded: boolean}) =>
+    p.newlyAdded ? (
+      <NewInstallation>
+        <InstalledIntegration {...p} />
+      </NewInstallation>
+    ) : (
       <InstalledIntegration {...p} />
-    </NewInstallation>
-  ) : (
-    <InstalledIntegration {...p} />
-  )
+    )
 )`
   padding: ${space(2)};
   padding-left: 0;
