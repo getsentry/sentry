@@ -114,7 +114,9 @@ export default class DetailsHeader extends React.Component<Props> {
               <ItemTitle>{t('Duration')}</ItemTitle>
               {incident && (
                 <ItemValue>
-                  <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+                  <Duration
+                    seconds={getDynamicText({value: duration || 0, fixed: 1200})}
+                  />
                 </ItemValue>
               )}
             </HeaderItem>
