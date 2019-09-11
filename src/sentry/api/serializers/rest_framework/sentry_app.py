@@ -107,6 +107,12 @@ class SentryAppSerializer(Serializer):
             raise ValidationError(u"Name {} is already taken, please use another.".format(value))
         return value
 
+    def validate_allowedOrigins(self, value):
+        for allowed_origin in value:
+            if "*" in allowed_origin:
+                raise ValidationError("'*' not allowed in origin")
+        return value
+
     def validate(self, attrs):
         # validates events against scopes
         if attrs.get("scopes"):

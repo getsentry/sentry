@@ -312,6 +312,14 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 200
         assert self.published_app.application.get_allowed_origins() == ["google.com", "sentry.io"]
 
+    def test_allowed_origins_with_star(self):
+        self.login_as(user=self.user)
+        response = self.client.put(
+            self.url, data={"allowedOrigins": ["*.google.com"]}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
+
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     def test_delete_unpublished_app(self):
