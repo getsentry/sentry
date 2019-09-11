@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 import json
 
-from datetime import timedelta
-from django.utils import timezone
 from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupEventJsonTest(TestCase):
@@ -18,7 +17,7 @@ class GroupEventJsonTest(TestCase):
 
     def test_does_render(self):
         self.login_as(self.user)
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

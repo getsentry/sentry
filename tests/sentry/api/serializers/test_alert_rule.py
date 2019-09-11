@@ -6,7 +6,8 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import AlertRuleAggregations, AlertRuleThresholdType
+from sentry.incidents.models import AlertRuleThresholdType
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
 
@@ -17,7 +18,7 @@ class IncidentSerializerTest(TestCase):
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
-            [AlertRuleAggregations.TOTAL],
+            QueryAggregations.TOTAL,
             10,
             1000,
             400,
@@ -31,7 +32,7 @@ class IncidentSerializerTest(TestCase):
         assert result["thresholdType"] == alert_rule.threshold_type
         assert result["dataset"] == alert_rule.dataset
         assert result["query"] == alert_rule.query
-        assert result["aggregations"] == alert_rule.aggregations
+        assert result["aggregation"] == alert_rule.aggregation
         assert result["timeWindow"] == alert_rule.time_window
         assert result["resolution"] == alert_rule.resolution
         assert result["alertThreshold"] == alert_rule.alert_threshold

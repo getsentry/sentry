@@ -16,14 +16,15 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupTest(TestCase):
     def setUp(self):
         super(GroupTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
-        self.just_over_one_min_ago = (timezone.now() - timedelta(seconds=61)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
+        self.just_over_one_min_ago = iso_format(before_now(seconds=61))
 
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)

@@ -21,6 +21,8 @@ export type EventQuery = {
   per_page?: number;
 };
 
+const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+
 /**
  * Takes a view and determines if there are any aggregate fields in it.
  *
@@ -32,8 +34,7 @@ export function hasAggregateField(eventView: EventView): boolean {
   return eventView
     .getFieldNames()
     .some(
-      field =>
-        AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)
+      field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
     );
 }
 
@@ -165,8 +166,6 @@ export function getFieldRenderer(
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
-
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 
 /**
  * Get the alias that the API results will have for a given aggregate function name

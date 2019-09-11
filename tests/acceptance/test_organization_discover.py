@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
 import pytz
 from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
@@ -16,7 +16,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
         self.org = self.create_organization(owner=self.user, name="foo")
 
         self.project = self.create_project(organization=self.org, name="Bengal")
-        sec_ago = (datetime.utcnow() - timedelta(seconds=1)).isoformat()[:19]
+        sec_ago = iso_format(before_now(seconds=1))
 
         self.event = self.store_event(
             data={
@@ -66,13 +66,14 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_run_query(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         with self.feature("organizations:discover"):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
             self.browser.find_element_by_xpath("//button//span[contains(text(), 'Run')]").click()
             self.browser.wait_until_not(".loading")
             self.browser.snapshot("discover - query results")
+            self.browser.save_screenshot("discover1.png")
 
     def test_save_query_edit(self):
         with self.feature("organizations:discover"):

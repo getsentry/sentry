@@ -2,11 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
-
 from sentry.models import Group
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupEventsOldestTest(APITestCase):
@@ -15,8 +13,8 @@ class GroupEventsOldestTest(APITestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
 
         self.event1 = self.store_event(
             data={"environment": "staging", "fingerprint": ["group_1"], "timestamp": two_min_ago},

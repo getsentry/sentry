@@ -239,7 +239,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         return {
           warning: t('The start and end timestamps are equal'),
           left: bounds.start,
-          width: bounds.width,
+          width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }

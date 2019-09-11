@@ -6,10 +6,8 @@ import responses
 import six
 import pytest
 import copy
-from datetime import timedelta
 
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
@@ -23,6 +21,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 SAMPLE_CREATE_META_RESPONSE = """
@@ -441,7 +440,7 @@ class JiraIntegrationTest(APITestCase):
 
     def setUp(self):
         super(JiraIntegrationTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
 
     def test_get_create_issue_config(self):
         org = self.organization
