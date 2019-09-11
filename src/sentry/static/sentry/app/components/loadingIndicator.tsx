@@ -2,7 +2,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-function LoadingIndicator(props) {
+type Props = {
+  overlay?: boolean;
+  dark?: boolean;
+  mini?: boolean;
+  triangle?: boolean;
+  finished?: boolean;
+  relative?: boolean;
+  hideMessage?: boolean;
+  hideSpinner?: boolean;
+  size?: number;
+  className?: string;
+  style?: object;
+  children?: React.ReactChildren;
+};
+
+function LoadingIndicator(props: Props) {
   const {
     hideMessage,
     mini,
