@@ -33,7 +33,7 @@ from sentry.models import Commit, Release
 from sentry.incidents import tasks
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
-    delete_snuba_subscription,
+    bulk_delete_snuba_subscriptions,
     update_snuba_subscription,
 )
 from sentry.utils.committers import get_event_file_committers
@@ -716,21 +716,16 @@ def delete_alert_rule(alert_rule):
         AlertRuleStatus.DELETION_IN_PROGRESS.value,
     ):
         raise AlreadyDeletedError()
-    # TODO: We're assuming only one subscription for the moment
-    subscription = (
-        AlertRuleQuerySubscription.objects.select_related("query_subscription")
-        .get(alert_rule=alert_rule)
-        .query_subscription
-    )
 
-    alert_rule.update(
-        # Randomize the name here so that we don't get unique constraint issues
-        # while waiting for the deletion to process
-        name=uuid4().get_hex(),
-        status=AlertRuleStatus.PENDING_DELETION.value,
-    )
+    with transaction.atomic():
+        alert_rule.update(
+            # Randomize the name here so that we don't get unique constraint issues
+            # while waiting for the deletion to process
+            name=uuid4().get_hex(),
+            status=AlertRuleStatus.PENDING_DELETION.value,
+        )
+        bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
     tasks.delete_alert_rule.apply_async(kwargs={"alert_rule_id": alert_rule.id})
-    delete_snuba_subscription(subscription)
 
 
 def validate_alert_rule_query(query):
