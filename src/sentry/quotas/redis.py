@@ -47,6 +47,10 @@ class BasicRedisQuota(object):
         # a machine readable string
         self.reason_code = reason_code
 
+    @classmethod
+    def reject_all(cls, **kwargs):
+        return cls(limit=0, **kwargs)
+
 
 class RedisQuota(Quota):
     #: The ``grace`` period allows accomodating for clock drift in TTL
