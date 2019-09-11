@@ -242,6 +242,7 @@ describe('IssueList,', function() {
       // Update stores with saved searches
       await tick();
       wrapper.update();
+      await tick();
 
       // Main /issues/ request
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -251,8 +252,12 @@ describe('IssueList,', function() {
           data: expect.stringContaining('level%3Afoo'),
         })
       );
+      wrapper.update();
+      await tick();
 
       expect(getSearchBarValue(wrapper)).toBe('level:foo');
+
+      await tick();
 
       // Custom search
       expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
@@ -277,6 +282,7 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
+      await tick();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -286,8 +292,15 @@ describe('IssueList,', function() {
         })
       );
 
+      await tick();
+      wrapper.update();
+      await tick();
+
       expect(getSearchBarValue(wrapper)).toBe('is:resolved');
 
+      await tick();
+      wrapper.update();
+      await tick();
       // Organization saved search selector should have default saved search selected
       expect(getSavedSearchTitle(wrapper)).toBe('Org Custom');
     });
@@ -311,6 +324,7 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
+      await tick();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -320,7 +334,15 @@ describe('IssueList,', function() {
         })
       );
 
+      await tick();
+      wrapper.update();
+      await tick();
+
       expect(getSearchBarValue(wrapper)).toBe('is:resolved');
+
+      await tick();
+      wrapper.update();
+      await tick();
 
       // Organization saved search selector should have default saved search selected
       expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
@@ -345,6 +367,7 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
+      await tick();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -354,7 +377,12 @@ describe('IssueList,', function() {
         })
       );
 
+      wrapper.update();
+      await tick();
+
       expect(getSearchBarValue(wrapper)).toBe('assigned:me');
+
+      await tick();
 
       // Organization saved search selector should have default saved search selected
       expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
@@ -378,7 +406,15 @@ describe('IssueList,', function() {
       createWrapper({location: {query: {query: 'level:error'}}});
 
       await tick();
-      wrapper.update();
+      await wrapper.update();
+      await tick();
+      await tick();
+      await tick();
+      await tick();
+      await tick();
+      await tick();
+      await tick();
+      await tick();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -387,9 +423,18 @@ describe('IssueList,', function() {
           data: expect.stringContaining('level%3Aerror'),
         })
       );
+      wrapper.update();
+      await wrapper.update();
+      await tick();
+      await tick();
+      await tick();
 
       expect(getSearchBarValue(wrapper)).toBe('level:error');
 
+      await tick();
+      await tick();
+      await tick();
+      await tick();
       // Organization saved search selector should have default saved search selected
       expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
     });
@@ -412,7 +457,7 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
-
+      await tick();
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -420,9 +465,9 @@ describe('IssueList,', function() {
           data: expect.stringContaining(''),
         })
       );
-
+      await tick();
       expect(getSearchBarValue(wrapper)).toBe('');
-
+      await tick();
       // Organization saved search selector should have default saved search selected
       expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
     });
@@ -498,6 +543,7 @@ describe('IssueList,', function() {
       createWrapper();
       await tick();
       await wrapper.update();
+      await tick();
 
       // Update the search input
       wrapper
@@ -506,7 +552,7 @@ describe('IssueList,', function() {
       // Submit the form
       wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
       await wrapper.update();
-
+      await tick();
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/',
@@ -543,7 +589,7 @@ describe('IssueList,', function() {
         url: '/organizations/org-slug/pinned-searches/',
         method: 'DELETE',
       });
-
+      await tick();
       wrapper
         .find('SmartSearchBar input')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
@@ -794,7 +840,7 @@ describe('IssueList,', function() {
           isPinned: true,
         },
       });
-
+      await tick();
       wrapper
         .find('SmartSearchBar input')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
@@ -883,7 +929,9 @@ describe('IssueList,', function() {
       createWrapper();
       await tick();
       wrapper.update();
-
+      await tick();
+      await tick();
+      await tick();
       expect(
         wrapper
           .find('Pagination a')
@@ -919,6 +967,7 @@ describe('IssueList,', function() {
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
       wrapper.update();
+      await tick();
 
       expect(
         wrapper

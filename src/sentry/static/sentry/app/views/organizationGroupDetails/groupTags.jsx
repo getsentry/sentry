@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
 
@@ -15,6 +14,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 class GroupTags extends React.Component {
   static propTypes = {
@@ -91,7 +91,7 @@ class GroupTags extends React.Component {
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
-              <Link
+              <GlobalSelectionLink
                 className="tag-bar"
                 to={{
                   pathname: `${baseUrl}${group.id}/events/`,
@@ -105,7 +105,7 @@ class GroupTags extends React.Component {
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
-              </Link>
+              </GlobalSelectionLink>
             </li>
           );
         });
@@ -116,12 +116,12 @@ class GroupTags extends React.Component {
               <PanelHeader hasButtons style={{textTransform: 'none'}}>
                 <div style={{fontSize: 16}}>{tag.key}</div>
                 <Flex>
-                  <Link
+                  <GlobalSelectionLink
                     className="btn btn-default btn-sm"
                     to={`${baseUrl}${group.id}/tags/${tag.key}/`}
                   >
                     {t('More Details')}
-                  </Link>
+                  </GlobalSelectionLink>
                 </Flex>
               </PanelHeader>
               <PanelBody disablePadding={false}>
