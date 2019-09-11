@@ -512,10 +512,10 @@ class EventManager(object):
             id=project.organization_id
         )
 
-        # Check to make sure we're not about to do a bunch of work that's
-        # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- there's a race condition between here and
-        # when the event is actually saved, but it's an improvement. See GH-7677.)
+        # Ensure an event with the same ID does not exist before processing it.
+        # We use a first write wins approach since Clickhouse cannot merge
+        # events from different days. (The timestamp rounded to
+        # start of day is part of the ordering key in Clickhouse).
         event = self._get_event(project_id, data["event_id"])
 
         if event:
