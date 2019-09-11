@@ -242,7 +242,8 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    event.data["timestamp"] = datetime(2017, 9, 6, 0, 0).isoformat()
+    event.datetime = datetime(2017, 9, 6, 0, 0)
+    event.save()
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()
