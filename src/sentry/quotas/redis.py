@@ -23,6 +23,33 @@ def get_dynamic_cluster_from_options(setting, config):
 
 
 class BasicRedisQuota(object):
+    """
+    A quota in the most abstract sense consists of an identifier (such as
+    `"organization quota"`, `"smart limit"`, etc) and two integers `limit` and
+    `window` (we accept "limit" events per "window" seconds).
+
+    Sentry applies multiple quotas to an event before accepting it, some of
+    which can be configured by the user depending on plan. An event will be
+    counted against all quotas. For example:
+
+    * If Sentry is told to apply two quotas "one event per minute" and "9999999
+      events per hour", it will practically accept only one event per minute
+    * If Sentry is told to apply "one event per minute" and "30 events per
+      hour", we will be able to get one event accepted every minute. However, if
+      we do that for 30 minutes (ingesting 30 events), we will not be able to get
+      an event through for the rest of the hour. (This example assumes that we
+      start sending events exactly at the start of the time window)
+
+    A `BasicRedisQuota` is a specific quota type that also includes some
+    attributes necessary for looking up event counters and refunds in Redis.
+
+    The `BasicRedisQuota` object is not persisted in any way. It is just a
+    function argument passed around in code. Most importantly, a
+    `BasicRedisQuota` instance does not contain information about how many
+    events can still be accepted (that stuff is stored in Redis but isn't typed
+    out), it only represents settings that should be applied.
+    """
+
     __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
 
     def __init__(self, prefix=None, subscope=None, limit=None, window=None, reason_code=None):
