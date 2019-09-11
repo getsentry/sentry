@@ -18,8 +18,7 @@ import {growDown, highlight} from 'app/styles/animations';
 import {IntegrationProvider, Integration} from 'app/types';
 
 type Props = {
-  //TODO(TS): We shouldn't find a better way of passing this info down so we don't have to make this new type
-  provider: IntegrationProvider & {integrations: any[]};
+  provider: IntegrationProvider;
   orgId: string;
   onInstall: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;
@@ -27,6 +26,7 @@ type Props = {
   onReinstall: (integration: Integration) => void;
   enabledPlugins: any[];
   newlyInstalledIntegrationId: string;
+  integrations: any[];
 };
 
 export default class ProviderRow extends React.Component<Props> {
@@ -53,7 +53,7 @@ export default class ProviderRow extends React.Component<Props> {
   static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
 
   get integrations() {
-    return this.props.provider.integrations;
+    return this.props.integrations;
   }
 
   get isEnabled() {

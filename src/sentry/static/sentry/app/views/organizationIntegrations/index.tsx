@@ -19,7 +19,7 @@ import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettin
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Integration} from 'app/types';
+import {Organization, Integration, Plugin} from 'app/types';
 import {RequestOptions} from 'app/api';
 
 type Props = {
@@ -30,6 +30,7 @@ type Props = {
 type State = {
   integrations: Integration[];
   newlyInstalledIntegrationId: string;
+  plugins: Plugin[];
 };
 
 class OrganizationIntegrations extends AsyncComponent<
@@ -135,7 +136,7 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   onDisable = (integration: Integration) => {
-    let url;
+    let url: string;
     const [domainName, orgName] = integration.domainName.split('/');
 
     if (integration.accountType === 'User') {
@@ -156,6 +157,7 @@ class OrganizationIntegrations extends AsyncComponent<
         data-test-id="integration-row"
         provider={provider}
         orgId={this.props.params.orgId}
+        integrations={provider.integrations}
         onInstall={this.onInstall}
         onRemove={this.onRemove}
         onDisable={this.onDisable}

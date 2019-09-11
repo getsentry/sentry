@@ -174,8 +174,27 @@ export type Environment = {};
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-// TODO(ts): This type is incomplete
-export type Plugin = {};
+export type Plugin = {
+  id: string;
+  name: string;
+  slug: string;
+  shortName: string;
+  type: string;
+  canDisable: boolean;
+  isTestable: boolean;
+  hasConfiguration: boolean;
+  metadata: any; // TODO(ts)
+  contexts: any[]; // TODO(ts)
+  status: string;
+  assets: any[]; // TODO(ts)
+  doc: string;
+  enabled?: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  isHidden: boolean;
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
+};
 
 export type GlobalSelection = {
   projects: number[];
@@ -391,6 +410,7 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: IntegrationProvider;
+  configOrganization: Array<any>;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

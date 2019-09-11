@@ -51,7 +51,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  reinstallIntegration = integration => {
+  reinstallIntegration = () => {
     const activeIntegration = Object.assign({}, this.props.integration, {
       status: 'active',
     });
