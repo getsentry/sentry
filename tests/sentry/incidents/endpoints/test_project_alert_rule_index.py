@@ -31,7 +31,8 @@ class AlertRuleListEndpointTest(APITestCase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",

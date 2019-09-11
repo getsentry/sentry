@@ -25,7 +25,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ExternalIssue,
             PromptsActivity,
         )
-        from sentry.incidents.models import Incident
+        from sentry.incidents.models import AlertRule, Incident
         from sentry.discover.models import DiscoverSavedQuery
 
         # Team must come first
@@ -51,6 +51,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ExternalIssue,
             PromptsActivity,
             Incident,
+            AlertRule,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
 

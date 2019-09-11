@@ -14,6 +14,34 @@ query_aggregation_to_snuba = {
 }
 
 
+def bulk_create_snuba_subscriptions(
+    projects, subscription_type, dataset, query, aggregation, time_window, resolution
+):
+    """
+    Creates a subscription to a snuba query.
+
+    :param projects: The projects we're applying the query to
+    :param subscription_type: Text identifier for the subscription type this is. Used
+    to identify the registered callback associated with this subscription.
+    :param dataset: The snuba dataset to query and aggregate over
+    :param query: An event search query that we can parse and convert into a
+    set of Snuba conditions
+    :param aggregation: An aggregation to calculate over the time window
+    :param time_window: The time window to aggregate over
+    :param resolution: How often to receive updates/bucket size
+    :return: A list of QuerySubscriptions
+    """
+    subscriptions = []
+    # TODO: Batch this up properly once we move to tasks.
+    for project in projects:
+        subscriptions.append(
+            create_snuba_subscription(
+                project, subscription_type, dataset, query, aggregation, time_window, resolution
+            )
+        )
+    return subscriptions
+
+
 def create_snuba_subscription(
     project, subscription_type, dataset, query, aggregation, time_window, resolution
 ):

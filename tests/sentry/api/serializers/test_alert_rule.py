@@ -11,10 +11,11 @@ from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
 
-class IncidentSerializerTest(TestCase):
+class AlertRuleSerializerTest(TestCase):
     def test_simple(self):
         alert_rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
@@ -27,7 +28,9 @@ class IncidentSerializerTest(TestCase):
         result = serialize(alert_rule)
 
         assert result["id"] == six.text_type(alert_rule.id)
-        assert result["projectId"] == six.text_type(alert_rule.project_id)
+        assert result["projectId"] == six.text_type(
+            alert_rule.query_subscriptions.first().project_id
+        )
         assert result["name"] == alert_rule.name
         assert result["thresholdType"] == alert_rule.threshold_type
         assert result["dataset"] == alert_rule.dataset

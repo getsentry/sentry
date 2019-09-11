@@ -251,7 +251,7 @@ class AlertRuleManager(BaseManager):
         )
 
     def fetch_for_project(self, project):
-        return self.filter(project=project)
+        return self.filter(query_subscriptions__project=project)
 
 
 class AlertRuleQuerySubscription(Model):
@@ -291,12 +291,6 @@ class AlertRule(Model):
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    # These will be removed after we've made these columns nullable. Moving to
-    # QuerySubscription
-    subscription_id = models.UUIDField(db_index=True, null=True)
-    aggregations = ArrayField(of=models.IntegerField)
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True, null=True)
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False, null=True)
 
     class Meta:
         app_label = "sentry"

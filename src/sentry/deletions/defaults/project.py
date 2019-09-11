@@ -6,8 +6,9 @@ from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
-        from sentry.incidents.models import IncidentProject, AlertRule
         from sentry.discover.models import DiscoverSavedQueryProject
+        from sentry.incidents.models import IncidentProject
+        from sentry.snuba.models import QuerySubscription
 
         relations = [
             # ProjectKey gets revoked immediately, in bulk
@@ -39,7 +40,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.UserReport,
             DiscoverSavedQueryProject,
             IncidentProject,
-            AlertRule,
+            QuerySubscription,
         )
 
         relations.extend(

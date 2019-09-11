@@ -84,7 +84,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
-            return create_alert_rule(project=self.context["project"], **validated_data)
+            return create_alert_rule(
+                organization=self.context["organization"],
+                projects=[self.context["project"]],
+                **validated_data
+            )
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
@@ -93,8 +97,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             # Remove any fields that haven't actually changed
             if isinstance(value, Enum):
                 value = value.value
-            elif field_name == "aggregations":
-                value = [item.value for item in value]
             if getattr(instance, field_name) == value:
                 validated_data.pop(field_name)
         return validated_data
