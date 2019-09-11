@@ -44,7 +44,7 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscription=subscription)
+            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
         except AlertRule.DoesNotExist:
             return
 
@@ -137,7 +137,7 @@ class SubscriptionProcessor(object):
         if self.alert_triggers >= self.alert_rule.threshold_period:
             detected_at = to_datetime(self.last_update)
             self.active_incident = create_incident(
-                self.alert_rule.project.organization,
+                self.alert_rule.organization,
                 IncidentType.ALERT_TRIGGERED,
                 # TODO: Include more info in name?
                 self.alert_rule.name,
@@ -146,7 +146,7 @@ class SubscriptionProcessor(object):
                 query=self.subscription.query,
                 date_started=detected_at,
                 date_detected=detected_at,
-                projects=[self.alert_rule.project],
+                projects=[self.subscription.project],
             )
             # TODO: We should create an audit log, and maybe something that keeps
             # all of the details available for showing on the incident. Might be a json
