@@ -14,7 +14,7 @@ mkdir onpremise;
 cd onpremise;
 curl -Ls "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar -xzf - --strip-components=1;
 export SENTRY_IMAGE=getsentry/sentry:git;
-./install.sh;
+CI=1 ./install.sh;
 docker-compose run --rm web createuser --superuser --email test@sentry.io --password test123TEST;
 docker-compose up -d
 timeout 60 bash -c 'until $(curl -Isf -o /dev/null http://localhost:9000); do printf '.'; sleep 0.5; done'
