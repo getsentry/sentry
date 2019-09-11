@@ -430,7 +430,7 @@ export const SavedSearch = PropTypes.shape({
   name: PropTypes.string,
   projectId: PropTypes.string,
   query: PropTypes.string,
-  type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENTS]),
+  type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENT]),
 });
 
 export const Incident = PropTypes.shape({
