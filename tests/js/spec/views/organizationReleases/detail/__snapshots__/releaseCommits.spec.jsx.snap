@@ -250,12 +250,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Svg
+                                          <Component
+                                            className="css-vyy37i-LetterAvatar e12lgfev0"
+                                            displayName="Foo Bar"
+                                            identifier="example@sentry.io"
                                             round={true}
-                                            viewBox="0 0 120 120"
                                           >
                                             <svg
-                                              className="css-1r4mnb9-Svg e1knxa8x0"
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
                                               viewBox="0 0 120 120"
                                             >
                                               <rect
@@ -282,7 +284,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                                 FB
                                               </text>
                                             </svg>
-                                          </Svg>
+                                          </Component>
                                         </LetterAvatar>
                                       </span>
                                     </StyledBaseAvatar>
@@ -622,12 +624,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Svg
+                                          <Component
+                                            className="css-vyy37i-LetterAvatar e12lgfev0"
+                                            displayName="Foo Bar"
+                                            identifier="example@sentry.io"
                                             round={true}
-                                            viewBox="0 0 120 120"
                                           >
                                             <svg
-                                              className="css-1r4mnb9-Svg e1knxa8x0"
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
                                               viewBox="0 0 120 120"
                                             >
                                               <rect
@@ -654,7 +658,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                                 FB
                                               </text>
                                             </svg>
-                                          </Svg>
+                                          </Component>
                                         </LetterAvatar>
                                       </span>
                                     </StyledBaseAvatar>

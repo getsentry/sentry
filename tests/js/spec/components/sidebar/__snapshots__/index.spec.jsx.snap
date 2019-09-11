@@ -306,12 +306,16 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       <LetterAvatar
                         displayName="org slug"
                         identifier="org-slug"
+                        round={false}
                       >
-                        <Svg
-                          viewBox="0 0 120 120"
+                        <Component
+                          className="css-1k35his-LetterAvatar e12lgfev0"
+                          displayName="org slug"
+                          identifier="org-slug"
+                          round={false}
                         >
                           <svg
-                            className="css-123ijso-Svg e1knxa8x0"
+                            className="css-1k35his-LetterAvatar e12lgfev0"
                             viewBox="0 0 120 120"
                           >
                             <rect
@@ -338,7 +342,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               OS
                             </text>
                           </svg>
-                        </Svg>
+                        </Component>
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
@@ -778,12 +782,14 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                             identifier="foo@example.com"
                                             round={true}
                                           >
-                                            <Svg
+                                            <Component
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
                                               round={true}
-                                              viewBox="0 0 120 120"
                                             >
                                               <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                className="css-vyy37i-LetterAvatar e12lgfev0"
                                                 viewBox="0 0 120 120"
                                               >
                                                 <rect
@@ -810,7 +816,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                                   FB
                                                 </text>
                                               </svg>
-                                            </Svg>
+                                            </Component>
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
@@ -3561,12 +3567,14 @@ exports[`Sidebar renders without org and router 1`] = `
                                             identifier="foo@example.com"
                                             round={true}
                                           >
-                                            <Svg
+                                            <Component
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
                                               round={true}
-                                              viewBox="0 0 120 120"
                                             >
                                               <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                className="css-vyy37i-LetterAvatar e12lgfev0"
                                                 viewBox="0 0 120 120"
                                               >
                                                 <rect
@@ -3593,7 +3601,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                                   FB
                                                 </text>
                                               </svg>
-                                            </Svg>
+                                            </Component>
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
