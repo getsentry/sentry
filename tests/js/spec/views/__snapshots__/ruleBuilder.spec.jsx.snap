@@ -2606,7 +2606,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                             }
                                                           >
                                                             <span
-                                                              className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                                              className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                                               style={
                                                                 Object {
                                                                   "height": "28px",

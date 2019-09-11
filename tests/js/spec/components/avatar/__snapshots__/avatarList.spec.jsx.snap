@@ -290,7 +290,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -488,7 +488,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -686,7 +686,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -884,7 +884,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -1082,7 +1082,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -1332,7 +1332,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
@@ -1530,7 +1530,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                             }
                           >
                             <span
-                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                              className="avatar e1axh4r51 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
                               style={
                                 Object {
                                   "height": "28px",
