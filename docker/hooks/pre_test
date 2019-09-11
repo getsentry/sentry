@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x;
+set -ex;
 
 if [[ -z "$SOURCE_COMMIT" ]]; then
 	export SOURCE_COMMIT="${SOURCE_COMMIT:-$(git rev-parse HEAD)}";
@@ -10,10 +10,10 @@ fi
 echo "SOURCE_COMMIT: $SOURCE_COMMIT";
 echo $(pwd);
 cd "$(git rev-parse --show-toplevel)/docker";
-
-wget -qO - "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar -xzf -;
+mkdir onpremise;
+cd onpremise;
+curl -Ls "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar -xzf - --strip-components=1;
 export SENTRY_IMAGE=getsentry/sentry:git;
-cd onpremise-v10;
 ./install.sh;
 docker-compose run --rm web createuser --superuser --email test@sentry.io --password test123TEST;
 docker-compose up -d
