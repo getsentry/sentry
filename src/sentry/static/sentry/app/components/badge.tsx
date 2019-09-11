@@ -3,7 +3,7 @@ import React from 'react';
 import {cx} from 'react-emotion';
 
 type Props = {
-  text: string;
+  text?: string;
   priority?: 'strong' | 'new' | 'highlight';
   className?: string;
 };
