@@ -68,7 +68,8 @@ class DetailedIncidentSerializerTest(TestCase):
     def test_alert_rule(self):
         incident = self.create_incident()
         alert_rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "hi",
             AlertRuleThresholdType.ABOVE,
             "test query",
