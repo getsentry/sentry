@@ -158,7 +158,7 @@ class RedisQuotaTest(TestCase):
                 BasicRedisQuota(prefix="dummy", limit=10, window=60, reason_code="dummy"),
             ],
             timestamp=timestamp,
-        ) == [n for _ in quotas] + [None, 0]
+        ) == [n for _ in quotas] + [0, 0]
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund(self, mock_get_quotas):
@@ -206,4 +206,4 @@ class RedisQuotaTest(TestCase):
             ],
             timestamp=timestamp,
             # the - 1 is because we refunded once
-        ) == [n - 1 for _ in quotas] + [None, 0]
+        ) == [n - 1 for _ in quotas] + [0, 0]

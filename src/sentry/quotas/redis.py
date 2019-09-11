@@ -89,7 +89,9 @@ class BasicRedisQuota(object):
         """
 
         assert limit and limit > 0
-        return cls(prefix=prefix, window=window, subscope=subscope, reason_code=reason_code)
+        return cls(
+            prefix=prefix, limit=limit, window=window, reason_code=reason_code, subscope=subscope
+        )
 
     @classmethod
     def unlimited(cls, prefix, window, subscope=None):
@@ -202,7 +204,7 @@ class RedisQuota(Quota):
             timestamp = time()
 
         def get_usage_for_quota(client, quota):
-            if quota.should_track:
+            if not quota.should_track:
                 return (None, None)
 
             key = self.__get_redis_key(
