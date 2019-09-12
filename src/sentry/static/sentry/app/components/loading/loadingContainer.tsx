@@ -4,13 +4,28 @@ import styled from 'react-emotion';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-export default function LoadingContainer(props) {
-  const {children, isReloading, isLoading} = props;
+const defaultProps = {
+  isLoading: false,
+  isReloading: false,
+};
 
+type DefaultProps = Readonly<typeof defaultProps>;
+
+type Props = {
+  className?: string;
+  children?: React.ReactNode;
+} & DefaultProps;
+
+type MaskProps = {
+  isReloading: boolean;
+};
+
+export default function LoadingContainer(props: Props) {
+  const {className, children, isReloading, isLoading} = props;
   const isLoadingOrReloading = isLoading || isReloading;
 
   return (
-    <Container>
+    <Container className={className}>
       {isLoadingOrReloading && (
         <div>
           <LoadingMask isReloading={isReloading} />
@@ -22,22 +37,19 @@ export default function LoadingContainer(props) {
   );
 }
 
+LoadingContainer.defaultProps = defaultProps;
+
 LoadingContainer.propTypes = {
   isLoading: PropTypes.bool.isRequired,
   isReloading: PropTypes.bool.isRequired,
   children: PropTypes.node,
 };
 
-LoadingContainer.defaultProps = {
-  isLoading: false,
-  isReloading: false,
-};
-
 const Container = styled('div')`
   position: relative;
 `;
 
-const LoadingMask = styled('div')`
+const LoadingMask = styled('div')<MaskProps>`
   position: absolute;
   z-index: 1;
   background-color: ${p => p.theme.white};

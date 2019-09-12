@@ -8,6 +8,8 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
+    feature_name = "organizations:discover"
+
     def setUp(self):
         super(DiscoverSavedQueryDetailTest, self).setUp()
         self.login_as(user=self.user)
@@ -35,7 +37,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         self.query_id_without_access = invalid.id
 
     def test_get(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
             )
@@ -49,7 +51,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["limit"] == 10
 
     def test_get_org_without_access(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
                 args=[self.org_without_access.slug, self.query_id],
@@ -59,7 +61,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
     def test_put(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
             )
@@ -86,7 +88,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["limit"] == 20
 
     def test_put_query_without_access(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
                 args=[self.org.slug, self.query_id_without_access],
@@ -99,7 +101,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert response.status_code == 404
 
     def test_put_org_without_access(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
                 args=[self.org_without_access.slug, self.query_id],
@@ -111,7 +113,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
     def test_delete(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
             )
@@ -123,7 +125,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.client.get(url).status_code == 404
 
     def test_delete_removes_projects(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
             )
@@ -137,7 +139,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert projects == []
 
     def test_delete_query_without_access(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
                 args=[self.org.slug, self.query_id_without_access],
@@ -148,7 +150,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert response.status_code == 404
 
     def test_delete_org_without_access(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
                 args=[self.org_without_access.slug, self.query_id],
@@ -156,3 +158,11 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
+
+
+class DiscoverSavedQueryV2DetailTest(APITestCase, SnubaTestCase):
+    """
+    Ensure that all the scenarios work with the discover2 feature flag.
+    """
+
+    feature_name = "organizations:discover-v2-query-builder"
