@@ -60,7 +60,8 @@ RUN cd /usr/src/sentry \
     && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
     && rm -r "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
-ENV SENTRY_BUILD=${SOURCE_COMMIT:-master}
+ARG SOURCE_COMMIT="unknown"
+ENV SENTRY_BUILD=$SOURCE_COMMIT
 COPY . /usr/src/sentry/
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \

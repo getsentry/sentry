@@ -2,4 +2,3 @@ include setup.py README.rst MANIFEST.in LICENSE AUTHORS
 recursive-include ./ requirements*.txt
 graft src/sentry
 global-exclude *~
-prune docker
