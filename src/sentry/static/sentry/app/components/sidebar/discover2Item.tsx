@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import {Client} from 'app/api';
 import AutoComplete from 'app/components/autoComplete';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Feature from 'app/components/acl/feature';
 import {
   fetchSavedQueries,
@@ -18,7 +19,6 @@ import {SavedQuery} from 'app/views/discover/types';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {domId} from 'app/utils/domId';
-import color from 'color';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withApi from 'app/utils/withApi';
@@ -68,6 +68,17 @@ class Discover2Item extends React.Component<Props, State> {
     browserHistory.push(target);
   };
 
+  handleEdit = (event, item) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const {organization} = this.props;
+    const target = {
+      pathname: `/organizations/${organization.slug}/eventsv2/`,
+      query: {...EventView.fromSavedQuery(item).generateQueryStringObject(), edit: true},
+    };
+    browserHistory.push(target);
+  };
+
   handleDelete = (event: React.MouseEvent<Element>, item: SavedQuery) => {
     const {organization, api} = this.props;
     event.preventDefault();
@@ -98,13 +109,20 @@ class Discover2Item extends React.Component<Props, State> {
             <QueryName>
               <Highlight text={inputValue}>{item.name}</Highlight>
             </QueryName>
-            <div>
-              <Button
-                size="xsmall"
+            <ButtonBar>
+              <MenuItemButton
+                borderless
+                size="xxsmall"
+                icon="icon-edit"
+                onClick={event => this.handleEdit(event, item)}
+              />
+              <MenuItemButton
+                borderless
+                size="xxsmall"
                 icon="icon-trash"
                 onClick={event => this.handleDelete(event, item)}
               />
-            </div>
+            </ButtonBar>
           </MenuItem>
         );
       });
@@ -211,21 +229,13 @@ const MenuItem = styled('span')<MenuItemProps>`
   justify-content: space-between;
   align-items: center;
   position: relative;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
   color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
-  background: ${p =>
-    p.active
-      ? color(p.theme.offWhite)
-          .darken(0.05)
-          .string()
-      : p.theme.offWhite};
+  background: ${p => (p.active ? p.theme.offWhiteLight : p.theme.offWhite)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   &:focus,
   &:hover {
-    background: ${p =>
-      color(p.theme.offWhite)
-        .darken(0.05)
-        .string()};
+    background: ${p => p.theme.offWhiteLight};
     color: ${p => p.theme.gray3};
     cursor: pointer;
   }
@@ -240,6 +250,11 @@ const StyledLabel = styled('label')<{for: string}>`
   margin: 0;
   color: ${p => p.theme.gray2};
   padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
+`;
+
+const MenuItemButton = styled(Button)`
+  color: ${p => p.theme.gray3};
+  margin-left: ${space(0.5)};
 `;
 
 const InputContainer = styled('div')`
