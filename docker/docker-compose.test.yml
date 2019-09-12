@@ -1,7 +1,9 @@
 version: '3.4'
 services:
   sut:
-    build:
-      context: .
-      dockerfile: test.dockerfile
-    command: /bin/bash -ex test.sh
+    image: getsentry/sentry:git
+    environment:
+      - SENTRY_SKIP_BACKEND_VALIDATION=1
+      - SENTRY_SECRET_KEY=abc
+      - SENTRY_REDIS_HOST=localhost
+  command: config get system.secret-key
