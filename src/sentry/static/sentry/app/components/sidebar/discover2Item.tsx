@@ -10,6 +10,7 @@ import {
   fetchSavedQueries,
   deleteSavedQuery,
 } from 'app/actionCreators/discoverSavedQueries';
+import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -94,7 +95,9 @@ class Discover2Item extends React.Component<Props, State> {
             role="menuitem"
             key={item.id}
           >
-            <QueryName>{item.name}</QueryName>
+            <QueryName>
+              <Highlight text={inputValue}>{item.name}</Highlight>
+            </QueryName>
             <div>
               <Button
                 size="xsmall"
