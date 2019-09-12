@@ -374,11 +374,17 @@ def query_subscription_consumer(**options):
     help="How many messages to process before committing offsets.",
 )
 @click.option(
-    "--max-batch-time-ms",
+    "--max-fetch-time-ms",
     default=100,
     type=int,
-    help="Timeout (in milliseconds) for a consume batch operation. Max time the kafka consumer will wait"
+    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
     "before returning the available messages in the topic.",
+)
+@click.option(
+    "--initial-offset-reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @configuration
 def ingest_consumer(**options):
@@ -398,11 +404,12 @@ def ingest_consumer(**options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    max_batch_time_seconds = options["max-batch-time-ms"] / 1000.0
+    max_fetch_time_seconds = options["max-fetch-time-ms"] / 1000.0
 
     run_ingest_consumer(
         commit_batch_size=options["commit_batch_size"],
         consumer_group=options["group"],
         consumer_type=consumer_type,
-        max_batch_time_seconds=max_batch_time_seconds,
+        max_fetch_time_seconds=max_fetch_time_seconds,
+        initial_offset_reset=options["initial_offset_reset"],
     )
