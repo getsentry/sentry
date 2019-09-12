@@ -404,7 +404,7 @@ def ingest_consumer(**options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    max_fetch_time_seconds = options["max-fetch-time-ms"] / 1000.0
+    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
 
     run_ingest_consumer(
         commit_batch_size=options["commit_batch_size"],
