@@ -884,7 +884,7 @@ class EventManager(object):
 
             metrics.timing(
                 "events.store.nodestore.duration",
-                time.time() - start,
+                int((time.time() - start) * 1000),
                 tags={"duplicate_found": bool(node_data)},
             )
 
