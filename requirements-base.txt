@@ -47,7 +47,7 @@ python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python-openid>=2.2
 python-u2flib-server>=5.0.0,<6.0.0
-PyYAML>=3.11,<3.12
+PyYAML==3.13
 qrcode>=5.2.2,<6.0.0
 querystring_parser>=1.2.3,<2.0.0
 rb>=1.7.0,<2.0.0
