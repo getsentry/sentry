@@ -56,6 +56,7 @@ class AcceptOrganizationInvite(Endpoint):
         # Allow users to register an account when accepting an invite
         if not helper.user_authenticated:
             request.session["can_register"] = True
+            add_invite_cookie(request, response, member_id, token)
 
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
