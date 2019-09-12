@@ -311,7 +311,6 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
-      await tick();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -320,9 +319,6 @@ describe('IssueList,', function() {
           data: expect.stringContaining('is%3Aresolved'),
         })
       );
-
-      await tick();
-      wrapper.update();
 
       expect(getSearchBarValue(wrapper)).toBe('is:resolved');
 
@@ -382,6 +378,7 @@ describe('IssueList,', function() {
       createWrapper({location: {query: {query: 'level:error'}}});
 
       await tick();
+      wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -507,7 +504,7 @@ describe('IssueList,', function() {
       // Submit the form
       wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
       await wrapper.update();
-      await tick();
+
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/',
@@ -544,7 +541,7 @@ describe('IssueList,', function() {
         url: '/organizations/org-slug/pinned-searches/',
         method: 'DELETE',
       });
-      await tick();
+
       wrapper
         .find('SmartSearchBar input')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
@@ -795,7 +792,7 @@ describe('IssueList,', function() {
           isPinned: true,
         },
       });
-      await tick();
+
       wrapper
         .find('SmartSearchBar input')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
@@ -920,7 +917,6 @@ describe('IssueList,', function() {
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
       wrapper.update();
-      await tick();
 
       expect(
         wrapper

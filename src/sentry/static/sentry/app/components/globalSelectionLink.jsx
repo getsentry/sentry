@@ -29,16 +29,16 @@ export default class GlobalSelectionLink extends React.Component {
     const query = to && to.query ? {...globalQuery, ...to.query} : globalQuery;
 
     if (location) {
-      let toWithGlobalSelection;
+      let toWithGlobalQuery;
       if (hasGlobalQuery) {
         if (typeof to === 'string') {
-          toWithGlobalSelection = {pathname: to, query};
+          toWithGlobalQuery = {pathname: to, query};
         } else {
-          toWithGlobalSelection = {...to, query};
+          toWithGlobalQuery = {...to, query};
         }
       }
-      const routerProps = toWithGlobalSelection
-        ? {...this.props, to: toWithGlobalSelection}
+      const routerProps = toWithGlobalQuery
+        ? {...this.props, to: toWithGlobalQuery}
         : {...this.props, to};
 
       return <RouterLink {...routerProps}>{this.props.children}</RouterLink>;
