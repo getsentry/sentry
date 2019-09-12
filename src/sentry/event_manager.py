@@ -878,7 +878,16 @@ class EventManager(object):
         use_nodestore = random.random() < nodestore_sample_rate
 
         if use_nodestore:
+            start = time.time()
+
             node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
+
+            metrics.timing(
+                "events.store.nodestore.duration",
+                time.time() - start,
+                tags={"duplicate_found": bool(node_data)},
+            )
+
             if node_data:
                 return Event(node_data)
         else:
