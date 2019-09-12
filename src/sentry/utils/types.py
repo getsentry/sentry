@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import six
+from past.builtins import long
 
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
