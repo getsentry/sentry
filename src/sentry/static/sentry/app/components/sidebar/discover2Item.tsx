@@ -4,8 +4,12 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import AutoComplete from 'app/components/autoComplete';
+import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
-import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
+import {
+  fetchSavedQueries,
+  deleteSavedQuery,
+} from 'app/actionCreators/discoverSavedQueries';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -63,6 +67,13 @@ class Discover2Item extends React.Component<Props, State> {
     browserHistory.push(target);
   };
 
+  handleDelete = (event: React.MouseEvent<Element>, item: SavedQuery) => {
+    const {organization, api} = this.props;
+    event.preventDefault();
+    event.stopPropagation();
+    deleteSavedQuery(api, organization.slug, item.id);
+  };
+
   renderSavedQueries({inputValue, getItemProps, highlightedIndex}) {
     const {savedQueries} = this.props;
     if (!savedQueries || savedQueries.length === 0) {
@@ -83,7 +94,14 @@ class Discover2Item extends React.Component<Props, State> {
             role="menuitem"
             key={item.id}
           >
-            {item.name}
+            <QueryName>{item.name}</QueryName>
+            <div>
+              <Button
+                size="xsmall"
+                icon="icon-trash"
+                onClick={event => this.handleDelete(event, item)}
+              />
+            </div>
           </MenuItem>
         );
       });
@@ -185,7 +203,11 @@ type MenuItemProps = {
   active: boolean;
 };
 const MenuItem = styled('span')<MenuItemProps>`
-  display: block;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
   padding: ${space(1.5)} ${space(2)};
   color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
   background: ${p =>
@@ -204,7 +226,11 @@ const MenuItem = styled('span')<MenuItemProps>`
     color: ${p => p.theme.gray3};
     cursor: pointer;
   }
+`;
+
+const QueryName = styled('span')`
   ${overflowEllipsis};
+  line-height: 1.2;
 `;
 
 const StyledLabel = styled('label')<{for: string}>`
