@@ -86,11 +86,11 @@ class RedisQuotaTest(TestCase):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
         quotas = self.quota.get_quotas(self.project)
-        assert quotas[0].prefix == u'p'
+        assert quotas[0].prefix == u"p"
         assert quotas[0].subscope == self.project.id
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
-        assert quotas[1].prefix == u'o'
+        assert quotas[1].prefix == u"o"
         assert quotas[1].subscope is None
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
@@ -115,29 +115,25 @@ class RedisQuotaTest(TestCase):
         assert self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, False))
-    def test_not_limited_without_enforce(self, mock_is_rate_limited, mock_get_quotas):
+    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
+    def test_not_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
             BasicRedisQuota(
-                prefix="p", subscope=1, limit=1, window=1, reason_code="project_quota", enforce=False
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
             ),
-            BasicRedisQuota(
-                prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota", enforce=True
-            ),
+            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         assert not self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, True))
-    def test_limited_without_enforce(self, mock_is_rate_limited, mock_get_quotas):
+    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, True))
+    def test_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
             BasicRedisQuota(
-                prefix="p", subscope=1, limit=1, window=1, reason_code="project_quota", enforce=False
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
             ),
-            BasicRedisQuota(
-                prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota", enforce=True
-            ),
+            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         assert self.quota.is_rate_limited(self.project).is_limited
@@ -158,11 +154,11 @@ class RedisQuotaTest(TestCase):
             self.project.organization_id,
             quotas
             + [
-                BasicRedisQuota(prefix="unlimited", limit=0, window=60, reason_code="unlimited"),
+                BasicRedisQuota(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
                 BasicRedisQuota(prefix="dummy", limit=10, window=60, reason_code="dummy"),
             ],
             timestamp=timestamp,
-        ) == [n for _ in quotas] + [None, 0]
+        ) == [n for _ in quotas] + [0, 0]
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund(self, mock_get_quotas):
@@ -170,11 +166,9 @@ class RedisQuotaTest(TestCase):
 
         mock_get_quotas.return_value = (
             BasicRedisQuota(
-                prefix="p", subscope=1, limit=1, window=1, reason_code="project_quota", enforce=False
+                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
             ),
-            BasicRedisQuota(
-                prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota", enforce=True
-            ),
+            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         self.quota.refund(self.project, timestamp=timestamp)
@@ -207,9 +201,9 @@ class RedisQuotaTest(TestCase):
             self.project.organization_id,
             quotas
             + [
-                BasicRedisQuota(prefix="unlimited", limit=0, window=60, reason_code="unlimited"),
+                BasicRedisQuota(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
                 BasicRedisQuota(prefix="dummy", limit=10, window=60, reason_code="dummy"),
             ],
             timestamp=timestamp,
             # the - 1 is because we refunded once
-        ) == [n - 1 for _ in quotas] + [None, 0]
+        ) == [n - 1 for _ in quotas] + [0, 0]

@@ -17,7 +17,7 @@ class QuotaTest(TestCase):
 
         with self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
             with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (0, 60)
+                assert self.backend.get_project_quota(project) == (None, 60)
 
             OrganizationOption.objects.set_value(org, "sentry:project-rate-limit", 80)
 
@@ -25,7 +25,7 @@ class QuotaTest(TestCase):
                 assert self.backend.get_project_quota(project) == (80, 60)
 
             with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (0, 60)
+                assert self.backend.get_project_quota(project) == (None, 60)
 
     def test_get_key_quota(self):
         key = ProjectKey.objects.create(
@@ -37,7 +37,7 @@ class QuotaTest(TestCase):
         key = ProjectKey.objects.create(
             project=self.project, rate_limit_window=None, rate_limit_count=None
         )
-        assert self.backend.get_key_quota(key) == (0, 0)
+        assert self.backend.get_key_quota(key) == (None, 0)
 
     def test_get_key_quota_multiple_keys(self):
         # This checks for a regression where we'd cache key quotas per project
@@ -48,7 +48,7 @@ class QuotaTest(TestCase):
         rate_limited_key = ProjectKey.objects.create(
             project=self.project, rate_limit_window=200, rate_limit_count=86400
         )
-        assert self.backend.get_key_quota(key) == (0, 0)
+        assert self.backend.get_key_quota(key) == (None, 0)
         assert self.backend.get_key_quota(rate_limited_key) == (86400, 200)
 
     def test_get_organization_quota_with_account_limit_and_higher_system_limit(self):
