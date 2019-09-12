@@ -103,7 +103,10 @@ class OrganizationMember(Model):
     invite_status = models.PositiveSmallIntegerField(
         choices=(
             (InviteStatus.APPROVED.value, _("Approved")),
-            (InviteStatus.REQUESTED_TO_BE_INVITED.value, _("Org member requested to invite user")),
+            (
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                _("Organization member requested to invite user"),
+            ),
             (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join org")),
         ),
         default=InviteStatus.APPROVED.value,
