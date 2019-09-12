@@ -26,7 +26,12 @@ describe('GroupTags', function() {
       routerContext
     );
 
-    expect(tagsMock).toHaveBeenCalled();
+    expect(tagsMock).toHaveBeenCalledWith(
+      '/issues/1/tags/',
+      expect.objectContaining({
+        query: {environment: ['dev']},
+      })
+    );
 
     wrapper
       .find('li[data-test-id="user"] Link')
