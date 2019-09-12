@@ -107,7 +107,7 @@ class OrganizationMember(Model):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 _("Organization member requested to invite user"),
             ),
-            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join org")),
+            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
         ),
         default=InviteStatus.APPROVED.value,
         null=True,
