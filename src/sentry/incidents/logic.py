@@ -34,7 +34,7 @@ from sentry.incidents import tasks
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
-    update_snuba_subscription,
+    bulk_update_snuba_subscriptions,
 )
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
@@ -630,6 +630,7 @@ def create_alert_rule(
 
 def update_alert_rule(
     alert_rule,
+    projects=None,
     name=None,
     threshold_type=None,
     query=None,
@@ -684,24 +685,66 @@ def update_alert_rule(
         updated_fields["threshold_period"] = threshold_period
 
     with transaction.atomic():
-        if query is not None or aggregation is not None or time_window is not None:
-            # TODO: We're assuming only one subscription for the moment
-            subscription = (
-                AlertRuleQuerySubscription.objects.select_related("query_subscription")
-                .get(alert_rule=alert_rule)
-                .query_subscription
-            )
-            # If updating any details of the query, update the Snuba subscription
-            update_snuba_subscription(
-                subscription,
-                query if query is not None else alert_rule.query,
-                aggregation
-                if aggregation is not None
-                else QueryAggregations(alert_rule.aggregation),
-                time_window if time_window else alert_rule.time_window,
+        alert_rule.update(**updated_fields)
+        existing_subs = []
+        if (
+            query is not None
+            or aggregation is not None
+            or time_window is not None
+            or projects is not None
+        ):
+            existing_subs = alert_rule.query_subscriptions.all().select_related("project")
+
+        if projects is not None:
+            existing_project_slugs = {sub.project.slug for sub in existing_subs}
+            # Determine whether we've added any new projects as part of this update
+            new_projects = [
+                project for project in projects if project.slug not in existing_project_slugs
+            ]
+            updated_project_slugs = {project.slug for project in projects}
+            # Find any subscriptions that were removed as part of this update
+            deleted_subs = [
+                sub for sub in existing_subs if sub.project.slug not in updated_project_slugs
+            ]
+            if new_projects:
+                new_subscriptions = bulk_create_snuba_subscriptions(
+                    new_projects,
+                    tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                    QueryDatasets(alert_rule.dataset),
+                    alert_rule.query,
+                    QueryAggregations(alert_rule.aggregation),
+                    alert_rule.time_window,
+                    DEFAULT_ALERT_RULE_RESOLUTION,
+                )
+                subscription_links = [
+                    AlertRuleQuerySubscription(
+                        query_subscription=subscription, alert_rule=alert_rule
+                    )
+                    for subscription in new_subscriptions
+                ]
+                AlertRuleQuerySubscription.objects.bulk_create(subscription_links)
+
+            if deleted_subs:
+                bulk_delete_snuba_subscriptions(deleted_subs)
+
+            # Remove any deleted subscriptions from `existing_subscriptions`, so that
+            # if we need to update any subscriptions we don't end up doing it twice. We
+            # don't add new subscriptions here since they'll already have the updated
+            # values
+            existing_subs = [sub for sub in existing_subs if sub.id]
+
+        if existing_subs and (
+            query is not None or aggregation is not None or time_window is not None
+        ):
+            # If updating any subscription details, update related Snuba subscriptions
+            # too
+            bulk_update_snuba_subscriptions(
+                existing_subs,
+                alert_rule.query,
+                QueryAggregations(alert_rule.aggregation),
+                alert_rule.time_window,
                 DEFAULT_ALERT_RULE_RESOLUTION,
             )
-        alert_rule.update(**updated_fields)
 
     return alert_rule
 
