@@ -412,6 +412,7 @@ describe('IssueList,', function() {
 
       await tick();
       wrapper.update();
+
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -419,6 +420,7 @@ describe('IssueList,', function() {
           data: expect.stringContaining(''),
         })
       );
+
       expect(getSearchBarValue(wrapper)).toBe('');
 
       // Organization saved search selector should have default saved search selected
