@@ -18,7 +18,7 @@ def bulk_create_snuba_subscriptions(
     projects, subscription_type, dataset, query, aggregation, time_window, resolution
 ):
     """
-    Creates a subscription to a snuba query.
+    Creates a subscription to a snuba query for each project.
 
     :param projects: The projects we're applying the query to
     :param subscription_type: Text identifier for the subscription type this is. Used
@@ -76,6 +76,27 @@ def create_snuba_subscription(
         time_window=time_window,
         resolution=resolution,
     )
+
+
+def bulk_update_snuba_subscriptions(subscriptions, query, aggregation, time_window, resolution):
+    """
+    Updates a list of query subscriptions.
+
+    :param subscriptions: The subscriptions we're updating
+    :param query: An event search query that we can parse and convert into a
+    set of Snuba conditions
+    :param aggregation: An aggregation to calculate over the time window
+    :param time_window: The time window to aggregate over
+    :param resolution: How often to receive updates/bucket size
+    :return: A list of QuerySubscriptions
+    """
+    updated_subscriptions = []
+    # TODO: Batch this up properly once we move to tasks.
+    for subscription in subscriptions:
+        updated_subscriptions.append(
+            update_snuba_subscription(subscription, query, aggregation, time_window, resolution)
+        )
+    return subscriptions
 
 
 def update_snuba_subscription(subscription, query, aggregation, time_window, resolution):
