@@ -1,20 +1,15 @@
-import {Link, browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
-import {sendSampleEvent} from 'app/actionCreators/projects';
-import Button from 'app/components/button';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 import withApi from 'app/utils/withApi';
 
-const ErrorRobot = createReactClass({
-  displayName: 'ErrorRobot',
-
-  propTypes: {
+class ErrorRobot extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     org: PropTypes.object.isRequired,
     project: PropTypes.object,
@@ -26,19 +21,17 @@ const ErrorRobot = createReactClass({
     sampleIssueId: PropTypes.string,
 
     gradient: PropTypes.bool,
-  },
+  };
 
-  getInitialState() {
-    return {
-      error: false,
-      loading: false,
-      sampleIssueId: this.props.sampleIssueId,
-    };
-  },
+  state = {
+    error: false,
+    loading: false,
+    sampleIssueId: this.props.sampleIssueId,
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   fetchData() {
     const {org, project} = this.props;
@@ -56,7 +49,7 @@ const ErrorRobot = createReactClass({
       this.props.api.request(url, {
         method: 'GET',
         data: requestParams,
-        success: (data, ignore, jqXHR) => {
+        success: data => {
           this.setState({
             loading: false,
             sampleIssueId: (data.length > 0 && data[0].id) || '',
@@ -72,23 +65,7 @@ const ErrorRobot = createReactClass({
         },
       });
     }
-  },
-
-  createSampleEvent() {
-    const {org, project} = this.props;
-
-    analytics('sample_event.created', {
-      org_id: parseInt(org.id, 10),
-      project_id: parseInt(project.id, 10),
-      source: 'robot',
-    });
-
-    sendSampleEvent(this.props.api, org.slug, project.slug)
-      .then(data => {
-        browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
-      })
-      .catch(() => addErrorMessage(t('Unable to create sample event')));
-  },
+  }
 
   render() {
     const {loading, error, sampleIssueId} = this.state;
@@ -104,16 +81,18 @@ const ErrorRobot = createReactClass({
         </p>
       ) : (
         <p>
-          <Button
+          <CreateSampleEventButton
             priority="link"
             borderless
             size="large"
+            organization={org}
+            project={project}
+            source="issues_list"
             disabled={!project}
-            onClick={this.createSampleEvent}
-            title={t('Select a project to create a sample event')}
+            title={!project ? t('Select a project to create a sample event') : null}
           >
             {t('Create a sample event')}
-          </Button>
+          </CreateSampleEventButton>
         </p>
       );
     }
@@ -155,8 +134,8 @@ const ErrorRobot = createReactClass({
         </div>
       </ErrorRobotWrapper>
     );
-  },
-});
+  }
+}
 
 export {ErrorRobot};
 

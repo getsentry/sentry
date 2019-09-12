@@ -1,4 +1,3 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
 
 import {t} from 'app/locale';

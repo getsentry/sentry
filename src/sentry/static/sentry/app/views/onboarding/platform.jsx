@@ -4,7 +4,7 @@ import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
-import {stepPropTypes} from 'app/views/onboarding/wizardNew';
+import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';
@@ -46,7 +46,7 @@ class OnboardingPlatform extends React.Component {
     progressing: false,
   };
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (prevProps.active && !this.props.active) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({progressing: false});
@@ -114,7 +114,7 @@ class OnboardingPlatform extends React.Component {
   render() {
     const {active, project, platform, scrollTargetId} = this.props;
 
-    const selectedPlatform = platform || project?.platform;
+    const selectedPlatform = platform || (project && project.platform);
 
     const continueDisabled =
       !selectedPlatform || this.state.progressing || (this.hasFirstProject && !active);
@@ -144,6 +144,7 @@ class OnboardingPlatform extends React.Component {
           setPlatform={this.handleSetPlatform}
         />
         <Button
+          data-test-id="platform-select-next"
           priority="primary"
           disabled={continueDisabled}
           onClick={this.handleContinue}

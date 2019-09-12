@@ -1,3 +1,5 @@
+/* eslint-disable jest/no-disabled-tests */
+
 import React from 'react';
 import {shallow} from 'enzyme';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -14,7 +16,6 @@ describe('PluginIcon', function() {
   });
 
   // doesn't work because of the above comment
-  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('renders with default icon with invalid plugin id', function() {
     const wrapper = shallow(<PluginIcon pluginId="invalid" size={20} />);
     expect(wrapper).toMatchSnapshot();

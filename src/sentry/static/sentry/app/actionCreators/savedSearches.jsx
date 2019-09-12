@@ -1,4 +1,4 @@
-import {MAX_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
+import {MAX_AUTOCOMPLETE_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
@@ -109,7 +109,7 @@ export function fetchRecentSearches(api, orgId, type, query) {
     query: {
       query,
       type,
-      limit: MAX_RECENT_SEARCHES,
+      limit: MAX_AUTOCOMPLETE_RECENT_SEARCHES,
     },
   });
 

@@ -1,10 +1,3 @@
-"""
-sentry.tasks.base
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import resource
@@ -37,20 +30,21 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
         def _wrapped(*args, **kwargs):
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
-            transaction_id = kwargs.pop('__transaction_id', None)
+            transaction_id = kwargs.pop("__transaction_id", None)
 
-            key = 'jobs.duration'
+            key = "jobs.duration"
             if stat_suffix:
-                instance = u'{}.{}'.format(name, stat_suffix(*args, **kwargs))
+                instance = u"{}.{}".format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
 
             with configure_scope() as scope:
-                scope.set_tag('task_name', name)
-                scope.set_tag('transaction_id', transaction_id)
+                scope.set_tag("task_name", name)
+                scope.set_tag("transaction_id", transaction_id)
 
-            with metrics.timer(key, instance=instance), \
-                    track_memory_usage('jobs.memory_change', instance=instance):
+            with metrics.timer(key, instance=instance), track_memory_usage(
+                "jobs.memory_change", instance=instance
+            ):
                 result = func(*args, **kwargs)
 
             return result
@@ -60,7 +54,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func=None, on=(Exception, ), exclude=()):
+def retry(func=None, on=(Exception,), exclude=()):
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,))
     >>> def my_task():

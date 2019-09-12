@@ -272,8 +272,6 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrDayStartOfMonth,
-  .rdrDayStartOfMonth,
-  .rdrDayStartOfWeek,
   .rdrDayStartOfWeek {
     .rdrInRange {
       border-top-left-radius: 0;
@@ -282,8 +280,6 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrDayEndOfMonth,
-  .rdrDayEndOfMonth,
-  .rdrDayEndOfWeek,
   .rdrDayEndOfWeek {
     .rdrInRange {
       border-top-right-radius: 0;
@@ -337,7 +333,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
 const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${p => space(2)};
+  padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.borderLight};
 `;
 

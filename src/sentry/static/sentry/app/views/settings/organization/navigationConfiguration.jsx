@@ -29,7 +29,7 @@ const organizationNavigation = [
         path: `${pathPrefix}/members/`,
         title: t('Members'),
         // eslint-disable-next-line no-shadow
-        badge: ({organization, access, features}) => {
+        badge: ({organization, access}) => {
           if (!access.has('org:write')) {
             return null;
           }
@@ -87,7 +87,6 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/developer-settings/`,
         title: t('Developer Settings'),
-        show: ({access, features}) => features.has('sentry-apps'),
         description: t('Manage developer applications'),
         id: 'developer-settings',
       },

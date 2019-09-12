@@ -7,13 +7,13 @@
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
 
 {% block css %}
-  {{ block.super }}
   <link href="{% asset_url "sentry" "dist/select2.css" %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
   <script src="{% asset_url "sentry" "vendor/select2.min.js" %}"></script>
+  <script src="{% asset_url "sentry" "vendor/tooltip.min.js" %}"></script>
 
   <script>
     if (window.$) {

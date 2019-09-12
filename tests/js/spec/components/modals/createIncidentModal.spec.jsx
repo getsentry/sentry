@@ -48,7 +48,6 @@ describe('CreateIncidentModal', function() {
       '/organizations/org-slug/incidents/',
       expect.objectContaining({
         data: {
-          dateStarted: new Date(),
           groups: ['123', '456'],
           query: '',
           title: 'Oh no',

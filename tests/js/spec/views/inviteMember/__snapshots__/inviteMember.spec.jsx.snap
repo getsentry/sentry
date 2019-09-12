@@ -15,7 +15,15 @@ exports[`InviteMember should render loading 1`] = `
 
 exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -190,10 +198,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
       >
         <Panel>
           <Component
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e119nu470"
           >
             <div
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <PanelHeader>
                 <Component
@@ -434,7 +442,15 @@ exports[`InviteMember should render roles when available and allowed, and handle
         selectedTeams={Array []}
       >
         <TeamSelect
-          api={Client {}}
+          api={
+            Client {
+              "_chain": [Function],
+              "_wrapRequest": [Function],
+              "bulkUpdate": [Function],
+              "handleRequestError": [Function],
+              "hasProjectBeenRenamed": [Function],
+            }
+          }
           onAddTeam={[Function]}
           onRemoveTeam={[Function]}
           organization={
@@ -482,10 +498,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
         >
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-10qfvek-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
@@ -564,7 +580,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                               "outline": "none",
                                             }
                                           }
-                                          tabIndex={-1}
+                                          tabIndex="0"
                                         >
                                           <div
                                             className="css-12n6mek-Actor e53us8t0"
@@ -578,7 +594,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 "outline": "none",
                                               }
                                             }
-                                            tabIndex={-1}
+                                            tabIndex="0"
                                           >
                                             <DropdownButton
                                               aria-label="Add Team"
@@ -600,6 +616,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                   size="xsmall"
                                                 >
                                                   <Button
+                                                    align="center"
                                                     aria-label="Add Team"
                                                     className="css-13vimgs-StyledButton e1yghndz1"
                                                     disabled={true}
@@ -611,43 +628,39 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                       aria-label="Add Team"
                                                       className="css-13vimgs-StyledButton e1yghndz1"
                                                       disabled={true}
-                                                      href={null}
                                                       innerRef={null}
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="xsmall"
-                                                      to={null}
                                                     >
                                                       <ForwardRef
                                                         aria-disabled={true}
                                                         aria-label="Add Team"
-                                                        className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
+                                                        className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton edwq9my0"
                                                         disabled={true}
-                                                        href={null}
                                                         onClick={[Function]}
                                                         role="button"
                                                         size="xsmall"
-                                                        to={null}
                                                       >
                                                         <button
                                                           aria-disabled={true}
                                                           aria-label="Add Team"
-                                                          className="e1yghndz1 css-6mwd61-StyledButton-getColors-StyledButton e12ma6z0"
-                                                          href={null}
+                                                          className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton edwq9my0"
                                                           onClick={[Function]}
                                                           role="button"
                                                           size="xsmall"
-                                                          to={null}
                                                         >
                                                           <ButtonLabel
+                                                            align="center"
                                                             size="xsmall"
                                                           >
                                                             <Component
-                                                              className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                              align="center"
+                                                              className="css-1bqncjo-ButtonLabel edwq9my1"
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                className="css-1bqncjo-ButtonLabel edwq9my1"
                                                               >
                                                                 Add Team
                                                                 <StyledChevronDown>
@@ -658,14 +671,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                                       className="css-17v3tc-StyledChevronDown e1yghndz0"
                                                                       src="icon-chevron-down"
                                                                     >
-                                                                      <StyledSvg
-                                                                        className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                        height="1em"
-                                                                        viewBox={Object {}}
-                                                                        width="1em"
+                                                                      <ForwardRef
+                                                                        className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                        src="icon-chevron-down"
                                                                       >
                                                                         <svg
-                                                                          className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                          className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
                                                                           height="1em"
                                                                           viewBox={Object {}}
                                                                           width="1em"
@@ -675,7 +686,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                                             xlinkHref="#test"
                                                                           />
                                                                         </svg>
-                                                                      </StyledSvg>
+                                                                      </ForwardRef>
                                                                     </InlineSvg>
                                                                   </Component>
                                                                 </StyledChevronDown>
@@ -712,29 +723,29 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     className="css-a4ya23-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper
-                        data-test-id="empty-message"
+                      <Component
+                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                       >
                         <div
-                          className="css-ev9qm0-Wrapper eh488yo0"
+                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                           data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}
                           >
                             <Component
-                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                               noMargin={true}
                             >
                               <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                               >
                                 No Teams assigned
                               </div>
                             </Component>
                           </Description>
                         </div>
-                      </Wrapper>
+                      </Component>
                     </EmptyMessage>
                   </div>
                 </PanelBody>
@@ -744,6 +755,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
         </TeamSelect>
       </withApi(TeamSelect)>
       <Button
+        align="center"
         busy={false}
         className="invite-member-submit"
         disabled={false}
@@ -764,7 +776,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             aria-disabled={false}
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
+            className="invite-member-submit css-xiynrq-StyledButton-getColors edwq9my0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -773,19 +785,21 @@ exports[`InviteMember should render roles when available and allowed, and handle
             <button
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-1qchtmp-StyledButton-getColors e12ma6z0"
+              className="invite-member-submit css-xiynrq-StyledButton-getColors edwq9my0"
               onClick={[Function]}
               role="button"
             >
               <ButtonLabel
+                align="center"
                 priority="primary"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-oo1m2a-ButtonLabel edwq9my1"
                   priority="primary"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel e12ma6z1"
+                    className="css-oo1m2a-ButtonLabel edwq9my1"
                   >
                     Add Member
                   </span>

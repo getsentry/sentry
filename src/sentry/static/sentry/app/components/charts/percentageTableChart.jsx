@@ -258,7 +258,6 @@ const TableChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${PanelItem} {
     padding: ${space(1)};
   }

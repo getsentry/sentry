@@ -25,6 +25,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
+    shouldForceProject: PropTypes.bool,
     forceProject: SentryTypes.Project,
   };
 
@@ -135,6 +136,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       nonMemberProjects,
       multi,
       organization,
+      shouldForceProject,
       forceProject,
     } = this.props;
     const selectedProjectIds = new Set(value);
@@ -145,14 +147,23 @@ export default class MultipleProjectSelector extends React.PureComponent {
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
-    return forceProject ? (
+    // `forceProject` can be undefined if it is loading the project
+    // We are intentionally using an empty string as its "loading" state
+
+    return shouldForceProject ? (
       <StyledHeaderItem
         icon={<StyledInlineSvg src="icon-project" />}
         locked={true}
-        lockedMessage={t(`This issue is unique to the ${forceProject.slug} project`)}
-        settingsLink={`/settings/${organization.slug}/projects/${forceProject.slug}/`}
+        lockedMessage={
+          forceProject
+            ? t(`This issue is unique to the ${forceProject.slug} project`)
+            : t('This issue is unique to a project')
+        }
+        settingsLink={
+          forceProject && `/settings/${organization.slug}/projects/${forceProject.slug}/`
+        }
       >
-        {forceProject.slug}
+        {forceProject ? forceProject.slug : ''}
       </StyledHeaderItem>
     ) : (
       <StyledProjectSelector

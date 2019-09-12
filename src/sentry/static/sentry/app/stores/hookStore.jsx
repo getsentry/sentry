@@ -6,7 +6,6 @@ const validHookNames = new Set([
   // Additional routes
   'routes',
   'routes:admin',
-  'routes:onboarding',
   'routes:organization',
   'routes:organization-root',
 
@@ -26,6 +25,7 @@ const validHookNames = new Set([
   'component:org-members-view',
   'component:header-date-range',
   'component:header-selector-items',
+  'component:event-cause-empty',
 
   // Additional settings
   'settings:organization-navigation',
@@ -40,11 +40,8 @@ const validHookNames = new Set([
   'sidebar:item-label',
 
   // Onboarding experience
-  // TODO(epurkhiser): These all should become less getsentry specific
-  'utils:onboarding-survey-url',
-  'sidebar:onboarding-assets',
   'onboarding:invite-members',
-  'component:onboarding-new-project',
+  'onboarding:extra-chrome',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',
@@ -59,8 +56,6 @@ const validHookNames = new Set([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
-
-  // Explicit Feature hookNames
   'feature-disabled:events-page',
   'feature-disabled:events-sidebar-item',
   'feature-disabled:discover-page',

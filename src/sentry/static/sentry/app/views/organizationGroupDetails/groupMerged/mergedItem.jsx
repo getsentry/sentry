@@ -68,7 +68,7 @@ const MergedItem = createReactClass({
     e.preventDefault();
   },
 
-  handleToggle(e) {
+  handleToggle() {
     const {disabled, fingerprint, event} = this.props;
 
     if (disabled || this.state.busy) {
@@ -149,7 +149,7 @@ const ActionColumn = styled(Flex)`
   }
 `;
 
-const Controls = styled(({expanded, ...props}) => (
+const Controls = styled(({expanded: _expanded, ...props}) => (
   <Flex justify="space-between" {...props} />
 ))`
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -157,19 +157,20 @@ const Controls = styled(({expanded, ...props}) => (
   padding: ${space(0.5)} 0;
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
 
-  ${MergedGroup}:first-child & {
-    border-top: none;
-  }
-  ${MergedGroup}:last-child & {
-    border-top: none;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+  ${MergedGroup} {
+    &:first-child & {
+      border-top: none;
+    }
+    &:last-child & {
+      border-top: none;
+      border-bottom: 1px solid ${p => p.theme.borderLight};
+    }
   }
 `;
 
 const Fingerprint = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
   ${Controls} & {
     font-weight: normal;
     margin: 0;
@@ -191,10 +192,6 @@ const EventDetails = styled(Flex)`
 
   .event-list & {
     padding: 10px;
-  }
-
-  .event-message {
-    margin-bottom: 0;
   }
 `;
 

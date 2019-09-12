@@ -8,6 +8,8 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import EventAnnotation from 'app/components/events/eventAnnotation';
+import EventMessage from 'app/components/events/eventMessage';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ListLink from 'app/components/links/listLink';
@@ -17,6 +19,7 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
@@ -65,9 +68,6 @@ class GroupHeader extends React.Component {
 
     let className = 'group-detail';
 
-    className += ' type-' + group.type;
-    className += ' level-' + group.level;
-
     if (group.isBookmarked) {
       className += ' isBookmarked';
     }
@@ -99,54 +99,60 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <EventOrGroupTitle data={group} />
+              <GuideAnchor target="issue_title">
+                <EventOrGroupTitle data={group} />
+              </GuideAnchor>
             </h3>
-            <div className="event-message">
-              <span className="error-level">{group.level}</span>
-              {message && <span className="message">{message}</span>}
-              {group.logger && (
-                <span className="event-annotation">
-                  <Link
-                    to={{
-                      pathname: baseUrl,
-                      query: {query: 'logger:' + group.logger},
-                    }}
-                  >
-                    {group.logger}
-                  </Link>
-                </span>
-              )}
-              {group.annotations.map((annotation, i) => {
-                return (
-                  <span
-                    className="event-annotation"
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
-            </div>
+
+            <EventMessage
+              message={message}
+              level={group.level}
+              annotations={
+                <React.Fragment>
+                  {group.logger && (
+                    <EventAnnotationWithSpace>
+                      <Link
+                        to={{
+                          pathname: baseUrl,
+                          query: {query: 'logger:' + group.logger},
+                        }}
+                      >
+                        {group.logger}
+                      </Link>
+                    </EventAnnotationWithSpace>
+                  )}
+                  {group.annotations.map((annotation, i) => (
+                    <EventAnnotationWithSpace
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  ))}
+                </React.Fragment>
+              }
+            />
           </div>
+
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && (
                 <div className="short-id-box count align-right">
-                  <h6 className="nav-header">
-                    <GuideAnchor target="issue_number" type="text" />
-                    <Tooltip
-                      title={t(
-                        'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                      )}
-                      position="bottom"
-                    >
-                      <a
-                        className="help-link"
-                        href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
+                  <GuideAnchor target="issue_number" position="right">
+                    <h6 className="nav-header">
+                      <Tooltip
+                        title={t(
+                          'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                        )}
+                        position="bottom"
                       >
-                        {t('Issue #')}
-                      </a>
-                    </Tooltip>
-                  </h6>
+                        <a
+                          className="help-link"
+                          href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
+                        >
+                          {t('Issue #')}
+                        </a>
+                      </Tooltip>
+                    </h6>
+                  </GuideAnchor>
                   <ShortId
                     shortId={group.shortId}
                     avatar={
@@ -245,6 +251,9 @@ const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
 `;
 
+const EventAnnotationWithSpace = styled(EventAnnotation)`
+  margin-left: ${space(1)};
+`;
 export {GroupHeader};
 
 export default withApi(GroupHeader);

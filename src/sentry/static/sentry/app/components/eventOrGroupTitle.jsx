@@ -13,6 +13,7 @@ class EventOrGroupTitle extends React.Component {
         'expectct',
         'expectstaple',
         'default',
+        'transaction',
       ]).isRequired,
       title: PropTypes.string,
       metadata: Metadata.isRequired,

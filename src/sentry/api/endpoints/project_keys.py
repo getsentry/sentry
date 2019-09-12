@@ -11,26 +11,26 @@ from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ListClientKeys')
+@scenario("ListClientKeys")
 def list_keys_scenario(runner):
     runner.request(
-        method='GET', path='/projects/%s/%s/keys/' % (runner.org.slug, runner.default_project.slug)
+        method="GET", path="/projects/%s/%s/keys/" % (runner.org.slug, runner.default_project.slug)
     )
 
 
-@scenario('CreateClientKey')
+@scenario("CreateClientKey")
 def create_key_scenario(runner):
     runner.request(
-        method='POST',
-        path='/projects/%s/%s/keys/' % (runner.org.slug, runner.default_project.slug),
-        data={'name': 'Fabulous Key'}
+        method="POST",
+        path="/projects/%s/%s/keys/" % (runner.org.slug, runner.default_project.slug),
+        data={"name": "Fabulous Key"},
     )
 
 
 class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
-    public = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
-    secret = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
+    name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
+    public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
+    secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
@@ -50,25 +50,20 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                                      belong to.
         """
         queryset = ProjectKey.objects.filter(
-            project=project,
-            roles=F('roles').bitor(ProjectKey.roles.store),
+            project=project, roles=F("roles").bitor(ProjectKey.roles.store)
         )
-        status = request.GET.get('status')
-        if status == 'active':
-            queryset = queryset.filter(
-                status=ProjectKeyStatus.ACTIVE,
-            )
-        elif status == 'inactive':
-            queryset = queryset.filter(
-                status=ProjectKeyStatus.INACTIVE,
-            )
+        status = request.GET.get("status")
+        if status == "active":
+            queryset = queryset.filter(status=ProjectKeyStatus.ACTIVE)
+        elif status == "inactive":
+            queryset = queryset.filter(status=ProjectKeyStatus.INACTIVE)
         elif status:
             queryset = queryset.none()
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by="-id",
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -87,16 +82,16 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                                      belong to.
         :param string name: the name for the new key.
         """
-        serializer = KeySerializer(data=request.DATA)
+        serializer = KeySerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             key = ProjectKey.objects.create(
                 project=project,
-                label=result.get('name'),
-                public_key=result.get('public'),
-                secret_key=result.get('secret'),
+                label=result.get("name"),
+                public_key=result.get("public"),
+                secret_key=result.get("secret"),
             )
 
             self.create_audit_entry(

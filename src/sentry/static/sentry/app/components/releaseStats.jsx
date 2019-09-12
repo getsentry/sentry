@@ -1,17 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import AvatarList from 'app/components/avatar/avatarList';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 
-const ReleaseStats = createReactClass({
-  displayName: 'ReleaseStats',
-
-  propTypes: {
+class ReleaseStats extends React.Component {
+  static propTypes = {
     release: PropTypes.object,
-  },
+  };
 
   render() {
     const release = this.props.release;
@@ -21,12 +18,11 @@ const ReleaseStats = createReactClass({
       return null;
     }
 
-    const releaseSummary =
-      commitCount +
-      t(commitCount !== 1 ? ' commits ' : ' commit ') +
-      t('by ') +
-      authorCount +
-      t(authorCount !== 1 ? ' authors' : ' author');
+    const releaseSummary = [
+      tn('%s commit', '%s commits', commitCount),
+      t('by'),
+      tn('%s author', '%s authors', authorCount),
+    ].join(' ');
 
     return (
       <div className="release-stats">
@@ -36,8 +32,8 @@ const ReleaseStats = createReactClass({
         </span>
       </div>
     );
-  },
-});
+  }
+}
 
 const ReleaseSummaryHeading = styled('div')`
   color: ${p => p.theme.gray2};

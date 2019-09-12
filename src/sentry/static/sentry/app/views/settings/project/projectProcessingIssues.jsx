@@ -1,23 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel} from 'app/components/panels';
+import {Panel, PanelAlert} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
-import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -69,7 +70,7 @@ class ProjectProcessingIssues extends React.Component {
       expected: this.state.expected + 2,
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/`, {
-      success: (data, _, jqXHR) => {
+      success: data => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -120,7 +121,7 @@ class ProjectProcessingIssues extends React.Component {
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
-      success: (data, _, jqXHR) => {
+      success: () => {
         this.fetchData();
         this.setState({
           reprocessing: false,
@@ -144,7 +145,7 @@ class ProjectProcessingIssues extends React.Component {
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -173,7 +174,7 @@ class ProjectProcessingIssues extends React.Component {
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -322,12 +323,9 @@ class ProjectProcessingIssues extends React.Component {
                   "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
                 )}
               </label>
-              <div
-                className="form-control disabled auto-select"
-                style={{marginBottom: 6}}
-              >
-                curl -sL {fixLink} | bash
-              </div>
+              <AutoSelectText className="form-control disabled" style={{marginBottom: 6}}>
+                curl -sL "{fixLink}" | bash
+              </AutoSelectText>
             </div>
           </div>
         </div>
@@ -419,7 +417,19 @@ class ProjectProcessingIssues extends React.Component {
         apiMethod="PUT"
         initialData={formData}
       >
-        <JsonForm access={access} forms={formGroups} />
+        <JsonForm
+          access={access}
+          forms={formGroups}
+          renderHeader={() => (
+            <PanelAlert type="warning">
+              <TextBlock noMargin>
+                {t(`Reprocessing does not apply to Minidumps. Even when enabled,
+                    Minidump events with processing issues will show up in the
+                    issues stream immediately and cannot be reprocessed.`)}
+              </TextBlock>
+            </PanelAlert>
+          )}
+        />
       </Form>
     );
   };

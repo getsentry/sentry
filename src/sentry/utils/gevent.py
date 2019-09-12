@@ -1,4 +1,5 @@
-"""A wait callback to allow psycopg2 cooperation with gevent.
+"""
+A wait callback to allow psycopg2 cooperation with gevent.
 
 Use `make_psycopg_green()` to enable gevent support in Psycopg.
 """
@@ -34,10 +35,10 @@ from gevent.socket import wait_read, wait_write
 
 def make_psycopg_green():
     """Configure Psycopg to be used with gevent in non-blocking way."""
-    if not hasattr(extensions, 'set_wait_callback'):
+    if not hasattr(extensions, "set_wait_callback"):
         raise ImportError(
-            "support for coroutines not available in this Psycopg version (%s)" %
-            psycopg2.__version__
+            "support for coroutines not available in this Psycopg version (%s)"
+            % psycopg2.__version__
         )
 
     extensions.set_wait_callback(gevent_wait_callback)

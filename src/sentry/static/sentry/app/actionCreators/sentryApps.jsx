@@ -19,11 +19,11 @@ export function removeSentryApp(client, app) {
   });
   promise.then(
     () => {
-      addSuccessMessage(t(`${app.slug} successfully removed.`));
+      addSuccessMessage(t('%s successfully removed.', app.slug));
     },
     () => {
       clearIndicators();
-      addErrorMessage(t(`Unable to remove ${app.slug} application`));
+      addErrorMessage(t('Unable to remove %s integration', app.slug));
     }
   );
   return promise;

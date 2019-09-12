@@ -13,16 +13,16 @@ class OrganizationAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, 'letter_avatar'), (1, 'upload'), )
+    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
 
-    FILE_TYPE = 'avatar.file'
+    FILE_TYPE = "avatar.file"
 
-    organization = FlexibleForeignKey('sentry.Organization', unique=True, related_name='avatar')
+    organization = FlexibleForeignKey("sentry.Organization", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_organizationavatar'
+        app_label = "sentry"
+        db_table = "sentry_organizationavatar"
 
     def get_cache_key(self, size):
-        return 'org_avatar:%s:%s' % (self.organization_id, size)
+        return "org_avatar:%s:%s" % (self.organization_id, size)

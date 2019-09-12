@@ -1,31 +1,34 @@
-import PropTypes from 'prop-types';
 import {debounce} from 'lodash';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import withApi from 'app/utils/withApi';
-import IdBadge from 'app/components/idBadge';
+import {Panel, PanelHeader} from 'app/components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
-import Link from 'app/components/links/link';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IdBadge from 'app/components/idBadge';
 import IndicatorStore from 'app/stores/indicatorStore';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelHeader} from 'app/components/panels';
-import InlineSvg from 'app/components/inlineSvg';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withConfig from 'app/utils/withConfig';
+import withOrganization from 'app/utils/withOrganization';
 
 class TeamMembers extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
+    config: SentryTypes.Config.isRequired,
     organization: SentryTypes.Organization.isRequired,
   };
 
@@ -97,47 +100,50 @@ class TeamMembers extends React.Component {
     );
   }
 
-  fetchMembersRequest(query) {
-    const {orgId} = this.props.params;
-    return this.props.api.request(`/organizations/${orgId}/members/`, {
-      query: {
-        query,
-      },
-      success: data => {
-        this.setState({
-          orgMemberList: data,
-          dropdownBusy: false,
-        });
-      },
-      error: () => {
-        IndicatorStore.add(t('Unable to load organization members.'), 'error', {
-          duration: 2000,
-        });
-        this.setState({
-          dropdownBusy: false,
-        });
-      },
-    });
-  }
+  fetchMembersRequest = async query => {
+    const {params, api} = this.props;
+    const {orgId} = params;
 
-  fetchData = () => {
-    const params = this.props.params;
+    try {
+      const data = await api.requestPromise(`/organizations/${orgId}/members/`, {
+        query: {
+          query,
+        },
+      });
+      this.setState({
+        orgMemberList: data,
+        dropdownBusy: false,
+      });
+    } catch (_err) {
+      addErrorMessage(t('Unable to load organization members.'), {
+        duration: 2000,
+      });
 
-    this.props.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
-      success: data => {
-        this.setState({
-          teamMemberList: data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
+      this.setState({
+        dropdownBusy: false,
+      });
+    }
+  };
+
+  fetchData = async () => {
+    const {api, params} = this.props;
+
+    try {
+      const data = await api.requestPromise(
+        `/teams/${params.orgId}/${params.teamId}/members/`
+      );
+      this.setState({
+        teamMemberList: data,
+        loading: false,
+        error: false,
+      });
+    } catch (err) {
+      this.setState({
+        loading: false,
+        error: true,
+        errorResponse: err,
+      });
+    }
 
     this.fetchMembersRequest('');
   };
@@ -169,15 +175,13 @@ class TeamMembers extends React.Component {
             error: false,
             teamMemberList: this.state.teamMemberList.concat([orgMember]),
           });
-          IndicatorStore.add(t('Successfully added member to team.'), 'success', {
-            duration: 2000,
-          });
+          addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
           this.setState({
             loading: false,
           });
-          IndicatorStore.add(t('Unable to add team member.'), 'error', {duration: 2000});
+          addErrorMessage(t('Unable to add team member.'));
         },
       }
     );
@@ -196,7 +200,12 @@ class TeamMembers extends React.Component {
   renderDropdown = access => {
     const {params} = this.props;
 
-    if (!access.has('org:write')) {
+    // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
+    // a parent "team details" request should determine your team membership, so this only view is rendered only
+    // when you are a member
+    const canAddMembers = access.has('org:write') || access.has('team:admin');
+
+    if (!canAddMembers) {
       return (
         <DropdownButton
           disabled={true}
@@ -245,7 +254,7 @@ class TeamMembers extends React.Component {
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
-        {({isOpen, selectedItem}) => (
+        {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
             {t('Add Member')}
           </DropdownButton>
@@ -256,7 +265,11 @@ class TeamMembers extends React.Component {
 
   removeButton = member => {
     return (
-      <Button size="small" onClick={this.removeMember.bind(this, member)}>
+      <Button
+        size="small"
+        onClick={this.removeMember.bind(this, member)}
+        label={t('Remove')}
+      >
         <InlineSvg
           src="icon-circle-subtract"
           size="1.25em"
@@ -274,9 +287,10 @@ class TeamMembers extends React.Component {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {params, organization} = this.props;
-
+    const {params, organization, config} = this.props;
     const access = new Set(organization.access);
+    const isOrgAdmin = access.has('org:write');
+    const isTeamAdmin = access.has('team:admin');
 
     return (
       <Panel>
@@ -285,15 +299,19 @@ class TeamMembers extends React.Component {
           <div style={{textTransform: 'none'}}>{this.renderDropdown(access)}</div>
         </PanelHeader>
         {this.state.teamMemberList.length ? (
-          this.state.teamMemberList.map(member => (
-            <StyledMemberContainer key={member.id}>
-              <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
-              {access.has('org:write') && this.removeButton(member)}
-            </StyledMemberContainer>
-          ))
+          this.state.teamMemberList.map(member => {
+            const isSelf = member.email === config.user.email;
+            const canRemoveMember = isOrgAdmin || isTeamAdmin || isSelf;
+            return (
+              <StyledMemberContainer key={member.id}>
+                <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
+                {canRemoveMember && this.removeButton(member)}
+              </StyledMemberContainer>
+            );
+          })
         ) : (
           <EmptyMessage icon="icon-user" size="large">
-            {t('Your Team is Empty')}
+            {t('This team has no members')}
           </EmptyMessage>
         )}
       </Panel>
@@ -341,6 +359,4 @@ const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
 `;
 
-export {TeamMembers};
-
-export default withApi(withOrganization(TeamMembers));
+export default withConfig(withApi(withOrganization(TeamMembers)));

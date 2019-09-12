@@ -1,5 +1,5 @@
 import GroupingStore from 'app/stores/groupingStore';
-import {Client} from 'app/api';
+import {Client, mergeMock} from 'app/api';
 
 describe('Grouping Store', function() {
   let trigger;
@@ -318,7 +318,6 @@ describe('Grouping Store', function() {
 
     describe('onMerge', function() {
       beforeEach(function() {
-        jest.spyOn(Client.prototype, 'merge');
         Client.clearMockResponses();
         Client.addMockResponse({
           method: 'PUT',
@@ -360,7 +359,7 @@ describe('Grouping Store', function() {
 
         await promise;
 
-        expect(Client.prototype.merge).toHaveBeenCalledWith(
+        expect(mergeMock).toHaveBeenCalledWith(
           {
             orgId: 'orgId',
             projectId: 'projectId',

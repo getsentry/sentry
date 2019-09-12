@@ -9,7 +9,6 @@ import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
@@ -129,7 +128,7 @@ class ProjectReleaseTracking extends AsyncView {
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
                 {
                   link: (
-                    <a href="https://docs.sentry.io/workflow/releases/?platform=javascript#tag-errors">
+                    <a href="https://docs.sentry.io/workflow/releases/#configure-sdk">
                       our docs
                     </a>
                   ),
@@ -202,21 +201,21 @@ class ProjectReleaseTracking extends AsyncView {
               )}
             </p>
 
-            <DynamicWrapper
-              value={
+            {getDynamicText({
+              value: (
                 <AutoSelectText>
                   <pre>{this.getReleaseWebhookIntructions()}</pre>
                 </AutoSelectText>
-              }
-              fixed={
+              ),
+              fixed: (
                 <pre>
                   {`curl __WEBHOOK_URL__ \\
   -X POST \\
   -H 'Content-Type: application/json' \\
   -d \'{"version": "abcdefg"}\'`}
                 </pre>
-              }
-            />
+              ),
+            })}
           </PanelBody>
         </Panel>
 

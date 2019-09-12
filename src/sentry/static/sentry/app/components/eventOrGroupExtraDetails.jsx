@@ -1,15 +1,15 @@
+import {Link, withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
-import ShortId from 'app/components/shortId';
 import {tct} from 'app/locale';
+import EventAnnotation from 'app/components/events/eventAnnotation';
 import InlineSvg from 'app/components/inlineSvg';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Times from 'app/components/group/times';
 import SentryTypes from 'app/sentryTypes';
+import ShortId from 'app/components/shortId';
+import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 
 class EventOrGroupExtraDetails extends React.Component {
@@ -50,7 +50,7 @@ class EventOrGroupExtraDetails extends React.Component {
     const issuesPath = `/organizations/${params.orgId}/issues/`;
 
     return (
-      <GroupExtra align="center">
+      <GroupExtra>
         {shortId && (
           <GroupShortId
             shortId={shortId}
@@ -61,41 +61,36 @@ class EventOrGroupExtraDetails extends React.Component {
             }
           />
         )}
-        <Times lastSeen={lastSeen} firstSeen={firstSeen} />
-        <GroupExtraCommentsAndLogger>
-          {numComments > 0 && (
-            <Box mr={2}>
-              <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-                <GroupExtraIcon
-                  src="icon-comment-sm"
-                  mentioned={
-                    subscriptionDetails && subscriptionDetails.reason === 'mentioned'
-                  }
-                />
-                <span>{numComments}</span>
-              </CommentsLink>
-            </Box>
-          )}
-          {logger && (
-            <Box className="event-annotation" mr={2}>
-              <Link
-                to={{
-                  pathname: issuesPath,
-                  query: {
-                    query: 'logger:' + logger,
-                  },
-                }}
-              >
-                {logger}
-              </Link>
-            </Box>
-          )}
-        </GroupExtraCommentsAndLogger>
+        <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />
+        {numComments > 0 && (
+          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+            <GroupExtraIcon
+              src="icon-comment-sm"
+              mentioned={
+                subscriptionDetails && subscriptionDetails.reason === 'mentioned'
+              }
+            />
+            <span>{numComments}</span>
+          </CommentsLink>
+        )}
+        {logger && (
+          <LoggerAnnotation>
+            <Link
+              to={{
+                pathname: issuesPath,
+                query: {
+                  query: 'logger:' + logger,
+                },
+              }}
+            >
+              {logger}
+            </Link>
+          </LoggerAnnotation>
+        )}
         {annotations &&
           annotations.map((annotation, key) => {
             return (
-              <div
-                className="event-annotation"
+              <AnnotationNoMargin
                 dangerouslySetInnerHTML={{
                   __html: annotation,
                 }}
@@ -112,7 +107,12 @@ class EventOrGroupExtraDetails extends React.Component {
   }
 }
 
-const GroupExtra = styled(Flex)`
+const GroupExtra = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(2)};
+  justify-content: start;
+  align-items: center;
   color: ${p => p.theme.gray3};
   font-size: 12px;
   position: relative;
@@ -122,18 +122,15 @@ const GroupExtra = styled(Flex)`
   }
 `;
 
-const GroupExtraCommentsAndLogger = styled(Flex)`
-  color: ${p => p.theme.gray4};
+const StyledTimes = styled(Times)`
+  margin-right: 0;
 `;
 
 const CommentsLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
+  color: ${p => p.theme.gray4};
 `;
 
 const GroupShortId = styled(ShortId)`
-  margin-right: ${space(2)};
   flex-shrink: 0;
   font-size: 12px;
   color: ${p => p.theme.gray3};
@@ -143,6 +140,15 @@ const GroupExtraIcon = styled(InlineSvg)`
   color: ${p => (p.isMentioned ? p.theme.green : null)};
   font-size: 11px;
   margin-right: 4px;
+`;
+
+const AnnotationNoMargin = styled(EventAnnotation)`
+  margin-left: 0;
+  padding-left: ${space(2)};
+`;
+
+const LoggerAnnotation = styled(AnnotationNoMargin)`
+  color: ${p => p.theme.gray4};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);

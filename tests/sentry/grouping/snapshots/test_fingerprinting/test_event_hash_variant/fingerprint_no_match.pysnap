@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T22:45:06.546058Z'
+created: '2019-07-23T21:55:26.024104Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -16,3 +16,14 @@ config:
 fingerprint:
 - my-route
 - '{{ default }}'
+variants:
+  app:
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'
+  system:
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'

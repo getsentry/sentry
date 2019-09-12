@@ -88,7 +88,8 @@ describe('OrganizationDetails', function() {
 
       it('should render a deletion in progress prompt', async function() {
         const tree = mount(
-          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />
+          <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
+          TestStubs.routerContext()
         );
         await tick();
         await tick();

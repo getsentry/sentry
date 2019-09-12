@@ -59,14 +59,15 @@ class DebugToolbar(object):
         if not self.should_render_panels():
             self.store()
         try:
-            context = {'toolbar': self}
-            return render_to_string('debug_toolbar/base.html', context)
+            context = {"toolbar": self}
+            return render_to_string("debug_toolbar/base.html", context)
         except TemplateSyntaxError:
             if django.VERSION[:2] >= (1, 7):
                 from django.apps import apps
-                staticfiles_installed = apps.is_installed('django.contrib.staticfiles')
+
+                staticfiles_installed = apps.is_installed("django.contrib.staticfiles")
             else:
-                staticfiles_installed = ('django.contrib.staticfiles' in settings.INSTALLED_APPS)
+                staticfiles_installed = "django.contrib.staticfiles" in settings.INSTALLED_APPS
             if not staticfiles_installed:
                 raise ImproperlyConfigured(
                     "The debug toolbar requires the staticfiles contrib app. "
@@ -81,18 +82,18 @@ class DebugToolbar(object):
     _store = OrderedDict()
 
     def should_render_panels(self):
-        render_panels = self.config['RENDER_PANELS']
+        render_panels = self.config["RENDER_PANELS"]
         if render_panels is None:
             # Django 1.4 still supports mod_python :( Fall back to the safe
             # and inefficient default in that case. Revert when we drop 1.4.
-            render_panels = self.request.META.get('wsgi.multiprocess', True)
+            render_panels = self.request.META.get("wsgi.multiprocess", True)
         return render_panels
 
     def store(self):
         self.store_id = uuid.uuid4().hex
         cls = type(self)
         cls._store[self.store_id] = self
-        for _ in range(len(cls._store) - self.config['RESULTS_CACHE_SIZE']):
+        for _ in range(len(cls._store) - self.config["RESULTS_CACHE_SIZE"]):
             try:
                 # collections.OrderedDict
                 cls._store.popitem(last=False)
@@ -117,7 +118,7 @@ class DebugToolbar(object):
             for panel_path in dt_settings.PANELS:
                 # This logic could be replaced with import_by_path in Django 1.6.
                 try:
-                    panel_module, panel_classname = panel_path.rsplit('.', 1)
+                    panel_module, panel_classname = panel_path.rsplit(".", 1)
                 except ValueError:
                     raise ImproperlyConfigured("%s isn't a debug panel module" % panel_path)
                 try:
@@ -130,8 +131,8 @@ class DebugToolbar(object):
                     panel_class = getattr(mod, panel_classname)
                 except AttributeError:
                     raise ImproperlyConfigured(
-                        'Toolbar Panel module "%s" does not define a "%s" class' %
-                        (panel_module, panel_classname)
+                        'Toolbar Panel module "%s" does not define a "%s" class'
+                        % (panel_module, panel_classname)
                     )
                 panel_classes.append(panel_class)
             cls._panel_classes = panel_classes
@@ -143,11 +144,10 @@ class DebugToolbar(object):
     def get_urls(cls):
         if cls._urlpatterns is None:
             from . import views
+
             # Load URLs in a temporary variable for thread safety.
             # Global URLs
-            urlpatterns = [
-                url(r'^render_panel/$', views.render_panel, name='render_panel'),
-            ]
+            urlpatterns = [url(r"^render_panel/$", views.render_panel, name="render_panel")]
             # Per-panel URLs
             for panel_class in cls.get_panel_classes():
                 urlpatterns += panel_class.get_urls()

@@ -61,7 +61,7 @@ class SlackRequest(object):
         Provide a normalized interface to ``team_id``, which Action and Event
         requests provide in different places.
         """
-        return self.data.get('team_id') or self.data.get('team', {}).get('id')
+        return self.data.get("team_id") or self.data.get("team", {}).get("id")
 
     @property
     def data(self):
@@ -72,42 +72,39 @@ class SlackRequest(object):
     @property
     def logging_data(self):
         data = {
-            'slack_team_id': self.team_id,
-            'slack_channel_id': self.data.get('channel', {}).get('id'),
-            'slack_user_id': self.data.get('user', {}).get('id'),
-            'slack_event_id': self.data.get('event_id'),
-            'slack_callback_id': self.data.get('callback_id'),
-            'slack_api_app_id': self.data.get('api_app_id'),
+            "slack_team_id": self.team_id,
+            "slack_channel_id": self.data.get("channel", {}).get("id"),
+            "slack_user_id": self.data.get("user", {}).get("id"),
+            "slack_event_id": self.data.get("event_id"),
+            "slack_callback_id": self.data.get("callback_id"),
+            "slack_api_app_id": self.data.get("api_app_id"),
         }
 
         if self.integration:
-            data['integration_id'] = self.integration.id
+            data["integration_id"] = self.integration.id
 
         return dict((k, v) for k, v in data.items() if v)
 
     def _validate_data(self):
         try:
-            self._data = self.request.DATA
+            self._data = self.request.data
         except (ValueError, TypeError):
             raise SlackRequestError(status=400)
 
     def _authorize(self):
-        if self.data.get('token') != options.get('slack.verification-token'):
-            self._error('slack.action.invalid-token')
+        if self.data.get("token") != options.get("slack.verification-token"):
+            self._error("slack.action.invalid-token")
             raise SlackRequestError(status=401)
 
     def _validate_integration(self):
         try:
-            self.integration = Integration.objects.get(
-                provider='slack',
-                external_id=self.team_id,
-            )
+            self.integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
-            self._error('slack.action.invalid-team-id')
+            self._error("slack.action.invalid-team-id")
             raise SlackRequestError(status=403)
 
     def _log_request(self):
-        self._info('slack.request')
+        self._info("slack.request")
 
     def _error(self, key):
         logger.error(key, extra=self.logging_data)
@@ -144,23 +141,23 @@ class SlackEventRequest(SlackRequest):
             self._validate_event()
 
     def is_challenge(self):
-        return self.data.get('type') == 'url_verification'
+        return self.data.get("type") == "url_verification"
 
     @property
     def type(self):
-        return self.data.get('event', {}).get('type')
+        return self.data.get("event", {}).get("type")
 
     def _validate_event(self):
-        if not self.data.get('event'):
-            self._error('slack.event.invalid-event-data')
+        if not self.data.get("event"):
+            self._error("slack.event.invalid-event-data")
             raise SlackRequestError(status=400)
 
-        if not self.data.get('event', {}).get('type'):
-            self._error('slack.event.invalid-event-type')
+        if not self.data.get("event", {}).get("type"):
+            self._error("slack.event.invalid-event-type")
             raise SlackRequestError(status=400)
 
     def _log_request(self):
-        self._info(u'slack.event.{}'.format(self.type))
+        self._info(u"slack.event.{}".format(self.type))
 
 
 class SlackActionRequest(SlackRequest):
@@ -178,7 +175,7 @@ class SlackActionRequest(SlackRequest):
 
     @property
     def type(self):
-        return self.data.get('type')
+        return self.data.get("type")
 
     @memoize
     def callback_data(self):
@@ -192,7 +189,7 @@ class SlackActionRequest(SlackRequest):
             - orig_response_url: URL from the original message we received
             - is_message: did the original message have a 'message' type
         """
-        return json.loads(self.data.get('callback_id'))
+        return json.loads(self.data.get("callback_id"))
 
     def _validate_data(self):
         """
@@ -202,13 +199,13 @@ class SlackActionRequest(SlackRequest):
         """
         super(SlackActionRequest, self)._validate_data()
 
-        if 'payload' not in self.request.DATA:
+        if "payload" not in self.request.data:
             raise SlackRequestError(status=400)
 
         try:
-            self._data = json.loads(self.data['payload'])
+            self._data = json.loads(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
             raise SlackRequestError(status=400)
 
     def _log_request(self):
-        self._info('slack.action')
+        self._info("slack.action")

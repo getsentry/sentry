@@ -127,7 +127,9 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     }
   }
 
-  .Select.is-focused:not(.is-open) > .Select-control {
+  /* stylelint-disable-next-line no-descending-specificity */
+  &.Select.is-focused:not(.is-open) > .Select-control {
     border-color: ${p => p.theme.gray};
+    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 `;

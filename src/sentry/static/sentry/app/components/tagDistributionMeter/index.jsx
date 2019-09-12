@@ -17,8 +17,10 @@ export default class TagDistributionMeter extends React.Component {
     segments: PropTypes.arrayOf(
       PropTypes.shape({
         count: PropTypes.number.isRequired,
-        name: PropTypes.string.isRequired,
-        value: PropTypes.string.isRequired,
+        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
+          .isRequired,
+        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
+          .isRequired,
         url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
       })
     ).isRequired,
@@ -161,8 +163,10 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   height: 16px;
   color: inherit;
 
-  &:hover {
+  &:hover,
+  &.focus-visible {
     background: ${p => p.theme.purple};
+    outline: none;
   }
 
   background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};

@@ -2,7 +2,9 @@
 
    <p align="center">
      <p align="center">
-       <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72"
+       <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+         <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" alt="Sentry" height="72">
+       </a>
      </p>
      <p align="center">
        Users and logs provide clues. Sentry provides answers.
@@ -19,9 +21,9 @@ language, in any application.
 .. raw:: html
 
    <p align="center">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-1.png" height="180">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-2.png" height="180">
-     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-3.png" height="180">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-1.png" width="290">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-2.png" width="290">
+     <img src="https://github.com/getsentry/sentry/raw/master/src/sentry/static/sentry/images/product/thumb-3.png" width="290">
    </p>
 
 Official Sentry SDKs
@@ -31,7 +33,7 @@ Official Sentry SDKs
 * `Python <https://github.com/getsentry/sentry-python>`_
 * `Ruby <https://github.com/getsentry/raven-ruby>`_
 * `PHP <https://github.com/getsentry/sentry-php>`_
-* `Go <https://github.com/getsentry/raven-go>`_
+* `Go <https://github.com/getsentry/sentry-go>`_
 * `Java <https://github.com/getsentry/sentry-java>`_
 * `Objective-C/Swift <https://github.com/getsentry/sentry-cocoa>`_
 * `C# <https://github.com/getsentry/sentry-dotnet>`_

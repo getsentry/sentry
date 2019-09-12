@@ -1,20 +1,19 @@
-"""
-sentry.options
-~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import (  # NOQA
-    DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY,
-    FLAG_REQUIRED, FLAG_PRIORITIZE_DISK, FLAG_ALLOW_EMPTY, UnknownOption
+    DEFAULT_FLAGS,
+    FLAG_IMMUTABLE,
+    FLAG_NOSTORE,
+    FLAG_STOREONLY,
+    FLAG_REQUIRED,
+    FLAG_PRIORITIZE_DISK,
+    FLAG_ALLOW_EMPTY,
+    UnknownOption,
 )
 
-__all__ = ('get', 'set', 'delete', 'register', 'isset', 'lookup_key', 'UnknownOption', )
+__all__ = ("get", "set", "delete", "register", "isset", "lookup_key", "UnknownOption")
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
 default_store = OptionsStore(cache=None)

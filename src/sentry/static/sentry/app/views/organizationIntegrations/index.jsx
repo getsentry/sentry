@@ -45,7 +45,7 @@ class OrganizationIntegrations extends AsyncComponent {
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
-      ['publishedApps', '/sentry-apps/', {status: 'published'}],
+      ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
@@ -175,8 +175,6 @@ class OrganizationIntegrations extends AsyncComponent {
         key={`sentry-app-row-${key}`}
         data-test-id="internal-integration-row"
         api={this.api}
-        showPublishStatus
-        isInternal
         onRemoveApp={() => this.onRemoveInternalApp(app)}
         organization={organization}
         app={app}

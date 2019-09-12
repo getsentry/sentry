@@ -1,11 +1,3 @@
-"""
-sentry.utils.json
-~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
@@ -25,7 +17,7 @@ def better_default_encoder(o):
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
-        return o.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     elif isinstance(o, datetime.date):
         return o.isoformat()
     elif isinstance(o, datetime.time):
@@ -44,8 +36,8 @@ def better_default_encoder(o):
     elif isinstance(o, BitHandler):
         return int(o)
     elif callable(o):
-        return '<function>'
-    raise TypeError(repr(o) + ' is not JSON serializable')
+        return "<function>"
+    raise TypeError(repr(o) + " is not JSON serializable")
 
 
 class JSONEncoderForHTML(JSONEncoder):
@@ -56,41 +48,41 @@ class JSONEncoderForHTML(JSONEncoder):
         # performance that make things more complicated.
         chunks = self.iterencode(o, True)
         if self.ensure_ascii:
-            return ''.join(chunks)
+            return "".join(chunks)
         else:
-            return u''.join(chunks)
+            return u"".join(chunks)
 
     def iterencode(self, o, _one_shot=False):
         chunks = super(JSONEncoderForHTML, self).iterencode(o, _one_shot)
         for chunk in chunks:
-            chunk = chunk.replace('&', '\\u0026')
-            chunk = chunk.replace('<', '\\u003c')
-            chunk = chunk.replace('>', '\\u003e')
-            chunk = chunk.replace("'", '\\u0027')
+            chunk = chunk.replace("&", "\\u0026")
+            chunk = chunk.replace("<", "\\u003c")
+            chunk = chunk.replace(">", "\\u003e")
+            chunk = chunk.replace("'", "\\u0027")
             yield chunk
 
 
 _default_encoder = JSONEncoder(
-    separators=(',', ':'),
+    separators=(",", ":"),
     ignore_nan=True,
     skipkeys=False,
     ensure_ascii=True,
     check_circular=True,
     allow_nan=True,
     indent=None,
-    encoding='utf-8',
+    encoding="utf-8",
     default=better_default_encoder,
 )
 
 _default_escaped_encoder = JSONEncoderForHTML(
-    separators=(',', ':'),
+    separators=(",", ":"),
     ignore_nan=True,
     skipkeys=False,
     ensure_ascii=True,
     check_circular=True,
     allow_nan=True,
     indent=None,
-    encoding='utf-8',
+    encoding="utf-8",
     default=better_default_encoder,
 )
 

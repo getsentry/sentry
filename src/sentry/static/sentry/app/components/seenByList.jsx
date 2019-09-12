@@ -70,9 +70,9 @@ export default class SeenByList extends React.Component {
             </React.Fragment>
           )}
         />
-        <IconWrapper>
+        <IconWrapper iconPosition={iconPosition}>
           <Tooltip title={iconTooltip}>
-            <EyeIcon className="icon-eye" iconPosition={iconPosition} />
+            <EyeIcon className="icon-eye" />
           </Tooltip>
         </IconWrapper>
       </SeenByWrapper>

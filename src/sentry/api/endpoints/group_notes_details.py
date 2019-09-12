@@ -22,10 +22,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group,
-                type=Activity.NOTE,
-                user=request.user,
-                id=note_id,
+                group=group, type=Activity.NOTE, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -40,21 +37,25 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group,
-                type=Activity.NOTE,
-                user=request.user,
-                id=note_id,
+                group=group, type=Activity.NOTE, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = NoteSerializer(data=request.DATA)
+        serializer = NoteSerializer(data=request.data)
 
         if serializer.is_valid():
+            payload = serializer.validated_data
+            # TODO adding mentions to a note doesn't do subscriptions
+            # or notifications. Should it?
+            # Remove mentions as they shouldn't go into the database
+            payload.pop("mentions", [])
+
             # Would be nice to have a last_modified timestamp we could bump here
-            note.data.update(dict(serializer.object))
+            note.data.update(dict(payload))
             note.save()
-            if note.data.get('external_id'):
+
+            if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
             return Response(serialize(note, request.user), status=200)
 

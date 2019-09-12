@@ -34,6 +34,7 @@ export default class FormField extends React.PureComponent {
     onChange: PropTypes.func,
     error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
     value: PropTypes.any,
+    meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
   };
 
   static defaultProps = {
@@ -89,7 +90,7 @@ export default class FormField extends React.PureComponent {
     if (defined(props.error)) {
       return props.error;
     }
-    return form?.errors[props.name] || null;
+    return (form && form.errors[props.name]) || null;
   }
 
   getId() {

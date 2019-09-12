@@ -3,7 +3,7 @@ module.exports = {
   verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx}',
-    'src/sentry/static/sentry/app/**/*.{js,jsx}',
+    'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'lcov', 'cobertura'],
   coverageDirectory: '.artifacts/coverage/',
@@ -19,6 +19,7 @@ module.exports = {
   setupFiles: [
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
+    'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
   testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
@@ -27,4 +28,10 @@ module.exports = {
     '<rootDir>/node_modules/react',
     '<rootDir>/node_modules/reflux',
   ],
+  transform: {
+    '^.+\\.jsx?$': 'babel-jest',
+    '^.+\\.tsx?$': 'babel-jest',
+  },
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  globals: {},
 };

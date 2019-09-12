@@ -3,7 +3,7 @@ import {mount} from 'enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
-} from 'app/views/projectPluginDetails';
+} from 'app/views/settings/projectPlugins/details';
 
 jest.mock('jquery');
 

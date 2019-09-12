@@ -24,12 +24,28 @@ describe('OpenInContextLine', function() {
         name: 'Foo',
       },
     },
+    {
+      uuid: 'dd9cc6d7-17f9-4d25-9017-4802821e694f',
+      type: 'stacktrace-link',
+      schema: {
+        url:
+          'http://localhost:4000/something?installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&projectSlug=internal',
+        type: 'stacktrace-link',
+        params: ['project', 'filename', 'lineno'],
+        uri: '/something',
+      },
+      sentryApp: {
+        uuid: '92cd01e6-0ca0-4bfc-8dcd-38fdc8960cf6',
+        name: 'Tesla',
+        slug: 'tesla',
+      },
+    },
   ];
 
   const lineNo = 233;
 
   describe('with stacktrace-link component', function() {
-    it('renders button', function() {
+    it('renders multiple buttons', function() {
       const wrapper = mount(
         <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
         TestStubs.routerContext()
@@ -47,8 +63,13 @@ describe('OpenInContextLine', function() {
         filename,
       };
       const url = addQueryParamsToExistingUrl(baseUrl, queryParams);
-      expect(wrapper.find('a[data-test-id="stacktrace-link"]').prop('href')).toEqual(url);
-      expect(wrapper.find('a[data-test-id="stacktrace-link"]').text()).toEqual('Foo');
+      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').prop('href')).toEqual(
+        url
+      );
+      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').text()).toEqual('Foo');
+      expect(wrapper.find('a[data-test-id="stacktrace-link-tesla"]').text()).toEqual(
+        'Tesla'
+      );
     });
   });
 });

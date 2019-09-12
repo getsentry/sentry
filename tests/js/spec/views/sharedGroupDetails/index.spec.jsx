@@ -25,7 +25,7 @@ describe('SharedGroupDetails', function() {
       params: {shareId: 'a'},
     };
 
-    const wrapper = mount(<SharedGroupDetails {...props} />);
+    const wrapper = mount(<SharedGroupDetails {...props} />, TestStubs.routerContext());
     expect(wrapper).toMatchSnapshot();
   });
 });

@@ -7,16 +7,16 @@ import time
 
 from django.conf import settings
 from django.core import cache
-from django.core.cache import (cache as original_cache, get_cache as original_get_cache)
+from django.core.cache import cache as original_cache, get_cache as original_get_cache
 from django.core.cache.backends.base import BaseCache
 from django.dispatch import Signal
 from django.middleware import cache as middleware_cache
 from django.utils.translation import ugettext_lazy as _, ungettext
 
 from debug_toolbar import settings as dt_settings
-from debug_toolbar.compat import (OrderedDict, CacheHandler, caches as original_caches)
+from debug_toolbar.compat import OrderedDict, CacheHandler, caches as original_caches
 from debug_toolbar.panels import Panel
-from debug_toolbar.utils import (tidy_stacktrace, render_stacktrace, get_template_info, get_stack)
+from debug_toolbar.utils import tidy_stacktrace, render_stacktrace, get_template_info, get_stack
 
 cache_called = Signal(
     providing_args=["time_taken", "name", "return_value", "args", "kwargs", "trace"]
@@ -29,7 +29,7 @@ def send_signal(method):
         value = method(self, *args, **kwargs)
         t = time.time() - t
 
-        if dt_settings.CONFIG['ENABLE_STACKTRACES']:
+        if dt_settings.CONFIG["ENABLE_STACKTRACES"]:
             stacktrace = tidy_stacktrace(reversed(get_stack()))
         else:
             stacktrace = []
@@ -44,7 +44,7 @@ def send_signal(method):
             kwargs=kwargs,
             trace=stacktrace,
             template_info=template_info,
-            backend=self.cache
+            backend=self.cache,
         )
         return value
 
@@ -157,7 +157,8 @@ class CachePanel(Panel):
     """
     Panel that displays the cache statistics.
     """
-    template = 'debug_toolbar/panels/cache.html'
+
+    template = "debug_toolbar/panels/cache.html"
 
     def __init__(self, *args, **kwargs):
         super(CachePanel, self).__init__(*args, **kwargs)
@@ -167,9 +168,19 @@ class CachePanel(Panel):
         self.calls = []
         self.counts = OrderedDict(
             (
-                ('add', 0), ('get', 0), ('set', 0), ('delete', 0), ('clear', 0), ('get_many', 0),
-                ('set_many', 0), ('delete_many', 0), ('has_key', 0), ('incr', 0), ('decr', 0),
-                ('incr_version', 0), ('decr_version', 0),
+                ("add", 0),
+                ("get", 0),
+                ("set", 0),
+                ("delete", 0),
+                ("clear", 0),
+                ("get_many", 0),
+                ("set_many", 0),
+                ("delete_many", 0),
+                ("has_key", 0),
+                ("incr", 0),
+                ("decr", 0),
+                ("incr_version", 0),
+                ("decr_version", 0),
             )
         )
         cache_called.connect(self._store_call_info)
@@ -187,12 +198,12 @@ class CachePanel(Panel):
         backend=None,
         **kw
     ):
-        if name == 'get':
+        if name == "get":
             if return_value is None:
                 self.misses += 1
             else:
                 self.hits += 1
-        elif name == 'get_many':
+        elif name == "get_many":
             for key, value in return_value.items():
                 if value is None:
                     self.misses += 1
@@ -204,13 +215,13 @@ class CachePanel(Panel):
         self.counts[name] += 1
         self.calls.append(
             {
-                'time': time_taken,
-                'name': name,
-                'args': args,
-                'kwargs': kwargs,
-                'trace': render_stacktrace(trace),
-                'template_info': template_info,
-                'backend': backend
+                "time": time_taken,
+                "name": name,
+                "args": args,
+                "kwargs": kwargs,
+                "trace": render_stacktrace(trace),
+                "template_info": template_info,
+                "backend": backend,
             }
         )
 
@@ -222,16 +233,14 @@ class CachePanel(Panel):
     def nav_subtitle(self):
         cache_calls = len(self.calls)
         return ungettext(
-            "%(cache_calls)d call in %(time).2fms", "%(cache_calls)d calls in %(time).2fms",
-            cache_calls
-        ) % {
-            'cache_calls': cache_calls,
-            'time': self.total_time
-        }
+            "%(cache_calls)d call in %(time).2fms",
+            "%(cache_calls)d calls in %(time).2fms",
+            cache_calls,
+        ) % {"cache_calls": cache_calls, "time": self.total_time}
 
     @property
     def title(self):
-        count = len(getattr(settings, 'CACHES', ['default']))
+        count = len(getattr(settings, "CACHES", ["default"]))
         return ungettext(
             "Cache calls from %(count)d backend", "Cache calls from %(count)d backends", count
         ) % dict(count=count)
@@ -260,11 +269,11 @@ class CachePanel(Panel):
     def process_response(self, request, response):
         self.record_stats(
             {
-                'total_calls': len(self.calls),
-                'calls': self.calls,
-                'total_time': self.total_time,
-                'hits': self.hits,
-                'misses': self.misses,
-                'counts': self.counts,
+                "total_calls": len(self.calls),
+                "calls": self.calls,
+                "total_time": self.total_time,
+                "hits": self.hits,
+                "misses": self.misses,
+                "counts": self.counts,
             }
         )

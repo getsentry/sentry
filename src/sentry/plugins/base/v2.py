@@ -1,13 +1,6 @@
-"""
-sentry.plugins.base.v2
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
-__all__ = ('Plugin2', )
+__all__ = ("Plugin2",)
 
 import logging
 import six
@@ -19,10 +12,7 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
-from sentry.plugins.base.configuration import (
-    default_plugin_config,
-    default_plugin_options,
-)
+from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.utils.hashlib import md5_text
 
 
@@ -34,9 +24,9 @@ class PluginMount(type):
         if new_cls.title is None:
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
-            new_cls.slug = new_cls.title.replace(' ', '-').lower()
-        if not hasattr(new_cls, 'logger'):
-            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug, ))
+            new_cls.slug = new_cls.title.replace(" ", "-").lower()
+        if not hasattr(new_cls, "logger"):
+            new_cls.logger = logging.getLogger("sentry.plugins.%s" % (new_cls.slug,))
         return new_cls
 
 
@@ -57,6 +47,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     As a general rule all inherited methods should allow ``**kwargs`` to ensure
     ease of future compatibility.
     """
+
     # Generic plugin information
     title = None
     slug = None
@@ -71,7 +62,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     conf_title = None
 
     project_conf_form = None
-    project_conf_template = 'sentry/plugins/project_configuration.html'
+    project_conf_template = "sentry/plugins/project_configuration.html"
 
     # Global enabled state
     enabled = True
@@ -81,10 +72,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     project_default_enabled = False
 
     def _get_option_key(self, key):
-        return '%s:%s' % (self.get_conf_key(), key)
+        return "%s:%s" % (self.get_conf_key(), key)
 
     def get_plugin_type(self):
-        return 'default'
+        return "default"
 
     def is_enabled(self, project=None):
         """
@@ -101,7 +92,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
             return True
 
         if project:
-            project_enabled = self.get_option('enabled', project)
+            project_enabled = self.get_option("enabled", project)
             if project_enabled is not None:
                 return project_enabled
             else:
@@ -119,6 +110,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
     def reset_options(self, project=None, user=None):
         from sentry.plugins.helpers import reset_options
+
         return reset_options(self.get_conf_key(), project, user)
 
     def get_option(self, key, project=None, user=None):
@@ -131,6 +123,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> value = plugin.get_option('my_option')
         """
         from sentry.plugins.helpers import get_option
+
         return get_option(self._get_option_key(key), project, user)
 
     def set_option(self, key, value, project=None, user=None):
@@ -142,6 +135,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.set_option('my_option', 'http://example.com')
         """
         from sentry.plugins.helpers import set_option
+
         return set_option(self._get_option_key(key), value, project, user)
 
     def unset_option(self, key, project=None, user=None):
@@ -153,22 +147,23 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.unset_option('my_option')
         """
         from sentry.plugins.helpers import unset_option
+
         return unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""
-        self.set_option('enabled', True, project, user)
+        self.set_option("enabled", True, project, user)
 
     def disable(self, project=None, user=None):
         """Disable the plugin."""
-        self.set_option('enabled', False, project, user)
+        self.set_option("enabled", False, project, user)
 
     def get_conf_key(self):
         """
         Returns a string representing the configuration keyspace prefix for this plugin.
         """
         if not self.conf_key:
-            self.conf_key = self.get_conf_title().lower().replace(' ', '_')
+            self.conf_key = self.get_conf_title().lower().replace(" ", "_")
         return self.conf_key
 
     def get_conf_form(self, project=None):
@@ -208,8 +203,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text('&'.join(sorted('%s=%s' % o
-                                        for o in six.iteritems(options)))).hexdigest()[:3]
+        return md5_text("&".join(sorted("%s=%s" % o for o in six.iteritems(options)))).hexdigest()[
+            :3
+        ]
 
     def get_conf_title(self):
         """
@@ -238,7 +234,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         if not self.enabled:
             return False
 
-        if not features.has('projects:plugins', project, self, actor=None):
+        if not features.has("projects:plugins", project, self, actor=None):
             return False
 
         if not self.can_disable:
@@ -265,7 +261,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         if context is None:
             context = {}
-        context['plugin'] = self
+        context["plugin"] = self
         return Response(template, context)
 
     # The following methods are specific to web requests
@@ -482,4 +478,5 @@ class Plugin2(IPlugin2):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
     """
+
     __version__ = 2

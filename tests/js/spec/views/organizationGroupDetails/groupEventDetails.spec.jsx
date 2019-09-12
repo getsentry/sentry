@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {GroupEventDetails} from 'app/views/organizationGroupDetails/groupEventDetails';
+import HookStore from 'app/stores/hookStore';
 
 describe('groupEventDetails', () => {
   let org;
@@ -11,6 +12,7 @@ describe('groupEventDetails', () => {
   let routerContext;
   let group;
   let event;
+  let promptsActivity;
 
   const mockGroupApis = () => {
     MockApiClient.addMockResponse({
@@ -20,6 +22,11 @@ describe('groupEventDetails', () => {
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
+      body: event,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/1/`,
       body: event,
     });
 
@@ -51,6 +58,16 @@ describe('groupEventDetails', () => {
     MockApiClient.addMockResponse({
       url: `/groups/${group.id}/integrations/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+      body: promptsActivity,
     });
   };
 
@@ -99,10 +116,6 @@ describe('groupEventDetails', () => {
   });
 
   it('redirects on switching to an invalid environment selection for event', async function() {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/events/1/`,
-      body: event,
-    });
     const wrapper = mount(
       <GroupEventDetails
         api={new MockApiClient()}
@@ -124,10 +137,6 @@ describe('groupEventDetails', () => {
   });
 
   it('does not redirect when switching to a valid environment selection for event', async function() {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/events/1/`,
-      body: event,
-    });
     const wrapper = mount(
       <GroupEventDetails
         api={new MockApiClient()}
@@ -204,8 +213,137 @@ describe('groupEventDetails', () => {
     });
   });
 
+  describe('EventCauseEmpty', () => {
+    let hookFn;
+
+    beforeEach(function() {
+      hookFn = jest.fn(() => null);
+      HookStore.hooks['component:event-cause-empty'] = [hookFn];
+    });
+
+    afterEach(function() {
+      // clear HookStore
+      HookStore.init();
+    });
+
+    it('calls event cause empty state hook', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [
+          {
+            step: 'commit',
+            complete: false,
+          },
+        ],
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(hookFn).toHaveBeenCalledWith({organization: org, project});
+      expect(wrapper.find('EventCause').exists()).toBe(false);
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [
+          {
+            step: 'commit',
+            complete: true,
+          },
+        ],
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit if `releasesCompletion` empty', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: [],
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+
+    it('renders suspect commit if `releasesCompletion` null', async function() {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
+        body: null,
+      });
+
+      const wrapper = mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EventCause').exists()).toBe(true);
+      expect(hookFn).not.toHaveBeenCalled();
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+    });
+  });
+
   describe('Platform Integrations', () => {
-    let wrapper;  // eslint-disable-line
+    let wrapper; // eslint-disable-line
     let integrationsRequest;
     let orgIntegrationsRequest;
     let componentsRequest;
@@ -255,19 +393,9 @@ describe('groupEventDetails', () => {
       MockApiClient.clearMockResponses();
       mockGroupApis();
 
-      MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/events/1/`,
-        body: event,
-      });
-
       componentsRequest = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
         body: [component],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/events/1/`,
-        body: event,
       });
 
       integrationsRequest = MockApiClient.addMockResponse({

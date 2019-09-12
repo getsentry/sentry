@@ -4,6 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {openSudo} from 'app/actionCreators/modal';
@@ -96,7 +97,7 @@ const OrganizationContext = createReactClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  onProjectCreation(project) {
+  onProjectCreation() {
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
@@ -134,6 +135,11 @@ const OrganizationContext = createReactClass({
         });
 
         setActiveOrganization(data);
+
+        // Configure scope to have organization tag
+        Sentry.configureScope(scope => {
+          scope.setTag('organization', data.id);
+        });
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
@@ -232,7 +238,9 @@ const OrganizationContext = createReactClass({
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );
-    } else if (this.state.error) {
+    }
+
+    if (this.state.error) {
       return (
         <React.Fragment>
           {this.renderSidebar()}

@@ -19,51 +19,54 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
-from sentry.tasks.assemble import get_assemble_status, set_assemble_status, \
-    AssembleTask, ChunkFileState
+from sentry.tasks.assemble import (
+    get_assemble_status,
+    set_assemble_status,
+    AssembleTask,
+    ChunkFileState,
+)
 from sentry.utils import json
 
 try:
     from django.http import (
-        CompatibleStreamingHttpResponse as StreamingHttpResponse, HttpResponse, Http404)
+        CompatibleStreamingHttpResponse as StreamingHttpResponse,
+        HttpResponse,
+        Http404,
+    )
 except ImportError:
     from django.http import StreamingHttpResponse, HttpResponse, Http404
 
 
-logger = logging.getLogger('sentry.api')
-ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
+logger = logging.getLogger("sentry.api")
+ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
 
 
 def upload_from_request(request, project):
-    if 'file' not in request.FILES:
-        return Response({'detail': 'Missing uploaded file'}, status=400)
-    fileobj = request.FILES['file']
+    if "file" not in request.data:
+        return Response({"detail": "Missing uploaded file"}, status=400)
+    fileobj = request.data["file"]
     files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
 
 class DebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     content_negotiation_class = ConditionalContentNegotiation
 
     def download(self, debug_file_id, project):
         rate_limited = ratelimits.is_limited(
             project=project,
-            key='rl:DSymFilesEndpoint:download:%s:%s' % (
-                debug_file_id, project.id),
+            key="rl:DSymFilesEndpoint:download:%s:%s" % (debug_file_id, project.id),
             limit=10,
         )
         if rate_limited:
-            logger.info('notification.rate_limited',
-                        extra={'project_id': project.id,
-                               'project_debug_file_id': debug_file_id})
-            return HttpResponse(
-                {
-                    'Too many download requests',
-                }, status=403
+            logger.info(
+                "notification.rate_limited",
+                extra={"project_id": project.id, "project_debug_file_id": debug_file_id},
             )
+            return HttpResponse({"Too many download requests"}, status=403)
 
         debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
 
@@ -73,13 +76,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
         try:
             fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b''),
-                content_type='application/octet-stream'
+                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
-            response['Content-Length'] = debug_file.file.size
-            response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
-                debug_file.debug_id
-            ), debug_file.file_extension)
+            response["Content-Length"] = debug_file.file.size
+            response["Content-Disposition"] = 'attachment; filename="%s%s"' % (
+                posixpath.basename(debug_file.debug_id),
+                debug_file.file_extension,
+            )
             return response
         except IOError:
             raise Http404
@@ -99,39 +102,38 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: If set, the specified DIF will be sent in the response.
         :auth: required
         """
-        download_requested = request.GET.get('id') is not None
-        if download_requested and (request.access.has_scope('project:write')):
-            return self.download(request.GET.get('id'), project)
+        download_requested = request.GET.get("id") is not None
+        if download_requested and (request.access.has_scope("project:write")):
+            return self.download(request.GET.get("id"), project)
 
-        code_id = request.GET.get('code_id')
-        debug_id = request.GET.get('debug_id')
-        query = request.GET.get('query')
+        code_id = request.GET.get("code_id")
+        debug_id = request.GET.get("debug_id")
+        query = request.GET.get("query")
 
-        if code_id:
-            # If a code identifier is provided, try to find an exact match and
-            # only consider the debug identifier if the DIF does not have a
-            # primary code identifier.
-            q = Q(code_id__exact=code_id)
-            if debug_id:
-                q |= Q(code_id__exact=None, debug_id__exact=debug_id)
-        elif debug_id:
-            # If only a debug ID is specified, do not consider the stored code
-            # identifier and strictly filter by debug identifier.
+        # If this query contains a debug identifier, normalize it to allow for
+        # more lenient queries (e.g. supporting Breakpad ids). Use the index to
+        # speed up such queries.
+        if query and len(query) <= 45 and not debug_id:
+            try:
+                debug_id = normalize_debug_id(query.strip())
+            except SymbolicError:
+                pass
+
+        if debug_id:
+            # If a debug ID is specified, do not consider the stored code
+            # identifier and strictly filter by debug identifier. Often there
+            # are mismatches in the code identifier in PEs.
             q = Q(debug_id__exact=debug_id)
+        elif code_id:
+            q = Q(code_id__exact=code_id)
         elif query:
-            if len(query) <= 45:
-                # If this query contains a debug identifier, normalize it to
-                # allow for more lenient queries (e.g. supporting Breakpad ids).
-                try:
-                    query = normalize_debug_id(query.strip())
-                except SymbolicError:
-                    pass
-
-            q = Q(object_name__icontains=query) \
-                | Q(debug_id__icontains=query) \
-                | Q(code_id__icontains=query) \
-                | Q(cpu_name__icontains=query) \
+            q = (
+                Q(object_name__icontains=query)
+                | Q(debug_id__icontains=query)
+                | Q(code_id__icontains=query)
+                | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
+            )
 
             KNOWN_DIF_FORMATS_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_FORMATS))
             file_format = KNOWN_DIF_FORMATS_REVERSE.get(query)
@@ -140,14 +142,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
-        queryset = ProjectDebugFile.objects \
-            .filter(q, project=project) \
-            .select_related('file')
+        queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
             on_results=lambda x: serialize(x, request.user),
@@ -168,12 +168,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        if request.GET.get('id') and (request.access.has_scope('project:write')):
+        if request.GET.get("id") and (request.access.has_scope("project:write")):
             with transaction.atomic():
-                debug_file = ProjectDebugFile.objects.filter(
-                    id=request.GET.get('id'),
-                    project=project,
-                ).select_related('file').first()
+                debug_file = (
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project=project)
+                    .select_related("file")
+                    .first()
+                )
                 if debug_file is not None:
                     debug_file.delete()
                     return Response(status=204)
@@ -206,35 +207,35 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
-        checksums = request.GET.getlist('checksums')
-        missing = ProjectDebugFile.objects.find_missing(
-            checksums, project=project)
-        return Response({'missing': missing})
+        checksums = request.GET.getlist("checksums")
+        missing = ProjectDebugFile.objects.find_missing(checksums, project=project)
+        return Response({"missing": missing})
 
 
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
     def post(self, request, project):
-        return Response({'associatedDsymFiles': []})
+        return Response({"associatedDsymFiles": []})
 
 
 def find_missing_chunks(organization, chunks):
     """Returns a list of chunks which are missing for an org."""
-    owned = set(FileBlobOwner.objects.filter(
-        blob__checksum__in=chunks,
-        organization=organization,
-    ).values_list('blob__checksum', flat=True))
+    owned = set(
+        FileBlobOwner.objects.filter(
+            blob__checksum__in=chunks, organization=organization
+        ).values_list("blob__checksum", flat=True)
+    )
     return list(set(chunks) - owned)
 
 
 class DifAssembleEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def post(self, request, project):
         """
@@ -254,34 +255,29 @@ class DifAssembleEndpoint(ProjectEndpoint):
                         "debug_id": {"type": "string"},
                         "chunks": {
                             "type": "array",
-                            "items": {
-                                "type": "string",
-                                "pattern": "^[0-9a-f]{40}$",
-                            }
-                        }
+                            "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                        },
                     },
-                    "additionalProperties": True
+                    "additionalProperties": True,
                 }
             },
-            "additionalProperties": False
+            "additionalProperties": False,
         }
 
         try:
             files = json.loads(request.body)
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
-            return Response({'error': str(e).splitlines()[0]},
-                            status=400)
+            return Response({"error": str(e).splitlines()[0]}, status=400)
         except BaseException as e:
-            return Response({'error': 'Invalid json body'},
-                            status=400)
+            return Response({"error": "Invalid json body"}, status=400)
 
         file_response = {}
 
         for checksum, file_to_assemble in six.iteritems(files):
-            name = file_to_assemble.get('name', None)
-            debug_id = file_to_assemble.get('debug_id', None)
-            chunks = file_to_assemble.get('chunks', [])
+            name = file_to_assemble.get("name", None)
+            debug_id = file_to_assemble.get("debug_id", None)
+            chunks = file_to_assemble.get("chunks", [])
 
             # First, check the cached assemble status. During assembling, a
             # ProjectDebugFile will be created and we need to prevent a race
@@ -289,35 +285,32 @@ class DifAssembleEndpoint(ProjectEndpoint):
             state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
             if state == ChunkFileState.OK:
                 file_response[checksum] = {
-                    'state': state,
-                    'detail': None,
-                    'missingChunks': [],
-                    'dif': detail
+                    "state": state,
+                    "detail": None,
+                    "missingChunks": [],
+                    "dif": detail,
                 }
                 continue
             elif state is not None:
-                file_response[checksum] = {
-                    'state': state,
-                    'detail': detail,
-                    'missingChunks': [],
-                }
+                file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
                 continue
 
             # Next, check if this project already owns the ProjectDebugFile.
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
-            dif = ProjectDebugFile.objects \
-                .filter(project=project, file__checksum=checksum) \
-                .select_related('file') \
-                .order_by('-id') \
+            dif = (
+                ProjectDebugFile.objects.filter(project=project, file__checksum=checksum)
+                .select_related("file")
+                .order_by("-id")
                 .first()
+            )
 
             if dif is not None:
                 file_response[checksum] = {
-                    'state': ChunkFileState.OK,
-                    'detail': None,
-                    'missingChunks': [],
-                    'dif': serialize(dif),
+                    "state": ChunkFileState.OK,
+                    "detail": None,
+                    "missingChunks": [],
+                    "dif": serialize(dif),
                 }
                 continue
 
@@ -325,40 +318,34 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # have to create a new file.  Assure that there are checksums.
             # If not, we assume this is a poll and report NOT_FOUND
             if not chunks:
-                file_response[checksum] = {
-                    'state': ChunkFileState.NOT_FOUND,
-                    'missingChunks': [],
-                }
+                file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
                 continue
 
             # Check if all requested chunks have been uploaded.
             missing_chunks = find_missing_chunks(project.organization, chunks)
             if missing_chunks:
                 file_response[checksum] = {
-                    'state': ChunkFileState.NOT_FOUND,
-                    'missingChunks': missing_chunks,
+                    "state": ChunkFileState.NOT_FOUND,
+                    "missingChunks": missing_chunks,
                 }
                 continue
 
             # We don't have a state yet, this means we can now start
             # an assemble job in the background.
-            set_assemble_status(AssembleTask.DIF, project.id, checksum,
-                                ChunkFileState.CREATED)
+            set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
             from sentry.tasks.assemble import assemble_dif
+
             assemble_dif.apply_async(
                 kwargs={
-                    'project_id': project.id,
-                    'name': name,
-                    'debug_id': debug_id,
-                    'checksum': checksum,
-                    'chunks': chunks,
+                    "project_id": project.id,
+                    "name": name,
+                    "debug_id": debug_id,
+                    "checksum": checksum,
+                    "chunks": chunks,
                 }
             )
 
-            file_response[checksum] = {
-                'state': ChunkFileState.CREATED,
-                'missingChunks': [],
-            }
+            file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 
         return Response(file_response, status=200)

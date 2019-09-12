@@ -1,13 +1,12 @@
 /*eslint-env node*/
 module.exports = {
-  presets: ['@babel/react', '@babel/env'],
+  presets: ['@babel/react', '@babel/env', '@babel/preset-typescript'],
   plugins: [
     'emotion',
     'lodash',
     'react-hot-loader/babel',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-proposal-object-rest-spread',
-    '@babel/plugin-proposal-optional-chaining',
     '@babel/plugin-transform-runtime',
     // NOTE: The order of the decorator and class-property plugins is important
     // here. Decorators must be processed first before class properties, see:
@@ -16,7 +15,24 @@ module.exports = {
     ['@babel/plugin-proposal-class-properties', {loose: true}],
   ],
   env: {
-    production: {},
+    production: {
+      plugins: [
+        [
+          'transform-react-remove-prop-types',
+          {
+            mode: 'remove', // remove from bundle
+            removeImport: true, // removes `prop-types` import statements
+            classNameMatchers: [
+              'SelectField',
+              'FormField',
+              'AsyncComponent',
+              'AsyncView',
+            ],
+            additionalLibraries: [/app\/sentryTypes$/],
+          },
+        ],
+      ],
+    },
     development: {
       plugins: [
         ['emotion', {sourceMap: true, autoLabel: true}],

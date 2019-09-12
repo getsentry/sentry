@@ -2,7 +2,15 @@
 
 exports[`OrganizationTeamProjects Should render 1`] = `
 <TeamProjects
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "query": Object {},
@@ -45,10 +53,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 >
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-10qfvek-Panel e119nu470"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <PanelHeader
           hasButtons={true}
@@ -168,7 +176,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         "outline": "none",
                                       }
                                     }
-                                    tabIndex={-1}
+                                    tabIndex="0"
                                   >
                                     <div
                                       className="css-12n6mek-Actor e53us8t0"
@@ -182,7 +190,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           "outline": "none",
                                         }
                                       }
-                                      tabIndex={-1}
+                                      tabIndex="0"
                                     >
                                       <DropdownButton
                                         isOpen={false}
@@ -198,6 +206,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             size="xsmall"
                                           >
                                             <Button
+                                              align="center"
                                               className="css-a2adl3-StyledButton e1yghndz1"
                                               disabled={false}
                                               innerRef={null}
@@ -214,7 +223,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
-                                                  className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                  className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -222,20 +231,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                    className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
                                                   >
                                                     <ButtonLabel
+                                                      align="center"
                                                       size="xsmall"
                                                     >
                                                       <Component
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                        align="center"
+                                                        className="css-1bqncjo-ButtonLabel edwq9my1"
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                          className="css-1bqncjo-ButtonLabel edwq9my1"
                                                         >
                                                           Add Project
                                                           <StyledChevronDown>
@@ -246,14 +257,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                 className="css-17v3tc-StyledChevronDown e1yghndz0"
                                                                 src="icon-chevron-down"
                                                               >
-                                                                <StyledSvg
-                                                                  className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                  height="1em"
-                                                                  viewBox={Object {}}
-                                                                  width="1em"
+                                                                <ForwardRef
+                                                                  className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                  src="icon-chevron-down"
                                                                 >
                                                                   <svg
-                                                                    className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                    className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
                                                                     height="1em"
                                                                     viewBox={Object {}}
                                                                     width="1em"
@@ -263,7 +272,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                                       xlinkHref="#test"
                                                                     />
                                                                   </svg>
-                                                                </StyledSvg>
+                                                                </ForwardRef>
                                                               </InlineSvg>
                                                             </Component>
                                                           </StyledChevronDown>
@@ -456,7 +465,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             }
                           >
                             <BookmarkStar
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="css-10z01iz-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
@@ -509,34 +526,25 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
-                                <InlineSvg
-                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                <ForwardRef
+                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
-                                  <StyledSvg
-                                    className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                  <svg
+                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                     height="1em"
-                                    isBookmarked={false}
                                     onClick={[Function]}
                                     viewBox={Object {}}
                                     width="1em"
                                   >
-                                    <svg
-                                      className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                      height="1em"
-                                      onClick={[Function]}
-                                      viewBox={Object {}}
-                                      width="1em"
-                                    >
-                                      <use
-                                        href="#test"
-                                        xlinkHref="#test"
-                                      />
-                                    </svg>
-                                  </StyledSvg>
-                                </InlineSvg>
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </ForwardRef>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -606,6 +614,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -619,7 +628,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -627,20 +636,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <ButtonLabel
+                              align="center"
                               size="small"
                             >
                               <Component
-                                className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                align="center"
+                                className="css-1h693nz-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component
@@ -650,14 +661,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
-                                        <StyledSvg
-                                          className="css-1e2j5j0-RemoveIcon eqsa6vb0"
-                                          height="1em"
-                                          viewBox={Object {}}
-                                          width="1em"
+                                        <ForwardRef
+                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -667,7 +676,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               xlinkHref="#test"
                                             />
                                           </svg>
-                                        </StyledSvg>
+                                        </ForwardRef>
                                       </InlineSvg>
                                     </Component>
                                   </RemoveIcon>
@@ -834,7 +843,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             }
                           >
                             <BookmarkStar
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="css-10z01iz-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
@@ -885,34 +902,25 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
-                                <InlineSvg
-                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                <ForwardRef
+                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
-                                  <StyledSvg
-                                    className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                  <svg
+                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                     height="1em"
-                                    isBookmarked={false}
                                     onClick={[Function]}
                                     viewBox={Object {}}
                                     width="1em"
                                   >
-                                    <svg
-                                      className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                      height="1em"
-                                      onClick={[Function]}
-                                      viewBox={Object {}}
-                                      width="1em"
-                                    >
-                                      <use
-                                        href="#test"
-                                        xlinkHref="#test"
-                                      />
-                                    </svg>
-                                  </StyledSvg>
-                                </InlineSvg>
+                                    <use
+                                      href="#test"
+                                      xlinkHref="#test"
+                                    />
+                                  </svg>
+                                </ForwardRef>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -978,6 +986,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -991,7 +1000,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                          className="css-z6hjis-StyledButton-getColors edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -999,20 +1008,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-z6hjis-StyledButton-getColors edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <ButtonLabel
+                              align="center"
                               size="small"
                             >
                               <Component
-                                className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                align="center"
+                                className="css-1h693nz-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component
@@ -1022,14 +1033,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         className="css-1e2j5j0-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
-                                        <StyledSvg
-                                          className="css-1e2j5j0-RemoveIcon eqsa6vb0"
-                                          height="1em"
-                                          viewBox={Object {}}
-                                          width="1em"
+                                        <ForwardRef
+                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-10g0ex9-StyledSvg-RemoveIcon e2idor0"
+                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -1039,7 +1048,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               xlinkHref="#test"
                                             />
                                           </svg>
-                                        </StyledSvg>
+                                        </ForwardRef>
                                       </InlineSvg>
                                     </Component>
                                   </RemoveIcon>
@@ -1062,7 +1071,15 @@ exports[`OrganizationTeamProjects Should render 1`] = `
     </Component>
   </Panel>
   <Pagination
-    api={Client {}}
+    api={
+      Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      }
+    }
     className="css-1yt0wm7-streamCss"
     location={
       Object {

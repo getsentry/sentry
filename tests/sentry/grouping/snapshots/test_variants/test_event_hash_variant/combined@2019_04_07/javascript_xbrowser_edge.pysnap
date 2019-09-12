@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:13:29.285780Z'
+created: '2019-09-03T07:26:06.212964Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,23 +12,23 @@ app:
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Anonymous function'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               49
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Foo.prototype.testMethod'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               43
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               38
           frame* (frame considered in-app because no frame is in-app)
             filename*
@@ -40,9 +40,9 @@ app:
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'test'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               32
           frame* (frame considered in-app because no frame is in-app)
             filename*
@@ -52,30 +52,30 @@ app:
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Anonymous function'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               33
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'callback'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               24
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'callAnotherThing'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               17
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               18
         type*
           u'Error'
@@ -91,23 +91,23 @@ system:
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Anonymous function'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               49
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Foo.prototype.testMethod'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               43
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               38
           frame*
             filename*
@@ -119,9 +119,9 @@ system:
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'test'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               32
           frame*
             filename*
@@ -131,30 +131,30 @@ system:
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'Anonymous function'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               33
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'callback'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               24
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'callAnotherThing'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               17
           frame
             filename (ignored because filename is a URL)
               u'/Home/Desktop/test.html'
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
-            lineno (line number is used only if module or filename are available)
+            lineno (line number is not used if module or filename are available)
               18
         type*
           u'Error'
