@@ -60,30 +60,22 @@ exports[`ProjectDebugFiles renders 1`] = `
     </Wrapper>
   </SettingsPageHeading>
   <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
     >
-      <div
-        className="css-1geyb25-TextBlock ec8ep340"
-      >
-        
+      
             Debug information files are used to convert addresses and minified
             function names from native crash reports into function names and
             locations.
           
-      </div>
-    </Component>
+    </div>
   </TextBlock>
   <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
     >
-      <div
-        className="css-1geyb25-TextBlock ec8ep340"
-      >
-        This list contains all uploaded debug information files:
-      </div>
-    </Component>
+      This list contains all uploaded debug information files:
+    </div>
   </TextBlock>
   <Panel>
     <Component

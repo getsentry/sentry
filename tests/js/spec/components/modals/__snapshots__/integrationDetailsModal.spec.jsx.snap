@@ -341,21 +341,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         type="warning"
       >
         <StyledTextBlock>
-          <Component
+          <div
             className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
           >
-            <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-            >
-              <span
-                dangerouslySetInnerHTML={
-                  Object {
-                    "__html": "This is a an alert example",
-                  }
+            <span
+              dangerouslySetInnerHTML={
+                Object {
+                  "__html": "This is a an alert example",
                 }
-              />
-            </div>
-          </Component>
+              }
+            />
+          </div>
         </StyledTextBlock>
       </div>
     </AlertWrapper>
