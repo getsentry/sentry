@@ -259,11 +259,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               checked={false}
                               id="1"
                               readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
                               value="member"
                             >
                               <input
@@ -271,11 +266,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 className="radio-select"
                                 id="1"
                                 readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
                                 type="radio"
                                 value="member"
                               />
@@ -290,13 +280,14 @@ exports[`InviteMember should render roles when available and allowed, and handle
                             >
                               member
                               <TextBlock
-                                className="css-gx0lhm"
+                                noMargin={true}
                               >
                                 <Component
-                                  className="css-1ai2po6-TextBlock ec8ep340"
+                                  className="css-h0npum-TextBlock ec8ep340"
+                                  noMargin={true}
                                 >
                                   <div
-                                    className="css-1ai2po6-TextBlock ec8ep340"
+                                    className="css-h0npum-TextBlock ec8ep340"
                                   >
                                     <div
                                       className="help-block"
@@ -336,11 +327,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               checked={false}
                               id="2"
                               readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
                               value="bar"
                             >
                               <input
@@ -348,11 +334,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 className="radio-select"
                                 id="2"
                                 readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
                                 type="radio"
                                 value="bar"
                               />
@@ -367,13 +348,14 @@ exports[`InviteMember should render roles when available and allowed, and handle
                             >
                               bar
                               <TextBlock
-                                className="css-gx0lhm"
+                                noMargin={true}
                               >
                                 <Component
-                                  className="css-1ai2po6-TextBlock ec8ep340"
+                                  className="css-h0npum-TextBlock ec8ep340"
+                                  noMargin={true}
                                 >
                                   <div
-                                    className="css-1ai2po6-TextBlock ec8ep340"
+                                    className="css-h0npum-TextBlock ec8ep340"
                                   >
                                     <div
                                       className="help-block"
