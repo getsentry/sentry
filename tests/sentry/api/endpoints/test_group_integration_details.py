@@ -347,7 +347,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
         group = event.group
