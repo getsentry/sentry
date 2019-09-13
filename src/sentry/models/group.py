@@ -268,7 +268,7 @@ class Group(Model):
 
     __core__ = False
 
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
@@ -311,7 +311,7 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        index_together = (("project", "first_release"),)
+        index_together = [("project", "first_release"), ("project", "id")]
         unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")

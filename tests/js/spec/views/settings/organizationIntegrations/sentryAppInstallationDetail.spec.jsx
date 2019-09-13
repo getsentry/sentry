@@ -161,7 +161,7 @@ describe('Sentry App Installations', function() {
         .first()
         .simulate('click');
       wrapper
-        .find('[data-test-id="confirm-modal"]')
+        .find('[data-test-id="confirm-button"]')
         .first()
         .simulate('click');
       expect(response).toHaveBeenCalledWith(

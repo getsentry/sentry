@@ -7,19 +7,16 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 
-from sentry.incidents.logic import (
-    alert_aggregation_to_snuba,
-    create_incident,
-    update_incident_status,
-)
+from sentry.incidents.logic import create_incident, update_incident_status
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleAggregations,
     AlertRuleThresholdType,
     Incident,
     IncidentStatus,
     IncidentType,
 )
+from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 
@@ -47,7 +44,7 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscription=subscription)
+            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
         except AlertRule.DoesNotExist:
             return
 
@@ -94,10 +91,8 @@ class SubscriptionProcessor(object):
 
         self.last_update = subscription_update["timestamp"]
 
-        # TODO: At the moment we only have individual aggregations. Handle multiple
-        # later
-        aggregation = AlertRuleAggregations(self.alert_rule.aggregations[0])
-        aggregation_name = alert_aggregation_to_snuba[aggregation][2]
+        aggregation = QueryAggregations(self.alert_rule.aggregation)
+        aggregation_name = query_aggregation_to_snuba[aggregation][2]
         aggregation_value = subscription_update["values"][aggregation_name]
 
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
@@ -142,7 +137,7 @@ class SubscriptionProcessor(object):
         if self.alert_triggers >= self.alert_rule.threshold_period:
             detected_at = to_datetime(self.last_update)
             self.active_incident = create_incident(
-                self.alert_rule.project.organization,
+                self.alert_rule.organization,
                 IncidentType.ALERT_TRIGGERED,
                 # TODO: Include more info in name?
                 self.alert_rule.name,
@@ -151,7 +146,7 @@ class SubscriptionProcessor(object):
                 query=self.subscription.query,
                 date_started=detected_at,
                 date_detected=detected_at,
-                projects=[self.alert_rule.project],
+                projects=[self.subscription.project],
             )
             # TODO: We should create an audit log, and maybe something that keeps
             # all of the details available for showing on the incident. Might be a json

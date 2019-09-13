@@ -11,9 +11,9 @@ import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Panel from 'app/components/panels/panel';
-import {PanelBody} from 'app/components/panels';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 
 import {DEFAULT_EVENT_VIEW_V1} from './data';
@@ -94,6 +94,8 @@ class Table extends React.PureComponent<Props, State> {
 
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
+    this.setState({loading: true});
+
     this.props.api.request(url, {
       query: this.state.eventView.getEventsAPIPayload(location),
       success: (dataPayload, __textStatus, jqxhr) => {
@@ -148,16 +150,6 @@ type TableViewProps = {
  * Renders the table headers and rows for the result set.
  */
 class TableView extends React.Component<TableViewProps> {
-  renderLoading = () => {
-    return (
-      <Panel>
-        <PanelBody style={{minHeight: '240px'}}>
-          <LoadingContainer isLoading={true} />
-        </PanelBody>
-      </Panel>
-    );
-  };
-
   renderHeader = () => {
     const {eventView, location, dataPayload} = this.props;
 
@@ -193,8 +185,15 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   renderContent = (): React.ReactNode => {
-    const {dataPayload, eventView, organization, location} = this.props;
+    const {isLoading, dataPayload, eventView, organization, location} = this.props;
 
+    if (isLoading && !dataPayload) {
+      return (
+        <PanelGridInfo numOfCols={eventView.numOfColumns()}>
+          <Placeholder height="240px" width="100%" />
+        </PanelGridInfo>
+      );
+    }
     if (!(dataPayload && dataPayload.data && dataPayload.data.length > 0)) {
       return (
         <PanelGridInfo numOfCols={eventView.numOfColumns()}>
@@ -239,9 +238,16 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   renderTable() {
+    const {isLoading, dataPayload} = this.props;
     return (
       <React.Fragment>
         {this.renderHeader()}
+        {isLoading && (
+          <FloatingLoadingContainer
+            isLoading={true}
+            isReloading={isLoading && !!dataPayload}
+          />
+        )}
         {this.renderContent()}
       </React.Fragment>
     );
@@ -260,11 +266,8 @@ class TableView extends React.Component<TableViewProps> {
   }
 
   render() {
-    const {isLoading, error, eventView} = this.props;
+    const {error, eventView} = this.props;
 
-    if (isLoading) {
-      return this.renderLoading();
-    }
     if (error) {
       return this.renderError();
     }
@@ -357,6 +360,14 @@ const PanelItemCell = styled('div')<{hideBottomBorder: boolean}>`
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
+`;
+
+const FloatingLoadingContainer = styled(LoadingContainer)<LoadingContainer['props']>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 `;
 
 export default withApi<Props>(Table);

@@ -157,9 +157,37 @@ export type EventsStats = {
 };
 
 export type User = {
-  id: string;
-  name: string;
   username: string;
+  lastLogin: string;
+  isSuperuser: boolean;
+  emails: {
+    is_verified: boolean;
+    id: string;
+    email: string;
+  }[];
+  isManaged: boolean;
+  lastActive: string;
+  isStaff: boolean;
+  identities: any[];
+  id: string;
+  isActive: boolean;
+  has2fa: boolean;
+  canReset2fa: boolean;
+  name: string;
+  avatarUrl: string;
+  authenticators: Authenticator[];
+  dateJoined: string;
+  options: {
+    timezone: string;
+    stacktraceOrder: number;
+    language: string;
+    clock24Hours: boolean;
+  };
+  flags: {newsletter_consent_prompt: boolean};
+  avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
+  ip_address: string;
+  hasPasswordAuth: boolean;
+  permissions: string[];
   email: string;
 };
 
@@ -223,39 +251,7 @@ export type Config = {
   urlPrefix: string;
   needsUpgrade: boolean;
   supportEmail: string;
-  user: {
-    username: string;
-    lastLogin: string;
-    isSuperuser: boolean;
-    emails: {
-      is_verified: boolean;
-      id: string;
-      email: string;
-    }[];
-    isManaged: boolean;
-    lastActive: string;
-    isStaff: boolean;
-    identities: any[];
-    id: string;
-    isActive: boolean;
-    has2fa: boolean;
-    canReset2fa: boolean;
-    name: string;
-    avatarUrl: string;
-    authenticators: Authenticator[];
-    dateJoined: string;
-    options: {
-      timezone: string;
-      stacktraceOrder: number;
-      language: string;
-      clock24Hours: boolean;
-    };
-    flags: {newsletter_consent_prompt: boolean};
-    avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
-    hasPasswordAuth: boolean;
-    permissions: string[];
-    email: string;
-  };
+  user: User;
 
   invitesEnabled: boolean;
   privacyUrl: string | null;

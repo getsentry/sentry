@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import time
 import jsonschema
 import logging
+import random
 import six
 
 from datetime import datetime, timedelta
@@ -13,7 +14,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, nodestore, options, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -511,16 +512,13 @@ class EventManager(object):
             id=project.organization_id
         )
 
-        # Check to make sure we're not about to do a bunch of work that's
-        # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-        # there's a race condition between here and when the event is actually
-        # saved, but it's an improvement. See GH-7677.)
-        try:
-            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
-        except Event.DoesNotExist:
-            pass
-        else:
+        # Ensure an event with the same ID does not exist before processing it.
+        # We use a first write wins approach since Clickhouse cannot merge
+        # events from different days. (The timestamp rounded to
+        # start of day is part of the primary key in Clickhouse).
+        event = self._get_event_from_storage(project_id, data["event_id"])
+
+        if event:
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
@@ -874,6 +872,31 @@ class EventManager(object):
         metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
 
         return event
+
+    def _get_event_from_storage(self, project_id, event_id):
+        nodestore_sample_rate = options.get("store.nodestore-sample-rate")
+        use_nodestore = random.random() < nodestore_sample_rate
+
+        if use_nodestore:
+            start = time.time()
+
+            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
+
+            metrics.timing(
+                "events.store.nodestore.duration",
+                int((time.time() - start) * 1000),
+                tags={"duplicate_found": bool(node_data)},
+            )
+
+            if node_data:
+                return Event(node_data)
+        else:
+            try:
+                event = Event.objects.get(project_id=project_id, event_id=event_id)
+                return event
+            except Event.DoesNotExist:
+                pass
+        return None
 
     def _get_event_user(self, project, data):
         user_data = data.get("user")

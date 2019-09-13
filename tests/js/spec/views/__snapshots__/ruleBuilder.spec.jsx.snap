@@ -2619,12 +2619,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                 identifier="janedoe@example.com"
                                                                 round={true}
                                                               >
-                                                                <Svg
+                                                                <Component
+                                                                  className="css-vyy37i-LetterAvatar e12lgfev0"
+                                                                  displayName="Jane Doe"
+                                                                  identifier="janedoe@example.com"
                                                                   round={true}
-                                                                  viewBox="0 0 120 120"
                                                                 >
                                                                   <svg
-                                                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                                                    className="css-vyy37i-LetterAvatar e12lgfev0"
                                                                     viewBox="0 0 120 120"
                                                                   >
                                                                     <rect
@@ -2651,7 +2653,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                       JD
                                                                     </text>
                                                                   </svg>
-                                                                </Svg>
+                                                                </Component>
                                                               </LetterAvatar>
                                                             </span>
                                                           </StyledBaseAvatar>

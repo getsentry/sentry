@@ -36,7 +36,9 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        serializer = AlertRuleSerializer(context={"project": project}, data=request.data)
+        serializer = AlertRuleSerializer(
+            context={"organization": project.organization, "project": project}, data=request.data
+        )
 
         if serializer.is_valid():
             alert_rule = serializer.save()

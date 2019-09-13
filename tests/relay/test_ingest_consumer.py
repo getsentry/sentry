@@ -83,10 +83,10 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     organization = Factories.create_organization()
     project = Factories.create_project(organization=organization)
 
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events, settings)
+    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     event_ids = set()
-    for i in range(1, 4):
+    for _ in range(3):
         message, event_id = _get_test_message(project)
         event_ids.add(event_id)
         producer.produce(topic_event_name, message)
@@ -96,7 +96,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
             commit_batch_size=2,
             consumer_group=consumer_group,
             consumer_type=ConsumerType.Events,
-            max_batch_time_seconds=0.1,
+            max_fetch_time_seconds=0.1,
+            initial_offset_reset="earliest",
             is_shutdown_requested=_shutdown_requested(max_secs=10, num_events=3),
         )
 

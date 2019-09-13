@@ -12,12 +12,14 @@ class AlertRuleSerializer(Serializer):
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
-            "projectId": six.text_type(obj.project_id),
+            # TODO: Remove this once we've migrated to org level
+            "projectId": six.text_type(obj.query_subscriptions.first().project_id),
             "status": obj.status,
             "thresholdType": obj.threshold_type,
             "dataset": obj.dataset,
             "query": obj.query,
-            "aggregations": [agg for agg in obj.aggregations],
+            "aggregation": obj.aggregation,
+            "aggregations": [obj.aggregation],
             "timeWindow": obj.time_window,
             "resolution": obj.resolution,
             "alertThreshold": obj.alert_threshold,

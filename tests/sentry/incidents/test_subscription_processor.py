@@ -9,18 +9,11 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-from sentry.incidents.logic import alert_aggregation_to_snuba, create_alert_rule
-from sentry.incidents.models import (
-    AlertRuleAggregations,
-    AlertRuleThresholdType,
-    Incident,
-    IncidentStatus,
-    IncidentType,
-    SnubaDatasets,
-)
+from sentry.incidents.logic import create_alert_rule
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
+from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
 from sentry.incidents.subscription_processor import get_alert_rule_stats, SubscriptionProcessor
-from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 
@@ -31,32 +24,22 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def subscription(self):
-        subscription = QuerySubscription.objects.create(
-            project=self.project,
-            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-            subscription_id="some_id",
-            dataset=SnubaDatasets.EVENTS.value,
-            query="",
-            aggregations=[AlertRuleAggregations.TOTAL.value],
-            time_window=1,
-            resolution=1,
-        )
-        return subscription
+        return self.rule.query_subscriptions.get()
 
     @fixture
     def rule(self):
         rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
-            aggregations=[AlertRuleAggregations.TOTAL],
+            aggregation=QueryAggregations.TOTAL,
             time_window=1,
             alert_threshold=100,
             resolve_threshold=10,
             threshold_period=1,
         )
-        rule.update(query_subscription=self.subscription)
         return rule
 
     def build_subscription_update(self, subscription=None, time_delta=None, value=None):
@@ -68,8 +51,8 @@ class ProcessUpdateTest(TestCase):
         values = {}
 
         if subscription:
-            aggregation_type = alert_aggregation_to_snuba[
-                AlertRuleAggregations(subscription.aggregations[0])
+            aggregation_type = query_aggregation_to_snuba[
+                QueryAggregations(subscription.aggregation)
             ]
             value = randint(0, 100) if value is None else value
             values = {aggregation_type[2]: value}
@@ -85,7 +68,7 @@ class ProcessUpdateTest(TestCase):
     def send_update(self, rule, value, time_delta=None):
         if time_delta is None:
             time_delta = timedelta()
-        subscription = rule.query_subscription
+        subscription = rule.query_subscriptions.get()
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
         processor.process_update(message)
@@ -110,7 +93,8 @@ class ProcessUpdateTest(TestCase):
         assert get_alert_rule_stats(processor.alert_rule)[1:] == (alert_triggers, resolve_triggers)
 
     def test_removed_alert_rule(self):
-        message = self.build_subscription_update()
+        message = self.build_subscription_update(self.subscription)
+        self.rule.delete()
         SubscriptionProcessor(self.subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"

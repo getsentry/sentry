@@ -12,12 +12,12 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import eventstore, options as sentry_options
+from sentry import eventstore
 from sentry.models import Event, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -209,7 +209,7 @@ class ErrorPageEmbedView(View):
 
         context = {
             "endpoint": mark_safe(
-                "*/" + json.dumps(sentry_options.get("system.url-prefix")) + ";/*"
+                "*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"
             ),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(

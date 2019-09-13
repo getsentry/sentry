@@ -90,7 +90,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             subscription_id=self.subscription_id,
             dataset="something",
             query="hello",
-            aggregations=[],
+            aggregation=0,
             time_window=1,
             resolution=1,
         )
@@ -122,7 +122,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             subscription_id=self.subscription_id,
             dataset="something",
             query="hello",
-            aggregations=[],
+            aggregation=0,
             time_window=1,
             resolution=1,
         )

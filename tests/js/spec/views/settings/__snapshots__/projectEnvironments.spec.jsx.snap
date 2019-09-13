@@ -374,29 +374,24 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
-                      <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        noMargin={true}
+                      <div
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        >
-                          You don't have any environments yet.
-                        </div>
-                      </Component>
+                        You don't have any environments yet.
+                      </div>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
@@ -781,29 +776,24 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
-                      <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        noMargin={true}
+                      <div
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        >
-                          You don't have any hidden environments.
-                        </div>
-                      </Component>
+                        You don't have any hidden environments.
+                      </div>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
