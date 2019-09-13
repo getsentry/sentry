@@ -8,7 +8,6 @@ from sentry.api.event_search import (
     get_snuba_query_args,
     resolve_field_list,
     InvalidSearchQuery,
-    find_reference_event,
     get_reference_event_conditions,
 )
 from sentry.models.project import Project
@@ -52,9 +51,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            reference_event = find_reference_event(snuba_args, reference_event_id)
             snuba_args["conditions"] = get_reference_event_conditions(
-                snuba_args, reference_event.snuba_data
+                snuba_args, reference_event_id
             )
 
         # TODO(lb): remove once boolean search is fully functional
