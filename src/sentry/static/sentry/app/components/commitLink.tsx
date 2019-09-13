@@ -2,14 +2,26 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Repository} from 'app/types';
 import {t} from 'app/locale';
 import {getShortCommitHash} from 'app/utils';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 
+type CommitFormatterParameters = {
+  baseUrl: string;
+  commitId: string;
+};
+
+type CommitProvider = {
+  icon: string;
+  providerIds: string[];
+  commitUrl: (CommitFormatterParameters) => string;
+};
+
 // TODO(epurkhiser, jess): This should be moved into plugins.
-const SUPPORTED_PROVIDERS = [
+const SUPPORTED_PROVIDERS: Readonly<Array<CommitProvider>> = [
   {
     icon: 'icon-github',
     providerIds: ['github', 'integrations:github', 'integrations:github_enterprise'],
@@ -32,7 +44,13 @@ const SUPPORTED_PROVIDERS = [
   },
 ];
 
-function CommitLink({inline, commitId, repository}) {
+type Props = {
+  commitId: string;
+  repository?: Repository;
+  inline?: boolean;
+};
+
+function CommitLink({inline, commitId, repository}: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
@@ -75,7 +93,11 @@ CommitLink.propTypes = {
   inline: PropTypes.bool,
 };
 
-const CommitIcon = styled(p => (
+type CommitIconProps = {
+  src: string;
+  className?: string;
+};
+const CommitIcon = styled((p: CommitIconProps) => (
   <InlineSvg size="14px" src={p.src} className={p.className} />
 ))`
   vertical-align: text-top;
