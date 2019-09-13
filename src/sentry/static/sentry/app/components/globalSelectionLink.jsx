@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
-
+import qs from 'query-string';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 /**
@@ -43,8 +43,17 @@ export default class GlobalSelectionLink extends React.Component {
 
       return <RouterLink {...routerProps}>{this.props.children}</RouterLink>;
     } else {
+      let queryStringObject = {...qs.parse(to.search), ...globalQuery};
+      if (to && to.query) {
+        queryStringObject = {...queryStringObject, ...to.query};
+      }
+
+      const url =
+        (typeof to === 'string' ? to : to.pathname) +
+        '?' +
+        qs.stringify(queryStringObject);
       return (
-        <a {...this.props} href={to}>
+        <a {...this.props} href={url}>
           {this.props.children}
         </a>
       );
