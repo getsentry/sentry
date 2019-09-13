@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 
-class Radio extends React.Component {
+class Radio extends React.Component<React.HTMLProps<HTMLInputElement>> {
   static defaultProps = {
     checked: false,
   };
