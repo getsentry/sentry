@@ -12,8 +12,18 @@ django-sudo>=2.1.0,<3.0.0
 Django>=1.8,<1.9
 djangorestframework==3.0.5
 email-reply-parser>=0.2.0,<0.3.0
+
+# TODO: Remove once we no longer support Python 2.7
+enum34>=1.1.6,<1.2.0
+
 exam>=0.5.1
+
+# TODO: Remove once we no longer support Python 2.7
+functools32>=3.2.3,<3.3
+futures>=3.2.0,<4.0.0
+
 hiredis>=0.1.0,<0.2.0
+ipaddress>=1.0.16,<1.1.0
 jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
