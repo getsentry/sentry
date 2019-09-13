@@ -4,9 +4,7 @@ from django.db import transaction
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.dashboard import (
-    OrganizationDashboardWidgetEndpoint
-)
+from sentry.api.bases.dashboard import OrganizationDashboardWidgetEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import WidgetSerializer
 from sentry.models import WidgetDataSource
@@ -54,29 +52,27 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
         :auth: required
         """
         # TODO(lb): better document displayType, displayOptions, and dataSources.
-        serializer = WidgetSerializer(data=request.DATA, context={'organization': organization})
+        serializer = WidgetSerializer(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.object
+        data = serializer.validated_data
 
         with transaction.atomic():
             widget.update(
-                title=data.get('title', widget.title),
-                display_type=data.get('displayType', widget.display_type),
-                display_options=data.get('displayOptions', widget.display_options)
+                title=data.get("title", widget.title),
+                display_type=data.get("displayType", widget.display_type),
+                display_options=data.get("displayOptions", widget.display_options),
             )
 
-            if 'dataSources' in data:
-                WidgetDataSource.objects.filter(
-                    widget_id=widget.id
-                ).delete()
-            for widget_data in data.get('dataSources', []):
+            if "dataSources" in data:
+                WidgetDataSource.objects.filter(widget_id=widget.id).delete()
+            for widget_data in data.get("dataSources", []):
                 WidgetDataSource.objects.create(
-                    name=widget_data['name'],
-                    data=widget_data['data'],
-                    type=widget_data['type'],
-                    order=widget_data['order'],
+                    name=widget_data["name"],
+                    data=widget_data["data"],
+                    type=widget_data["type"],
+                    order=widget_data["order"],
                     widget_id=widget.id,
                 )
 

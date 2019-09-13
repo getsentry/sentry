@@ -46,7 +46,6 @@ body {
 */
 
 body.narrow {
-  zoom: 1;
   padding: 0;
 
   background: #fff;
@@ -249,7 +248,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex-grow: 1;
 }
 
 .container {
@@ -266,6 +265,8 @@ body.auth {
 
 // Container around content in app.jsx
 .main-container {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   outline: none;
 }
@@ -413,7 +414,6 @@ footer {
 
 @media (max-width: 767px) {
   body {
-    zoom: 0.85;
     padding-top: 0;
 
     // Hide fake sidebar on mobile

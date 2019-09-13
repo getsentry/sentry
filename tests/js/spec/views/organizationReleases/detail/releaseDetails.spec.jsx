@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseDetails from 'app/views/organizationReleases/detail/';
+import ReleaseDetails from 'app/views/releases/detail/';
 
 describe('ReleaseDetails', function() {
   let deleteMock;
@@ -41,6 +41,7 @@ describe('ReleaseDetails', function() {
     };
     const location = {
       pathname: '/',
+      query: {},
     };
 
     const wrapper = mount(

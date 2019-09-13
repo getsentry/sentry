@@ -19,6 +19,7 @@ module.exports = {
   setupFiles: [
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
+    'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
   testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
@@ -29,13 +30,8 @@ module.exports = {
   ],
   transform: {
     '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': 'babel-jest',
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
-  globals: {
-    'ts-jest': {
-      tsConfig: './tsconfig.json',
-      diagnostics: false,
-    },
-  },
+  globals: {},
 };

@@ -103,7 +103,6 @@ const StreamGroup = createReactClass({
       >
         {canSelect && (
           <GroupCheckbox ml={2}>
-            {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
         )}
@@ -111,15 +110,14 @@ const StreamGroup = createReactClass({
           <EventOrGroupHeader data={data} query={query} />
           <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
+        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         <Box w={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
-          {hasGuideAnchor && <GuideAnchor target="events" type="text" />}
           <StyledCount value={data.count} />
         </Flex>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
-          {hasGuideAnchor && <GuideAnchor target="users" type="text" />}
           <StyledCount value={data.userCount} />
         </Flex>
         <Box w={80} mx={2} className="hidden-xs hidden-sm">

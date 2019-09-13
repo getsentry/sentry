@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
@@ -14,28 +13,27 @@ import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercar
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-const SuggestedOwners = createReactClass({
-  displayName: 'SuggestedOwners',
-
-  propTypes: {
+class SuggestedOwners extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       rules: null,
       owners: [],
       committers: [],
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData(this.props.event);
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (this.props.event && nextProps.event) {
@@ -47,7 +45,7 @@ const SuggestedOwners = createReactClass({
       //going from having no event to having an event
       this.fetchData(nextProps.event);
     }
-  },
+  }
 
   fetchData(event) {
     if (!event) {
@@ -62,12 +60,12 @@ const SuggestedOwners = createReactClass({
       api.request(
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         {
-          success: (data, _, jqXHR) => {
+          success: data => {
             this.setState({
               committers: data.committers,
             });
           },
-          error: error => {
+          error: () => {
             this.setState({
               committers: [],
             });
@@ -79,20 +77,20 @@ const SuggestedOwners = createReactClass({
     api.request(
       `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       {
-        success: (data, _, jqXHR) => {
+        success: data => {
           this.setState({
             owners: data.owners,
             rules: data.rules,
           });
         },
-        error: error => {
+        error: () => {
           this.setState({
             owners: [],
           });
         },
       }
     );
-  },
+  }
 
   assign(actor) {
     if (actor.id === undefined) {
@@ -106,7 +104,7 @@ const SuggestedOwners = createReactClass({
     if (actor.type === 'team') {
       assignToActor({id: this.props.event.groupID, actor});
     }
-  },
+  }
 
   /**
    * Combine the commiter and ownership data into a single array, merging
@@ -151,7 +149,7 @@ const SuggestedOwners = createReactClass({
     });
 
     return owners;
-  },
+  }
 
   render() {
     const {group, organization, project} = this.props;
@@ -189,10 +187,11 @@ const SuggestedOwners = createReactClass({
         )}
         <Access access={['project:write']}>
           <div className="m-b-1">
-            <h6>
-              <GuideAnchor target="owners" type="text" />
-              <span>{t('Ownership Rules')}</span>
-            </h6>
+            <GuideAnchor target="owners">
+              <h6>
+                <span>{t('Ownership Rules')}</span>
+              </h6>
+            </GuideAnchor>
             <Button
               onClick={() =>
                 openCreateOwnershipRule({
@@ -210,8 +209,8 @@ const SuggestedOwners = createReactClass({
         </Access>
       </React.Fragment>
     );
-  },
-});
+  }
+}
 export {SuggestedOwners};
 export default withApi(withOrganization(SuggestedOwners));
 

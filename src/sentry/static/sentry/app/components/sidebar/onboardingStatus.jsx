@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Tooltip from 'app/components/tooltip';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
+import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {tct} from 'app/locale';
-import SidebarPanel from './sidebarPanel';
-import TodoList, {TASKS} from '../onboardingWizard/todos';
+import TodoList from 'app/components/onboardingWizard/todoList';
+import Tooltip from 'app/components/tooltip';
 
 class OnboardingStatus extends React.Component {
   static propTypes = {
@@ -28,9 +29,20 @@ class OnboardingStatus extends React.Component {
   }
 
   recordAnalytics(currentPanel, orgId) {
-    currentPanel === 'todos'
-      ? analytics('onboarding.wizard_opened', {org_id: orgId})
-      : analytics('onboarding.wizard_closed', {org_id: orgId});
+    const data =
+      currentPanel === 'todos'
+        ? {
+            eventKey: 'onboarding.wizard_opened',
+            eventName: 'Onboarding Wizard Opened',
+          }
+        : {
+            eventKey: 'onboarding.wizard_closed',
+            eventName: 'Onboarding Wizard Closed',
+          };
+    trackAnalyticsEvent({
+      ...data,
+      organization_id: orgId,
+    });
   }
 
   render() {
@@ -45,7 +57,9 @@ class OnboardingStatus extends React.Component {
     const doneTasks = (org.onboardingTasks || []).filter(
       task => task.status === 'complete' || task.status === 'skipped'
     );
-    const allDisplayedTasks = TASKS.filter(task => task.display);
+
+    const tasks = getOnboardingTasks(org);
+    const allDisplayedTasks = tasks.filter(task => task.display);
 
     const percentage = Math.round(
       (doneTasks.length / allDisplayedTasks.length) * 100

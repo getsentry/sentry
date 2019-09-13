@@ -1,10 +1,3 @@
-"""
-sentry.wsgi
-~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import os
@@ -16,8 +9,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
 # Configure the application only if it seemingly isnt already configured
 from django.conf import settings
+
 if not settings.configured:
     from sentry.runner import configure
+
     configure()
 
 if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
@@ -39,9 +34,9 @@ class FileWrapperWSGIHandler(WSGIHandler):
 
     def __call__(self, environ, start_response):
         response = super(FileWrapperWSGIHandler, self).__call__(environ, start_response)
-        if hasattr(response, 'streaming') and response.streaming:
+        if hasattr(response, "streaming") and response.streaming:
             try:
-                response = environ['wsgi.file_wrapper'](response.streaming_content)
+                response = environ["wsgi.file_wrapper"](response.streaming_content)
             except KeyError:
                 # In our case, we're shipping with uwsgi, so it's safer to assume
                 # that wsgi.file_wrapper does exist. It'd be exceptional otherwise.

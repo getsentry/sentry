@@ -33,6 +33,7 @@ index 89821ce..9e09a8a 100644
 \ No newline at end of file
 +A twitter bot to when words are said by the NYT for the first time.sdfsdf
 \ No newline at end of file"""
+
 PUSH_EVENT_EXAMPLE = b"""{
     "push": {
         "changes": [
@@ -272,80 +273,207 @@ PUSH_EVENT_EXAMPLE = b"""{
 }
 """
 REPO = {
-    u'scm': u'git',
-    u'website': u'',
-    u'has_wiki': True,
-    u'description': u'',
-    u'links': OrderedDict([
-        (u'watchers', OrderedDict([(u'href',
-                                    u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/watchers'
-                                    )])),
-        (u'branches', OrderedDict([(u'href',
-                                    u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/refs/branches'
-                                    )])),
-        (u'tags', OrderedDict([(u'href',
-                                u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/refs/tags'
-                                )])),
-        (u'commits', OrderedDict([(u'href',
-                                   u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/commits'
-                                   )])),
-        (u'clone', [OrderedDict([(u'href',
-                                  u'https://laurynsentry@bitbucket.org/laurynsentry/helloworld.git'
-                                  ), (u'name', u'https')]), OrderedDict([(u'href',
-                                                                          u'git@bitbucket.org:laurynsentry/helloworld.git'), (u'name',
-                                                                                                                              u'ssh')])]),
-        (u'self', OrderedDict([(u'href',
-                                u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld'
-                                )])),
-        (u'source', OrderedDict([(u'href',
-                                  u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/src'
-                                  )])),
-        (u'html', OrderedDict([(u'href',
-                                u'https://bitbucket.org/laurynsentry/helloworld')])),
-        (u'avatar', OrderedDict([(u'href',
-                                  u'https://bytebucket.org/ravatar/%7B2a47ac11-098a-4054-8496-193754cae14b%7D?ts=default'
-                                  )])),
-        (u'hooks', OrderedDict([(u'href',
-                                 u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/hooks'
-                                 )])),
-        (u'forks', OrderedDict([(u'href',
-                                 u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/forks'
-                                 )])),
-        (u'downloads', OrderedDict([(u'href',
-                                     u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/downloads'
-                                     )])),
-        (u'issues', OrderedDict([(u'href',
-                                  u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues'
-                                  )])),
-        (u'pullrequests', OrderedDict([(u'href',
-                                        u'https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/pullrequests'
-                                        )])),
-    ]),
-    u'created_on': u'2018-05-14T23:53:37.377674+00:00',
-    u'full_name': u'laurynsentry/helloworld',
-    u'owner': OrderedDict([
-        (u'username', u'laurynsentry'),
-        (u'display_name', u'Lauryn Brown'),
-        (u'account_id', u'5a00066393915e620920e0ae'),
-        (u'links', OrderedDict([(u'self', OrderedDict([(u'href',
-                                                        u'https://api.bitbucket.org/2.0/users/laurynsentry')])),
-                                (u'html', OrderedDict([(u'href',
-                                                        u'https://bitbucket.org/laurynsentry/')])), (u'avatar',
-                                                                                                     OrderedDict([(u'href',
-                                                                                                                   u'https://bitbucket.org/account/laurynsentry/avatar/')]))])),
-        (u'type', u'user'),
-        (u'uuid', u'{e50a27fe-0686-4d75-ba44-d27608bbb718}'),
-    ]),
-    u'has_issues': True,
-    u'slug': u'helloworld',
-    u'is_private': False,
-    u'size': 221349,
-    u'name': u'HelloWorld',
-    u'language': u'',
-    u'fork_policy': u'allow_forks',
-    u'uuid': u'{2a47ac11-098a-4054-8496-193754cae14b}',
-    u'mainbranch': OrderedDict([(u'type', u'branch'), (u'name',
-                                                       u'master')]),
-    u'updated_on': u'2018-05-30T18:21:08.780363+00:00',
-    u'type': u'repository',
+    u"scm": u"git",
+    u"website": u"",
+    u"has_wiki": True,
+    u"description": u"",
+    u"links": OrderedDict(
+        [
+            (
+                u"watchers",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/watchers",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"branches",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/refs/branches",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"tags",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/refs/tags",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"commits",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/commits",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"clone",
+                [
+                    OrderedDict(
+                        [
+                            (
+                                u"href",
+                                u"https://laurynsentry@bitbucket.org/laurynsentry/helloworld.git",
+                            ),
+                            (u"name", u"https"),
+                        ]
+                    ),
+                    OrderedDict(
+                        [
+                            (u"href", u"git@bitbucket.org:laurynsentry/helloworld.git"),
+                            (u"name", u"ssh"),
+                        ]
+                    ),
+                ],
+            ),
+            (
+                u"self",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"source",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/src",
+                        )
+                    ]
+                ),
+            ),
+            (u"html", OrderedDict([(u"href", u"https://bitbucket.org/laurynsentry/helloworld")])),
+            (
+                u"avatar",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://bytebucket.org/ravatar/%7B2a47ac11-098a-4054-8496-193754cae14b%7D?ts=default",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"hooks",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/hooks",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"forks",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/forks",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"downloads",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/downloads",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"issues",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/issues",
+                        )
+                    ]
+                ),
+            ),
+            (
+                u"pullrequests",
+                OrderedDict(
+                    [
+                        (
+                            u"href",
+                            u"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/pullrequests",
+                        )
+                    ]
+                ),
+            ),
+        ]
+    ),
+    u"created_on": u"2018-05-14T23:53:37.377674+00:00",
+    u"full_name": u"laurynsentry/helloworld",
+    u"owner": OrderedDict(
+        [
+            (u"username", u"laurynsentry"),
+            (u"display_name", u"Lauryn Brown"),
+            (u"account_id", u"5a00066393915e620920e0ae"),
+            (
+                u"links",
+                OrderedDict(
+                    [
+                        (
+                            u"self",
+                            OrderedDict(
+                                [(u"href", u"https://api.bitbucket.org/2.0/users/laurynsentry")]
+                            ),
+                        ),
+                        (u"html", OrderedDict([(u"href", u"https://bitbucket.org/laurynsentry/")])),
+                        (
+                            u"avatar",
+                            OrderedDict(
+                                [(u"href", u"https://bitbucket.org/account/laurynsentry/avatar/")]
+                            ),
+                        ),
+                    ]
+                ),
+            ),
+            (u"type", u"user"),
+            (u"uuid", u"{e50a27fe-0686-4d75-ba44-d27608bbb718}"),
+        ]
+    ),
+    u"has_issues": True,
+    u"slug": u"helloworld",
+    u"is_private": False,
+    u"size": 221349,
+    u"name": u"HelloWorld",
+    u"language": u"",
+    u"fork_policy": u"allow_forks",
+    u"uuid": u"{2a47ac11-098a-4054-8496-193754cae14b}",
+    u"mainbranch": OrderedDict([(u"type", u"branch"), (u"name", u"master")]),
+    u"updated_on": u"2018-05-30T18:21:08.780363+00:00",
+    u"type": u"repository",
 }

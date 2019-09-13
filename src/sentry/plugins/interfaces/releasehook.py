@@ -1,14 +1,6 @@
-"""
-sentry.plugins.base.structs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import, print_function
 
-__all__ = ['ReleaseHook']
+__all__ = ["ReleaseHook"]
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -23,7 +15,7 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         if not Release.is_valid_version(version):
-            raise HookValidationError('Invalid release version: %s' % version)
+            raise HookValidationError("Invalid release version: %s" % version)
 
         try:
             with transaction.atomic():
@@ -32,8 +24,7 @@ class ReleaseHook(object):
                 )
         except IntegrityError:
             release = Release.objects.get(
-                version=version,
-                organization_id=self.project.organization_id,
+                version=version, organization_id=self.project.organization_id
             )
             release.update(**values)
 
@@ -49,7 +40,7 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         if not Release.is_valid_version(version):
-            raise HookValidationError('Invalid release version: %s' % version)
+            raise HookValidationError("Invalid release version: %s" % version)
 
         project = self.project
         try:
@@ -68,9 +59,9 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         if not Release.is_valid_version(version):
-            raise HookValidationError('Invalid release version: %s' % version)
+            raise HookValidationError("Invalid release version: %s" % version)
 
-        values.setdefault('date_released', timezone.now())
+        values.setdefault("date_released", timezone.now())
         try:
             with transaction.atomic():
                 release = Release.objects.create(
@@ -78,8 +69,7 @@ class ReleaseHook(object):
                 )
         except IntegrityError:
             release = Release.objects.get(
-                version=version,
-                organization_id=self.project.organization_id,
+                version=version, organization_id=self.project.organization_id
             )
             release.update(**values)
 
@@ -89,8 +79,8 @@ class ReleaseHook(object):
             type=Activity.RELEASE,
             project=self.project,
             ident=Activity.get_version_ident(version),
-            data={'version': version},
-            datetime=values['date_released'],
+            data={"version": version},
+            datetime=values["date_released"],
         )
         self.set_refs(release=release, **values)
 

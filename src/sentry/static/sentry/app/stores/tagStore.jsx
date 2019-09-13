@@ -75,6 +75,12 @@ const TagStore = Reflux.createStore({
         values: ['-1h', '+1d', '-1w'],
         predefined: true,
       },
+      firstRelease: {
+        key: 'firstRelease',
+        name: 'First Release',
+        values: ['latest'],
+        predefined: true,
+      },
       'event.timestamp': {
         key: 'event.timestamp',
         name: 'Event Timestamp',

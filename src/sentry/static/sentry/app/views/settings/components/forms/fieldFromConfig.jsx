@@ -12,6 +12,8 @@ import TextareaField from './textareaField';
 import RadioField from './radioField';
 import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
+import RichListField from './richListField';
+import FieldSeparator from './fieldSeparator';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
@@ -22,14 +24,17 @@ export default class FieldFromConfig extends React.Component {
         'boolean',
         'choice',
         'choice_mapper',
+        'custom',
         'email',
         'hidden',
         'multichoice',
         'number',
         'radio',
         'range',
+        'rich_list',
         'secret',
         'select',
+        'separator',
         'string',
         'text',
         'textarea',
@@ -69,6 +74,8 @@ export default class FieldFromConfig extends React.Component {
     };
 
     switch (field.type) {
+      case 'separator':
+        return <FieldSeparator {...props} />;
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
@@ -108,6 +115,10 @@ export default class FieldFromConfig extends React.Component {
         return <ChoiceMapperField {...props} />;
       case 'radio':
         return <RadioField {...props} />;
+      case 'rich_list':
+        return <RichListField {...props} />;
+      case 'custom':
+        return field.Component(props);
       default:
         return null;
     }

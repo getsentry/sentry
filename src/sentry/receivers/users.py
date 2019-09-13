@@ -8,33 +8,31 @@ from sentry.models import User
 
 def create_first_user(created_models, verbosity, db, app=None, **kwargs):
     # this is super confusing
-    if app and app.__name__ != 'sentry.models':
+    if app and app.__name__ != "sentry.models":
         return
 
     if User not in created_models:
         return
 
-    if hasattr(router, 'allow_migrate'):
+    if hasattr(router, "allow_migrate"):
         if not router.allow_migrate(db, User):
             return
     else:
         if not router.allow_syncdb(db, User):
             return
-    if not kwargs.get('interactive', True):
+    if not kwargs.get("interactive", True):
         return
 
     import click
-    if not click.confirm('\nWould you like to create a user account now?', default=True):
+
+    if not click.confirm("\nWould you like to create a user account now?", default=True):
         # Not using `abort=1` because we don't want to exit out from further execution
-        click.echo('\nRun `sentry createuser` to do this later.\n')
+        click.echo("\nRun `sentry createuser` to do this later.\n")
         return
 
     from sentry.runner import call_command
-    call_command('sentry.runner.commands.createuser.createuser', superuser=True)
+
+    call_command("sentry.runner.commands.createuser.createuser", superuser=True)
 
 
-post_syncdb.connect(
-    create_first_user,
-    dispatch_uid="create_first_user",
-    weak=False,
-)
+post_syncdb.connect(create_first_user, dispatch_uid="create_first_user", weak=False)

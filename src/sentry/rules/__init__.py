@@ -1,11 +1,3 @@
-"""
-sentry.rules
-~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 from .base import *  # NOQA
@@ -23,7 +15,7 @@ def init_registry():
         cls = import_string(rule)
         registry.add(cls)
     for plugin in plugins.all(version=2):
-        for cls in (safe_execute(plugin.get_rules, _with_transaction=False) or ()):
+        for cls in safe_execute(plugin.get_rules, _with_transaction=False) or ():
             registry.add(cls)
 
     return registry

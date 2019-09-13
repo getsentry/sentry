@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import EventMessage from 'app/components/events/eventMessage';
+
 class SharedGroupHeader extends React.Component {
   static propTypes = {
     group: PropTypes.object.isRequired,
@@ -13,9 +15,8 @@ class SharedGroupHeader extends React.Component {
       <div className="group-detail" style={{paddingBottom: 20}}>
         <div className="details">
           <h3>{group.title}</h3>
-          <div className="event-message">
-            <span className="message">{group.culprit}</span>
-          </div>
+
+          <EventMessage message={group.culprit} />
         </div>
       </div>
     );

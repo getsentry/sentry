@@ -22,26 +22,24 @@ class BaseEvent(object):
         return None
 
     def to_string(self, metadata):
-        warn(DeprecationWarning('This method was replaced by get_title',
-                                stacklevel=2))
+        warn(DeprecationWarning("This method was replaced by get_title", stacklevel=2))
         return self.get_title()
 
 
 class DefaultEvent(BaseEvent):
-    key = 'default'
+    key = "default"
 
     def get_metadata(self, data):
-        message = strip(get_path(data, 'logentry', 'formatted') or
-                        get_path(data, 'logentry', 'message'))
+        message = strip(
+            get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
+        )
 
         if message:
             title = truncatechars(message.splitlines()[0], 100)
         else:
-            title = '<unlabeled event>'
+            title = "<unlabeled event>"
 
-        return {
-            'title': title,
-        }
+        return {"title": title}
 
     def get_title(self, metadata):
-        return metadata.get('title') or '<untitled>'
+        return metadata.get("title") or "<untitled>"

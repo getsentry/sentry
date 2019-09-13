@@ -42,6 +42,14 @@ export const User = PropTypes.shape({
   username: PropTypes.string,
 });
 
+export const AuthConfig = PropTypes.shape({
+  canRegister: PropTypes.bool,
+  serverHostname: PropTypes.string,
+  hasNewsletter: PropTypes.bool,
+  githubLoginLink: PropTypes.string,
+  vstsLoginLink: PropTypes.string,
+});
+
 export const Config = PropTypes.shape({
   dsn: PropTypes.string,
   features: PropTypes.instanceOf(Set),
@@ -140,6 +148,16 @@ export const Member = PropTypes.shape({
   user: User,
 });
 
+const EventOrGroupType = PropTypes.oneOf([
+  'error',
+  'csp',
+  'hpkp',
+  'expectct',
+  'expectstaple',
+  'default',
+  'transaction',
+]);
+
 export const Group = PropTypes.shape({
   id: PropTypes.string.isRequired,
   annotations: PropTypes.array,
@@ -166,7 +184,7 @@ export const Group = PropTypes.shape({
   status: PropTypes.string,
   statusDetails: PropTypes.object,
   title: PropTypes.string,
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: EventOrGroupType,
   userCount: PropTypes.number,
 });
 
@@ -178,7 +196,7 @@ export const Event = PropTypes.shape({
   dateReceived: PropTypes.string,
   entries: PropTypes.arrayOf(
     PropTypes.shape({
-      data: PropTypes.object,
+      data: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
       type: PropTypes.string,
     })
   ),
@@ -204,7 +222,7 @@ export const Event = PropTypes.shape({
       value: PropTypes.string,
     })
   ),
-  type: PropTypes.oneOf(['error', 'csp', 'default']),
+  type: EventOrGroupType,
   user: PropTypes.object,
 });
 
@@ -482,6 +500,12 @@ export const GlobalSelection = PropTypes.shape({
     utc: PropTypes.bool,
   }),
 });
+
+export const DebugSourceType = PropTypes.oneOf(['http', 's3', 'gcs']);
+
+// Avoiding code duplication here. This is validated strictly by the server and
+// form elements in the `DebugFilesSourceModal`.
+export const DebugSourceConfig = PropTypes.object;
 
 export const Widget = PropTypes.shape({
   queries: PropTypes.shape({
@@ -972,6 +996,13 @@ export const EChartsToolBox = PropTypes.shape({
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 });
 
+export const EchartsGraphic = PropTypes.shape({
+  id: PropTypes.string,
+
+  // These are a bit complex to add typing for
+  elements: PropTypes.arrayOf(PropTypes.object),
+});
+
 export const SeriesUnit = PropTypes.shape({
   seriesName: PropTypes.string,
   data: PropTypes.arrayOf(
@@ -990,9 +1021,12 @@ const SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthConfig,
   Activity,
   AuthProvider,
   Config,
+  DebugSourceConfig,
+  DebugSourceType,
   Deploy,
   DiscoverQuery,
   DiscoverSavedQuery,
@@ -1043,6 +1077,7 @@ const SentryTypes = {
   EChartsLegend,
   EChartsDataZoom,
   EChartsToolBox,
+  EchartsGraphic,
 };
 
 export default SentryTypes;

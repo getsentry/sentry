@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {isEqual, pickBy, keyBy, isObject} from 'lodash';
-import createReactClass from 'create-react-class';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import SentryTypes from 'app/sentryTypes';
@@ -17,25 +16,38 @@ import {t, tct} from 'app/locale';
 
 import ExternalIssueList from 'app/components/group/externalIssuesList';
 
-const GroupSidebar = createReactClass({
-  displayName: 'GroupSidebar',
+const SUBSCRIPTION_REASONS = {
+  commented: t("You're receiving updates because you have commented on this issue."),
+  assigned: t("You're receiving updates because you were assigned to this issue."),
+  bookmarked: t("You're receiving updates because you have bookmarked this issue."),
+  changed_status: t(
+    "You're receiving updates because you have changed the status of this issue."
+  ),
+  mentioned: t("You're receiving updates because you have been mentioned in this issue."),
+};
 
-  propTypes: {
+class GroupSidebar extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
     environments: PropTypes.arrayOf(SentryTypes.Environment),
-  },
+  };
 
-  getInitialState() {
-    return {participants: [], environments: this.props.environments};
-  },
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      participants: [],
+      environments: props.environments,
+    };
+  }
 
   componentWillMount() {
-    const {group} = this.props;
-    this.props.api.request(`/issues/${group.id}/participants/`, {
+    const {group, api} = this.props;
+    api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
           participants: data,
@@ -64,23 +76,22 @@ const GroupSidebar = createReactClass({
     });
 
     this.fetchTagData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (!isEqual(nextProps.environments, this.props.environments)) {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
-  },
+  }
 
   fetchTagData() {
-    const {group} = this.props;
+    const {api, group} = this.props;
 
     // Fetch the top values for the current group's top tags.
-    this.props.api.request(`/issues/${group.id}/tags/`, {
+    api.request(`/issues/${group.id}/tags/`, {
       query: pickBy({
         key: group.tags.map(data => data.key),
         environment: this.state.environments.map(env => env.name),
-        enable_snuba: '1',
       }),
       success: data => {
         this.setState({
@@ -93,25 +104,13 @@ const GroupSidebar = createReactClass({
         });
       },
     });
-  },
-
-  subscriptionReasons: {
-    commented: t("You're receiving updates because you have commented on this issue."),
-    assigned: t("You're receiving updates because you were assigned to this issue."),
-    bookmarked: t("You're receiving updates because you have bookmarked this issue."),
-    changed_status: t(
-      "You're receiving updates because you have changed the status of this issue."
-    ),
-    mentioned: t(
-      "You're receiving updates because you have been mentioned in this issue."
-    ),
-  },
+  }
 
   toggleSubscription() {
-    const {group, project, organization} = this.props;
+    const {api, group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.props.api.bulkUpdate(
+    api.bulkUpdate(
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -122,7 +121,7 @@ const GroupSidebar = createReactClass({
       },
       {
         complete: () => {
-          this.props.api.request(`/issues/${group.id}/participants/`, {
+          api.request(`/issues/${group.id}/participants/`, {
             success: data => {
               this.setState({
                 participants: data,
@@ -140,7 +139,7 @@ const GroupSidebar = createReactClass({
         },
       }
     );
-  },
+  }
 
   renderPluginIssue() {
     const issues = [];
@@ -171,11 +170,11 @@ const GroupSidebar = createReactClass({
       );
     }
     return null;
-  },
+  }
 
   canChangeSubscriptionState() {
     return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
-  },
+  }
 
   getNotificationText() {
     const {group} = this.props;
@@ -186,8 +185,8 @@ const GroupSidebar = createReactClass({
       );
       if (group.subscriptionDetails) {
         const reason = group.subscriptionDetails.reason;
-        if (this.subscriptionReasons.hasOwnProperty(reason)) {
-          result = this.subscriptionReasons[reason];
+        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+          result = SUBSCRIPTION_REASONS[reason];
         }
       } else {
         result = tct(
@@ -207,7 +206,7 @@ const GroupSidebar = createReactClass({
         return t("You're not subscribed to this issue.");
       }
     }
-  },
+  }
 
   renderParticipantData() {
     const error = this.state.error;
@@ -224,7 +223,7 @@ const GroupSidebar = createReactClass({
         />
       );
     }
-  },
+  }
 
   render() {
     const {group, organization, project, environments} = this.props;
@@ -291,12 +290,12 @@ const GroupSidebar = createReactClass({
         {this.canChangeSubscriptionState() && (
           <SubscribeButton
             isSubscribed={group.isSubscribed}
-            onClick={this.toggleSubscription}
+            onClick={() => this.toggleSubscription()}
           />
         )}
       </div>
     );
-  },
-});
+  }
+}
 
 export default withApi(GroupSidebar);

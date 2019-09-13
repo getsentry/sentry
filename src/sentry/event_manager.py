@@ -1,9 +1,3 @@
-"""
-sentry.event_manager
-~~~~~~~~~~~~~~~~~~~~
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import time
@@ -13,20 +7,28 @@ import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
 from sentry.constants import (
-    DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
-    MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST,
+    DEFAULT_STORE_NORMALIZER_ARGS,
+    LOG_LEVELS,
+    LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH,
+    MAX_SECS_IN_FUTURE,
+    MAX_SECS_IN_PAST,
 )
+from sentry.message_filters import should_filter_event
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
-    get_grouping_config_dict_for_event_data, load_grouping_config,
-    apply_server_fingerprinting, get_fingerprinting_config_for_project,
+    get_grouping_config_dict_for_event_data,
+    load_grouping_config,
+    apply_server_fingerprinting,
+    get_fingerprinting_config_for_project,
     GroupingConfigNotFound,
 )
 from sentry.coreapi import (
@@ -40,18 +42,32 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment,
+    Activity,
+    Environment,
+    Event,
+    EventDict,
+    EventError,
+    EventUser,
+    Group,
+    GroupEnvironment,
+    GroupHash,
+    GroupLink,
+    GroupRelease,
+    GroupResolution,
+    GroupStatus,
+    Project,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+    UserReport,
+    Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
-from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -66,25 +82,20 @@ from sentry.culprit import generate_culprit
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = (
-    "csp",
-    "hpkp",
-    "expectct",
-    "expectstaple",
-)
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 
 def pop_tag(data, key):
-    data['tags'] = [kv for kv in data['tags'] if kv is None or kv[0] != key]
+    data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
 def set_tag(data, key, value):
     pop_tag(data, key)
-    data['tags'].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+    data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
-    for k, v in get_path(data, 'tags', filter=True):
+    for k, v in get_path(data, "tags", filter=True):
         if k == key:
             return v
 
@@ -119,19 +130,15 @@ def validate_and_set_timestamp(data, timestamp):
         current = time.time()
 
         if current - MAX_SECS_IN_PAST > timestamp:
-            data.setdefault('errors', []).append({
-                'type': EventError.PAST_TIMESTAMP,
-                'name': 'timestamp',
-                'value': timestamp,
-            })
+            data.setdefault("errors", []).append(
+                {"type": EventError.PAST_TIMESTAMP, "name": "timestamp", "value": timestamp}
+            )
         elif timestamp > current + MAX_SECS_IN_FUTURE:
-            data.setdefault('errors', []).append({
-                'type': EventError.FUTURE_TIMESTAMP,
-                'name': 'timestamp',
-                'value': timestamp,
-            })
+            data.setdefault("errors", []).append(
+                {"type": EventError.FUTURE_TIMESTAMP, "name": "timestamp", "value": timestamp}
+            )
         else:
-            data['timestamp'] = float(timestamp)
+            data["timestamp"] = float(timestamp)
 
 
 def parse_client_as_sdk(value):
@@ -151,6 +158,8 @@ if not settings.SENTRY_SAMPLE_DATA:
 
     def should_sample(current_datetime, last_seen, times_seen):
         return False
+
+
 else:
 
     def should_sample(current_datetime, last_seen, times_seen):
@@ -177,14 +186,19 @@ def plugin_is_regression(group, event):
 
 
 def has_pending_commit_resolution(group):
-    return GroupLink.objects.filter(
-        group_id=group.id,
-        linked_type=GroupLink.LinkedType.commit,
-        relationship=GroupLink.Relationship.resolves,
-    ).extra(
-        where=[
-            "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"]
-    ).exists()
+    return (
+        GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        .extra(
+            where=[
+                "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"
+            ]
+        )
+        .exists()
+    )
 
 
 class HashDiscarded(Exception):
@@ -197,7 +211,7 @@ class ScoreClause(Func):
         self.last_seen = last_seen
         self.times_seen = times_seen
         # times_seen is likely an F-object that needs the value extracted
-        if hasattr(self.times_seen, 'rhs'):
+        if hasattr(self.times_seen, "rhs"):
             self.times_seen = self.times_seen.rhs.value
         super(ScoreClause, self).__init__(*args, **kwargs)
 
@@ -207,14 +221,16 @@ class ScoreClause(Func):
         return self.group.get_score() if self.group else 0
 
     def as_sql(self, compiler, connection, function=None, template=None):
-        db = getattr(connection, 'alias', 'default')
+        db = getattr(connection, "alias", "default")
         has_values = self.last_seen is not None and self.times_seen is not None
         if is_postgres(db):
             if has_values:
-                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
-                                                           to_timestamp(self.last_seen))
+                sql = "log(times_seen + %d) * 600 + %d" % (
+                    self.times_seen,
+                    to_timestamp(self.last_seen),
+                )
             else:
-                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+                sql = "log(times_seen) * 600 + last_seen::abstime::int"
         else:
             # XXX: if we cant do it atomically let's do it the best we can
             sql = int(self)
@@ -224,25 +240,25 @@ class ScoreClause(Func):
 
 def add_meta_errors(errors, meta):
     for field_meta in meta:
-        original_value = field_meta.get().get('val')
+        original_value = field_meta.get().get("val")
 
         for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
             error = dict(err_data)
-            error['type'] = err_type
+            error["type"] = err_type
             if field_meta.path:
-                error['name'] = field_meta.path
+                error["name"] = field_meta.path
             if i == 0 and original_value is not None:
-                error['value'] = original_value
+                error["value"] = original_value
             errors.append(error)
 
 
 def _decode_event(data, content_encoding):
     if isinstance(data, six.binary_type):
-        if content_encoding == 'gzip':
+        if content_encoding == "gzip":
             data = decompress_gzip(data)
-        elif content_encoding == 'deflate':
+        elif content_encoding == "deflate":
             data = decompress_deflate(data)
-        elif data[0] != b'{':
+        elif data[0] != b"{":
             data = decode_and_decompress_data(data)
         else:
             data = decode_data(data)
@@ -261,7 +277,7 @@ class EventManager(object):
     def __init__(
         self,
         data,
-        version='5',
+        version="5",
         project=None,
         grouping_config=None,
         client_ip=None,
@@ -271,15 +287,15 @@ class EventManager(object):
         content_encoding=None,
         is_renormalize=False,
         remove_other=None,
-        relay_config=None
+        project_config=None,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
-        # if not explicitly specified try to get the grouping from relay_config
-        if grouping_config is None and relay_config is not None:
-            config = relay_config.config
-            grouping_config = config.get('grouping_config')
+        # if not explicitly specified try to get the grouping from project_config
+        if grouping_config is None and project_config is not None:
+            config = project_config.config
+            grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
             grouping_config = get_grouping_config_dict_for_project(self._project)
@@ -291,50 +307,46 @@ class EventManager(object):
         self._is_renormalize = is_renormalize
         self._remove_other = remove_other
         self._normalized = False
+        self.project_config = project_config
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
         data = self._data
 
         try:
-            interface = get_interface(data.pop('interface'))
-            report = data.pop('report')
+            interface = get_interface(data.pop("interface"))
+            report = data.pop("report")
         except KeyError:
-            raise APIForbidden('No report or interface data')
+            raise APIForbidden("No report or interface data")
 
         # To support testing, we can either accept a built interface instance, or the raw data in
         # which case we build the instance ourselves
         try:
-            instance = (
-                report if isinstance(report, interface) else interface.from_raw(report)
-            )
+            instance = report if isinstance(report, interface) else interface.from_raw(report)
         except jsonschema.ValidationError as e:
-            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
+            raise APIError("Invalid security report: %s" % str(e).splitlines()[0])
 
         def clean(d):
             return dict(filter(lambda x: x[1], d.items()))
 
         data.update(
             {
-                'logger': 'csp',
-                'message': instance.get_message(),
-                'culprit': instance.get_culprit(),
+                "logger": "csp",
+                "message": instance.get_message(),
+                "culprit": instance.get_culprit(),
                 instance.path: instance.to_json(),
-                'tags': instance.get_tags(),
-                'errors': [],
-                'user': {'ip_address': self._client_ip},
+                "tags": instance.get_tags(),
+                "errors": [],
+                "user": {"ip_address": self._client_ip},
                 # Construct a faux Http interface based on the little information we have
                 # This is a bit weird, since we don't have nearly enough
                 # information to create an Http interface, but
                 # this automatically will pick up tags for the User-Agent
                 # which is actually important here for CSP
-                'request': {
-                    'url': instance.get_origin(),
-                    'headers': clean(
-                        {
-                            'User-Agent': self._user_agent,
-                            'Referer': instance.get_referrer(),
-                        }
+                "request": {
+                    "url": instance.get_origin(),
+                    "headers": clean(
+                        {"User-Agent": self._user_agent, "Referer": instance.get_referrer()}
                     ),
                 },
             }
@@ -343,20 +355,18 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
-        with metrics.timer('events.store.normalize.duration'):
+        with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl()
 
-        metrics.timing(
-            'events.store.normalize.errors',
-            len(self._data.get("errors") or ()),
-        )
+        metrics.timing("events.store.normalize.errors", len(self._data.get("errors") or ()))
 
     def _normalize_impl(self):
         if self._normalized:
-            raise RuntimeError('Already normalized')
+            raise RuntimeError("Already normalized")
         self._normalized = True
 
         from semaphore.processing import StoreNormalizer
+
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else None,
             client_ip=self._client_ip,
@@ -366,69 +376,61 @@ class EventManager(object):
             protocol_version=six.text_type(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
+            normalize_user_agent=True,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data))
-        )
-
-        normalize_user_agent(self._data)
+        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
 
     def should_filter(self):
-        '''
+        """
         returns (result: bool, reason: string or None)
         Result is True if an event should be filtered
         The reason for filtering is passed along as a string
         so that we can store it in metrics
-        '''
+        """
         for name in SECURITY_REPORT_INTERFACES:
             if name in self._data:
                 interface = get_interface(name)
                 if interface.to_python(self._data[name]).should_filter(self._project):
                     return (True, FilterStatKeys.INVALID_CSP)
 
-        if self._client_ip and not is_valid_ip(self._project, self._client_ip):
+        if self._client_ip and not is_valid_ip(self.project_config, self._client_ip):
             return (True, FilterStatKeys.IP_ADDRESS)
 
-        release = self._data.get('release')
-        if release and not is_valid_release(self._project, release):
+        release = self._data.get("release")
+        if release and not is_valid_release(self.project_config, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        error_message = get_path(self._data, 'logentry', 'formatted') \
-            or get_path(self._data, 'logentry', 'message') \
-            or ''
-        if error_message and not is_valid_error_message(self._project, error_message):
+        error_message = (
+            get_path(self._data, "logentry", "formatted")
+            or get_path(self._data, "logentry", "message")
+            or ""
+        )
+        if error_message and not is_valid_error_message(self.project_config, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
-            message = u': '.join(
-                filter(None, map(exc.get, ['type', 'value']))
-            )
-            if message and not is_valid_error_message(self._project, message):
+        for exc in get_path(self._data, "exception", "values", filter=True, default=[]):
+            message = u": ".join(filter(None, map(exc.get, ["type", "value"])))
+            if message and not is_valid_error_message(self.project_config, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for filter_cls in filters.all():
-            filter_obj = filter_cls(self._project)
-            if filter_obj.is_enabled() and filter_obj.test(self._data):
-                return (True, six.text_type(filter_obj.id))
-
-        return (False, None)
+        return should_filter_event(self.project_config, self._data)
 
     def get_data(self):
         return self._data
 
     def _get_event_instance(self, project_id=None):
         data = self._data
-        event_id = data.get('event_id')
-        platform = data.get('platform')
+        event_id = data.get("event_id")
+        platform = data.get("platform")
 
-        recorded_timestamp = data.get('timestamp')
+        recorded_timestamp = data.get("timestamp")
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
-        time_spent = data.get('time_spent')
+        time_spent = data.get("time_spent")
 
-        data['node_id'] = Event.generate_node_id(project_id, event_id)
+        data["node_id"] = Event.generate_node_id(project_id, event_id)
 
         return Event(
             project_id=project_id or self._project.id,
@@ -436,21 +438,21 @@ class EventManager(object):
             data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
-            platform=platform
+            platform=platform,
         )
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
         return force_text(
-            self._data.get('culprit') or
-            self._data.get('transaction') or
-            generate_culprit(self._data) or
-            ''
+            self._data.get("culprit")
+            or self._data.get("transaction")
+            or generate_culprit(self._data)
+            or ""
         )
 
     def get_event_type(self):
         """Returns the event type."""
-        return eventtypes.get(self._data.get('type', 'default'))()
+        return eventtypes.get(self._data.get("type", "default"))()
 
     def materialize_metadata(self):
         """Returns the materialized metadata to be merged with group or
@@ -461,10 +463,10 @@ class EventManager(object):
         event_type = self.get_event_type()
         event_metadata = event_type.get_metadata(self._data)
         return {
-            'type': event_type.key,
-            'metadata': event_metadata,
-            'title': event_type.get_title(event_metadata),
-            'location': event_type.get_location(event_metadata),
+            "type": event_type.key,
+            "metadata": event_metadata,
+            "title": event_type.get_title(event_metadata),
+            "location": event_type.get_location(event_metadata),
         }
 
     def get_search_message(self, event_metadata=None, culprit=None):
@@ -478,21 +480,20 @@ class EventManager(object):
             culprit = self.get_culprit()
 
         data = self._data
-        message = ''
+        message = ""
 
-        if data.get('logentry'):
-            message += (data['logentry'].get('formatted') or
-                        data['logentry'].get('message') or '')
+        if data.get("logentry"):
+            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
             for value in six.itervalues(event_metadata):
-                value_u = force_text(value, errors='replace')
+                value_u = force_text(value, errors="replace")
                 if value_u not in message:
-                    message = u'{} {}'.format(message, value_u)
+                    message = u"{} {}".format(message, value_u)
 
         if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors='replace')
-            message = u'{} {}'.format(message, culprit_u)
+            culprit_u = force_text(culprit, errors="replace")
+            message = u"{} {}".format(message, culprit_u)
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
@@ -507,7 +508,8 @@ class EventManager(object):
 
         project = Project.objects.get_from_cache(id=project_id)
         project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id)
+            id=project.organization_id
+        )
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -515,23 +517,20 @@ class EventManager(object):
         # there's a race condition between here and when the event is actually
         # saved, but it's an improvement. See GH-7677.)
         try:
-            event = Event.objects.get(
-                project_id=project.id,
-                event_id=data['event_id'],
-            )
+            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
         except Event.DoesNotExist:
             pass
         else:
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
-                'duplicate.found',
+                "duplicate.found",
                 exc_info=True,
                 extra={
-                    'event_uuid': data['event_id'],
-                    'project_id': project.id,
-                    'model': Event.__name__,
-                }
+                    "event_uuid": data["event_id"],
+                    "project_id": project.id,
+                    "model": Event.__name__,
+                },
             )
             return event
 
@@ -539,7 +538,7 @@ class EventManager(object):
         culprit = self.get_culprit()
 
         # Pull the toplevel data we're interested in
-        level = data.get('level')
+        level = data.get("level")
 
         # TODO(mitsuhiko): this code path should be gone by July 2018.
         # This is going to be fine because no code actually still depends
@@ -548,12 +547,12 @@ class EventManager(object):
         if level is not None and isinstance(level, six.integer_types):
             level = LOG_LEVELS[level]
 
-        transaction_name = data.get('transaction')
-        logger_name = data.get('logger')
-        release = data.get('release')
-        dist = data.get('dist')
-        environment = data.get('environment')
-        recorded_timestamp = data.get('timestamp')
+        transaction_name = data.get("transaction")
+        logger_name = data.get("logger")
+        release = data.get("release")
+        dist = data.get("dist")
+        environment = data.get("environment")
+        recorded_timestamp = data.get("timestamp")
 
         # We need to swap out the data with the one internal to the newly
         # created event object
@@ -569,47 +568,51 @@ class EventManager(object):
         if transaction_name:
             transaction_name = force_text(transaction_name)
 
+        # Right now the event type is the signal to skip the group. This
+        # is going to change a lot.
+        if event.get_event_type() == "transaction":
+            issueless_event = True
+        else:
+            issueless_event = False
+
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
         # ahead of time (site, server_name).
-        setdefault_path(data, 'tags', value=[])
-        set_tag(data, 'level', level)
+        setdefault_path(data, "tags", value=[])
+        set_tag(data, "level", level)
         if logger_name:
-            set_tag(data, 'logger', logger_name)
+            set_tag(data, "logger", logger_name)
         if environment:
-            set_tag(data, 'environment', environment)
+            set_tag(data, "environment", environment)
         if transaction_name:
-            set_tag(data, 'transaction', transaction_name)
+            set_tag(data, "transaction", transaction_name)
 
         if release:
             # dont allow a conflicting 'release' tag
-            pop_tag(data, 'release')
-            release = Release.get_or_create(
-                project=project,
-                version=release,
-                date_added=date,
-            )
-            set_tag(data, 'sentry:release', release.version)
+            pop_tag(data, "release")
+            release = Release.get_or_create(project=project, version=release, date_added=date)
+            set_tag(data, "sentry:release", release.version)
 
         if dist and release:
             dist = release.add_dist(dist, date)
             # dont allow a conflicting 'dist' tag
-            pop_tag(data, 'dist')
-            set_tag(data, 'sentry:dist', dist.name)
+            pop_tag(data, "dist")
+            set_tag(data, "sentry:dist", dist.name)
         else:
             dist = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
             # dont allow a conflicting 'user' tag
-            pop_tag(data, 'user')
-            set_tag(data, 'sentry:user', event_user.tag_value)
+            pop_tag(data, "user")
+            set_tag(data, "sentry:user", event_user.tag_value)
 
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
         grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_event_data(data, project))
+            get_grouping_config_dict_for_event_data(data, project)
+        )
         normalize_stacktraces_for_grouping(data, grouping_config)
 
         for plugin in plugins.for_project(project, version=None):
@@ -632,7 +635,7 @@ class EventManager(object):
         # fingerprint was set to `'{{ default }}' just in case someone
         # removed it from the payload.  The call to get_hashes will then
         # look at `grouping_config` to pick the right paramters.
-        data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
+        data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
         apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
         # Here we try to use the grouping config that was requested in the
@@ -641,10 +644,10 @@ class EventManager(object):
         try:
             hashes = event.get_hashes()
         except GroupingConfigNotFound:
-            data['grouping_config'] = get_grouping_config_dict_for_project(project)
+            data["grouping_config"] = get_grouping_config_dict_for_project(project)
             hashes = event.get_hashes()
 
-        data['hashes'] = hashes
+        data["hashes"] = hashes
 
         # we want to freeze not just the metadata and type in but also the
         # derived attributes.  The reason for this is that we push this
@@ -653,126 +656,91 @@ class EventManager(object):
         # however the data is dynamically overriden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
-        event_metadata = materialized_metadata['metadata']
+        event_metadata = materialized_metadata["metadata"]
         data.update(materialized_metadata)
-        data['culprit'] = culprit
+        data["culprit"] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
         event.message = self.get_search_message(event_metadata, culprit)
-        received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
+        received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
-        # The group gets the same metadata as the event when it's flushed but
-        # additionally the `last_received` key is set.  This key is used by
-        # _save_aggregate.
-        group_metadata = dict(materialized_metadata)
-        group_metadata['last_received'] = received_timestamp
-        kwargs = {
-            'platform': platform,
-            'message': event.message,
-            'culprit': culprit,
-            'logger': logger_name,
-            'level': LOG_LEVELS_MAP.get(level),
-            'last_seen': date,
-            'first_seen': date,
-            'active_at': date,
-            'data': group_metadata,
-        }
+        if not issueless_event:
+            # The group gets the same metadata as the event when it's flushed but
+            # additionally the `last_received` key is set.  This key is used by
+            # _save_aggregate.
+            group_metadata = dict(materialized_metadata)
+            group_metadata["last_received"] = received_timestamp
+            kwargs = {
+                "platform": platform,
+                "message": event.message,
+                "culprit": culprit,
+                "logger": logger_name,
+                "level": LOG_LEVELS_MAP.get(level),
+                "last_seen": date,
+                "first_seen": date,
+                "active_at": date,
+                "data": group_metadata,
+            }
 
-        if release:
-            kwargs['first_release'] = release
+            if release:
+                kwargs["first_release"] = release
 
-        try:
-            group, is_new, is_regression, is_sample = self._save_aggregate(
-                event=event, hashes=hashes, release=release, **kwargs
-            )
-        except HashDiscarded:
-            event_discarded.send_robust(
-                project=project,
-                sender=EventManager,
-            )
+            try:
+                group, is_new, is_regression, is_sample = self._save_aggregate(
+                    event=event, hashes=hashes, release=release, **kwargs
+                )
+            except HashDiscarded:
+                event_discarded.send_robust(project=project, sender=EventManager)
 
-            metrics.incr(
-                'events.discarded',
-                skip_internal=True,
-                tags={
-                    'organization_id': project.organization_id,
-                    'platform': platform,
-                },
-            )
-            raise
+                metrics.incr(
+                    "events.discarded",
+                    skip_internal=True,
+                    tags={"organization_id": project.organization_id, "platform": platform},
+                )
+                raise
+            else:
+                event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
+            event.group = group
         else:
-            event_saved.send_robust(
-                project=project,
-                event_size=event.size,
-                sender=EventManager,
-            )
+            group = None
+            is_new = False
+            is_regression = False
+            is_sample = False
+            event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
-        event.group = group
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        # When an event was sampled, the canonical source of truth
-        # is the EventMapping table since we aren't going to be writing out an actual
-        # Event row. Otherwise, if the Event isn't being sampled, we can safely
-        # rely on the Event table itself as the source of truth and ignore
-        # EventMapping since it's redundant information.
-        if is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(EventMapping)):
-                    EventMapping.objects.create(project=project, group=group, event_id=event_id)
-            except IntegrityError:
-                logger.info(
-                    'duplicate.found',
-                    exc_info=True,
-                    extra={
-                        'event_uuid': event_id,
-                        'project_id': project.id,
-                        'group_id': group.id,
-                        'model': EventMapping.__name__,
-                    }
-                )
-                return event
+        environment = Environment.get_or_create(project=project, name=environment)
 
-        environment = Environment.get_or_create(
-            project=project,
-            name=environment,
-        )
-
-        group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
-            group_id=group.id,
-            environment_id=environment.id,
-            defaults={
-                'first_release': release if release else None,
-            },
-        )
+        if group:
+            group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
+                group_id=group.id,
+                environment_id=environment.id,
+                defaults={"first_release": release if release else None},
+            )
+        else:
+            is_new_group_environment = False
 
         if release:
             ReleaseEnvironment.get_or_create(
-                project=project,
-                release=release,
-                environment=environment,
-                datetime=date,
+                project=project, release=release, environment=environment, datetime=date
             )
 
             ReleaseProjectEnvironment.get_or_create(
-                project=project,
-                release=release,
-                environment=environment,
-                datetime=date,
+                project=project, release=release, environment=environment, datetime=date
             )
 
-            grouprelease = GroupRelease.get_or_create(
-                group=group,
-                release=release,
-                environment=environment,
-                datetime=date,
-            )
+            if group:
+                grouprelease = GroupRelease.get_or_create(
+                    group=group, release=release, environment=environment, datetime=date
+                )
 
-        counters = [
-            (tsdb.models.group, group.id),
-            (tsdb.models.project, project.id),
-        ]
+        counters = [(tsdb.models.project, project.id)]
+
+        if group:
+            counters.append((tsdb.models.group, group.id))
 
         if release:
             counters.append((tsdb.models.release, release.id))
@@ -790,39 +758,24 @@ class EventManager(object):
             #         group.id: 1,
             #     },
             # })
-            (tsdb.models.frequent_environments_by_group, {
-                group.id: {
-                    environment.id: 1,
-                },
-            })
         ]
 
-        if release:
+        if group:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {
-                    group.id: {
-                        grouprelease.id: 1,
-                    },
-                })
+                (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: 1}})
             )
 
-        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+            if release:
+                frequencies.append(
+                    (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: 1}})
+                )
+        if frequencies:
+            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
-        UserReport.objects.filter(
-            project=project,
-            event_id=event_id,
-        ).update(
-            group=group,
-            environment=environment,
-        )
-
-        # Update any event attachment that arrived before the event group was defined.
-        EventAttachment.objects.filter(
-            project_id=project.id,
-            event_id=event_id,
-        ).update(
-            group_id=group.id,
-        )
+        if group:
+            UserReport.objects.filter(project=project, event_id=event_id).update(
+                group=group, environment=environment
+            )
 
         # save the event unless its been sampled
         if not is_sample:
@@ -831,21 +784,21 @@ class EventManager(object):
                     event.save()
             except IntegrityError:
                 logger.info(
-                    'duplicate.found',
+                    "duplicate.found",
                     exc_info=True,
                     extra={
-                        'event_uuid': event_id,
-                        'project_id': project.id,
-                        'group_id': group.id,
-                        'model': Event.__name__,
-                    }
+                        "event_uuid": event_id,
+                        "project_id": project.id,
+                        "group_id": group.id if group else None,
+                        "model": Event.__name__,
+                    },
                 )
                 return event
 
             tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                group_id=group.id,
+                group_id=group.id if group else None,
                 environment_id=environment.id,
                 event_id=event.id,
                 tags=event.tags,
@@ -853,42 +806,48 @@ class EventManager(object):
             )
 
         if event_user:
-            tsdb.record_multi(
-                (
-                    (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value, )),
-                    (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
-                ),
-                timestamp=event.datetime,
-                environment_id=environment.id,
-            )
+            counters = [
+                (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,))
+            ]
+
+            if group:
+                counters.append(
+                    (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,))
+                )
+
+            tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+
         if release:
             if is_new:
                 buffer.incr(
-                    ReleaseProject, {'new_groups': 1}, {
-                        'release_id': release.id,
-                        'project_id': project.id,
-                    }
+                    ReleaseProject,
+                    {"new_groups": 1},
+                    {"release_id": release.id, "project_id": project.id},
                 )
             if is_new_group_environment:
                 buffer.incr(
-                    ReleaseProjectEnvironment, {'new_issues_count': 1}, {
-                        'project_id': project.id,
-                        'release_id': release.id,
-                        'environment_id': environment.id,
-                    }
+                    ReleaseProjectEnvironment,
+                    {"new_issues_count": 1},
+                    {
+                        "project_id": project.id,
+                        "release_id": release.id,
+                        "environment_id": environment.id,
+                    },
                 )
 
-        safe_execute(
-            Group.objects.add_tags,
-            group,
-            environment,
-            event.get_tags(),
-            _with_transaction=False)
+        if group:
+            safe_execute(
+                Group.objects.add_tags,
+                group,
+                environment,
+                event.get_tags(),
+                _with_transaction=False,
+            )
 
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send_robust(project=project, group=group, sender=Project)
+                first_event_received.send_robust(project=project, event=event, sender=Project)
 
         eventstream.insert(
             group=group,
@@ -907,72 +866,54 @@ class EventManager(object):
         )
 
         metrics.timing(
-            'events.latency',
+            "events.latency",
             received_timestamp - recorded_timestamp,
-            tags={
-                'project_id': project.id,
-            },
+            tags={"project_id": project.id},
         )
 
-        metrics.timing(
-            'events.size.data.post_save',
-            event.size,
-            tags={'project_id': project.id}
-        )
+        metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
 
         return event
 
     def _get_event_user(self, project, data):
-        user_data = data.get('user')
+        user_data = data.get("user")
         if not user_data:
             return
 
         euser = EventUser(
             project_id=project.id,
-            ident=user_data.get('id'),
-            email=user_data.get('email'),
-            username=user_data.get('username'),
-            ip_address=user_data.get('ip_address'),
-            name=user_data.get('name'),
+            ident=user_data.get("id"),
+            email=user_data.get("email"),
+            username=user_data.get("username"),
+            ip_address=user_data.get("ip_address"),
+            name=user_data.get("name"),
         )
         euser.set_hash()
         if not euser.hash:
             return
 
-        cache_key = u'euserid:1:{}:{}'.format(
-            project.id,
-            euser.hash,
-        )
-        euser_id = default_cache.get(cache_key)
+        cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
+        euser_id = cache.get(cache_key)
         if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
                 try:
-                    euser = EventUser.objects.get(
-                        project_id=project.id,
-                        hash=euser.hash,
-                    )
+                    euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
                 except EventUser.DoesNotExist:
                     # why???
                     e_userid = -1
                 else:
-                    if euser.name != (user_data.get('name') or euser.name):
-                        euser.update(
-                            name=user_data['name'],
-                        )
+                    if euser.name != (user_data.get("name") or euser.name):
+                        euser.update(name=user_data["name"])
                     e_userid = euser.id
-                default_cache.set(cache_key, e_userid, 3600)
+                cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):
         return map(
-            lambda hash: GroupHash.objects.get_or_create(
-                project=project,
-                hash=hash,
-            )[0],
-            hash_list,
+            lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list
         )
 
     def _save_aggregate(self, event, hashes, release, **kwargs):
@@ -987,7 +928,7 @@ class EventManager(object):
                 existing_group_id = h.group_id
                 break
             if h.group_tombstone_id is not None:
-                raise HashDiscarded('Matches group tombstone %s' % h.group_tombstone_id)
+                raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
 
         # XXX(dcramer): this has the opportunity to create duplicate groups
         # it should be resolved by the hash merging function later but this
@@ -996,23 +937,26 @@ class EventManager(object):
             # it's possible the release was deleted between
             # when we queried for the release and now, so
             # make sure it still exists
-            first_release = kwargs.pop('first_release', None)
+            first_release = kwargs.pop("first_release", None)
 
             with transaction.atomic():
                 short_id = project.next_short_id()
-                group, group_is_new = Group.objects.create(
-                    project=project,
-                    short_id=short_id,
-                    first_release_id=Release.objects.filter(
-                        id=first_release.id,
-                    ).values_list('id', flat=True).first() if first_release else None,
-                    **kwargs
-                ), True
+                group, group_is_new = (
+                    Group.objects.create(
+                        project=project,
+                        short_id=short_id,
+                        first_release_id=Release.objects.filter(id=first_release.id)
+                        .values_list("id", flat=True)
+                        .first()
+                        if first_release
+                        else None,
+                        **kwargs
+                    ),
+                    True,
+                )
 
             metrics.incr(
-                'group.created',
-                skip_internal=True,
-                tags={'platform': event.platform or 'unknown'}
+                "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
             )
 
         else:
@@ -1033,10 +977,8 @@ class EventManager(object):
             # without filtering on `group_id` (which we can't do due to query
             # planner weirdness.) For more context, see 84c6f75a and d0e22787,
             # as well as GH-5085.
-            GroupHash.objects.filter(
-                id__in=[h.id for h in new_hashes],
-            ).exclude(
-                state=GroupHash.State.LOCKED_IN_MIGRATION,
+            GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION
             ).update(group=group)
 
             if group_is_new and len(new_hashes) == len(all_hashes):
@@ -1044,20 +986,15 @@ class EventManager(object):
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
-        can_sample = (
-            features.has('projects:sample-events', project=project) and should_sample(
-                event.data.get('received') or float(event.datetime.strftime('%s')),
-                group.data.get('last_received') or float(group.last_seen.strftime('%s')),
-                group.times_seen,
-            )
+        can_sample = features.has("projects:sample-events", project=project) and should_sample(
+            event.data.get("received") or float(event.datetime.strftime("%s")),
+            group.data.get("last_received") or float(group.last_seen.strftime("%s")),
+            group.times_seen,
         )
 
         if not is_new:
             is_regression = self._process_existing_aggregate(
-                group=group,
-                event=event,
-                data=kwargs,
-                release=release,
+                group=group, event=event, data=kwargs, release=release
             )
         else:
             is_regression = False
@@ -1067,12 +1004,6 @@ class EventManager(object):
             is_sample = False
         else:
             is_sample = can_sample
-
-        if not is_sample:
-            GroupHash.record_last_processed_event_id(
-                all_hashes[0].id,
-                event.event_id,
-            )
 
         return group, is_new, is_regression, is_sample
 
@@ -1100,15 +1031,18 @@ class EventManager(object):
                 # ensure we cant update things if the status has been set to
                 # ignored
                 status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
-            ).exclude(
+            )
+            .exclude(
                 # add to the regression window to account for races here
-                active_at__gte=date - timedelta(seconds=5),
-            ).update(
+                active_at__gte=date
+                - timedelta(seconds=5)
+            )
+            .update(
                 active_at=date,
                 # explicitly set last_seen here as ``is_resolved()`` looks
                 # at the value
                 last_seen=date,
-                status=GroupStatus.UNRESOLVED
+                status=GroupStatus.UNRESOLVED,
             )
         )
 
@@ -1119,9 +1053,7 @@ class EventManager(object):
             # resolutions are only valid if the state of the group is still
             # resolved -- if it were to change the resolution should get removed
             try:
-                resolution = GroupResolution.objects.get(
-                    group=group,
-                )
+                resolution = GroupResolution.objects.get(group=group)
             except GroupResolution.DoesNotExist:
                 affected = False
             else:
@@ -1136,60 +1068,45 @@ class EventManager(object):
                 # the corresponding event
                 try:
                     activity = Activity.objects.filter(
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_RELEASE,
-                        ident=resolution.id,
-                    ).order_by('-datetime')[0]
+                        group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
+                    ).order_by("-datetime")[0]
                 except IndexError:
                     # XXX: handle missing data, as its not overly important
                     pass
                 else:
-                    activity.update(data={
-                        'version': release.version,
-                    })
+                    activity.update(data={"version": release.version})
 
         if is_regression:
             activity = Activity.objects.create(
                 project=group.project,
                 group=group,
                 type=Activity.SET_REGRESSION,
-                data={
-                    'version': release.version if release else '',
-                }
+                data={"version": release.version if release else ""},
             )
             activity.send_notification()
 
-            kick_off_status_syncs.apply_async(kwargs={
-                'project_id': group.project_id,
-                'group_id': group.id,
-            })
+            kick_off_status_syncs.apply_async(
+                kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
 
         return is_regression
 
     def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
-        extra = {
-            'last_seen': date,
-            'score': ScoreClause(group),
-            'data': data['data'],
-        }
+        extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
         if event.message and event.message != group.message:
-            extra['message'] = event.message
-        if group.level != data['level']:
-            extra['level'] = data['level']
-        if group.culprit != data['culprit']:
-            extra['culprit'] = data['culprit']
+            extra["message"] = event.message
+        if group.level != data["level"]:
+            extra["level"] = data["level"]
+        if group.culprit != data["culprit"]:
+            extra["culprit"] = data["culprit"]
 
         is_regression = self._handle_regression(group, event, release)
 
-        group.last_seen = extra['last_seen']
+        group.last_seen = extra["last_seen"]
 
-        update_kwargs = {
-            'times_seen': 1,
-        }
+        update_kwargs = {"times_seen": 1}
 
-        buffer.incr(Group, update_kwargs, {
-            'id': group.id,
-        }, extra)
+        buffer.incr(Group, update_kwargs, {"id": group.id}, extra)
 
         return is_regression

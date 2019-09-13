@@ -1,20 +1,10 @@
-"""
-sentry.models.environment
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.constants import (
-    ENVIRONMENT_NAME_PATTERN,
-    ENVIRONMENT_NAME_MAX_LENGTH
-)
-from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
+from sentry.constants import ENVIRONMENT_NAME_PATTERN, ENVIRONMENT_NAME_MAX_LENGTH
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 import re
@@ -25,32 +15,32 @@ OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 class EnvironmentProject(Model):
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
-    environment = FlexibleForeignKey('sentry.Environment')
+    project = FlexibleForeignKey("sentry.Project")
+    environment = FlexibleForeignKey("sentry.Environment")
     is_hidden = models.NullBooleanField()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_environmentproject'
-        unique_together = (('project', 'environment'), )
+        app_label = "sentry"
+        db_table = "sentry_environmentproject"
+        unique_together = (("project", "environment"),)
 
 
 class Environment(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField()
-    projects = models.ManyToManyField('sentry.Project', through=EnvironmentProject)
+    projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
     # DEPRECATED, use projects
     project_id = BoundedPositiveIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_environment'
-        unique_together = (('organization_id', 'name'), )
+        app_label = "sentry"
+        db_table = "sentry_environment"
+        unique_together = (("organization_id", "name"),)
 
-    __repr__ = sane_repr('organization_id', 'name')
+    __repr__ = sane_repr("organization_id", "name")
 
     @classmethod
     def is_valid_name(cls, value):
@@ -65,11 +55,11 @@ class Environment(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, name):
-        return 'env:2:%s:%s' % (organization_id, md5_text(name).hexdigest())
+        return "env:2:%s:%s" % (organization_id, md5_text(name).hexdigest())
 
     @classmethod
     def get_name_or_default(cls, name):
-        return name or ''
+        return name or ""
 
     @classmethod
     def get_for_organization_id(cls, organization_id, name):
@@ -79,10 +69,7 @@ class Environment(Model):
 
         env = cache.get(cache_key)
         if env is None:
-            env = cls.objects.get(
-                name=name,
-                organization_id=organization_id,
-            )
+            env = cls.objects.get(name=name, organization_id=organization_id)
             cache.set(cache_key, env, 3600)
 
         return env
@@ -95,10 +82,7 @@ class Environment(Model):
 
         env = cache.get(cache_key)
         if env is None:
-            env = cls.objects.get_or_create(
-                name=name,
-                organization_id=project.organization_id,
-            )[0]
+            env = cls.objects.get_or_create(name=name, organization_id=project.organization_id)[0]
             cache.set(cache_key, env, 3600)
 
         env.add_project(project)
@@ -106,15 +90,13 @@ class Environment(Model):
         return env
 
     def add_project(self, project, is_hidden=None):
-        cache_key = 'envproj:c:%s:%s' % (self.id, project.id)
+        cache_key = "envproj:c:%s:%s" % (self.id, project.id)
 
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic():
                     EnvironmentProject.objects.create(
-                        project=project,
-                        environment=self,
-                        is_hidden=is_hidden,
+                        project=project, environment=self, is_hidden=is_hidden
                     )
                 cache.set(cache_key, 1, 3600)
             except IntegrityError:
@@ -128,4 +110,4 @@ class Environment(Model):
         # environment name for historic reasons (see commit b09858f.) In all
         # other contexts (incl. request query string parameters), the empty
         # string should be used.
-        return segment if segment != 'none' else ''
+        return segment if segment != "none" else ""

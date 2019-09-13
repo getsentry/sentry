@@ -1,10 +1,3 @@
-"""
-sentry.models.groupshare
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 from uuid import uuid4
@@ -24,10 +17,11 @@ class GroupShare(Model):
     """
     A Group that was shared publicly.
     """
+
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
-    group = FlexibleForeignKey('sentry.Group', unique=True)
+    project = FlexibleForeignKey("sentry.Project")
+    group = FlexibleForeignKey("sentry.Group", unique=True)
     uuid = models.CharField(max_length=32, unique=True, default=default_uuid)
     # Tracking the user that initiated the share.
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
@@ -36,7 +30,7 @@ class GroupShare(Model):
     objects = BaseManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_groupshare'
+        app_label = "sentry"
+        db_table = "sentry_groupshare"
 
-    __repr__ = sane_repr('project_id', 'group_id', 'uuid')
+    __repr__ = sane_repr("project_id", "group_id", "uuid")

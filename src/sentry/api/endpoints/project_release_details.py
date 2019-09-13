@@ -15,7 +15,7 @@ ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission, )
+    permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project, version):
         """
@@ -33,9 +33,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -67,45 +65,43 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.DATA, partial=True)
+        serializer = ReleaseSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         was_released = bool(release.date_released)
 
         kwargs = {}
-        if result.get('dateReleased'):
-            kwargs['date_released'] = result['dateReleased']
-        if result.get('ref'):
-            kwargs['ref'] = result['ref']
-        if result.get('url'):
-            kwargs['url'] = result['url']
+        if result.get("dateReleased"):
+            kwargs["date_released"] = result["dateReleased"]
+        if result.get("ref"):
+            kwargs["ref"] = result["ref"]
+        if result.get("url"):
+            kwargs["url"] = result["url"]
 
         if kwargs:
             release.update(**kwargs)
 
-        commit_list = result.get('commits')
+        commit_list = result.get("commits")
         if commit_list:
             hook = ReleaseHook(project)
             # TODO(dcramer): handle errors with release payloads
             hook.set_commits(release.version, commit_list)
 
-        if (not was_released and release.date_released):
+        if not was_released and release.date_released:
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
                 ident=Activity.get_version_ident(release.version),
-                data={'version': release.version},
+                data={"version": release.version},
                 datetime=release.date_released,
             )
 
@@ -127,9 +123,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
-                version=version,
+                organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -142,9 +136,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
         # and expensive operation
-        file_list = ReleaseFile.objects.filter(
-            release=release,
-        ).select_related('file')
+        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
         for releasefile in file_list:
             releasefile.file.delete()
             releasefile.delete()

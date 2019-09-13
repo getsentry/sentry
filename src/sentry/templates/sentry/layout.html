@@ -1,7 +1,5 @@
 {% load i18n %}
-{% load sentry_api %}
 {% load sentry_avatars %}
-{% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
@@ -27,21 +25,17 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
-  {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  {% endblock %}
+
+  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
-    window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
-    window.__sentryGlobalStaticPrefix = '{% asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
-    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
-  {% include "sentry/includes/sdk-config.html" %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
@@ -52,9 +46,6 @@
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
   {% endblock %}
-
-  {% block meta %}
-  {% endblock %}
 </head>
 
 <body class="{% block wrapperclass %}{% endblock %}">
@@ -64,70 +55,19 @@
         {% show_system_status %}
     {% endif %}
 
-    {% block global_sidebar %}
-      {% if request.user.is_authenticated %}
-        <div id="blk_sidebar"></div>
-        <script>
-        $(function(){
-          var SidebarWrapper = createReactClass({
-            propTypes: {
-              organization: PropTypes.any.isRequired
-            },
-            getChildContext: function () {
-              return {
-                organization: this.props.organization,
-              }
-            },
-            render: function () {
-              return React.createElement(SentryApp.OrganizationsLoader, {},
-                React.createElement(SentryApp.Sidebar));
-            }
-          });
-          SidebarWrapper.childContextTypes = {
-            organization: PropTypes.any
-          };
-          ReactDOM.render(React.createFactory(SidebarWrapper)({
-            organization: {% serialize_detailed_org organization %},
-          }), document.getElementById('blk_sidebar'));
-        });
-        </script>
-      {% endif %}
-    {% endblock %}
-
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
-    {% block header %}
-    {% endblock %}
-
     <div class="container">
-      {% block above_content %}{% endblock %}
       <div class="content">
-        {% block content_before %}
-        {% endblock %}
-        {% block content %}
-        <div class="row" id="blk_content">
-          <div class="col-md-2">
-            {% block sidebar %}
-            {% endblock %}
-          </div>
-          <div class="col-md-10" id="blk_main">
-            {% block main %}
-            {% endblock %}
-          </div>
-        </div>
-        {% endblock %}
-
-        {% block content_after %}
-        {% endblock %}
+        {% block content %}{% endblock %}
       </div>
     </div>
     <footer>
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% block support_link %}{% endblock %}
           <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>

@@ -78,4 +78,6 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
 ];
 
+export const sourceMaps = [...frontend, 'react-native', 'cordova', 'electron'];
+
 export default categoryList;

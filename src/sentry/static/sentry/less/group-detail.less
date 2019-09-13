@@ -25,63 +25,13 @@
     }
   }
 
-  .event-message,
   .event-meta {
     line-height: 1.2;
-  }
-
-  .error-level {
-    padding: 0;
-    border-radius: 2px;
-    margin-right: 8px;
-    display: inline-block;
-    position: relative;
-    top: 3px;
-    .square(13px);
-    text-indent: -9999em;
-    display: inline-block;
-    border-radius: 15px;
-  }
-
-  .event-message {
-    position: relative;
-
-    .error-level {
-      position: absolute;
-      left: 0;
-    }
-
-    .message {
-      margin-left: 21px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-height: 38px;
-      display: block;
-    }
   }
 
   .event-meta {
     font-size: 80%;
     margin-top: 6px;
-  }
-
-  .event-annotation {
-    display: inline-block;
-    margin-left: 9px;
-    font-size: 13px;
-    line-height: 1;
-    border-left: 1px solid lighten(@trim, 6);
-    padding-left: 9px;
-    height: 13px;
-
-    a {
-      color: lighten(@gray, 12);
-
-      &:hover {
-        color: @gray;
-      }
-    }
   }
 
   .count {
@@ -1921,10 +1871,6 @@ span.val {
       display: none;
     }
 
-    .event-message .message {
-      margin-left: 0;
-    }
-
     .details {
       max-width: 960px;
       margin: 0 auto;
@@ -2476,14 +2422,6 @@ ul.crumbs {
       white-space: normal;
       font-size: 20px;
       line-height: 1.2;
-    }
-
-    .event-message,
-    .event-meta {
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      margin-bottom: 15px;
     }
 
     .meta {

@@ -1,11 +1,3 @@
-"""
-sentry.db.models.query
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 import itertools
@@ -19,7 +11,7 @@ from six.moves import reduce
 
 from .utils import resolve_combined_expression
 
-__all__ = ('update', 'create_or_update')
+__all__ = ("update", "create_or_update")
 
 
 def update(self, using=None, **kwargs):
@@ -31,7 +23,7 @@ def update(self, using=None, **kwargs):
     using = using or router.db_for_write(self.__class__, instance=self)
 
     for field in self._meta.fields:
-        if getattr(field, 'auto_now', False) and field.name not in kwargs:
+        if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
@@ -68,8 +60,8 @@ def create_or_update(model, using=None, **kwargs):
     >>>     'value': F('value') + 1,
     >>> }, defaults={'created_at': timezone.now()})
     """
-    values = kwargs.pop('values', {})
-    defaults = kwargs.pop('defaults', {})
+    values = kwargs.pop("values", {})
+    defaults = kwargs.pop("defaults", {})
 
     if not using:
         using = router.db_for_write(model)
@@ -106,7 +98,7 @@ def in_iexact(column, values):
        to values in the given column."""
     from operator import or_
 
-    query = u'{}__iexact'.format(column)
+    query = u"{}__iexact".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
@@ -116,6 +108,6 @@ def in_icontains(column, values):
        contained within values in the given column."""
     from operator import or_
 
-    query = u'{}__icontains'.format(column)
+    query = u"{}__icontains".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])

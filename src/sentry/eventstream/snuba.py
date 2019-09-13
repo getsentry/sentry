@@ -73,77 +73,82 @@ class SnubaProtocolEventStream(EventStream):
     # These keys correspond to tags that are typically prefixed with `sentry:`
     # and will wreak havok in the UI if both the `sentry:`-prefixed and
     # non-prefixed variations occur in a response.
-    UNEXPECTED_TAG_KEYS = frozenset([
-        'dist',
-        'release',
-        'user',
-    ])
+    UNEXPECTED_TAG_KEYS = frozenset(["dist", "release", "user"])
 
-    def insert(self, group, event, is_new, is_sample, is_regression,
-               is_new_group_environment, primary_hash, skip_consume=False):
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_sample,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        skip_consume=False,
+    ):
         project = event.project
-        retention_days = quotas.get_event_retention(
-            organization=project.organization,
-        )
+        retention_days = quotas.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data()
 
-        unexpected_tags = set([
-            k for (k, v) in (get_path(event_data, 'tags', filter=True) or [])
-            if k in self.UNEXPECTED_TAG_KEYS
-        ])
+        unexpected_tags = set(
+            [
+                k
+                for (k, v) in (get_path(event_data, "tags", filter=True) or [])
+                if k in self.UNEXPECTED_TAG_KEYS
+            ]
+        )
         if unexpected_tags:
-            logger.error('%r received unexpected tags: %r', self, unexpected_tags)
+            logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
-        self._send(project.id, 'insert', extra_data=({
-            'group_id': event.group_id,
-            'event_id': event.event_id,
-            'organization_id': project.organization_id,
-            'project_id': event.project_id,
-            # TODO(mitsuhiko): We do not want to send this incorrect
-            # message but this is what snuba needs at the moment.
-            'message': event.message,
-            'platform': event.platform,
-            'datetime': event.datetime,
-            'data': event_data,
-            'primary_hash': primary_hash,
-            'retention_days': retention_days,
-        }, {
-            'is_new': is_new,
-            'is_sample': is_sample,
-            'is_regression': is_regression,
-            'is_new_group_environment': is_new_group_environment,
-            'skip_consume': skip_consume,
-        },))
+        self._send(
+            project.id,
+            "insert",
+            extra_data=(
+                {
+                    "group_id": event.group_id,
+                    "event_id": event.event_id,
+                    "organization_id": project.organization_id,
+                    "project_id": event.project_id,
+                    # TODO(mitsuhiko): We do not want to send this incorrect
+                    # message but this is what snuba needs at the moment.
+                    "message": event.message,
+                    "platform": event.platform,
+                    "datetime": event.datetime,
+                    "data": event_data,
+                    "primary_hash": primary_hash,
+                    "retention_days": retention_days,
+                },
+                {
+                    "is_new": is_new,
+                    "is_sample": is_sample,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                    "skip_consume": skip_consume,
+                },
+            ),
+        )
 
     def start_delete_groups(self, project_id, group_ids):
         if not group_ids:
             return
 
         state = {
-            'transaction_id': uuid4().hex,
-            'project_id': project_id,
-            'group_ids': list(group_ids),
-            'datetime': datetime.now(tz=pytz.utc),
+            "transaction_id": uuid4().hex,
+            "project_id": project_id,
+            "group_ids": list(group_ids),
+            "datetime": datetime.now(tz=pytz.utc),
         }
 
-        self._send(
-            project_id,
-            'start_delete_groups',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_delete_groups(self, state):
         state = state.copy()
-        state['datetime'] = datetime.now(tz=pytz.utc)
+        state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(
-            state['project_id'],
-            'end_delete_groups',
-            extra_data=(state,),
-            asynchronous=False
+            state["project_id"], "end_delete_groups", extra_data=(state,), asynchronous=False
         )
 
     def start_merge(self, project_id, previous_group_ids, new_group_id):
@@ -151,93 +156,63 @@ class SnubaProtocolEventStream(EventStream):
             return
 
         state = {
-            'transaction_id': uuid4().hex,
-            'project_id': project_id,
-            'previous_group_ids': list(previous_group_ids),
-            'new_group_id': new_group_id,
-            'datetime': datetime.now(tz=pytz.utc),
+            "transaction_id": uuid4().hex,
+            "project_id": project_id,
+            "previous_group_ids": list(previous_group_ids),
+            "new_group_id": new_group_id,
+            "datetime": datetime.now(tz=pytz.utc),
         }
 
-        self._send(
-            project_id,
-            'start_merge',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        self._send(project_id, "start_merge", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_merge(self, state):
         state = state.copy()
-        state['datetime'] = datetime.now(tz=pytz.utc)
-        self._send(
-            state['project_id'],
-            'end_merge',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        state["datetime"] = datetime.now(tz=pytz.utc)
+        self._send(state["project_id"], "end_merge", extra_data=(state,), asynchronous=False)
 
     def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
         if not hashes:
             return
 
         state = {
-            'transaction_id': uuid4().hex,
-            'project_id': project_id,
-            'previous_group_id': previous_group_id,
-            'new_group_id': new_group_id,
-            'hashes': list(hashes),
-            'datetime': datetime.now(tz=pytz.utc),
+            "transaction_id": uuid4().hex,
+            "project_id": project_id,
+            "previous_group_id": previous_group_id,
+            "new_group_id": new_group_id,
+            "hashes": list(hashes),
+            "datetime": datetime.now(tz=pytz.utc),
         }
 
-        self._send(
-            project_id,
-            'start_unmerge',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        self._send(project_id, "start_unmerge", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_unmerge(self, state):
         state = state.copy()
-        state['datetime'] = datetime.now(tz=pytz.utc)
-        self._send(
-            state['project_id'],
-            'end_unmerge',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        state["datetime"] = datetime.now(tz=pytz.utc)
+        self._send(state["project_id"], "end_unmerge", extra_data=(state,), asynchronous=False)
 
     def start_delete_tag(self, project_id, tag):
         if not tag:
             return
 
         state = {
-            'transaction_id': uuid4().hex,
-            'project_id': project_id,
-            'tag': tag,
-            'datetime': datetime.now(tz=pytz.utc),
+            "transaction_id": uuid4().hex,
+            "project_id": project_id,
+            "tag": tag,
+            "datetime": datetime.now(tz=pytz.utc),
         }
 
-        self._send(
-            project_id,
-            'start_delete_tag',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        self._send(project_id, "start_delete_tag", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_delete_tag(self, state):
         state = state.copy()
-        state['datetime'] = datetime.now(tz=pytz.utc)
-        self._send(
-            state['project_id'],
-            'end_delete_tag',
-            extra_data=(state,),
-            asynchronous=False
-        )
+        state["datetime"] = datetime.now(tz=pytz.utc)
+        self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
     def _send(self, project_id, _type, extra_data=(), asynchronous=True):
         raise NotImplementedError
@@ -249,8 +224,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         try:
             resp = snuba._snuba_pool.urlopen(
-                'POST', '/tests/eventstream',
-                body=json.dumps(data),
+                "POST", "/tests/events/eventstream", body=json.dumps(data)
             )
             if resp.status != 200:
                 raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
@@ -261,11 +235,33 @@ class SnubaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return False
 
-    def insert(self, group, event, is_new, is_sample, is_regression,
-               is_new_group_environment, primary_hash, skip_consume=False):
-        super(SnubaEventStream, self).insert(group, event, is_new, is_sample,
-                                             is_regression, is_new_group_environment,
-                                             primary_hash, skip_consume)
-        self._dispatch_post_process_group_task(event, is_new, is_sample,
-                                               is_regression, is_new_group_environment,
-                                               primary_hash, skip_consume)
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_sample,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        skip_consume=False,
+    ):
+        super(SnubaEventStream, self).insert(
+            group,
+            event,
+            is_new,
+            is_sample,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
+        )
+        self._dispatch_post_process_group_task(
+            event,
+            is_new,
+            is_sample,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            skip_consume,
+        )

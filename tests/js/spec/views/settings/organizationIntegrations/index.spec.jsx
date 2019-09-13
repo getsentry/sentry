@@ -108,8 +108,6 @@ describe('OrganizationIntegrations', () => {
     let sentryAppInstall;
 
     beforeEach(() => {
-      org = {...org, features: ['sentry-apps']};
-
       installedSentryApp = TestStubs.SentryApp({
         name: 'An Integration',
         slug: 'an-integration',
@@ -149,11 +147,11 @@ describe('OrganizationIntegrations', () => {
     it('places installed Integrations above uninstalled ones', () => {
       // Installed apps are shown at the top of the list
       const installed = wrapper.find('SentryAppInstallations').at(0);
-      expect(installed.find('Status').prop('enabled')).toBe(true);
+      expect(installed.find('Status').prop('status')).toBe('Installed');
 
       // Uninstalled are shown lower.
       const uninstalled = wrapper.find('SentryAppInstallations').at(1);
-      expect(uninstalled.find('Status').prop('enabled')).toBeFalsy();
+      expect(uninstalled.find('Status').prop('status')).toBe('Not Installed');
     });
 
     it('sorts Sentry App Integrations among Integrations, alphabetically', () => {
@@ -262,6 +260,48 @@ describe('OrganizationIntegrations', () => {
           routerContext
         );
         expect(wrapper.find('SentryAppInstallations').length).toBe(1);
+      });
+    });
+
+    describe('pending applications', () => {
+      it('renders the pending status', () => {
+        const installedSentryApp = TestStubs.SentryApp({
+          name: 'An Integration',
+          slug: 'an-integration',
+        });
+
+        const sentryAppInstall = TestStubs.SentryAppInstallation({
+          organization: {
+            slug: org.slug,
+          },
+          app: {
+            slug: installedSentryApp.slug,
+            uuid: installedSentryApp.uuid,
+          },
+          status: 'pending',
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [sentryAppInstall],
+        });
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        const pending = wrapper.find('SentryAppInstallations').at(0);
+        expect(pending.find('Status').prop('status')).toBe('Pending');
       });
     });
 

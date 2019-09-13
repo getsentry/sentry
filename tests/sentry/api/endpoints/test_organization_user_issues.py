@@ -22,43 +22,37 @@ class OrganizationUserIssuesTest(APITestCase):
         self.project1 = self.create_project(teams=[self.team1])
         self.project2 = self.create_project(teams=[self.team2])
         self.group1 = self.create_group(
-            project=self.project1,
-            last_seen=timezone.now() - timedelta(minutes=1),
+            project=self.project1, last_seen=timezone.now() - timedelta(minutes=1)
         )
-        self.group2 = self.create_group(
-            project=self.project2,
-        )
+        self.group2 = self.create_group(project=self.project2)
 
-        self.euser1 = EventUser.objects.create(email='foo@example.com', project_id=self.project1.id)
-        self.euser2 = EventUser.objects.create(email='bar@example.com', project_id=self.project1.id)
-        self.euser3 = EventUser.objects.create(email='foo@example.com', project_id=self.project2.id)
+        self.euser1 = EventUser.objects.create(email="foo@example.com", project_id=self.project1.id)
+        self.euser2 = EventUser.objects.create(email="bar@example.com", project_id=self.project1.id)
+        self.euser3 = EventUser.objects.create(email="foo@example.com", project_id=self.project2.id)
 
         tagstore.create_group_tag_value(
-            key='sentry:user',
+            key="sentry:user",
             value=self.euser1.tag_value,
             group_id=self.group1.id,
             project_id=self.project1.id,
             environment_id=None,
         )
         tagstore.create_group_tag_value(
-            key='sentry:user',
+            key="sentry:user",
             value=self.euser2.tag_value,
             group_id=self.group1.id,
             project_id=self.project1.id,
             environment_id=None,
         )
         tagstore.create_group_tag_value(
-            key='sentry:user',
+            key="sentry:user",
             value=self.euser3.tag_value,
             group_id=self.group2.id,
             project_id=self.project2.id,
             environment_id=None,
         )
         self.path = reverse(
-            'sentry-api-0-organization-user-issues', args=[
-                self.org.slug,
-                self.euser1.id,
-            ]
+            "sentry-api-0-organization-user-issues", args=[self.org.slug, self.euser1.id]
         )
 
     def test_no_team_access(self):
@@ -72,11 +66,7 @@ class OrganizationUserIssuesTest(APITestCase):
 
     def test_has_access(self):
         user = self.create_user()
-        member = self.create_member(
-            user=user,
-            organization=self.org,
-            teams=[self.team1],
-        )
+        member = self.create_member(user=user, organization=self.org, teams=[self.team1])
 
         self.login_as(user=user)
 
@@ -85,12 +75,10 @@ class OrganizationUserIssuesTest(APITestCase):
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(self.group1.id)
+        assert response.data[0]["id"] == six.text_type(self.group1.id)
 
         OrganizationMemberTeam.objects.create(
-            team=self.team2,
-            organizationmember=member,
-            is_active=True,
+            team=self.team2, organizationmember=member, is_active=True
         )
 
         response = self.client.get(self.path)
@@ -98,5 +86,5 @@ class OrganizationUserIssuesTest(APITestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]['id'] == six.text_type(self.group2.id)
-        assert response.data[1]['id'] == six.text_type(self.group1.id)
+        assert response.data[0]["id"] == six.text_type(self.group2.id)
+        assert response.data[1]["id"] == six.text_type(self.group1.id)

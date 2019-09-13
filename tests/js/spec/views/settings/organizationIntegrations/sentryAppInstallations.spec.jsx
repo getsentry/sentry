@@ -2,11 +2,11 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
-import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
+import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 
 jest.mock('app/actionCreators/modal', () => ({
-  openSentryAppPermissionModal: jest.fn(),
+  openSentryAppDetailsModal: jest.fn(),
 }));
 
 describe('Sentry App Installations', function() {
@@ -91,8 +91,13 @@ describe('Sentry App Installations', function() {
           routerContext
         );
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
-        expect(openSentryAppPermissionModal).toHaveBeenCalledWith(
-          expect.objectContaining({app: sentryApp, orgId: org.slug})
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sentryApp,
+            organization: org,
+            onInstall: expect.any(Function),
+            isInstalled: false,
+          })
         );
       });
 
@@ -127,6 +132,14 @@ describe('Sentry App Installations', function() {
         );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sentryApp,
+            organization: org,
+            onInstall: expect.any(Function),
+            isInstalled: false,
+          })
+        );
         wrapper.instance().install(sentryApp);
         await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
@@ -211,7 +224,7 @@ describe('Sentry App Installations', function() {
           .first()
           .simulate('click');
         wrapper
-          .find('[data-test-id="confirm-modal"]')
+          .find('[data-test-id="confirm-button"]')
           .first()
           .simulate('click');
         expect(response).toHaveBeenCalledWith(

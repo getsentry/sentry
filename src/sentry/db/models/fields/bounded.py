@@ -1,11 +1,3 @@
-"""
-sentry.db.models.fields.bounded
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 from django.conf import settings
@@ -13,8 +5,11 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 __all__ = (
-    'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField', 'BoundedBigIntegerField',
-    'BoundedPositiveIntegerField'
+    "BoundedAutoField",
+    "BoundedBigAutoField",
+    "BoundedIntegerField",
+    "BoundedBigIntegerField",
+    "BoundedPositiveIntegerField",
 )
 
 
@@ -70,8 +65,8 @@ if settings.SENTRY_USE_BIG_INTS:
         MAX_VALUE = 9223372036854775807
 
         def db_type(self, connection):
-            engine = connection.settings_dict['ENGINE']
-            if 'postgres' in engine:
+            engine = connection.settings_dict["ENGINE"]
+            if "postgres" in engine:
                 return "bigserial"
             else:
                 raise NotImplemented
@@ -88,6 +83,7 @@ if settings.SENTRY_USE_BIG_INTS:
                 assert value <= self.MAX_VALUE
             return super(BoundedBigAutoField, self).get_prep_value(value)
 
+
 else:
     # we want full on classes for these
     class BoundedBigIntegerField(BoundedIntegerField):
@@ -97,7 +93,7 @@ else:
         pass
 
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])

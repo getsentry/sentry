@@ -85,15 +85,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           pluginId="github"
           size={50}
         >
-          <IntegrationIcon
-            image={Object {}}
+          <div
+            className="css-6ynrd7-PluginIcon e7e65lm0"
             size={50}
-          >
-            <div
-              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
-              size={50}
-            />
-          </IntegrationIcon>
+          />
         </PluginIcon>
         <Flex
           align="flex-start"
@@ -413,6 +408,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       className="modal-footer"
     >
       <Button
+        align="center"
         data-test-id="cancel-button"
         disabled={false}
         onClick={[MockFunction]}
@@ -430,7 +426,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+            className="css-z6hjis-StyledButton-getColors edwq9my0"
             data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -440,21 +436,23 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+              className="css-z6hjis-StyledButton-getColors edwq9my0"
               data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
               size="small"
             >
               <ButtonLabel
+                align="center"
                 size="small"
               >
                 <Component
-                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                  align="center"
+                  className="css-1h693nz-ButtonLabel edwq9my1"
                   size="small"
                 >
                   <span
-                    className="css-7ui8bl-ButtonLabel e12ma6z1"
+                    className="css-1h693nz-ButtonLabel edwq9my1"
                   >
                     Cancel
                   </span>
@@ -732,6 +730,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                       }
                     >
                       <Button
+                        align="center"
                         data-test-id="add-button"
                         disabled={false}
                         onClick={[Function]}
@@ -761,7 +760,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-23553w-StyledButton-getColors e12ma6z0"
+                            className="css-1lua553-StyledButton-getColors edwq9my0"
                             data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
@@ -777,7 +776,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-23553w-StyledButton-getColors e12ma6z0"
+                              className="css-1lua553-StyledButton-getColors edwq9my0"
                               data-test-id="add-button"
                               onClick={[Function]}
                               role="button"
@@ -789,16 +788,18 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               }
                             >
                               <ButtonLabel
+                                align="center"
                                 priority="primary"
                                 size="small"
                               >
                                 <Component
-                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                  align="center"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
                                   <span
-                                    className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                    className="css-1h693nz-ButtonLabel edwq9my1"
                                   >
                                     Add Installation
                                   </span>

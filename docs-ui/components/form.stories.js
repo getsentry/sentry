@@ -9,7 +9,7 @@ import {
 } from 'app/components/forms';
 import {Panel} from 'app/components/panels';
 import {action} from '@storybook/addon-actions';
-import {boolean} from '@storybook/addon-knobs';
+import {number, boolean} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import DatePickerField from 'app/views/settings/components/forms/datePickerField';
@@ -23,6 +23,7 @@ import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlide
 import SelectField from 'app/views/settings/components/forms/selectField';
 import Switch from 'app/components/switch';
 import TextField from 'app/views/settings/components/forms/textField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 class UndoButton extends React.Component {
   handleClick(e) {
@@ -207,6 +208,71 @@ storiesOf('Forms|Fields', module)
             placeholder="I am disabled"
             disabled
             disabledReason="This is the reason this field is disabled"
+          />
+        </Form>
+      </Panel>
+    ))
+  )
+  .add(
+    'TextareaField',
+    withInfo({
+      text: 'Textarea input',
+      propTablesExclude: [Form],
+    })(() => (
+      <Panel>
+        <Form initialData={{context: {location: 'cat'}}}>
+          <TextareaField
+            name="simpletextfieldvalue"
+            label="Simple Textarea Field with Value"
+            help="Additional help text"
+            placeholder="Simple Textarea Field"
+            defaultValue="With a value present"
+          />
+          <TextareaField
+            name="simpletextfieldautosize"
+            autosize={boolean('autosize', true)}
+            label="Textarea field with autosize"
+            rows={number('Number of rows', 2)}
+            placeholder="Use knobs to control rows and autosize setting"
+          />
+          <TextareaField
+            name="simpletextfieldvaluedisabled"
+            label="Disabled - Simple Textarea Field with Value"
+            placeholder="Simple Textarea Field"
+            defaultValue="With a value present"
+            disabled
+          />
+          <TextareaField
+            name="simpletextfieldplaceholderdisabled"
+            label="Disabled - Simple Textarea Field with Placeholder"
+            placeholder="This is placeholder text in a disabled field"
+            disabled
+          />
+          <TextareaField
+            name="textfieldwithreturnsubmit"
+            label="Textarea Field With Return Submit"
+            placeholder="Type here to show the return button"
+            showReturnButton
+          />
+          <TextareaField
+            name="textfieldflexiblecontrol"
+            label="Textarea Field With Flexible Control State Size"
+            placeholder="Type text and then delete it"
+            required
+            flexibleControlStateSize
+          />
+          <TextareaField
+            name="textfielddisabled"
+            label="Textarea Field with disabled reason"
+            placeholder="I am disabled"
+            disabled
+            disabledReason="This is the reason this field is disabled"
+          />
+          <TextareaField
+            name="textareafielderror"
+            label="Textarea Field with error"
+            placeholder="I have an error"
+            error="An error has occurred"
           />
         </Form>
       </Panel>

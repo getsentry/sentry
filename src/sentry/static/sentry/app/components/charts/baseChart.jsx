@@ -61,6 +61,8 @@ class BaseChart extends React.Component {
 
     toolBox: SentryTypes.EChartsToolBox,
 
+    graphic: SentryTypes.EchartsGraphic,
+
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
 
@@ -108,7 +110,7 @@ class BaseChart extends React.Component {
     onFinished: PropTypes.func,
 
     // Forwarded Ref
-    forwardedRef: PropTypes.object,
+    forwardedRef: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
 
     // Custom chart props that are implemented by us (and not a feature of eCharts)
     /**
@@ -143,18 +145,16 @@ class BaseChart extends React.Component {
     shouldXAxisRenderTimeOnly: false,
   };
 
-  getEventsMap = () => {
-    return {
-      click: (...args) => {
-        this.handleClick(...args);
-        callIfFunction(this.props.onClick, ...args);
-      },
-      highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
-      mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
-      datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
-      restore: (...args) => callIfFunction(this.props.onRestore, ...args),
-      finished: (...args) => callIfFunction(this.props.onFinished, ...args),
-    };
+  getEventsMap = {
+    click: (...args) => {
+      this.handleClick(...args);
+      callIfFunction(this.props.onClick, ...args);
+    },
+    highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
+    mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
+    datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
+    restore: (...args) => callIfFunction(this.props.onRestore, ...args),
+    finished: (...args) => callIfFunction(this.props.onFinished, ...args),
   };
 
   handleChartReady = (...args) => {
@@ -195,6 +195,7 @@ class BaseChart extends React.Component {
       xAxis,
       dataZoom,
       toolBox,
+      graphic,
 
       isGroupedByDate,
       shouldXAxisRenderTimeOnly,
@@ -230,7 +231,7 @@ class BaseChart extends React.Component {
         silent={silent}
         theme={this.props.theme}
         onChartReady={this.handleChartReady}
-        onEvents={this.getEventsMap()}
+        onEvents={this.getEventsMap}
         opts={{
           height,
           width,
@@ -279,6 +280,7 @@ class BaseChart extends React.Component {
               ],
           dataZoom,
           toolbox: toolBox,
+          graphic,
         }}
       />
     );

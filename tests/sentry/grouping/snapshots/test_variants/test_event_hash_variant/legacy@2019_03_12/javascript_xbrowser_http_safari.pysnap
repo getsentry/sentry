@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:44:34.505161Z'
+created: '2019-09-03T07:26:07.698717Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -35,7 +35,7 @@ app:
             lineno (function takes precedence)
               38
           frame (frame considered in-app because no frame is in-app)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'eval'
           frame* (frame considered in-app because no frame is in-app)
             module*
@@ -47,7 +47,7 @@ app:
             lineno (function takes precedence)
               32
           frame (frame considered in-app because no frame is in-app)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'map'
           frame* (frame considered in-app because no frame is in-app)
             module*
@@ -75,7 +75,7 @@ app:
             lineno (function takes precedence)
               19
           frame (frame considered in-app because no frame is in-app)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
           frame* (frame considered in-app because no frame is in-app)
             module*
@@ -123,7 +123,7 @@ system:
             lineno (function takes precedence)
               38
           frame (native code indicated by filename)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'eval'
           frame*
             module*
@@ -135,7 +135,7 @@ system:
             lineno (function takes precedence)
               32
           frame (native code indicated by filename)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'map'
           frame*
             module*
@@ -163,7 +163,7 @@ system:
             lineno (function takes precedence)
               19
           frame (native code indicated by filename)
-            function (function name is used only if module or filename are available)
+            function (function name is not used if module or filename are available)
               u'aha'
           frame*
             module*

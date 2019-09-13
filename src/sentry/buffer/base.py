@@ -1,10 +1,3 @@
-"""
-sentry.buffer.base
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import logging
@@ -20,7 +13,7 @@ from sentry.utils.services import Service
 class BufferMount(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger('sentry.buffer.%s' % (new_cls.__name__.lower(), ))
+        new_cls.logger = logging.getLogger("sentry.buffer.%s" % (new_cls.__name__.lower(),))
         return new_cls
 
 
@@ -38,19 +31,15 @@ class Buffer(Service):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    __all__ = ('incr', 'process', 'process_pending', 'validate')
+
+    __all__ = ("incr", "process", "process_pending", "validate")
 
     def incr(self, model, columns, filters, extra=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
         process_incr.apply_async(
-            kwargs={
-                'model': model,
-                'columns': columns,
-                'filters': filters,
-                'extra': extra,
-            }
+            kwargs={"model": model, "columns": columns, "filters": filters, "extra": extra}
         )
 
     def process_pending(self, partition=None):
@@ -66,11 +55,11 @@ class Buffer(Service):
 
         # HACK(dcramer): this is gross, but we dont have a good hook to compute this property today
         # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
-        if model is Group and 'last_seen' in update_kwargs and 'times_seen' in update_kwargs:
-            update_kwargs['score'] = ScoreClause(
+        if model is Group and "last_seen" in update_kwargs and "times_seen" in update_kwargs:
+            update_kwargs["score"] = ScoreClause(
                 group=None,
-                times_seen=update_kwargs['times_seen'],
-                last_seen=update_kwargs['last_seen'],
+                times_seen=update_kwargs["times_seen"],
+                last_seen=update_kwargs["last_seen"],
             )
 
         _, created = model.objects.create_or_update(values=update_kwargs, **filters)

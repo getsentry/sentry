@@ -1,11 +1,3 @@
-"""
-sentry.models.debugfile
-~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
 import re
@@ -27,8 +19,7 @@ from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
 from sentry.models.file import File
-from sentry.reprocessing import resolve_processing_issue, \
-    bump_reprocessing_revision
+from sentry.reprocessing import resolve_processing_issue, bump_reprocessing_revision
 from sentry.utils.zip import safe_extract_zip
 
 
@@ -43,7 +34,7 @@ CONVERSION_ERROR_TTL = 60 * 10
 
 DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
-_proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
+_proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
 
 class BadDif(Exception):
@@ -60,7 +51,7 @@ class ProjectDebugFileManager(BaseManager):
 
         found = ProjectDebugFile.objects.filter(
             file__checksum__in=checksums, project=project
-        ).values('file__checksum')
+        ).values("file__checksum")
 
         for values in found:
             missing.discard(values.values()[0])
@@ -84,10 +75,11 @@ class ProjectDebugFileManager(BaseManager):
         """
         features = frozenset(features) if features is not None else frozenset()
 
-        difs = ProjectDebugFile.objects \
-            .filter(project=project, debug_id__in=debug_ids) \
-            .select_related('file') \
-            .order_by('-id')
+        difs = (
+            ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids)
+            .select_related("file")
+            .order_by("-id")
+        )
 
         difs_by_id = {}
         for dif in difs:
@@ -95,7 +87,7 @@ class ProjectDebugFileManager(BaseManager):
 
         rv = {}
         for debug_id, group in six.iteritems(difs_by_id):
-            with_features = [dif for dif in group if 'features' in (dif.data or ())]
+            with_features = [dif for dif in group if "features" in (dif.data or ())]
 
             # In case we've never computed features for any of these files, we
             # just take the first one and assume that it matches.
@@ -118,52 +110,52 @@ class ProjectDebugFileManager(BaseManager):
 class ProjectDebugFile(Model):
     __core__ = False
 
-    file = FlexibleForeignKey('sentry.File')
+    file = FlexibleForeignKey("sentry.File")
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    debug_id = models.CharField(max_length=64, db_column='uuid')
+    project = FlexibleForeignKey("sentry.Project", null=True)
+    debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (('project', 'debug_id'), ('project', 'code_id'))
-        db_table = 'sentry_projectdsymfile'
-        app_label = 'sentry'
+        index_together = (("project", "debug_id"), ("project", "code_id"))
+        db_table = "sentry_projectdsymfile"
+        app_label = "sentry"
 
-    __repr__ = sane_repr('object_name', 'cpu_name', 'debug_id')
+    __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     @property
     def file_format(self):
-        ct = self.file.headers.get('Content-Type', 'unknown').lower()
-        return KNOWN_DIF_FORMATS.get(ct, 'unknown')
+        ct = self.file.headers.get("Content-Type", "unknown").lower()
+        return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
     def file_type(self):
         if self.data:
-            return self.data.get('type')
+            return self.data.get("type")
 
     @property
     def file_extension(self):
-        if self.file_format == 'breakpad':
-            return '.sym'
-        if self.file_format == 'macho':
-            return '' if self.file_type == 'exe' else '.dSYM'
-        if self.file_format == 'proguard':
-            return '.txt'
-        if self.file_format == 'elf':
-            return '' if self.file_type == 'exe' else '.debug'
-        if self.file_format == 'pe':
-            return '.exe' if self.file_type == 'exe' else '.dll'
-        if self.file_format == 'pdb':
-            return '.pdb'
+        if self.file_format == "breakpad":
+            return ".sym"
+        if self.file_format == "macho":
+            return "" if self.file_type == "exe" else ".dSYM"
+        if self.file_format == "proguard":
+            return ".txt"
+        if self.file_format == "elf":
+            return "" if self.file_type == "exe" else ".debug"
+        if self.file_format == "pe":
+            return ".exe" if self.file_type == "exe" else ".dll"
+        if self.file_format == "pdb":
+            return ".pdb"
 
-        return ''
+        return ""
 
     @property
     def features(self):
-        return frozenset((self.data or {}).get('features', []))
+        return frozenset((self.data or {}).get("features", []))
 
     def delete(self, *args, **kwargs):
         super(ProjectDebugFile, self).delete(*args, **kwargs)
@@ -175,10 +167,11 @@ def clean_redundant_difs(project, debug_id):
     file is considered redundant if there is a newer file with the same debug
     identifier and the same or a superset of its features.
     """
-    difs = ProjectDebugFile.objects \
-        .filter(project=project, debug_id=debug_id) \
-        .select_related('file') \
-        .order_by('-id')
+    difs = (
+        ProjectDebugFile.objects.filter(project=project, debug_id=debug_id)
+        .select_related("file")
+        .order_by("-id")
+    )
 
     all_features = set()
     for i, dif in enumerate(difs):
@@ -196,14 +189,14 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     debug id and open file object to a debug file.  This will not verify the
     debug id (intentionally so).  Use `detect_dif_from_path` to do that.
     """
-    if meta.file_format == 'proguard':
-        object_name = 'proguard-mapping'
-    elif meta.file_format in ('macho', 'elf', 'pdb', 'pe'):
+    if meta.file_format == "proguard":
+        object_name = "proguard-mapping"
+    elif meta.file_format in ("macho", "elf", "pdb", "pe"):
         object_name = meta.name
-    elif meta.file_format == 'breakpad':
-        object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
+    elif meta.file_format == "breakpad":
+        object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
     else:
-        raise TypeError('unknown dif type %r' % (meta.file_format, ))
+        raise TypeError("unknown dif type %r" % (meta.file_format,))
 
     if file is not None:
         checksum = file.checksum
@@ -217,13 +210,16 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         checksum = h.hexdigest()
         fileobj.seek(0, 0)
     else:
-        raise RuntimeError('missing file object')
+        raise RuntimeError("missing file object")
 
-    dif = ProjectDebugFile.objects \
-        .select_related('file') \
-        .filter(project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False) \
-        .order_by('-id') \
+    dif = (
+        ProjectDebugFile.objects.select_related("file")
+        .filter(
+            project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False
+        )
+        .order_by("-id")
         .first()
+    )
 
     if dif is not None:
         return dif, False
@@ -231,13 +227,13 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     if file is None:
         file = File.objects.create(
             name=meta.debug_id,
-            type='project.dif',
-            headers={'Content-Type': DIF_MIMETYPES[meta.file_format]},
+            type="project.dif",
+            headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
         )
         file.putfile(fileobj)
     else:
-        file.type = 'project.dif'
-        file.headers['Content-Type'] = DIF_MIMETYPES[meta.file_format]
+        file.type = "project.dif"
+        file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
         file.save()
 
     dif = ProjectDebugFile.objects.create(
@@ -256,11 +252,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     # reprocessing can start.
     clean_redundant_difs(project, meta.debug_id)
 
-    resolve_processing_issue(
-        project=project,
-        scope='native',
-        object='dsym:%s' % meta.debug_id,
-    )
+    resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
 
     return dif, True
 
@@ -315,10 +307,7 @@ class DifMeta(object):
             path=path,
             # TODO: Extract the object name from the object
             name=name,
-            data={
-                'type': obj.kind,
-                'features': list(obj.features),
-            },
+            data={"type": obj.kind, "features": list(obj.features)},
         )
 
     @property
@@ -335,16 +324,18 @@ def detect_dif_from_path(path, name=None, debug_id=None):
     # (proguard/mapping-UUID.txt).
     proguard_id = _analyze_progard_filename(path)
     if proguard_id is not None:
-        data = {'features': ['mapping']}
-        return [DifMeta(
-            file_format='proguard',
-            arch='any',
-            debug_id=proguard_id,
-            code_id=None,
-            path=path,
-            name=name,
-            data=data,
-        )]
+        data = {"features": ["mapping"]}
+        return [
+            DifMeta(
+                file_format="proguard",
+                arch="any",
+                debug_id=proguard_id,
+                code_id=None,
+                path=path,
+                name=name,
+                data=data,
+            )
+        ]
 
     # native debug information files (MachO, ELF or Breakpad)
     try:
@@ -352,7 +343,7 @@ def detect_dif_from_path(path, name=None, debug_id=None):
     except ObjectErrorUnsupportedObject as e:
         raise BadDif("Unsupported debug information file: %s" % e)
     except SymbolicError as e:
-        logger.warning('dsymfile.bad-fat-object', exc_info=True)
+        logger.warning("dsymfile.bad-fat-object", exc_info=True)
         raise BadDif("Invalid debug information file: %s" % e)
     else:
         objs = []
@@ -367,7 +358,7 @@ def create_debug_file_from_dif(to_create, project):
     """
     rv = []
     for meta in to_create:
-        with open(meta.path, 'rb') as f:
+        with open(meta.path, "rb") as f:
             dif, created = create_dif_from_id(project, meta, fileobj=f)
             if created:
                 rv.append(dif)
@@ -408,7 +399,7 @@ def create_files_from_dif_zip(fileobj, project):
 class DIFCache(object):
     @property
     def cache_path(self):
-        return options.get('dsym.cache-path')
+        return options.get("dsym.cache-path")
 
     def get_project_path(self, project):
         return os.path.join(self.cache_path, six.text_type(project.id))

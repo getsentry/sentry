@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         try:
             db.delete_foreign_key('sentry_eventuser', 'project_id')
-        except OperationalError:
+        except (OperationalError, ValueError):
             pass
 
     def backwards(self, orm):

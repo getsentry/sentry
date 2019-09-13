@@ -24,6 +24,11 @@ class ModalDialog extends React.Component {
     dismissButton: PropTypes.func,
 
     /**
+     * Set to false to disable modal dismissal when the overlay is clicked.
+     */
+    dismissOnOverlayClick: PropTypes.bool,
+
+    /**
      * Callback invoked when the modal is closed if set.
      */
     onDismiss: PropTypes.func.isRequired,
@@ -38,11 +43,63 @@ class ModalDialog extends React.Component {
 
   static defaultProps = {
     isOpen: true,
+    dismissOnOverlayClick: true,
   };
+
+  componentDidMount() {
+    if (this.props.isOpen) {
+      this.setupOpenState();
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.isOpen !== prevProps.isOpen) {
+      if (this.props.isOpen) {
+        this.setupOpenState();
+      } else {
+        this.teardownOpenState();
+      }
+    }
+  }
+
+  componentWillUnmount() {
+    this.teardownOpenState();
+  }
+
+  previousOverflow = null;
+
+  setupOpenState() {
+    document.addEventListener('keydown', this.handleKeyDown);
+
+    // Prevent body element from scrolling.
+    this.previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+
+  teardownOpenState() {
+    document.removeEventListener('keydown', this.handleKeyDown);
+
+    // Restore body scrolling.
+    document.body.style.overflow = this.previousOverflow;
+  }
 
   handleClose = event => {
     event.preventDefault();
     callIfFunction(this.props.onDismiss);
+  };
+
+  handleKeyDown = event => {
+    // Pushed ESC
+    if (event.keyCode === 27) {
+      this.handleClose(event);
+    }
+  };
+
+  handleOverlayClick = event => {
+    if (this.props.dismissOnOverlayClick) {
+      this.handleClose(event);
+      return;
+    }
   };
 
   renderDismiss() {
@@ -62,7 +119,7 @@ class ModalDialog extends React.Component {
 
     return (
       <ModalScrollTrap>
-        <ModalOverlay />
+        <ModalOverlay onClick={this.handleOverlayClick} />
         <ModalContainer
           data-test-id="modal-dialog"
           aria-modal="true"
@@ -124,8 +181,8 @@ const CircleButton = styled('button')`
   border: 1px solid ${p => p.theme.borderDark};
 
   position: absolute;
-  top: -${p => p.size / 2}px;
-  right: -${p => p.size / 2}px;
+  top: -${p => p.size / 2 - 5}px;
+  right: -${p => p.size / 2 - 5}px;
 `;
 
 const DismissButton = props => {

@@ -63,6 +63,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
           <SettingsPageHeading
             action={
               <Button
+                align="center"
                 disabled={false}
                 icon="icon-circle-add"
                 priority="primary"
@@ -115,6 +116,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           className="css-18luhfc-Action e1kblvez1"
                         >
                           <Button
+                            align="center"
                             disabled={false}
                             icon="icon-circle-add"
                             priority="primary"
@@ -134,7 +136,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create Project"
-                                className="css-23553w-StyledButton-getColors e12ma6z0"
+                                className="css-1lua553-StyledButton-getColors edwq9my0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -145,7 +147,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create Project"
-                                  className="css-23553w-StyledButton-getColors e12ma6z0"
+                                  className="css-1lua553-StyledButton-getColors edwq9my0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -156,65 +158,60 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create Project"
-                                    className="css-23553w-StyledButton-getColors e12ma6z0"
+                                    className="css-1lua553-StyledButton-getColors edwq9my0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
                                     style={Object {}}
                                   >
                                     <ButtonLabel
+                                      align="center"
                                       priority="primary"
                                       size="small"
                                     >
                                       <Component
-                                        className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                        align="center"
+                                        className="css-1h693nz-ButtonLabel edwq9my1"
                                         priority="primary"
                                         size="small"
                                       >
                                         <span
-                                          className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                          className="css-1h693nz-ButtonLabel edwq9my1"
                                         >
                                           <Icon
                                             hasChildren={true}
                                             size="small"
                                           >
                                             <Component
-                                              className="css-1vdnsie-Icon e12ma6z2"
+                                              className="css-1vdnsie-Icon edwq9my2"
                                               hasChildren={true}
                                               size="small"
                                             >
                                               <span
-                                                className="css-1vdnsie-Icon e12ma6z2"
+                                                className="css-1vdnsie-Icon edwq9my2"
                                                 size="small"
                                               >
                                                 <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <InlineSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                  <ForwardRef
+                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                     size="12px"
                                                     src="icon-circle-add"
                                                   >
-                                                    <StyledSvg
-                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                    <svg
+                                                      className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <svg
-                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                        height="12px"
-                                                        viewBox={Object {}}
-                                                        width="12px"
-                                                      >
-                                                        <use
-                                                          href="#test"
-                                                          xlinkHref="#test"
-                                                        />
-                                                      </svg>
-                                                    </StyledSvg>
-                                                  </InlineSvg>
+                                                      <use
+                                                        href="#test"
+                                                        xlinkHref="#test"
+                                                      />
+                                                    </svg>
+                                                  </ForwardRef>
                                                 </StyledInlineSvg>
                                               </span>
                                             </Component>
@@ -238,10 +235,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
           </SettingsPageHeading>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-10qfvek-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-10qfvek-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
@@ -266,7 +263,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         >
                           Projects
                           <withRouter(AsyncComponentSearchInput)
-                            api={Client {}}
+                            api={
+                              Client {
+                                "_chain": [Function],
+                                "_wrapRequest": [Function],
+                                "bulkUpdate": [Function],
+                                "handleRequestError": [Function],
+                                "hasProjectBeenRenamed": [Function],
+                              }
+                            }
                             className="search"
                             onError={[Function]}
                             onSuccess={[Function]}
@@ -276,7 +281,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             url="/organizations/org-slug/projects/"
                           >
                             <AsyncComponentSearchInput
-                              api={Client {}}
+                              api={
+                                Client {
+                                  "_chain": [Function],
+                                  "_wrapRequest": [Function],
+                                  "bulkUpdate": [Function],
+                                  "handleRequestError": [Function],
+                                  "hasProjectBeenRenamed": [Function],
+                                }
+                              }
                               className="search"
                               debounceWait={200}
                               location={
@@ -340,7 +353,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     value=""
                                   >
                                     <input
-                                      className="search css-13yodx8-Input-inputStyles e1xej46s0"
+                                      className="search css-1b7nva7-Input-inputStyles e1xej46s0"
                                       onChange={[Function]}
                                       placeholder="Search Projects"
                                       value=""
@@ -529,7 +542,15 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           }
                                         >
                                           <BookmarkStar
-                                            api={Client {}}
+                                            api={
+                                              Client {
+                                                "_chain": [Function],
+                                                "_wrapRequest": [Function],
+                                                "bulkUpdate": [Function],
+                                                "handleRequestError": [Function],
+                                                "hasProjectBeenRenamed": [Function],
+                                              }
+                                            }
                                             className="css-10z01iz-BookmarkLink enngb6z1"
                                             isBookmarked={false}
                                             onToggle={[Function]}
@@ -580,34 +601,25 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               onClick={[Function]}
                                               src="icon-star-small-filled"
                                             >
-                                              <InlineSvg
-                                                className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                              <ForwardRef
+                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                                 isBookmarked={false}
                                                 onClick={[Function]}
                                                 src="icon-star-small-filled"
                                               >
-                                                <StyledSvg
-                                                  className="enngb6z1 css-1j5sthu-Star-BookmarkLink e5ekdrk0"
+                                                <svg
+                                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
                                                   height="1em"
-                                                  isBookmarked={false}
                                                   onClick={[Function]}
                                                   viewBox={Object {}}
                                                   width="1em"
                                                 >
-                                                  <svg
-                                                    className="enngb6z1 e5ekdrk0 css-85qks9-StyledSvg-Star-BookmarkLink e2idor0"
-                                                    height="1em"
-                                                    onClick={[Function]}
-                                                    viewBox={Object {}}
-                                                    width="1em"
-                                                  >
-                                                    <use
-                                                      href="#test"
-                                                      xlinkHref="#test"
-                                                    />
-                                                  </svg>
-                                                </StyledSvg>
-                                              </InlineSvg>
+                                                  <use
+                                                    href="#test"
+                                                    xlinkHref="#test"
+                                                  />
+                                                </svg>
+                                              </ForwardRef>
                                             </Star>
                                           </BookmarkStar>
                                         </withApi(BookmarkStar)>
@@ -682,7 +694,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 className="css-7g8agk"
                                 is={null}
                               >
-                                <ProjectListItem
+                                <ProjectStatsGraph
                                   key="2"
                                   project={
                                     Object {
@@ -698,7 +710,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   }
                                 >
                                   <div />
-                                </ProjectListItem>
+                                </ProjectStatsGraph>
                               </div>
                             </Base>
                           </Box>

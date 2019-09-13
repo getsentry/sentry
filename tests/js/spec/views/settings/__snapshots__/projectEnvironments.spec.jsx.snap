@@ -2,7 +2,15 @@
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/",
@@ -328,10 +336,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component
@@ -366,29 +374,29 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
                       <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                         noMargin={true}
                       >
                         <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                         >
                           You don't have any environments yet.
                         </div>
                       </Component>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
@@ -401,7 +409,15 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/hidden/",
@@ -727,10 +743,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component
@@ -765,29 +781,29 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
                       <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                         noMargin={true}
                       >
                         <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                         >
                           You don't have any hidden environments.
                         </div>
                       </Component>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
@@ -800,7 +816,15 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
 <ProjectEnvironments
-  api={Client {}}
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
   location={
     Object {
       "pathname": "environments/hidden/",
@@ -1126,10 +1150,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader>
             <Component
@@ -1320,11 +1344,13 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           >
                             <div>
                               <EnvironmentButton
+                                align="center"
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
                                 <Button
+                                  align="center"
                                   className="css-10adnmx-EnvironmentButton e1pnz46f0"
                                   disabled={false}
                                   onClick={[Function]}
@@ -1342,7 +1368,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="e1pnz46f0 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1351,20 +1377,22 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f0 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="xsmall"
                                         >
                                           <Component
-                                            className="css-uthd1f-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1bqncjo-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-uthd1f-ButtonLabel e12ma6z1"
+                                              className="css-1bqncjo-ButtonLabel edwq9my1"
                                             >
                                               Show
                                             </span>

@@ -13,9 +13,7 @@ class MonitorEndpoint(Endpoint):
 
     def convert_args(self, request, monitor_id, *args, **kwargs):
         try:
-            monitor = Monitor.objects.get(
-                guid=monitor_id,
-            )
+            monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -23,11 +21,10 @@ class MonitorEndpoint(Endpoint):
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
-        if hasattr(request.auth, 'project_id') and project.id != request.auth.project_id:
+        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
 
-        if not features.has('organizations:monitors',
-                            project.organization, actor=request.user):
+        if not features.has("organizations:monitors", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
@@ -38,8 +35,5 @@ class MonitorEndpoint(Endpoint):
 
         request._request.organization = project.organization
 
-        kwargs.update({
-            'monitor': monitor,
-            'project': project,
-        })
+        kwargs.update({"monitor": monitor, "project": project})
         return (args, kwargs)

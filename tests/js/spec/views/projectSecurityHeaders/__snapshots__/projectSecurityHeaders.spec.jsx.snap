@@ -138,6 +138,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
+              align="center"
               disabled={false}
               priority="primary"
               to="csp/"
@@ -164,6 +165,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
+              align="center"
               disabled={false}
               priority="primary"
               to="expect-ct/"
@@ -190,6 +192,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
+              align="center"
               disabled={false}
               priority="primary"
               to="hpkp/"

@@ -1,5 +1,5 @@
 ---
-created: '2019-04-08T10:31:31.548578Z'
+created: '2019-07-23T21:55:26.032853Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -15,3 +15,8 @@ config:
   version: 1
 fingerprint:
 - timeout-in-requests
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - timeout-in-requests

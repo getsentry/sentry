@@ -1,10 +1,3 @@
-"""
-sentry.models.organizationmember
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import six
@@ -23,8 +16,12 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import roles
 from sentry.db.models import (
-    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey,
-    Model, sane_repr
+    BaseModel,
+    BoundedAutoField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
 )
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
@@ -36,28 +33,29 @@ class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
     """
+
     __core__ = True
 
     id = BoundedAutoField(primary_key=True)
-    team = FlexibleForeignKey('sentry.Team')
-    organizationmember = FlexibleForeignKey('sentry.OrganizationMember')
+    team = FlexibleForeignKey("sentry.Team")
+    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_organizationmember_teams'
-        unique_together = (('team', 'organizationmember'), )
+        app_label = "sentry"
+        db_table = "sentry_organizationmember_teams"
+        unique_together = (("team", "organizationmember"),)
 
-    __repr__ = sane_repr('team_id', 'organizationmember_id')
+    __repr__ = sane_repr("team_id", "organizationmember_id")
 
     def get_audit_log_data(self):
         return {
-            'team_slug': self.team.slug,
-            'member_id': self.organizationmember_id,
-            'email': self.organizationmember.get_email(),
-            'is_active': self.is_active,
+            "team_slug": self.team.slug,
+            "member_id": self.organizationmember_id,
+            "email": self.organizationmember.get_email(),
+            "is_active": self.is_active,
         }
 
 
@@ -69,48 +67,42 @@ class OrganizationMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
+
     __core__ = True
 
-    organization = FlexibleForeignKey('sentry.Organization', related_name="member_set")
+    organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(
-        choices=roles.get_choices(),
-        max_length=32,
-        default=roles.get_default().id,
+        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
     )
     flags = BitField(
-        flags=(('sso:linked', 'sso:linked'), ('sso:invalid', 'sso:invalid'), ), default=0
+        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     token_expires_at = models.DateTimeField(default=None, null=True)
     has_global_access = models.BooleanField(default=True)
     teams = models.ManyToManyField(
-        'sentry.Team', blank=True, through='sentry.OrganizationMemberTeam'
+        "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
     )
 
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_organizationmember'
-        unique_together = (('organization', 'user'), ('organization', 'email'), )
+        app_label = "sentry"
+        db_table = "sentry_organizationmember"
+        unique_together = (("organization", "user"), ("organization", "email"))
 
-    __repr__ = sane_repr(
-        'organization_id',
-        'user_id',
-        'role',
-    )
+    __repr__ = sane_repr("organization_id", "user_id", "role")
 
     @transaction.atomic
     def save(self, *args, **kwargs):
-        assert self.user_id or self.email, \
-            'Must set user or email'
+        assert self.user_id or self.email, "Must set user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
         super(OrganizationMember, self).save(*args, **kwargs)
@@ -151,8 +143,8 @@ class OrganizationMember(Model):
     @property
     def legacy_token(self):
         checksum = md5()
-        checksum.update(six.text_type(self.organization_id).encode('utf-8'))
-        checksum.update(self.get_email().encode('utf-8'))
+        checksum.update(six.text_type(self.organization_id).encode("utf-8"))
+        checksum.update(self.get_email().encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
@@ -164,11 +156,8 @@ class OrganizationMember(Model):
             return None
         return absolute_uri(
             reverse(
-                'sentry-accept-invite',
-                kwargs={
-                    'member_id': self.id,
-                    'token': self.token or self.legacy_token,
-                }
+                "sentry-accept-invite",
+                kwargs={"member_id": self.id, "token": self.token or self.legacy_token},
             )
         )
 
@@ -176,42 +165,42 @@ class OrganizationMember(Model):
         from sentry.utils.email import MessageBuilder
 
         context = {
-            'email': self.email,
-            'organization': self.organization,
-            'url': self.get_invite_link(),
+            "email": self.email,
+            "organization": self.organization,
+            "url": self.get_invite_link(),
         }
 
         msg = MessageBuilder(
-            subject='Join %s in using Sentry' % self.organization.name,
-            template='sentry/emails/member-invite.txt',
-            html_template='sentry/emails/member-invite.html',
-            type='organization.invite',
+            subject="Join %s in using Sentry" % self.organization.name,
+            template="sentry/emails/member-invite.txt",
+            html_template="sentry/emails/member-invite.html",
+            type="organization.invite",
             context=context,
         )
 
         try:
             msg.send_async([self.get_email()])
         except Exception as e:
-            logger = get_logger(name='sentry.mail')
+            logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
     def send_sso_link_email(self, actor, provider):
         from sentry.utils.email import MessageBuilder
 
-        link_args = {'organization_slug': self.organization.slug}
+        link_args = {"organization_slug": self.organization.slug}
 
         context = {
-            'organization': self.organization,
-            'actor': actor,
-            'provider': provider,
-            'url': absolute_uri(reverse('sentry-auth-organization', kwargs=link_args)),
+            "organization": self.organization,
+            "actor": actor,
+            "provider": provider,
+            "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
 
         msg = MessageBuilder(
-            subject='Action Required for %s' % (self.organization.name, ),
-            template='sentry/emails/auth-link-identity.txt',
-            html_template='sentry/emails/auth-link-identity.html',
-            type='organization.auth_link',
+            subject="Action Required for %s" % (self.organization.name,),
+            template="sentry/emails/auth-link-identity.txt",
+            html_template="sentry/emails/auth-link-identity.html",
+            type="organization.auth_link",
             context=context,
         )
         msg.send_async([self.get_email()])
@@ -222,9 +211,8 @@ class OrganizationMember(Model):
 
         email = self.get_email()
 
-        recover_uri = u'{path}?{query}'.format(
-            path=reverse('sentry-account-recover'),
-            query=urlencode({'email': email}),
+        recover_uri = u"{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
         )
 
         # Nothing to send if this member isn't associated to a user
@@ -232,23 +220,23 @@ class OrganizationMember(Model):
             return
 
         context = {
-            'email': email,
-            'recover_url': absolute_uri(recover_uri),
-            'has_password': self.user.password,
-            'organization': self.organization,
-            'actor': actor,
-            'provider': provider,
+            "email": email,
+            "recover_url": absolute_uri(recover_uri),
+            "has_password": self.user.password,
+            "organization": self.organization,
+            "actor": actor,
+            "provider": provider,
         }
 
         if not self.user.password:
             password_hash = LostPasswordHash.for_user(self.user)
-            context['set_password_url'] = password_hash.get_absolute_url(mode='set_password')
+            context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
-            subject='Action Required for %s' % (self.organization.name, ),
-            template='sentry/emails/auth-sso-disabled.txt',
-            html_template='sentry/emails/auth-sso-disabled.html',
-            type='organization.auth_sso_disabled',
+            subject="Action Required for %s" % (self.organization.name,),
+            template="sentry/emails/auth-sso-disabled.txt",
+            html_template="sentry/emails/auth-sso-disabled.html",
+            type="organization.auth_sso_disabled",
             context=context,
         )
         msg.send_async([email])
@@ -271,29 +259,26 @@ class OrganizationMember(Model):
     def get_avatar_type(self):
         if self.user_id:
             return self.user.get_avatar_type()
-        return 'letter_avatar'
+        return "letter_avatar"
 
     def get_audit_log_data(self):
         from sentry.models import Team
-        teams = list(Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=self,
-                is_active=True,
-            ).values_list('team', flat=True)
-        ).values('id', 'slug')
+
+        teams = list(
+            Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember=self, is_active=True
+                ).values_list("team", flat=True)
+            ).values("id", "slug")
         )
 
         return {
-            'email':
-            self.get_email(),
-            'user':
-            self.user_id,
-            'teams': [t['id'] for t in teams],
-            'teams_slugs': [t['slug'] for t in teams],
-            'has_global_access':
-            self.has_global_access,
-            'role':
-            self.role,
+            "email": self.get_email(),
+            "user": self.user_id,
+            "teams": [t["id"] for t in teams],
+            "teams_slugs": [t["slug"] for t in teams],
+            "has_global_access": self.has_global_access,
+            "role": self.role,
         }
 
     def get_teams(self):
@@ -302,9 +287,8 @@ class OrganizationMember(Model):
         return Team.objects.filter(
             status=TeamStatus.VISIBLE,
             id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=self,
-                is_active=True,
-            ).values('team')
+                organizationmember=self, is_active=True
+            ).values("team"),
         )
 
     def get_scopes(self):
@@ -316,9 +300,6 @@ class OrganizationMember(Model):
         Delete un-accepted member invitations that expired
         ``threshold`` days ago.
         """
-        cls.objects.filter(
-            token_expires_at__lt=threshold,
-            user_id__exact=None,
-        ).exclude(
+        cls.objects.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
             email__exact=None
         ).delete()

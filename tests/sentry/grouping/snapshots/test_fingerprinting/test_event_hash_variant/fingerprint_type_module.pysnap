@@ -1,0 +1,25 @@
+---
+created: '2019-08-05T10:24:07.792310Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - '{{ type }}'
+    - '{{ module }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    - - module
+      - io.sentry.example.*
+  version: 1
+fingerprint:
+- '{{ type }}'
+- '{{ module }}'
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - DatabaseUnavailable
+    - io.sentry.example.Application

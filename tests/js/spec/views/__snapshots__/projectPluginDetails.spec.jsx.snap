@@ -242,6 +242,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     className="pull-right"
                   >
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -254,6 +255,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                       Enable Plugin
                     </Button>
                     <Button
+                      align="center"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -308,6 +310,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 className="pull-right"
                               >
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="small"
@@ -333,7 +336,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Enable Plugin"
-                                      className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -347,7 +350,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Enable Plugin"
-                                        className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
@@ -358,14 +361,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         }
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Enable Plugin
                                             </span>
@@ -376,6 +381,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   </StyledButton>
                                 </Button>
                                 <Button
+                                  align="center"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="small"
@@ -391,7 +397,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Reset Configuration"
-                                      className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -400,20 +406,22 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Reset Configuration"
-                                        className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
                                       >
                                         <ButtonLabel
+                                          align="center"
                                           size="small"
                                         >
                                           <Component
-                                            className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                            align="center"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Reset Configuration
                                             </span>
@@ -500,7 +508,15 @@ exports[`ProjectPluginDetails renders 1`] = `
                     }
                   >
                     <PluginConfig
-                      api={Client {}}
+                      api={
+                        Client {
+                          "_chain": [Function],
+                          "_wrapRequest": [Function],
+                          "bulkUpdate": [Function],
+                          "handleRequestError": [Function],
+                          "hasProjectBeenRenamed": [Function],
+                        }
+                      }
                       data={
                         Object {
                           "assets": Array [],
@@ -565,10 +581,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                         className="plugin-config ref-plugin-config-amazon-sqs"
                       >
                         <Component
-                          className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                          className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
                         >
                           <div
-                            className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                            className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
                           >
                             <PanelHeader
                               hasButtons={true}
@@ -621,15 +637,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                     pluginId="amazon-sqs"
                                                     size={20}
                                                   >
-                                                    <IntegrationIcon
-                                                      image={Object {}}
+                                                    <div
+                                                      className="css-1f9d6f6-PluginIcon e7e65lm0"
                                                       size={20}
-                                                    >
-                                                      <div
-                                                        className="css-1sk2vxu-IntegrationIcon e1bhjds90"
-                                                        size={20}
-                                                      />
-                                                    </IntegrationIcon>
+                                                    />
                                                   </PluginIcon>
                                                 </div>
                                               </Base>

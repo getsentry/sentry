@@ -37,50 +37,50 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(
-    sys.modules['__main__'].__file__)))
+ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules["__main__"].__file__)))
 
 # Add Sentry to path so we can import distutils
-sys.path.insert(0, os.path.join(ROOT, 'src'))
+sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from sentry.utils.distutils import (
-    BuildAssetsCommand, BuildIntegrationDocsCommand, BuildJsSdkRegistryCommand
+    BuildAssetsCommand,
+    BuildIntegrationDocsCommand,
+    BuildJsSdkRegistryCommand,
 )
 
 # The version of sentry
-VERSION = '10.0.0.dev0'
+VERSION = "10.0.0.dev0"
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
 # setup.py test` (see
 # http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-for m in ('multiprocessing', 'billiard'):
+for m in ("multiprocessing", "billiard"):
     try:
         __import__(m)
     except ImportError:
         pass
 
-IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
+IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 # we use pip requirements files to improve Docker layer caching
 
 
 def get_requirements(env):
-    with open(u'requirements-{}.txt'.format(env)) as fp:
-        return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
+    with open(u"requirements-{}.txt".format(env)) as fp:
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
 
 
-install_requires = get_requirements('base')
-dev_requires = get_requirements('dev')
-tests_require = get_requirements('test')
-optional_requires = get_requirements('optional')
+install_requires = get_requirements("base")
+dev_requires = get_requirements("dev")
+tests_require = get_requirements("test")
+optional_requires = get_requirements("optional")
 
 # override django version in requirements file if DJANGO_VERSION is set
-DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
+DJANGO_VERSION = os.environ.get("DJANGO_VERSION")
 if DJANGO_VERSION:
     install_requires = [
-        u'Django{}'.format(DJANGO_VERSION)
-        if r.startswith('Django>=') else r
+        u"Django{}".format(DJANGO_VERSION) if r.startswith("Django>=") else r
         for r in install_requires
     ]
 
@@ -89,74 +89,71 @@ class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
     # part of our source build pipeline.
     if not IS_LIGHT_BUILD:
-        sub_commands = SDistCommand.sub_commands + \
-            [('build_integration_docs', None),
-             ('build_assets', None),
-             ('build_js_sdk_registry', None)]
+        sub_commands = SDistCommand.sub_commands + [
+            ("build_integration_docs", None),
+            ("build_assets", None),
+            ("build_js_sdk_registry", None),
+        ]
 
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
-        BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
-            self.run_command('build_integration_docs')
-            self.run_command('build_assets')
-            self.run_command('build_js_sdk_registry')
+            self.run_command("build_integration_docs")
+            self.run_command("build_assets")
+            self.run_command("build_js_sdk_registry")
+        BuildCommand.run(self)
 
 
 class SentryDevelopCommand(DevelopCommand):
     def run(self):
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:
-            self.run_command('build_integration_docs')
-            self.run_command('build_assets')
-            self.run_command('build_js_sdk_registry')
+            self.run_command("build_integration_docs")
+            self.run_command("build_assets")
+            self.run_command("build_js_sdk_registry")
 
 
 cmdclass = {
-    'sdist': SentrySDistCommand,
-    'develop': SentryDevelopCommand,
-    'build': SentryBuildCommand,
-    'build_assets': BuildAssetsCommand,
-    'build_integration_docs': BuildIntegrationDocsCommand,
-    'build_js_sdk_registry': BuildJsSdkRegistryCommand,
+    "sdist": SentrySDistCommand,
+    "develop": SentryDevelopCommand,
+    "build": SentryBuildCommand,
+    "build_assets": BuildAssetsCommand,
+    "build_integration_docs": BuildIntegrationDocsCommand,
+    "build_js_sdk_registry": BuildJsSdkRegistryCommand,
 }
 
 
 setup(
-    name='sentry',
+    name="sentry",
     version=VERSION,
-    author='Sentry',
-    author_email='hello@sentry.io',
-    url='https://sentry.io',
-    description='A realtime logging and aggregation server.',
-    long_description=open(os.path.join(ROOT, 'README.rst')).read(),
-    package_dir={'': 'src'},
-    packages=find_packages('src'),
+    author="Sentry",
+    author_email="hello@sentry.io",
+    url="https://sentry.io",
+    description="A realtime logging and aggregation server.",
+    long_description=open(os.path.join(ROOT, "README.rst")).read(),
+    package_dir={"": "src"},
+    packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
     extras_require={
-        'dev': dev_requires,
-        'postgres': [],
-        'tests': tests_require,
-        'optional': optional_requires,
+        "dev": dev_requires,
+        "postgres": [],
+        "tests": tests_require,
+        "optional": optional_requires,
     },
     cmdclass=cmdclass,
-    license='BSD',
+    license="BSD",
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'sentry = sentry.runner:main',
-        ],
-    },
+    entry_points={"console_scripts": ["sentry = sentry.runner:main"]},
     classifiers=[
-        'Framework :: Django',
-        'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 2 :: Only',
-        'Topic :: Software Development'
+        "Framework :: Django",
+        "Intended Audience :: Developers",
+        "Intended Audience :: System Administrators",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 2 :: Only",
+        "Topic :: Software Development",
     ],
 )
