@@ -126,6 +126,10 @@ const GroupDetails = createReactClass({
           Sentry.withScope(scope => {
             Sentry.captureException(new Error('Project not found'));
           });
+        } else {
+          const location_with_project = {...browserHistory.getCurrentLocation()};
+          Object.assign(location_with_project.query, {project: project.id});
+          browserHistory.replace(location_with_project);
         }
 
         this.setState({
