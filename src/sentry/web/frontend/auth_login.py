@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -119,6 +120,16 @@ class AuthLoginView(BaseView):
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
             request.session.pop("invite_email", None)
+
+            # Attempt to directly accept any pending invites
+            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+
+            if invite_helper and invite_helper.valid_request:
+                invite_helper.accept_invite()
+                response = self.redirect_to_org(request)
+                remove_invite_cookie(request, response)
+
+                return response
 
             return self.redirect(auth.get_login_redirect(request))
 
