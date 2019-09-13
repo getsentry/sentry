@@ -1,12 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Commit} from 'app/types';
 import Avatar from 'app/components/avatar';
 import TimeSince from 'app/components/timeSince';
 
 import {t} from 'app/locale';
 
-class LastCommit extends React.Component {
+type Props = {
+  commit: Commit;
+  headerClass: string;
+};
+
+class LastCommit extends React.Component<Props, {}> {
   static propTypes = {
     commit: PropTypes.object.isRequired,
     headerClass: PropTypes.string,

@@ -396,3 +396,12 @@ export type UserReport = {
   eventID: string;
   issue: Group;
 };
+
+export type Commit = {
+  id: string;
+  key: string;
+  message: string;
+  dateCreated: string;
+  repository?: Repository;
+  author?: User;
+};
