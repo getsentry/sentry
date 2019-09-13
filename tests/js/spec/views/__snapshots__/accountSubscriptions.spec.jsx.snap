@@ -76,7 +76,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         >
                           <HeaderTitle>
                             <h4
-                              className="css-u1l4am-HeaderTitle e6lvex72"
+                              className="css-u1l4am-HeaderTitle eqkydle2"
                             >
                               Subscriptions
                             </h4>
