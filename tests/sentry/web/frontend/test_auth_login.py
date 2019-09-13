@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
+import mock
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -101,6 +102,28 @@ class AuthLoginTest(TestCase):
         assert resp.context["op"] == "register"
         assert resp.context["register_form"].initial["username"] == "foo@example.com"
         self.assertTemplateUsed("sentry/login.html")
+
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_cookie")
+    def test_register_accepts_invite(self, from_cookie):
+        self.session["can_register"] = True
+        self.save_session()
+
+        self.client.get(self.path)
+
+        invite_helper = mock.Mock(valid_request=True)
+        from_cookie.return_value = invite_helper
+
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "test@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+        assert resp.status_code == 302
+        assert len(invite_helper.accept_invite.mock_calls) == 1
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
