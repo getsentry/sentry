@@ -5,10 +5,9 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {closeModal, RenderProps} from 'app/actionCreators/modal';
+import {closeModal, RenderProps, ModalOptions} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
-import {ModalOptions} from 'app/actions/modalActions';
 
 type Props = {
   children?: (renderProps: RenderProps) => React.ReactNode;

@@ -3,13 +3,19 @@ import {css} from 'react-emotion';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 ``;
 
-import ModalActions, {ModalOptions} from 'app/actions/modalActions';
+import ModalActions from 'app/actions/modalActions';
 
 export type RenderProps = {
   closeModal: () => void;
   Header: typeof ModalHeader;
   Body: typeof ModalBody;
   Footer: typeof ModalFooter;
+};
+
+export type ModalOptions = {
+  onClose?: () => void;
+  modalClassName?: string;
+  type?: string;
 };
 
 /**
