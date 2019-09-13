@@ -59,16 +59,10 @@ class RoleSelect extends React.Component<Props> {
                 css={!isDisabled ? {} : {color: 'grey', cursor: 'default'}}
               >
                 <Label>
-                  <Radio
-                    id={id}
-                    value={name}
-                    checked={id === selectedRole}
-                    readOnly
-                    style={{margin: 0}}
-                  />
+                  <Radio id={id} value={name} checked={id === selectedRole} readOnly />
                   <div style={{flex: 1, padding: '0 16px'}}>
                     {name}
-                    <TextBlock css={{marginBottom: 0}}>
+                    <TextBlock noMargin>
                       <div className="help-block">{desc}</div>
                     </TextBlock>
                   </div>
