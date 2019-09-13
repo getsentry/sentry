@@ -122,7 +122,7 @@ class ContextData extends React.Component {
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
           >
-            {valueInfo.repr}
+            "{valueInfo.repr}"
           </span>,
         ];
 
@@ -169,7 +169,7 @@ class ContextData extends React.Component {
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
-                <span className="val-string">{key}</span>
+                <span className="val-string">"{key}"</span>
               </span>
               <span className="val-dict-col">{': '}</span>
               <span className="val-dict-value">
