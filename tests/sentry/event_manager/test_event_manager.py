@@ -1150,27 +1150,6 @@ class EventManagerTest(TestCase, SnubaTestCase):
             == 1
         )
 
-    def test_nodestore_sampling(self):
-        with self.options({"store.nodestore-sample-rate": 1.0}):
-            manager = EventManager(make_event(event_id="a" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 1
-
-            manager = EventManager(make_event(event_id="b" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 2
-
-            # Duplicate event
-            manager = EventManager(make_event(event_id="a" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 2
-
 
 class ReleaseIssueTest(TestCase):
     def setUp(self):

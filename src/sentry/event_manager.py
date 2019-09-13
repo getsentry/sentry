@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import time
 import jsonschema
 import logging
-import random
 import six
 
 from datetime import datetime, timedelta
@@ -14,7 +13,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, nodestore, options, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, nodestore, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -862,28 +861,19 @@ class EventManager(object):
         return event
 
     def _get_event_from_storage(self, project_id, event_id):
-        nodestore_sample_rate = options.get("store.nodestore-sample-rate")
-        use_nodestore = random.random() < nodestore_sample_rate
+        start = time.time()
 
-        if use_nodestore:
-            start = time.time()
+        node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
 
-            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
+        metrics.timing(
+            "events.store.nodestore.duration",
+            int((time.time() - start) * 1000),
+            tags={"duplicate_found": bool(node_data)},
+        )
 
-            metrics.timing(
-                "events.store.nodestore.duration",
-                int((time.time() - start) * 1000),
-                tags={"duplicate_found": bool(node_data)},
-            )
+        if node_data:
+            return Event(node_data)
 
-            if node_data:
-                return Event(node_data)
-        else:
-            try:
-                event = Event.objects.get(project_id=project_id, event_id=event_id)
-                return event
-            except Event.DoesNotExist:
-                pass
         return None
 
     def _get_event_user(self, project, data):
