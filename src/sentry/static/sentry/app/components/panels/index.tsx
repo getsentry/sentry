@@ -4,5 +4,6 @@ import PanelBody from 'app/components/panels/panelBody';
 import PanelFooter from 'app/components/panels/panelFooter';
 import PanelItem from 'app/components/panels/panelItem';
 import PanelAlert from 'app/components/panels/panelAlert';
+import HintPanelItem from 'app/components/panels/hintPanelItem';
 
-export {Panel, PanelHeader, PanelBody, PanelFooter, PanelItem, PanelAlert};
+export {Panel, PanelHeader, PanelBody, PanelFooter, PanelItem, PanelAlert, HintPanelItem};
