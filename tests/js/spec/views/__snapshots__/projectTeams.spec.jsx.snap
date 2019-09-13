@@ -5,7 +5,7 @@ exports[`ProjectTeams renders 1`] = `
   title="Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="project-slug Teams"
     />

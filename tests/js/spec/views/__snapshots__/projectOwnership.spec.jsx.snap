@@ -5,7 +5,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   title="Ownership - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Issue Owners"
     />
