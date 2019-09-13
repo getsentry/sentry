@@ -777,21 +777,8 @@ class EventManager(object):
 
         # save the event unless its been sampled
         if not is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
-                return event
+            to_write = dict(data.items())
+            nodestore.set(event_id, to_write)
 
             tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,

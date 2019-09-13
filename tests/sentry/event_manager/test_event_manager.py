@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
@@ -19,7 +20,6 @@ from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     ExternalIssue,
     Group,
     GroupEnvironment,
@@ -36,9 +36,10 @@ from sentry.models import (
     UserReport,
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase
+from sentry.testutils import assert_mock_called_once_with_partial, SnubaTestCase, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.relay.config import get_project_config
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 def make_event(**kwargs):
@@ -48,12 +49,17 @@ def make_event(**kwargs):
         "level": logging.ERROR,
         "logger": "default",
         "tags": [],
+        "timestamp": iso_format(before_now(seconds=1)),
     }
+
     result.update(kwargs)
     return result
 
 
-class EventManagerTest(TestCase):
+class EventManagerTest(TestCase, SnubaTestCase):
+    def get_events(self):
+        return eventstore.get_events(filter_keys={"project_id": [1]})
+
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
@@ -74,25 +80,6 @@ class EventManagerTest(TestCase):
 
         assert event1.group_id != event2.group_id
 
-    @mock.patch("sentry.event_manager.should_sample")
-    def test_does_not_save_event_when_sampled(self, should_sample):
-        should_sample.return_value = True
-        event_id = "a" * 32
-
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
-
-        # This is a brand new event, so it is actually saved.
-        assert Event.objects.filter(event_id=event_id).exists()
-
-        event_id = "b" * 32
-
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
-
-        # This second is a dupe, so should be sampled
-        assert not Event.objects.filter(event_id=event_id).exists()
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
@@ -109,14 +96,14 @@ class EventManagerTest(TestCase):
         manager.normalize()
         manager.save(1)
 
-        assert Event.objects.count() == 1
+        assert len(self.get_events()) == 1
 
         # ensure that calling it again doesn't raise a db error
         manager = EventManager(make_event(event_id=event_id))
         manager.normalize()
         manager.save(1)
 
-        assert Event.objects.count() == 1
+        assert len(self.get_events()) == 1
 
     def test_updates_group(self):
         timestamp = time() - 300
