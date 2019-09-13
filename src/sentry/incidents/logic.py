@@ -32,7 +32,7 @@ from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.models import Commit, Release
 from sentry.incidents import tasks
 from sentry.snuba.subscriptions import (
-    create_snuba_subscription,
+    bulk_create_snuba_subscriptions,
     delete_snuba_subscription,
     update_snuba_subscription,
 )
@@ -562,7 +562,8 @@ DEFAULT_ALERT_RULE_RESOLUTION = 1
 
 
 def create_alert_rule(
-    project,
+    organization,
+    projects,
     name,
     threshold_type,
     query,
@@ -573,9 +574,10 @@ def create_alert_rule(
     threshold_period,
 ):
     """
-    Creates an alert rule for a project.
+    Creates an alert rule for an organization.
 
-    :param project:
+    :param organization:
+    :param projects:
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
     :param threshold_type: An AlertRuleThresholdType
@@ -593,20 +595,11 @@ def create_alert_rule(
     dataset = QueryDatasets.EVENTS
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
-    if AlertRule.objects.filter(project=project, name=name).exists():
+    if AlertRule.objects.filter(organization=organization, name=name).exists():
         raise AlertRuleNameAlreadyUsedError()
     with transaction.atomic():
-        query_subscription = create_snuba_subscription(
-            project,
-            tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-            dataset,
-            query,
-            aggregation,
-            time_window,
-            resolution,
-        )
         alert_rule = AlertRule.objects.create(
-            project=project,
+            organization=organization,
             name=name,
             threshold_type=threshold_type.value,
             dataset=dataset.value,
@@ -618,9 +611,20 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
         )
-        AlertRuleQuerySubscription.objects.create(
-            query_subscription=query_subscription, alert_rule=alert_rule
+        subscriptions = bulk_create_snuba_subscriptions(
+            projects,
+            tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            dataset,
+            query,
+            aggregation,
+            time_window,
+            resolution,
         )
+        subscription_links = [
+            AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
+            for subscription in subscriptions
+        ]
+        AlertRuleQuerySubscription.objects.bulk_create(subscription_links)
     return alert_rule
 
 
@@ -656,7 +660,7 @@ def update_alert_rule(
     if (
         name
         and alert_rule.name != name
-        and AlertRule.objects.filter(project=alert_rule.project, name=name).exists()
+        and AlertRule.objects.filter(organization=alert_rule.organization, name=name).exists()
     ):
         raise AlertRuleNameAlreadyUsedError()
 

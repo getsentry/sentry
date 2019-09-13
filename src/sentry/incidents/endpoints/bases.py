@@ -20,7 +20,9 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(project=project, id=alert_rule_id)
+            kwargs["alert_rule"] = AlertRule.objects.get(
+                query_subscriptions__project=project, id=alert_rule_id
+            )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 

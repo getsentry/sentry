@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -x;
+
+if [[ -z "$SOURCE_COMMIT" ]]; then
+	export SOURCE_COMMIT="${SOURCE_COMMIT:-$(git rev-parse HEAD)}";
+	echo "Updating SOURCE_COMMIT from 'git rev-parse HEAD'";
+fi
+
+echo "SOURCE_COMMIT: $SOURCE_COMMIT";
+echo $(pwd);
+cd $(git rev-parse --show-toplevel);
+
+git archive --format=tar.gz -o context.tar.gz $SOURCE_COMMIT
+docker build --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t "$DOCKER_REPO:$SOURCE_COMMIT" -t "$DOCKER_REPO:git" -f "./docker/Dockerfile" - < context.tar.gz
+docker build -t "$DOCKER_REPO:$SOURCE_COMMIT-onbuild" -t "$DOCKER_REPO:git-onbuild" -f "./docker/onbuild/Dockerfile" - < context.tar.gz
+rm context.tar.gz
