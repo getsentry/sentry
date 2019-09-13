@@ -316,7 +316,7 @@ const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
     case 'zero':
       return '0';
     case 'xxsmall':
-      return borderless ? '2px 4px' : '4px 6px';
+      return borderless ? '1px 2px' : '2px 4px';
     case 'xsmall':
       return borderless ? '4px 6px' : '6px 10px';
     case 'small':
