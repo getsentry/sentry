@@ -778,7 +778,8 @@ class EventManager(object):
         # save the event unless its been sampled
         if not is_sample:
             to_write = dict(data.items())
-            nodestore.set(event_id, to_write)
+            node_id = Event.generate_node_id(project.id, event_id)
+            nodestore.set(node_id, to_write)
 
             tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
