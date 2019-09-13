@@ -2,32 +2,44 @@ import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import {capitalize, omit} from 'lodash';
+import styled from 'react-emotion';
+import PropTypes from 'prop-types';
+import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
-import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import styled from 'react-emotion';
 import space from 'app/styles/space';
-import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
+import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 
 const INSTALLED = 'Installed';
 const NOT_INSTALLED = 'Not Installed';
 const PENDING = 'Pending';
 
-export default class SentryApplicationRow extends React.PureComponent {
+type Props = {
+  app: SentryApp;
+  organization: Organization;
+  install?: SentryAppInstallation;
+  onInstall?: () => void;
+  onUninstall?: (install: SentryAppInstallation) => void;
+  onRemoveApp?: (app: SentryApp) => void;
+  showInstallationStatus: boolean;
+  ['data-test-id']?: string;
+};
+
+export default class SentryApplicationRow extends React.PureComponent<Props> {
   static propTypes = {
     app: SentryTypes.SentryApplication,
     organization: SentryTypes.Organization.isRequired,
-    installs: PropTypes.array,
+    install: PropTypes.object,
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
@@ -43,16 +55,15 @@ export default class SentryApplicationRow extends React.PureComponent {
   }
 
   renderUnpublishedAdminButtons() {
-    const {app} = this.props;
     return (
       <ButtonHolder>
-        {this.isInternal ? null : this.renderPublishRequest(app)}
-        {this.renderRemoveApp(app)}
+        {this.isInternal ? null : this.renderPublishRequest()}
+        {this.renderRemoveApp()}
       </ButtonHolder>
     );
   }
 
-  renderDisabledPublishRequestButton(message) {
+  renderDisabledPublishRequestButton(message: string) {
     return (
       <StyledButton disabled title={t(message)} size="small" icon="icon-upgrade">
         {t('Publish')}
@@ -60,7 +71,7 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  renderDisabledRemoveButton(message) {
+  renderDisabledRemoveButton(message: string) {
     return <Button disabled title={t(message)} size="small" icon="icon-trash" />;
   }
 
@@ -88,7 +99,8 @@ export default class SentryApplicationRow extends React.PureComponent {
     );
   }
 
-  renderRemoveApp(app) {
+  renderRemoveApp() {
+    const {app, onRemoveApp} = this.props;
     const message = t(
       `Deleting ${app.slug} will also delete any and all of its installations. \
        This is a permanent action. Do you wish to continue?`
@@ -98,7 +110,7 @@ export default class SentryApplicationRow extends React.PureComponent {
         message={message}
         confirmInput={app.slug}
         priority="danger"
-        onConfirm={() => this.props.onRemoveApp(app)}
+        onConfirm={() => onRemoveApp && onRemoveApp(app)}
       >
         <Button size="small" icon="icon-trash" />
       </ConfirmDelete>
@@ -114,15 +126,13 @@ export default class SentryApplicationRow extends React.PureComponent {
   }
 
   renderUninstallButton() {
-    const install = this.props.installs[0];
-    const message = t(
-      `Are you sure you want to remove the ${install.app.slug} installation ?`
-    );
+    const {install, app, onUninstall} = this.props;
+    const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
     return (
       <Confirm
         message={message}
         priority="danger"
-        onConfirm={() => this.props.onUninstall(install)}
+        onConfirm={() => onUninstall && install && onUninstall(install)}
       >
         <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
           {t('Uninstall')}
@@ -146,12 +156,14 @@ export default class SentryApplicationRow extends React.PureComponent {
     if (showInstallationStatus) {
       //if internal and we show installation status, we don't show the learn more
       if (isInternal) {
-        return <Status status={status} isInternal={isInternal} />;
+        return <StatusIndicator status={status} isInternal={isInternal} />;
       }
       return (
         <React.Fragment>
-          <Status status={status} isInternal={false} />
-          <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
+          <StatusIndicator status={status} isInternal={false} />
+          <StyledLink to="" onClick={this.openLearnMore}>
+            {t('Learn More')}
+          </StyledLink>
         </React.Fragment>
       );
     }
@@ -159,7 +171,7 @@ export default class SentryApplicationRow extends React.PureComponent {
   }
 
   get isInstalled() {
-    return this.props.installs && this.props.installs.length > 0;
+    return !!this.props.install;
   }
 
   handlePublish = () => {
@@ -169,8 +181,8 @@ export default class SentryApplicationRow extends React.PureComponent {
   };
 
   get installationStatus() {
-    if (this.props.installs && this.props.installs.length > 0) {
-      return capitalize(this.props.installs[0].status);
+    if (this.props.install) {
+      return capitalize(this.props.install.status);
     }
 
     return NOT_INSTALLED;
@@ -292,7 +304,7 @@ const SentryAppDetails = styled(Flex)`
 
 const SentryAppName = styled('div')`
   font-weight: bold;
-  margin-top: ${p => (p.hideStatus ? '10px' : '0px')};
+  margin-top: ${(p: {hideStatus: boolean}) => (p.hideStatus ? '10px' : '0px')};
 `;
 
 const StyledLink = styled(Link)`
@@ -313,8 +325,10 @@ const color = {
   [PENDING]: 'yellowOrange',
 };
 
-const Status = styled(
-  withTheme(({status, ...props}) => {
+type StatusIndicatorProps = {status: string; theme?: any; isInternal: boolean};
+
+const StatusIndicator = styled(
+  withTheme(({status, ...props}: StatusIndicatorProps) => {
     //need to omit isInternal
     const propsToPass = omit(props, ['isInternal']);
     return (
@@ -325,7 +339,7 @@ const Status = styled(
     );
   })
 )`
-  color: ${props => props.theme[color[props.status]]};
+  color: ${(props: StatusIndicatorProps) => props.theme[color[props.status]]};
   margin-left: ${space(0.5)};
   font-weight: light;
   &:after {
@@ -337,20 +351,22 @@ const Status = styled(
   margin-right: ${space(0.75)};
 `;
 
-const PublishStatus = styled(({status, ...props}) => {
+type PublishStatusProps = {status: SentryApp['status']; theme?: any};
+
+const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
   return (
     <Flex align="center">
       <div {...props}>{t(`${status}`)}</div>
     </Flex>
   );
 })`
-  color: ${props =>
+  color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;
 
-const ButtonHolder = styled.div`
+const ButtonHolder = styled('div')`
   flex-direction: row;
   display: flex;
   & > * {

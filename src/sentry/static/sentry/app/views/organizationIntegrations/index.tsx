@@ -14,7 +14,7 @@ import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarni
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -151,7 +151,7 @@ class OrganizationIntegrations extends AsyncComponent<
     window.open(url, '_blank');
   };
 
-  onRemoveInternalApp = (app: SentryApp): void => {
+  handleRemoveInternalSentryApp = (app: SentryApp): void => {
     const apps = this.state.orgOwnedApps.filter(a => a.slug !== app.slug);
     removeSentryApp(this.api, app).then(
       () => {
@@ -161,11 +161,24 @@ class OrganizationIntegrations extends AsyncComponent<
     );
   };
 
+  handleRemoveAppInstallation = (app: SentryApp): void => {
+    const appInstalls = this.state.appInstalls.filter(i => i.app.slug !== app.slug);
+    this.setState({appInstalls});
+  };
+
+  handleAppInstallation = (install: SentryAppInstallation): void => {
+    this.setState({appInstalls: [install, ...this.state.appInstalls]});
+  };
+
+  getAppInstall = (app: SentryApp) => {
+    return this.state.appInstalls.find(i => i.app.slug === app.slug);
+  };
+
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProvider) {
-    const {integrations, appInstalls} = this.state;
+    const {integrations} = this.state;
     if (isSentryApp(integration)) {
-      const install = appInstalls.find(i => i.app.slug === integration.slug);
+      const install = this.getAppInstall(integration);
       if (install) {
         return install.status === 'pending' ? 1 : 2;
       }
@@ -206,15 +219,13 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    const {appInstalls} = this.state;
 
     if (app.status === 'internal') {
       return (
         <SentryApplicationRow
           key={`sentry-app-row-${app.slug}`}
           data-test-id="internal-integration-row"
-          api={this.api}
-          onRemoveApp={() => this.onRemoveInternalApp(app)}
+          onRemoveApp={() => this.handleRemoveInternalSentryApp(app)}
           organization={organization}
           app={app}
         />
@@ -222,13 +233,15 @@ class OrganizationIntegrations extends AsyncComponent<
     }
 
     return (
-      <SentryAppInstallations
+      <SentryAppInstallationDetail
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         api={this.api}
         organization={organization}
-        installs={appInstalls}
-        applications={[app]}
+        install={this.getAppInstall(app)}
+        onAppUninstall={() => this.handleRemoveAppInstallation(app)}
+        onAppInstall={this.handleAppInstallation}
+        app={app}
       />
     );
   };
