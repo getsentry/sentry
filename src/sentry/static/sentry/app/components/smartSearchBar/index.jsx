@@ -25,6 +25,7 @@ import {
 import {fetchReleases} from 'app/actionCreators/releases';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownLink from 'app/components/dropdownLink';
@@ -907,7 +908,7 @@ class SmartSearchBar extends React.Component {
         ) : (
           input
         )}
-        <ButtonBar>
+        <StyledButtonBar>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1016,7 +1017,7 @@ class SmartSearchBar extends React.Component {
               )}
             </StyledDropdownLink>
           )}
-        </ButtonBar>
+        </StyledButtonBar>
       </Container>
     );
   }
@@ -1088,13 +1089,6 @@ const Container = styled('div')`
   }
 `;
 
-const ButtonBar = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-right: ${space(1)};
-  align-items: center;
-`;
-
 const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
@@ -1147,6 +1141,10 @@ const StyledDropdownLink = styled(DropdownLink)`
 
 const DropdownElement = styled('a')`
   ${getDropdownElementStyles}
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  margin-right: ${space(1)};
 `;
 
 const MenuIcon = styled(InlineSvg)`
