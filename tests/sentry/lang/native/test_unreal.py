@@ -27,10 +27,6 @@ def get_unreal_crash_file():
     return get_fixture_path("unreal_crash")
 
 
-def get_unreal_crash_apple_file():
-    return get_fixture_path("unreal_crash_apple")
-
-
 def test_unreal_attachment_type_minidump():
     file = MockFile("minidump")
     assert unreal_attachment_type(file) == MINIDUMP_ATTACHMENT_TYPE

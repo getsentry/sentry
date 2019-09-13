@@ -1,5 +1,5 @@
 ---
-created: '2019-07-01T16:40:31.178378Z'
+created: '2019-09-13T16:05:38.484007Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -13,8 +13,10 @@ contexts:
     name: Radeon Pro 560
     type: gpu
   os:
-    raw_description: Mac OS X 10.14.0 (18A391)
+    build: 18A391
+    name: macOS
     type: os
+    version: 10.14.0
   unreal:
     app_default_locate: en-AT
     base_dir: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/UE4/YetAnotherMac/Binaries/Mac/
@@ -248,7 +250,8 @@ exception:
         rsi: '0x0'
         rsp: '0x700015a613f0'
     thread_id: 5
-    value: 'Fatal Error: None'
+    type: SIGSEGV
+    value: SEGV_MAPERR at 0x88
 extra: null
 stacktrace: null
 threads:

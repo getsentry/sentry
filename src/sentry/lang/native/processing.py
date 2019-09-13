@@ -177,13 +177,20 @@ def _merge_full_response(data, response):
 
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
-    exc_value = (
-        "Assertion Error: %s" % response.get("assertion")
-        if response.get("assertion")
-        else "Fatal Error: %s" % response.get("crash_reason")
-    )
-    data_exception["value"] = exc_value
-    data_exception["type"] = response.get("crash_reason")
+    if response.get("assertion"):
+        data_exception["value"] = "Assertion Error: %s" % (response["assertion"],)
+    elif response.get("crash_details"):
+        data_exception["value"] = response["crash_details"]
+    elif response.get("crash_reason"):
+        data_exception["value"] = "Fatal Error: %s" % (response["crash_reason"],)
+    else:
+        # We're merging a full response, so there was no initial payload
+        # submitted. Assuming that this still contains the placeholder, remove
+        # it rather than showing a default value.
+        data_exception.pop("value", None)
+
+    if response.get("crash_reason"):
+        data_exception["type"] = response["crash_reason"]
 
     data_threads = []
     if response["stacktraces"]:
