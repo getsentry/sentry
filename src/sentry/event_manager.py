@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import random
 import time
 
 import ipaddress
@@ -16,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, nodestore, options, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, nodestore, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -432,9 +431,6 @@ class EventManager(object):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get("time_spent")
-
-        data["node_id"] = Event.generate_node_id(project_id, event_id)
-
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
@@ -557,8 +553,8 @@ class EventManager(object):
         # We need to swap out the data with the one internal to the newly
         # created event object
         event = self._get_event_instance(project_id=project_id)
-        self._data = data = event.data.data
-
+        # self._data = data = event.data.data
+        assert self._data == data == event.data.data
         event._project_cache = project
 
         date = event.datetime
@@ -779,9 +775,13 @@ class EventManager(object):
 
         # save the event unless its been sampled
         if not is_sample:
+            node_id = Event.generate_node_id(project.id, event_id)
+            nodestore.set(node_id, dict(data.items()))
+
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
+                    event.data.data = data
             except IntegrityError:
                 logger.info(
                     "duplicate.found",
@@ -876,28 +876,11 @@ class EventManager(object):
         return event
 
     def _get_event_from_storage(self, project_id, event_id):
-        nodestore_sample_rate = options.get("store.nodestore-sample-rate")
-        use_nodestore = random.random() < nodestore_sample_rate
-
-        if use_nodestore:
-            start = time.time()
-
-            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
-
-            metrics.timing(
-                "events.store.nodestore.duration",
-                int((time.time() - start) * 1000),
-                tags={"duplicate_found": bool(node_data)},
-            )
-
-            if node_data:
-                return Event(node_data)
-        else:
-            try:
-                event = Event.objects.get(project_id=project_id, event_id=event_id)
-                return event
-            except Event.DoesNotExist:
-                pass
+        try:
+            event = Event.objects.get(project_id=project_id, event_id=event_id)
+            return event
+        except Event.DoesNotExist:
+            pass
         return None
 
     def _get_event_user(self, project, data):

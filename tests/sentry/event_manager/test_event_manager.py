@@ -36,7 +36,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase
+from sentry.testutils import assert_mock_called_once_with_partial, SnubaTestCase, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.relay.config import get_project_config
 
@@ -53,7 +53,7 @@ def make_event(**kwargs):
     return result
 
 
-class EventManagerTest(TestCase):
+class EventManagerTest(TestCase, SnubaTestCase):
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
@@ -1183,27 +1183,6 @@ class EventManagerTest(TestCase):
             == 1
         )
 
-    def test_nodestore_sampling(self):
-        with self.options({"store.nodestore-sample-rate": 1.0}):
-            manager = EventManager(make_event(event_id="a" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 1
-
-            manager = EventManager(make_event(event_id="b" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 2
-
-            # Duplicate event
-            manager = EventManager(make_event(event_id="a" * 32))
-            manager.normalize()
-            manager.save(1)
-
-            assert Event.objects.count() == 2
-
 
 class ReleaseIssueTest(TestCase):
     def setUp(self):
@@ -1212,18 +1191,6 @@ class ReleaseIssueTest(TestCase):
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
-
-    def make_event(self, **kwargs):
-        result = {
-            "event_id": "a" * 32,
-            "message": "foo",
-            "timestamp": self.timestamp + 0.23,
-            "level": logging.ERROR,
-            "logger": "default",
-            "tags": [],
-        }
-        result.update(kwargs)
-        return result
 
     def make_release_event(
         self, release_version="1.0", environment_name="prod", project_id=1, **kwargs

@@ -15,14 +15,7 @@ from hashlib import md5
 from semaphore.processing import StoreNormalizer
 
 from sentry import eventtypes
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedIntegerField,
-    Model,
-    NodeData,
-    NodeField,
-    sane_repr,
-)
+from sentry.db.models import BoundedBigIntegerField, BoundedIntegerField, Model, NodeData, sane_repr
 from sentry.db.models.manager import EventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
@@ -613,13 +606,6 @@ class Event(EventCommon, Model):
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    data = NodeField(
-        blank=True,
-        null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
-        ref_version=2,
-        wrapper=EventDict,
-    )
 
     objects = EventManager()
 
@@ -632,6 +618,12 @@ class Event(EventCommon, Model):
         index_together = (("group_id", "datetime"),)
 
     __repr__ = sane_repr("project_id", "group_id")
+
+    def __init__(self, *args, **kwargs):
+        data = kwargs.pop("data", None)
+        super(Event, self).__init__(*args, **kwargs)
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        self.data = NodeData(None, node_id, data=data, wrapper=EventDict)
 
     def __getstate__(self):
         state = Model.__getstate__(self)
