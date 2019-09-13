@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
@@ -73,7 +74,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
 
-        assert resp.data == serialize(self.alert_rule)
+        assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
