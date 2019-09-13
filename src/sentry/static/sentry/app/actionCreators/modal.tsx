@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from 'react-emotion';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
-
 import ModalActions from 'app/actions/modalActions';
 
 export type RenderProps = {
