@@ -1,5 +1,4 @@
 Babel
 docker>=3.7.0,<3.8.0
-flake8==3.7.8
 isort>=4.3.4,<4.4.0
-sentry-flake8>=0.1.0,<0.2.0
+sentry-flake8==0.1.1
