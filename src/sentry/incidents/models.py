@@ -250,6 +250,9 @@ class AlertRuleManager(BaseManager):
             )
         )
 
+    def fetch_for_organization(self, organization):
+        return self.filter(organization=organization)
+
     def fetch_for_project(self, project):
         return self.filter(query_subscriptions__project=project)
 
@@ -273,9 +276,7 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
     query_subscriptions = models.ManyToManyField(
-        "sentry.QuerySubscription",
-        related_name="query_subscriptions",
-        through=AlertRuleQuerySubscription,
+        "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
     )
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)

@@ -7,7 +7,9 @@ from enum import Enum
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.models.project import Project
 from sentry.snuba.models import QueryAggregations
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
@@ -17,8 +19,15 @@ from sentry.incidents.logic import (
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):
+    """
+    Serializer for creating/updating an alert rule. Required context:
+     - `organization`: The organization related to this alert rule.
+     - `access`: An access object (from `request.access`)
+    """
+
     # XXX: ArrayFields aren't supported automatically until DRF 3.1
     aggregations = serializers.ListField(child=serializers.IntegerField(), required=False)
+    projects = serializers.ListField(child=ProjectField(), required=True)
 
     class Meta:
         model = AlertRule
@@ -32,6 +41,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "threshold_period",
             "aggregation",
             "aggregations",
+            "projects",
         ]
         extra_kwargs = {
             "query": {"allow_blank": True, "required": True},
@@ -84,17 +94,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
-            return create_alert_rule(
-                organization=self.context["organization"],
-                projects=[self.context["project"]],
-                **validated_data
-            )
+            return create_alert_rule(organization=self.context["organization"], **validated_data)
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
     def _remove_unchanged_fields(self, instance, validated_data):
         for field_name, value in list(six.iteritems(validated_data)):
             # Remove any fields that haven't actually changed
+            if field_name == "projects":
+                project_slugs = Project.objects.filter(
+                    querysubscription__alert_rules=instance
+                ).values_list("slug", flat=True)
+                if set(project_slugs) == set([project.slug for project in value]):
+                    validated_data.pop(field_name)
+                continue
             if isinstance(value, Enum):
                 value = value.value
             if getattr(instance, field_name) == value:
