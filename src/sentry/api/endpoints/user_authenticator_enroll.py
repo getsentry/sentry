@@ -10,9 +10,9 @@ import petname
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import Authenticator, OrganizationMember
+from sentry.models import Authenticator
 from sentry.security import capture_security_activity
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie, get_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 
 logger = logging.getLogger(__name__)
 
@@ -225,22 +225,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # If there is a pending organization invite accept after the
         # authenticator has been configured.
-        org_invite = get_invite_cookie(request)
+        invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self, logger=logger)
 
-        if org_invite:
-            try:
-                helper = ApiInviteHelper(
-                    instance=self,
-                    request=request,
-                    member_id=org_invite["memberId"],
-                    token=org_invite["token"],
-                    logger=logger,
-                )
-            except OrganizationMember.DoesNotExist:
-                logger.error("Failed to accept pending org invite", exc_info=True)
-            else:
-                if helper.valid_request:
-                    helper.accept_invite()
-                    remove_invite_cookie(request, response)
+        if invite_helper and invite_helper.valid_request:
+            invite_helper.accept_invite()
+            remove_invite_cookie(request, response)
 
         return response

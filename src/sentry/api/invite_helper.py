@@ -66,6 +66,26 @@ class ApiInviteHelper(object):
             request=request, member_id=om.id, token=om.token, instance=instance, logger=logger
         )
 
+    @classmethod
+    def from_cookie(cls, request, instance=None, logger=None):
+        org_invite = get_invite_cookie(request)
+
+        if not org_invite:
+            return None
+
+        try:
+            return ApiInviteHelper(
+                request=request,
+                member_id=org_invite["memberId"],
+                token=org_invite["token"],
+                instance=instance,
+                logger=logger,
+            )
+        except OrganizationMember.DoesNotExist:
+            if logger:
+                logger.error("Invalid pending invite cookie", exc_info=True)
+            return None
+
     def __init__(self, request, member_id, token, instance=None, logger=None):
         self.request = request
         self.member_id = member_id
