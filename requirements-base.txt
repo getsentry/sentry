@@ -14,7 +14,6 @@ djangorestframework==3.0.5
 email-reply-parser>=0.2.0,<0.3.0
 exam>=0.5.1
 hiredis>=0.1.0,<0.2.0
-honcho>=1.0.0,<1.1.0
 jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
