@@ -11,6 +11,7 @@ from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters, get_filter_key
+from sentry import quotas
 
 from sentry.models.organization import Organization
 from sentry.models.organizationoption import OrganizationOption
@@ -56,9 +57,17 @@ def get_project_config(project_id, full_config=True, for_store=False):
     else:
         project_keys = ProjectKey.objects.filter(project=project).all()
 
-    public_keys = {}
+    public_keys = []
+
     for project_key in project_keys:
-        public_keys[project_key.public_key] = project_key.status == 0
+        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
+        if full_config:
+            key["numericId"] = project_key.id
+
+            key["quotas"] = [
+                quota.to_json() for quota in quotas.get_quotas(project, key=project_key)
+            ]
+        public_keys.append(key)
 
     now = datetime.utcnow().replace(tzinfo=utc)
 

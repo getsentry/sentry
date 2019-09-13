@@ -73,6 +73,7 @@ class Quota(Service):
         "validate",
         "refund",
         "get_event_retention",
+        "get_quotas",
     )
 
     def __init__(self, **options):
@@ -168,3 +169,6 @@ class Quota(Service):
 
     def get_event_retention(self, organization):
         return _limit_from_settings(options.get("system.event-retention-days"))
+
+    def get_quotas(self, project, key=None):
+        return []

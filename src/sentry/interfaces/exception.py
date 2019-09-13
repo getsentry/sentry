@@ -7,7 +7,8 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils.safe import get_path
 
