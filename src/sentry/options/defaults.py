@@ -167,6 +167,9 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("store.normalize-after-processing", default=0.0)  # unused
 register("store.disable-trim-in-renormalization", default=0.0)  # unused
 
+# Percent ingested events with duplicate checking from nodestore instead of events table
+register("store.nodestore-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+
 # Post Process Error Hook Sampling
 register("post-process.use-error-hook-sampling", default=False)  # unused
 # From 0.0 to 1.0: Randomly enqueue process_resource_change task

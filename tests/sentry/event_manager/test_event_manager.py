@@ -43,7 +43,7 @@ from sentry.relay.config import get_project_config
 
 def make_event(**kwargs):
     result = {
-        "event_id": "a" * 32,
+        "event_id": uuid.uuid1().hex,
         "message": "foo",
         "level": logging.ERROR,
         "logger": "default",
@@ -1162,6 +1162,27 @@ class EventManagerTest(TestCase):
             ]
             == 1
         )
+
+    def test_nodestore_sampling(self):
+        with self.options({"store.nodestore-sample-rate": 1.0}):
+            manager = EventManager(make_event(event_id="a" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 1
+
+            manager = EventManager(make_event(event_id="b" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 2
+
+            # Duplicate event
+            manager = EventManager(make_event(event_id="a" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 2
 
 
 class ReleaseIssueTest(TestCase):
