@@ -53,7 +53,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     >
       <Wrapper>
         <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
+          className="css-1r5ylk7-Wrapper e1uay4fd2"
         >
           <Flex
             align="center"
@@ -92,7 +92,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   }
                 >
                   <Base
-                    className="css-zs9eah-Title e1kblvez0"
+                    className="css-zs9eah-Title e1uay4fd0"
                     tabs={
                       <NavTabs
                         underlined={true}
@@ -117,7 +117,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                     }
                   >
                     <div
-                      className="css-zs9eah-Title e1kblvez0"
+                      className="css-zs9eah-Title e1uay4fd0"
                       is={null}
                       tabs={
                         <NavTabs
@@ -455,7 +455,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     >
       <Wrapper>
         <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
+          className="css-1r5ylk7-Wrapper e1uay4fd2"
         >
           <Flex
             align="center"
@@ -494,7 +494,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   }
                 >
                   <Base
-                    className="css-zs9eah-Title e1kblvez0"
+                    className="css-zs9eah-Title e1uay4fd0"
                     tabs={
                       <NavTabs
                         underlined={true}
@@ -519,7 +519,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                     }
                   >
                     <div
-                      className="css-zs9eah-Title e1kblvez0"
+                      className="css-zs9eah-Title e1uay4fd0"
                       is={null}
                       tabs={
                         <NavTabs
@@ -857,7 +857,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     >
       <Wrapper>
         <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
+          className="css-1r5ylk7-Wrapper e1uay4fd2"
         >
           <Flex
             align="center"
@@ -896,7 +896,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   }
                 >
                   <Base
-                    className="css-zs9eah-Title e1kblvez0"
+                    className="css-zs9eah-Title e1uay4fd0"
                     tabs={
                       <NavTabs
                         underlined={true}
@@ -921,7 +921,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                     }
                   >
                     <div
-                      className="css-zs9eah-Title e1kblvez0"
+                      className="css-zs9eah-Title e1uay4fd0"
                       is={null}
                       tabs={
                         <NavTabs
