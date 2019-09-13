@@ -123,15 +123,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
       </Wrapper>
     </SettingsPageHeading>
     <TextBlock>
-      <Component
-        className="css-1geyb25-TextBlock ec8ep340"
+      <div
+        className="css-1geyb25-TextBlock e1x1lar10"
       >
-        <div
-          className="css-1geyb25-TextBlock ec8ep340"
-        >
-          Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
-        </div>
-      </Component>
+        Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+      </div>
     </TextBlock>
     <div>
       <div
@@ -282,20 +278,15 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               <TextBlock
                                 noMargin={true}
                               >
-                                <Component
-                                  className="css-h0npum-TextBlock ec8ep340"
-                                  noMargin={true}
+                                <div
+                                  className="css-h0npum-TextBlock e1x1lar10"
                                 >
                                   <div
-                                    className="css-h0npum-TextBlock ec8ep340"
+                                    className="help-block"
                                   >
-                                    <div
-                                      className="help-block"
-                                    >
-                                      a normal member
-                                    </div>
+                                    a normal member
                                   </div>
-                                </Component>
+                                </div>
                               </TextBlock>
                             </div>
                           </label>
@@ -350,20 +341,15 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               <TextBlock
                                 noMargin={true}
                               >
-                                <Component
-                                  className="css-h0npum-TextBlock ec8ep340"
-                                  noMargin={true}
+                                <div
+                                  className="css-h0npum-TextBlock e1x1lar10"
                                 >
                                   <div
-                                    className="css-h0npum-TextBlock ec8ep340"
+                                    className="help-block"
                                   >
-                                    <div
-                                      className="help-block"
-                                    >
-                                      another role
-                                    </div>
+                                    another role
                                   </div>
-                                </Component>
+                                </div>
                               </TextBlock>
                             </div>
                           </label>
@@ -715,16 +701,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                           <Description
                             noMargin={true}
                           >
-                            <Component
+                            <div
                               className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              noMargin={true}
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              >
-                                No Teams assigned
-                              </div>
-                            </Component>
+                              No Teams assigned
+                            </div>
                           </Description>
                         </div>
                       </Component>
