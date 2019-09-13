@@ -12,13 +12,13 @@ type Props = {
   headerClass: string;
 };
 
-class LastCommit extends React.Component<Props, {}> {
+class LastCommit extends React.Component<Props> {
   static propTypes = {
     commit: PropTypes.object.isRequired,
     headerClass: PropTypes.string,
   };
 
-  renderMessage = message => {
+  renderMessage(message: string): string {
     if (!message) {
       return t('No message provided');
     }
@@ -35,7 +35,7 @@ class LastCommit extends React.Component<Props, {}> {
       return truncated + '...';
     }
     return firstLine;
-  };
+  }
 
   render() {
     const {commit, headerClass} = this.props;
