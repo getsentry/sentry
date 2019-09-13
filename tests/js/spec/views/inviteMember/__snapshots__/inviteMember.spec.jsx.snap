@@ -253,7 +253,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                       >
                         <Label>
                           <label
-                            className="css-r8kahz-Label e1y9x5r70"
+                            className="css-1oswpsn-Label e1noblkb0"
                           >
                             <Radio
                               checked={false}
@@ -330,7 +330,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                       >
                         <Label>
                           <label
-                            className="css-r8kahz-Label e1y9x5r70"
+                            className="css-1oswpsn-Label e1noblkb0"
                           >
                             <Radio
                               checked={false}

@@ -8,14 +8,28 @@ import Radio from 'app/components/radio';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
-  ${p => (p.disabled ? 'cursor: default' : '')};
   display: flex;
   flex: 1;
   align-items: center;
   margin-bottom: 0;
 `;
 
-class RoleSelect extends React.Component {
+type Role = {
+  id: string;
+  name: string;
+  desc: string;
+  allowed: boolean;
+};
+
+type Props = {
+  enforceAllowed: boolean;
+  disabled: boolean;
+  selectedRole: string;
+  roleList: Role[];
+  setRole: (id: string) => void;
+};
+
+class RoleSelect extends React.Component<Props> {
   static propTypes = {
     /**
      * Whether to disable or not using `allowed` prop from API request
@@ -35,7 +49,7 @@ class RoleSelect extends React.Component {
         <PanelHeader>{t('Role')}</PanelHeader>
 
         <PanelBody>
-          {roleList.map((role, i) => {
+          {roleList.map(role => {
             const {desc, name, id, allowed} = role;
             const isDisabled = disabled || (enforceAllowed && !allowed);
             return (
