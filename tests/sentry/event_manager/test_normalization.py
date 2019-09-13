@@ -50,7 +50,10 @@ def test_interface_is_relabeled():
 
 @pytest.mark.parametrize("user", ["missing", None, {}, {"ip_address": None}])
 def test_does_default_ip_address_to_user(user):
-    event = {"request": {"url": "http://example.com", "env": {"REMOTE_ADDR": "127.0.0.1"}}}
+    event = {
+        "request": {"url": "http://example.com", "env": {"REMOTE_ADDR": "127.0.0.1"}},
+        "platform": "javascript",
+    }
     if user != "missing":
         event["user"] = user
 
