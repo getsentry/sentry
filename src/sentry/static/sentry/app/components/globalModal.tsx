@@ -8,8 +8,24 @@ import createReactClass from 'create-react-class';
 import {closeModal} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
+import {ModalOptions} from 'app/actions/modalActions';
 
-class GlobalModal extends React.Component {
+type RenderProps = {
+  closeModal: () => void;
+  Header: React.ReactNode;
+  Body: React.ReactNode;
+  Footer: React.ReactNode;
+};
+
+type Props = {
+  children?: (renderProps: RenderProps) => React.ReactNode;
+  // children?: any;
+  options: ModalOptions;
+  visible: boolean;
+  onClose?: () => void;
+};
+
+class GlobalModal extends React.Component<Props> {
   static propTypes = {
     /**
      * Needs to be a function that returns a React Element

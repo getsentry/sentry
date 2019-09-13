@@ -1,12 +1,15 @@
 import React from 'react';
 import {css} from 'react-emotion';
 
-import ModalActions from 'app/actions/modalActions';
+import ModalActions, {ModalOptions} from 'app/actions/modalActions';
 
 /**
  * Show a modal
  */
-export function openModal(renderer, options) {
+export function openModal(
+  renderer: (mod: any) => React.ReactNode,
+  options?: ModalOptions
+) {
   ModalActions.openModal(renderer, options);
 }
 
@@ -17,7 +20,15 @@ export function closeModal() {
   ModalActions.closeModal();
 }
 
-export function openSudo({onClose, ...args} = {}) {
+export function openSudo({
+  onClose,
+  ...args
+}: {
+  onClose?: () => void;
+  superuser?: boolean;
+  sudo?: boolean;
+  retryRequest?: () => Promise<any>;
+} = {}) {
   import(/* webpackChunkName: "SudoModal" */ 'app/components/modals/sudoModal')
     .then(mod => mod.default)
     .then(SudoModal =>
@@ -28,7 +39,7 @@ export function openSudo({onClose, ...args} = {}) {
     );
 }
 
-export function openDiffModal(options) {
+export function openDiffModal(options: ModalOptions) {
   import(/* webpackChunkName: "DiffModal" */ 'app/components/modals/diffModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -64,7 +75,7 @@ export function openDiffModal(options) {
  * @param Object options
  * @param Object options.organization The organization to create a team for
  */
-export function openCreateIncidentModal(options = {}) {
+export function openCreateIncidentModal(options: ModalOptions = {}) {
   import(/* webpackChunkName: "CreateIncidentModal" */ 'app/components/modals/createIncidentModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -80,7 +91,7 @@ export function openCreateIncidentModal(options = {}) {
  * @param Object options.project (optional) An initial project to add the team to. This may be deprecated soon as
  * we may add a project selection inside of the modal flow
  */
-export function openCreateTeamModal(options = {}) {
+export function openCreateTeamModal(options: ModalOptions = {}) {
   import(/* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -94,7 +105,7 @@ export function openCreateTeamModal(options = {}) {
  * @param Object options.organization The organization to create a rules for
  * @param Object options.project The project to create a rules for
  */
-export function openCreateOwnershipRule(options = {}) {
+export function openCreateOwnershipRule(options: ModalOptions = {}) {
   import(/* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -104,7 +115,7 @@ export function openCreateOwnershipRule(options = {}) {
     });
 }
 
-export function openCommandPalette(options = {}) {
+export function openCommandPalette(options: ModalOptions = {}) {
   import(/* webpackChunkName: "CommandPalette" */ 'app/components/modals/commandPalette')
     .then(mod => mod.default)
     .then(Modal => {
@@ -114,7 +125,7 @@ export function openCommandPalette(options = {}) {
     });
 }
 
-export function openRecoveryOptions(options = {}) {
+export function openRecoveryOptions(options: ModalOptions = {}) {
   import(/* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -128,7 +139,7 @@ export function openRecoveryOptions(options = {}) {
  * @param Object options.provider The integration provider to show the details for
  * @param Function options.onAddIntegration Called after a new integration is added
  */
-export function openIntegrationDetails(options = {}) {
+export function openIntegrationDetails(options: ModalOptions = {}) {
   import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -136,7 +147,7 @@ export function openIntegrationDetails(options = {}) {
     });
 }
 
-export function redirectToProject(newProjectSlug) {
+export function redirectToProject(newProjectSlug: string) {
   import(/* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject')
     .then(mod => mod.default)
     .then(Modal => {
@@ -154,7 +165,7 @@ export function openHelpSearchModal() {
     });
 }
 
-export function openSentryAppDetailsModal(options = {}) {
+export function openSentryAppDetailsModal(options: ModalOptions = {}) {
   import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -162,7 +173,7 @@ export function openSentryAppDetailsModal(options = {}) {
     });
 }
 
-export function openDebugFileSourceModal(options = {}) {
+export function openDebugFileSourceModal(options: ModalOptions = {}) {
   import(/* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal')
     .then(mod => mod.default)
     .then(Modal => {

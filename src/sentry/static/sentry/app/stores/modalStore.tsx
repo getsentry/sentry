@@ -1,6 +1,13 @@
 import Reflux from 'reflux';
 
-import ModalActions from 'app/actions/modalActions';
+import ModalActions, {ModalOptions} from 'app/actions/modalActions';
+
+type Renderer = (mod: any) => React.ReactNode;
+
+type ModalStoreState = {
+  renderer: Renderer | null;
+  options: ModalOptions;
+};
 
 const ModalStore = Reflux.createStore({
   init() {
@@ -13,7 +20,7 @@ const ModalStore = Reflux.createStore({
     this.state = {
       renderer: null,
       options: {},
-    };
+    } as ModalStoreState;
   },
 
   onCloseModal() {
@@ -21,7 +28,7 @@ const ModalStore = Reflux.createStore({
     this.trigger(this.state);
   },
 
-  onOpenModal(renderer, options) {
+  onOpenModal(renderer: Renderer, options: ModalOptions) {
     this.state = {renderer, options};
     this.trigger(this.state);
   },
