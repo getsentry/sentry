@@ -2,12 +2,13 @@ import React from 'react';
 import {css} from 'react-emotion';
 
 import ModalActions, {ModalOptions} from 'app/actions/modalActions';
+import {RenderProps} from 'app/components/globalModal';
 
 /**
  * Show a modal
  */
 export function openModal(
-  renderer: (mod: any) => React.ReactNode,
+  renderer: (renderProps: RenderProps) => React.ReactNode,
   options?: ModalOptions
 ) {
   ModalActions.openModal(renderer, options);

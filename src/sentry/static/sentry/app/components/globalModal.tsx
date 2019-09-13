@@ -4,22 +4,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import {closeModal} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 import {ModalOptions} from 'app/actions/modalActions';
 
-type RenderProps = {
+export type RenderProps = {
   closeModal: () => void;
-  Header: React.ReactNode;
-  Body: React.ReactNode;
-  Footer: React.ReactNode;
+  Header: typeof ModalHeader;
+  Body: typeof ModalBody;
+  Footer: typeof ModalFooter;
 };
 
 type Props = {
   children?: (renderProps: RenderProps) => React.ReactNode;
-  // children?: any;
   options: ModalOptions;
   visible: boolean;
   onClose?: () => void;

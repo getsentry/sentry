@@ -1,8 +1,9 @@
 import Reflux from 'reflux';
 
 import ModalActions, {ModalOptions} from 'app/actions/modalActions';
+import {RenderProps} from 'app/components/globalModal';
 
-type Renderer = (mod: any) => React.ReactNode;
+type Renderer = (renderProps: RenderProps) => React.ReactNode;
 
 type ModalStoreState = {
   renderer: Renderer | null;
