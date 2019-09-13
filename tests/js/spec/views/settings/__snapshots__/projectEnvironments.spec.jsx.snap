@@ -384,16 +384,11 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                     <Description
                       noMargin={true}
                     >
-                      <Component
+                      <div
                         className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                        noMargin={true}
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                        >
-                          You don't have any environments yet.
-                        </div>
-                      </Component>
+                        You don't have any environments yet.
+                      </div>
                     </Description>
                   </div>
                 </Component>
@@ -791,16 +786,11 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                     <Description
                       noMargin={true}
                     >
-                      <Component
+                      <div
                         className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                        noMargin={true}
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                        >
-                          You don't have any hidden environments.
-                        </div>
-                      </Component>
+                        You don't have any hidden environments.
+                      </div>
                     </Description>
                   </div>
                 </Component>

@@ -200,48 +200,44 @@ exports[`OrganizationApiKeysList renders 1`] = `
       </Wrapper>
     </SettingsPageHeading>
     <TextBlock>
-      <Component
-        className="css-1geyb25-TextBlock ec8ep340"
+      <div
+        className="css-1geyb25-TextBlock e1x1lar10"
       >
-        <div
-          className="css-1geyb25-TextBlock ec8ep340"
+        <span
+          key="5"
         >
           <span
-            key="5"
+            key="0"
           >
-            <span
-              key="0"
-            >
-              API keys grant access to the 
-            </span>
-            <ForwardRef
+            API keys grant access to the 
+          </span>
+          <ForwardRef
+            href="https://docs.sentry.io/hosted/api/"
+            key="2"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <a
               href="https://docs.sentry.io/hosted/api/"
-              key="2"
               rel="noreferrer noopener"
               target="_blank"
             >
-              <a
-                href="https://docs.sentry.io/hosted/api/"
-                rel="noreferrer noopener"
-                target="_blank"
+              <span
+                key="1"
               >
-                <span
-                  key="1"
-                >
-                  developer web API
-                </span>
-              </a>
-            </ForwardRef>
-            <span
-              key="3"
-            >
-              .
+                developer web API
+              </span>
+            </a>
+          </ForwardRef>
+          <span
+            key="3"
+          >
+            .
           If you're looking to configure a Sentry client, you'll need a
           client key which is available in your project settings.
-            </span>
           </span>
-        </div>
-      </Component>
+        </span>
+      </div>
     </TextBlock>
     <div
       className="alert alert-block alert-info"

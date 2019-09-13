@@ -45,15 +45,11 @@ exports[`ConfirmDelete renders 1`] = `
                 type="error"
               >
                 <StyledTextBlock>
-                  <Component
+                  <div
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      Are you sure?
-                    </div>
-                  </Component>
+                    Are you sure?
+                  </div>
                 </StyledTextBlock>
               </div>
             </AlertWrapper>
