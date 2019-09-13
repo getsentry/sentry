@@ -127,9 +127,14 @@ const GroupDetails = createReactClass({
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
-          const location_with_project = {...browserHistory.getCurrentLocation()};
-          Object.assign(location_with_project.query, {project: project.id});
-          browserHistory.replace(location_with_project);
+          const location_with_project = { ...browserHistory.getCurrentLocation() };
+          console.log(location_with_project)
+          console.log(location_with_project.query)
+          console.log(location_with_project.project)
+          if (!location_with_project.query.project) {
+            Object.assign(location_with_project.query, {project: project.id});
+            browserHistory.replace(location_with_project);
+          }
         }
 
         this.setState({

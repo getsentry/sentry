@@ -9,6 +9,7 @@ import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -51,7 +52,10 @@ class EventOrGroupHeader extends React.Component {
           this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
         }`,
       };
-      Wrapper = Link;
+      if (!this.props.location.search.includes("project=")) {
+        props.to.search += "&project=all";
+      }
+      Wrapper = GlobalSelectionLink;
     } else {
       Wrapper = 'span';
     }
