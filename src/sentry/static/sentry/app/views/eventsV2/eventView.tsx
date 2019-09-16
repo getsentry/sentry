@@ -1,5 +1,5 @@
 import {Location, Query} from 'history';
-import {isString, cloneDeep, pick, get, isPlainObject} from 'lodash';
+import {isString, cloneDeep, pick, get} from 'lodash';
 
 import {EventViewv1} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
@@ -34,26 +34,26 @@ type Field = {
   // width: number;
 };
 
-const isField = (input: any): input is Field => {
-  if (!isPlainObject(input)) {
-    return false;
-  }
+const decodeFields = (fields: string[], aliases: string[]): Field[] => {
+  // invariant: fields and aliases should have equal array lengths
 
-  return isString(input.field) && isString(input.title);
+  const parsed: Field[] = [];
+  fields.forEach((field, index) => {
+    let title = field;
+    if (aliases[index]) {
+      title = aliases[index];
+    }
+    parsed.push({field, title});
+  });
+
+  return parsed;
 };
 
 type DiscoverState = {
-  fields: Field[];
+  fields: string[];
+  aliases: string[];
   sorts: string[];
   tags: string[];
-};
-
-const parseFields = (maybe: any): Field[] => {
-  if (!Array.isArray(maybe)) {
-    return [];
-  }
-
-  return maybe.filter(isField);
 };
 
 const parseStringArray = (maybe: any): string[] => {
@@ -70,13 +70,15 @@ const intoDiscoverState = (location: Location): DiscoverState => {
     const result = JSON.parse(decompressString(maybeState));
 
     return {
-      fields: parseFields(get(result, 'fields', [])),
+      fields: parseStringArray(get(result, 'fields', [])),
+      aliases: parseStringArray(get(result, 'aliases', [])),
       sorts: parseStringArray(get(result, 'sorts', [])),
       tags: parseStringArray(get(result, 'tags', [])),
     };
   } catch (_err) {
     return {
       fields: [],
+      aliases: [],
       sorts: [],
       tags: [],
     };
@@ -203,7 +205,7 @@ class EventView {
 
     return new EventView({
       name: decodeScalar(location.query.name),
-      fields: discoverState.fields,
+      fields: decodeFields(discoverState.fields, discoverState.aliases),
       sorts: fromSorts(discoverState.sorts),
       tags: discoverState.tags,
       query: decodeScalar(location.query.query),
@@ -255,7 +257,8 @@ class EventView {
 
   generateQueryStringObject(): Query {
     const state: DiscoverState = {
-      fields: this.fields,
+      fields: this.fields.map(item => item.field),
+      aliases: this.fields.map(item => item.title),
       sorts: encodeSorts(this.sorts),
       tags: this.tags,
     };
