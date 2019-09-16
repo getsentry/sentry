@@ -29,3 +29,30 @@ describe('addQueryParamsToExistingUrl', function() {
     expect(utils.addQueryParamsToExistingUrl(url, newParams)).toBe('');
   });
 });
+
+describe('appendTagCondition', function() {
+  it('adds simple values', function() {
+    const result = utils.appendTagCondition('error+text', 'color', 'red');
+    expect(result).toEqual('error+text color:red');
+  });
+
+  it('handles array current value', function() {
+    const result = utils.appendTagCondition(['', 'thing'], 'color', 'red');
+    expect(result).toEqual('thing color:red');
+  });
+
+  it('handles empty string current value', function() {
+    const result = utils.appendTagCondition('', 'color', 'red');
+    expect(result).toEqual('color:red');
+  });
+
+  it('handles null current value', function() {
+    const result = utils.appendTagCondition(null, 'color', 'red');
+    expect(result).toEqual('color:red');
+  });
+
+  it('wraps values with spaces', function() {
+    const result = utils.appendTagCondition(null, 'color', 'purple red');
+    expect(result).toEqual('color:"purple red"');
+  });
+});

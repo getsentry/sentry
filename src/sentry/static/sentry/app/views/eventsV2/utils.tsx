@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {appendTagCondition} from 'app/utils/queryString';
 import {
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
@@ -53,12 +54,8 @@ export function getEventTagSearchUrl(
   location: Location
 ) {
   const query = {...location.query};
-  // Add tag key/value to search
-  if (query.query) {
-    query.query += ` ${tagKey}:"${tagValue}"`;
-  } else {
-    query.query = `${tagKey}:"${tagValue}"`;
-  }
+  query.query = appendTagCondition(query.query, tagKey, tagValue);
+
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
 

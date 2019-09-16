@@ -19,15 +19,15 @@ describe('eventTagSearchUrl()', function() {
   it('adds a query', function() {
     expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
       pathname: location.pathname,
-      query: {query: 'browser:"firefox"'},
+      query: {query: 'browser:firefox'},
     });
   });
 
   it('removes eventSlug', function() {
     location.query.eventSlug = 'project-slug:deadbeef';
-    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
+    expect(getEventTagSearchUrl('browser', 'firefox 69', location)).toEqual({
       pathname: location.pathname,
-      query: {query: 'browser:"firefox"'},
+      query: {query: 'browser:"firefox 69"'},
     });
   });
 
@@ -35,7 +35,7 @@ describe('eventTagSearchUrl()', function() {
     location.query.query = 'failure';
     expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
       pathname: location.pathname,
-      query: {query: 'failure browser:"firefox"'},
+      query: {query: 'failure browser:firefox'},
     });
   });
 });
