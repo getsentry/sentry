@@ -1,20 +1,20 @@
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
+import {Client, APIRequestMethod} from 'app/api';
 import IndicatorStore from 'app/stores/indicatorStore';
 import Form from 'app/components/forms/form';
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
-// type Props = Form['props'] & {
-//   onSubmit?: (data: object) => void;
-// };
-
-type Props = {
+type Props = Form['props'] & {
   onSubmit?: (data: object) => void;
+  apiEndpoint: string;
+  apiMethod: APIRequestMethod;
+  submitLoadingMessage?: string;
+  submitErrorMessage?: string;
 };
 
-export default class ApiForm extends Form<Props, Form['state']> {
+export default class ApiForm extends Form<Props> {
   api = new Client();
 
   static propTypes = {

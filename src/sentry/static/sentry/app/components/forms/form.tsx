@@ -25,6 +25,7 @@ type FormProps = {
   footerClass?: string;
   submitDisabled?: boolean;
   submitLabel?: string;
+  extraButton?: React.ReactNode;
 };
 
 type FormState = {
@@ -141,7 +142,7 @@ class Form<
     this.props.onSubmitError && this.props.onSubmitError(error);
   };
 
-  onFieldChange = (name, value) => {
+  onFieldChange = (name: string, value: string | number) => {
     this.setState(state => ({
       data: {
         ...state.data,
