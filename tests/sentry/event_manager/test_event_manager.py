@@ -709,6 +709,25 @@ class EventManagerTest(TestCase):
         assert euser.name == "jane"
         assert euser.ident == "1"
 
+    def test_event_user_invalid_ip(self):
+        manager = EventManager(
+            make_event(
+                event_id="a", environment="totally unique environment", **{"user": {"id": "1"}}
+            )
+        )
+
+        manager.normalize()
+
+        # This can happen as part of PII stripping, which happens after normalization
+        manager._data["user"]["ip_address"] = "[ip]"
+
+        with self.tasks():
+            manager.save(self.project.id)
+
+        euser = EventUser.objects.get(project_id=self.project.id)
+
+        assert euser.ip_address is None
+
     def test_event_user_unicode_identifier(self):
         manager = EventManager(make_event(**{"user": {"username": u"foô"}}))
         manager.normalize()
