@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {sortBy, property, isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -44,7 +44,6 @@ class GroupTagValues extends React.Component {
 
   fetchData = async () => {
     const {params, query} = this.props;
-
     this.setState({
       loading: true,
       error: false,
@@ -117,7 +116,7 @@ class GroupTagValues extends React.Component {
             <span className="label">{pct}%</span>
           </td>
           <td>
-            <Link
+            <GlobalSelectionLink
               to={{
                 pathname: issuesPath,
                 query: {query},
@@ -133,7 +132,7 @@ class GroupTagValues extends React.Component {
               ) : (
                 <DeviceName>{tagValue.name}</DeviceName>
               )}
-            </Link>
+            </GlobalSelectionLink>
             {tagValue.email && (
               <ExternalLink href={`mailto:${tagValue.email}`} className="external-icon">
                 <em className="icon-envelope" />
