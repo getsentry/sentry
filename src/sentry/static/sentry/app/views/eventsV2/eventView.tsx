@@ -1,5 +1,6 @@
 import {Location, Query} from 'history';
 import {isString, cloneDeep, pick, get} from 'lodash';
+import queryString from 'query-string';
 
 import {EventViewv1} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
@@ -205,10 +206,25 @@ class EventView {
     this.end = props.end;
   }
 
+  generateOldQueryString = (): string => {
+    const parsed: any = queryString.parse(location.search);
+
+    delete parsed.state;
+
+    parsed.field = this.fields.map(item => item.field);
+    parsed.alias = this.fields.map(item => item.title);
+    parsed.sort = encodeSorts(this.sorts);
+    parsed.tag = this.tags;
+
+    return queryString.stringify(parsed);
+  };
+
   static fromLocation(location: Location): EventView {
+    const newLength = location.search.length;
+
     const discoverState = intoDiscoverState(location);
 
-    return new EventView({
+    const event_view = new EventView({
       name: discoverState.name,
       fields: decodeFields(discoverState.fields, discoverState.aliases),
       sorts: fromSorts(discoverState.sorts),
@@ -219,6 +235,20 @@ class EventView {
       end: decodeScalar(location.query.end),
       range: decodeScalar(location.query.range),
     });
+
+    const oldQueryString = event_view.generateOldQueryString();
+
+    const oldLength = oldQueryString.length;
+
+    console.log(
+      'query:',
+      event_view.name,
+      '- savings of',
+      oldLength - newLength,
+      'characters'
+    );
+
+    return event_view;
   }
 
   static fromEventViewv1(eventViewV1: EventViewv1): EventView {
