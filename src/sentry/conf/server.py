@@ -881,7 +881,7 @@ SENTRY_FEATURES = {
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
-    "projects:sample-events": True,
+    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -934,7 +934,7 @@ SENTRY_CELERYBEAT_MONITORS = {
 }
 
 # Only store a portion of all messages per unique group.
-SENTRY_SAMPLE_DATA = True
+SENTRY_SAMPLE_DATA = False
 
 # The following values control the sampling rates
 SENTRY_SAMPLE_RATES = (
