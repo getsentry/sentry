@@ -13,6 +13,20 @@ from sentry.db.models import (
 from sentry.signals import integration_added
 
 
+class PagerDutyServiceProject(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    integration_key = models.CharField(max_length=255)
+    service_id = models.CharField(max_length=255)
+    service_name = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pagerdutyserviceproject"
+
+
 class IntegrationExternalProject(Model):
     __core__ = False
 
