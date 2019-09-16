@@ -6,7 +6,11 @@ import DiscoverSavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
 import getDisplayName from 'app/utils/getDisplayName';
 import {SavedQuery} from 'app/views/discover/types';
 
-type Props = {
+type InjectedDiscoverSavedQueriesProps = {
+  savedQueries: SavedQuery[];
+};
+
+type State = {
   savedQueries: SavedQuery[];
 };
 
@@ -14,10 +18,14 @@ type Props = {
  * Higher order component that uses DiscoverSavedQueryStor and provides the
  * saved queries for the current organization
  */
-const withDiscoverSavedQueries = <P extends Props>(
+const withDiscoverSavedQueries = <P extends InjectedDiscoverSavedQueriesProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  createReactClass({
+  createReactClass<
+    Omit<P, keyof InjectedDiscoverSavedQueriesProps> &
+      Partial<InjectedDiscoverSavedQueriesProps>,
+    State
+  >({
     displayName: `withDiscoverSavedQuery(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.listenTo(DiscoverSavedQueriesStore, 'onUpdate')],
 
@@ -45,10 +53,7 @@ const withDiscoverSavedQueries = <P extends Props>(
 
     render() {
       return (
-        <WrappedComponent
-          savedQueries={this.state.savedQueries as SavedQuery[]}
-          {...this.props as P}
-        />
+        <WrappedComponent savedQueries={this.state.savedQueries} {...this.props as P} />
       );
     },
   });

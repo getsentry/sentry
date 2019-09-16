@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Project, Organization} from 'app/types';
+import {Project, Organization, Config} from 'app/types';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
@@ -10,18 +10,15 @@ import withProject from 'app/utils/withProject';
 
 import ComingSoon from './comingSoon';
 
-type BaseFeatureProps = {
-  organization?: Organization;
-  project?: Project;
+type FeatureProps = {
+  organization: Organization;
+  project: Project;
+  config: Config;
   features: string[];
   requireAll?: boolean;
   renderDisabled?: Function | boolean;
   hookName?: string;
   children: React.ReactNode;
-};
-
-type FeatureProps = BaseFeatureProps & {
-  configFeatures?: string[];
 };
 
 /**
@@ -30,12 +27,11 @@ type FeatureProps = BaseFeatureProps & {
 class Feature extends React.Component<FeatureProps> {
   static propTypes = {
     /**
-     * The following properties will be set by the FeatureContainer component
-     * that typically wraps this component.
+     * The following properties will be set by the HoCs
      */
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-    configFeatures: PropTypes.arrayOf(PropTypes.string),
+    config: SentryTypes.Config.isRequired,
 
     /**
      * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -44,7 +40,7 @@ class Feature extends React.Component<FeatureProps> {
      *
      * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
      */
-    features: PropTypes.arrayOf(PropTypes.string).isRequired,
+    features: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
 
     /**
      * Should the component require all features or just one or more.
@@ -107,9 +103,10 @@ class Feature extends React.Component<FeatureProps> {
     organization: string[];
     project: string[];
   } {
-    const {organization, project, configFeatures} = this.props;
+    const {organization, project, config} = this.props;
+
     return {
-      configFeatures: configFeatures || [],
+      configFeatures: config.features ? Array.from(config.features) : [],
       organization: (organization && organization.features) || [],
       project: (project && project.features) || [],
     };
@@ -193,22 +190,4 @@ class Feature extends React.Component<FeatureProps> {
   }
 }
 
-type FeatureContainerProps = BaseFeatureProps & {
-  config: {[key: string]: string};
-};
-
-class FeatureContainer extends React.Component<FeatureContainerProps> {
-  static propTypes = {
-    config: SentryTypes.Config.isRequired,
-  };
-
-  render() {
-    const features = this.props.config.features
-      ? Array.from(this.props.config.features)
-      : [];
-
-    return <Feature configFeatures={features} {...this.props} />;
-  }
-}
-
-export default withConfig(withOrganization(withProject(FeatureContainer)));
+export default withOrganization(withProject(withConfig(Feature)));
