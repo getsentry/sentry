@@ -6,7 +6,14 @@ import {SavedQuery} from 'app/views/discover/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery, getAggregateAlias, getFirstQueryString} from './utils';
+import {
+  MetaType,
+  EventQuery,
+  getAggregateAlias,
+  getFirstQueryString,
+  compressString,
+  decompressString,
+} from './utils';
 
 type Descending = {
   kind: 'desc';
@@ -60,7 +67,7 @@ const parseStringArray = (maybe: any): string[] => {
 const intoDiscoverState = (location: Location): DiscoverState => {
   try {
     const maybeState: string = getFirstQueryString(location.query, 'state', '{}');
-    const result = JSON.parse(maybeState);
+    const result = JSON.parse(decompressString(maybeState));
 
     return {
       fields: parseFields(get(result, 'fields', [])),
@@ -254,7 +261,7 @@ class EventView {
     };
 
     const output = {
-      state: JSON.stringify(state),
+      state: compressString(JSON.stringify(state)),
       query: this.query,
     };
 

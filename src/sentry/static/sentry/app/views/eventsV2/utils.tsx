@@ -1,5 +1,6 @@
 import {partial, pick} from 'lodash';
 import {Location, Query} from 'history';
+import LZString from 'lz-string';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -204,3 +205,16 @@ export function getFirstQueryString(
 
   return defaultValue;
 }
+
+export const compressString = (string: string): string =>
+  LZString.compressToBase64(string)
+    .replace(/\+/g, '-') // Convert '+' to '-'
+    .replace(/\//g, '_') // Convert '/' to '_'
+    .replace(/=+$/, ''); // Remove ending '='
+
+export const decompressString = (string: string): string =>
+  LZString.decompressFromBase64(
+    string
+      .replace(/-/g, '+') // Convert '-' to '+'
+      .replace(/_/g, '/') // Convert '_' to '/'
+  );
