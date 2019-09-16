@@ -2061,6 +2061,13 @@
   resolved "https://registry.yarnpkg.com/@types/clipboard/-/clipboard-2.0.1.tgz#75a74086c293d75b12bc93ff13bc7797fef05a40"
   integrity sha512-gJJX9Jjdt3bIAePQRRjYWG20dIhAgEqonguyHxXuqALxsoDsDLimihqrSg8fXgVTJ4KZCzkfglKtwsh/8dLfbA==
 
+"@types/create-react-class@^15.6.2":
+  version "15.6.2"
+  resolved "https://registry.yarnpkg.com/@types/create-react-class/-/create-react-class-15.6.2.tgz#0e1b89153be31ded959359c2b827cceaa9d18cf6"
+  integrity sha512-jeDUr85ld9dTUmrb0VEX1P4dGDPZocWXjeW/+jFJpdCqpCcs0Hdrv3awZqjkEsRaB/IEDe+v0ARYgBqNoDORFQ==
+  dependencies:
+    "@types/react" "*"
+
 "@types/echarts@^4.1.10":
   version "4.1.10"
   resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.1.10.tgz#ee71911eb8b1717c7c12c0bd81fc83db872f4d3b"

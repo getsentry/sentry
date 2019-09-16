@@ -202,6 +202,7 @@ export type Plugin = {};
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
+  forceUrlSync?: boolean;
   datetime: {
     start: string;
     end: string;

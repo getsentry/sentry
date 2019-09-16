@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
+import {Organization} from 'app/types';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
@@ -21,6 +22,7 @@ type Props = {
   className?: string;
   incident?: Incident;
   params: Params;
+  organization: Organization;
 };
 
 class RelatedIssues extends React.Component<Props> {

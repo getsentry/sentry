@@ -6,8 +6,22 @@ import getDisplayName from 'app/utils/getDisplayName';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {Organization} from 'app/types';
 
-const withOrganizations = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
-  createReactClass({
+type InjectedOrganizationsProps = {
+  organizationsLoading?: boolean;
+  organizations: Organization[];
+};
+
+type State = {
+  organizations: Organization[];
+};
+
+const withOrganizations = <P extends InjectedOrganizationsProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
+  createReactClass<
+    Omit<P, keyof InjectedOrganizationsProps> & Partial<InjectedOrganizationsProps>,
+    State
+  >({
     displayName: `withOrganizations(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.connect(OrganizationsStore, 'organizations')],
 
