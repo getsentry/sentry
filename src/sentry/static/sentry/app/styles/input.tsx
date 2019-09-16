@@ -1,14 +1,14 @@
 import {css} from 'react-emotion';
 
-const readOnlyStyle = props =>
-  props.readOnly
-    ? css`
-        cursor: default;
-      `
-    : '';
+type Props = {
+  disabled?: boolean;
+  monospace?: boolean;
+  readOnly?: boolean;
+  theme: any;
+};
 
-const inputStyles = props => {
-  return css`
+const inputStyles = (props: Props) =>
+  css`
     color: ${props.disabled ? props.theme.disabled : props.theme.gray5};
     display: block;
     width: 100%;
@@ -22,7 +22,11 @@ const inputStyles = props => {
 
     ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 
-    ${readOnlyStyle(props)};
+    ${props.readOnly
+      ? css`
+          cursor: default;
+        `
+      : ''};
 
     &:focus {
       outline: none;
@@ -53,6 +57,5 @@ const inputStyles = props => {
       box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
     }
   `;
-};
 
 export {inputStyles};
