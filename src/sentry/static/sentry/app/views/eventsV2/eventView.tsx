@@ -1,5 +1,5 @@
 import {Location, Query} from 'history';
-import {isString, pick, get, isPlainObject} from 'lodash';
+import {isString, cloneDeep, pick, get, isPlainObject} from 'lodash';
 
 import {EventViewv1} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
@@ -265,7 +265,7 @@ class EventView {
       }
     }
 
-    return output;
+    return cloneDeep(output);
   }
 
   isValid(): boolean {
@@ -323,7 +323,6 @@ class EventView {
     return queryParts.join(' ');
   }
 
-  // Takes an EventView instance and converts it into the format required for the events API
   getEventsAPIPayload(location: Location): EventQuery {
     const query = location.query || {};
 
@@ -335,7 +334,6 @@ class EventView {
       utc?: string;
       statsPeriod?: string;
       cursor?: string;
-      sort?: string;
     };
 
     const picked = pick<LocationQuery>(query || {}, [
@@ -346,16 +344,16 @@ class EventView {
       'utc',
       'statsPeriod',
       'cursor',
-      'sort',
     ]);
 
     const fieldNames = this.getFieldNames();
 
     const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
+    const encodedSorts = encodeSorts(this.sorts);
 
     const eventQuery: EventQuery = Object.assign(picked, {
       field: [...new Set(fieldNames)],
-      sort: picked.sort ? picked.sort : defaultSort,
+      sort: encodedSorts.length > 0 ? encodedSorts : defaultSort,
       per_page: DEFAULT_PER_PAGE,
       query: this.getQuery(query.query),
     });
