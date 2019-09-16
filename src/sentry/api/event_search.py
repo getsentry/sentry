@@ -803,7 +803,7 @@ def resolve_field_list(fields, snuba_args):
     }
 
 
-def find_reference_event(snuba_args, reference_event_slug):
+def find_reference_event(snuba_args, reference_event_slug, fields):
     try:
         project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
@@ -814,14 +814,17 @@ def find_reference_event(snuba_args, reference_event_slug):
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
-    reference_event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
+    reference_event = eventstore.get_event_by_id(project.id, event_id, fields)
     if not reference_event:
         raise InvalidSearchQuery("Invalid reference event")
 
-    return reference_event
+    return reference_event.snuba_data
 
 
-def get_reference_event_conditions(snuba_args, reference_event):
+TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
+
+
+def get_reference_event_conditions(snuba_args, event_slug):
     """
     Returns a list of additional conditions/filter_keys to
     scope a query by the groupby fields using values from the reference event
@@ -829,23 +832,35 @@ def get_reference_event_conditions(snuba_args, reference_event):
     This is a key part of pagination in the event details modal and
     summary graph navigation.
     """
-    conditions = []
-
-    tags = {}
-    if "tags.key" in reference_event and "tags.value" in reference_event:
-        tags = dict(zip(reference_event["tags.key"], reference_event["tags.value"]))
-
-    # If we were given an project/event to use build additional
-    # conditions using that event and the non-aggregated columns
-    # we received in the querystring. This lets us find the oldest/newest.
-    # This only handles simple fields on the snuba_data dict.
-    for field in snuba_args.get("groupby", []):
-        prop = get_snuba_column_name(field)
-        if prop.startswith("tags["):
-            value = tags.get(field, None)
+    field_names = [get_snuba_column_name(field) for field in snuba_args.get("groupby", [])]
+    # translate the field names into enum columns
+    columns = []
+    has_tags = False
+    for field in field_names:
+        if field.startswith("tags["):
+            has_tags = True
         else:
-            value = reference_event.get(prop, None)
+            columns.append(eventstore.Columns(field))
+
+    if has_tags:
+        columns.extend([eventstore.Columns.TAGS_KEY, eventstore.Columns.TAGS_VALUE])
+
+    # Fetch the reference event ensuring the fields in the groupby
+    # clause are present.
+    event_data = find_reference_event(snuba_args, event_slug, columns)
+
+    conditions = []
+    tags = {}
+    if "tags.key" in event_data and "tags.value" in event_data:
+        tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
+
+    for field in field_names:
+        match = TAG_KEY_RE.match(field)
+        if match:
+            value = tags.get(match.group(1), None)
+        else:
+            value = event_data.get(field, None)
         if value:
-            conditions.append([prop, "=", value])
+            conditions.append([field, "=", value])
 
     return conditions

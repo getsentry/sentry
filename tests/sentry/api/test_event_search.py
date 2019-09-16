@@ -14,6 +14,7 @@ from sentry.api.event_search import (
     event_search_grammar,
     get_snuba_query_args,
     resolve_field_list,
+    get_reference_event_conditions,
     parse_search_query,
     InvalidSearchQuery,
     SearchBoolean,
@@ -22,7 +23,9 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
 )
-from sentry.testutils import TestCase
+from sentry.utils.samples import load_data
+from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -1231,3 +1234,165 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax(project_id, timestamp)", "", "projectid"],
         ]
         assert result["groupby"] == []
+
+
+class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super(GetReferenceEventConditionsTest, self).setUp()
+
+        self.conditions = {"filter_keys": {"project_id": [self.project.id]}}
+
+    def test_bad_slug_format(self):
+        with pytest.raises(InvalidSearchQuery):
+            get_reference_event_conditions(self.conditions, "lol")
+
+    def test_unknown_project(self):
+        event = self.store_event(
+            data={"message": "oh no!", "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        self.conditions["filter_keys"]["project_id"] = [-1]
+        with pytest.raises(InvalidSearchQuery):
+            get_reference_event_conditions(self.conditions, "nope:{}".format(event.event_id))
+
+    def test_unknown_event(self):
+        with pytest.raises(InvalidSearchQuery):
+            slug = "{}:deadbeef".format(self.project.slug)
+            get_reference_event_conditions(self.conditions, slug)
+
+    def test_no_fields(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "transaction": "/issues/{issue_id}",
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = []
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert len(result) == 0
+
+    def test_basic_fields(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "transaction": "/issues/{issue_id}",
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["message", "transaction", "unknown-field"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [
+            ["message", "=", "oh no! /issues/{issue_id}"],
+            ["transaction", "=", "/issues/{issue_id}"],
+        ]
+
+    def test_geo_field(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "transaction": "/issues/{issue_id}",
+                "user": {
+                    "id": 1,
+                    "geo": {"country_code": "US", "region": "CA", "city": "San Francisco"},
+                },
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["geo.city", "geo.region", "geo.country_code"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [
+            ["geo_city", "=", "San Francisco"],
+            ["geo_region", "=", "CA"],
+            ["geo_country_code", "=", "US"],
+        ]
+
+    def test_sdk_field(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "transaction": "/issues/{issue_id}",
+                "sdk": {"name": "sentry-python", "version": "5.0.12"},
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["sdk.version", "sdk.name"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [["sdk_version", "=", "5.0.12"], ["sdk_name", "=", "sentry-python"]]
+
+    def test_error_field(self):
+        data = load_data("php")
+        data["timestamp"] = iso_format(before_now(seconds=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        self.conditions["groupby"] = ["error.value", "error.type", "error.handled"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [
+            ["exception_stacks.value", "=", ["This is a test exception sent from the Raven CLI."]],
+            ["exception_stacks.type", "=", ["Exception"]],
+            ["exception_stacks.mechanism_handled", "=", [None]],
+        ]
+
+    def test_stack_field(self):
+        data = load_data("php")
+        data["timestamp"] = iso_format(before_now(seconds=1))
+        event = self.store_event(data=data, project_id=self.project.id)
+        self.conditions["groupby"] = ["stack.filename", "stack.function"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [
+            [
+                "exception_frames.filename",
+                "=",
+                [
+                    "/Users/example/Development/raven-php/bin/raven",
+                    "/Users/example/Development/raven-php/bin/raven",
+                    "/Users/example/Development/raven-php/bin/raven",
+                    "/Users/example/Development/raven-php/bin/raven",
+                ],
+            ],
+            ["exception_frames.function", "=", ["null", "main", "cmd_test", "raven_cli_test"]],
+        ]
+
+    def test_tag_value(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": {"customer_id": 1, "color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["nope", "color", "customer_id"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [["tags[color]", "=", "red"], ["tags[customer_id]", "=", "1"]]
+
+    def test_context_value(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "contexts": {
+                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
+                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
+                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["gpu.name", "browser.name"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [
+            ["tags[gpu.name]", "=", "nvidia 8600"],
+            ["tags[browser.name]", "=", "Firefox"],
+        ]
