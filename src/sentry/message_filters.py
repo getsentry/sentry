@@ -244,6 +244,9 @@ _EXTENSION_EXC_VALUES = re.compile(
                 "plugin.setSuspendState is not a function",
                 # lastpass
                 "should_do_lastpass_here",
+                # google translate
+                # see https://medium.com/@amir.harel/a-b-target-classname-indexof-is-not-a-function-at-least-not-mine-8e52f7be64ca
+                "a[b].target.className.indexOf is not a function",
             )
         )
     ),
