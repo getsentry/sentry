@@ -14,13 +14,46 @@ import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarni
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
+import {
+  Organization,
+  Integration,
+  Plugin,
+  SentryApp,
+  IntegrationProvider,
+  SentryAppInstallation,
+} from 'app/types';
+import {RequestOptions} from 'app/api';
 
-class OrganizationIntegrations extends AsyncComponent {
+type AppOrProvider = SentryApp | IntegrationProvider;
+
+type Props = {
+  organization: Organization;
+  hideHeader: boolean;
+};
+
+type State = {
+  integrations: Integration[];
+  newlyInstalledIntegrationId: string;
+  plugins: Plugin[];
+  appInstalls: SentryAppInstallation[];
+  orgOwnedApps: SentryApp[];
+  publishedApps: SentryApp[];
+  config: {providers: IntegrationProvider[]};
+};
+
+function isSentryApp(integration: AppOrProvider): integration is SentryApp {
+  return (integration as SentryApp).uuid !== undefined;
+}
+
+class OrganizationIntegrations extends AsyncComponent<
+  Props & AsyncComponent['props'],
+  State & AsyncComponent['state']
+> {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
   shouldReload = true;
@@ -37,7 +70,7 @@ class OrganizationIntegrations extends AsyncComponent {
     });
   }
 
-  getEndpoints() {
+  getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
     return [
@@ -62,27 +95,13 @@ class OrganizationIntegrations extends AsyncComponent {
     return groupBy(this.state.unmigratableRepos, repo => repo.name.split('/')[0]);
   }
 
-  get providers() {
-    // Adds a list of `integrations` (installed Integration records)
-    // for each Provider, as well as an `isInstalled` boolean denoting
-    // when at least one Integration is present.
-    return this.state.config.providers.map(provider => {
-      const integrations = this.state.integrations.filter(
-        i => i.provider.key === provider.key
-      );
-      const isInstalled = integrations.length > 0;
-
-      return {
-        ...provider,
-        integrations,
-        isInstalled,
-      };
-    });
+  get providers(): IntegrationProvider[] {
+    return this.state.config.providers;
   }
 
   // Actions
 
-  onInstall = integration => {
+  onInstall = (integration: Integration) => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.integrations, i => i.id);
@@ -90,7 +109,7 @@ class OrganizationIntegrations extends AsyncComponent {
     // Mark this integration as newlyAdded if it didn't already exist, allowing
     // us to animate the element in.
     if (!keyedItems.hasOwnProperty(integration.id)) {
-      integration.newlyAdded = true;
+      this.setState({newlyInstalledIntegrationId: integration.id});
     }
 
     const integrations = sortArray(
@@ -100,7 +119,7 @@ class OrganizationIntegrations extends AsyncComponent {
     this.setState({integrations});
   };
 
-  onRemove = integration => {
+  onRemove = (integration: Integration) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.integrations];
@@ -108,7 +127,7 @@ class OrganizationIntegrations extends AsyncComponent {
     const integrations = this.state.integrations.filter(i => i.id !== integration.id);
     this.setState({integrations});
 
-    const options = {
+    const options: RequestOptions = {
       method: 'DELETE',
       error: () => {
         this.setState({integrations: origIntegrations});
@@ -119,8 +138,8 @@ class OrganizationIntegrations extends AsyncComponent {
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = integration => {
-    let url;
+  onDisable = (integration: Integration) => {
+    let url: string;
     const [domainName, orgName] = integration.domainName.split('/');
 
     if (integration.accountType === 'User') {
@@ -132,57 +151,7 @@ class OrganizationIntegrations extends AsyncComponent {
     window.open(url, '_blank');
   };
 
-  // Rendering
-
-  renderProvider(provider) {
-    return (
-      <ProviderRow
-        key={`row-${provider.key}`}
-        data-test-id="integration-row"
-        provider={provider}
-        orgId={this.props.params.orgId}
-        integrations={provider.integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        enabledPlugins={this.enabledPlugins}
-      />
-    );
-  }
-
-  renderSentryApps(apps, key) {
-    const {organization} = this.props;
-    const {appInstalls} = this.state;
-
-    return (
-      <SentryAppInstallations
-        key={`sentry-app-row-${key}`}
-        data-test-id="integration-row"
-        api={this.api}
-        organization={organization}
-        installs={appInstalls}
-        applications={apps}
-      />
-    );
-  }
-
-  renderInternalSentryApps(app, key) {
-    const {organization} = this.props;
-
-    return (
-      <SentryApplicationRow
-        key={`sentry-app-row-${key}`}
-        data-test-id="internal-integration-row"
-        api={this.api}
-        onRemoveApp={() => this.onRemoveInternalApp(app)}
-        organization={organization}
-        app={app}
-      />
-    );
-  }
-
-  onRemoveInternalApp = app => {
+  handleRemoveInternalSentryApp = (app: SentryApp): void => {
     const apps = this.state.orgOwnedApps.filter(a => a.slug !== app.slug);
     removeSentryApp(this.api, app).then(
       () => {
@@ -192,50 +161,126 @@ class OrganizationIntegrations extends AsyncComponent {
     );
   };
 
+  handleRemoveAppInstallation = (app: SentryApp): void => {
+    const appInstalls = this.state.appInstalls.filter(i => i.app.slug !== app.slug);
+    this.setState({appInstalls});
+  };
+
+  handleAppInstallation = (install: SentryAppInstallation): void => {
+    this.setState({appInstalls: [install, ...this.state.appInstalls]});
+  };
+
+  getAppInstall = (app: SentryApp) => {
+    return this.state.appInstalls.find(i => i.app.slug === app.slug);
+  };
+
+  //Returns 0 if uninstalled, 1 if pending, and 2 if installed
+  getInstallValue(integration: AppOrProvider) {
+    const {integrations} = this.state;
+    if (isSentryApp(integration)) {
+      const install = this.getAppInstall(integration);
+      if (install) {
+        return install.status === 'pending' ? 1 : 2;
+      }
+      return 0;
+    }
+    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+  }
+
+  sortIntegrations(integrations: AppOrProvider[]) {
+    return integrations
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+  }
+
+  // Rendering
+  renderProvider = (provider: IntegrationProvider) => {
+    //find the integration installations for that provider
+    const integrations = this.state.integrations.filter(
+      i => i.provider.key === provider.key
+    );
+    return (
+      <ProviderRow
+        key={`row-${provider.key}`}
+        data-test-id="integration-row"
+        provider={provider}
+        orgId={this.props.params.orgId}
+        integrations={integrations}
+        onInstall={this.onInstall}
+        onRemove={this.onRemove}
+        onDisable={this.onDisable}
+        onReinstall={this.onInstall}
+        enabledPlugins={this.enabledPlugins}
+        newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
+      />
+    );
+  };
+
+  //render either an internal or non-internal app
+  renderSentryApp = (app: SentryApp) => {
+    const {organization} = this.props;
+
+    if (app.status === 'internal') {
+      return (
+        <SentryApplicationRow
+          key={`sentry-app-row-${app.slug}`}
+          data-test-id="internal-integration-row"
+          onRemoveApp={() => this.handleRemoveInternalSentryApp(app)}
+          organization={organization}
+          app={app}
+        />
+      );
+    }
+
+    return (
+      <SentryAppInstallationDetail
+        key={`sentry-app-row-${app.slug}`}
+        data-test-id="integration-row"
+        api={this.api}
+        organization={organization}
+        install={this.getAppInstall(app)}
+        onAppUninstall={() => this.handleRemoveAppInstallation(app)}
+        onAppInstall={this.handleAppInstallation}
+        app={app}
+      />
+    );
+  };
+
+  renderIntegration = (integration: AppOrProvider) => {
+    if (isSentryApp(integration)) {
+      return this.renderSentryApp(integration);
+    }
+    return this.renderProvider(integration);
+  };
+
   renderBody() {
-    const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;
+    const {reloading, orgOwnedApps, publishedApps} = this.state;
     const published = publishedApps || [];
     // we dont want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps.filter(app => {
       return !published.find(p => p.slug === app.slug);
     });
-    const orgOwnedInternal = orgOwned.filter(app => {
-      return app.status === 'internal';
-    });
-    const applications = published.concat(orgOwned.filter(a => a.status !== 'internal'));
 
-    const installedProviders = this.providers
-      .filter(p => p.isInstalled)
-      .map(p => [p.name, this.renderProvider(p)]);
+    /**
+     * We should have three sections:
+     * 1. Public apps and integrations available to everyone
+     * 2. Unpublished apps available to that org
+     * 3. Internal apps available to that org
+     */
 
-    const uninstalledProviders = this.providers
-      .filter(p => !p.isInstalled)
-      .map(p => [p.name, this.renderProvider(p)]);
+    const publicApps = published.concat(orgOwned.filter(a => a.status === 'published'));
+    const publicIntegrations = this.sortIntegrations(
+      (publicApps as AppOrProvider[]).concat(this.providers)
+    );
 
-    const installedSentryApps = (applications || [])
-      .filter(a => appInstalls.find(i => i.app.slug === a.slug))
-      .map(a => [a.name, this.renderSentryApps([a], a.slug)]);
+    const unpublishedApps = this.sortIntegrations(
+      orgOwned.filter(a => a.status === 'unpublished')
+    );
 
-    const uninstalledSentryApps = (applications || [])
-      .filter(a => !appInstalls.find(i => i.app.slug === a.slug))
-      .map(a => [a.name, this.renderSentryApps([a], a.slug)]);
-
-    const internalSentryApps = (orgOwnedInternal || []).map(a => [
-      this.renderInternalSentryApps(a, a.slug),
-    ]);
-
-    // Combine the list of Providers and Sentry Apps that have installations.
-    const installed = installedProviders
-      .concat(installedSentryApps)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(i => i[1]);
-
-    // Combine the list of Providers and Sentry Apps that have no installations.
-    const uninstalled = uninstalledProviders
-      .concat(uninstalledSentryApps)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(i => i[1]);
+    const orgOwnedInternal = this.sortIntegrations(
+      orgOwned.filter(a => a.status === 'internal')
+    );
 
     return (
       <React.Fragment>
@@ -255,13 +300,22 @@ class OrganizationIntegrations extends AsyncComponent {
             </Box>
             {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>
-            {installed}
-            {uninstalled}
-          </PanelBody>
+          <PanelBody>{publicIntegrations.map(this.renderIntegration)}</PanelBody>
         </Panel>
 
-        {internalSentryApps.length > 0 && (
+        {unpublishedApps.length > 0 && (
+          <Panel>
+            <PanelHeader disablePadding>
+              <Box px={2} flex="1">
+                {t('Unpublished Integrations')}
+              </Box>
+              {reloading && <StyledLoadingIndicator mini />}
+            </PanelHeader>
+            <PanelBody>{unpublishedApps.map(this.renderIntegration)}</PanelBody>
+          </Panel>
+        )}
+
+        {orgOwnedInternal.length > 0 && (
           <Panel>
             <PanelHeader disablePadding>
               <Box px={2} flex="1">
@@ -269,7 +323,7 @@ class OrganizationIntegrations extends AsyncComponent {
               </Box>
               {reloading && <StyledLoadingIndicator mini />}
             </PanelHeader>
-            <PanelBody>{internalSentryApps}</PanelBody>
+            <PanelBody>{orgOwnedInternal.map(this.renderIntegration)}</PanelBody>
           </Panel>
         )}
       </React.Fragment>

@@ -3,6 +3,7 @@ import {css} from 'react-emotion';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
+import {Integration, IntegrationProvider, Organization, SentryApp} from 'app/types';
 
 export type RenderProps = {
   closeModal: () => void;
@@ -15,6 +16,19 @@ export type ModalOptions = {
   onClose?: () => void;
   modalClassName?: string;
   type?: string;
+};
+
+export type IntegrationDetailsModalOptions = {
+  onAddIntegration: (integration: Integration) => void;
+  provider: IntegrationProvider;
+  organization: Organization;
+};
+
+export type SentryAppDetailsModalOptions = {
+  sentryApp: SentryApp;
+  isInstalled: boolean;
+  onInstall: () => void;
+  organization: Organization;
 };
 
 /**
@@ -153,7 +167,7 @@ export function openRecoveryOptions(options: ModalOptions = {}) {
  * @param Object options.provider The integration provider to show the details for
  * @param Function options.onAddIntegration Called after a new integration is added
  */
-export function openIntegrationDetails(options: ModalOptions = {}) {
+export function openIntegrationDetails(options: IntegrationDetailsModalOptions) {
   import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {
@@ -179,7 +193,7 @@ export function openHelpSearchModal() {
     });
 }
 
-export function openSentryAppDetailsModal(options: ModalOptions = {}) {
+export function openSentryAppDetailsModal(options: SentryAppDetailsModalOptions) {
   import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
     .then(mod => mod.default)
     .then(Modal => {

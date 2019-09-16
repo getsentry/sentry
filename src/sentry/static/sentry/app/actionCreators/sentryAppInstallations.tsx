@@ -5,6 +5,8 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import {Client} from 'app/api';
+import {SentryApp, SentryAppInstallation} from 'app/types';
 
 /**
  * Install a sentry application
@@ -13,7 +15,11 @@ import {t} from 'app/locale';
  * @param {String} orgId Organization Slug
  * @param {Object} app SentryApp
  */
-export function installSentryApp(client, orgId, app) {
+export function installSentryApp(
+  client: Client,
+  orgId: string,
+  app: SentryApp
+): Promise<SentryAppInstallation> {
   addLoadingMessage();
   const promise = client.requestPromise(
     `/organizations/${orgId}/sentry-app-installations/`,
@@ -35,7 +41,10 @@ export function installSentryApp(client, orgId, app) {
  * @param {Object} client ApiClient
  * @param {Object} install SentryAppInstallation
  */
-export function uninstallSentryApp(client, install) {
+export function uninstallSentryApp(
+  client: Client,
+  install: SentryAppInstallation
+): Promise<void> {
   addLoadingMessage();
   const promise = client.requestPromise(`/sentry-app-installations/${install.uuid}/`, {
     method: 'DELETE',
