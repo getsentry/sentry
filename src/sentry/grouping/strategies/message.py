@@ -78,6 +78,9 @@ _irrelevant_re = re.compile(
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         )
     ) |
+    (?P<hex>
+        \b0[xX][0-9a-fA-F]+\b
+    ) |
     (?P<float>
         -\d+\.\d+\b |
         \b\d+\.\d+\b
