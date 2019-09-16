@@ -1,5 +1,5 @@
 import {partial, pick} from 'lodash';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -186,10 +186,10 @@ export function getAggregateAlias(field: string): string {
  * @param name      name of the query string field
  */
 export function getFirstQueryString(
-  query: {[key: string]: string | string[] | null | undefined},
+  query: Query,
   name: string,
-  defaultValue?: string
-): string | undefined {
+  defaultValue: string = ''
+): string {
   const needle = query[name];
 
   if (typeof needle === 'string') {

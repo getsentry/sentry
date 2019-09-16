@@ -81,7 +81,7 @@ class EventsV2 extends React.Component<Props> {
     const eventView = EventView.fromLocation(location);
 
     const hasQuery =
-      location.query.field || location.query.eventSlug || location.query.view;
+      location.query.state || location.query.eventSlug || location.query.view;
 
     const documentTitle = this.getEventViewName()
       .reverse()

@@ -1,12 +1,12 @@
 import {Location, Query} from 'history';
-import {isString, cloneDeep, pick} from 'lodash';
+import {isString, pick, get, isPlainObject} from 'lodash';
 
 import {EventViewv1} from 'app/types';
 import {SavedQuery} from 'app/views/discover/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery, getAggregateAlias} from './utils';
+import {MetaType, EventQuery, getAggregateAlias, getFirstQueryString} from './utils';
 
 type Descending = {
   kind: 'desc';
@@ -27,30 +27,53 @@ type Field = {
   // width: number;
 };
 
-const decodeFields = (location: Location): Array<Field> => {
-  const {query} = location;
+const isField = (input: any): input is Field => {
+  if (!isPlainObject(input)) {
+    return false;
+  }
 
-  if (!query || !query.field) {
+  return isString(input.field) && isString(input.title);
+};
+
+type DiscoverState = {
+  fields: Field[];
+  sorts: string[];
+  tags: string[];
+};
+
+const parseFields = (maybe: any): Field[] => {
+  if (!Array.isArray(maybe)) {
     return [];
   }
 
-  const fields: string[] = isString(query.field) ? [query.field] : query.field;
-  const aliases: string[] = Array.isArray(query.alias)
-    ? query.alias
-    : isString(query.alias)
-    ? [query.alias]
-    : [];
+  return maybe.filter(isField);
+};
 
-  const parsed: Field[] = [];
-  fields.forEach((field, i) => {
-    let title = field;
-    if (aliases[i]) {
-      title = aliases[i];
-    }
-    parsed.push({field, title});
-  });
+const parseStringArray = (maybe: any): string[] => {
+  if (!Array.isArray(maybe)) {
+    return [];
+  }
 
-  return parsed;
+  return maybe.filter(isString);
+};
+
+const intoDiscoverState = (location: Location): DiscoverState => {
+  try {
+    const maybeState: string = getFirstQueryString(location.query, 'state', '{}');
+    const result = JSON.parse(maybeState);
+
+    return {
+      fields: parseFields(get(result, 'fields', [])),
+      sorts: parseStringArray(get(result, 'sorts', [])),
+      tags: parseStringArray(get(result, 'tags', [])),
+    };
+  } catch (_err) {
+    return {
+      fields: [],
+      sorts: [],
+      tags: [],
+    };
+  }
 };
 
 const fromSorts = (sorts: Array<string>): Array<Sort> => {
@@ -74,18 +97,6 @@ const fromSorts = (sorts: Array<string>): Array<Sort> => {
   }, []);
 };
 
-const decodeSorts = (location: Location): Array<Sort> => {
-  const {query} = location;
-
-  if (!query || !query.sort) {
-    return [];
-  }
-
-  const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
-
-  return fromSorts(sorts);
-};
-
 const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
@@ -102,43 +113,6 @@ const encodeSort = (sort: Sort): string => {
 
 const encodeSorts = (sorts: Array<Sort>): Array<string> => {
   return sorts.map(encodeSort);
-};
-
-const decodeTags = (location: Location): Array<string> => {
-  const {query} = location;
-
-  if (!query || !query.tag) {
-    return [];
-  }
-
-  const tags: Array<string> = isString(query.tag) ? [query.tag] : query.tag;
-
-  return tags.reduce((acc: Array<string>, tag: string) => {
-    tag = tag.trim();
-
-    if (tag.length > 0) {
-      acc.push(tag);
-    }
-
-    return acc;
-  }, []);
-};
-
-const decodeQuery = (location: Location): string | undefined => {
-  if (!location.query || !location.query.query) {
-    return void 0;
-  }
-
-  const queryParameter = location.query.query;
-
-  const query =
-    Array.isArray(queryParameter) && queryParameter.length > 0
-      ? queryParameter[0]
-      : isString(queryParameter)
-      ? queryParameter
-      : void 0;
-
-  return isString(query) ? query.trim() : undefined;
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -218,12 +192,14 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
+    const discoverState = intoDiscoverState(location);
+
     return new EventView({
       name: decodeScalar(location.query.name),
-      fields: decodeFields(location),
-      sorts: decodeSorts(location),
-      tags: decodeTags(location),
-      query: decodeQuery(location),
+      fields: discoverState.fields,
+      sorts: fromSorts(discoverState.sorts),
+      tags: discoverState.tags,
+      query: decodeScalar(location.query.query),
       project: decodeProjects(location),
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
@@ -271,21 +247,25 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
+    const state: DiscoverState = {
+      fields: this.fields,
+      sorts: encodeSorts(this.sorts),
+      tags: this.tags,
+    };
+
     const output = {
-      field: this.fields.map(item => item.field),
-      alias: this.fields.map(item => item.title),
-      sort: encodeSorts(this.sorts),
-      tag: this.tags,
+      state: JSON.stringify(state),
       query: this.query,
     };
-    const conditionalFields = ['name', 'project', 'start', 'end', 'range'];
+
+    const conditionalFields = ['name', 'project', 'start', 'end', 'range'] as const;
     for (const field of conditionalFields) {
-      if (this[field] && this[field].length) {
+      if (this[field] && this[field]!.length) {
         output[field] = this[field];
       }
     }
 
-    return cloneDeep(output);
+    return output;
   }
 
   isValid(): boolean {
