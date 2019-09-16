@@ -1,6 +1,12 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
 
+export type ObjectStatus =
+  | 'active'
+  | 'disabled'
+  | 'pending_deletion'
+  | 'deletion_in_progress';
+
 export type Organization = {
   id: string;
   slug: string;
@@ -196,8 +202,27 @@ export type Environment = {};
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-// TODO(ts): This type is incomplete
-export type Plugin = {};
+export type Plugin = {
+  id: string;
+  name: string;
+  slug: string;
+  shortName: string;
+  type: string;
+  canDisable: boolean;
+  isTestable: boolean;
+  hasConfiguration: boolean;
+  metadata: any; // TODO(ts)
+  contexts: any[]; // TODO(ts)
+  status: string;
+  assets: any[]; // TODO(ts)
+  doc: string;
+  enabled?: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  isHidden: boolean;
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
+};
 
 export type GlobalSelection = {
   projects: number[];
@@ -335,12 +360,23 @@ export type Repository = {
   url: string;
 };
 
+export type IntegrationProvider = {
+  key: string;
+  name: string;
+  canAdd: boolean;
+  canDisable: boolean;
+  features: string[];
+  aspects: any; //TODO(ts)
+  setupDialog: object; //TODO(ts)
+  metadata: any; //TODO(ts)
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
 
 export type SentryApp = {
-  status: string;
+  status: 'unpublished' | 'published' | 'internal';
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -363,6 +399,30 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+};
+
+export type Integration = {
+  id: string;
+  name: string;
+  icon: string;
+  domainName: string;
+  accountType: string;
+  status: ObjectStatus;
+  provider: IntegrationProvider;
+  configOrganization: Array<any>;
+};
+
+export type SentryAppInstallation = {
+  app: {
+    uuid: string;
+    slug: string;
+  };
+  organization: {
+    slug: string;
+  };
+  uuid: string;
+  status: 'installed' | 'pending';
+  code?: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

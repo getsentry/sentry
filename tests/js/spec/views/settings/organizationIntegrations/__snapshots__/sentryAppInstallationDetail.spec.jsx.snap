@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Sentry App Installations when Apps exist displays all Apps owned by the Org 1`] = `
-<SentryAppInstallations
+exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
+<SentryAppInstallationDetail
   api={
     Client {
       "_chain": [Function],
@@ -11,29 +11,28 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       "hasProjectBeenRenamed": [Function],
     }
   }
-  applications={
-    Array [
-      Object {
-        "author": "Sentry",
-        "clientId": "client-id",
-        "clientSecret": "client-secret",
-        "events": Array [],
-        "isAlertable": false,
-        "name": "Sample App",
-        "overview": "This is an app.",
-        "redirectUrl": "https://example/com/setup",
-        "schema": Object {},
-        "scopes": Array [
-          "project:read",
-        ],
-        "slug": "sample-app",
-        "status": "unpublished",
-        "uuid": "123456123456123456123456",
-        "webhookUrl": "https://example.com/webhook",
-      },
-    ]
+  app={
+    Object {
+      "author": "Sentry",
+      "clientId": "client-id",
+      "clientSecret": "client-secret",
+      "events": Array [],
+      "isAlertable": false,
+      "name": "Sample App",
+      "overview": "This is an app.",
+      "redirectUrl": "https://example/com/setup",
+      "schema": Object {},
+      "scopes": Array [
+        "project:read",
+      ],
+      "slug": "sample-app",
+      "status": "unpublished",
+      "uuid": "123456123456123456123456",
+      "webhookUrl": "https://example.com/webhook",
+    }
   }
-  installs={Array []}
+  onAppInstall={[MockFunction]}
+  onAppUninstall={[MockFunction]}
   organization={
     Object {
       "access": Array [
@@ -84,7 +83,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "webhookUrl": "https://example.com/webhook",
       }
     }
-    key="123456123456123456123456"
     onInstall={[Function]}
     onUninstall={[Function]}
     organization={
@@ -122,21 +120,21 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       p={2}
     >
       <Base
-        className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+        className="css-13p7dw9-PanelItem-SentryAppItem e6pby8e0"
         data-test-id="sample-app"
         p={2}
       >
         <div
-          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+          className="css-13p7dw9-PanelItem-SentryAppItem e6pby8e0"
           data-test-id="sample-app"
           is={null}
         >
           <StyledFlex>
             <Base
-              className="css-14n192s-StyledFlex eac2pqx1"
+              className="css-14n192s-StyledFlex e6pby8e1"
             >
               <div
-                className="css-14n192s-StyledFlex eac2pqx1"
+                className="css-14n192s-StyledFlex e6pby8e1"
                 is={null}
               >
                 <PluginIcon
@@ -150,40 +148,40 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                 </PluginIcon>
                 <SentryAppBox>
                   <Base
-                    className="css-161g25b-SentryAppBox eac2pqx2"
+                    className="css-161g25b-SentryAppBox e6pby8e2"
                   >
                     <div
-                      className="css-161g25b-SentryAppBox eac2pqx2"
+                      className="css-161g25b-SentryAppBox e6pby8e2"
                       is={null}
                     >
                       <SentryAppName
                         hideStatus={false}
                       >
                         <div
-                          className="css-4cu42i-SentryAppName eac2pqx4"
+                          className="css-4cu42i-SentryAppName e6pby8e4"
                         >
                           Sample App
                         </div>
                       </SentryAppName>
                       <SentryAppDetails>
                         <Base
-                          className="css-f0t6d-SentryAppDetails eac2pqx3"
+                          className="css-f0t6d-SentryAppDetails e6pby8e3"
                         >
                           <div
-                            className="css-f0t6d-SentryAppDetails eac2pqx3"
+                            className="css-f0t6d-SentryAppDetails e6pby8e3"
                             is={null}
                           >
-                            <Status
+                            <StatusIndicator
                               isInternal={false}
                               status="Not Installed"
                             >
                               <WithTheme(Component)
-                                className="css-1uxco7x-Status eac2pqx8"
+                                className="css-tr2f8g-StatusIndicator e6pby8e8"
                                 isInternal={false}
                                 status="Not Installed"
                               >
                                 <Component
-                                  className="css-1uxco7x-Status eac2pqx8"
+                                  className="css-tr2f8g-StatusIndicator e6pby8e8"
                                   isInternal={false}
                                   status="Not Installed"
                                   theme={
@@ -459,7 +457,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           />
                                         </CircleIndicator>
                                         <div
-                                          className="css-1uxco7x-Status eac2pqx8"
+                                          className="css-tr2f8g-StatusIndicator e6pby8e8"
                                           theme={
                                             Object {
                                               "alert": Object {
@@ -717,20 +715,22 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                   </Flex>
                                 </Component>
                               </WithTheme(Component)>
-                            </Status>
+                            </StatusIndicator>
                             <StyledLink
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
                               style={Object {}}
+                              to=""
                             >
                               <Link
-                                className="css-u3fgwp-StyledLink eac2pqx5"
+                                className="css-u3fgwp-StyledLink e6pby8e5"
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
                                 style={Object {}}
+                                to=""
                               >
                                 <a
-                                  className="css-u3fgwp-StyledLink eac2pqx5"
+                                  className="css-u3fgwp-StyledLink e6pby8e5"
                                   onClick={[Function]}
                                   style={Object {}}
                                 >
@@ -854,49 +854,5 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       </Base>
     </SentryAppItem>
   </SentryApplicationRow>
-</SentryAppInstallations>
-`;
-
-exports[`Sentry App Installations when no Apps exist no row is displayed 1`] = `
-<SentryAppInstallations
-  api={
-    Client {
-      "_chain": [Function],
-      "_wrapRequest": [Function],
-      "bulkUpdate": [Function],
-      "handleRequestError": [Function],
-      "hasProjectBeenRenamed": [Function],
-    }
-  }
-  applications={Array []}
-  installs={Array []}
-  organization={
-    Object {
-      "access": Array [
-        "org:read",
-        "org:write",
-        "org:admin",
-        "org:integrations",
-        "project:read",
-        "project:write",
-        "project:admin",
-        "team:read",
-        "team:write",
-        "team:admin",
-      ],
-      "features": Array [],
-      "id": "3",
-      "name": "Organization Name",
-      "onboardingTasks": Array [],
-      "projects": Array [],
-      "scrapeJavaScript": true,
-      "slug": "org-slug",
-      "status": Object {
-        "id": "active",
-        "name": "active",
-      },
-      "teams": Array [],
-    }
-  }
-/>
+</SentryAppInstallationDetail>
 `;

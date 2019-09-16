@@ -11,10 +11,21 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
+import {IntegrationProvider, Integration} from 'app/types';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
-export default class InstalledIntegration extends React.Component {
+export type Props = {
+  orgId: string;
+  provider: IntegrationProvider;
+  integration: Integration;
+  onRemove: (integration: Integration) => void;
+  onDisable: (integration: Integration) => void;
+  onReinstallIntegration: (integration: Integration) => void;
+  className?: string;
+};
+
+export default class InstalledIntegration extends React.Component<Props> {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     provider: PropTypes.object.isRequired,
@@ -40,7 +51,7 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
-  reinstallIntegration = integration => {
+  reinstallIntegration = () => {
     const activeIntegration = Object.assign({}, this.props.integration, {
       status: 'active',
     });
