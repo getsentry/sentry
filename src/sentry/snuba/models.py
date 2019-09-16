@@ -5,7 +5,7 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import ArrayField, FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class QueryAggregations(Enum):
@@ -27,7 +27,6 @@ class QuerySubscription(Model):
     query = models.TextField()
     # TODO: Remove this default after we migrate
     aggregation = models.IntegerField(default=0)
-    aggregations = ArrayField(of=models.IntegerField, null=True)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)

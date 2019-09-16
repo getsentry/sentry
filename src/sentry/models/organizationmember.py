@@ -9,6 +9,8 @@ from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes
+from django.utils.translation import ugettext_lazy as _
+from enum import Enum
 from hashlib import md5
 from structlog import get_logger
 from uuid import uuid4
@@ -27,6 +29,12 @@ from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
 
 INVITE_DAYS_VALID = 30
+
+
+class InviteStatus(Enum):
+    APPROVED = 0
+    REQUESTED_TO_BE_INVITED = 1
+    REQUESTED_TO_JOIN = 2
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -88,6 +96,21 @@ class OrganizationMember(Model):
     has_global_access = models.BooleanField(default=True)
     teams = models.ManyToManyField(
         "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
+    )
+    inviter = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_inviter_set"
+    )
+    invite_status = models.PositiveSmallIntegerField(
+        choices=(
+            (InviteStatus.APPROVED.value, _("Approved")),
+            (
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                _("Organization member requested to invite user"),
+            ),
+            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
+        ),
+        default=InviteStatus.APPROVED.value,
+        null=True,
     )
 
     # Deprecated -- no longer used

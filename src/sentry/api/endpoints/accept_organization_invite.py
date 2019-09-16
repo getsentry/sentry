@@ -18,7 +18,7 @@ class AcceptOrganizationInvite(Endpoint):
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
     def get_helper(self, request, member_id, token):
-        return ApiInviteHelper(instance=self, request=request, member_id=member_id, token=token)
+        return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
 
     def get(self, request, member_id, token):
         try:
@@ -55,9 +55,17 @@ class AcceptOrganizationInvite(Endpoint):
 
         # Allow users to register an account when accepting an invite
         if not helper.user_authenticated:
-            url = reverse("sentry-accept-invite", args=[member_id, token])
-            auth.initiate_login(self.request, next_url=url)
             request.session["can_register"] = True
+            add_invite_cookie(request, response, member_id, token)
+
+            # When SSO is required do *not* set a next_url to return to accept
+            # invite. The invite will be accepted after SSO is completed.
+            url = (
+                reverse("sentry-accept-invite", args=[member_id, token])
+                if not auth_provider
+                else "/"
+            )
+            auth.initiate_login(self.request, next_url=url)
 
         # If the org has SSO setup, we'll store the invite cookie to later
         # associate the org member after authentication. We can avoid needing

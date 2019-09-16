@@ -9,6 +9,7 @@ from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
 from sentry.utils.redis import get_cluster_from_options, load_script, redis_clusters
+from sentry.utils.json import prune_empty_keys
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
@@ -108,6 +109,17 @@ class BasicRedisQuota(object):
         """
 
         return self.prefix is not None
+
+    def to_json(self):
+        return prune_empty_keys(
+            {
+                "prefix": self.prefix,
+                "subscope": self.subscope,
+                "limit": self.limit,
+                "window": self.window,
+                "reasonCode": self.reason_code,
+            }
+        )
 
 
 class RedisQuota(Quota):

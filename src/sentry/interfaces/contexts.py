@@ -5,7 +5,8 @@ import string
 
 from django.utils.encoding import force_text
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, trim
 
 __all__ = ("Contexts",)

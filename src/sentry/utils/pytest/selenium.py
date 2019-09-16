@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import sys
 import pytest
 
 from datetime import datetime
@@ -216,15 +217,22 @@ class Browser(object):
         max_age=None,
         secure=None,
     ):
+        domain = domain or self.domain
+        # Recent changes to Chrome no longer allow us to explicitly set a cookie domain
+        # to be localhost. If no domain is specified, the cookie will be created on
+        # the host of the current url that the browser has visited.
+        if domain == "localhost":
+            domain = None
         cookie = {
             "name": name,
             "value": value,
             "expires": expires,
             "path": path,
-            "domain": domain or self.domain,
             "max-age": max_age,
             "secure": secure,
         }
+        if domain:
+            cookie["domain"] = domain
 
         # XXX(dcramer): the cookie store must be initialized via a URL
         if not self._has_initialized_cookie_store:
@@ -306,10 +314,6 @@ def browser(request, percy, live_server):
     headless = not request.config.getoption("no_headless")
     if driver_type == "chrome":
         options = webdriver.ChromeOptions()
-        # TODO: Temporarily adding this to work around chromedriver issues. We should
-        # remove this once a new version of chromedriver is released and we test that
-        # acceptance tests work ok.
-        options.add_experimental_option("w3c", False)
         options.add_argument("no-sandbox")
         options.add_argument("disable-gpu")
         options.add_argument(u"window-size={}".format(window_size))
@@ -336,6 +340,11 @@ def browser(request, percy, live_server):
     driver.set_window_size(window_width, window_height)
 
     def fin():
+        # dump console log to stdout, will be shown when test fails
+        for entry in driver.get_log("browser"):
+            sys.stderr.write("[browser console] ")
+            sys.stderr.write(repr(entry))
+            sys.stderr.write("\n")
         # Teardown Selenium.
         try:
             driver.quit()

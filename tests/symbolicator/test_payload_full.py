@@ -52,6 +52,7 @@ REAL_RESOLVING_EVENT_DATA = {
             }
         ]
     },
+    "timestamp": iso_format(before_now(seconds=1)),
 }
 
 

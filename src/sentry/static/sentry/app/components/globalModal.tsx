@@ -5,11 +5,18 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {closeModal} from 'app/actionCreators/modal';
+import {closeModal, RenderProps, ModalOptions} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
-class GlobalModal extends React.Component {
+type Props = {
+  children?: (renderProps: RenderProps) => React.ReactNode;
+  options: ModalOptions;
+  visible: boolean;
+  onClose?: () => void;
+};
+
+class GlobalModal extends React.Component<Props> {
   static propTypes = {
     /**
      * Needs to be a function that returns a React Element

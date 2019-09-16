@@ -25,12 +25,17 @@ class TestAlertRuleSerializer(TestCase):
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
         base_params.update(params)
-        serializer = AlertRuleSerializer(context={"project": self.project}, data=base_params)
+        serializer = AlertRuleSerializer(
+            context={"organization": self.project.organization, "project": self.project},
+            data=base_params,
+        )
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
     def test_validation_no_params(self):
-        serializer = AlertRuleSerializer(context={"project": self.project}, data={})
+        serializer = AlertRuleSerializer(
+            context={"organization": self.project.organization, "project": self.project}, data={}
+        )
         assert not serializer.is_valid()
         field_is_required = ["This field is required."]
         assert serializer.errors == {
@@ -75,7 +80,10 @@ class TestAlertRuleSerializer(TestCase):
 
     def _run_changed_fields_test(self, alert_rule, params, expected):
         serializer = AlertRuleSerializer(
-            context={"project": self.project}, instance=alert_rule, data=params, partial=True
+            context={"organization": self.project.organization, "project": self.project},
+            instance=alert_rule,
+            data=params,
+            partial=True,
         )
         serializer.is_valid()
         assert (

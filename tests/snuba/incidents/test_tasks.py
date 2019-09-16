@@ -13,7 +13,7 @@ from sentry.incidents.logic import create_alert_rule
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 
 from sentry.testutils import TestCase
@@ -36,22 +36,13 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @fixture
     def subscription(self):
-        subscription = QuerySubscription.objects.create(
-            project=self.project,
-            type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-            subscription_id="some_id",
-            dataset=QueryDatasets.EVENTS.value,
-            query="",
-            aggregation=QueryAggregations.TOTAL.value,
-            time_window=1,
-            resolution=1,
-        )
-        return subscription
+        return self.rule.query_subscriptions.get()
 
     @fixture
     def rule(self):
         rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
@@ -61,7 +52,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             resolve_threshold=10,
             threshold_period=1,
         )
-        rule.update(query_subscription=self.subscription)
         return rule
 
     @fixture
