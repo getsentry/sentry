@@ -337,16 +337,11 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                           <Description
                             noMargin={true}
                           >
-                            <Component
+                            <div
                               className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              noMargin={true}
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              >
-                                No public integrations have been created yet.
-                              </div>
-                            </Component>
+                              No public integrations have been created yet.
+                            </div>
                           </Description>
                         </div>
                       </Component>
@@ -519,16 +514,11 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                           <Description
                             noMargin={true}
                           >
-                            <Component
+                            <div
                               className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              noMargin={true}
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
-                              >
-                                No internal integrations have been created yet.
-                              </div>
-                            </Component>
+                              No internal integrations have been created yet.
+                            </div>
                           </Description>
                         </div>
                       </Component>

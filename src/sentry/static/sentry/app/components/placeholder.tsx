@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 const defaultProps = {
   shape: 'rect' as 'rect' | 'circle',
-  bottomGutter: 0,
+  bottomGutter: 0 as Parameters<typeof space>[0],
   width: '100%',
   height: '60px',
 };
@@ -42,7 +42,7 @@ Placeholder.propTypes = {
   shape: PropTypes.oneOf(['rect', 'circle']),
   width: PropTypes.string,
   height: PropTypes.string,
-  bottomGutter: PropTypes.number,
+  bottomGutter: PropTypes.number as any,
 };
 
 export default Placeholder;
