@@ -821,7 +821,7 @@ SENTRY_FEATURES = {
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
     # Allow organizations to configure custom external symbol sources.
-    "organizations:symbol-sources": False,
+    "organizations:symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
     # Enable events v2 instead of the events stream
