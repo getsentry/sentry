@@ -4,6 +4,8 @@ import re
 import six
 import logging
 
+from sentry.attachments import attachment_cache
+from sentry.coreapi import cache_key_for_event
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
@@ -57,11 +59,6 @@ def is_native_event(data):
     return False
 
 
-def is_minidump_event(data):
-    exceptions = get_path(data, "exception", "values", filter=True)
-    return get_path(exceptions, 0, "mechanism", "type") in ("minidump", "unreal")
-
-
 def image_name(pkg):
     if not pkg:
         return pkg
@@ -105,3 +102,9 @@ def signal_from_data(data):
         return int(signal)
 
     return None
+
+
+def get_event_attachment(data, attachment_type):
+    cache_key = cache_key_for_event(data)
+    attachments = attachment_cache.get(cache_key) or []
+    return next((a for a in attachments if a.type == attachment_type), None)

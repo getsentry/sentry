@@ -1,26 +1,65 @@
 from __future__ import absolute_import
-from symbolic import Unreal4Crash
-from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+
 from sentry.models import UserReport
-from sentry.utils.safe import set_path, setdefault_path
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 
-def process_unreal_crash(payload, user_id, environment, event):
-    """Initial processing of the event from the Unreal Crash Reporter data.
-    Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
+# Attachment type used for Apple Crash Reports
+APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
-    event["environment"] = environment
 
-    if user_id:
-        # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
-        parts = user_id.split("|", 2)
-        login_id, epic_account_id, machine_id = parts + [""] * (3 - len(parts))
-        event["user"] = {"id": login_id if login_id else user_id}
-        if epic_account_id:
-            set_path(event, "tags", "epic_account_id", value=epic_account_id)
-        if machine_id:
-            set_path(event, "tags", "machine_id", value=machine_id)
-    return Unreal4Crash.from_bytes(payload)
+def write_applecrashreport_placeholder(data):
+    """
+    Writes a placeholder to indicate that this event has an apple crash report.
+
+    This will indicate to the ingestion pipeline that this event will need to be
+    processed. The payload can be checked via ``is_applecrashreport_event``.
+    """
+    # Apple crash report events must be native platform for processing.
+    data["platform"] = "native"
+
+    # Assume that this minidump is the result of a crash and assign the fatal
+    # level. Note that the use of `setdefault` here doesn't generally allow the
+    # user to override the minidump's level as processing will overwrite it
+    # later.
+    setdefault_path(data, "level", value="fatal")
+
+    # Create a placeholder exception. This signals normalization that this is an
+    # error event and also serves as a placeholder if processing of the minidump
+    # fails.
+    exception = {
+        "type": "AppleCrashReport",
+        "value": "Invalid Apple Crash Report",
+        "mechanism": {"type": "applecrashreport", "handled": False, "synthetic": True},
+    }
+    data["exception"] = {"values": [exception]}
+
+
+def is_applecrashreport_event(data):
+    """
+    Checks whether an event indicates that it has an apple crash report.
+
+    This requires the event to have a special marker payload. It is written by
+    ``write_applecrashreport_placeholder``.
+    """
+    exceptions = get_path(data, "exception", "values", filter=True)
+    return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
+
+
+def merge_unreal_user(event, user_id):
+    """
+    Merges user information from the unreal "UserId" into the event payload.
+    """
+
+    # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
+    parts = user_id.split("|", 2)
+    login_id, epic_account_id, machine_id = parts + [""] * (3 - len(parts))
+    event["user"] = {"id": login_id if login_id else user_id}
+    if epic_account_id:
+        set_path(event, "tags", "epic_account_id", value=epic_account_id)
+    if machine_id:
+        set_path(event, "tags", "machine_id", value=machine_id)
 
 
 def unreal_attachment_type(unreal_file):
@@ -28,65 +67,8 @@ def unreal_attachment_type(unreal_file):
     unreal file type or None if not recognized"""
     if unreal_file.type == "minidump":
         return MINIDUMP_ATTACHMENT_TYPE
-
-
-def merge_apple_crash_report(apple_crash_report, event):
-    event["platform"] = "native"
-
-    timestamp = apple_crash_report.get("timestamp")
-    if timestamp:
-        event["timestamp"] = timestamp
-
-    event["threads"] = []
-    for thread in apple_crash_report["threads"]:
-        crashed = thread.get("crashed")
-
-        # We don't create an exception because an apple crash report can have
-        # multiple crashed threads.
-        event["threads"].append(
-            {
-                "id": thread.get("id"),
-                "name": thread.get("name"),
-                "crashed": crashed,
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "instruction_addr": frame.get("instruction_addr"),
-                            "package": frame.get("module"),
-                            "lineno": frame.get("lineno"),
-                            "filename": frame.get("filename"),
-                        }
-                        for frame in reversed(thread.get("frames", []))
-                    ],
-                    "registers": thread.get("registers") or None,
-                },
-            }
-        )
-
-        if crashed:
-            event["level"] = "fatal"
-
-    if event.get("level") is None:
-        event["level"] = "info"
-
-    metadata = apple_crash_report.get("metadata")
-    if metadata:
-        set_path(event, "contexts", "os", "raw_description", value=metadata.get("OS Version"))
-        set_path(event, "contexts", "device", "model", value=metadata.get("Hardware Model"))
-
-    # Extract referenced (not all loaded) images
-    images = [
-        {
-            "type": "macho",
-            "code_file": module.get("path"),
-            "debug_id": module.get("uuid"),
-            "image_addr": module.get("addr"),
-            "image_size": module.get("size"),
-            "arch": module.get("arch"),
-        }
-        for module in apple_crash_report.get("binary_images")
-    ]
-    event.setdefault("debug_meta", {})["images"] = images
+    if unreal_file.type == "applecrashreport":
+        return APPLECRASHREPORT_ATTACHMENT_TYPE
 
 
 def merge_unreal_context_event(unreal_context, event, project):

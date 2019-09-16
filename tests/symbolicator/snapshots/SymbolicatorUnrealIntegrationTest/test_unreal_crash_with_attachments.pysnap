@@ -1,5 +1,5 @@
 ---
-created: '2019-06-12T09:11:49.736478Z'
+created: '2019-07-01T16:40:34.140348Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -12,7 +12,6 @@ contexts:
     name: Parallels Display Adapter (WDDM)
     type: gpu
   os:
-    build: ''
     name: Windows 10
     type: os
     version: 10.0.17134

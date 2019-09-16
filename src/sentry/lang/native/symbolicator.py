@@ -162,6 +162,9 @@ class Symbolicator(object):
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump))
 
+    def process_applecrashreport(self, report):
+        return self._process(lambda: self.sess.upload_applecrashreport(report))
+
     def process_payload(self, stacktraces, modules, signal=None):
         return self._process(
             lambda: self.sess.symbolicate_stacktraces(
@@ -367,11 +370,22 @@ class SymbolicatorSession(object):
         return self._request("post", "symbolicate", params=self._query_params, json=json)
 
     def upload_minidump(self, minidump):
-        files = {"upload_file_minidump": minidump}
+        return self._request(
+            method="post",
+            path="minidump",
+            params=self._query_params,
+            data={"sources": json.dumps(self.sources)},
+            files={"upload_file_minidump": minidump},
+        )
 
-        data = {"sources": json.dumps(self.sources)}
-
-        return self._request("post", "minidump", params=self._query_params, data=data, files=files)
+    def upload_applecrashreport(self, report):
+        return self._request(
+            method="post",
+            path="applecrashreport",
+            params=self._query_params,
+            data={"sources": json.dumps(self.sources)},
+            files={"apple_crash_report": report},
+        )
 
     def query_task(self, task_id):
         task_url = "requests/%s" % (task_id,)

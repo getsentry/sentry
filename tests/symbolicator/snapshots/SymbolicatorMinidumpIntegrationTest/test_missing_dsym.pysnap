@@ -8,7 +8,6 @@ contexts:
     arch: x86
     type: device
   os:
-    build: ''
     name: Windows
     type: os
     version: 10.0.14393
