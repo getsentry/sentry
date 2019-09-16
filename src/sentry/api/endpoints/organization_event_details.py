@@ -38,7 +38,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        event = eventstore.get_event_by_id(project.id, event_id, eventstore.full_columns)
+        event = eventstore.get_event_by_id(project.id, event_id)
 
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
@@ -46,9 +46,8 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # Scope the pagination related event ids to the current event
         # This ensure that if a field list/groupby conditions were provided
         # that we constrain related events to the query + current event values
-        snuba_args["conditions"].extend(
-            get_reference_event_conditions(snuba_args, event.snuba_data)
-        )
+        event_slug = u"{}:{}".format(project.slug, event_id)
+        snuba_args["conditions"].extend(get_reference_event_conditions(snuba_args, event_slug))
         next_event = eventstore.get_next_event_id(
             event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
         )
