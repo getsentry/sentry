@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter, Link} from 'react-router';
+import {withRouter} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
@@ -52,9 +52,6 @@ class EventOrGroupHeader extends React.Component {
           this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
         }`,
       };
-      if (!this.props.location.search.includes("project=")) {
-        props.to.search += "&project=all";
-      }
       Wrapper = GlobalSelectionLink;
     } else {
       Wrapper = 'span';
