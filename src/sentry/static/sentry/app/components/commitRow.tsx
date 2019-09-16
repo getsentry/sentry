@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Commit} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Avatar from 'app/components/avatar';
@@ -10,13 +11,18 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
-export default class CommitRow extends React.Component {
+type Props = {
+  commit: Commit;
+  customAvatar?: React.ReactNode;
+};
+
+export default class CommitRow extends React.Component<Props> {
   static propTypes = {
     commit: PropTypes.object,
     customAvatar: PropTypes.node,
   };
 
-  renderMessage = message => {
+  renderMessage(message: string): string {
     if (!message) {
       return t('No message provided');
     }
@@ -24,7 +30,7 @@ export default class CommitRow extends React.Component {
     const firstLine = message.split(/\n/)[0];
 
     return firstLine;
-  };
+  }
 
   render() {
     const {commit, customAvatar} = this.props;
