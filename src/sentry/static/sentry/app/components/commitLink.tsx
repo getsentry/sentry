@@ -21,7 +21,7 @@ type CommitProvider = {
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
-const SUPPORTED_PROVIDERS: Readonly<Array<CommitProvider>> = [
+const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
   {
     icon: 'icon-github',
     providerIds: ['github', 'integrations:github', 'integrations:github_enterprise'],
