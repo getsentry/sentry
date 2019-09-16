@@ -6,7 +6,15 @@ import {Flex, Box} from 'grid-emotion';
 import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
 
-class SettingsPageHeading extends React.Component {
+type Props = {
+  icon?: React.ReactNode;
+  title?: React.ReactNode;
+  action?: React.ReactNode;
+  tabs?: React.ReactNode;
+  noTitleStyles?: boolean;
+};
+
+class SettingsPageHeading extends React.Component<Props> {
   static propTypes = {
     icon: PropTypes.node,
     title: PropTypes.node,
@@ -31,7 +39,7 @@ class SettingsPageHeading extends React.Component {
             </Title>
           )}
           {this.props.action && (
-            <Action tabs={this.props.tabs}>{this.props.action}</Action>
+            <Action tabs={!!this.props.tabs}>{this.props.action}</Action>
           )}
         </Flex>
 
@@ -41,7 +49,10 @@ class SettingsPageHeading extends React.Component {
   }
 }
 
-const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})`
+const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})<{
+  styled: boolean;
+  tabs: boolean;
+}>`
   ${p =>
     !p.styled &&
     `
@@ -51,7 +62,7 @@ const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})`
   flex: 1;
 `;
 
-const Action = styled('div')`
+const Action = styled('div')<{tabs: boolean}>`
   ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
