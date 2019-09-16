@@ -65,19 +65,6 @@ class Columns(Enum):
     CONTEXTS_KEY = "contexts.key"
     CONTEXTS_VALUE = "contexts.value"
 
-    @classmethod
-    def member_for_value(self, value):
-        """
-        Find a member in the enum by value.
-
-        This is useful when translating end user fields into
-        eventstore compatible enums
-        """
-        for member in self:
-            if member.value == value:
-                return member
-        raise ValueError(u"Unknown column member {}".format(value))
-
 
 class EventStorage(Service):
     __all__ = (

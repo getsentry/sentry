@@ -840,7 +840,7 @@ def get_reference_event_conditions(snuba_args, event_slug):
         if field.startswith("tags["):
             has_tags = True
         else:
-            columns.append(eventstore.Columns.member_for_value(field))
+            columns.append(eventstore.Columns(field))
 
     if has_tags:
         columns.extend([eventstore.Columns.TAGS_KEY, eventstore.Columns.TAGS_VALUE])
