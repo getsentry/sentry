@@ -14,7 +14,56 @@ const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
 const DEFAULT_REMOTE_SIZE = 120;
 
-class BaseAvatar extends React.Component {
+type Props = {
+  size?: number;
+  /**
+   * This is the size of the remote image to request.
+   */
+  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  /**
+   * Default gravatar to display
+   */
+  default?: string;
+  /**
+   * Enable to display tooltips.
+   */
+  hasTooltip?: boolean;
+  /**
+   * The type of avatar being rendered.
+   */
+  type?: string;
+  /**
+   * Path to uploaded avatar (differs based on model type)
+   */
+  uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
+  uploadId?: string;
+  gravatarId?: string;
+  letterId?: string;
+  title?: string;
+  /**
+   * The content for the tooltip. Requires hasTooltip to display
+   */
+  tooltip?: Pick<Tooltip['props'], 'title'>;
+  /**
+   * Additional props for the tooltip
+   */
+  tooltipOptions?: Tooltip['props'];
+  /**
+   * Should avatar be round instead of a square
+   */
+  round: boolean;
+
+  className?: string;
+  style: React.CSSProperties;
+};
+
+type State = {
+  showBackupAvatar: boolean;
+  hasLoaded: boolean;
+  loadError: boolean;
+};
+
+class BaseAvatar extends React.Component<Props, State> {
   static propTypes = {
     size: PropTypes.number,
     /**
@@ -67,9 +116,10 @@ class BaseAvatar extends React.Component {
     hasTooltip: false,
     type: 'letter_avatar',
     uploadPath: 'avatar',
+    round: false,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -146,12 +196,12 @@ class BaseAvatar extends React.Component {
   render() {
     const {
       className,
+      style,
       round,
       hasTooltip,
       size,
       tooltip,
       tooltipOptions,
-      style,
     } = this.props;
     let sizeStyle = {};
 
@@ -185,12 +235,12 @@ export default BaseAvatar;
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
-const StyledBaseAvatar = styled('span')`
+const StyledBaseAvatar = styled('span')<{round: boolean; loaded: boolean}>`
   flex-shrink: 0;
   ${p => !p.loaded && 'background-color: rgba(200, 200, 200, 0.1);'};
   ${p => p.round && 'border-radius: 100%;'};
 `;
 
-const Image = styled('img')`
+const Image = styled('img')<Pick<Props, 'round'>>`
   ${imageStyle};
 `;

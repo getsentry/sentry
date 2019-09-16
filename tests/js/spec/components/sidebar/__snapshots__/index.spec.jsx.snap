@@ -271,6 +271,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 className="css-6su6fj"
                 hasTooltip={false}
                 letterId="org-slug"
+                round={false}
                 size={36}
                 style={Object {}}
                 title="org slug"
@@ -287,6 +288,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   <StyledBaseAvatar
                     className="avatar css-6su6fj"
                     loaded={true}
+                    round={false}
                     style={
                       Object {
                         "height": "36px",
@@ -295,7 +297,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     }
                   >
                     <span
-                      className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
+                      className="avatar css-1ezk8y8-StyledBaseAvatar e147uwb0"
                       style={
                         Object {
                           "height": "36px",
@@ -769,7 +771,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -3554,7 +3556,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                           style={
                                             Object {
                                               "height": "32px",
