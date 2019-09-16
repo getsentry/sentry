@@ -1,4 +1,4 @@
-export const imageStyle = props => `
+export const imageStyle = (props: {round?: boolean}) => `
   position: absolute;
   top: 0px;
   left: 0px;
