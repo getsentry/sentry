@@ -144,7 +144,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                     >
                       <HeaderTitle>
                         <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          className="css-1w8ttcn-HeaderTitle eqkydle2"
                         >
                           Manage Environments
                         </h4>
@@ -546,7 +546,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                     >
                       <HeaderTitle>
                         <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          className="css-1w8ttcn-HeaderTitle eqkydle2"
                         >
                           Manage Environments
                         </h4>
@@ -948,7 +948,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                     >
                       <HeaderTitle>
                         <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
+                          className="css-1w8ttcn-HeaderTitle eqkydle2"
                         >
                           Manage Environments
                         </h4>

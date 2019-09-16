@@ -13,7 +13,7 @@ export const growIn = keyframes`
   }
 `;
 
-export const growDown = height => keyframes`
+export const growDown = (height: string) => keyframes`
   0% {
     height: 0;
   }
@@ -40,7 +40,7 @@ export const fadeOut = keyframes`
   }
 `;
 
-export const pulse = size => keyframes`
+export const pulse = (size: number) => keyframes`
   0% {
     transform: scale(1,1);
   }
@@ -100,7 +100,7 @@ export const slideInUp = keyframes`
   }
 `;
 
-export const highlight = color => keyframes`
+export const highlight = (color: string) => keyframes`
   0%,
   100% {
     background: rgba(255, 255, 255, 0);
@@ -111,7 +111,8 @@ export const highlight = color => keyframes`
   }
 `;
 
-export const alertHighlight = priority => keyframes`
+// TODO(ts): priority should be pulled from `keyof typeof theme.alert`
+export const alertHighlight = (priority: string) => keyframes`
   0%,
   100% {
     background: rgba(255, 255, 255, 0);
