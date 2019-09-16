@@ -18,13 +18,18 @@ import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
+import {IntegrationDetailsModalOptions} from 'app/actionCreators/modal';
+import {Integration} from 'app/types';
 
-const EARLY_ADOPTER_INTEGRATIONS = [];
+type Props = {
+  closeModal: () => void;
+} & IntegrationDetailsModalOptions;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
+ * TODO(TS): Add typing for feature gates
  */
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -43,7 +48,7 @@ const defaultFeatureGateComponents = {
   ),
 };
 
-class IntegrationDetailsModal extends React.Component {
+class IntegrationDetailsModal extends React.Component<Props> {
   static propTypes = {
     closeModal: PropTypes.func.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
@@ -58,7 +63,7 @@ class IntegrationDetailsModal extends React.Component {
     });
   }
 
-  onAddIntegration = integration => {
+  onAddIntegration = (integration: Integration) => {
     this.props.closeModal();
     this.props.onAddIntegration(integration);
   };
@@ -67,12 +72,6 @@ class IntegrationDetailsModal extends React.Component {
     return features.map(feature => (
       <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
     ));
-  }
-
-  earlyAdopterLabel(provider) {
-    return EARLY_ADOPTER_INTEGRATIONS.includes(provider.key) ? (
-      <StyledTag priority="warning">Early Adopter</StyledTag>
-    ) : null;
   }
 
   render() {
@@ -140,10 +139,7 @@ class IntegrationDetailsModal extends React.Component {
             <ProviderName data-test-id="provider-name">
               {t('%s Integration', provider.name)}
             </ProviderName>
-            <Flex>
-              {this.earlyAdopterLabel(provider)}
-              {provider.features.length && this.featureTags(provider.features)}
-            </Flex>
+            <Flex>{provider.features.length && this.featureTags(provider.features)}</Flex>
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
@@ -193,7 +189,7 @@ class IntegrationDetailsModal extends React.Component {
   }
 }
 
-const DisabledNotice = styled(({reason, ...p}) => (
+const DisabledNotice = styled(({reason, ...p}: {reason: string}) => (
   <Flex align="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>

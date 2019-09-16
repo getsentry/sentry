@@ -17,7 +17,15 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
+import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 
+type Props = {
+  closeOnInstall?: boolean;
+  closeModal: () => void;
+} & SentryAppDetailsModalOptions &
+  AsyncComponent['props'];
+
+//TODO(TS): Add typing for feature gates
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
     p.children({
@@ -35,7 +43,7 @@ const defaultFeatureGateComponents = {
   ),
 };
 
-export default class SentryAppDetailsModal extends AsyncComponent {
+export default class SentryAppDetailsModal extends AsyncComponent<Props> {
   static propTypes = {
     sentryApp: SentryTypes.SentryApplication.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -49,7 +57,7 @@ export default class SentryAppDetailsModal extends AsyncComponent {
     closeOnInstall: true,
   };
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {sentryApp} = this.props;
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
@@ -200,7 +208,7 @@ const Author = styled(Box)`
   color: ${p => p.theme.gray2};
 `;
 
-const DisabledNotice = styled(({reason, ...p}) => (
+const DisabledNotice = styled(({reason, ...p}: {reason: string}) => (
   <Flex align="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>

@@ -192,12 +192,13 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     const {app, onInstall, organization} = this.props;
     const isInstalled = !!this.isInstalled;
 
-    openSentryAppDetailsModal({
-      sentryApp: app,
-      isInstalled,
-      onInstall,
-      organization,
-    });
+    onInstall &&
+      openSentryAppDetailsModal({
+        sentryApp: app,
+        isInstalled,
+        onInstall,
+        organization,
+      });
   };
 
   renderInstallButton() {
