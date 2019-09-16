@@ -50,6 +50,10 @@ function getFeatureTooltip(feature) {
       return t(
         'Stack unwinding information improves the quality of stack traces extracted from minidumps'
       );
+    case 'sources':
+      return t(
+        'Source code information allows Sentry to display source code context for stack frames'
+      );
     default:
       return null;
   }

@@ -61,6 +61,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["package"] = symbolicated["package"]
     if symbolicated.get("trust"):
         new_frame["trust"] = symbolicated["trust"]
+    if symbolicated.get("pre_context"):
+        new_frame["pre_context"] = symbolicated["pre_context"]
+    if symbolicated.get("context_line") is not None:
+        new_frame["context_line"] = symbolicated["context_line"]
+    if symbolicated.get("post_context"):
+        new_frame["post_context"] = symbolicated["post_context"]
     if symbolicated.get("status"):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["symbolicator_status"] = symbolicated["status"]
