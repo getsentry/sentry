@@ -123,7 +123,7 @@ const GroupDetails = createReactClass({
         const project = this.props.project || ProjectsStore.getById(data.project.id);
 
         if (!project) {
-          Sentry.withScope(scope => { 
+          Sentry.withScope(scope => {
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
