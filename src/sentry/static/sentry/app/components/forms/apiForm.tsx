@@ -6,7 +6,17 @@ import Form from 'app/components/forms/form';
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
-export default class ApiForm extends Form {
+// type Props = Form['props'] & {
+//   onSubmit?: (data: object) => void;
+// };
+
+type Props = {
+  onSubmit?: (data: object) => void;
+};
+
+export default class ApiForm extends Form<Props, Form['state']> {
+  api = new Client();
+
   static propTypes = {
     ...Form.propTypes,
     onSubmit: PropTypes.func,
@@ -21,11 +31,6 @@ export default class ApiForm extends Form {
     submitErrorMessage: t('There was an error saving your changes.'),
     submitLoadingMessage: t('Saving changes..'),
   };
-
-  constructor(props, context) {
-    super(props, context);
-    this.api = new Client();
-  }
 
   componentWillUnmount() {
     this.api.clear();

@@ -6,7 +6,42 @@ import styled from 'react-emotion';
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
-class Form extends React.Component {
+type FormProps = {
+  cancelLabel?: string;
+  onCancel?: () => void;
+  onSubmit: (
+    data: object,
+    onSubmitSuccess: (data: object) => void,
+    onSubmitError: (error: object) => void
+  ) => void;
+  initialData?: object;
+  onSubmitSuccess?: (data: object) => void;
+  onSubmitError?: (error: object) => void;
+  resetOnError?: boolean;
+  requireChanges?: boolean;
+  errorMessage?: React.ReactNode;
+  hideErrors?: boolean;
+  className?: string;
+  footerClass?: string;
+  submitDisabled?: boolean;
+  submitLabel?: string;
+};
+
+type FormState = {
+  data: any;
+  errors: {non_field_errors?: object[]} & object;
+  initialData: object;
+  state: string;
+};
+
+type Context = {
+  form: object;
+};
+
+class Form<
+  P extends FormProps = FormProps,
+  S extends FormState = FormState
+> extends React.Component<P, S> {
   static propTypes = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
@@ -42,14 +77,14 @@ class Form extends React.Component {
     form: PropTypes.object.isRequired,
   };
 
-  constructor(props, context) {
+  constructor(props: P, context: Context) {
     super(props, context);
     this.state = {
       data: {...this.props.initialData},
       errors: {},
       initialData: {...this.props.initialData},
       state: FormState.READY,
-    };
+    } as S;
   }
 
   getChildContext() {
