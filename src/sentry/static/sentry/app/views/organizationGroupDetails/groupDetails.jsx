@@ -123,14 +123,14 @@ const GroupDetails = createReactClass({
         const project = this.props.project || ProjectsStore.getById(data.project.id);
 
         if (!project) {
-          Sentry.withScope(scope => {
+          Sentry.withScope(scope => { 
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
-          const location_with_project = {...browserHistory.getCurrentLocation()};
-          if (!location_with_project.query.project) {
-            Object.assign(location_with_project.query, {project: project.id});
-            browserHistory.replace(location_with_project);
+          const locationWithProject = {...browserHistory.getCurrentLocation()};
+          if (!locationWithProject.query.project) {
+            locationWithProject.query.project = project.id;
+            browserHistory.replace(locationWithProject);
           }
         }
 
