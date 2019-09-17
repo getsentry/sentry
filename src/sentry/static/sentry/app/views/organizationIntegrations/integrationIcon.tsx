@@ -7,7 +7,7 @@ import {Integration} from 'app/types';
 
 type Props = {
   integration: Integration;
-  size?: number;
+  size: number;
 };
 
 type IconProps = Pick<Props, 'size'>;
@@ -19,7 +19,7 @@ const Icon = styled('img')<IconProps>`
   display: block;
 `;
 
-const IntegrationIcon = ({integration, size = 32}: Props) =>
+const IntegrationIcon = ({integration, size}: Props) =>
   integration.icon ? (
     <Icon size={size} src={integration.icon} />
   ) : (
@@ -29,6 +29,10 @@ const IntegrationIcon = ({integration, size = 32}: Props) =>
 IntegrationIcon.propTypes = {
   integration: PropTypes.object.isRequired,
   size: PropTypes.number,
+};
+
+IntegrationIcon.defaultProps = {
+  size: 32,
 };
 
 export default IntegrationIcon;

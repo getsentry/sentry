@@ -17,27 +17,45 @@ import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Integration, Repository} from 'app/types';
 
-export default class IntegrationRepos extends AsyncComponent {
+type Props = AsyncComponent['props'] & {
+  integration: Integration;
+};
+
+type State = AsyncComponent['state'] & {
+  adding: boolean;
+  dropdownBusy: boolean;
+  itemList: Repository[];
+  integrationRepos: {
+    repos: {identifier: string; name: string}[];
+    searchable: boolean;
+  };
+};
+
+export default class IntegrationRepos extends AsyncComponent<Props, State> {
   static propTypes = {
     integration: PropTypes.object.isRequired,
   };
   static contextTypes = {
     organization: PropTypes.object.isRequired,
+    router: PropTypes.object,
   };
 
   constructor(props, context) {
     super(props, context);
     this.state = {
+      ...this.getDefaultState(),
       error: false,
       adding: false,
       itemList: [],
+      integrationRepos: {repos: [], searchable: false},
       dropdownBusy: false,
       errors: {},
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ([string, string, any] | [string, string])[] {
     const orgId = this.context.organization.slug;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],

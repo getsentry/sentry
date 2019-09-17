@@ -11,17 +11,17 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration} from 'app/types';
+import {IntegrationProvider, OrganizationIntegration} from 'app/types';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export type Props = {
   orgId: string;
   provider: IntegrationProvider;
-  integration: Integration;
-  onRemove: (integration: Integration) => void;
-  onDisable: (integration: Integration) => void;
-  onReinstallIntegration: (integration: Integration) => void;
+  integration: OrganizationIntegration;
+  onRemove: (integration: OrganizationIntegration) => void;
+  onDisable: (integration: OrganizationIntegration) => void;
+  onReinstallIntegration: (integration: OrganizationIntegration) => void;
   className?: string;
 };
 

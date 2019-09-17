@@ -12,13 +12,20 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Group, GroupIntegration} from 'app/types';
+import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
 
-type Props = {
+type Props = AsyncComponent['props'] & {
   integration: GroupIntegration;
   group: Group;
 };
-class ExternalIssueActions extends AsyncComponent<Props & AsyncComponent['props']> {
+
+type State = AsyncComponent['state'] & {
+  showModal: boolean;
+  action: string | null;
+  selectedIntegration: GroupIntegration;
+  issue: IntegrationExternalIssue | null;
+};
+class ExternalIssueActions extends AsyncComponent<Props, State> {
   static propTypes = {
     group: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,

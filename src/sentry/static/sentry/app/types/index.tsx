@@ -409,18 +409,19 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: IntegrationProvider;
-  configOrganization: Array<any>;
+};
+
+export type IntegrationExternalIssue = {
+  id: string;
+  key: string;
+  url: string;
+  title: string;
+  description: string;
+  displayName: string;
 };
 
 export type GroupIntegration = Integration & {
-  externalIssues: {
-    id: string;
-    key: string;
-    url: string;
-    title: string;
-    description: string;
-    displayName: string;
-  }[];
+  externalIssues: IntegrationExternalIssue[];
 };
 
 export type OrganizationIntegration = Integration & {

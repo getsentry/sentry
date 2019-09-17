@@ -47,7 +47,8 @@ export default class IntegrationItem extends React.Component<Props> {
   }
 }
 
-const Labels = styled('div')<Pick<Props, 'compact'>>`
+type StyledProps = Pick<Props, 'compact'>;
+const Labels = styled('div')<StyledProps>`
   box-sizing: border-box;
   display: flex;
   ${p => (p.compact ? 'align-items: center;' : '')};
@@ -63,7 +64,7 @@ const IntegrationName = styled('div')`
 // Not using the overflowEllipsis style import here
 // as it sets width 100% which causes layout issues in the
 // integration list.
-const DomainName = styled('div')<Pick<Props, 'compact'>>`
+const DomainName = styled('div')<StyledProps>`
   color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
