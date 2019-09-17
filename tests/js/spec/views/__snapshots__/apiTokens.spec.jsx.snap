@@ -5,7 +5,7 @@ exports[`ApiTokens renders empty result 1`] = `
   title="API Tokens - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       action={
         <Button
           align="center"
@@ -98,7 +98,7 @@ exports[`ApiTokens renders with result 1`] = `
   title="API Tokens - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       action={
         <Button
           align="center"

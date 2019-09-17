@@ -5,7 +5,7 @@ exports[`AccountSubscriptions renders empty 1`] = `
   title="Subscriptions - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Subscriptions"
     />
@@ -45,51 +45,42 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
       title="Subscriptions - Sentry"
     >
       <div>
-        <SettingsPageHeading
+        <StyledSettingsPageHeading
           noTitleStyles={false}
           title="Subscriptions"
         >
-          <Wrapper>
+          <SettingsPageHeading
+            className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Subscriptions"
+          >
             <div
-              className="css-1r5ylk7-Wrapper e1uay4fd2"
+              className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
             >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
+              <TitleAndActions>
+                <div
+                  className="css-b5tiyd-TitleAndActions e1uay4fd0"
                 >
-                  <div
-                    className="css-5ipae5"
-                    is={null}
+                  <Title
+                    styled={false}
                   >
-                    <Title
-                      styled={false}
+                    <div
+                      className="css-2kvddg-Title e1uay4fd1"
                     >
-                      <Base
-                        className="css-1ky52ze-Title e1uay4fd0"
-                      >
-                        <div
-                          className="css-1ky52ze-Title e1uay4fd0"
-                          is={null}
+                      <HeaderTitle>
+                        <h4
+                          className="css-u1l4am-HeaderTitle eqkydle2"
                         >
-                          <HeaderTitle>
-                            <h4
-                              className="css-u1l4am-HeaderTitle eqkydle2"
-                            >
-                              Subscriptions
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                  </div>
-                </Base>
-              </Flex>
+                          Subscriptions
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                </div>
+              </TitleAndActions>
             </div>
-          </Wrapper>
-        </SettingsPageHeading>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
         <TextBlock>
           <div
             className="css-1geyb25-TextBlock e1x1lar10"

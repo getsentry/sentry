@@ -5,7 +5,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
   title="Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Security Header Reports"
     />

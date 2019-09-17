@@ -4,7 +4,7 @@ exports[`OrganizationAuthList renders 1`] = `
 <div
   className="sso"
 >
-  <SettingsPageHeading
+  <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Authentication"
   />
@@ -100,7 +100,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
 <div
   className="sso"
 >
-  <SettingsPageHeading
+  <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Authentication"
   />

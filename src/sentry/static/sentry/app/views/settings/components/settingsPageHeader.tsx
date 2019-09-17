@@ -1,23 +1,32 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
 import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
 
 type Props = {
-  icon?: React.ReactNode;
-  title?: React.ReactNode;
-  action?: React.ReactNode;
-  tabs?: React.ReactNode;
+  // The title
+  title: React.ReactNode;
+
+  // Disables font styles in the title. Allows for more custom titles.
   noTitleStyles?: boolean;
+
+  className?: string;
+
+  // Icon left of title
+  icon?: React.ReactNode;
+
+  // Actions on opposite end of title bar from the title
+  action?: React.ReactNode;
+
+  tabs?: React.ReactNode;
 };
 
 class SettingsPageHeading extends React.Component<Props> {
   static propTypes = {
     icon: PropTypes.node,
-    title: PropTypes.node,
+    title: PropTypes.node.isRequired,
     action: PropTypes.node,
     tabs: PropTypes.node,
     // Disables font styles in the title. Allows for more custom titles.
@@ -29,30 +38,36 @@ class SettingsPageHeading extends React.Component<Props> {
   };
 
   render() {
+    const {icon, title, action, tabs, noTitleStyles, ...props} = this.props;
     return (
-      <Wrapper>
-        <Flex align="center">
-          {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
-          {this.props.title && (
-            <Title tabs={this.props.tabs} styled={this.props.noTitleStyles}>
-              <HeaderTitle>{this.props.title}</HeaderTitle>
+      <div {...props}>
+        <TitleAndActions>
+          {icon && <Icon>{icon}</Icon>}
+          {title && (
+            <Title tabs={tabs} styled={noTitleStyles}>
+              <HeaderTitle>{title}</HeaderTitle>
             </Title>
           )}
-          {this.props.action && (
-            <Action tabs={!!this.props.tabs}>{this.props.action}</Action>
-          )}
-        </Flex>
+          {action && <Action tabs={tabs}>{action}</Action>}
+        </TitleAndActions>
 
-        {this.props.tabs && <div>{this.props.tabs}</div>}
-      </Wrapper>
+        {tabs && <div>{tabs}</div>}
+      </div>
     );
   }
 }
 
-const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})<{
-  styled: boolean;
-  tabs: boolean;
-}>`
+type TitleProps = {
+  styled?: boolean;
+  tabs?: React.ReactNode;
+};
+
+const TitleAndActions = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
   ${p =>
     !p.styled &&
     `
@@ -62,13 +77,19 @@ const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})<{
   flex: 1;
 `;
 
-const Action = styled('div')<{tabs: boolean}>`
+const Icon = styled('div')`
+  margin-right: ${space(1)};
+`;
+
+const Action = styled('div')<{tabs?: React.ReactNode}>`
   ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
-const Wrapper = styled('div')`
+const StyledSettingsPageHeading = styled(SettingsPageHeading)<
+  Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
+>`
   font-size: 14px;
   margin-top: -${space(4)};
 `;
 
-export default SettingsPageHeading;
+export default StyledSettingsPageHeading;
