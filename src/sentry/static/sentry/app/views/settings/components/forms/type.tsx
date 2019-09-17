@@ -1,5 +1,7 @@
 import React from 'react';
 
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+
 export const FieldType = [
   'array',
   'bool',
