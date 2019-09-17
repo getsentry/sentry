@@ -318,7 +318,7 @@ class EventView {
   }
 
   getQuery(inputQuery: string | string[] | null | undefined): string {
-    const queryParts: Array<string> = [];
+    const queryParts: string[] = [];
 
     if (this.query) {
       queryParts.push(this.query);
@@ -329,13 +329,13 @@ class EventView {
       // e.g. query=hello&query=world
       if (Array.isArray(inputQuery)) {
         inputQuery.forEach(query => {
-          if (typeof query === 'string') {
+          if (typeof query === 'string' && !queryParts.includes(query)) {
             queryParts.push(query);
           }
         });
       }
 
-      if (typeof inputQuery === 'string') {
+      if (typeof inputQuery === 'string' && !queryParts.includes(inputQuery)) {
         queryParts.push(inputQuery);
       }
     }
