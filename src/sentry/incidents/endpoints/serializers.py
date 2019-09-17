@@ -8,14 +8,15 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.models.project import Project
-from sentry.snuba.models import QueryAggregations
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     create_alert_rule,
+    get_excluded_projects_for_alert_rule,
     update_alert_rule,
 )
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.models.project import Project
+from sentry.snuba.models import QueryAggregations
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):
@@ -27,7 +28,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     # XXX: ArrayFields aren't supported automatically until DRF 3.1
     aggregations = serializers.ListField(child=serializers.IntegerField(), required=False)
-    projects = serializers.ListField(child=ProjectField(), required=True)
+    # TODO: These might be slow for many projects, since it will query for each
+    # individually. If we find this to be a problem then we can look into batching.
+    projects = serializers.ListField(child=ProjectField(), required=False)
+    excluded_projects = serializers.ListField(child=ProjectField(), required=False)
 
     class Meta:
         model = AlertRule
@@ -42,6 +46,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "aggregation",
             "aggregations",
             "projects",
+            "include_all_projects",
+            "excluded_projects",
         ]
         extra_kwargs = {
             "query": {"allow_blank": True, "required": True},
@@ -55,6 +61,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             },
             "aggregation": {"required": False},
             "name": {"min_length": 1, "max_length": 64},
+            "include_all_projects": {"default": False},
         }
 
     def validate_threshold_type(self, threshold_type):
@@ -106,6 +113,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     querysubscription__alert_rules=instance
                 ).values_list("slug", flat=True)
                 if set(project_slugs) == set([project.slug for project in value]):
+                    validated_data.pop(field_name)
+                continue
+            if field_name == "excluded_projects":
+                excluded_slugs = [
+                    p.project.slug for p in get_excluded_projects_for_alert_rule(instance)
+                ]
+                if set(excluded_slugs) == set(project.slug for project in value):
                     validated_data.pop(field_name)
                 continue
             if isinstance(value, Enum):

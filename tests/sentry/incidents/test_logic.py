@@ -31,6 +31,7 @@ from sentry.incidents.logic import (
     create_initial_event_stats_snapshot,
     delete_alert_rule,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
@@ -57,7 +58,7 @@ from sentry.incidents.models import (
     IncidentSuspectCommit,
     IncidentType,
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
@@ -786,6 +787,20 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
+    def test_include_all_projects(self):
+        include_all_projects = True
+        self.project
+        alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
+        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.include_all_projects == include_all_projects
+
+        new_project = self.create_project()
+        alert_rule = self.create_alert_rule(
+            projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
+        )
+        assert alert_rule.query_subscriptions.get().project == new_project
+        assert alert_rule.include_all_projects == include_all_projects
+
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
             create_alert_rule(
@@ -953,6 +968,65 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         for sub in updated_subscriptions:
             assert sub.query == query_update
 
+    def test_update_to_include_all(self):
+        orig_project = self.project
+        alert_rule = self.create_alert_rule(projects=[orig_project])
+        new_project = self.create_project()
+        assert not QuerySubscription.objects.filter(
+            project=new_project, alert_rules=alert_rule
+        ).exists()
+        update_alert_rule(alert_rule, include_all_projects=True)
+        assert set(
+            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
+        ) == set([new_project, orig_project])
+
+    def test_update_to_include_all_with_exclude(self):
+        orig_project = self.project
+        alert_rule = self.create_alert_rule(projects=[orig_project])
+        new_project = self.create_project()
+        excluded_project = self.create_project()
+        assert not QuerySubscription.objects.filter(
+            project=new_project, alert_rules=alert_rule
+        ).exists()
+        update_alert_rule(
+            alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
+        )
+        assert set(
+            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
+        ) == set([orig_project, new_project])
+
+    def test_update_include_all_exclude_list(self):
+        new_project = self.create_project()
+        projects = set([new_project, self.project])
+        alert_rule = self.create_alert_rule(include_all_projects=True)
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+        update_alert_rule(alert_rule, excluded_projects=[self.project])
+        assert [
+            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
+        ] == [new_project]
+
+        update_alert_rule(alert_rule, excluded_projects=[])
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+
+    def test_update_from_include_all(self):
+        new_project = self.create_project()
+        projects = set([new_project, self.project])
+        alert_rule = self.create_alert_rule(include_all_projects=True)
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+        update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
+        assert [
+            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
+        ] == [new_project]
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -1048,3 +1122,18 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         for _ in xrange(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
         assert newer_spike == calculate_incident_start("", [self.project], [event.group])
+
+
+class TestGetExcludedProjectsForAlertRule(TestCase):
+    def test(self):
+        excluded = [self.create_project()]
+        alert_rule = self.create_alert_rule(
+            projects=[], include_all_projects=True, excluded_projects=excluded
+        )
+        exclusions = get_excluded_projects_for_alert_rule(alert_rule)
+        assert [exclusion.project for exclusion in exclusions] == excluded
+
+    def test_no_excluded(self):
+        self.create_project()
+        alert_rule = self.create_alert_rule(projects=[], include_all_projects=True)
+        assert list(get_excluded_projects_for_alert_rule(alert_rule)) == []
