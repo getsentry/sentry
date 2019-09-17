@@ -12,7 +12,7 @@ import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepo
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, OrganizationIntegration, IntegrationProvider} from 'app/types';
+import {Organization, Integration, IntegrationProvider} from 'app/types';
 
 type RouteParams = {
   orgId: string;
@@ -24,7 +24,7 @@ type Props = RouteComponentProps<RouteParams, {}> &
   };
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
-  integration: OrganizationIntegration;
+  integration: Integration;
 };
 class ConfigureIntegration extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
