@@ -34,7 +34,7 @@ class RichHttpContent extends React.Component {
     } else if (value) {
       switch (data.inferredContentType) {
         case 'application/json':
-          return <ContextData data={value} />;
+          return <ContextData data={value} preserveQuotes={true} />;
         case 'application/x-www-form-urlencoded':
         case 'multipart/form-data':
           return (
