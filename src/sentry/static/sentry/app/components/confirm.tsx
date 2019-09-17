@@ -40,7 +40,15 @@ type Props = {
   /**
    * Button priority
    */
-  priority?: Button['props']['priority'];
+  priority: Button['props']['priority'];
+
+  /**
+   * Disables the confirm button
+   */
+  disableConfirmButton: boolean;
+
+  // Stop event propgation when opening the confirm modal
+  stopPropagation: boolean;
 
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
@@ -71,11 +79,6 @@ type Props = {
   disabled?: boolean;
 
   /**
-   * Disables the confirm button
-   */
-  disableConfirmButton?: boolean;
-
-  /**
    * Callback function when user is in the confirming state
    */
   onConfirming?: () => void;
@@ -89,9 +92,6 @@ type Props = {
    * Header of modal
    */
   header?: React.ReactNode;
-
-  // Stop event propgation when opening the confirm modal
-  stopPropagation?: boolean;
 };
 
 type State = {
@@ -143,7 +143,7 @@ class Confirm extends React.PureComponent<Props, State> {
 
   state: State = {
     isModalOpen: false,
-    disableConfirmButton: this.props.disableConfirmButton || false,
+    disableConfirmButton: this.props.disableConfirmButton,
   };
 
   static getDerivedStateFromProps(props: Props, state: State) {
