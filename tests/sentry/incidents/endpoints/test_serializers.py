@@ -51,7 +51,6 @@ class TestAlertRuleSerializer(TestCase):
             "thresholdType": field_is_required,
             "resolveThreshold": field_is_required,
             "alertThreshold": field_is_required,
-            "projects": field_is_required,
         }
 
     def test_time_window(self):
@@ -89,7 +88,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=params, partial=True
         )
-        serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         assert (
             serializer._remove_unchanged_fields(alert_rule, serializer.validated_data) == expected
         )
@@ -165,4 +164,29 @@ class TestAlertRuleSerializer(TestCase):
         self._run_changed_fields_test(alert_rule, {"resolve_threshold": resolve_threshold}, {})
         self._run_changed_fields_test(
             alert_rule, {"resolve_threshold": 200}, {"resolve_threshold": 200}
+        )
+
+    def test_remove_unchanged_fields_include_all(self):
+        projects = [self.project]
+        excluded = [self.create_project()]
+        alert_rule = self.create_alert_rule(include_all_projects=True, excluded_projects=excluded)
+
+        self._run_changed_fields_test(
+            alert_rule,
+            {"include_all_projects": True, "excluded_projects": [e.slug for e in excluded]},
+            {},
+        )
+
+        self._run_changed_fields_test(
+            alert_rule, {"excluded_projects": [e.slug for e in excluded]}, {}
+        )
+        self._run_changed_fields_test(
+            alert_rule,
+            {"excluded_projects": [p.slug for p in projects]},
+            {"excluded_projects": projects},
+        )
+
+        self._run_changed_fields_test(alert_rule, {"include_all_projects": True}, {})
+        self._run_changed_fields_test(
+            alert_rule, {"include_all_projects": False}, {"include_all_projects": False}
         )
