@@ -64,28 +64,29 @@ class GlobalModal extends React.Component<Props> {
 
   render() {
     const {visible, children, options} = this.props;
-    let Component = Modal;
+    const renderedChild =
+      typeof children === 'function'
+        ? children({
+            closeModal,
+            Header: Modal.Header,
+            Body: Modal.Body,
+            Footer: Modal.Footer,
+          })
+        : undefined;
 
     if (options && options.type === 'confirm') {
-      Component = Confirm;
+      return <Confirm onConfirm={() => {}}>{() => renderedChild}</Confirm>;
     }
 
     return (
-      <Component
+      <Modal
         className={options && options.modalClassName}
         show={visible}
         animation={false}
         onHide={this.handleCloseModal}
       >
-        {children
-          ? children({
-              closeModal,
-              Header: Modal.Header,
-              Body: Modal.Body,
-              Footer: Modal.Footer,
-            })
-          : null}
-      </Component>
+        {renderedChild}
+      </Modal>
     );
   }
 }
