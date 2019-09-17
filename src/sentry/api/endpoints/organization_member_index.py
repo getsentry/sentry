@@ -157,7 +157,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response({"email": "The user %s is already a member" % result["email"]}, 409)
 
         om = OrganizationMember(
-            organization=organization, email=result["email"], role=result["role"]
+            organization=organization,
+            email=result["email"],
+            role=result["role"],
+            inviter=request.user,
         )
 
         if settings.SENTRY_ENABLE_INVITES:

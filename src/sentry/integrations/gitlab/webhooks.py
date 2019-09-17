@@ -27,6 +27,11 @@ class Webhook(object):
         raise NotImplementedError
 
     def get_repo(self, integration, organization, event):
+        """
+        Given a webhook payload, get the associated Repository record.
+
+        Assumes a 'project' key in event payload.
+        """
         try:
             project_id = event["project"]["id"]
         except KeyError:
@@ -44,6 +49,31 @@ class Webhook(object):
             return None
         return repo
 
+    def update_repo_data(self, repo, event):
+        """
+        Given a webhook payload, update stored repo data if needed.
+
+        Assumes a 'project' key in event payload, with certain subkeys. Rework
+        this if that stops being a safe assumption.
+        """
+
+        project = event["project"]
+
+        name_from_event = u"{} / {}".format(project["namespace"], project["name"])
+        url_from_event = project["web_url"]
+        path_from_event = project["path_with_namespace"]
+
+        if (
+            repo.name != name_from_event
+            or repo.url != url_from_event
+            or repo.config.get("path") != path_from_event
+        ):
+            repo.update(
+                name=name_from_event,
+                url=url_from_event,
+                config=dict(repo.config, path=path_from_event),
+            )
+
 
 class MergeEventWebhook(Webhook):
     """
@@ -56,6 +86,10 @@ class MergeEventWebhook(Webhook):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
             return
+
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
         try:
             number = event["object_attributes"]["iid"]
             title = event["object_attributes"]["title"]
@@ -111,6 +145,9 @@ class PushEventWebhook(Webhook):
         if repo is None:
             return
 
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
         authors = {}
 
         # TODO gitlab only sends a max of 20 commits. If a push contains
@@ -163,6 +200,7 @@ class GitlabWebhookEndpoint(View):
         return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def post(self, request):
+        token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
             # gitlab hook payloads don't give us enough unique context

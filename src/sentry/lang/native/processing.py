@@ -8,14 +8,16 @@ from symbolic.utils import make_buffered_slice_reader
 
 from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
-from sentry.lang.native.minidump import get_attached_minidump
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE
 from sentry.lang.native.utils import (
     get_sdk_from_event,
     native_images_from_data,
     is_native_platform,
     image_name,
     signal_from_data,
+    get_event_attachment,
 )
 from sentry.models import Project, EventError
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -59,6 +61,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["package"] = symbolicated["package"]
     if symbolicated.get("trust"):
         new_frame["trust"] = symbolicated["trust"]
+    if symbolicated.get("pre_context"):
+        new_frame["pre_context"] = symbolicated["pre_context"]
+    if symbolicated.get("context_line") is not None:
+        new_frame["context_line"] = symbolicated["context_line"]
+    if symbolicated.get("post_context"):
+        new_frame["post_context"] = symbolicated["post_context"]
     if symbolicated.get("status"):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["symbolicator_status"] = symbolicated["status"]
@@ -131,15 +139,29 @@ def _handle_response_status(event_data, response_json):
 
 def _merge_system_info(data, system_info):
     set_path(data, "contexts", "os", "type", value="os")  # Required by "get_sdk_from_event"
-    setdefault_path(data, "contexts", "os", "name", value=system_info.get("os_name"))
-    setdefault_path(data, "contexts", "os", "version", value=system_info.get("os_version"))
-    setdefault_path(data, "contexts", "os", "build", value=system_info.get("os_build"))
+
+    os_name = system_info.get("os_name")
+    os_version = system_info.get("os_version")
+    os_build = system_info.get("os_build")
+
+    if os_version:
+        setdefault_path(data, "contexts", "os", "version", value=os_version)
+    if os_build:
+        setdefault_path(data, "contexts", "os", "build", value=os_build)
+    if os_name and not os_version and not os_build:
+        setdefault_path(data, "contexts", "os", "raw_description", value=os_name)
+    elif os_name:
+        setdefault_path(data, "contexts", "os", "name", value=os_name)
 
     set_path(data, "contexts", "device", "type", value="device")
     setdefault_path(data, "contexts", "device", "arch", value=system_info.get("cpu_arch"))
 
+    device_model = system_info.get("device_model")
+    if device_model:
+        setdefault_path(data, "contexts", "device", "model", value=device_model)
 
-def _merge_minidump_response(data, response):
+
+def _merge_full_response(data, response):
     data["platform"] = "native"
     if response.get("crashed") is not None:
         data["level"] = "fatal" if response["crashed"] else "info"
@@ -161,13 +183,20 @@ def _merge_minidump_response(data, response):
 
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
-    exc_value = (
-        "Assertion Error: %s" % response.get("assertion")
-        if response.get("assertion")
-        else "Fatal Error: %s" % response.get("crash_reason")
-    )
-    data_exception["value"] = exc_value
-    data_exception["type"] = response.get("crash_reason")
+    if response.get("assertion"):
+        data_exception["value"] = "Assertion Error: %s" % (response["assertion"],)
+    elif response.get("crash_details"):
+        data_exception["value"] = response["crash_details"]
+    elif response.get("crash_reason"):
+        data_exception["value"] = "Fatal Error: %s" % (response["crash_reason"],)
+    else:
+        # We're merging a full response, so there was no initial payload
+        # submitted. Assuming that this still contains the placeholder, remove
+        # it rather than showing a default value.
+        data_exception.pop("value", None)
+
+    if response.get("crash_reason"):
+        data_exception["type"] = response["crash_reason"]
 
     data_threads = []
     if response["stacktraces"]:
@@ -204,8 +233,7 @@ def _merge_minidump_response(data, response):
 def process_minidump(data):
     project = Project.objects.get_from_cache(id=data["project"])
 
-    minidump = get_attached_minidump(data)
-
+    minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
         logger.error("Missing minidump for minidump event")
         return
@@ -215,7 +243,25 @@ def process_minidump(data):
     response = symbolicator.process_minidump(make_buffered_slice_reader(minidump.data, None))
 
     if _handle_response_status(data, response):
-        _merge_minidump_response(data, response)
+        _merge_full_response(data, response)
+
+    return data
+
+
+def process_applecrashreport(data):
+    project = Project.objects.get_from_cache(id=data["project"])
+
+    report = get_event_attachment(data, APPLECRASHREPORT_ATTACHMENT_TYPE)
+    if not report:
+        logger.error("Missing applecrashreport for event")
+        return
+
+    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
+
+    response = symbolicator.process_applecrashreport(make_buffered_slice_reader(report.data, None))
+
+    if _handle_response_status(data, response):
+        _merge_full_response(data, response)
 
     return data
 

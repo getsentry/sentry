@@ -7,9 +7,9 @@ import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 describe('GroupTags', function() {
   const {routerContext, router} = initializeOrg();
   const group = TestStubs.Group();
-
+  let tagsMock;
   beforeEach(function() {
-    MockApiClient.addMockResponse({
+    tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),
     });
@@ -20,9 +20,17 @@ describe('GroupTags', function() {
       <GroupTags
         group={group}
         query={{}}
+        environments={['dev']}
         params={{orgId: 'org-slug', groupId: group.id}}
       />,
       routerContext
+    );
+
+    expect(tagsMock).toHaveBeenCalledWith(
+      '/issues/1/tags/',
+      expect.objectContaining({
+        query: {environment: ['dev']},
+      })
     );
 
     wrapper

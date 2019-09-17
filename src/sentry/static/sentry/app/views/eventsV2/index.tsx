@@ -44,21 +44,17 @@ class EventsV2 extends React.Component<Props> {
 
     const list = ALL_VIEWS.map((eventViewv1, index) => {
       const eventView = EventView.fromEventViewv1(eventViewv1);
-
-      const name = eventViewv1.name;
-
       const to = {
         pathname: location.pathname,
         query: {
           ...location.query,
-          name,
           ...eventView.generateQueryStringObject(),
         },
       };
 
       return (
         <LinkContainer key={index}>
-          <Link to={to}>{name}</Link>
+          <Link to={to}>{eventView.name}</Link>
         </LinkContainer>
       );
     });

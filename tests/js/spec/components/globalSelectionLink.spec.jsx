@@ -47,4 +47,52 @@ describe('GlobalSelectionLink', function() {
 
     expect(wrapper).toMatchSnapshot();
   });
+
+  it('combines query parameters with custom query', function() {
+    const query = {
+      project: ['foo', 'bar'],
+      environment: 'staging',
+    };
+    const customQuery = {query: 'something'};
+    const wrapper = shallow(
+      <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
+        Go somewhere!
+      </GlobalSelectionLink>,
+      {
+        context: {
+          location: {
+            query,
+          },
+        },
+      }
+    );
+
+    const updatedToProp = wrapper.find('Link').prop('to');
+
+    expect(updatedToProp).toEqual({
+      pathname: path,
+      query: {project: ['foo', 'bar'], environment: 'staging', query: 'something'},
+    });
+  });
+
+  it('combines query parameters with no query', function() {
+    const query = {
+      project: ['foo', 'bar'],
+      environment: 'staging',
+    };
+    const wrapper = shallow(
+      <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
+      {
+        context: {
+          location: {
+            query,
+          },
+        },
+      }
+    );
+
+    const updatedToProp = wrapper.find('Link').prop('to');
+
+    expect(updatedToProp).toEqual({pathname: path, query});
+  });
 });

@@ -354,3 +354,62 @@ def query_subscription_consumer(**options):
     signal.signal(signal.SIGINT, handler)
 
     subscriber.run()
+
+
+@run.command("ingest-consumer")
+@log_options()
+@click.option(
+    "--consumer-type",
+    default=None,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
+    type=click.Choice(["events", "transactions", "attachments"]),
+)
+@click.option(
+    "--group", default="ingest-consumer", help="Kafka consumer group for the ingest consumer. "
+)
+@click.option(
+    "--commit-batch-size",
+    default=100,
+    type=int,
+    help="How many messages to process before committing offsets.",
+)
+@click.option(
+    "--max-fetch-time-ms",
+    default=100,
+    type=int,
+    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
+    "before returning the available messages in the topic.",
+)
+@click.option(
+    "--initial-offset-reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@configuration
+def ingest_consumer(**options):
+    """
+    Runs an "ingest consumer" task.
+
+    The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
+    process event celery tasks for them
+    """
+    from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
+
+    consumer_type = options["consumer_type"]
+    if consumer_type == "events":
+        consumer_type = ConsumerType.Events
+    elif consumer_type == "transactions":
+        consumer_type = ConsumerType.Transactions
+    elif consumer_type == "attachments":
+        consumer_type = ConsumerType.Attachments
+
+    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
+
+    run_ingest_consumer(
+        commit_batch_size=options["commit_batch_size"],
+        consumer_group=options["group"],
+        consumer_type=consumer_type,
+        max_fetch_time_seconds=max_fetch_time_seconds,
+        initial_offset_reset=options["initial_offset_reset"],
+    )

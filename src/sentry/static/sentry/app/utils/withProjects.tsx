@@ -7,15 +7,24 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import {Project} from 'app/types';
 
-/**
- * Higher order component that uses ProjectsStore and provides a list of projects
- */
-type Props = {
+type InjectedProjectsProps = {
   projects: Project[];
 };
 
-const withProjects = <P extends Props>(WrappedComponent: React.ComponentType<P>) =>
-  createReactClass({
+type State = {
+  projects: Project[];
+};
+
+/**
+ * Higher order component that uses ProjectsStore and provides a list of projects
+ */
+const withProjects = <P extends InjectedProjectsProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
+  createReactClass<
+    Omit<P, keyof InjectedProjectsProps> & Partial<InjectedProjectsProps>,
+    State
+  >({
     displayName: `withProjects(${getDisplayName(WrappedComponent)})`,
     propTypes: {
       organization: SentryTypes.Organization,
@@ -24,13 +33,13 @@ const withProjects = <P extends Props>(WrappedComponent: React.ComponentType<P>)
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
     getInitialState() {
       return {
-        projects: ProjectsStore.getAll(),
+        projects: ProjectsStore.getAll() as Project[],
       };
     },
 
     onProjectUpdate() {
       this.setState({
-        projects: ProjectsStore.getAll(),
+        projects: ProjectsStore.getAll() as Project[],
       });
     },
     render() {

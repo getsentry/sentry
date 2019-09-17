@@ -313,6 +313,7 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
+        assert om.inviter == self.owner_user
 
         mock_send_invite_email.assert_called_once_with()
 
@@ -324,6 +325,7 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == []
+        assert om.inviter == self.owner_user
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
@@ -340,5 +342,6 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
+        assert om.inviter == self.owner_user
 
         assert not mock_send_invite_email.mock_calls

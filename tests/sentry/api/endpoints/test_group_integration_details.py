@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import six
 import mock
-from datetime import timedelta
-from django.utils import timezone
 import copy
 
 from sentry.integrations.example.integration import ExampleIntegration
@@ -12,16 +10,17 @@ from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
         super(GroupIntegrationDetailsTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
         self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
                 "message": "message",
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
@@ -348,7 +347,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
         group = event.group

@@ -45,15 +45,11 @@ exports[`ConfirmDelete renders 1`] = `
                 type="error"
               >
                 <StyledTextBlock>
-                  <Component
+                  <div
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      Are you sure?
-                    </div>
-                  </Component>
+                    Are you sure?
+                  </div>
                 </StyledTextBlock>
               </div>
             </AlertWrapper>
@@ -305,7 +301,7 @@ exports[`ConfirmDelete renders 1`] = `
           <Button
             align="center"
             autoFocus={true}
-            data-test-id="confirm-modal"
+            data-test-id="confirm-button"
             disabled={true}
             onClick={[Function]}
             priority="primary"
@@ -314,7 +310,7 @@ exports[`ConfirmDelete renders 1`] = `
               aria-disabled={true}
               aria-label="Confirm"
               autoFocus={true}
-              data-test-id="confirm-modal"
+              data-test-id="confirm-button"
               disabled={true}
               onClick={[Function]}
               priority="primary"
@@ -325,7 +321,7 @@ exports[`ConfirmDelete renders 1`] = `
                 aria-label="Confirm"
                 autoFocus={true}
                 className="css-pbzt2j-StyledButton-getColors edwq9my0"
-                data-test-id="confirm-modal"
+                data-test-id="confirm-button"
                 disabled={true}
                 onClick={[Function]}
                 priority="primary"
@@ -336,7 +332,7 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-label="Confirm"
                   autoFocus={true}
                   className="css-pbzt2j-StyledButton-getColors edwq9my0"
-                  data-test-id="confirm-modal"
+                  data-test-id="confirm-button"
                   onClick={[Function]}
                   role="button"
                 >

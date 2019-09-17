@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from mock import patch
+from sentry.testutils.helpers.datetime import iso_format, before_now
 import pytz
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
@@ -20,16 +19,13 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u"/settings/{}/projects/{}/tags/".format(self.org.slug, self.project.slug)
 
-    @patch("django.utils.timezone.now")
-    def test_tags_list(self, mock_now):
-        mock_now.return_value = event_time + timedelta(days=2)
-
+    def test_tags_list(self):
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "level": "error",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -41,8 +37,8 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.wait_until(".ref-tag-row")
         self.browser.click('.ref-tag-row [data-test-id="delete"]')
-        self.browser.wait_until('.modal-footer [data-test-id="confirm-modal"]')
+        self.browser.wait_until('.modal-footer [data-test-id="confirm-button"]')
 
-        self.browser.click('.modal-footer [data-test-id="confirm-modal"]')
+        self.browser.click('.modal-footer [data-test-id="confirm-button"]')
         self.browser.wait_until_not(".ref-tag-row")
         self.browser.snapshot("project settings - tags - after remove")

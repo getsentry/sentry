@@ -820,8 +820,10 @@ SENTRY_FEATURES = {
     "organizations:discover-v2-query-builder": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
+    # Allow organizations to configure built-in symbol sources.
+    "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
-    "organizations:symbol-sources": False,
+    "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
     # Enable events v2 instead of the events stream
@@ -831,7 +833,7 @@ SENTRY_FEATURES = {
     # Turns on grouping info.
     "organizations:grouping-info": False,
     # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": False,
+    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable incidents feature
@@ -881,7 +883,7 @@ SENTRY_FEATURES = {
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
-    "projects:sample-events": True,
+    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -934,7 +936,7 @@ SENTRY_CELERYBEAT_MONITORS = {
 }
 
 # Only store a portion of all messages per unique group.
-SENTRY_SAMPLE_DATA = True
+SENTRY_SAMPLE_DATA = False
 
 # The following values control the sampling rates
 SENTRY_SAMPLE_RATES = (
@@ -1676,6 +1678,9 @@ KAFKA_CLUSTERS = {
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
+KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
+KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -1684,6 +1689,12 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
     },
+    # Topic for receiving simple events (error events without attachments) from Relay
+    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    # Topic for receiving 'complex' events (error events with attachments) from Relay
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    # Topic for receiving transaction events (APM events) from Relay
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely

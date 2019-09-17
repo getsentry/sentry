@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
@@ -162,6 +162,9 @@ class Symbolicator(object):
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump))
 
+    def process_applecrashreport(self, report):
+        return self._process(lambda: self.sess.upload_applecrashreport(report))
+
     def process_payload(self, stacktraces, modules, signal=None):
         return self._process(
             lambda: self.sess.symbolicate_stacktraces(
@@ -252,7 +255,18 @@ def get_sources_for_project(project):
     project_source = get_internal_source(project)
     sources.append(project_source)
 
-    sources_config = project.get_option("sentry:symbol_sources")
+    # Check that the organization still has access to symbol sources. This
+    # controls both builtin and external sources.
+    organization = project.organization
+    if not features.has("organizations:symbol-sources", organization):
+        return sources
+
+    # Custom sources have their own feature flag. Check them independently.
+    if features.has("organizations:custom-symbol-sources", organization):
+        sources_config = project.get_option("sentry:symbol_sources")
+    else:
+        sources_config = None
+
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
@@ -367,11 +381,22 @@ class SymbolicatorSession(object):
         return self._request("post", "symbolicate", params=self._query_params, json=json)
 
     def upload_minidump(self, minidump):
-        files = {"upload_file_minidump": minidump}
+        return self._request(
+            method="post",
+            path="minidump",
+            params=self._query_params,
+            data={"sources": json.dumps(self.sources)},
+            files={"upload_file_minidump": minidump},
+        )
 
-        data = {"sources": json.dumps(self.sources)}
-
-        return self._request("post", "minidump", params=self._query_params, data=data, files=files)
+    def upload_applecrashreport(self, report):
+        return self._request(
+            method="post",
+            path="applecrashreport",
+            params=self._query_params,
+            data={"sources": json.dumps(self.sources)},
+            files={"apple_crash_report": report},
+        )
 
     def query_task(self, task_id):
         task_url = "requests/%s" % (task_id,)

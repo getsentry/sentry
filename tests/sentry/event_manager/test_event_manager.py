@@ -43,7 +43,7 @@ from sentry.relay.config import get_project_config
 
 def make_event(**kwargs):
     result = {
-        "event_id": "a" * 32,
+        "event_id": uuid.uuid1().hex,
         "message": "foo",
         "level": logging.ERROR,
         "logger": "default",
@@ -76,22 +76,23 @@ class EventManagerTest(TestCase):
 
     @mock.patch("sentry.event_manager.should_sample")
     def test_does_not_save_event_when_sampled(self, should_sample):
-        should_sample.return_value = True
-        event_id = "a" * 32
+        with self.feature("projects:sample-events"):
+            should_sample.return_value = True
+            event_id = "a" * 32
 
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
+            manager = EventManager(make_event(event_id=event_id))
+            manager.save(1)
 
-        # This is a brand new event, so it is actually saved.
-        assert Event.objects.filter(event_id=event_id).exists()
+            # This is a brand new event, so it is actually saved.
+            assert Event.objects.filter(event_id=event_id).exists()
 
-        event_id = "b" * 32
+            event_id = "b" * 32
 
-        manager = EventManager(make_event(event_id=event_id))
-        manager.save(1)
+            manager = EventManager(make_event(event_id=event_id))
+            manager.save(1)
 
-        # This second is a dupe, so should be sampled
-        assert not Event.objects.filter(event_id=event_id).exists()
+            # This second is a dupe, so should be sampled
+            assert not Event.objects.filter(event_id=event_id).exists()
 
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
@@ -709,6 +710,25 @@ class EventManagerTest(TestCase):
         assert euser.name == "jane"
         assert euser.ident == "1"
 
+    def test_event_user_invalid_ip(self):
+        manager = EventManager(
+            make_event(
+                event_id="a", environment="totally unique environment", **{"user": {"id": "1"}}
+            )
+        )
+
+        manager.normalize()
+
+        # This can happen as part of PII stripping, which happens after normalization
+        manager._data["user"]["ip_address"] = "[ip]"
+
+        with self.tasks():
+            manager.save(self.project.id)
+
+        euser = EventUser.objects.get(project_id=self.project.id)
+
+        assert euser.ip_address is None
+
     def test_event_user_unicode_identifier(self):
         manager = EventManager(make_event(**{"user": {"username": u"foô"}}))
         manager.normalize()
@@ -1162,6 +1182,27 @@ class EventManagerTest(TestCase):
             ]
             == 1
         )
+
+    def test_nodestore_sampling(self):
+        with self.options({"store.nodestore-sample-rate": 1.0}):
+            manager = EventManager(make_event(event_id="a" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 1
+
+            manager = EventManager(make_event(event_id="b" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 2
+
+            # Duplicate event
+            manager = EventManager(make_event(event_id="a" * 32))
+            manager.normalize()
+            manager.save(1)
+
+            assert Event.objects.count() == 2
 
 
 class ReleaseIssueTest(TestCase):

@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {appendTagCondition} from 'app/utils/queryString';
 import {
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
@@ -21,6 +22,8 @@ export type EventQuery = {
   per_page?: number;
 };
 
+const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+
 /**
  * Takes a view and determines if there are any aggregate fields in it.
  *
@@ -32,8 +35,7 @@ export function hasAggregateField(eventView: EventView): boolean {
   return eventView
     .getFieldNames()
     .some(
-      field =>
-        AGGREGATE_ALIASES.includes(field as any) || field.match(/[a-z_]+\([a-z_\.]+\)/)
+      field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
     );
 }
 
@@ -52,12 +54,8 @@ export function getEventTagSearchUrl(
   location: Location
 ) {
   const query = {...location.query};
-  // Add tag key/value to search
-  if (query.query) {
-    query.query += ` ${tagKey}:"${tagValue}"`;
-  } else {
-    query.query = `${tagKey}:"${tagValue}"`;
-  }
+  query.query = appendTagCondition(query.query, tagKey, tagValue);
+
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
 
@@ -165,8 +163,6 @@ export function getFieldRenderer(
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
-
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 
 /**
  * Get the alias that the API results will have for a given aggregate function name

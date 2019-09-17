@@ -4,8 +4,16 @@ import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
 import {Organization} from 'app/types';
 
-const withOrganization = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
-  class extends React.Component<Omit<P, 'organization'>> {
+type InjectedOrganizationProps = {
+  organization: Organization;
+};
+
+const withOrganization = <P extends InjectedOrganizationProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
+  class extends React.Component<
+    Omit<P, keyof InjectedOrganizationProps> & Partial<InjectedOrganizationProps>
+  > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
       organization: SentryTypes.Organization,

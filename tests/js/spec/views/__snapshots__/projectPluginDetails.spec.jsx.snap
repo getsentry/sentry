@@ -269,7 +269,7 @@ exports[`ProjectPluginDetails renders 1`] = `
               >
                 <Wrapper>
                   <div
-                    className="css-1r5ylk7-Wrapper e1kblvez2"
+                    className="css-1r5ylk7-Wrapper e1uay4fd2"
                   >
                     <Flex
                       align="center"
@@ -286,15 +286,15 @@ exports[`ProjectPluginDetails renders 1`] = `
                             styled={false}
                           >
                             <Base
-                              className="css-1ky52ze-Title e1kblvez0"
+                              className="css-1ky52ze-Title e1uay4fd0"
                             >
                               <div
-                                className="css-1ky52ze-Title e1kblvez0"
+                                className="css-1ky52ze-Title e1uay4fd0"
                                 is={null}
                               >
                                 <HeaderTitle>
                                   <h4
-                                    className="css-1w8ttcn-HeaderTitle e6lvex72"
+                                    className="css-1w8ttcn-HeaderTitle eqkydle2"
                                   >
                                     Amazon SQS
                                   </h4>
@@ -302,9 +302,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                               </div>
                             </Base>
                           </Title>
-                          <Action>
+                          <Action
+                            tabs={false}
+                          >
                             <div
-                              className="css-18luhfc-Action e1kblvez1"
+                              className="css-18luhfc-Action e1uay4fd1"
                             >
                               <div
                                 className="pull-right"
