@@ -3,6 +3,8 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import {openDebugFileSourceModal} from 'app/actionCreators/modal';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -48,7 +50,24 @@ export const fields = {
     name: 'symbolSources',
     type: 'rich_list',
     label: t('Custom Repositories'),
-    help: t('Configures custom repositories containing debug files.'),
+    /* eslint-disable-next-line react/prop-types */
+    help: ({organization}) => (
+      <Feature
+        features={['organizations:custom-symbol-sources']}
+        hookName="custom-symbol-sources"
+        organization={organization}
+        renderDisabled={p => (
+          <FeatureDisabled
+            features={p.features}
+            message={t('Custom repositories are disabled.')}
+            featureName={t('custom repositories')}
+          />
+        )}
+      >
+        {t('Configures custom repositories containing debug files.')}
+      </Feature>
+    ),
+    disabled: ({features}) => !features.has('custom-symbol-sources'),
     formatMessageValue: false,
     addButtonText: t('Add Repository'),
     addDropdown: {

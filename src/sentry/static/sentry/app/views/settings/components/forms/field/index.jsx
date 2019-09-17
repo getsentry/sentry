@@ -60,7 +60,7 @@ class Field extends React.Component {
     /**
      * Help or description of the field
      */
-    help: PropTypes.oneOfType([PropTypes.node, PropTypes.element]),
+    help: PropTypes.oneOfType([PropTypes.node, PropTypes.element, PropTypes.func]),
 
     /**
      * Should Control be inline with Label
@@ -126,6 +126,8 @@ class Field extends React.Component {
       return null;
     }
 
+    const helpElement = typeof help === 'function' ? help(this.props) : help;
+
     const controlProps = {
       className: controlClassName,
       inline,
@@ -133,6 +135,7 @@ class Field extends React.Component {
       disabled: isDisabled,
       disabledReason,
       flexibleControlStateSize,
+      help: helpElement,
     };
 
     // See comments in prop types
@@ -154,16 +157,16 @@ class Field extends React.Component {
         hasControlState={!flexibleControlStateSize}
         style={style}
       >
-        {(label || help) && (
+        {(label || helpElement) && (
           <FieldDescription inline={inline} htmlFor={id}>
             {label && (
               <FieldLabel disabled={isDisabled}>
                 {label} {required && <FieldRequiredBadge />}
               </FieldLabel>
             )}
-            {help && (
+            {helpElement && (
               <FieldHelp stacked={stacked} inline={inline}>
-                {help}
+                {helpElement}
               </FieldHelp>
             )}
           </FieldDescription>
