@@ -5,7 +5,108 @@ import Modal from 'react-bootstrap/lib/Modal';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 
-class Confirm extends React.PureComponent {
+type MessageRenderProps = {
+  /**
+   * Confirms the modal
+   */
+  confirm: () => void;
+  /**
+   * Closes the modal, if `bypass` is true, will call `onConfirm` callback
+   */
+  close: (e: React.MouseEvent) => void;
+};
+
+type ChildrenRenderProps = {
+  open: () => void;
+  close: () => void;
+};
+
+type Props = {
+  /**
+   * Callback when user confirms
+   */
+  onConfirm: () => void;
+
+  /**
+   * Text to show in the confirmation button
+   */
+  confirmText: React.ReactNode;
+
+  /**
+   * Text to show in the cancel button
+   */
+  cancelText: React.ReactNode;
+
+  /**
+   * Button priority
+   */
+  priority?: Button['props']['priority'];
+
+  /**
+   * If true, will skip the confirmation modal and call `onConfirm` callback
+   */
+  bypass?: boolean;
+
+  /**
+   * Message to display to user when asking for confirmation
+   */
+  message?: React.ReactNode;
+  /**
+   * Renderer that passes:
+   * `confirm`: Allows renderer to perform confirm action
+   * `close`: Allows renderer to toggle confirm modal
+   */
+  renderMessage?: (renderProps: MessageRenderProps) => React.ReactNode;
+
+  /**
+   * Render props to control rendering of the modal in its entirety
+   */
+  children?:
+    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>
+    | ((renderProps: ChildrenRenderProps) => React.ReactChildren);
+
+  /**
+   * Passed to `children` render function
+   */
+  disabled?: boolean;
+
+  /**
+   * Disables the confirm button
+   */
+  disableConfirmButton?: boolean;
+
+  /**
+   * Callback function when user is in the confirming state
+   */
+  onConfirming?: () => void;
+
+  /**
+   * User cancels the modal
+   */
+  onCancel?: () => void;
+
+  /**
+   * Header of modal
+   */
+  header?: React.ReactNode;
+
+  // Stop event propgation when opening the confirm modal
+  stopPropagation?: boolean;
+};
+
+type State = {
+  /**
+   * Is modal open
+   */
+  isModalOpen: boolean;
+
+  /**
+   * Is confirm button disabled
+   */
+  disableConfirmButton: boolean;
+};
+
+class Confirm extends React.PureComponent<Props, State> {
   static propTypes = {
     onConfirm: PropTypes.func.isRequired,
     confirmText: PropTypes.string.isRequired,
@@ -40,7 +141,12 @@ class Confirm extends React.PureComponent {
     stopPropagation: false,
   };
 
-  static getDerivedStateFromProps(props, state) {
+  state: State = {
+    isModalOpen: false,
+    disableConfirmButton: this.props.disableConfirmButton || false,
+  };
+
+  static getDerivedStateFromProps(props: Props, state: State) {
     // Reset the state to handle prop changes from ConfirmDelete
     if (props.disableConfirmButton !== state.disableConfirmButton) {
       return {
@@ -50,15 +156,7 @@ class Confirm extends React.PureComponent {
     return null;
   }
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      isModalOpen: false,
-      disableConfirmButton: props.disableConfirmButton,
-    };
-    this.confirming = false;
-  }
+  confirming: boolean = false;
 
   openModal = () => {
     const {onConfirming, disableConfirmButton} = this.props;
@@ -68,7 +166,7 @@ class Confirm extends React.PureComponent {
 
     this.setState({
       isModalOpen: true,
-      disableConfirmButton,
+      disableConfirmButton: disableConfirmButton || false,
     });
 
     // always reset `confirming` when modal visibility changes
@@ -82,7 +180,7 @@ class Confirm extends React.PureComponent {
     }
     this.setState({
       isModalOpen: false,
-      disableConfirmButton,
+      disableConfirmButton: disableConfirmButton || false,
     });
 
     // always reset `confirming` when modal visibility changes
@@ -103,7 +201,7 @@ class Confirm extends React.PureComponent {
     this.confirming = true;
   };
 
-  handleToggle = e => {
+  handleToggle = (e: React.MouseEvent): void => {
     const {disabled, bypass} = this.props;
     if (disabled) {
       return;
@@ -138,7 +236,8 @@ class Confirm extends React.PureComponent {
       header,
     } = this.props;
 
-    let confirmMessage;
+    let confirmMessage: React.ReactNode;
+
     if (typeof renderMessage === 'function') {
       confirmMessage = renderMessage({
         confirm: this.handleConfirm,
@@ -161,7 +260,8 @@ class Confirm extends React.PureComponent {
               close: this.closeModal,
               open: this.openModal,
             })
-          : React.cloneElement(children, {
+          : React.isValidElement(children) &&
+            React.cloneElement(children, {
               disabled,
               onClick: this.handleToggle,
             })}
