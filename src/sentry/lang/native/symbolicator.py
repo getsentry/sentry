@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
@@ -255,7 +255,18 @@ def get_sources_for_project(project):
     project_source = get_internal_source(project)
     sources.append(project_source)
 
-    sources_config = project.get_option("sentry:symbol_sources")
+    # Check that the organization still has access to symbol sources. This
+    # controls both builtin and external sources.
+    organization = project.organization
+    if not features.has("organizations:symbol-sources", organization):
+        return sources
+
+    # Custom sources have their own feature flag. Check them independently.
+    if features.has("organizations:custom-symbol-sources", organization):
+        sources_config = project.get_option("sentry:symbol_sources")
+    else:
+        sources_config = None
+
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)

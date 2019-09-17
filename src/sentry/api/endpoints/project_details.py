@@ -208,10 +208,14 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         organization = self.context["project"].organization
         request = self.context["request"]
-        has_sources = features.has("organizations:symbol-sources", organization, actor=request.user)
+        has_sources = features.has(
+            "organizations:custom-symbol-sources", organization, actor=request.user
+        )
 
         if not has_sources:
-            raise serializers.ValidationError("Organization is not allowed to set symbol sources")
+            raise serializers.ValidationError(
+                "Organization is not allowed to set custom symbol sources"
+            )
 
         try:
             sources = parse_sources(sources_json.strip())
