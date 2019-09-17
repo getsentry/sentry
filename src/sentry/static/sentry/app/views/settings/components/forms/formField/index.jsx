@@ -501,7 +501,7 @@ class FormField extends React.Component {
 
     const observedProps = propsToObserver
       .filter(p => typeof this.props[p] === 'function')
-      .map(p => [p, () => this.props[p](model)]);
+      .map(p => [p, () => this.props[p]({...this.props, model})]);
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.

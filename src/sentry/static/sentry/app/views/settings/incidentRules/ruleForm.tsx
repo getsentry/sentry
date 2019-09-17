@@ -59,7 +59,7 @@ class RuleForm extends React.Component<Props, State> {
                 choices: projects.map(project => [project.id, project.slug]),
                 placeholder: t('All Projects'),
                 multiple: true,
-                visible: model => !model.getValue('includeAllProjects'),
+                visible: ({model}) => !model.getValue('includeAllProjects'),
               },
               {
                 name: 'excludedProjects',
@@ -69,7 +69,7 @@ class RuleForm extends React.Component<Props, State> {
                 choices: projects.map(({id, slug}) => [id, slug]),
                 placeholder: t('None'),
                 multiple: true,
-                visible: model => !!model.getValue('includeAllProjects'),
+                visible: ({model}) => !!model.getValue('includeAllProjects'),
               },
               {
                 name: 'aggregations',
