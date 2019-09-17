@@ -19,8 +19,12 @@ export default class IntegrationItem extends React.Component<Props> {
     compact: PropTypes.bool,
   };
 
+  static defaultProps = {
+    compact: false,
+  };
+
   render() {
-    const {integration, compact = false} = this.props;
+    const {integration, compact} = this.props;
 
     return (
       <Flex>

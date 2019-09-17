@@ -42,10 +42,9 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     router: PropTypes.object,
   };
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = {
-      ...this.getDefaultState(),
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
       error: false,
       adding: false,
       itemList: [],
