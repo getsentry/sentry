@@ -346,6 +346,7 @@ class EventView {
       cursor?: string;
     };
 
+    // note: these query strings are set by another component
     const picked = pick<LocationQuery>(query || {}, [
       'project',
       'environment',
