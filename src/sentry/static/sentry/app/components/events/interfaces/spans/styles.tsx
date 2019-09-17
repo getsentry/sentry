@@ -41,6 +41,8 @@ export const SpanRow = styled.div<SpanRowAndDivProps>`
 `;
 
 export const SpanRowMessage = styled(SpanRow)`
+  display: block;
+
   cursor: auto;
 
   color: #4a3e56;
