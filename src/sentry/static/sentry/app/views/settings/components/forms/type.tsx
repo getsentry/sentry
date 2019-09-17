@@ -29,7 +29,7 @@ type BaseField = {
   required?: boolean;
   placeholder?: string | (() => string);
   multiline?: boolean;
-  visible?: boolean | (() => boolean);
+  visible?: boolean | ((model: any) => boolean);
   disabled?: boolean | (() => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
@@ -69,6 +69,7 @@ type CustomType = {type: 'custom'} & {
 // May not be needed as we convert the fields
 type SelectControlType = {type: 'choice' | 'select'} & {
   choices: [number | string, number | string][];
+  multiple?: boolean;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -76,7 +77,9 @@ type TextareaType = {type: 'textarea'} & {
   rows?: number;
 };
 
-type RangeType = {type: 'range'} & React.ComponentProps<RangeSlider>;
+type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
+    value?: Pick<RangeSlider['props'], 'value'>;
+  };
 
 export type Field = (
   | CustomType
