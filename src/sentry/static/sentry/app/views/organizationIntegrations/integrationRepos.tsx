@@ -45,12 +45,10 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      error: false,
       adding: false,
       itemList: [],
       integrationRepos: {repos: [], searchable: false},
       dropdownBusy: false,
-      errors: {},
     };
   }
 
