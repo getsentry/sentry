@@ -28,5 +28,6 @@ class OrganizationSerializerTest(TestCase):
                 "sso-basic",
                 "sentry10",
                 "symbol-sources",
+                "tweak-grouping-config",
             ]
         )
