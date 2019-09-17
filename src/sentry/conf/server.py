@@ -831,7 +831,7 @@ SENTRY_FEATURES = {
     # Turns on grouping info.
     "organizations:grouping-info": False,
     # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": False,
+    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable incidents feature
