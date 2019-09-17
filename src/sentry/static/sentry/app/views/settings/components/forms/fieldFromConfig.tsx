@@ -129,11 +129,7 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'rich_list':
         return <RichListField {...props} />;
       case 'custom':
-        if (typeof field.Component === 'function') {
-          return field.Component(props);
-        }
-
-        throw new Error('Missing `Component` property for field');
+        return field.Component(props);
       default:
         return null;
     }
