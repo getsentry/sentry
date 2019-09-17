@@ -12,8 +12,13 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Group, GroupIntegration} from 'app/types';
 
-class ExternalIssueActions extends AsyncComponent {
+type Props = {
+  integration: GroupIntegration;
+  group: Group;
+};
+class ExternalIssueActions extends AsyncComponent<Props & AsyncComponent['props']> {
   static propTypes = {
     group: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
@@ -94,7 +99,6 @@ class ExternalIssueActions extends AsyncComponent {
           externalIssueDisplayName={issue ? issue.displayName : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
-          integrationName={selectedIntegration.name}
           hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
           hoverCardBody={
             issue && issue.title ? (

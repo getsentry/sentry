@@ -412,6 +412,25 @@ export type Integration = {
   configOrganization: Array<any>;
 };
 
+export type GroupIntegration = Integration & {
+  externalIssues: {
+    id: string;
+    key: string;
+    url: string;
+    title: string;
+    description: string;
+    displayName: string;
+  }[];
+};
+
+export type OrganizationIntegration = Integration & {
+  // TODO(ts): This should be an array of whatever the field prop in FieldFromConfig will be
+  // Replace with the proper type when it's done
+  configOrganization: any[];
+  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  configData: object;
+};
+
 export type SentryAppInstallation = {
   app: {
     uuid: string;
