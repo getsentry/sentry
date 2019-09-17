@@ -5,9 +5,11 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 const colors = {
   // Colors
   offWhite: '#FAF9FB',
+  offWhiteLight: '#F2F0F5',
   offWhite2: '#E7E1EC',
-  whiteDark: '#fbfbfc',
+
   white: '#FFFFFF',
+  whiteDark: '#fbfbfc',
   foreground: '#493E54',
 
   gray1: '#BDB4C7',
@@ -218,6 +220,7 @@ const theme = {
   },
 
   grid: 8,
+  fontSizeExtraSmall: '11px',
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',

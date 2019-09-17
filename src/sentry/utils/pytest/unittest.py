@@ -4,8 +4,18 @@ import pytest
 
 
 @pytest.fixture(scope="function")
-def factories_class(request, default_user, default_organization, default_team, default_project,
-                    default_projectkey, default_environment, default_group, default_event, default_activity):
+def factories_class(
+    request,
+    default_user,
+    default_organization,
+    default_team,
+    default_project,
+    default_projectkey,
+    default_environment,
+    default_group,
+    default_event,
+    default_activity,
+):
     # set a class attribute on the invoking test context
     request.cls.user = default_user
     request.cls.organization = default_organization

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import six
 import uuid
 import sentry.utils as utils
@@ -12,6 +11,7 @@ from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters, get_filter_key
+from sentry import quotas
 
 from sentry.models.organization import Organization
 from sentry.models.organizationoption import OrganizationOption
@@ -26,9 +26,7 @@ from sentry.utils.sdk import configure_scope
 
 def get_project_key_config(project_key):
     """Returns a dict containing the information for a specific project key"""
-    return {
-        'dsn': project_key.dsn_public,
-    }
+    return {"dsn": project_key.dsn_public}
 
 
 def get_project_config(project_id, full_config=True, for_store=False):
@@ -57,32 +55,38 @@ def get_project_config(project_id, full_config=True, for_store=False):
     if for_store:
         project_keys = []
     else:
-        project_keys = ProjectKey.objects \
-            .filter(project=project) \
-            .all()
+        project_keys = ProjectKey.objects.filter(project=project).all()
 
-    public_keys = {}
+    public_keys = []
+
     for project_key in project_keys:
-        public_keys[project_key.public_key] = project_key.status == 0
+        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
+        if full_config:
+            key["numericId"] = project_key.id
+
+            key["quotas"] = [
+                quota.to_json() for quota in quotas.get_quotas(project, key=project_key)
+            ]
+        public_keys.append(key)
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
-    org_options = OrganizationOption.objects.get_all_values(
-        project.organization_id)
+    org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
     cfg = {
-        'disabled': project.status > 0,
-        'slug': project.slug,
-        'lastFetch': now,
-        'lastChange': project.get_option('sentry:relay-rev-lastchange', now),
-        'rev': project.get_option('sentry:relay-rev', uuid.uuid4().hex),
-        'publicKeys': public_keys,
-        'config': {
-            'allowedDomains': project.get_option('sentry:origins', ['*']),
-            'trustedRelays': org_options.get('sentry:trusted-relays', []),
-            'piiConfig': _get_pii_config(project, org_options),
+        "disabled": project.status > 0,
+        "slug": project.slug,
+        "lastFetch": now,
+        "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
+        "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
+        "publicKeys": public_keys,
+        "config": {
+            "allowedDomains": project.get_option("sentry:origins", ["*"]),
+            "trustedRelays": org_options.get("sentry:trusted-relays", []),
+            "piiConfig": _get_pii_config(project),
+            "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
         },
-        'project_id': project.id,
+        "project_id": project.id,
     }
 
     if not full_config:
@@ -91,82 +95,57 @@ def get_project_config(project_id, full_config=True, for_store=False):
 
     # The organization id is only required for reporting when processing events
     # internally. Do not expose it to external Relays.
-    cfg['organization_id'] = project.organization_id
+    cfg["organization_id"] = project.organization_id
 
     # Explicitly bind Organization so we don't implicitly query it later
     # this just allows us to comfortably assure that `project.organization` is safe.
     # This also allows us to pull the object from cache, instead of being
     # implicitly fetched from database.
-    project.organization = Organization.objects.get_from_cache(
-        id=project.organization_id)
+    project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     if project.organization is not None:
-        org_options = OrganizationOption.objects.get_all_values(
-            project.organization_id)
+        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
     else:
         org_options = {}
 
-    project_cfg = cfg['config']
+    project_cfg = cfg["config"]
 
     # get the filter settings for this project
     filter_settings = {}
-    project_cfg['filter_settings'] = filter_settings
+    project_cfg["filter_settings"] = filter_settings
 
     for flt in get_all_filters():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
-    invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
+    invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
     if invalid_releases:
-        filter_settings[FilterTypes.RELEASES] = {'releases': invalid_releases}
+        filter_settings[FilterTypes.RELEASES] = {"releases": invalid_releases}
 
-    blacklisted_ips = project.get_option('sentry:blacklisted_ips')
+    blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
-        filter_settings['client_ips'] = {'blacklisted_ips': blacklisted_ips}
+        filter_settings["client_ips"] = {"blacklisted_ips": blacklisted_ips}
 
-    error_messages = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
     if error_messages:
-        filter_settings[FilterTypes.ERROR_MESSAGES] = {'patterns': error_messages}
+        filter_settings[FilterTypes.ERROR_MESSAGES] = {"patterns": error_messages}
 
     csp_disallowed_sources = []
-    if bool(project.get_option('sentry:csp_ignored_sources_defaults', True)):
+    if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
-    csp_disallowed_sources += project.get_option('sentry:csp_ignored_sources', [])
+    csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
     if csp_disallowed_sources:
-        filter_settings['csp'] = {'disallowed_sources': csp_disallowed_sources}
+        filter_settings["csp"] = {"disallowed_sources": csp_disallowed_sources}
 
-    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                        project.get_option('sentry:scrub_ip_address', False))
+    scrub_ip_address = org_options.get(
+        "sentry:require_scrub_ip_address", False
+    ) or project.get_option("sentry:scrub_ip_address", False)
 
-    project_cfg['scrub_ip_addresses'] = scrub_ip_address
+    project_cfg["scrub_ip_addresses"] = scrub_ip_address
 
-    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                  project.get_option('sentry:scrub_data', True))
-
-    project_cfg['scrub_data'] = scrub_data
-    project_cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
-    project_cfg['allowed_domains'] = list(get_origins(project))
-
-    if scrub_data:
-        # We filter data immediately before it ever gets into the queue
-        sensitive_fields_key = 'sentry:sensitive_fields'
-        sensitive_fields = (
-            org_options.get(sensitive_fields_key, []) +
-            project.get_option(sensitive_fields_key, [])
-        )
-        project_cfg['sensitive_fields'] = sensitive_fields
-
-        exclude_fields_key = 'sentry:safe_fields'
-        exclude_fields = (
-            org_options.get(exclude_fields_key, []) +
-            project.get_option(exclude_fields_key, [])
-        )
-        project_cfg['exclude_fields'] = exclude_fields
-
-        scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
-                          project.get_option('sentry:scrub_defaults', True))
-        project_cfg['scrub_defaults'] = scrub_defaults
+    project_cfg["grouping_config"] = get_grouping_config_dict_for_project(project)
+    project_cfg["allowed_domains"] = list(get_origins(project))
 
     return ProjectConfig(project, **cfg)
 
@@ -215,8 +194,10 @@ class _ConfigBase(object):
         True
         """
         data = self.__get_data()
-        return {key: value.to_dict() if isinstance(value, _ConfigBase) else value for (key, value) in
-                six.iteritems(data)}
+        return {
+            key: value.to_dict() if isinstance(value, _ConfigBase) else value
+            for (key, value) in six.iteritems(data)
+        }
 
     def to_camel_case_dict(self):
         return _to_camel_case_dict(self.to_dict())
@@ -268,7 +249,7 @@ class _ConfigBase(object):
         return None  # property not set or path goes beyond the Config defined valid path
 
     def __get_data(self):
-        return object.__getattribute__(self, 'data')
+        return object.__getattribute__(self, "data")
 
     def __str__(self):
         try:
@@ -291,61 +272,41 @@ class ProjectConfig(_ConfigBase):
         super(ProjectConfig, self).__init__(**kwargs)
 
 
-def _generate_pii_config(project, org_options):
-    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                        project.get_option('sentry:scrub_ip_address', False))
-    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                  project.get_option('sentry:scrub_data', True))
-    fields = project.get_option('sentry:sensitive_fields')
-
-    if not scrub_data and not scrub_ip_address:
-        return None
-
-    custom_rules = {}
-
-    default_rules = []
-    ip_rules = []
-    databag_rules = []
-
-    if scrub_data:
-        default_rules.extend((
-            '@email',
-            '@mac',
-            '@creditcard',
-            '@userpath',
-        ))
-        databag_rules.append('@password')
-        if fields:
-            custom_rules['strip-fields'] = {
-                'type': 'redactPair',
-                'redaction': 'remove',
-                'keyPattern': r'\b%s\n' % '|'.join(re.escape(x) for x in fields),
-            }
-            databag_rules.append('strip-fields')
-
-    if scrub_ip_address:
-        ip_rules.append('@ip')
-
-    return {
-        'rules': custom_rules,
-        'applications': {
-            'freeform': default_rules,
-            'databag': default_rules + databag_rules,
-            'username': scrub_data and ['@userpath'] or [],
-            'email': scrub_data and ['@email'] or [],
-            'ip': ip_rules,
-        }
-    }
-
-
-def _get_pii_config(project, org_options):
-    value = project.get_option('sentry:relay_pii_config')
+def _get_pii_config(project):
+    value = project.get_option("sentry:relay_pii_config")
     if value is not None:
         try:
             return utils.json.loads(value)
         except (TypeError, ValueError):
             return None
-    return _generate_pii_config(project, org_options)
+
+
+def _get_datascrubbing_settings(project, org_options):
+    rv = {}
+
+    exclude_fields_key = "sentry:safe_fields"
+    rv["excludeFields"] = org_options.get(exclude_fields_key, []) + project.get_option(
+        exclude_fields_key, []
+    )
+
+    rv["scrubData"] = org_options.get("sentry:require_scrub_data", False) or project.get_option(
+        "sentry:scrub_data", True
+    )
+
+    rv["scrubIpAddresses"] = org_options.get(
+        "sentry:require_scrub_ip_address", False
+    ) or project.get_option("sentry:scrub_ip_address", False)
+
+    sensitive_fields_key = "sentry:sensitive_fields"
+    rv["sensitiveFields"] = org_options.get(sensitive_fields_key, []) + project.get_option(
+        sensitive_fields_key, []
+    )
+
+    rv["scrubDefaults"] = org_options.get(
+        "sentry:require_scrub_defaults", False
+    ) or project.get_option("sentry:scrub_defaults", True)
+
+    return rv
 
 
 def _to_camel_case_name(name):
@@ -383,8 +344,8 @@ def _to_camel_case_name(name):
         return name
     else:
         name = name.strip("_")
-        pieces = name.split('_')
-        return first_lower(pieces[0]) + ''.join(first_upper(x) for x in pieces[1:])
+        pieces = name.split("_")
+        return first_lower(pieces[0]) + "".join(first_upper(x) for x in pieces[1:])
 
 
 def _to_camel_case_dict(obj):
@@ -416,8 +377,10 @@ def _to_camel_case_dict(obj):
     if not isinstance(obj, dict):
         raise ValueError("Bad parameter passed expected dictionary got {}".format(repr(type(obj))))
 
-    return {_to_camel_case_name(key): _to_camel_case_dict(value) if isinstance(value, dict) else value
-            for (key, value) in six.iteritems(obj)}
+    return {
+        _to_camel_case_name(key): _to_camel_case_dict(value) if isinstance(value, dict) else value
+        for (key, value) in six.iteritems(obj)
+    }
 
 
 def _get_project_from_id(project_id):
@@ -425,12 +388,12 @@ def _get_project_from_id(project_id):
         return None
     if not project_id.isdigit():
         track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError('Invalid project_id: %r' % project_id)
+        raise APIError("Invalid project_id: %r" % project_id)
     try:
         return Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError('Invalid project_id: %r' % project_id)
+        raise APIError("Invalid project_id: %r" % project_id)
 
 
 def _load_filter_settings(flt, project):
@@ -444,7 +407,7 @@ def _load_filter_settings(flt, project):
         default options for the filter will be returned
     """
     filter_id = flt.spec.id
-    filter_key = u'filters:{}'.format(filter_id)
+    filter_key = u"filters:{}".format(filter_id)
     setting = ProjectOption.objects.get_value(project=project, key=filter_key, default=None)
 
     return _filter_option_to_config_setting(flt, setting)
@@ -459,23 +422,25 @@ def _filter_option_to_config_setting(flt, setting):
     :return: the option as viewed from project_config
     """
     if setting is None:
-        raise ValueError("Could not find filter state for filter {0}."
-                         " You need to register default filter state in projectoptions.defaults.".format(flt.spec.id))
+        raise ValueError(
+            "Could not find filter state for filter {0}."
+            " You need to register default filter state in projectoptions.defaults.".format(
+                flt.spec.id
+            )
+        )
 
-    is_enabled = setting != '0'
+    is_enabled = setting != "0"
 
-    ret_val = {
-        'is_enabled': is_enabled
-    }
+    ret_val = {"is_enabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
     if flt.spec.id == FilterStatKeys.LEGACY_BROWSER:
         if is_enabled:
-            if setting == '1':
-                ret_val['options'] = ['default']
+            if setting == "1":
+                ret_val["options"] = ["default"]
             else:
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')
-                ret_val['options'] = list(setting)
+                ret_val["options"] = list(setting)
     return ret_val

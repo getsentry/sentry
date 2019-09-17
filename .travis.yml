@@ -1,5 +1,4 @@
-dist: trusty
-group: deprecated-2017Q4
+dist: xenial
 language: python
 python: 2.7
 
@@ -26,6 +25,9 @@ addons:
 env:
   global:
     - NODE_ENV=development
+    # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
+    - PYTHON_PIP_VERSION=19.1.1
+    - PIP_USE_PEP517=off
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
@@ -35,6 +37,9 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
+
+before_install:
+  - pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -62,11 +67,6 @@ after_script:
   - $(./bin/yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
   - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
   - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
-  # Trigger a build for the `git` image on docker-sentry
-  - >
-      if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then
-        curl -s -X POST "$DOCKER_SENTRY_BUILD_TRIGGER_URL";
-      fi
 
 base_postgres: &postgres_default
   python: 2.7
@@ -74,15 +74,15 @@ base_postgres: &postgres_default
     - memcached
     - redis-server
     - postgresql
+  before_install:
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - docker ps -a
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
-  before_install:
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
-    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-    - docker ps -a
 
 base_acceptance: &acceptance_default
   python: 2.7
@@ -143,15 +143,15 @@ matrix:
         - redis-server
         - postgresql
         - riak
+      before_install:
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
-      before_install:
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-        - docker ps -a
 
     - <<: *acceptance_default
       name: 'Acceptance'

@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 __all__ = [
-    'IntegrationInstallation',
-    'IntegrationFeatures',
-    'IntegrationProvider',
-    'IntegrationMetadata',
-    'FeatureDescription',
+    "IntegrationInstallation",
+    "IntegrationFeatures",
+    "IntegrationProvider",
+    "IntegrationMetadata",
+    "FeatureDescription",
 ]
 
 import logging
@@ -19,28 +19,38 @@ from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
 from .exceptions import (
-    ApiHostError, ApiError, ApiUnauthorized, IntegrationError,
-    IntegrationFormError, UnsupportedResponseType
+    ApiHostError,
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+    UnsupportedResponseType,
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry.models import Identity, OrganizationIntegration
 
 
-FeatureDescription = namedtuple('FeatureDescription', [
-    'description',  # A markdown description of the feature
-    'featureGate',  # A IntegrationFeature that gates this feature
-])
+FeatureDescription = namedtuple(
+    "FeatureDescription",
+    [
+        "description",  # A markdown description of the feature
+        "featureGate",  # A IntegrationFeature that gates this feature
+    ],
+)
 
 
-IntegrationMetadata = namedtuple('IntegrationMetadata', [
-    'description',  # A markdown description of the integration
-    'features',     # A list of FeatureDescriptions
-    'author',       # The integration author's name
-    'noun',         # The noun used to identify the integration
-    'issue_url',    # URL where issues should be opened
-    'source_url',   # URL to view the source
-    'aspects',      # A map of integration specific 'aspects' to the aspect config.
-])
+IntegrationMetadata = namedtuple(
+    "IntegrationMetadata",
+    [
+        "description",  # A markdown description of the integration
+        "features",  # A list of FeatureDescriptions
+        "author",  # The integration author's name
+        "noun",  # The noun used to identify the integration
+        "issue_url",  # URL where issues should be opened
+        "source_url",  # URL to view the source
+        "aspects",  # A map of integration specific 'aspects' to the aspect config.
+    ],
+)
 
 
 class IntegrationMetadata(IntegrationMetadata):
@@ -52,16 +62,16 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return u'integrations-{}'.format(f)
+            return u"integrations-{}".format(f)
 
     def _asdict(self):
         metadata = super(IntegrationMetadata, self)._asdict()
-        metadata['features'] = [
+        metadata["features"] = [
             {
-                'description': f.description.strip(),
-                'featureGate': self.feature_flag_name(f.featureGate.value)
+                "description": f.description.strip(),
+                "featureGate": self.feature_flag_name(f.featureGate.value),
             }
-            for f in metadata['features']
+            for f in metadata["features"]
         ]
         return metadata
 
@@ -75,12 +85,13 @@ class IntegrationFeatures(Enum):
     NOTE: Features in this list that are gated by an organization feature flag
     *must* match the suffix of the organization feature flag name.
     """
-    ACTION_NOTIFICATION = 'actionable-notification'
-    ISSUE_BASIC = 'issue-basic'
-    ISSUE_SYNC = 'issue-sync'
-    COMMITS = 'commits'
-    CHAT_UNFURL = 'chat-unfurl'
-    ALERT_RULE = 'alert-rule'
+
+    ACTION_NOTIFICATION = "actionable-notification"
+    ISSUE_BASIC = "issue-basic"
+    ISSUE_SYNC = "issue-sync"
+    COMMITS = "commits"
+    CHAT_UNFURL = "chat-unfurl"
+    ALERT_RULE = "alert-rule"
 
 
 class IntegrationProvider(PipelineProvider):
@@ -122,10 +133,7 @@ class IntegrationProvider(PipelineProvider):
     integration_cls = None
 
     # configuration for the setup dialog
-    setup_dialog_config = {
-        'width': 600,
-        'height': 600,
-    }
+    setup_dialog_config = {"width": 600, "height": 600}
 
     # whether or not the integration installation be initiated from Sentry
     can_add = True
@@ -152,7 +160,7 @@ class IntegrationProvider(PipelineProvider):
         return self._integration_key or self.key
 
     def get_logger(self):
-        return logging.getLogger('sentry.integration.%s' % (self.key, ))
+        return logging.getLogger("sentry.integration.%s" % (self.key,))
 
     def post_install(self, integration, organization):
         pass
@@ -220,7 +228,7 @@ class IntegrationInstallation(object):
     core functionality of the integration.
     """
 
-    logger = logging.getLogger('sentry.integrations')
+    logger = logging.getLogger("sentry.integrations")
 
     def __init__(self, model, organization_id):
         self.model = model
@@ -231,8 +239,7 @@ class IntegrationInstallation(object):
     def org_integration(self):
         if self._org_integration is None:
             self._org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization_id,
-                integration_id=self.model.id,
+                organization_id=self.organization_id, integration_id=self.model.id
             )
         return self._org_integration
 
@@ -270,7 +277,7 @@ class IntegrationInstallation(object):
         return identity
 
     def error_message_from_json(self, data):
-        return data.get('message', 'unknown error')
+        return data.get("message", "unknown error")
 
     def error_fields_from_json(self, data):
         """
@@ -288,20 +295,16 @@ class IntegrationInstallation(object):
         elif isinstance(exc, ApiHostError):
             return exc.text
         elif isinstance(exc, UnsupportedResponseType):
-            return ERR_UNSUPPORTED_RESPONSE_TYPE.format(
-                content_type=exc.content_type,
-            )
+            return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
             if exc.json:
-                msg = self.error_message_from_json(exc.json) or 'unknown error'
+                msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
-                msg = 'unknown error'
-            return (
-                'Error Communicating with %s (HTTP %s): %s' % (
-                    self.model.get_provider().name,
-                    exc.code,
-                    msg
-                )
+                msg = "unknown error"
+            return "Error Communicating with %s (HTTP %s): %s" % (
+                self.model.get_provider().name,
+                exc.code,
+                msg,
             )
         else:
             return ERR_INTERNAL
@@ -311,29 +314,23 @@ class IntegrationInstallation(object):
             six.reraise(
                 InvalidIdentity,
                 InvalidIdentity(self.message_from_error(exc), identity=identity),
-                sys.exc_info()[2]
+                sys.exc_info()[2],
             )
         elif isinstance(exc, ApiError):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:
                     six.reraise(
-                        IntegrationFormError,
-                        IntegrationFormError(error_fields),
-                        sys.exc_info()[2]
+                        IntegrationFormError, IntegrationFormError(error_fields), sys.exc_info()[2]
                     )
 
             six.reraise(
-                IntegrationError,
-                IntegrationError(self.message_from_error(exc)),
-                sys.exc_info()[2]
+                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
             )
         elif isinstance(exc, IntegrationError):
             raise
         else:
             self.logger.exception(six.text_type(exc))
             six.reraise(
-                IntegrationError,
-                IntegrationError(self.message_from_error(exc)),
-                sys.exc_info()[2]
+                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
             )

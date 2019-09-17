@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ('Message', )
+__all__ = ("Message",)
 
 import six
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
 
 
@@ -31,27 +32,22 @@ class Message(Interface):
     >>>     "params": ["this"]
     >>> }
     """
+
     score = 0
     display_score = 2050
-    path = 'logentry'
-    external_type = 'message'
+    path = "logentry"
+    external_type = "message"
 
     @classmethod
     def to_python(cls, data):
-        for key in (
-            'message',
-            'formatted',
-            'params',
-        ):
+        for key in ("message", "formatted", "params"):
             data.setdefault(key, None)
         return cls(**data)
 
     def to_json(self):
-        return prune_empty_keys({
-            'message': self.message,
-            'formatted': self.formatted,
-            'params': self.params or None
-        })
+        return prune_empty_keys(
+            {"message": self.message, "formatted": self.formatted, "params": self.params or None}
+        )
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.formatted or self.message

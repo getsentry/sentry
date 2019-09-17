@@ -13,6 +13,7 @@ from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.decorators import classproperty
+from sentry.utils.json import prune_empty_keys
 
 
 logger = logging.getLogger("sentry.events")
@@ -24,12 +25,12 @@ def get_interface(name):
         name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
-        raise ValueError('Invalid interface name: %s' % (name, ))
+        raise ValueError("Invalid interface name: %s" % (name,))
 
     try:
         interface = import_string(import_path)
     except Exception:
-        raise ValueError('Unable to load interface: %s' % (name, ))
+        raise ValueError("Unable to load interface: %s" % (name,))
 
     return interface
 
@@ -57,23 +58,6 @@ def get_interfaces(data):
     )
 
 
-def prune_empty_keys(obj):
-    if obj is None:
-        return None
-
-    # eliminate None values for serialization to compress the keyspace
-    # and save (seriously) ridiculous amounts of bytes
-    #
-    # Do not coerce empty arrays/dicts or other "falsy" values here to None,
-    # but rather deal with them case-by-case before calling `prune_empty_keys`
-    # (e.g. in `Interface.to_json`). Rarely, but sometimes, there's a slight
-    # semantic difference between empty containers and a missing value. One
-    # example would be `event.logentry.formatted`, where `{}` means "this
-    # message has no params" and `None` means "this message is already
-    # formatted".
-    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
-
-
 class InterfaceValidationError(Exception):
     pass
 
@@ -88,7 +72,7 @@ class Interface(object):
     score = 0
     display_score = None
     ephemeral = False
-    grouping_variants = ['default']
+    grouping_variants = ["default"]
 
     def __init__(self, **data):
         self._data = data or {}
@@ -111,19 +95,19 @@ class Interface(object):
         return self._data == other._data
 
     def __getstate__(self):
-        return {'_data': self._data}
+        return {"_data": self._data}
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if not hasattr(self, '_data'):
+        if not hasattr(self, "_data"):
             self._data = {}
 
     def __getattr__(self, name):
         return self._data[name]
 
     def __setattr__(self, name, value):
-        if name == '_data':
-            self.__dict__['_data'] = value
+        if name == "_data":
+            self.__dict__["_data"] = value
         else:
             self._data[name] = value
 
@@ -163,28 +147,31 @@ class Interface(object):
         return iter(())
 
     def to_string(self, event, is_public=False, **kwargs):
-        return ''
+        return ""
 
     def to_email_html(self, event, **kwargs):
         body = self.to_string(event)
         if not body:
-            return ''
-        return '<pre>%s</pre>' % (escape(body), )
+            return ""
+        return "<pre>%s</pre>" % (escape(body),)
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.
 
     def get_path(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path
 
     def get_alias(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path
 
     def get_slug(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path

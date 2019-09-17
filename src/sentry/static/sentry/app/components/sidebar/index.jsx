@@ -1,4 +1,3 @@
-import {ThemeProvider} from 'emotion-theming';
 import {isEqual} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
@@ -28,6 +27,7 @@ import OnboardingStatus from './onboardingStatus';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
+import Discover2Item from './discover2Item';
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -82,10 +82,13 @@ class Sidebar extends React.Component {
 
   // Sidebar doesn't use children, so don't use it to compare
   // Also ignore location, will re-render when routes change (instead of query params)
-  shouldComponentUpdate({children, location, ...nextPropsToCompare}, nextState) {
+  shouldComponentUpdate(
+    {children: _children, location: _location, ...nextPropsToCompare},
+    nextState
+  ) {
     const {
-      children: _children, // eslint-disable-line no-unused-vars
-      location: _location, // eslint-disable-line no-unused-vars
+      children: _childrenCurrent,
+      location: _locationCurrent,
       ...currentPropsToCompare
     } = this.props;
 
@@ -188,7 +191,7 @@ class Sidebar extends React.Component {
     });
   };
 
-  togglePanel = (panel, e) => {
+  togglePanel = panel => {
     if (this.state.currentPanel === panel) {
       this.hidePanel();
     } else {
@@ -279,13 +282,10 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
 
-                  <Feature
-                    features={['events-v2']}
-                    hookName="events-sidebar-item"
-                    organization={organization}
-                  >
-                    <SidebarItem
+                  <Feature features={['events-v2']} organization={organization}>
+                    <Discover2Item
                       {...sidebarItemProps}
+                      organization={organization}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
                           `/organizations/${organization.slug}/eventsv2/`,
@@ -504,11 +504,7 @@ const SidebarContainer = withRouter(
     },
 
     render() {
-      return (
-        <ThemeProvider theme={theme}>
-          <Sidebar {...this.props} collapsed={this.state.collapsed} />
-        </ThemeProvider>
-      );
+      return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
     },
   })
 );
@@ -577,7 +573,7 @@ const PrimaryItems = styled('div')`
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
-    padding-bottom: ${p => space(1)};
+    padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
     &::-webkit-scrollbar {
       background-color: transparent;
@@ -594,8 +590,8 @@ const PrimaryItems = styled('div')`
     height: 100%;
     align-items: center;
     border-right: 1px solid ${p => p.theme.gray3};
-    padding-right: ${p => space(1)};
-    margin-right: ${p => space(0.5)};
+    padding-right: ${space(1)};
+    margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
     ::-webkit-scrollbar {
       display: none;

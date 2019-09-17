@@ -38,6 +38,8 @@ type EventsRequestPartialProps = {
   start?: any;
   end?: any;
   interval?: string;
+  field?: string[];
+  referenceEvent?: string;
 
   limit?: number;
   query?: string;
@@ -154,6 +156,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
      * The yAxis being plotted
      */
     yAxis: PropTypes.string,
+
+    field: PropTypes.arrayOf(PropTypes.string),
+    referenceEvent: PropTypes.string,
   };
 
   static defaultProps = {
@@ -313,7 +318,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       ? this.transformPreviousPeriodData(current, previous)
       : null;
     const timeAggregatedData = includeTimeAggregation
-      ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName)
+      ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
       : {};
     return {
       data: transformedData,

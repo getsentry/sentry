@@ -1,8 +1,6 @@
-import {Link} from 'react-router';
 import {sortBy, property, isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -10,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -17,39 +16,34 @@ import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
 import withOrganization from 'app/utils/withOrganization';
 
-const GroupTagValues = createReactClass({
-  displayName: 'GroupTagValues',
-
-  propTypes: {
+class GroupTagValues extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     query: PropTypes.object,
-  },
+  };
 
-  getInitialState() {
-    return {
-      tagKey: null,
-      tagValueList: null,
-      loading: true,
-      error: false,
-      pageLinks: '',
-    };
-  },
+  state = {
+    tagKey: null,
+    tagValueList: null,
+    loading: true,
+    error: false,
+    pageLinks: '',
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate(prevProps) {
     const queryHasChanged = !isEqual(prevProps.query, this.props.query);
     if (queryHasChanged || prevProps.params.tagKey !== this.props.params.tagKey) {
       this.fetchData();
     }
-  },
+  }
 
-  async fetchData() {
+  fetchData = async () => {
     const {params, query} = this.props;
-
     this.setState({
       loading: true,
       error: false,
@@ -86,11 +80,11 @@ const GroupTagValues = createReactClass({
         loading: false,
       });
     }
-  },
+  };
 
   getUserDisplayName(item) {
     return item.email || item.username || item.identifier || item.ipAddress || item.value;
-  },
+  }
 
   render() {
     if (this.state.loading) {
@@ -122,7 +116,7 @@ const GroupTagValues = createReactClass({
             <span className="label">{pct}%</span>
           </td>
           <td>
-            <Link
+            <GlobalSelectionLink
               to={{
                 pathname: issuesPath,
                 query: {query},
@@ -138,7 +132,7 @@ const GroupTagValues = createReactClass({
               ) : (
                 <DeviceName>{tagValue.name}</DeviceName>
               )}
-            </Link>
+            </GlobalSelectionLink>
             {tagValue.email && (
               <ExternalLink href={`mailto:${tagValue.email}`} className="external-icon">
                 <em className="icon-envelope" />
@@ -189,8 +183,8 @@ const GroupTagValues = createReactClass({
         </p>
       </div>
     );
-  },
-});
+  }
+}
 
 export {GroupTagValues};
 export default withApi(withOrganization(GroupTagValues));

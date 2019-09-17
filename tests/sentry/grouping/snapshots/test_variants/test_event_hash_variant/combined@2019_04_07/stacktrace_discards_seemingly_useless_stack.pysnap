@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T10:03:31.625402Z'
+created: '2019-09-03T07:26:06.707090Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           filename (ignored because filename is a URL)
             u'foo'
           context-line (discarded because from URL origin)
-          lineno (line number is used only if module or filename are available)
+          lineno (line number is not used if module or filename are available)
             1
 --------------------------------------------------------------------------
 fallback:
@@ -27,5 +27,5 @@ system:
           filename (ignored because filename is a URL)
             u'foo'
           context-line (discarded because from URL origin)
-          lineno (line number is used only if module or filename are available)
+          lineno (line number is not used if module or filename are available)
             1

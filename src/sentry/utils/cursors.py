@@ -13,18 +13,20 @@ class Cursor(object):
         self.has_results = has_results
 
     def __str__(self):
-        return '%s:%s:%s' % (self.value, self.offset, int(self.is_prev))
+        return "%s:%s:%s" % (self.value, self.offset, int(self.is_prev))
 
     def __eq__(self, other):
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in
-            ('value', 'offset', 'is_prev', 'has_results')
+            for attr in ("value", "offset", "is_prev", "has_results")
         )
 
     def __repr__(self):
-        return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self).__name__, self.value, self.offset, int(self.is_prev)
+        return "<%s: value=%s offset=%s is_prev=%s>" % (
+            type(self).__name__,
+            self.value,
+            self.offset,
+            int(self.is_prev),
         )
 
     def __nonzero__(self):
@@ -32,7 +34,7 @@ class Cursor(object):
 
     @classmethod
     def from_string(cls, value):
-        bits = value.split(':')
+        bits = value.split(":")
         if len(bits) != 3:
             raise ValueError
         try:
@@ -60,7 +62,7 @@ class CursorResult(Sequence):
         return self.results[key]
 
     def __repr__(self):
-        return '<%s: results=%s>' % (type(self).__name__, len(self.results))
+        return "<%s: results=%s>" % (type(self).__name__, len(self.results))
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):
@@ -191,27 +193,20 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     return (prev_value, prev_offset, has_prev)
 
 
-def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
-        max_hits=None, on_results=None):
+def build_cursor(
+    results, key, limit=100, is_desc=False, cursor=None, hits=None, max_hits=None, on_results=None
+):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
     # Compute values for next cursor
     next_value, next_offset, has_next = _build_next_values(
-        cursor=cursor,
-        results=results,
-        key=key,
-        limit=limit,
-        is_desc=is_desc
+        cursor=cursor, results=results, key=key, limit=limit, is_desc=is_desc
     )
 
     # Compute values for prev cursor
     prev_value, prev_offset, has_prev = _build_prev_values(
-        cursor=cursor,
-        results=results,
-        key=key,
-        limit=limit,
-        is_desc=is_desc
+        cursor=cursor, results=results, key=key, limit=limit, is_desc=is_desc
     )
 
     if cursor.is_prev and has_prev:
@@ -231,9 +226,5 @@ def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
         results = on_results(results)
 
     return CursorResult(
-        results=results,
-        next=next_cursor,
-        prev=prev_cursor,
-        hits=hits,
-        max_hits=max_hits,
+        results=results, next=next_cursor, prev=prev_cursor, hits=hits, max_hits=max_hits
     )

@@ -269,7 +269,7 @@ exports[`ProjectPluginDetails renders 1`] = `
               >
                 <Wrapper>
                   <div
-                    className="css-1r5ylk7-Wrapper e1kblvez2"
+                    className="css-1r5ylk7-Wrapper e1uay4fd2"
                   >
                     <Flex
                       align="center"
@@ -286,15 +286,15 @@ exports[`ProjectPluginDetails renders 1`] = `
                             styled={false}
                           >
                             <Base
-                              className="css-1ky52ze-Title e1kblvez0"
+                              className="css-1ky52ze-Title e1uay4fd0"
                             >
                               <div
-                                className="css-1ky52ze-Title e1kblvez0"
+                                className="css-1ky52ze-Title e1uay4fd0"
                                 is={null}
                               >
                                 <HeaderTitle>
                                   <h4
-                                    className="css-1w8ttcn-HeaderTitle e6lvex72"
+                                    className="css-1w8ttcn-HeaderTitle eqkydle2"
                                   >
                                     Amazon SQS
                                   </h4>
@@ -302,9 +302,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                               </div>
                             </Base>
                           </Title>
-                          <Action>
+                          <Action
+                            tabs={false}
+                          >
                             <div
-                              className="css-18luhfc-Action e1kblvez1"
+                              className="css-18luhfc-Action e1uay4fd1"
                             >
                               <div
                                 className="pull-right"
@@ -336,7 +338,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Enable Plugin"
-                                      className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -350,7 +352,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Enable Plugin"
-                                        className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
@@ -366,11 +368,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         >
                                           <Component
                                             align="center"
-                                            className="css-1h693nz-ButtonLabel e12ma6z1"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-1h693nz-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Enable Plugin
                                             </span>
@@ -397,7 +399,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Reset Configuration"
-                                      className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -406,7 +408,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Reset Configuration"
-                                        className="css-z6hjis-StyledButton-getColors e12ma6z0"
+                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
@@ -417,11 +419,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         >
                                           <Component
                                             align="center"
-                                            className="css-1h693nz-ButtonLabel e12ma6z1"
+                                            className="css-1h693nz-ButtonLabel edwq9my1"
                                             size="small"
                                           >
                                             <span
-                                              className="css-1h693nz-ButtonLabel e12ma6z1"
+                                              className="css-1h693nz-ButtonLabel edwq9my1"
                                             >
                                               Reset Configuration
                                             </span>
@@ -581,10 +583,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                         className="plugin-config ref-plugin-config-amazon-sqs"
                       >
                         <Component
-                          className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                          className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
                         >
                           <div
-                            className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                            className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
                           >
                             <PanelHeader
                               hasButtons={true}
@@ -637,15 +639,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                     pluginId="amazon-sqs"
                                                     size={20}
                                                   >
-                                                    <IntegrationIcon
-                                                      image={Object {}}
+                                                    <div
+                                                      className="css-1f9d6f6-PluginIcon e7e65lm0"
                                                       size={20}
-                                                    >
-                                                      <div
-                                                        className="css-1sk2vxu-IntegrationIcon e1bhjds90"
-                                                        size={20}
-                                                      />
-                                                    </IntegrationIcon>
+                                                    />
                                                   </PluginIcon>
                                                 </div>
                                               </Base>

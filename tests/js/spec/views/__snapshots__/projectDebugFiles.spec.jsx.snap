@@ -20,7 +20,7 @@ exports[`ProjectDebugFiles renders 1`] = `
   >
     <Wrapper>
       <div
-        className="css-1r5ylk7-Wrapper e1kblvez2"
+        className="css-1r5ylk7-Wrapper e1uay4fd2"
       >
         <Flex
           align="center"
@@ -37,15 +37,15 @@ exports[`ProjectDebugFiles renders 1`] = `
                 styled={false}
               >
                 <Base
-                  className="css-1ky52ze-Title e1kblvez0"
+                  className="css-1ky52ze-Title e1uay4fd0"
                 >
                   <div
-                    className="css-1ky52ze-Title e1kblvez0"
+                    className="css-1ky52ze-Title e1uay4fd0"
                     is={null}
                   >
                     <HeaderTitle>
                       <h4
-                        className="css-1w8ttcn-HeaderTitle e6lvex72"
+                        className="css-1w8ttcn-HeaderTitle eqkydle2"
                       >
                         Debug Information Files
                       </h4>
@@ -60,37 +60,29 @@ exports[`ProjectDebugFiles renders 1`] = `
     </Wrapper>
   </SettingsPageHeading>
   <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
     >
-      <div
-        className="css-1geyb25-TextBlock ec8ep340"
-      >
-        
+      
             Debug information files are used to convert addresses and minified
             function names from native crash reports into function names and
             locations.
           
-      </div>
-    </Component>
+    </div>
   </TextBlock>
   <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
     >
-      <div
-        className="css-1geyb25-TextBlock ec8ep340"
-      >
-        This list contains all uploaded debug information files:
-      </div>
-    </Component>
+      This list contains all uploaded debug information files:
+    </div>
   </TextBlock>
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-10qfvek-Panel e119nu470"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-10qfvek-Panel e119nu470"
       >
         <PanelHeader
           hasButtons={true}
@@ -273,14 +265,13 @@ exports[`ProjectDebugFiles renders 1`] = `
                         size="54"
                         src="icon-circle-exclamation"
                       >
-                        <StyledSvg
-                          className="css-1j03cl-HeroIcon e1h7wyrq0"
-                          height="54"
-                          viewBox={Object {}}
-                          width="54"
+                        <ForwardRef
+                          className="e1h7wyrq0 css-16jcd98-InlineSvg-HeroIcon enyz4ql0"
+                          size="54"
+                          src="icon-circle-exclamation"
                         >
                           <svg
-                            className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                            className="e1h7wyrq0 css-16jcd98-InlineSvg-HeroIcon enyz4ql0"
                             height="54"
                             viewBox={Object {}}
                             width="54"
@@ -290,7 +281,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                               xlinkHref="#test"
                             />
                           </svg>
-                        </StyledSvg>
+                        </ForwardRef>
                       </InlineSvg>
                     </Component>
                   </HeroIcon>

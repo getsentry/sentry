@@ -7,45 +7,81 @@ from sentry.utils.services import Service
 
 
 class Columns(Enum):
-    EVENT_ID = 'event_id'
-    GROUP_ID = 'group_id'
-    PROJECT_ID = 'project_id'
-    TIMESTAMP = 'timestamp'
-    CULPRIT = 'culprit'
-    LOCATION = 'location'
-    MESSAGE = 'message'
-    PLATFORM = 'platform'
-    TITLE = 'title'
-    TYPE = 'type'
-    TAGS_KEY = 'tags.key'
-    TAGS_VALUE = 'tags.value'
-    EMAIL = 'email'
-    IP_ADDRESS = 'ip_address'
-    USER_ID = 'user_id'
-    USERNAME = 'username'
+    # TODO add all the other columns.
+    EVENT_ID = "event_id"
+    GROUP_ID = "group_id"
+    PROJECT_ID = "project_id"
+    TIMESTAMP = "timestamp"
+    CULPRIT = "culprit"
+    LOCATION = "location"
+    MESSAGE = "message"
+    PLATFORM = "platform"
+    TITLE = "title"
+    TYPE = "type"
+    TAGS_KEY = "tags.key"
+    TAGS_VALUE = "tags.value"
+    EMAIL = "email"
+    IP_ADDRESS = "ip_address"
+    USER_ID = "user_id"
+    USERNAME = "username"
+    TRANSACTION = "transaction"
+    USER_ID = "user_id"
+    USER_EMAIL = "email"
+    USER_USERNAME = "username"
+    USER_IP = "ip_address"
+    SDK_NAME = "sdk_name"
+    SDK_VERSION = "sdk_version"
+    HTTP_METHOD = "http_method"
+    HTTP_REFERER = "http_referer"
+    HTTP_URL = "http_url"
+    OS_BUILD = "os_build"
+    OS_KERNEL_VERSION = "os_kernel_version"
+    DEVICE_NAME = "device_name"
+    DEVICE_BRAND = "device_brand"
+    DEVICE_LOCALE = "device_locale"
+    DEVICE_UUID = "device_uuid"
+    DEVICE_ARCH = "device_arch"
+    DEVICE_BATTERY_LEVEL = "device_battery_level"
+    DEVICE_ORIENTATION = "device_orientation"
+    DEVICE_SIMULATOR = "device_simulator"
+    DEVICE_ONLINE = "device_online"
+    DEVICE_CHARGING = "device_charging"
+    GEO_COUNTRY_CODE = "geo_country_code"
+    GEO_REGION = "geo_region"
+    GEO_CITY = "geo_city"
+    ERROR_TYPE = "exception_stacks.type"
+    ERROR_VALUE = "exception_stacks.value"
+    ERROR_MECHANISM = "exception_stacks.mechanism_type"
+    ERROR_HANDLED = "exception_stacks.mechanism_handled"
+    STACK_ABS_PATH = "exception_frames.abs_path"
+    STACK_FILENAME = "exception_frames.filename"
+    STACK_PACKAGE = "exception_frames.package"
+    STACK_MODULE = "exception_frames.module"
+    STACK_FUNCTION = "exception_frames.function"
+    STACK_IN_APP = "exception_frames.in_app"
+    STACK_COLNO = "exception_frames.colno"
+    STACK_LINENO = "exception_frames.lineno"
+    STACK_STACK_LEVEL = "exception_frames.stack_level"
+    CONTEXTS_KEY = "contexts.key"
+    CONTEXTS_VALUE = "contexts.value"
 
 
 class EventStorage(Service):
     __all__ = (
-        'minimal_columns',
-        'full_columns',
-        'get_event_by_id',
-        'get_events',
-        'get_prev_event_id',
-        'get_next_event_id',
-        'bind_nodes',
+        "minimal_columns",
+        "full_columns",
+        "get_event_by_id",
+        "get_events",
+        "get_prev_event_id",
+        "get_next_event_id",
+        "bind_nodes",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [
-        Columns.EVENT_ID,
-        Columns.GROUP_ID,
-        Columns.PROJECT_ID,
-        Columns.TIMESTAMP,
-    ]
+    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
     # A list of all useful columns we can get from snuba.
     full_columns = minimal_columns + [
@@ -55,11 +91,10 @@ class EventStorage(Service):
         Columns.PLATFORM,
         Columns.TITLE,
         Columns.TYPE,
-
+        Columns.TRANSACTION,
         # Required to provide snuba-only tags
         Columns.TAGS_KEY,
         Columns.TAGS_VALUE,
-
         # Required to provide snuba-only 'user' interface
         Columns.EMAIL,
         Columns.IP_ADDRESS,
@@ -78,8 +113,9 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_events(self, start, end, additional_columns,
-                   conditions, filter_keys, orderby, limit, offset):
+    def get_events(
+        self, start, end, additional_columns, conditions, filter_keys, orderby, limit, offset
+    ):
         """
         Fetches a list of events given a set of criteria.
 
@@ -123,15 +159,16 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def bind_nodes(self, object_list, node_name='data'):
+    def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
-        object_node_list = [(i, getattr(i, node_name))
-                            for i in object_list if getattr(i, node_name).id]
+        object_node_list = [
+            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+        ]
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:

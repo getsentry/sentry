@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ('Notifier', )
+__all__ = ("Notifier",)
 
 from sentry import ratelimits
 
@@ -22,14 +22,10 @@ class Notifier(object):
 
         project = group.project
 
-        rate_limited = ratelimits.is_limited(
-            project=project,
-            key=self.get_conf_key(),
-            limit=10,
-        )
+        rate_limited = ratelimits.is_limited(project=project, key=self.get_conf_key(), limit=10)
 
         if rate_limited:
-            self.logger.info('notification.rate_limited', extra={'project_id': project.id})
+            self.logger.info("notification.rate_limited", extra={"project_id": project.id})
 
         return not rate_limited
 

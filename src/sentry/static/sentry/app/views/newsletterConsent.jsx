@@ -1,28 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import NarrowLayout from 'app/components/narrowLayout';
 
-export default createReactClass({
-  displayName: 'NewsletterConsent',
-
-  propTypes: {
+export default class NewsletterConsent extends React.Component {
+  static propTypes = {
     onSubmitSuccess: PropTypes.func,
-  },
+  };
 
   componentWillMount() {
     document.body.classList.add('auth');
-  },
+  }
 
   componentWillUnmount() {
     document.body.classList.remove('auth');
-  },
+  }
 
-  onSubmitSuccess() {
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess();
-  },
+  onSubmitSuccess = () => {
+    callIfFunction(this.props.onSubmitSuccess);
+  };
 
   // NOTE: the text here is duplicated within ``RegisterForm`` on the backend
   render() {
@@ -34,7 +32,6 @@ export default createReactClass({
           apiMethod="POST"
           apiEndpoint="/users/me/subscriptions/"
           onSubmitSuccess={this.onSubmitSuccess}
-          onSubmitError={this.onSubmitError}
           submitLabel="Continue"
         >
           <RadioBooleanField
@@ -59,5 +56,5 @@ export default createReactClass({
         </ApiForm>
       </NarrowLayout>
     );
-  },
-});
+  }
+}

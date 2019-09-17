@@ -2,3 +2,8 @@
 // TS compatibility for https://github.com/webpack-contrib/file-loader
 
 declare module '*.png';
+
+declare module '*.svg' {
+  const content: any;
+  export default content;
+}

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -17,13 +19,13 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules for a project
         """
-        if not features.has('organizations:incidents', project.organization, actor=request.user):
+        if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
         return self.paginate(
             request,
             queryset=AlertRule.objects.fetch_for_project(project),
-            order_by='-date_added',
+            order_by="-date_added",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
@@ -33,12 +35,14 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         """
         Create an alert rule
         """
-        if not features.has('organizations:incidents', project.organization, actor=request.user):
+        if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        data = deepcopy(request.data)
+        data["projects"] = [project.slug]
+
         serializer = AlertRuleSerializer(
-            context={'project': project},
-            data=request.data,
+            context={"organization": project.organization, "access": request.access}, data=data
         )
 
         if serializer.is_valid():

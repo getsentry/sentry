@@ -10,20 +10,17 @@ from sentry.testutils import APITestCase
 class TeamMembersTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
-        foo = self.create_user('foo@example.com')
-        bar = self.create_user('bar@example.com')
+        foo = self.create_user("foo@example.com")
+        bar = self.create_user("bar@example.com")
         team = self.create_team(organization=org)
         member = self.create_member(organization=org, user=foo, teams=[team])
         self.create_member(organization=org, user=bar, teams=[])
         self.login_as(user=self.user)
         url = reverse(
-            'sentry-api-0-team-members',
-            kwargs={
-                'organization_slug': org.slug,
-                'team_slug': team.slug,
-            }
+            "sentry-api-0-team-members",
+            kwargs={"organization_slug": org.slug, "team_slug": team.slug},
         )
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(member.id)
+        assert response.data[0]["id"] == six.text_type(member.id)

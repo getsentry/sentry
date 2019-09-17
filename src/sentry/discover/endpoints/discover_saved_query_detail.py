@@ -4,20 +4,27 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry import features
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 
 
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
-    permission_classes = (DiscoverSavedQueryPermission, )
+    permission_classes = (DiscoverSavedQueryPermission,)
+
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has(
+            "organizations:discover-v2-query-builder", organization, actor=request.user
+        )
 
     def get(self, request, organization, query_id):
         """
         Get a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:
@@ -31,7 +38,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Modify a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:
@@ -39,22 +46,18 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = DiscoverSavedQuerySerializer(data=request.data, context={
-            'organization': organization,
-        })
+        serializer = DiscoverSavedQuerySerializer(
+            data=request.data, context={"organization": organization}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
 
-        model.update(
-            organization=organization,
-            name=data['name'],
-            query=data['query'],
-        )
+        model.update(organization=organization, name=data["name"], query=data["query"])
 
-        model.set_projects(data['project_ids'])
+        model.set_projects(data["project_ids"])
 
         return Response(serialize(model), status=200)
 
@@ -62,7 +65,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         """
         Delete a saved query
         """
-        if not features.has('organizations:discover', organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         try:

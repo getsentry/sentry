@@ -6,29 +6,30 @@ from collections import Iterable
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
-from sentry.models import (
-    AuditLogEntryEvent
-)
+from sentry.models import AuditLogEntryEvent
 from .creator import Creator as SentryAppCreator
 from ..sentry_app_installations import Creator as InstallationCreator
-from sentry.mediators.sentry_app_installation_tokens import Creator as SentryAppInstallationTokenCreator
+from sentry.mediators.sentry_app_installation_tokens import (
+    Creator as SentryAppInstallationTokenCreator,
+)
 
 
 class InternalCreator(Mediator):
     name = Param(six.string_types)
-    author = Param(six.string_types)
-    organization = Param('sentry.models.Organization')
+    organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
-    webhook_url = Param(six.string_types)
+    webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
-    request = Param('rest_framework.request.Request', required=False)
-    user = Param('sentry.models.User')
+    request = Param("rest_framework.request.Request", required=False)
+    user = Param("sentry.models.User")
 
     def call(self):
+        # SentryAppCreator expects an author so just set it to the org name
+        self.kwargs["author"] = self.organization.name
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
         self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.verify_install = False
@@ -40,10 +41,7 @@ class InternalCreator(Mediator):
         return self.sentry_app
 
     def _create_access_token(self):
-        data = {
-            'sentry_app_installation': self.install,
-            'user': self.user
-        }
+        data = {"sentry_app_installation": self.install, "user": self.user}
 
         self.install.api_token = SentryAppInstallationTokenCreator.run(request=self.request, **data)
         self.install.save()
@@ -59,6 +57,7 @@ class InternalCreator(Mediator):
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry
+
         if self.request:
             create_audit_entry(
                 request=self.request,
@@ -69,8 +68,9 @@ class InternalCreator(Mediator):
 
     def record_analytics(self):
         from sentry import analytics
+
         analytics.record(
-            'internal_integration.created',
+            "internal_integration.created",
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.sentry_app.slug,

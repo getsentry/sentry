@@ -31,7 +31,7 @@ class Migrator(object):
 
     def print_title(self, target):
         if self.verbosity:
-            print(self.title(target))
+            print (self.title(target))
 
     @staticmethod
     def status(target):
@@ -40,7 +40,7 @@ class Migrator(object):
     def print_status(self, migration):
         status = self.status(migration)
         if self.verbosity and status:
-            print(status)
+            print (status)
 
     @staticmethod
     def orm(migration):
@@ -58,24 +58,24 @@ class Migrator(object):
         if len(args[0]) == 1:
             # Old migration, no ORM should be passed in
             return direction
-        return (lambda: direction(orm))
+        return lambda: direction(orm)
 
     @staticmethod
     def record(migration, database):
         raise NotImplementedError()
 
-    def run_migration_error(self, migration, extra_info=''):
+    def run_migration_error(self, migration, extra_info=""):
         return (
-            ' ! Error found during real run of migration! Aborting.\n'
-            '\n'
-            ' ! Since you have a database that does not support running\n'
-            ' ! schema-altering statements in transactions, we have had \n'
-            ' ! to leave it in an interim state between migrations.\n'
-            '%s\n'
-            ' ! The South developers regret this has happened, and would\n'
-            ' ! like to gently persuade you to consider a slightly\n'
-            ' ! easier-to-deal-with DBMS (one that supports DDL transactions)\n'
-            ' ! NOTE: The error which caused the migration to fail is further up.'
+            " ! Error found during real run of migration! Aborting.\n"
+            "\n"
+            " ! Since you have a database that does not support running\n"
+            " ! schema-altering statements in transactions, we have had \n"
+            " ! to leave it in an interim state between migrations.\n"
+            "%s\n"
+            " ! The South developers regret this has happened, and would\n"
+            " ! like to gently persuade you to consider a slightly\n"
+            " ! easier-to-deal-with DBMS (one that supports DDL transactions)\n"
+            " ! NOTE: The error which caused the migration to fail is further up."
         ) % extra_info
 
     def run_migration(self, migration, database):
@@ -84,21 +84,21 @@ class Migrator(object):
         try:
             migration_function()
             south.db.db.execute_deferred_sql()
-            if not isinstance(getattr(self, '_wrapper', self), DryRunMigrator):
+            if not isinstance(getattr(self, "_wrapper", self), DryRunMigrator):
                 # record us as having done this in the same transaction,
                 # since we're not in a dry run
                 self.record(migration, database)
         except BaseException:
             south.db.db.rollback_transaction()
             if not south.db.db.has_ddl_transactions:
-                print(self.run_migration_error(migration))
-            print("Error in migration: %s" % migration)
+                print (self.run_migration_error(migration))
+            print ("Error in migration: %s" % migration)
             raise
         else:
             try:
                 south.db.db.commit_transaction()
             except BaseException:
-                print("Error during commit in migration: %s" % migration)
+                print ("Error during commit in migration: %s" % migration)
                 raise
 
     def run(self, migration, database):
@@ -106,20 +106,22 @@ class Migrator(object):
         south.db.db.current_orm = self.orm(migration)
         # If we're not already in a dry run, and the database doesn't support
         # running DDL inside a transaction, then do a dry run first.
-        if not isinstance(getattr(self, '_wrapper', self), DryRunMigrator):
+        if not isinstance(getattr(self, "_wrapper", self), DryRunMigrator):
             if not south.db.db.has_ddl_transactions:
                 dry_run = DryRunMigrator(migrator=self, ignore_fail=False)
                 dry_run.run_migration(migration, database)
         return self.run_migration(migration, database)
 
     def send_ran_migration(self, migration, database):
-        ran_migration.send(None,
-                           app=migration.app_label(),
-                           migration=migration,
-                           method=self.__class__.__name__.lower(),
-                           verbosity=self.verbosity,
-                           interactive=self.interactive,
-                           db=database)
+        ran_migration.send(
+            None,
+            app=migration.app_label(),
+            migration=migration,
+            method=self.__class__.__name__.lower(),
+            verbosity=self.verbosity,
+            interactive=self.interactive,
+            db=database,
+        )
 
     def migrate(self, migration, database):
         """
@@ -139,11 +141,11 @@ class Migrator(object):
 class MigratorWrapper(object):
     def __init__(self, migrator, *args, **kwargs):
         self._migrator = copy(migrator)
-        attributes = dict([(k, getattr(self, k))
-                           for k in self.__class__.__dict__
-                           if not k.startswith('__')])
+        attributes = dict(
+            [(k, getattr(self, k)) for k in self.__class__.__dict__ if not k.startswith("__")]
+        )
         self._migrator.__dict__.update(attributes)
-        self._migrator.__dict__['_wrapper'] = self
+        self._migrator.__dict__["_wrapper"] = self
 
     def __getattr__(self, name):
         return getattr(self._migrator, name)
@@ -157,7 +159,7 @@ class DryRunMigrator(MigratorWrapper):
     def _run_migration(self, migration):
         if migration.no_dry_run():
             if self.verbosity:
-                print(" - Migration '%s' is marked for no-dry-run." % migration)
+                print (" - Migration '%s' is marked for no-dry-run." % migration)
             return
         for name, db in iteritems(south.db.dbs):
             south.db.dbs[name].dry_run = True
@@ -202,7 +204,7 @@ class FakeMigrator(MigratorWrapper):
         # Don't actually run, just record as if ran
         self.record(migration, database)
         if self.verbosity:
-            print('   (faked)')
+            print ("   (faked)")
 
     def send_ran_migration(self, *args, **kwargs):
         pass
@@ -212,7 +214,8 @@ class Forwards(Migrator):
     """
     Runs the specified migration forwards, in order.
     """
-    torun = 'forwards'
+
+    torun = "forwards"
 
     @staticmethod
     def title(target):
@@ -223,19 +226,20 @@ class Forwards(Migrator):
 
     @staticmethod
     def status(migration):
-        return ' > %s' % migration
+        return " > %s" % migration
 
     @staticmethod
     def orm(migration):
         return migration.orm()
 
     def run(self, migration, database):
-        if os.environ.get('SOUTH_SKIP_DANGEROUS', '0') == '1' and getattr(
-                migration.migration_instance(), 'is_dangerous', False):
+        if os.environ.get("SOUTH_SKIP_DANGEROUS", "0") == "1" and getattr(
+            migration.migration_instance(), "is_dangerous", False
+        ):
             # Don't actually run, just record as if ran
             self.record(migration, database)
             if self.verbosity:
-                print('   (too dangerous)')
+                print ("   (too dangerous)")
             return
         return super(Forwards, self).run(migration, database)
 
@@ -250,6 +254,7 @@ class Forwards(Migrator):
         record = MigrationHistory.for_migration(migration, database)
         try:
             from django.utils.timezone import now
+
             record.applied = now()
         except ImportError:
             record.applied = datetime.datetime.utcnow()
@@ -276,12 +281,13 @@ class Forwards(Migrator):
             south.db.db.debug, south.db.db.dry_run = old_debug, old_dry_run
             sys.stdout = stdout
 
-    def run_migration_error(self, migration, extra_info=''):
-        extra_info = ('\n'
-                      '! You *might* be able to recover with:'
-                      '%s'
-                      '%s' %
-                      (self.format_backwards(migration), extra_info))
+    def run_migration_error(self, migration, extra_info=""):
+        extra_info = (
+            "\n"
+            "! You *might* be able to recover with:"
+            "%s"
+            "%s" % (self.format_backwards(migration), extra_info)
+        )
         return super(Forwards, self).run_migration_error(migration, extra_info)
 
     def migrate_many(self, target, migrations, database):
@@ -292,8 +298,9 @@ class Forwards(Migrator):
                     return False
         finally:
             # Call any pending post_syncdb signals
-            south.db.db.send_pending_create_signals(verbosity=self.verbosity,
-                                                    interactive=self.interactive)
+            south.db.db.send_pending_create_signals(
+                verbosity=self.verbosity, interactive=self.interactive
+            )
         return True
 
 
@@ -301,7 +308,8 @@ class Backwards(Migrator):
     """
     Runs the specified migration backwards, in order.
     """
-    torun = 'backwards'
+
+    torun = "backwards"
 
     @staticmethod
     def title(target):
@@ -312,7 +320,7 @@ class Backwards(Migrator):
 
     @staticmethod
     def status(migration):
-        return ' < %s' % migration
+        return " < %s" % migration
 
     @staticmethod
     def orm(migration):

@@ -5,10 +5,7 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.testutils import (
-    APITestCase,
-    SnubaTestCase,
-)
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class ProjectTagsTest(APITestCase, SnubaTestCase):
@@ -25,33 +22,24 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
         self.create_event(
-            event_id='a' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={'foo': 'oof', 'bar': 'rab'},
+            event_id="a" * 32, group=group, datetime=self.min_ago, tags={"foo": "oof", "bar": "rab"}
         )
         self.create_event(
-            event_id='b' * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={'bar': 'rab2'},
+            event_id="b" * 32, group=group, datetime=self.min_ago, tags={"bar": "rab2"}
         )
 
         self.login_as(user=user)
 
         url = reverse(
-            'sentry-api-0-project-tags',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
+            "sentry-api-0-project-tags",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        data = {v['key']: v for v in response.data}
+        data = {v["key"]: v for v in response.data}
         assert len(data) == 2
 
-        assert data['foo']['canDelete']
-        assert data['foo']['uniqueValues'] == 1
-        assert data['bar']['canDelete']
-        assert data['bar']['uniqueValues'] == 2
+        assert data["foo"]["canDelete"]
+        assert data["foo"]["uniqueValues"] == 1
+        assert data["bar"]["canDelete"]
+        assert data["bar"]["uniqueValues"] == 2

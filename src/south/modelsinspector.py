@@ -31,43 +31,53 @@ except ImportError:
 
 # Define any converter functions first to prevent NameErrors
 
+
 def convert_on_delete_handler(value):
-    django_db_models_module = 'models'  # relative to standard import 'django.db'
+    django_db_models_module = "models"  # relative to standard import 'django.db'
     if hasattr(models, "PROTECT"):
         if value in (models.CASCADE, models.PROTECT, models.DO_NOTHING, models.SET_DEFAULT):
             # straightforward functions
-            return '%s.%s' % (django_db_models_module, value.__name__)
+            return "%s.%s" % (django_db_models_module, value.__name__)
         else:
             # This is totally dependent on the implementation of django.db.models.deletion.SET
-            func_name = getattr(value, '__name__', None)
-            if func_name == 'SET_NULL':
+            func_name = getattr(value, "__name__", None)
+            if func_name == "SET_NULL":
                 return "%s.SET_NULL" % (django_db_models_module)
-            elif func_name == 'set_on_delete':
+            elif func_name == "set_on_delete":
                 # we must inspect the function closure to see what parameters were passed in
                 closure_contents = value.__closure__[0].cell_contents
                 if closure_contents is None:
                     return "%s.SET_NULL" % (django_db_models_module)
                 # simple function we can perhaps cope with:
-                elif hasattr(closure_contents, '__call__'):
+                elif hasattr(closure_contents, "__call__"):
                     raise ValueError(
-                        "South does not support on_delete with SET(function) as values.")
+                        "South does not support on_delete with SET(function) as values."
+                    )
                 else:
                     # Attempt to serialise the value
                     return "%s.SET(%s)" % (django_db_models_module, value_clean(closure_contents))
         raise ValueError(
-            "%s was not recognized as a valid model deletion handler. Possible values: %s." %
-            (value,
-             ', '.join(
-                 f.__name__ for f in (
-                     models.CASCADE,
-                     models.PROTECT,
-                     models.SET,
-                     models.SET_NULL,
-                     models.SET_DEFAULT,
-                     models.DO_NOTHING))))
+            "%s was not recognized as a valid model deletion handler. Possible values: %s."
+            % (
+                value,
+                ", ".join(
+                    f.__name__
+                    for f in (
+                        models.CASCADE,
+                        models.PROTECT,
+                        models.SET,
+                        models.SET_NULL,
+                        models.SET_DEFAULT,
+                        models.DO_NOTHING,
+                    )
+                ),
+            )
+        )
     else:
         raise ValueError(
-            "on_delete argument encountered in Django version that does not support it")
+            "on_delete argument encountered in Django version that does not support it"
+        )
+
 
 # Gives information about how to introspect certain fields.
 # This is a list of triples; the first item is a list of fields it applies to,
@@ -84,7 +94,7 @@ def convert_on_delete_handler(value):
 
 introspection_details = [
     (
-        (models.Field, ),
+        (models.Field,),
         [],
         {
             "null": ["null", {"default": False}],
@@ -101,20 +111,26 @@ introspection_details = [
     (
         (models.ForeignKey, models.OneToOneField),
         [],
-        dict([
-            ("to", ["rel.to", {}]),
-            ("to_field", ["rel.field_name", {"default_attr": "rel.to._meta.pk.name"}]),
-            ("related_name", ["rel.related_name", {"default": None}]),
-            ("db_index", ["db_index", {"default": True}]),
-            ("on_delete",
-             ["rel.on_delete",
-              {"default": getattr(models,
-                                  "CASCADE",
-                                  None),
-               "is_django_function": True,
-               "converter": convert_on_delete_handler,
-               "ignore_missing": True}])
-        ])
+        dict(
+            [
+                ("to", ["rel.to", {}]),
+                ("to_field", ["rel.field_name", {"default_attr": "rel.to._meta.pk.name"}]),
+                ("related_name", ["rel.related_name", {"default": None}]),
+                ("db_index", ["db_index", {"default": True}]),
+                (
+                    "on_delete",
+                    [
+                        "rel.on_delete",
+                        {
+                            "default": getattr(models, "CASCADE", None),
+                            "is_django_function": True,
+                            "converter": convert_on_delete_handler,
+                            "ignore_missing": True,
+                        },
+                    ],
+                ),
+            ]
+        ),
     ),
     (
         (models.ManyToManyField,),
@@ -137,22 +153,16 @@ introspection_details = [
         },
     ),
     (
-        (models.DecimalField, ),
+        (models.DecimalField,),
         [],
         {
             "max_digits": ["max_digits", {"default": None}],
             "decimal_places": ["decimal_places", {"default": None}],
         },
     ),
+    ((models.SlugField,), [], {"db_index": ["db_index", {"default": True}]}),
     (
-        (models.SlugField, ),
-        [],
-        {
-            "db_index": ["db_index", {"default": True}],
-        },
-    ),
-    (
-        (models.BooleanField, ),
+        (models.BooleanField,),
         [],
         {
             "default": ["default", {"default": NOT_PROVIDED, "converter": bool}],
@@ -160,16 +170,16 @@ introspection_details = [
         },
     ),
     (
-        (models.FilePathField, ),
+        (models.FilePathField,),
         [],
         {
-            "path": ["path", {"default": ''}],
+            "path": ["path", {"default": ""}],
             "match": ["match", {"default": None}],
             "recursive": ["recursive", {"default": False}],
         },
     ),
     (
-        (generic.GenericRelation, ),
+        (generic.GenericRelation,),
         [],
         {
             "to": ["rel.to", {}],
@@ -274,7 +284,7 @@ def get_value(field, descriptor):
     """
     attrname, options = descriptor
     # If the options say it's not a attribute name but a real value, use that.
-    if options.get('is_value', False):
+    if options.get("is_value", False):
         value = attrname
     else:
         try:
@@ -289,11 +299,11 @@ def get_value(field, descriptor):
     if isinstance(value, Promise):
         value = text_type(value)
     # If the value is the same as the default, omit it for clarity
-    if "default" in options and value == options['default']:
+    if "default" in options and value == options["default"]:
         raise IsDefault
     # If there's an ignore_if, use it
     if "ignore_if" in options:
-        if get_attribute(field, options['ignore_if']):
+        if get_attribute(field, options["ignore_if"]):
             raise IsDefault
     # If there's an ignore_if_auto_through which is True, use it
     if options.get("ignore_if_auto_through", False):
@@ -301,12 +311,12 @@ def get_value(field, descriptor):
             raise IsDefault
     # Some default values need to be gotten from an attribute too.
     if "default_attr" in options:
-        default_value = get_attribute(field, options['default_attr'])
+        default_value = get_attribute(field, options["default_attr"])
         if value == default_value:
             raise IsDefault
     # Some are made from a formatting string and several attrs (e.g. db_table)
     if "default_attr_concat" in options:
-        format, attrs = options['default_attr_concat'][0], options['default_attr_concat'][1:]
+        format, attrs = options["default_attr_concat"][0], options["default_attr_concat"][1:]
         default_value = format % tuple(map(lambda x: get_attribute(field, x), attrs))
         if value == default_value:
             raise IsDefault
@@ -320,8 +330,11 @@ def value_clean(value, options={}):
     if isinstance(value, Promise):
         value = text_type(value)
     # Callables get called.
-    if not options.get('is_django_function', False) and callable(
-            value) and not isinstance(value, ModelBase):
+    if (
+        not options.get("is_django_function", False)
+        and callable(value)
+        and not isinstance(value, ModelBase)
+    ):
         # Datetime.datetime.now is special, as we can access it from the eval
         # context (and because it changes all the time; people will file bugs otherwise).
         if value == datetime.datetime.now:
@@ -347,19 +360,22 @@ def value_clean(value, options={}):
         if options.get("ignore_dynamics", False):
             raise IsDefault
         return "orm['%s.%s'].objects.get(pk=%r)" % (
-            value.__class__._meta.app_label, value.__class__._meta.object_name, value.pk)
+            value.__class__._meta.app_label,
+            value.__class__._meta.object_name,
+            value.pk,
+        )
     # Make sure Decimal is converted down into a string
     if isinstance(value, decimal.Decimal):
         value = str(value)
     # in case the value is timezone aware
-    datetime_types = (
-        datetime.datetime,
-        datetime.time,
-        datetime_safe.datetime,
-    )
-    if (timezone and isinstance(value, datetime_types) and
-            getattr(settings, 'USE_TZ', False) and
-            value is not None and timezone.is_aware(value)):
+    datetime_types = (datetime.datetime, datetime.time, datetime_safe.datetime)
+    if (
+        timezone
+        and isinstance(value, datetime_types)
+        and getattr(settings, "USE_TZ", False)
+        and value is not None
+        and timezone.is_aware(value)
+    ):
         default_timezone = timezone.get_default_timezone()
         value = timezone.make_naive(value, default_timezone)
     # datetime_safe has an improper repr value
@@ -371,9 +387,9 @@ def value_clean(value, options={}):
         value = datetime.datetime(*value.timetuple()[:3])
     # Now, apply the converter func if there is one
     if "converter" in options:
-        value = options['converter'](value)
+        value = options["converter"](value)
     # Return the final value
-    if options.get('is_django_function', False):
+    if options.get("is_django_function", False):
         return value
     else:
         return repr(value)
@@ -410,7 +426,7 @@ def get_model_fields(model, m2m=False):
 
     # Go through all bases (that are themselves models, but not Model)
     for base in model.__bases__:
-        if hasattr(base, '_meta') and issubclass(base, models.Model):
+        if hasattr(base, "_meta") and issubclass(base, models.Model):
             if not base._meta.abstract:
                 # Looks like we need their fields, Ma.
                 inherited_fields.update(get_model_fields(base))
@@ -427,7 +443,7 @@ def get_model_fields(model, m2m=False):
         # Does it define a south_field_triple method?
         if hasattr(field, "south_field_triple"):
             if NOISY:
-                print(" ( Nativing field: %s" % field.name)
+                print (" ( Nativing field: %s" % field.name)
             field_defs[field.name] = field.south_field_triple()
         # Can we introspect it?
         elif can_introspect(field):
@@ -436,20 +452,20 @@ def get_model_fields(model, m2m=False):
             # Run this field through the introspector
             args, kwargs = introspector(field)
             # Workaround for Django bug #13987
-            if model._meta.pk.column == field.column and 'primary_key' not in kwargs:
-                kwargs['primary_key'] = True
+            if model._meta.pk.column == field.column and "primary_key" not in kwargs:
+                kwargs["primary_key"] = True
             # That's our definition!
             field_defs[field.name] = (field_class, args, kwargs)
         # Shucks, no definition!
         else:
             if NOISY:
-                print(" ( Nodefing field: %s" % field.name)
+                print (" ( Nodefing field: %s" % field.name)
             field_defs[field.name] = None
 
     # If they've used the horrific hack that is order_with_respect_to, deal with
     # it.
     if model._meta.order_with_respect_to:
-        field_defs['_order'] = ("django.db.models.fields.IntegerField", [], {"default": "0"})
+        field_defs["_order"] = ("django.db.models.fields.IntegerField", [], {"default": "0"})
 
     return field_defs
 
@@ -471,15 +487,14 @@ def get_model_meta(model):
     # This is called _ormbases as the _bases variable was previously used
     # for a list of full class paths to bases, so we can't conflict.
     for base in model.__bases__:
-        if hasattr(base, '_meta') and issubclass(base, models.Model):
+        if hasattr(base, "_meta") and issubclass(base, models.Model):
             if not base._meta.abstract:
                 # OK, that matches our terms.
                 if "_ormbases" not in meta_def:
-                    meta_def['_ormbases'] = []
-                meta_def['_ormbases'].append("%s.%s" % (
-                    base._meta.app_label,
-                    base._meta.object_name,
-                ))
+                    meta_def["_ormbases"] = []
+                meta_def["_ormbases"].append(
+                    "%s.%s" % (base._meta.app_label, base._meta.object_name)
+                )
 
     return meta_def
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
-import {Client} from 'app/api';
 
+import {Client} from 'app/api';
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
 
@@ -42,11 +42,29 @@ describe('SmartSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = {};
+    supportedTags = TagStore.getAllTags();
     organization = TestStubs.Organization({id: '123'});
 
-    options = TestStubs.routerContext([{organization}]);
+    const location = {
+      pathname: '/organizations/org-slug/recent-searches/',
+      query: {
+        projectId: '0',
+      },
+    };
 
+    options = TestStubs.routerContext([
+      {
+        organization,
+        location,
+        router: {location},
+      },
+    ]);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
     environmentTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/environment/values/',
       body: [],
@@ -60,7 +78,11 @@ describe('SmartSearchBar', function() {
   describe('componentWillReceiveProps()', function() {
     it('should add a space when setting state.query', function() {
       const searchBar = shallow(
-        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        <SmartSearchBar
+          organization={organization}
+          supportedTags={supportedTags}
+          query="one"
+        />,
         options
       );
 
@@ -69,7 +91,11 @@ describe('SmartSearchBar', function() {
 
     it('should update state.query if props.query is updated from outside', function() {
       const searchBar = shallow(
-        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        <SmartSearchBar
+          organization={organization}
+          supportedTags={supportedTags}
+          query="one"
+        />,
         options
       );
 
@@ -80,7 +106,11 @@ describe('SmartSearchBar', function() {
 
     it('should not reset user input if a noop props change happens', function() {
       const searchBar = shallow(
-        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        <SmartSearchBar
+          organization={organization}
+          supportedTags={supportedTags}
+          query="one"
+        />,
         options
       );
       searchBar.setState({query: 'two'});
@@ -92,7 +122,11 @@ describe('SmartSearchBar', function() {
 
     it('should reset user input if a meaningful props change happens', function() {
       const searchBar = shallow(
-        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        <SmartSearchBar
+          organization={organization}
+          supportedTags={supportedTags}
+          query="one"
+        />,
         options
       );
       searchBar.setState({query: 'two'});
@@ -137,8 +171,7 @@ describe('SmartSearchBar', function() {
   describe('clearSearch()', function() {
     it('clears the query', function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
+        organization,
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
         supportedTags,
@@ -152,8 +185,7 @@ describe('SmartSearchBar', function() {
 
     it('calls onSearch()', async function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
+        organization,
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
         supportedTags,
@@ -170,8 +202,7 @@ describe('SmartSearchBar', function() {
     it('displays the drop down', function() {
       const searchBar = shallow(
         <SmartSearchBar
-          orgId="123"
-          projectId="456"
+          organization={organization}
           supportedTags={supportedTags}
           onGetTagValues={tagValuesMock}
         />,
@@ -187,8 +218,7 @@ describe('SmartSearchBar', function() {
     it('displays dropdown in hasPinnedSearch mode', function() {
       const searchBar = shallow(
         <SmartSearchBar
-          orgId="123"
-          projectId="456"
+          organization={organization}
           supportedTags={supportedTags}
           onGetTagValues={tagValuesMock}
           hasPinnedSearch
@@ -206,7 +236,7 @@ describe('SmartSearchBar', function() {
   describe('onQueryBlur()', function() {
     it('hides the drop down', function() {
       const searchBar = shallow(
-        <SmartSearchBar orgId="123" projectId="456" supportedTags={supportedTags} />,
+        <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
         options
       ).instance();
       searchBar.state.dropdownVisible = true;
@@ -222,8 +252,8 @@ describe('SmartSearchBar', function() {
   describe('onKeyUp()', function() {
     describe('escape', function() {
       it('blurs the input', function() {
-        const wrapper = shallow(
-          <SmartSearchBar orgId="123" projectId="456" supportedTags={supportedTags} />,
+        const wrapper = mount(
+          <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
           options
         );
         wrapper.setState({dropdownVisible: true});
@@ -245,8 +275,6 @@ describe('SmartSearchBar', function() {
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
-          orgId="123"
-          projectId="456"
           query="is:unresolved"
           supportedTags={supportedTags}
         />,
@@ -264,15 +292,13 @@ describe('SmartSearchBar', function() {
       jest.useRealTimers();
       const props = {
         organization,
-        orgId: '123',
-        projectId: '456',
         query: 'is:unresolved',
         supportedTags,
         onSearch: jest.fn(),
       };
       const wrapper = mount(<SmartSearchBar {...props} />, options);
 
-      wrapper.find('.search-clear-form').simulate('click');
+      wrapper.find('button[aria-label="Clear search"]').simulate('click');
 
       await tick();
       expect(props.onSearch).toHaveBeenCalledWith('');
@@ -284,8 +310,6 @@ describe('SmartSearchBar', function() {
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
-          orgId="123"
-          projectId="456"
           query="is:unresolved"
           supportedTags={supportedTags}
           hasPinnedSearch
@@ -301,8 +325,6 @@ describe('SmartSearchBar', function() {
 
   it('handles an empty query', function() {
     const props = {
-      orgId: '123',
-      projectId: '456',
       query: '',
       defaultQuery: 'is:unresolved',
       organization,
@@ -318,8 +340,6 @@ describe('SmartSearchBar', function() {
     });
     it('sets state when empty', function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: '',
         organization,
         supportedTags,
@@ -333,8 +353,6 @@ describe('SmartSearchBar', function() {
 
     it('sets state when incomplete tag', async function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: 'fu',
         organization,
         supportedTags,
@@ -354,8 +372,6 @@ describe('SmartSearchBar', function() {
 
     it('sets state when incomplete tag has negation operator', async function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: '!fu',
         organization,
         supportedTags,
@@ -375,8 +391,6 @@ describe('SmartSearchBar', function() {
 
     it('sets state when incomplete tag as second input', async function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: 'is:unresolved fu',
         organization,
         supportedTags,
@@ -397,8 +411,6 @@ describe('SmartSearchBar', function() {
 
     it('does not request values when tag is environments', function() {
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: 'environment:production',
         excludeEnvironment: true,
         organization,
@@ -417,16 +429,49 @@ describe('SmartSearchBar', function() {
         body: [],
       });
       const props = {
-        orgId: '123',
-        projectId: '456',
         query: 'timesSeen:',
         organization,
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(mock).not.toHaveBeenCalled();
+    });
+
+    it('requests values when tag is `firstRelease`', function() {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      const props = {
+        orgId: 'org-slug',
+        projectId: '0',
+        query: 'firstRelease:',
+        organization,
+        supportedTags,
+      };
+
+      const searchBar = mount(
+        <SmartSearchBar {...props} api={new Client()} />,
+        options
+      ).instance();
+      searchBar.updateAutoCompleteItems();
+
+      jest.advanceTimersByTime(301);
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            project: '0',
+            per_page: 5, // Limit results to 5 for autocomplete
+          },
+        })
+      );
     });
   });
 
@@ -455,8 +500,6 @@ describe('SmartSearchBar', function() {
         <SmartSearchBar
           api={new Client()}
           organization={organization}
-          orgId={organization.slug}
-          projectId="456"
           query=""
           supportedTags={supportedTags}
           savedSearchType={0}
@@ -475,8 +518,6 @@ describe('SmartSearchBar', function() {
         <SmartSearchBar
           api={new Client()}
           organization={organization}
-          orgId={organization.slug}
-          projectId="456"
           query="is:unresolved"
           supportedTags={supportedTags}
           savedSearchType={0}
@@ -497,8 +538,6 @@ describe('SmartSearchBar', function() {
         <SmartSearchBar
           api={new Client()}
           organization={organization}
-          orgId={organization.slug}
-          projectId="456"
           query="is:unresolved"
           supportedTags={supportedTags}
           savedSearchType={0}

@@ -8,12 +8,13 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
+PIP_OPTS = --no-use-pep517 --disable-pip-version-check
 WEBPACK = NODE_ENV=production ./bin/yarn webpack
 YARN = ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
-develop: setup-git ensure-venv develop-only
+develop: setup-git ensure-venv ensure-latest-pip develop-only
 
 develop-only: update-submodules install-yarn-pkgs install-sentry-dev
 
@@ -27,6 +28,9 @@ test: develop lint test-js test-python test-cli
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
+
+ensure-latest-pip:
+	python -m pip install -U pip
 
 build: locale
 
@@ -60,8 +64,8 @@ setup-git:
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	pip install "pre-commit>=1.10.1,<1.11.0"
-	pre-commit install
+	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
+	pre-commit install --install-hooks
 	@echo ""
 
 update-submodules:
@@ -90,7 +94,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,tests,optional]"
+	$(PIP) install -e ".[dev,tests,optional]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -103,7 +107,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	$(PIP) install transifex-client
+	$(PIP) install transifex-client $(PIP_OPTS)
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -243,7 +247,7 @@ travis-test-riak: test-riak
 .PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint travis-scan-riak
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety
+	$(PIP) install safety $(PIP_OPTS)
 	bin/scan
 	@echo ""
 

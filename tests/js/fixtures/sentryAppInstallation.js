@@ -8,6 +8,7 @@ export function SentryAppInstallation(params = {}) {
     organization: {
       slug: 'the-best-org',
     },
+    status: 'installed',
     ...params,
   };
 }

@@ -8,6 +8,7 @@ import six
 
 from collections import defaultdict, OrderedDict
 from django.conf import settings
+
 try:
     from django.db.backends.creation import BaseDatabaseCreation
 except ImportError:
@@ -43,13 +44,11 @@ class Hacks:
         # Make sure it contains strings
         if apps:
             assert isinstance(
-                apps[0], string_types), "The argument to set_installed_apps must be a list of strings."
+                apps[0], string_types
+            ), "The argument to set_installed_apps must be a list of strings."
 
         # Monkeypatch in!
-        settings.INSTALLED_APPS, settings.OLD_INSTALLED_APPS = (
-            apps,
-            settings.INSTALLED_APPS,
-        )
+        settings.INSTALLED_APPS, settings.OLD_INSTALLED_APPS = (apps, settings.INSTALLED_APPS)
         self._redo_app_cache()
 
     def reset_installed_apps(self):
@@ -118,14 +117,15 @@ class Hacks:
         def patch(f):
             def wrapper(*args, **kwargs):
                 # hold onto the original and replace flush command with a no-op
-                original_flush_command = management._commands['flush']
+                original_flush_command = management._commands["flush"]
                 try:
-                    management._commands['flush'] = SkipFlushCommand()
+                    management._commands["flush"] = SkipFlushCommand()
                     # run create_test_db
                     return f(*args, **kwargs)
                 finally:
                     # unpatch flush back to the original
-                    management._commands['flush'] = original_flush_command
+                    management._commands["flush"] = original_flush_command
+
             return wrapper
 
         BaseDatabaseCreation.create_test_db = patch(BaseDatabaseCreation.create_test_db)

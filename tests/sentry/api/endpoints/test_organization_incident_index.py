@@ -10,7 +10,7 @@ from sentry.testutils import APITestCase
 
 
 class IncidentListEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-organization-incident-index'
+    endpoint = "sentry-api-0-organization-incident-index"
 
     @fixture
     def organization(self):
@@ -30,7 +30,7 @@ class IncidentListEndpointTest(APITestCase):
         other_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
 
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
 
         assert resp.data == serialize([other_incident, incident])
@@ -41,13 +41,9 @@ class IncidentListEndpointTest(APITestCase):
         closed_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
         self.login_as(self.user)
 
-        with self.feature('organizations:incidents'):
-            resp_closed = self.get_valid_response(
-                self.organization.slug, status='closed',
-            )
-            resp_open = self.get_valid_response(
-                self.organization.slug, status='open'
-            )
+        with self.feature("organizations:incidents"):
+            resp_closed = self.get_valid_response(self.organization.slug, status="closed")
+            resp_open = self.get_valid_response(self.organization.slug, status="open")
 
         assert len(resp_closed.data) == 1
         assert len(resp_open.data) == 1
@@ -63,8 +59,8 @@ class IncidentListEndpointTest(APITestCase):
 
 @freeze_time()
 class IncidentCreateEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-organization-incident-index'
-    method = 'post'
+    endpoint = "sentry-api-0-organization-incident-index"
+    method = "post"
 
     @fixture
     def organization(self):
@@ -80,44 +76,38 @@ class IncidentCreateEndpointTest(APITestCase):
 
     def test_simple(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 projects=[self.project.slug],
                 groups=[self.group.id],
                 status_code=201,
             )
-        assert resp.data == serialize([Incident.objects.get(id=resp.data['id'])])[0]
+        assert resp.data == serialize([Incident.objects.get(id=resp.data["id"])])[0]
 
         # should create an activity authored by user
-        activity = IncidentActivity.objects.get(incident_id=resp.data['id'])
+        activity = IncidentActivity.objects.get(incident_id=resp.data["id"])
         assert activity.user == self.user
 
     def test_project_access(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
 
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org, teams=[])
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_response(
                 other_org.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 projects=[other_project.slug],
                 groups=[self.group.id],
@@ -126,21 +116,18 @@ class IncidentCreateEndpointTest(APITestCase):
 
     def test_group_access(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
 
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org, teams=[])
         other_group = self.create_group(project=other_project)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_response(
                 self.organization.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 groups=[self.group.id, other_group.id],
             )
@@ -148,10 +135,7 @@ class IncidentCreateEndpointTest(APITestCase):
 
     def test_no_feature(self):
         self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role='owner',
-            teams=[self.team],
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug)

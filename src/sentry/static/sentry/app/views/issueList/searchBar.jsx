@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
@@ -47,7 +48,6 @@ class IssueListSearchBar extends React.Component {
     ...SmartSearchBar.propTypes,
 
     savedSearch: SentryTypes.SavedSearch,
-    organization: SentryTypes.Organization.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
     onSidebarToggle: PropTypes.func,
   };
@@ -64,6 +64,7 @@ class IssueListSearchBar extends React.Component {
   }
 
   fetchData = async () => {
+    this.props.api.clear();
     const resp = await this.getRecentSearches();
 
     this.setState({
@@ -98,8 +99,13 @@ class IssueListSearchBar extends React.Component {
   };
 
   getRecentSearches = async fullQuery => {
-    const {api, orgId} = this.props;
-    const recent = await fetchRecentSearches(api, orgId, SEARCH_TYPES.ISSUE, fullQuery);
+    const {api, organization} = this.props;
+    const recent = await fetchRecentSearches(
+      api,
+      organization.slug,
+      SEARCH_TYPES.ISSUE,
+      fullQuery
+    );
     return (recent && recent.map(({query}) => query)) || [];
   };
 
@@ -117,22 +123,30 @@ class IssueListSearchBar extends React.Component {
     } = this.props;
 
     return (
-      <React.Fragment>
-        <SmartSearchBar
-          onGetTagValues={this.getTagValues}
-          defaultSearchItems={this.state.defaultSearchItems}
-          maxSearchItems={5}
-          hasPinnedSearch={true}
-          savedSearchType={SEARCH_TYPES.ISSUE}
-          displayRecentSearches={true}
-          onSavedRecentSearch={this.handleSavedRecentSearch}
-          onSidebarToggle={onSidebarToggle}
-          pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
-          {...props}
-        />
-      </React.Fragment>
+      <SmartSearchBarNoLeftCorners
+        hasPinnedSearch
+        hasRecentSearches
+        hasSearchBuilder
+        canCreateSavedSearch
+        maxSearchItems={5}
+        savedSearchType={SEARCH_TYPES.ISSUE}
+        onGetTagValues={this.getTagValues}
+        defaultSearchItems={this.state.defaultSearchItems}
+        onSavedRecentSearch={this.handleSavedRecentSearch}
+        onSidebarToggle={onSidebarToggle}
+        pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
+        {...props}
+      />
     );
   }
 }
+
+const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)`
+  border-radius: ${p =>
+    p.isOpen
+      ? `0 ${p.theme.borderRadius} 0 0`
+      : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+  flex-grow: 1;
+`;
 
 export default withApi(withOrganization(IssueListSearchBar));

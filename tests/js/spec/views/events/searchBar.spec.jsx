@@ -39,6 +39,11 @@ describe('SearchBar', function() {
 
     options = TestStubs.routerContext();
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+
     tagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/gpu/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],

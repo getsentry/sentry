@@ -21,45 +21,37 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    TotpInterface)
+    TotpInterface,
+)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
-        user = self.create_user('owner@example.org')
+        user = self.create_user("owner@example.org")
         org = self.create_organization(owner=user)
 
         self.login_as(user=user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-        assert response.data['onboardingTasks'] == []
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, format="json")
+        assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(org.id)
-        assert len(response.data['teams']) == 0
-        assert len(response.data['projects']) == 0
+        assert response.data["id"] == six.text_type(org.id)
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
 
     def test_with_projects(self):
-        user = self.create_user('owner@example.org')
+        user = self.create_user("owner@example.org")
         org = self.create_organization(owner=user)
-        team = self.create_team(
-            name='appy',
-            organization=org,
-            members=[user])
+        team = self.create_team(name="appy", organization=org, members=[user])
         # Create non-member team to test response shape
-        self.create_team(name='no-member', organization=org)
+        self.create_team(name="no-member", organization=org)
 
         # Ensure deleted teams don't come back.
         self.create_team(
-            name='deleted',
-            organization=org,
-            members=[user],
-            status=ObjectStatus.PENDING_DELETION)
+            name="deleted", organization=org, members=[user], status=ObjectStatus.PENDING_DELETION
+        )
 
         # Some projects with membership and some without.
         for i in range(2):
@@ -69,190 +61,124 @@ class OrganizationDetailsTest(APITestCase):
 
         # Should not show up.
         self.create_project(
-            slug='deleted',
-            organization=org,
-            teams=[team],
-            status=ObjectStatus.PENDING_DELETION)
-
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
+            slug="deleted", organization=org, teams=[team], status=ObjectStatus.PENDING_DELETION
         )
+
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=user)
 
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(35, using='default'):
+        with self.assertNumQueries(36, using="default"):
             from django.db import connections
-            response = self.client.get(url, format='json')
-            pprint(connections['default'].queries)
 
-        project_slugs = [p['slug'] for p in response.data['projects']]
+            response = self.client.get(url, format="json")
+            pprint(connections["default"].queries)
+
+        project_slugs = [p["slug"] for p in response.data["projects"]]
         assert len(project_slugs) == 4
-        assert 'deleted' not in project_slugs
+        assert "deleted" not in project_slugs
 
-        team_slugs = [t['slug'] for t in response.data['teams']]
+        team_slugs = [t["slug"] for t in response.data["teams"]]
         assert len(team_slugs) == 2
-        assert 'deleted' not in team_slugs
+        assert "deleted" not in team_slugs
 
     def test_details_no_projects_or_teams(self):
-        user = self.create_user('owner@example.org')
+        user = self.create_user("owner@example.org")
         org = self.create_organization(owner=user)
-        team = self.create_team(
-            name='appy',
-            organization=org,
-            members=[user])
+        team = self.create_team(name="appy", organization=org, members=[user])
         # Create non-member team to test response shape
-        self.create_team(name='no-member', organization=org)
+        self.create_team(name="no-member", organization=org)
 
         for i in range(2):
             self.create_project(organization=org, teams=[team])
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=user)
 
-        response = self.client.get(u'{}?detailed=0'.format(url), format='json')
+        response = self.client.get(u"{}?detailed=0".format(url), format="json")
 
-        assert 'projects' not in response.data
-        assert 'teams' not in response.data
+        assert "projects" not in response.data
+        assert "teams" not in response.data
 
     def test_as_superuser(self):
-        self.user = self.create_user('super@example.org', is_superuser=True)
+        self.user = self.create_user("super@example.org", is_superuser=True)
         org = self.create_organization(owner=self.user)
-        team = self.create_team(name='appy', organization=org)
+        team = self.create_team(name="appy", organization=org)
 
         self.login_as(user=self.user)
         for i in range(5):
             self.create_project(organization=org, teams=[team])
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-        assert len(response.data['projects']) == 5
-        assert len(response.data['teams']) == 1
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, format="json")
+        assert len(response.data["projects"]) == 5
+        assert len(response.data["teams"]) == 1
 
     def test_onboarding_tasks(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-        assert response.data['onboardingTasks'] == []
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, format="json")
+        assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(org.id)
+        assert response.data["id"] == six.text_type(org.id)
 
         project = self.create_project(organization=org)
         project_created.send(project=project, user=self.user, sender=type(project))
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.get(url, format='json')
-        assert len(response.data['onboardingTasks']) == 1
-        assert response.data['onboardingTasks'][0]['task'] == 1
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, format="json")
+        assert len(response.data["onboardingTasks"]) == 1
+        assert response.data["onboardingTasks"][0]["task"] == 1
 
 
 class OrganizationUpdateTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'name': 'hello world',
-                'slug': 'foobar',
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"name": "hello world", "slug": "foobar"})
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
-        assert org.name == 'hello world'
-        assert org.slug == 'foobar'
+        assert org.name == "hello world"
+        assert org.slug == "foobar"
 
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user)
-        org2 = self.create_organization(owner=self.user, slug='baz')
+        org2 = self.create_organization(owner=self.user, slug="baz")
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'slug': org2.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"slug": org2.slug})
         assert response.status_code == 400, response.content
 
     def test_short_slug(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'slug': 'a',
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"slug": "a"})
         assert response.status_code == 400, response.content
 
     def test_reserved_slug(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'slug': list(RESERVED_ORGANIZATION_SLUGS)[0],
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"slug": list(RESERVED_ORGANIZATION_SLUGS)[0]})
         assert response.status_code == 400, response.content
 
     def test_upload_avatar(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         response = self.client.put(
             url,
-            data={
-                'avatarType': 'upload',
-                'avatar': b64encode(self.load_fixture('avatar.jpg')),
-            },
-            format='json'
+            data={"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))},
+            format="json",
         )
 
-        avatar = OrganizationAvatar.objects.get(
-            organization=org,
-        )
+        avatar = OrganizationAvatar.objects.get(organization=org)
         assert response.status_code == 200, response.content
-        assert avatar.get_avatar_type_display() == 'upload'
+        assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file
 
     def test_various_options(self):
@@ -261,26 +187,22 @@ class OrganizationUpdateTest(APITestCase):
         AuditLogEntry.objects.filter(organization=org).delete()
 
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         data = {
-            'openMembership': False,
-            'isEarlyAdopter': True,
-            'allowSharedIssues': False,
-            'enhancedPrivacy': True,
-            'dataScrubber': True,
-            'dataScrubberDefaults': True,
-            'sensitiveFields': [u'password'],
-            'safeFields': [u'email'],
-            'storeCrashReports': True,
-            'scrubIPAddresses': True,
-            'scrapeJavaScript': False,
-            'defaultRole': 'owner',
-            'require2FA': True
+            "openMembership": False,
+            "isEarlyAdopter": True,
+            "allowSharedIssues": False,
+            "enhancedPrivacy": True,
+            "dataScrubber": True,
+            "dataScrubberDefaults": True,
+            "sensitiveFields": [u"password"],
+            "safeFields": [u"email"],
+            "storeCrashReports": True,
+            "scrubIPAddresses": True,
+            "scrapeJavaScript": False,
+            "defaultRole": "owner",
+            "require2FA": True,
         }
 
         # needed to set require2FA
@@ -298,288 +220,177 @@ class OrganizationUpdateTest(APITestCase):
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
         assert org.flags.require_2fa
-        assert org.default_role == 'owner'
+        assert org.default_role == "owner"
 
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(
-            organization=org,
-        )}
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
 
-        assert options.get('sentry:require_scrub_defaults')
-        assert options.get('sentry:require_scrub_data')
-        assert options.get('sentry:require_scrub_ip_address')
-        assert options.get('sentry:sensitive_fields') == ['password']
-        assert options.get('sentry:safe_fields') == ['email']
-        assert options.get('sentry:store_crash_reports') is True
-        assert options.get('sentry:scrape_javascript') is False
+        assert options.get("sentry:require_scrub_defaults")
+        assert options.get("sentry:require_scrub_data")
+        assert options.get("sentry:require_scrub_ip_address")
+        assert options.get("sentry:sensitive_fields") == ["password"]
+        assert options.get("sentry:safe_fields") == ["email"]
+        assert options.get("sentry:store_crash_reports") is True
+        assert options.get("sentry:scrape_javascript") is False
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == 'org.edit'
+        assert log.get_event_display() == "org.edit"
         # org fields & flags
-        assert u'to {}'.format(data['defaultRole']) in log.data['default_role']
-        assert u'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
-        assert u'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
-        assert u'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
-        assert u'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
-        assert u'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        assert u"to {}".format(data["defaultRole"]) in log.data["default_role"]
+        assert u"to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
+        assert u"to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
+        assert u"to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
+        assert u"to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
+        assert u"to {}".format(data["require2FA"]) in log.data["require_2fa"]
         # org options
-        assert u'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
-        assert u'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
-        assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
-        assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
-        assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
-        assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
+        assert u"to {}".format(data["dataScrubber"]) in log.data["dataScrubber"]
+        assert u"to {}".format(data["dataScrubberDefaults"]) in log.data["dataScrubberDefaults"]
+        assert u"to {}".format(data["sensitiveFields"]) in log.data["sensitiveFields"]
+        assert u"to {}".format(data["safeFields"]) in log.data["safeFields"]
+        assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
+        assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
-        data = {
-            'trustedRelays': [u'key1', u'key2']
-        }
+        data = {"trustedRelays": [u"key1", u"key2"]}
 
         response = self.client.put(url, data=data)
         assert response.status_code == 400
-        assert 'feature' in response.content
+        assert "feature" in response.content
 
     def test_setting_trusted_relays(self):
         org = self.create_organization(owner=self.user)
         AuditLogEntry.objects.filter(organization=org).delete()
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
-        data = {'trustedRelays': [u'key1', u'key2']}
+        data = {"trustedRelays": [u"key1", u"key2"]}
 
         with self.feature("organizations:relay"):
             response = self.client.put(url, data=data)
             assert response.status_code == 200
 
-        option, = OrganizationOption.objects.filter(
-            organization=org,
-            key="sentry:trusted-relays"
-        )
+        option, = OrganizationOption.objects.filter(organization=org, key="sentry:trusted-relays")
 
-        assert option.value == data['trustedRelays']
+        assert option.value == data["trustedRelays"]
         log = AuditLogEntry.objects.get(organization=org)
-        assert 'to {}'.format(data['trustedRelays']) in log.data['trustedRelays']
+        assert "to {}".format(data["trustedRelays"]) in log.data["trustedRelays"]
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url,
-            data={
-                'accountRateLimit': 1000,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"accountRateLimit": 1000})
         assert response.status_code == 400, response.content
 
-        response = self.client.put(
-            url,
-            data={
-                'projectRateLimit': 1000,
-            }
-        )
+        response = self.client.put(url, data={"projectRateLimit": 1000})
         assert response.status_code == 400, response.content
 
-        OrganizationOption.objects.set_value(org, 'sentry:project-rate-limit', 1)
+        OrganizationOption.objects.set_value(org, "sentry:project-rate-limit", 1)
 
-        response = self.client.put(
-            url,
-            data={
-                'projectRateLimit': 100,
-            }
-        )
+        response = self.client.put(url, data={"projectRateLimit": 100})
         assert response.status_code == 200, response.content
 
-        assert OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit') == 100
+        assert OrganizationOption.objects.get_value(org, "sentry:project-rate-limit") == 100
 
-        response = self.client.put(
-            url,
-            data={
-                'accountRateLimit': 50,
-            }
-        )
+        response = self.client.put(url, data={"accountRateLimit": 50})
         assert response.status_code == 200, response.content
 
-        assert OrganizationOption.objects.get_value(org, 'sentry:account-rate-limit') == 50
+        assert OrganizationOption.objects.get_value(org, "sentry:account-rate-limit") == 50
 
     def test_safe_fields_as_string_regression(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'safeFields': 'email',
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"safeFields": "email"})
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(
-            organization=org,
-        )}
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
 
-        assert not options.get('sentry:safe_fields')
+        assert not options.get("sentry:safe_fields")
 
     def test_manager_cannot_set_default_role(self):
         org = self.create_organization(owner=self.user)
-        user = self.create_user('baz@example.com')
-        self.create_member(organization=org, user=user, role='manager')
+        user = self.create_user("baz@example.com")
+        self.create_member(organization=org, user=user, role="manager")
         self.login_as(user=user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'defaultRole': 'owner',
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"defaultRole": "owner"})
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
 
-        assert org.default_role == 'member'
+        assert org.default_role == "member"
 
     def test_empty_string_in_array_safe_fields(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'safeFields': [''],
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"safeFields": [""]})
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(
-            organization=org,
-        )}
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
 
-        assert not options.get('sentry:safe_fields')
+        assert not options.get("sentry:safe_fields")
 
     def test_empty_string_in_array_sensitive_fields(self):
         org = self.create_organization(owner=self.user)
-        OrganizationOption.objects.set_value(
-            org,
-            'sentry:sensitive_fields',
-            ['foobar'],
-        )
+        OrganizationOption.objects.set_value(org, "sentry:sensitive_fields", ["foobar"])
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'sensitiveFields': [''],
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"sensitiveFields": [""]})
         assert response.status_code == 400, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(
-            organization=org,
-        )}
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
 
-        assert options.get('sentry:sensitive_fields') == ['foobar']
+        assert options.get("sentry:sensitive_fields") == ["foobar"]
 
     def test_empty_sensitive_fields(self):
         org = self.create_organization(owner=self.user)
-        OrganizationOption.objects.set_value(
-            org,
-            'sentry:sensitive_fields',
-            ['foobar'],
-        )
+        OrganizationOption.objects.set_value(org, "sentry:sensitive_fields", ["foobar"])
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'sensitiveFields': [],
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"sensitiveFields": []})
         assert response.status_code == 200, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(
-            organization=org,
-        )}
+        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
 
-        assert not options.get('sentry:sensitive_fields')
+        assert not options.get("sentry:sensitive_fields")
 
     def test_cancel_delete(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
-        response = self.client.put(
-            url, data={
-                'cancelDeletion': True,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        response = self.client.put(url, data={"cancelDeletion": True})
         assert response.status_code == 200, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.VISIBLE
 
 
 class OrganizationDeleteTest(APITestCase):
-    @patch('sentry.api.endpoints.organization_details.uuid4')
-    @patch('sentry.api.endpoints.organization_details.delete_organization')
+    @patch("sentry.api.endpoints.organization_details.uuid4")
+    @patch("sentry.api.endpoints.organization_details.delete_organization")
     def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
         class uuid(object):
-            hex = 'abc123'
+            hex = "abc123"
 
         mock_uuid4.return_value = uuid
 
         org = self.create_organization()
 
-        user = self.create_user(email='foo@example.com', is_superuser=False)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
 
-        self.create_member(
-            organization=org,
-            user=user,
-            role='owner',
-        )
+        self.create_member(organization=org, user=user, role="owner")
 
         self.login_as(user)
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         owners = org.get_owners()
         assert len(owners) > 0
@@ -597,11 +408,7 @@ class OrganizationDeleteTest(APITestCase):
         self.assert_valid_deleted_log(deleted_org, org)
 
         mock_delete_organization.apply_async.assert_called_once_with(
-            kwargs={
-                'object_id': org.id,
-                'transaction_id': 'abc123',
-                'actor_id': user.id,
-            },
+            kwargs={"object_id": org.id, "transaction_id": "abc123", "actor_id": user.id},
             countdown=86400,
         )
 
@@ -609,7 +416,7 @@ class OrganizationDeleteTest(APITestCase):
         assert len(mail.outbox) == len(owners)
         owner_emails = set(o.email for o in owners)
         for msg in mail.outbox:
-            assert 'Deletion' in msg.subject
+            assert "Deletion" in msg.subject
             assert len(msg.to) == 1
             owner_emails.remove(msg.to[0])
         # No owners should be remaining
@@ -618,21 +425,13 @@ class OrganizationDeleteTest(APITestCase):
     def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)
 
-        user = self.create_user(email='foo@example.com', is_superuser=False)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
 
-        self.create_member(
-            organization=org,
-            user=user,
-            role='admin',
-        )
+        self.create_member(organization=org, user=user, role="admin")
 
         self.login_as(user=user)
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         response = self.client.delete(url)
 
         assert response.status_code == 403
@@ -644,11 +443,7 @@ class OrganizationDeleteTest(APITestCase):
 
         self.login_as(self.user)
 
-        url = reverse(
-            'sentry-api-0-organization-details', kwargs={
-                'organization_slug': org.slug,
-            }
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             response = self.client.delete(url)
@@ -680,9 +475,9 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': self.org_2fa.slug,
-        })
+        return reverse(
+            "sentry-api-0-organization-details", kwargs={"organization_slug": self.org_2fa.slug}
+        )
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
@@ -702,8 +497,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider='github',
-            organization=self.organization,
+            provider="github", organization=self.organization
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
@@ -713,8 +507,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider='saml2',
-            organization=self.organization,
+            provider="saml2", organization=self.organization
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
@@ -725,7 +518,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)
         TotpInterface().enroll(self.owner)
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
         assert len(mail.outbox) == 0
 
@@ -735,7 +528,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         self.assert_cannot_enable_org_2fa(org, self.manager, 400)
         TotpInterface().enroll(self.manager)
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.manager)
         self.assert_2fa_email_equal(mail.outbox, [self.owner.email])
 
@@ -749,12 +542,12 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         TotpInterface().enroll(self.owner)
         user_emails_without_2fa = self.add_2fa_users_to_org(org)
 
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
         self.assert_2fa_email_equal(mail.outbox, user_emails_without_2fa)
 
         mail.outbox = []
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             response = self.api_disable_org_2fa(org, self.owner)
 
         assert response.status_code == 200

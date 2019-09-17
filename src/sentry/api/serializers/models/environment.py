@@ -11,32 +11,29 @@ from sentry.api.serializers import Serializer, register
 from sentry.models import Environment, EnvironmentProject
 
 
-StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 
 @register(Environment)
 class EnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return {
-            'id': six.text_type(obj.id),
-            'name': obj.name,
-        }
+        return {"id": six.text_type(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'id': six.text_type(obj.id),
-            'name': obj.environment.name,
-            'isHidden': obj.is_hidden is True,
+            "id": six.text_type(obj.id),
+            "name": obj.environment.name,
+            "isHidden": obj.is_hidden is True,
         }
 
 
 class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
     STATS_PERIODS = {
-        '24h': StatsPeriod(24, timedelta(hours=1)),
-        '30d': StatsPeriod(30, timedelta(hours=24)),
+        "24h": StatsPeriod(24, timedelta(hours=1)),
+        "30d": StatsPeriod(30, timedelta(hours=24)),
     }
 
     def __init__(self, group, since=None, until=None):
@@ -45,7 +42,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = {item: {'stats': {}} for item in item_list}
+        attrs = {item: {"stats": {}} for item in item_list}
         items = {self.group.id: []}
         for item in item_list:
             items[self.group.id].append(item.id)
@@ -68,12 +65,12 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
                 stats = {}
 
             for item in item_list:
-                attrs[item]['stats'][key] = [
+                attrs[item]["stats"][key] = [
                     (k, v[item.id]) for k, v in stats.get(self.group.id, {})
                 ]
         return attrs
 
     def serialize(self, obj, attrs, user):
         result = super(GroupEnvironmentWithStatsSerializer, self).serialize(obj, attrs, user)
-        result['stats'] = attrs['stats']
+        result["stats"] = attrs["stats"]
         return result

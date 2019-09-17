@@ -8,14 +8,16 @@ import psycopg2 as Database
 from django.db.backends.postgresql_psycopg2.base import DatabaseWrapper
 
 from .decorators import (
-    capture_transaction_exceptions, auto_reconnect_cursor, auto_reconnect_connection,
-    less_shitty_error_messages
+    capture_transaction_exceptions,
+    auto_reconnect_cursor,
+    auto_reconnect_connection,
+    less_shitty_error_messages,
 )
 from .operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
-__all__ = ('DatabaseWrapper', )
+__all__ = ("DatabaseWrapper",)
 
 
 def remove_null(value):
@@ -27,7 +29,7 @@ def remove_null(value):
     # somewhat legible rather than error. Considering this is better
     # behavior than the database truncating, seems good to do this
     # rather than attempting to sanitize all data inputs now manually.
-    return value.replace('\x00', '')
+    return value.replace("\x00", "")
 
 
 def remove_surrogates(value):
@@ -36,7 +38,7 @@ def remove_surrogates(value):
     # our string we need to remove it.
     if type(value) is bytes:
         try:
-            return strip_lone_surrogates(value.decode('utf-8')).encode('utf-8')
+            return strip_lone_surrogates(value.decode("utf-8")).encode("utf-8")
         except UnicodeError:
             return value
     return strip_lone_surrogates(value)

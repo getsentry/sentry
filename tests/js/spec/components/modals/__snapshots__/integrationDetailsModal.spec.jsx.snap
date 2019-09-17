@@ -85,15 +85,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           pluginId="github"
           size={50}
         >
-          <IntegrationIcon
-            image={Object {}}
+          <div
+            className="css-6ynrd7-PluginIcon e7e65lm0"
             size={50}
-          >
-            <div
-              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
-              size={50}
-            />
-          </IntegrationIcon>
+          />
         </PluginIcon>
         <Flex
           align="flex-start"
@@ -116,19 +111,19 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 data-test-id="provider-name"
               >
                 <Component
-                  className="css-1pygq0m-ProviderName e1rf4mlr1"
+                  className="css-1pygq0m-ProviderName exuwfuv1"
                   data-test-id="provider-name"
                 >
                   <Box
-                    className="css-1pygq0m-ProviderName e1rf4mlr1"
+                    className="css-1pygq0m-ProviderName exuwfuv1"
                     data-test-id="provider-name"
                   >
                     <Base
-                      className="e1rf4mlr1 css-cswdqk-ProviderName"
+                      className="exuwfuv1 css-cswdqk-ProviderName"
                       data-test-id="provider-name"
                     >
                       <div
-                        className="e1rf4mlr1 css-cswdqk-ProviderName"
+                        className="exuwfuv1 css-cswdqk-ProviderName"
                         data-test-id="provider-name"
                         is={null}
                       >
@@ -165,7 +160,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   >
     <div
-      className="css-zqji3g-Description e1rf4mlr2"
+      className="css-zqji3g-Description exuwfuv2"
       dangerouslySetInnerHTML={
         Object {
           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -269,21 +264,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
   </FeatureList>
   <Metadata>
     <Base
-      className="css-xm93tv-Metadata e1rf4mlr3"
+      className="css-xm93tv-Metadata exuwfuv3"
     >
       <div
-        className="css-xm93tv-Metadata e1rf4mlr3"
+        className="css-xm93tv-Metadata exuwfuv3"
         is={null}
       >
         <AuthorName
           flex={1}
         >
           <Base
-            className="css-1uwqb6n-AuthorName e1rf4mlr4"
+            className="css-1uwqb6n-AuthorName exuwfuv4"
             flex={1}
           >
             <div
-              className="css-1uwqb6n-AuthorName e1rf4mlr4"
+              className="css-1uwqb6n-AuthorName exuwfuv4"
               is={null}
             >
               By Morty
@@ -346,21 +341,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         type="warning"
       >
         <StyledTextBlock>
-          <Component
+          <div
             className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
           >
-            <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-            >
-              <span
-                dangerouslySetInnerHTML={
-                  Object {
-                    "__html": "This is a an alert example",
-                  }
+            <span
+              dangerouslySetInnerHTML={
+                Object {
+                  "__html": "This is a an alert example",
                 }
-              />
-            </div>
-          </Component>
+              }
+            />
+          </div>
         </StyledTextBlock>
       </div>
     </AlertWrapper>
@@ -431,7 +422,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-z6hjis-StyledButton-getColors e12ma6z0"
+            className="css-z6hjis-StyledButton-getColors edwq9my0"
             data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -441,7 +432,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-z6hjis-StyledButton-getColors e12ma6z0"
+              className="css-z6hjis-StyledButton-getColors edwq9my0"
               data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
@@ -453,11 +444,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               >
                 <Component
                   align="center"
-                  className="css-1h693nz-ButtonLabel e12ma6z1"
+                  className="css-1h693nz-ButtonLabel edwq9my1"
                   size="small"
                 >
                   <span
-                    className="css-1h693nz-ButtonLabel e12ma6z1"
+                    className="css-1h693nz-ButtonLabel edwq9my1"
                   >
                     Cancel
                   </span>
@@ -765,7 +756,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-1lua553-StyledButton-getColors e12ma6z0"
+                            className="css-1lua553-StyledButton-getColors edwq9my0"
                             data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
@@ -781,7 +772,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-1lua553-StyledButton-getColors e12ma6z0"
+                              className="css-1lua553-StyledButton-getColors edwq9my0"
                               data-test-id="add-button"
                               onClick={[Function]}
                               role="button"
@@ -799,12 +790,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               >
                                 <Component
                                   align="center"
-                                  className="css-1h693nz-ButtonLabel e12ma6z1"
+                                  className="css-1h693nz-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
                                   <span
-                                    className="css-1h693nz-ButtonLabel e12ma6z1"
+                                    className="css-1h693nz-ButtonLabel edwq9my1"
                                   >
                                     Add Installation
                                   </span>

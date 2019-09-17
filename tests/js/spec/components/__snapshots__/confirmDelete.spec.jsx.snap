@@ -45,15 +45,11 @@ exports[`ConfirmDelete renders 1`] = `
                 type="error"
               >
                 <StyledTextBlock>
-                  <Component
+                  <div
                     className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                   >
-                    <div
-                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                    >
-                      Are you sure?
-                    </div>
-                  </Component>
+                    Are you sure?
+                  </div>
                 </StyledTextBlock>
               </div>
             </AlertWrapper>
@@ -262,7 +258,7 @@ exports[`ConfirmDelete renders 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-4gvaqq-StyledButton-getColors e12ma6z0"
+                className="css-4gvaqq-StyledButton-getColors edwq9my0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -275,7 +271,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-4gvaqq-StyledButton-getColors e12ma6z0"
+                  className="css-4gvaqq-StyledButton-getColors edwq9my0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -289,10 +285,10 @@ exports[`ConfirmDelete renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel e12ma6z1"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
@@ -305,7 +301,7 @@ exports[`ConfirmDelete renders 1`] = `
           <Button
             align="center"
             autoFocus={true}
-            data-test-id="confirm-modal"
+            data-test-id="confirm-button"
             disabled={true}
             onClick={[Function]}
             priority="primary"
@@ -314,37 +310,31 @@ exports[`ConfirmDelete renders 1`] = `
               aria-disabled={true}
               aria-label="Confirm"
               autoFocus={true}
-              data-test-id="confirm-modal"
+              data-test-id="confirm-button"
               disabled={true}
-              href={null}
               onClick={[Function]}
               priority="primary"
               role="button"
-              to={null}
             >
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-pbzt2j-StyledButton-getColors e12ma6z0"
-                data-test-id="confirm-modal"
+                className="css-pbzt2j-StyledButton-getColors edwq9my0"
+                data-test-id="confirm-button"
                 disabled={true}
-                href={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
-                to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-pbzt2j-StyledButton-getColors e12ma6z0"
-                  data-test-id="confirm-modal"
-                  href={null}
+                  className="css-pbzt2j-StyledButton-getColors edwq9my0"
+                  data-test-id="confirm-button"
                   onClick={[Function]}
                   role="button"
-                  to={null}
                 >
                   <ButtonLabel
                     align="center"
@@ -352,11 +342,11 @@ exports[`ConfirmDelete renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel e12ma6z1"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel e12ma6z1"
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
                       >
                         Confirm
                       </span>

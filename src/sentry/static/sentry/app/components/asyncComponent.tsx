@@ -14,13 +14,13 @@ import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-export type AsyncComponentProps = {
+type AsyncComponentProps = {
   location?: Location;
   router?: any;
   params?: any;
 };
 
-export type AsyncComponentState = {
+type AsyncComponentState = {
   loading: boolean;
   reloading: boolean;
   error: boolean;
@@ -33,7 +33,7 @@ export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
-  static propTypes = {
+  static propTypes: any = {
     location: PropTypes.object,
     router: PropTypes.object,
   };
@@ -378,7 +378,7 @@ export default class AsyncComponent<
     return <LoadingIndicator />;
   }
 
-  renderError(error, disableLog = false, disableReport = false) {
+  renderError(error, disableLog = false, disableReport = false): React.ReactNode {
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
     const unauthorizedErrors = Object.values(this.state.errors).find(
       resp => resp && resp.status === 401
@@ -437,7 +437,7 @@ export default class AsyncComponent<
       : this.renderBody();
   }
 
-  renderBody(): React.ReactElement {
+  renderBody(): React.ReactNode {
     // Allow children to implement this
     throw new Error('Not implemented');
   }

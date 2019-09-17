@@ -9,81 +9,60 @@ from freezegun import freeze_time
 from mock import patch
 
 from sentry.db.models.manager import BaseManager
-from sentry.incidents.models import (
-    Incident,
-    IncidentStatus,
-)
+from sentry.incidents.models import Incident, IncidentStatus
 from sentry.testutils import TestCase
 
 
 class FetchForOrganizationTest(TestCase):
     def test_empty(self):
-        incidents = Incident.objects.fetch_for_organization(
-            self.organization,
-            [self.project],
-        )
+        incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
         assert [] == list(incidents)
         self.create_project()
 
     def test_simple(self):
         incident = self.create_incident()
 
-        assert [incident] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [self.project],
-        ))
+        assert [incident] == list(
+            Incident.objects.fetch_for_organization(self.organization, [self.project])
+        )
 
     def test_invalid_project(self):
         project = self.create_project()
         incident = self.create_incident(projects=[project])
 
-        assert [] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [self.project],
-        ))
-        assert [incident] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [project],
-        ))
+        assert [] == list(
+            Incident.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert [incident] == list(
+            Incident.objects.fetch_for_organization(self.organization, [project])
+        )
 
     def test_multi_project(self):
         project = self.create_project()
         incident = self.create_incident(projects=[project, self.project])
 
-        assert [incident] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [self.project],
-        ))
-        assert [incident] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [project],
-        ))
-        assert [incident] == list(Incident.objects.fetch_for_organization(
-            self.organization,
-            [self.project, project],
-        ))
+        assert [incident] == list(
+            Incident.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert [incident] == list(
+            Incident.objects.fetch_for_organization(self.organization, [project])
+        )
+        assert [incident] == list(
+            Incident.objects.fetch_for_organization(self.organization, [self.project, project])
+        )
 
 
 class IncidentCreationTest(TestCase):
-
     def test_simple(self):
-        title = 'hello'
-        query = 'goodbye'
-        incident = Incident.objects.create(
-            self.organization,
-            title=title,
-            query=query,
-        )
+        title = "hello"
+        query = "goodbye"
+        incident = Incident.objects.create(self.organization, title=title, query=query)
         assert incident.identifier == 1
         assert incident.title == title
         assert incident.query == query
 
         # Check identifier correctly increments
-        incident = Incident.objects.create(
-            self.organization,
-            title=title,
-            query=query,
-        )
+        incident = Incident.objects.create(self.organization, title=title, query=query)
         assert incident.identifier == 2
 
     def test_identifier_conflict(self):
@@ -100,28 +79,25 @@ class IncidentCreationTest(TestCase):
                     incident = Incident.objects.create(
                         self.organization,
                         status=IncidentStatus.OPEN.value,
-                        title='Conflicting Incident',
-                        query='Uh oh',
+                        title="Conflicting Incident",
+                        query="Uh oh",
                     )
-                assert incident.identifier == kwargs['identifier']
+                assert incident.identifier == kwargs["identifier"]
                 try:
                     create_method(*args, **kwargs)
                 except IntegrityError:
                     raise
                 else:
-                    self.fail('Expected an integrity error')
+                    self.fail("Expected an integrity error")
             else:
                 call_count[0] += 1
 
             return create_method(*args, **kwargs)
 
         self.organization
-        with patch.object(BaseManager, 'create', new=mock_base_create):
+        with patch.object(BaseManager, "create", new=mock_base_create):
             incident = Incident.objects.create(
-                self.organization,
-                status=IncidentStatus.OPEN.value,
-                title='hi',
-                query='bye',
+                self.organization, status=IncidentStatus.OPEN.value, title="hi", query="bye"
             )
             # We should have 3 calls - one for initial create, one for conflict,
             # then the final one for the retry we get due to the conflict

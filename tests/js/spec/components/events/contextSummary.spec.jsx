@@ -26,6 +26,14 @@ const CONTEXT_OS = {
   name: 'Mac OS X',
 };
 
+const CONTEXT_OS_SERVER = {
+  kernel_version: '4.3.0',
+  version: '4.3.0',
+  type: 'os',
+  build: '123123123',
+  name: 'Linux',
+};
+
 const CONTEXT_RUNTIME = {
   version: '1.7.13',
   type: 'runtime',
@@ -96,6 +104,37 @@ describe('ContextSummary', function() {
           browser: CONTEXT_BROWSER,
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE, // must be omitted
+        },
+      };
+
+      const wrapper = shallow(<ContextSummary event={event} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should prefer client_os over os', () => {
+      const event = {
+        id: '',
+        user: CONTEXT_USER,
+        contexts: {
+          client_os: CONTEXT_OS,
+          os: CONTEXT_OS_SERVER,
+          browser: CONTEXT_BROWSER,
+          runtime: CONTEXT_RUNTIME,
+        },
+      };
+
+      const wrapper = shallow(<ContextSummary event={event} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should render client_os too', () => {
+      const event = {
+        id: '',
+        user: CONTEXT_USER,
+        contexts: {
+          client_os: CONTEXT_OS,
+          browser: CONTEXT_BROWSER,
+          runtime: CONTEXT_RUNTIME,
         },
       };
 
