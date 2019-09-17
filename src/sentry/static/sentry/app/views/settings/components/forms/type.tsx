@@ -77,11 +77,6 @@ type TextareaType = {type: 'textarea'} & {
 };
 
 type RangeType = {type: 'range'} & React.ComponentProps<RangeSlider>;
-// {
-// showCustomInput?: boolean;
-// min?: number;
-// max?: number;
-// };
 
 export type Field = (
   | CustomType
