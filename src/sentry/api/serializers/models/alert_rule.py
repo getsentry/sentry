@@ -5,7 +5,7 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects
 
 
 @register(AlertRule)
@@ -26,6 +26,7 @@ class AlertRuleSerializer(Serializer):
             "alertThreshold": obj.alert_threshold,
             "resolveThreshold": obj.resolve_threshold,
             "thresholdPeriod": obj.threshold_period,
+            "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateAdded": obj.date_added,
         }
@@ -41,9 +42,16 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
+
+        for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
+            alert_rule__in=item_list
+        ).values_list("alert_rule_id", "project__slug"):
+            exclusions = result[alert_rules[alert_rule_id]].setdefault("excludedProjects", [])
+            exclusions.append(project_slug)
         return result
 
     def serialize(self, obj, attrs, user):
         data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
         data["projects"] = sorted(attrs["projects"])
+        data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data
