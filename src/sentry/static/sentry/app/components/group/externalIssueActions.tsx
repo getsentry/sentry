@@ -53,13 +53,13 @@ class ExternalIssueActions extends AsyncComponent<Props & AsyncComponent['props'
     }/?externalIssue=${issueId}`;
     this.api.request(endpoint, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: (_data, _, _jqXHR) => {
         addSuccessMessage(t('Successfully unlinked issue.'));
         this.setState({
           issue: null,
         });
       },
-      error: error => {
+      error: _error => {
         addErrorMessage(t('Unable to unlink issue.'));
       },
     });
