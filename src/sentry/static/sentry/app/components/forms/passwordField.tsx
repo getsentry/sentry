@@ -6,7 +6,7 @@ import {Context} from 'app/components/forms/form';
 
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;
-  prefix?: string;
+  prefix: string;
   formState: typeof FormState[keyof typeof FormState];
 };
 
@@ -72,10 +72,6 @@ export default class PasswordField extends InputField<Props, State> {
     });
   };
 
-  get prefix() {
-    return this.props.prefix || PasswordField.defaultProps.prefix;
-  }
-
   getField() {
     if (!this.props.hasSavedValue) {
       return super.getField();
@@ -93,7 +89,9 @@ export default class PasswordField extends InputField<Props, State> {
     } else {
       return (
         <div className="form-password saved">
-          <span>{this.prefix + new Array(21 - this.prefix.length).join('*')}</span>
+          <span>
+            {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
+          </span>
           {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
         </div>
       );
