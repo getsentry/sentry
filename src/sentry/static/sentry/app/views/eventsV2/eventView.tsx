@@ -50,6 +50,7 @@ const decodeFields = (fields: string[], aliases: string[]): Field[] => {
 };
 
 type DiscoverState = {
+  name: string;
   fields: string[];
   aliases: string[];
   sorts: string[];
@@ -65,11 +66,14 @@ const parseStringArray = (maybe: any): string[] => {
 };
 
 const intoDiscoverState = (location: Location): DiscoverState => {
+  const name = getFirstQueryString(location.query, 'name', '');
+
   try {
     const maybeState: string = getFirstQueryString(location.query, 'state', '{}');
     const result = JSON.parse(decompressString(maybeState));
 
     return {
+      name,
       fields: parseStringArray(get(result, 'fields', [])),
       aliases: parseStringArray(get(result, 'aliases', [])),
       sorts: parseStringArray(get(result, 'sorts', [])),
@@ -77,6 +81,7 @@ const intoDiscoverState = (location: Location): DiscoverState => {
     };
   } catch (_err) {
     return {
+      name,
       fields: [],
       aliases: [],
       sorts: [],
@@ -168,7 +173,7 @@ const queryStringFromSavedQuery = (saved: SavedQuery): string => {
 };
 
 class EventView {
-  name: string | undefined;
+  name: string;
   fields: Field[];
   sorts: Sort[];
   tags: string[];
@@ -179,7 +184,7 @@ class EventView {
   end: string | undefined;
 
   constructor(props: {
-    name: string | undefined;
+    name: string;
     fields: Field[];
     sorts: Sort[];
     tags: string[];
@@ -204,7 +209,7 @@ class EventView {
     const discoverState = intoDiscoverState(location);
 
     return new EventView({
-      name: decodeScalar(location.query.name),
+      name: discoverState.name,
       fields: decodeFields(discoverState.fields, discoverState.aliases),
       sorts: fromSorts(discoverState.sorts),
       tags: discoverState.tags,
@@ -257,6 +262,7 @@ class EventView {
 
   generateQueryStringObject(): Query {
     const state: DiscoverState = {
+      name: this.name,
       fields: this.fields.map(item => item.field),
       aliases: this.fields.map(item => item.title),
       sorts: encodeSorts(this.sorts),
@@ -268,7 +274,7 @@ class EventView {
       query: this.query,
     };
 
-    const conditionalFields = ['name', 'project', 'start', 'end', 'range'] as const;
+    const conditionalFields = ['project', 'start', 'end', 'range'] as const;
     for (const field of conditionalFields) {
       if (this[field] && this[field]!.length) {
         output[field] = this[field];
