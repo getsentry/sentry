@@ -15,7 +15,18 @@ import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
 
-export default class FieldFromConfig extends React.Component {
+import {Field} from './types';
+
+type Props = {
+  field: Field;
+  highlighted?: boolean;
+  disabled?: boolean;
+
+  // TODO(ts): Investigate further
+  access: any;
+};
+
+export default class FieldFromConfig extends React.Component<Props> {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,
@@ -118,7 +129,11 @@ export default class FieldFromConfig extends React.Component {
       case 'rich_list':
         return <RichListField {...props} />;
       case 'custom':
-        return field.Component(props);
+        if (typeof field.Component === 'function') {
+          return field.Component(props);
+        }
+
+        throw new Error('Missing `Component` property for field');
       default:
         return null;
     }
