@@ -37,7 +37,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         events = [
             self.store_event(
-                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=2))},
                 project_id=project.id,
             ),
             self.store_event(
@@ -66,7 +66,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             project, sort_records([event_to_record(event, (rule,)) for event in events])
         )
 
-        events.pop(1)  # remove event with same group
+        events.pop(0)  # remove event with same group
         assert get_event_from_groups_in_digest(digest) == set(events)
 
     def test_team_actors_to_user_ids(self):
