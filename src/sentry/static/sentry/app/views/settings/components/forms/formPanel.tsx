@@ -4,7 +4,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
-import {FieldObject, JsonFormObject} from './types';
+import {FieldObject, JsonFormObject} from './type';
 
 type Props = {
   /**

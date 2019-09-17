@@ -7,7 +7,7 @@ import scrollToElement from 'scroll-to-element';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import {Location} from 'history';
 
-import {FieldObject, JsonFormObject} from './types';
+import {FieldObject, JsonFormObject} from './type';
 import FieldFromConfig from './fieldFromConfig';
 import FormPanel from './formPanel';
 
