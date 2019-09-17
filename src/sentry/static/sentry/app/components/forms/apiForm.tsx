@@ -36,7 +36,7 @@ export default class ApiForm extends Form<Props> {
     this.api.clear();
   }
 
-  onSubmit = e => {
+  onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (this.state.state === FormState.SAVING) {

@@ -2,14 +2,25 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import InputField from 'app/components/forms/inputField';
 import FormState from 'app/components/forms/state';
+import {Context} from 'app/components/forms/form';
+
+type Props = InputField['props'] & {
+  hasSavedValue?: boolean;
+  prefix?: string;
+  formState: typeof FormState[keyof typeof FormState];
+};
+
+type State = InputField['state'] & {
+  editing: boolean;
+};
 
 // TODO(dcramer): im not entirely sure this is working correctly with
 // value propagation in all scenarios
-export default class PasswordField extends InputField {
+export default class PasswordField extends InputField<Props, State> {
   static propTypes = {
     ...InputField.propTypes,
     hasSavedValue: PropTypes.bool,
-    prefix: PropTypes.string,
+    prefix: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
@@ -18,13 +29,13 @@ export default class PasswordField extends InputField {
     prefix: '',
   };
 
-  constructor(props, context) {
+  constructor(props: Props, context: Context) {
     super(props, context);
 
-    this.state.editing = false;
+    this.setState({editing: false});
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // close edit mode after successful save
     // TODO(dcramer): this needs to work with this.context.form
     if (
@@ -42,7 +53,7 @@ export default class PasswordField extends InputField {
     return 'password';
   }
 
-  cancelEdit = e => {
+  cancelEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     this.setState(
       {
@@ -54,12 +65,16 @@ export default class PasswordField extends InputField {
     );
   };
 
-  startEdit = e => {
+  startEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     this.setState({
       editing: true,
     });
   };
+
+  get prefix() {
+    return this.props.prefix || PasswordField.defaultProps.prefix;
+  }
 
   getField() {
     if (!this.props.hasSavedValue) {
@@ -78,9 +93,7 @@ export default class PasswordField extends InputField {
     } else {
       return (
         <div className="form-password saved">
-          <span>
-            {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
-          </span>
+          <span>{this.prefix + new Array(21 - this.prefix.length).join('*')}</span>
           {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
         </div>
       );

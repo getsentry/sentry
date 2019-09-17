@@ -9,10 +9,10 @@ import {t} from 'app/locale';
 type FormProps = {
   cancelLabel?: string;
   onCancel?: () => void;
-  onSubmit: (
+  onSubmit?: (
     data: object,
-    onSubmitSuccess: (data: object) => void,
-    onSubmitError: (error: object) => void
+    onSubmitSuccess?: (data: object) => void,
+    onSubmitError?: (error: object) => void
   ) => void;
   initialData?: object;
   onSubmitSuccess?: (data: object) => void;
@@ -32,21 +32,25 @@ type FormState = {
   data: any;
   errors: {non_field_errors?: object[]} & object;
   initialData: object;
-  state: string;
+  state: typeof FormState[keyof typeof FormState];
 };
 
-type Context = {
-  form: object;
+export type Context = {
+  form: {
+    errors: object;
+    data: object;
+    onFieldChange: (name: string, value: string | number) => void;
+  };
 };
 
 class Form<
-  P extends FormProps = FormProps,
-  S extends FormState = FormState
-> extends React.Component<P, S> {
+  Props extends FormProps = FormProps,
+  State extends FormState = FormState
+> extends React.Component<Props, State> {
   static propTypes = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
-    onSubmit: PropTypes.func.isRequired,
+    onSubmit: PropTypes.func, //actually required but we cannot make it required because it's optional in apiForm
     onSubmitSuccess: PropTypes.func,
     onSubmitError: PropTypes.func,
     submitDisabled: PropTypes.bool,
@@ -78,14 +82,14 @@ class Form<
     form: PropTypes.object.isRequired,
   };
 
-  constructor(props: P, context: Context) {
+  constructor(props: Props, context: Context) {
     super(props, context);
     this.state = {
       data: {...this.props.initialData},
       errors: {},
       initialData: {...this.props.initialData},
       state: FormState.READY,
-    } as S;
+    } as State;
   }
 
   getChildContext() {
@@ -99,12 +103,15 @@ class Form<
     };
   }
 
-  onSubmit = e => {
+  onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!this.props.onSubmit) {
+      throw new Error('onSubmit is a required prop');
+    }
     this.props.onSubmit(this.state.data, this.onSubmitSuccess, this.onSubmitError);
   };
 
-  onSubmitSuccess = data => {
+  onSubmitSuccess = (data: object) => {
     const curData = this.state.data;
     let newData = {};
     if (data) {
@@ -212,7 +219,6 @@ class Form<
 
 // Note: this is so we can use this as a selector for SelectField
 // We need to keep `Form` as a React Component because ApiForm extends it :/
-const StyledForm = styled('form')``;
+export const StyledForm = styled('form')``;
 
 export default Form;
-export {StyledForm};

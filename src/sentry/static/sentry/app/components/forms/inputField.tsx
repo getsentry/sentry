@@ -3,7 +3,15 @@ import React from 'react';
 
 import FormField from 'app/components/forms/formField';
 
-export default class InputField extends FormField {
+type InputFieldProps = FormField['props'] & {
+  placeholder: string;
+  inputStyle?: object;
+};
+
+export default class InputField<
+  Props extends InputFieldProps = InputFieldProps,
+  State extends FormField['state'] = FormField['state']
+> extends FormField<Props, State> {
   static propTypes = {
     ...FormField.propTypes,
     placeholder: PropTypes.string,
@@ -24,7 +32,7 @@ export default class InputField extends FormField {
         disabled={this.props.disabled}
         name={this.props.name}
         required={this.props.required}
-        value={this.state.value}
+        value={this.state.value as string | number} //can't pass in boolean here\
         style={this.props.inputStyle}
         {...this.getAttributes()}
       />
@@ -35,7 +43,7 @@ export default class InputField extends FormField {
     return 'control-group';
   }
 
-  getType() {
+  getType(): string {
     throw new Error('Must be implemented by child.');
   }
 }
