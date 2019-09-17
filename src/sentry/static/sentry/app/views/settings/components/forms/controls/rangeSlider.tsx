@@ -6,7 +6,64 @@ import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
 
-class RangeSlider extends React.Component {
+type Props = {
+  name: string;
+
+  /**
+   * min allowed value, not needed if using `allowedValues`
+   */
+  min?: number;
+
+  /**
+   * max allowed value, not needed if using `allowedValues`
+   */
+  max?: number;
+
+  /**
+   * String is a valid type here only for empty string
+   * Otherwise react complains:
+   * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
+   *
+   * And we want this to be a controlled input when value is empty
+   */
+  value: number | '';
+  step?: number;
+  disabled?: boolean;
+
+  /**
+   * Render prop for slider's label
+   * Is passed the value as an argument
+   */
+  formatLabel?: (value: number | '') => React.ReactNode;
+
+  /**
+   * Array of allowed values. Make sure `value` is in this list.
+   * THIS NEEDS TO BE SORTED
+   */
+  allowedValues?: number[];
+
+  /**
+   * Show input control for custom values
+   */
+  showCustomInput?: boolean;
+
+  // Placeholder for custom input
+  placeholder?: string;
+
+  /**
+   * This is called when *any* MouseUp or KeyUp event happens.
+   * Used for "smart" Fields to trigger a "blur" event. `onChange` can
+   * be triggered quite frequently
+   */
+  onBlur?: Function;
+  onChange?: Function;
+};
+
+type State = {
+  sliderValue: number | '';
+};
+
+class RangeSlider extends React.Component<Props, State> {
   static propTypes = {
     name: PropTypes.string.isRequired,
     /**
@@ -57,32 +114,27 @@ class RangeSlider extends React.Component {
     onBlur: PropTypes.func,
   };
 
-  constructor(props) {
-    super(props);
+  state: State = {
+    sliderValue: this.props.allowedValues
+      ? // With `allowedValues` sliderValue will be the index to value in `allowedValues`
+        // This is so we can snap the rangeSlider using `step`
+        // This means that the range slider will have a uniform `step` in the UI
+        // and scale won't match `allowedValues
+        // e.g. with allowedValues = [0, 100, 1000, 10000] - in UI we'll have values = [0, 3] w/ step of 1
+        // so it always snaps at 25% width
+        this.props.allowedValues.indexOf(Number(this.props.value || 0))
+      : this.props.value,
+  };
 
-    const state = {sliderValue: props.value};
-    if (props.allowedValues) {
-      // With `allowedValues` sliderValue will be the index to value in `allowedValues`
-      // This is so we can snap the rangeSlider using `step`
-      // This means that the range slider will have a uniform `step` in the UI
-      // and scale won't match `allowedValues
-      // e.g. with allowedValues = [0, 100, 1000, 10000] - in UI we'll have values = [0, 3] w/ step of 1
-      // so it always snaps at 25% width
-      state.sliderValue = props.allowedValues.indexOf(props.value);
-    }
-
-    this.state = state;
-  }
-
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
     if (typeof nextProps.value !== 'undefined') {
       const {allowedValues} = this.props;
       let sliderValue = nextProps.value;
 
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-      if (allowedValues && allowedValues.indexOf(sliderValue) > -1) {
-        sliderValue = allowedValues.indexOf(sliderValue);
+      if (allowedValues && allowedValues.indexOf(Number(sliderValue || 0)) > -1) {
+        sliderValue = allowedValues.indexOf(Number(sliderValue || 0));
       }
       this.setState({sliderValue});
     }
@@ -150,7 +202,7 @@ class RangeSlider extends React.Component {
     } = this.props;
     const {sliderValue} = this.state;
     let actualValue = sliderValue;
-    let displayValue = actualValue;
+    let displayValue: React.ReactNode = actualValue;
 
     if (allowedValues) {
       step = 1;
@@ -198,7 +250,7 @@ class RangeSlider extends React.Component {
 
 export default RangeSlider;
 
-const Slider = styled('input')`
+const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
@@ -277,7 +329,7 @@ const Slider = styled('input')`
   }
 
   &::-ms-fill-upper {
-    background: ${p => p.theme.borderLight});
+    background: ${p => p.theme.borderLight};
     border: 0;
     border-radius: 50%;
   }
@@ -334,7 +386,7 @@ const Label = styled('label')`
   color: ${p => p.theme.gray3};
 `;
 
-const SliderAndInputWrapper = styled('div')`
+const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`
   display: grid;
   align-items: center;
   grid-auto-flow: column;
