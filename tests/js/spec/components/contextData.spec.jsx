@@ -15,7 +15,7 @@ describe('ContextData', function() {
             .find('span')
             .at(0)
             .text()
-        ).toEqual('"' + URL + '"'); // Quotes should not be stripped away to ensure valid json
+        ).toEqual(URL);
         expect(
           wrapper
             .find('a')
