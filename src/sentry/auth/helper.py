@@ -466,14 +466,7 @@ def handle_new_user(auth_provider, organization, request, identity):
 
     user.send_confirm_emails(is_new_user=True)
 
-    # If the user has a pending invitation in this organization, we can
-    # immediately associate their user.
-    try:
-        member = OrganizationMember.objects.get(organization=organization, email=user.email)
-        member.set_user(user)
-        member.save()
-    except OrganizationMember.DoesNotExist:
-        handle_new_membership(auth_provider, organization, request, auth_identity)
+    handle_new_membership(auth_provider, organization, request, auth_identity)
 
     return auth_identity
 
