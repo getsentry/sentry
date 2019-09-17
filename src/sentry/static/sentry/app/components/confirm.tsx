@@ -62,8 +62,8 @@ type Props = {
    * Render props to control rendering of the modal in its entirety
    */
   children?:
-    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>
-    | ((renderProps: ChildrenRenderProps) => React.ReactChildren);
+    | ((renderProps: ChildrenRenderProps) => React.ReactNode)
+    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
 
   /**
    * Passed to `children` render function
@@ -202,17 +202,17 @@ class Confirm extends React.PureComponent<Props, State> {
   };
 
   handleToggle = (e: React.MouseEvent): void => {
-    const {disabled, bypass} = this.props;
+    const {disabled, bypass, stopPropagation, onConfirm} = this.props;
     if (disabled) {
       return;
     }
 
-    if (e && this.props.stopPropagation) {
+    if (e && stopPropagation) {
       e.stopPropagation();
     }
 
     if (bypass) {
-      this.props.onConfirm();
+      onConfirm();
       return;
     }
 
