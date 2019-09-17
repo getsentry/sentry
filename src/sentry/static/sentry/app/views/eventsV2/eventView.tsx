@@ -66,14 +66,14 @@ const parseStringArray = (maybe: any): string[] => {
 };
 
 const intoDiscoverState = (location: Location): DiscoverState => {
-  const name = getFirstQueryString(location.query, 'name', '');
-
   try {
     const maybeState: string = getFirstQueryString(location.query, 'state', '{}');
     const result = JSON.parse(decompressString(maybeState));
 
+    const maybeName = get(result, 'name', '');
+
     return {
-      name,
+      name: isString(maybeName) ? maybeName : '',
       fields: parseStringArray(get(result, 'fields', [])),
       aliases: parseStringArray(get(result, 'aliases', [])),
       sorts: parseStringArray(get(result, 'sorts', [])),
@@ -81,7 +81,7 @@ const intoDiscoverState = (location: Location): DiscoverState => {
     };
   } catch (_err) {
     return {
-      name,
+      name: '',
       fields: [],
       aliases: [],
       sorts: [],

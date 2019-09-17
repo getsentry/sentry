@@ -62,11 +62,7 @@ class EventsV2 extends React.Component<Props> {
     return <LinkList>{list}</LinkList>;
   }
 
-  getEventViewName = (): Array<string> => {
-    const {location} = this.props;
-
-    const name = getFirstQueryString(location.query, 'name');
-
+  getEventViewName = (name: string): Array<string> => {
     if (typeof name === 'string' && String(name).trim().length > 0) {
       return [t('Events'), String(name).trim()];
     }
@@ -80,12 +76,12 @@ class EventsV2 extends React.Component<Props> {
 
     const eventView = EventView.fromLocation(location);
 
-    const hasQuery = location.query.state || location.query.eventSlug;
+    const hasQuery = eventView.isValid() || location.query.eventSlug;
 
-    const documentTitle = this.getEventViewName()
+    const documentTitle = this.getEventViewName(eventView.name)
       .reverse()
       .join(' - ');
-    const pageTitle = this.getEventViewName().join(' \u2014 ');
+    const pageTitle = this.getEventViewName(eventView.name).join(' \u2014 ');
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
