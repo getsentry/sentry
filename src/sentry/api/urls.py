@@ -276,6 +276,12 @@ from .endpoints.useravatar import UserAvatarEndpoint
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.incidents.endpoints.organization_alert_rule_details import (
+    OrganizationAlertRuleDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_index import (
+    OrganizationAlertRuleIndexEndpoint,
+)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 
@@ -530,6 +536,17 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/$",
                     OrganizationDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-details",
+                ),
+                # Alert Rules
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
+                    OrganizationAlertRuleDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
+                    OrganizationAlertRuleIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rules",
                 ),
                 # Incidents
                 url(

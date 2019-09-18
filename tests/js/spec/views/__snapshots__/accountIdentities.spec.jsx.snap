@@ -5,7 +5,7 @@ exports[`AccountIdentities renders empty 1`] = `
   title="Identities - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Identities"
     />
@@ -38,7 +38,7 @@ exports[`AccountIdentities renders list 1`] = `
   title="Identities - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Identities"
     />

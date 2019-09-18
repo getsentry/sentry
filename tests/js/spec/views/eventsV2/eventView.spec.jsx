@@ -107,4 +107,20 @@ describe('EventView.getEventsAPIPayload()', function() {
       'event.type:csp TypeError'
     );
   });
+
+  it('does not duplicate conditions', function() {
+    const eventView = new EventView({
+      fields: ['id'],
+      sorts: [],
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        query: 'event.type:csp',
+      },
+    };
+    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+  });
 });

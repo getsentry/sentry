@@ -45,7 +45,9 @@ class Discover2Item extends React.Component<Props, State> {
 
   componentDidMount() {
     const {api, organization} = this.props;
-    fetchSavedQueries(api, organization.slug);
+    if (organization.features.includes('discover-v2-query-builder')) {
+      fetchSavedQueries(api, organization.slug);
+    }
     this.menuId = domId('discover-menu');
   }
 
@@ -89,7 +91,11 @@ class Discover2Item extends React.Component<Props, State> {
   renderSavedQueries({inputValue, getItemProps, highlightedIndex}) {
     const {savedQueries} = this.props;
     if (!savedQueries || savedQueries.length === 0) {
-      return <span>No saved queries</span>;
+      return (
+        <MenuItem role="menuitem" disabled={true}>
+          No saved queries
+        </MenuItem>
+      );
     }
     const lowerInputValue = inputValue.toLowerCase();
     return savedQueries
@@ -221,7 +227,8 @@ const Menu = styled('div')`
 `;
 
 type MenuItemProps = {
-  active: boolean;
+  active?: boolean;
+  disabled?: boolean;
 };
 const MenuItem = styled('span')<MenuItemProps>`
   display: flex;
@@ -235,9 +242,9 @@ const MenuItem = styled('span')<MenuItemProps>`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   &:focus,
   &:hover {
-    background: ${p => p.theme.offWhiteLight};
-    color: ${p => p.theme.gray3};
-    cursor: pointer;
+    background: ${p => (p.disabled ? p.theme.offWhite : p.theme.offWhiteLight)};
+    color: ${p => (p.disabled ? p.theme.gray2 : p.theme.gray3)};
+    cursor: ${p => (p.disabled ? 'normal' : 'pointer')};
   }
 `;
 

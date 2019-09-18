@@ -220,6 +220,7 @@ class ProjectDebugSymbols extends AsyncComponent {
     const access = new Set(organization.access);
 
     const fieldProps = {
+      organization,
       builtinSymbolSources: this.state.builtinSymbolSources,
     };
 
