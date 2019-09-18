@@ -51,14 +51,13 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
 
         # check for an exiting installation and return that if it exists
         slug = serializer.validated_data.get("slug")
-        install_list = SentryAppInstallation.objects.filter(
-            sentry_app__slug=slug, organization=organization
-        )
-        if install_list:
-            return Response(serialize(install_list[0]))
-
-        install = Creator.run(
-            organization=organization, slug=slug, user=request.user, request=request
-        )
+        try:
+            install = SentryAppInstallation.objects.get(
+                sentry_app__slug=slug, organization=organization
+            )
+        except SentryAppInstallation.DoesNotExist:
+            install = Creator.run(
+                organization=organization, slug=slug, user=request.user, request=request
+            )
 
         return Response(serialize(install))
