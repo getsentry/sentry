@@ -26,8 +26,9 @@ HASH_ALGORITHM = "sha1"
 
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
-    "release_files",  # Artifacts assemble
+    "release_files",  # Release files assemble
     "pdbs",  # PDB upload and debug id override
+    "sources",  # Source artifact bundle upload
 )
 
 

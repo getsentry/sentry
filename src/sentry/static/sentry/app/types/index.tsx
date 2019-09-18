@@ -1,5 +1,12 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
+import {Field} from 'app/views/settings/components/forms/type';
+
+export type ObjectStatus =
+  | 'active'
+  | 'disabled'
+  | 'pending_deletion'
+  | 'deletion_in_progress';
 
 export type Organization = {
   id: string;
@@ -151,9 +158,37 @@ export type EventsStats = {
 };
 
 export type User = {
-  id: string;
-  name: string;
   username: string;
+  lastLogin: string;
+  isSuperuser: boolean;
+  emails: {
+    is_verified: boolean;
+    id: string;
+    email: string;
+  }[];
+  isManaged: boolean;
+  lastActive: string;
+  isStaff: boolean;
+  identities: any[];
+  id: string;
+  isActive: boolean;
+  has2fa: boolean;
+  canReset2fa: boolean;
+  name: string;
+  avatarUrl: string;
+  authenticators: Authenticator[];
+  dateJoined: string;
+  options: {
+    timezone: string;
+    stacktraceOrder: number;
+    language: string;
+    clock24Hours: boolean;
+  };
+  flags: {newsletter_consent_prompt: boolean};
+  avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
+  ip_address: string;
+  hasPasswordAuth: boolean;
+  permissions: string[];
   email: string;
 };
 
@@ -168,12 +203,32 @@ export type Environment = {};
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-// TODO(ts): This type is incomplete
-export type Plugin = {};
+export type Plugin = {
+  id: string;
+  name: string;
+  slug: string;
+  shortName: string;
+  type: string;
+  canDisable: boolean;
+  isTestable: boolean;
+  hasConfiguration: boolean;
+  metadata: any; // TODO(ts)
+  contexts: any[]; // TODO(ts)
+  status: string;
+  assets: any[]; // TODO(ts)
+  doc: string;
+  enabled?: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  isHidden: boolean;
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
+};
 
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
+  forceUrlSync?: boolean;
   datetime: {
     start: string;
     end: string;
@@ -198,39 +253,7 @@ export type Config = {
   urlPrefix: string;
   needsUpgrade: boolean;
   supportEmail: string;
-  user: {
-    username: string;
-    lastLogin: string;
-    isSuperuser: boolean;
-    emails: {
-      is_verified: boolean;
-      id: string;
-      email: string;
-    }[];
-    isManaged: boolean;
-    lastActive: string;
-    isStaff: boolean;
-    identities: any[];
-    id: string;
-    isActive: boolean;
-    has2fa: boolean;
-    canReset2fa: boolean;
-    name: string;
-    avatarUrl: string;
-    authenticators: Authenticator[];
-    dateJoined: string;
-    options: {
-      timezone: string;
-      stacktraceOrder: number;
-      language: string;
-      clock24Hours: boolean;
-    };
-    flags: {newsletter_consent_prompt: boolean};
-    avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
-    hasPasswordAuth: boolean;
-    permissions: string[];
-    email: string;
-  };
+  user: User;
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
@@ -338,12 +361,23 @@ export type Repository = {
   url: string;
 };
 
+export type IntegrationProvider = {
+  key: string;
+  name: string;
+  canAdd: boolean;
+  canDisable: boolean;
+  features: string[];
+  aspects: any; //TODO(ts)
+  setupDialog: object; //TODO(ts)
+  metadata: any; //TODO(ts)
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
 
 export type SentryApp = {
-  status: string;
+  status: 'unpublished' | 'published' | 'internal';
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -366,6 +400,45 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+};
+
+export type Integration = {
+  id: string;
+  name: string;
+  icon: string;
+  domainName: string;
+  accountType: string;
+  status: ObjectStatus;
+  provider: IntegrationProvider;
+  configOrganization: Field[];
+  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  configData: object;
+};
+
+export type IntegrationExternalIssue = {
+  id: string;
+  key: string;
+  url: string;
+  title: string;
+  description: string;
+  displayName: string;
+};
+
+export type GroupIntegration = Integration & {
+  externalIssues: IntegrationExternalIssue[];
+};
+
+export type SentryAppInstallation = {
+  app: {
+    uuid: string;
+    slug: string;
+  };
+  organization: {
+    slug: string;
+  };
+  uuid: string;
+  status: 'installed' | 'pending';
+  code?: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -399,4 +472,13 @@ export type UserReport = {
   id: string;
   eventID: string;
   issue: Group;
+};
+
+export type Commit = {
+  id: string;
+  key: string;
+  message: string;
+  dateCreated: string;
+  repository?: Repository;
+  author?: User;
 };

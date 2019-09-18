@@ -37,8 +37,8 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.wait_until(".ref-tag-row")
         self.browser.click('.ref-tag-row [data-test-id="delete"]')
-        self.browser.wait_until('.modal-footer [data-test-id="confirm-modal"]')
+        self.browser.wait_until('.modal-footer [data-test-id="confirm-button"]')
 
-        self.browser.click('.modal-footer [data-test-id="confirm-modal"]')
+        self.browser.click('.modal-footer [data-test-id="confirm-button"]')
         self.browser.wait_until_not(".ref-tag-row")
         self.browser.snapshot("project settings - tags - after remove")

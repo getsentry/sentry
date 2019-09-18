@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import _ from 'lodash';
-import {Location} from 'history';
 
 import {SentryApp} from 'app/types';
 import {t} from 'app/locale';
@@ -30,7 +29,6 @@ class PublishRequestFormModel extends FormModel {
 
 type Props = {
   app: SentryApp;
-  location: Location;
   closeModal: () => void;
 };
 
@@ -62,7 +60,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     );
 
     //No translations since we need to be able to read this email :)
-    const baseFields = [
+    const baseFields: JsonForm['props']['fields'] = [
       {
         type: 'textarea',
         required: true,
@@ -141,7 +139,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
             submitLabel={t('Request Publication')}
             onCancel={() => this.props.closeModal()}
           >
-            <JsonForm location={this.props.location} forms={forms} />
+            <JsonForm forms={forms} />
           </Form>
         </Body>
       </React.Fragment>

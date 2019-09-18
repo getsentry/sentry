@@ -156,6 +156,7 @@ class StrategyConfiguration(object):
     strategies = {}
     delegates = {}
     changelog = None
+    hidden = False
 
     def __init__(self, enhancements=None, **extra):
         if enhancements is None:
@@ -189,6 +190,7 @@ class StrategyConfiguration(object):
             "strategies": sorted(self.strategies),
             "changelog": self.changelog,
             "delegates": sorted(x.id for x in self.delegates.values()),
+            "hidden": self.hidden,
             "latest": projectoptions.lookup_well_known_key("sentry:grouping_config").get_default(
                 epoch=projectoptions.LATEST_EPOCH
             )
@@ -196,7 +198,7 @@ class StrategyConfiguration(object):
         }
 
 
-def create_strategy_configuration(id, strategies=None, delegates=None, changelog=None):
+def create_strategy_configuration(id, strategies=None, delegates=None, changelog=None, hidden=False):
     class NewStrategyConfiguration(StrategyConfiguration):
         pass
 
@@ -204,6 +206,7 @@ def create_strategy_configuration(id, strategies=None, delegates=None, changelog
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = {}
     NewStrategyConfiguration.delegates = {}
+    NewStrategyConfiguration.hidden = hidden
 
     for strategy_id in strategies or {}:
         strategy = lookup_strategy(strategy_id)

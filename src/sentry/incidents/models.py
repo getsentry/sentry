@@ -8,6 +8,7 @@ from enum import Enum
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.snuba.models import QueryAggregations
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -232,16 +233,6 @@ class AlertRuleThresholdType(Enum):
     BELOW = 1
 
 
-class AlertRuleAggregations(Enum):
-    TOTAL = 0
-    UNIQUE_USERS = 1
-
-
-# TODO: This should probably live in the snuba app.
-class SnubaDatasets(Enum):
-    EVENTS = "events"
-
-
 class AlertRuleManager(BaseManager):
     """
     A manager that excludes all rows that are pending deletion.
@@ -259,8 +250,11 @@ class AlertRuleManager(BaseManager):
             )
         )
 
+    def fetch_for_organization(self, organization):
+        return self.filter(organization=organization)
+
     def fetch_for_project(self, project):
-        return self.filter(project=project)
+        return self.filter(query_subscriptions__project=project)
 
 
 class AlertRuleQuerySubscription(Model):
@@ -282,16 +276,14 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
     query_subscriptions = models.ManyToManyField(
-        "sentry.QuerySubscription",
-        related_name="query_subscriptions",
-        through=AlertRuleQuerySubscription,
+        "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
     )
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     dataset = models.TextField()
     query = models.TextField()
     # TODO: Remove this default after we migrate
-    aggregation = models.IntegerField(default=AlertRuleAggregations.TOTAL.value)
+    aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     threshold_type = models.SmallIntegerField()
@@ -300,12 +292,6 @@ class AlertRule(Model):
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    # These will be removed after we've made these columns nullable. Moving to
-    # QuerySubscription
-    subscription_id = models.UUIDField(db_index=True, null=True)
-    aggregations = ArrayField(of=models.IntegerField)
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True, null=True)
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False, null=True)
 
     class Meta:
         app_label = "sentry"

@@ -140,5 +140,5 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         assert info.file.checksum == "279b27ac5d0e6792d088e0662ce1a18413b772bc"
 
         assert minidump.name == "minidump.dmp"
-        assert minidump.file.type == "event.minidump"
+        assert minidump.file.type == "event.applecrashreport"
         assert minidump.file.checksum == "728d0f4b09cf5a7942da3893b6db79ac842b701a"

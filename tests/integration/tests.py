@@ -10,7 +10,7 @@ import mock
 import six
 import zlib
 
-from sentry import tagstore
+from sentry import eventstore, tagstore
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
@@ -24,8 +24,9 @@ from six import StringIO
 from werkzeug.test import Client as WerkzeugClient
 
 from sentry.models import Group, Event
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.settings import validate_settings, ConfigurationError, import_string
 from sentry.utils.sdk import configure_scope
 from sentry.web.api import disable_transaction_events
@@ -168,21 +169,29 @@ class RavenIntegrationTest(TransactionTestCase):
         assert group.data["title"] == "foo"
 
 
-class SentryRemoteTest(TestCase):
+class SentryRemoteTest(SnubaTestCase):
     @fixture
     def path(self):
         return reverse("sentry-api-store")
 
+    def get_event(self, event_id):
+        instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
+        Event.objects.bind_nodes([instance], "data")
+        return instance
+
     def test_minimal(self):
-        kwargs = {"message": "hello", "tags": {"foo": "bar"}}
+        kwargs = {
+            "message": "hello",
+            "tags": {"foo": "bar"},
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
 
         resp = self._postWithHeader(kwargs)
 
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
-        Event.objects.bind_nodes([instance], "data")
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
         assert instance.data["logentry"] == {"formatted": "hello"}
@@ -222,6 +231,7 @@ class SentryRemoteTest(TestCase):
                 },
             },
             "tags": {"foo": "bar"},
+            "timestamp": iso_format(before_now(seconds=1)),
         }
 
         resp = self._postWithHeader(kwargs)
@@ -229,8 +239,7 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
-        Event.objects.bind_nodes([instance], "data")
+        instance = self.get_event(event_id)
 
         assert len(instance.data["exception"]) == 1
         assert (
@@ -256,7 +265,8 @@ class SentryRemoteTest(TestCase):
         kwargs = {u"message": "hello", "timestamp": float(timestamp.strftime("%s.%f"))}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
-        instance = Event.objects.get()
+        event_id = json.loads(resp.content)["id"]
+        instance = self.get_event(event_id)
         assert instance.message == "hello"
         assert instance.datetime == timestamp
         group = instance.group
@@ -270,7 +280,8 @@ class SentryRemoteTest(TestCase):
         kwargs = {u"message": "hello", "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%f")}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
-        instance = Event.objects.get()
+        event_id = json.loads(resp.content)["id"]
+        instance = self.get_event(event_id)
         assert instance.message == "hello"
         assert instance.datetime == timestamp
         group = instance.group
@@ -278,70 +289,72 @@ class SentryRemoteTest(TestCase):
         assert group.last_seen == timestamp
 
     def test_ungzipped_data(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200
-        instance = Event.objects.get()
+        event_id = json.loads(resp.content)["id"]
+        instance = self.get_event(event_id)
         assert instance.message == "hello"
 
     @override_settings(SENTRY_ALLOW_ORIGIN="sentry.io")
     def test_correct_data_with_get(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._getWithReferer(kwargs)
         assert resp.status_code == 200, resp.content
-        instance = Event.objects.get()
+        event_id = resp["X-Sentry-ID"]
+        instance = self.get_event(event_id)
         assert instance.message == "hello"
 
     @override_settings(SENTRY_ALLOW_ORIGIN="*")
     def test_get_without_referer_allowed(self):
         self.project.update_option("sentry:origins", "")
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._getWithReferer(kwargs, referer=None, protocol="4")
         assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN="sentry.io")
     def test_correct_data_with_post_referer(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithReferer(kwargs)
         assert resp.status_code == 200, resp.content
-        instance = Event.objects.get()
+        event_id = json.loads(resp.content)["id"]
+        instance = self.get_event(event_id)
         assert instance.message == "hello"
 
     @override_settings(SENTRY_ALLOW_ORIGIN="sentry.io")
     def test_post_without_referer(self):
         self.project.update_option("sentry:origins", "")
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithReferer(kwargs, referer=None, protocol="4")
         assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN="*")
     def test_post_without_referer_allowed(self):
         self.project.update_option("sentry:origins", "")
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithReferer(kwargs, referer=None, protocol="4")
         assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN="google.com")
     def test_post_with_invalid_origin(self):
         self.project.update_option("sentry:origins", "sentry.io")
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithReferer(kwargs, referer="https://getsentry.net", protocol="4")
         assert resp.status_code == 403, resp.content
 
     def test_signature(self):
-        kwargs = {"message": "hello"}
-
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         resp = self._postWithSignature(kwargs)
 
         assert resp.status_code == 200, resp.content
 
-        instance = Event.objects.get()
+        event_id = json.loads(resp.content)["id"]
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_content_encoding_deflate(self):
-        kwargs = {"message": "hello"}
-
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         message = zlib.compress(json.dumps(kwargs))
 
         key = self.projectkey.public_key
@@ -359,12 +372,12 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_content_encoding_gzip(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         message = json.dumps(kwargs)
 
@@ -391,24 +404,24 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_protocol_v2_0_without_secret_key(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         resp = self._postWithHeader(data=kwargs, key=self.projectkey.public_key, protocol="2.0")
 
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_protocol_v3(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         resp = self._postWithHeader(
             data=kwargs,
@@ -420,12 +433,12 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_protocol_v4(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         resp = self._postWithHeader(
             data=kwargs,
@@ -437,12 +450,12 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_protocol_v5(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         resp = self._postWithHeader(
             data=kwargs,
@@ -454,12 +467,12 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
     def test_protocol_v6(self):
-        kwargs = {"message": "hello"}
+        kwargs = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
 
         resp = self._postWithHeader(
             data=kwargs,
@@ -471,7 +484,7 @@ class SentryRemoteTest(TestCase):
         assert resp.status_code == 200, resp.content
 
         event_id = json.loads(resp.content)["id"]
-        instance = Event.objects.get(event_id=event_id)
+        instance = self.get_event(event_id)
 
         assert instance.message == "hello"
 
@@ -584,12 +597,15 @@ def get_fixtures(name):
     return input, output
 
 
-class CspReportTest(TestCase):
+class CspReportTest(TestCase, SnubaTestCase):
     def assertReportCreated(self, input, output):
         resp = self._postCspWithHeader(input)
         assert resp.status_code == 201, resp.content
-        assert Event.objects.count() == 1
-        e = Event.objects.all()[0]
+        events = eventstore.get_events(
+            filter_keys={"project_id": [self.project.id]}, conditions=[["type", "=", "csp"]]
+        )
+        assert len(events) == 1
+        e = events[0]
         Event.objects.bind_nodes([e], "data")
         assert output["message"] == e.data["logentry"]["formatted"]
         for key, value in six.iteritems(output["tags"]):

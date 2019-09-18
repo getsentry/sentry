@@ -1,7 +1,8 @@
 import {Location, Query} from 'history';
-import {isString, pick} from 'lodash';
+import {isString, cloneDeep, pick} from 'lodash';
 
 import {EventViewv1} from 'app/types';
+import {SavedQuery} from 'app/views/discover/types';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
@@ -140,30 +141,93 @@ const decodeQuery = (location: Location): string | undefined => {
   return isString(query) ? query.trim() : undefined;
 };
 
+const decodeProjects = (location: Location): number[] => {
+  if (!location.query || !location.query.project) {
+    return [];
+  }
+
+  const value = location.query.project;
+  return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
+};
+
+const decodeScalar = (
+  value: string[] | string | undefined | null
+): string | undefined => {
+  if (!value) {
+    return void 0;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : void 0;
+  return isString(unwrapped) ? unwrapped : void 0;
+};
+
+const queryStringFromSavedQuery = (saved: SavedQuery): string => {
+  if (saved.query) {
+    return saved.query;
+  }
+  if (saved.conditions) {
+    const conditions = saved.conditions.map(item => {
+      const [field, op, value] = item;
+      let operator = op;
+      // TODO handle all the other operator types
+      if (operator === '=') {
+        operator = '';
+      }
+      return field + ':' + operator + value;
+    });
+    return conditions.join(' ');
+  }
+  return '';
+};
+
 class EventView {
+  name: string | undefined;
   fields: Field[];
   sorts: Sort[];
   tags: string[];
   query: string | undefined;
+  project: number[];
+  range: string | undefined;
+  start: string | undefined;
+  end: string | undefined;
 
   constructor(props: {
+    name: string | undefined;
     fields: Field[];
     sorts: Sort[];
     tags: string[];
     query?: string | undefined;
+    project: number[];
+    range: string | undefined;
+    start: string | undefined;
+    end: string | undefined;
   }) {
+    this.name = props.name;
     this.fields = props.fields;
     this.sorts = props.sorts;
     this.tags = props.tags;
     this.query = props.query;
+    this.project = props.project;
+    this.range = props.range;
+    this.start = props.start;
+    this.end = props.end;
   }
 
   static fromLocation(location: Location): EventView {
     return new EventView({
+      name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       tags: decodeTags(location),
       query: decodeQuery(location),
+      project: decodeProjects(location),
+      start: decodeScalar(location.query.start),
+      end: decodeScalar(location.query.end),
+      range: decodeScalar(location.query.range),
     });
   }
 
@@ -177,20 +241,51 @@ class EventView {
 
     return new EventView({
       fields,
+      name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
       query: eventViewV1.data.query,
+      project: [],
+      range: undefined,
+      start: undefined,
+      end: undefined,
+    });
+  }
+
+  static fromSavedQuery(saved: SavedQuery): EventView {
+    const fields = saved.fields.map(field => {
+      return {field, title: field};
+    });
+
+    return new EventView({
+      fields,
+      name: saved.name,
+      query: queryStringFromSavedQuery(saved),
+      project: saved.projects,
+      start: saved.start,
+      end: saved.end,
+      range: saved.range,
+      sorts: [],
+      tags: [],
     });
   }
 
   generateQueryStringObject(): Query {
-    return {
+    const output = {
       field: this.fields.map(item => item.field),
       alias: this.fields.map(item => item.title),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,
     };
+    const conditionalFields = ['name', 'project', 'start', 'end', 'range'];
+    for (const field of conditionalFields) {
+      if (this[field] && this[field].length) {
+        output[field] = this[field];
+      }
+    }
+
+    return cloneDeep(output);
   }
 
   isValid(): boolean {
@@ -223,7 +318,7 @@ class EventView {
   }
 
   getQuery(inputQuery: string | string[] | null | undefined): string {
-    const queryParts: Array<string> = [];
+    const queryParts: string[] = [];
 
     if (this.query) {
       queryParts.push(this.query);
@@ -234,13 +329,13 @@ class EventView {
       // e.g. query=hello&query=world
       if (Array.isArray(inputQuery)) {
         inputQuery.forEach(query => {
-          if (typeof query === 'string') {
+          if (typeof query === 'string' && !queryParts.includes(query)) {
             queryParts.push(query);
           }
         });
       }
 
-      if (typeof inputQuery === 'string') {
+      if (typeof inputQuery === 'string' && !queryParts.includes(inputQuery)) {
         queryParts.push(inputQuery);
       }
     }

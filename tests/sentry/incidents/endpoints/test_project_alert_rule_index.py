@@ -5,7 +5,8 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import AlertRule, AlertRuleAggregations, AlertRuleThresholdType
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
 
@@ -30,11 +31,12 @@ class AlertRuleListEndpointTest(APITestCase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = create_alert_rule(
-            self.project,
+            self.organization,
+            [self.project],
             "hello",
             AlertRuleThresholdType.ABOVE,
             "level:error",
-            [AlertRuleAggregations.TOTAL],
+            QueryAggregations.TOTAL,
             10,
             1000,
             400,
@@ -79,7 +81,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         name = "an alert"
         threshold_type = 1
         query = "hi"
-        aggregations = [0]
+        aggregation = 0
         time_window = 10
         alert_threshold = 1000
         resolve_threshold = 300
@@ -90,7 +92,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 name=name,
                 thresholdType=threshold_type,
                 query=query,
-                aggregations=aggregations,
+                aggregation=aggregation,
                 timeWindow=time_window,
                 alertThreshold=alert_threshold,
                 resolveThreshold=resolve_threshold,

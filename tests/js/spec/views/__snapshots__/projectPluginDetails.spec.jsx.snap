@@ -236,7 +236,7 @@ exports[`ProjectPluginDetails renders 1`] = `
             title="Sentry - Sentry"
           >
             <div>
-              <SettingsPageHeading
+              <StyledSettingsPageHeading
                 action={
                   <div
                     className="pull-right"
@@ -267,52 +267,84 @@ exports[`ProjectPluginDetails renders 1`] = `
                 noTitleStyles={false}
                 title="Amazon SQS"
               >
-                <Wrapper>
-                  <div
-                    className="css-1r5ylk7-Wrapper e1kblvez2"
-                  >
-                    <Flex
-                      align="center"
+                <SettingsPageHeading
+                  action={
+                    <div
+                      className="pull-right"
                     >
-                      <Base
+                      <Button
                         align="center"
-                        className="css-5ipae5"
+                        disabled={false}
+                        onClick={[Function]}
+                        size="small"
+                        style={
+                          Object {
+                            "marginRight": "6px",
+                          }
+                        }
                       >
-                        <div
-                          className="css-5ipae5"
-                          is={null}
+                        Enable Plugin
+                      </Button>
+                      <Button
+                        align="center"
+                        disabled={false}
+                        onClick={[Function]}
+                        size="small"
+                      >
+                        Reset Configuration
+                      </Button>
+                    </div>
+                  }
+                  className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+                  noTitleStyles={false}
+                  title="Amazon SQS"
+                >
+                  <div
+                    className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+                  >
+                    <TitleAndActions>
+                      <div
+                        className="css-b5tiyd-TitleAndActions e1uay4fd0"
+                      >
+                        <Title
+                          styled={false}
                         >
-                          <Title
-                            styled={false}
+                          <div
+                            className="css-2kvddg-Title e1uay4fd1"
                           >
-                            <Base
-                              className="css-1ky52ze-Title e1kblvez0"
-                            >
-                              <div
-                                className="css-1ky52ze-Title e1kblvez0"
-                                is={null}
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle eqkydle2"
                               >
-                                <HeaderTitle>
-                                  <h4
-                                    className="css-1w8ttcn-HeaderTitle e6lvex72"
-                                  >
-                                    Amazon SQS
-                                  </h4>
-                                </HeaderTitle>
-                              </div>
-                            </Base>
-                          </Title>
-                          <Action>
+                                Amazon SQS
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Title>
+                        <Action>
+                          <div
+                            className="css-18luhfc-Action e1uay4fd3"
+                          >
                             <div
-                              className="css-18luhfc-Action e1kblvez1"
+                              className="pull-right"
                             >
-                              <div
-                                className="pull-right"
+                              <Button
+                                align="center"
+                                disabled={false}
+                                onClick={[Function]}
+                                size="small"
+                                style={
+                                  Object {
+                                    "marginRight": "6px",
+                                  }
+                                }
                               >
-                                <Button
-                                  align="center"
+                                <StyledButton
+                                  aria-disabled={false}
+                                  aria-label="Enable Plugin"
                                   disabled={false}
                                   onClick={[Function]}
+                                  role="button"
                                   size="small"
                                   style={
                                     Object {
@@ -320,9 +352,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     }
                                   }
                                 >
-                                  <StyledButton
+                                  <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Enable Plugin"
+                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -333,11 +366,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       }
                                     }
                                   >
-                                    <ForwardRef
+                                    <button
                                       aria-disabled={false}
                                       aria-label="Enable Plugin"
                                       className="css-z6hjis-StyledButton-getColors edwq9my0"
-                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -347,99 +379,85 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         }
                                       }
                                     >
-                                      <button
-                                        aria-disabled={false}
-                                        aria-label="Enable Plugin"
-                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
-                                        onClick={[Function]}
-                                        role="button"
+                                      <ButtonLabel
+                                        align="center"
                                         size="small"
-                                        style={
-                                          Object {
-                                            "marginRight": "6px",
-                                          }
-                                        }
                                       >
-                                        <ButtonLabel
+                                        <Component
                                           align="center"
+                                          className="css-1h693nz-ButtonLabel edwq9my1"
                                           size="small"
                                         >
-                                          <Component
-                                            align="center"
+                                          <span
                                             className="css-1h693nz-ButtonLabel edwq9my1"
-                                            size="small"
                                           >
-                                            <span
-                                              className="css-1h693nz-ButtonLabel edwq9my1"
-                                            >
-                                              Enable Plugin
-                                            </span>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </ForwardRef>
-                                  </StyledButton>
-                                </Button>
-                                <Button
-                                  align="center"
+                                            Enable Plugin
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </ForwardRef>
+                                </StyledButton>
+                              </Button>
+                              <Button
+                                align="center"
+                                disabled={false}
+                                onClick={[Function]}
+                                size="small"
+                              >
+                                <StyledButton
+                                  aria-disabled={false}
+                                  aria-label="Reset Configuration"
                                   disabled={false}
                                   onClick={[Function]}
+                                  role="button"
                                   size="small"
                                 >
-                                  <StyledButton
+                                  <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Reset Configuration"
+                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
                                   >
-                                    <ForwardRef
+                                    <button
                                       aria-disabled={false}
                                       aria-label="Reset Configuration"
                                       className="css-z6hjis-StyledButton-getColors edwq9my0"
-                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
-                                      <button
-                                        aria-disabled={false}
-                                        aria-label="Reset Configuration"
-                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
-                                        onClick={[Function]}
-                                        role="button"
+                                      <ButtonLabel
+                                        align="center"
                                         size="small"
                                       >
-                                        <ButtonLabel
+                                        <Component
                                           align="center"
+                                          className="css-1h693nz-ButtonLabel edwq9my1"
                                           size="small"
                                         >
-                                          <Component
-                                            align="center"
+                                          <span
                                             className="css-1h693nz-ButtonLabel edwq9my1"
-                                            size="small"
                                           >
-                                            <span
-                                              className="css-1h693nz-ButtonLabel edwq9my1"
-                                            >
-                                              Reset Configuration
-                                            </span>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </ForwardRef>
-                                  </StyledButton>
-                                </Button>
-                              </div>
+                                            Reset Configuration
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </ForwardRef>
+                                </StyledButton>
+                              </Button>
                             </div>
-                          </Action>
-                        </div>
-                      </Base>
-                    </Flex>
+                          </div>
+                        </Action>
+                      </div>
+                    </TitleAndActions>
                   </div>
-                </Wrapper>
-              </SettingsPageHeading>
+                </SettingsPageHeading>
+              </StyledSettingsPageHeading>
               <div
                 className="row"
               >
