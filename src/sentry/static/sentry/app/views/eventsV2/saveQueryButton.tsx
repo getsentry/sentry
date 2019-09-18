@@ -14,6 +14,7 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import DropdownControl from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
 import Button from 'app/components/button';
+import Input from 'app/components/forms/input';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -126,7 +127,7 @@ const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 0.33em;
 `;
 
-const StyledInput = styled('input')`
+const StyledInput = styled(Input)`
   width: 100%;
   margin-bottom: ${space(1)};
 `;
