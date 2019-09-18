@@ -5,6 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.models import SentryAppInstallation
 
 
 class SentryAppInstallationsTest(APITestCase):
@@ -115,3 +116,11 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
         response = self.client.post(self.url, data={"slug": app.slug}, format="json")
         assert response.status_code == 403
+
+    def test_install_twice(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(name="Sample", organization=self.org)
+        self.client.post(self.url, data={"slug": app.slug}, format="json")
+        response = self.client.post(self.url, data={"slug": app.slug}, format="json")
+        assert SentryAppInstallation.objects.filter(sentry_app=app).count() == 1
+        assert response.status_code == 200
