@@ -33,6 +33,7 @@ const Panel = styled(({title, body, dashedBorder, ...props}: PanelProps) => {
   box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowLight)};
   margin-bottom: ${space(3)};
   position: relative;
+  overflow: hidden;
 `;
 
 Panel.propTypes = {
