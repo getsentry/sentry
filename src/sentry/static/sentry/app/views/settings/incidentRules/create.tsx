@@ -1,20 +1,13 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 import RuleForm from './ruleForm';
 
 type RouteParams = {orgId: string};
-
-type Props = {
-  organization: Organization;
-  projects: Project[];
-};
+type Props = {};
 
 class IncidentRulesCreate extends React.Component<
   RouteComponentProps<RouteParams, {}> & Props
@@ -25,8 +18,7 @@ class IncidentRulesCreate extends React.Component<
   };
 
   render() {
-    const {params} = this.props;
-    const {orgId} = params;
+    const {orgId} = this.props.params;
 
     return (
       <div>
@@ -36,4 +28,4 @@ class IncidentRulesCreate extends React.Component<
     );
   }
 }
-export default withProjects(withOrganization(IncidentRulesCreate));
+export default IncidentRulesCreate;
