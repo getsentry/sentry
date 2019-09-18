@@ -128,7 +128,12 @@ const GroupDetails = createReactClass({
           });
         } else {
           const locationWithProject = {...browserHistory.getCurrentLocation()};
-          if (!locationWithProject.query.project) {
+          console.log('query: ', locationWithProject.query);
+          console.log('_allp: ', locationWithProject.query._allp);
+          if (
+            locationWithProject.query.project === undefined &&
+            locationWithProject.query._allp === undefined
+          ) {
             locationWithProject.query.project = project.id;
             browserHistory.replace(locationWithProject);
           }
