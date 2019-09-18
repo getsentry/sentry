@@ -45,7 +45,9 @@ class Discover2Item extends React.Component<Props, State> {
 
   componentDidMount() {
     const {api, organization} = this.props;
-    fetchSavedQueries(api, organization.slug);
+    if (organization.features.includes('discover-v2-query-builder')) {
+      fetchSavedQueries(api, organization.slug);
+    }
     this.menuId = domId('discover-menu');
   }
 
