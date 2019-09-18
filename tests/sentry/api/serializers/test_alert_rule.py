@@ -16,9 +16,6 @@ class BaseAlertRuleSerializerTest(object):
     def assert_alert_rule_serialized(self, alert_rule, result):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
-        assert result["projectId"] == six.text_type(
-            alert_rule.query_subscriptions.first().project_id
-        )
         assert result["name"] == alert_rule.name
         assert result["thresholdType"] == alert_rule.threshold_type
         assert result["dataset"] == alert_rule.dataset
