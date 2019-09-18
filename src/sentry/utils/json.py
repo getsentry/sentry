@@ -103,6 +103,10 @@ def loads(value, **kwargs):
     return _default_decoder.decode(value)
 
 
+def load(f, **kwargs):
+    return _default_decoder.decode(f.read())
+
+
 def dumps_htmlsafe(value):
     return mark_safe(_default_escaped_encoder.encode(value))
 

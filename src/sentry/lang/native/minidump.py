@@ -6,6 +6,7 @@ import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
 from sentry.utils.safe import get_path, setdefault_path
+from sentry.utils import json
 
 minidumps_logger = logging.getLogger("sentry.minidumps")
 
@@ -54,17 +55,50 @@ def is_minidump_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "minidump"
 
 
-def merge_attached_event(mpack_event, data):
+def decode_payload(encoded_data, max_size=None, multiple=False):
+    """This decodes an encoded payload (msgpack or json)"""
+    if max_size is not None and encoded_data.size > max_size:
+        return
+
+    leading = encoded_data.readline().strip()
+    encoded_data.seek(0, 0)
+
+    # This is okay because all spaces, opening brace and bracket are characters
+    # that encode into a single integer (ascii code < 127).  This means we can
+    # use this information to determine JSON from msgpack.
+    is_json = leading.startswith((b'{', b'['))
+
+    rv = None
+    if multiple:
+        rv = []
+
+    if is_json:
+        try:
+            if multiple:
+                for line in encoded_data:
+                    rv.append(json.loads(line))
+            else:
+                rv = json.load(encoded_data)
+        except (IOError, ValueError), e:
+            minidumps_logger.exception(e)
+    else:
+        try:
+            if multiple:
+                rv = list(Unpacker(encoded_data))
+            else:
+                rv = unpack(encoded_data)
+        except (UnpackException, ExtraData), e:
+            minidumps_logger.exception(e)
+
+    return rv
+
+
+def merge_attached_event(encoded_event_file, data):
     """
     Merges an event payload attached in the ``__sentry-event`` attachment.
     """
-    if mpack_event.size > MAX_MSGPACK_EVENT_SIZE_BYTES:
-        return
-
-    try:
-        event = unpack(mpack_event)
-    except (UnpackException, ExtraData) as e:
-        minidumps_logger.exception(e)
+    event = decode_payload(encoded_event_file, MAX_MSGPACK_BREADCRUMB_SIZE_BYTES)
+    if event is None:
         return
 
     for key in event:
@@ -73,20 +107,11 @@ def merge_attached_event(mpack_event, data):
             data[key] = value
 
 
-def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
+def merge_attached_breadcrumbs(encoded_breadcrumbs_file, data):
     """
     Merges breadcrumbs attached in the ``__sentry-breadcrumbs`` attachment(s).
     """
-    if mpack_breadcrumbs.size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
-        return
-
-    try:
-        unpacker = Unpacker(mpack_breadcrumbs)
-        breadcrumbs = list(unpacker)
-    except (UnpackException, ExtraData) as e:
-        minidumps_logger.exception(e)
-        return
-
+    breadcrumbs = decode_payload(encoded_breadcrumbs_file, MAX_MSGPACK_BREADCRUMB_SIZE_BYTES, multiple=True)
     if not breadcrumbs:
         return
 
