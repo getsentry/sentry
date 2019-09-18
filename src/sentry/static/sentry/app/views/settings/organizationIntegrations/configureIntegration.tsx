@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
@@ -11,9 +12,22 @@ import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepo
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, Integration, IntegrationProvider} from 'app/types';
 
-class ConfigureIntegration extends AsyncView {
-  getEndpoints() {
+type RouteParams = {
+  orgId: string;
+  integrationId: string;
+};
+type Props = RouteComponentProps<RouteParams, {}> &
+  AsyncView['props'] & {
+    organization: Organization;
+  };
+type State = AsyncView['state'] & {
+  config: {providers: IntegrationProvider[]};
+  integration: Integration;
+};
+class ConfigureIntegration extends AsyncView<Props, State> {
+  getEndpoints(): [string, string][] {
     const {orgId, integrationId} = this.props.params;
 
     return [
@@ -45,7 +59,7 @@ class ConfigureIntegration extends AsyncView {
       p => p.key === integration.provider.key
     );
 
-    const title = <IntegrationItem integration={integration} withProvider={true} />;
+    const title = <IntegrationItem integration={integration} />;
 
     return (
       <React.Fragment>
@@ -68,11 +82,11 @@ class ConfigureIntegration extends AsyncView {
           </Form>
         )}
 
-        {provider.features.includes('alert-rule') && (
+        {provider && provider.features.includes('alert-rule') && (
           <IntegrationAlertRules integration={integration} />
         )}
 
-        {provider.features.includes('commits') && (
+        {provider && provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
         )}
       </React.Fragment>
