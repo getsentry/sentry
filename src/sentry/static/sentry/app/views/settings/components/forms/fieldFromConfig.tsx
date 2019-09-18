@@ -15,7 +15,18 @@ import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
 
-export default class FieldFromConfig extends React.Component {
+import {Field} from './type';
+
+type Props = {
+  field: Field;
+  highlighted?: boolean;
+  disabled?: boolean;
+
+  // TODO(ts): Investigate further
+  access: any;
+};
+
+export default class FieldFromConfig extends React.Component<Props> {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,

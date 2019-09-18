@@ -60,7 +60,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     );
 
     //No translations since we need to be able to read this email :)
-    const baseFields = [
+    const baseFields: JsonForm['props']['fields'] = [
       {
         type: 'textarea',
         required: true,
