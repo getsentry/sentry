@@ -5,7 +5,7 @@ from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
-from sentry import eventstream, tagstore
+from sentry import eventstore, eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
@@ -216,7 +216,7 @@ def migrate_events(
 
     event_id_set = set(event.id for event in events)
 
-    Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
+    # Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
 
     for event in events:
         event.group = destination
@@ -495,7 +495,7 @@ def unmerge(
     destination_id,
     fingerprints,
     actor_id,
-    cursor=None,
+    last_event=None,
     batch_size=500,
     source_fields_reset=False,
     eventstream_state=None,
@@ -510,8 +510,7 @@ def unmerge(
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
-    if cursor is None:
-        fingerprints = lock_hashes(project_id, source_id, fingerprints)
+    if last_event is None:
         truncate_denormalizations(source)
 
     caches = get_caches()
@@ -520,17 +519,26 @@ def unmerge(
 
     # We fetch the events in descending order by their primary key to get the
     # best approximation of the most recently received events.
-    queryset = Event.objects.filter(project_id=project_id, group_id=source_id).order_by("-id")
 
-    if cursor is not None:
-        queryset = queryset.filter(id__lt=cursor)
+    conditions = []
+    if last_event is not None:
+        conditions.extend(
+            [
+                ["timestamp", "<=", last_event.timestamp],
+                [["timestamp", "<", last_event.timestamp], ["event_id", "<", last_event.event_id]],
+            ]
+        )
 
-    events = list(queryset[:batch_size])
+    events = eventstore.get_events(
+        filter_keys={"project_id": [project_id]},
+        conditions=conditions,
+        limit=batch_size,
+        referrer="unmerge",
+    )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
         tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
-        unlock_hashes(project_id, fingerprints)
 
         logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
@@ -574,7 +582,7 @@ def unmerge(
         destination_id,
         fingerprints,
         actor_id,
-        cursor=events[-1].id,
+        last_event=events[-1],
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,
