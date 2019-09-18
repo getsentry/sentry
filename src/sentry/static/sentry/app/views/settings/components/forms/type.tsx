@@ -23,13 +23,13 @@ export const FieldType = [
 export type FieldValue = any;
 
 type BaseField = {
-  label: React.ReactNode | (() => React.ReactNode);
+  label?: React.ReactNode | (() => React.ReactNode);
   name?: string;
   help?: React.ReactNode | (() => React.ReactNode);
   required?: boolean;
   placeholder?: string | (() => string);
   multiline?: boolean;
-  visible?: boolean | ((model: any) => boolean);
+  visible?: boolean | ((props: any) => boolean);
   disabled?: boolean | (() => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;

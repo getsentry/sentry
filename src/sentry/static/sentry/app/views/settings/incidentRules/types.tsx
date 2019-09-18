@@ -1,5 +1,6 @@
 export type IncidentRule = {
   aggregations: number[];
+  aggregation?: number;
   alertThreshold: number;
   dataset: 'events';
   dateAdded: string;
