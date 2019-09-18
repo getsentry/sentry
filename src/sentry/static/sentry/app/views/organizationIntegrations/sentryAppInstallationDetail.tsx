@@ -52,7 +52,7 @@ class SentryAppInstallationDetail extends React.Component<Props> {
 
     //hack for split so we can show the install ID to users for them to copy
     //Will remove once the proper fix is in place
-    if (organization.slug === 'split') {
+    if (app.slug === 'split') {
       openModal(({closeModal}) => (
         <SplitInstallationIdModal installationId={install.uuid} closeModal={closeModal} />
       ));
