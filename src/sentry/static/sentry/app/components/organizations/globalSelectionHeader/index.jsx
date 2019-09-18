@@ -465,8 +465,8 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getBackButton = () => {
-    const { organization, location } = this.props;
-    const backLocation = {...location}
+    const {organization, location} = this.props;
+    const backLocation = {...location};
     return (
       <BackButtonWrapper>
         <Tooltip title={t('Back to Issues Stream')} position="bottom">
