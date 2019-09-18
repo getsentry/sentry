@@ -77,9 +77,7 @@ class IncidentRulesDetails extends AsyncView<
 
   renderBody() {
     const {orgId, incidentRuleId} = this.props.params;
-    if (!this.state.rule) {
-      return null;
-    }
+
     return (
       <div>
         <SettingsPageHeader title={t('Edit Incident Rule')} />

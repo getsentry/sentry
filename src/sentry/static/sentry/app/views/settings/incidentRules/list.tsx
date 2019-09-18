@@ -73,7 +73,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
     const isLoading = this.state.loading;
 
-    const isEmpty = !isLoading && this.state.rules && !this.state.rules.length;
+    const isEmpty = !isLoading && !this.state.rules.length;
 
     return (
       <div>
@@ -85,7 +85,6 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
             {!isLoading &&
               !isEmpty &&
-              this.state.rules &&
               this.state.rules.map(rule => (
                 <RuleRow key={rule.id}>
                   <RuleLink to={`/settings/${orgId}/incident-rules/${rule.id}/`}>
