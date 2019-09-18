@@ -227,6 +227,7 @@ class OrganizationIntegrations extends AsyncComponent<
           data-test-id="internal-integration-row"
           onRemoveApp={() => this.handleRemoveInternalSentryApp(app)}
           organization={organization}
+          install={this.getAppInstall(app)}
           app={app}
         />
       );
