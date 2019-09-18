@@ -820,7 +820,6 @@ class EventManagerTest(TestCase, SnubaTestCase):
         manager = EventManager(make_event())
         manager.normalize()
         event = manager.save(self.project.id)
-
         assert event.data.get("fingerprint") == ["{{ default }}"]
 
     def test_user_report_gets_environment(self):
