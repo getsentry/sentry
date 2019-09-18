@@ -391,7 +391,6 @@ class FormField extends React.Component {
           name={name}
           className={className}
           flexibleControlStateSize={flexibleControlStateSize}
-          getValueOfField={model.getValue.bind(model)}
           {...props}
           {...extraProps}
         >

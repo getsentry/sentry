@@ -153,6 +153,13 @@ function RuleFormContainer({
         query: '',
         aggregations: DEFAULT_METRIC,
         projects: [],
+
+        // TODO(incidents): Temp values
+        alertThreshold: 5,
+        project_id: 1,
+        resolveThreshold: 1,
+        thresholdType: 0,
+        timeWindow: 60,
         ...initialData,
       }}
       saveOnBlur={saveOnBlur}

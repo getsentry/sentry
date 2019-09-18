@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
-import {Config, EventsStatsData, Organization, Project} from 'app/types';
+import {Config, Organization, Project} from 'app/types';
 import {PanelAlert} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -64,9 +64,8 @@ const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 type Props = {
   api: Client;
   config: Config;
-  data: EventsStatsData;
   organization: Organization;
-  project: Project;
+  project?: Project;
   projects?: Project[];
   initialData?: IncidentRule;
 };
@@ -86,9 +85,7 @@ class TriggerForm extends React.Component<Props, State> {
     form: PropTypes.any,
   };
 
-  static defaultProps = {
-    data: [],
-  };
+  static defaultProps = {};
 
   state = {
     aggregations: this.props.initialData
@@ -262,7 +259,7 @@ class TriggerForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, config, organization, project} = this.props;
+    const {api, config, organization, projects, project} = this.props;
     const {
       aggregations,
       alertThreshold,
@@ -319,6 +316,7 @@ class TriggerForm extends React.Component<Props, State> {
                       resolveThreshold={resolveThreshold}
                       isInverted={isInverted}
                       data={timeseriesData}
+                      projects={projects}
                     />
                   </React.Fragment>
                 )}
