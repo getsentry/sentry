@@ -23,9 +23,7 @@ type Props = {
   projects: Project[];
 };
 
-type State = {};
-
-class RuleForm extends React.Component<Props, State> {
+class RuleForm extends React.Component<Props> {
   render() {
     const {organization, projects} = this.props;
 
