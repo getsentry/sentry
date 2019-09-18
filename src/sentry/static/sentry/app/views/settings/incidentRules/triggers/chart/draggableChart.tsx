@@ -4,12 +4,16 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {ReactEchartsRef, Series, SeriesDataUnit} from 'app/types/echarts';
-import {Panel} from 'app/components/panels';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
+import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Project} from 'app/types';
+
+type ProjectSelectOption = {
+  label: string;
+  value: number;
+};
 
 type Props = {
   xAxis: EChartOption.XAxis;
@@ -17,9 +21,11 @@ type Props = {
   alertThreshold: number | null;
   resolveThreshold: number | null;
   isInverted: boolean;
-  projects?: Project[];
+  projectOptions: ProjectSelectOption[];
+  selectedProjects: ProjectSelectOption[];
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
+  onChangeProjects: (projects: ProjectSelectOption) => void;
   maxValue?: number;
 };
 
@@ -179,6 +185,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
         // Resolution is considered "off" if it is -1
         invisible: position === null,
         draggable: true,
+
         position: [0, position],
         // We are doubling the width so that it looks like you are only able to drag along Y axis
         // There doesn't seem to be a way in echarts to lock dragging to a single axis
@@ -229,7 +236,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   };
 
   render() {
-    const {data, xAxis} = this.props;
+    const {data, xAxis, projectOptions, selectedProjects, onChangeProjects} = this.props;
 
     const alertThresholdPosition =
       this.chartRef &&
@@ -239,7 +246,13 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.resolveThreshold}`);
 
     return (
-      <ChartPanel>
+      <Wrapper>
+        <CornerProjectSelect
+          value={selectedProjects.length && selectedProjects[0]}
+          options={projectOptions}
+          onChange={onChangeProjects}
+        />
+
         <LineChart
           isGroupedByDate
           forwardedRef={this.handleRef}
@@ -264,12 +277,27 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
           })}
           series={data}
         />
-      </ChartPanel>
+      </Wrapper>
     );
   }
 }
 
-const ChartPanel = styled(Panel)`
-  background-color: white;
-  margin-bottom: ${space(1)};
+const Wrapper = styled('div')`
+  position: relative;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+const CornerProjectSelect = styled(SelectControl)`
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  min-width: 150px;
+
+  .Select-control {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: 0;
+  }
 `;

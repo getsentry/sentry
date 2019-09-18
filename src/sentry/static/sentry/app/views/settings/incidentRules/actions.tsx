@@ -1,5 +1,5 @@
 import {Client} from 'app/api';
-import {IncidentRule} from './types';
+import {IncidentRule} from './constants';
 
 export function deleteRule(
   api: Client,

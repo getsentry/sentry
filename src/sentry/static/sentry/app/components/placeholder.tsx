@@ -15,11 +15,14 @@ type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
   className?: string;
+  children?: React.ReactNode;
 } & Partial<DefaultProps>;
 
 const Placeholder = styled((props: Props) => {
-  const {className} = props;
-  return <div data-test-id="loading-placeholder" className={className} />;
+  const {className, children} = props;
+  return (
+    <div data-test-id="loading-placeholder" className={className} children={children} />
+  );
 })<Props>`
   display: flex;
   flex-direction: column;
