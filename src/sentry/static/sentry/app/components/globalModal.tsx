@@ -21,7 +21,7 @@ class GlobalModal extends React.Component<Props> {
     /**
      * Needs to be a function that returns a React Element
      * Function is injected with:
-     * Modal `Header`, `Body`, and `Footer,
+     * Modal `Header`, `Body`, and `Footer`,
      * `closeModal`
      *
      */
