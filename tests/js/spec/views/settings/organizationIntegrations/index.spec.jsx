@@ -317,6 +317,22 @@ describe('OrganizationIntegrations', () => {
           url: '/sentry-apps/',
           body: [],
         });
+
+        const internalAppInstall = TestStubs.SentryAppInstallation({
+          organization: {
+            slug: org.slug,
+          },
+          app: {
+            slug: internalApp.slug,
+            uuid: internalApp.uuid,
+          },
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [internalAppInstall],
+        });
+
         wrapper = mount(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
@@ -324,6 +340,8 @@ describe('OrganizationIntegrations', () => {
         expect(
           wrapper.find('Panel [data-test-id="internal-integration-row"]').exists()
         ).toBe(true);
+        const appRow = wrapper.find('SentryApplicationRow').at(0);
+        expect(appRow.find('StatusIndicator').prop('status')).toBe('Installed');
       });
 
       it('removes an internal app', async function() {
