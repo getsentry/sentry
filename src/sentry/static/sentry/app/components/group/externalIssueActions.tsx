@@ -12,8 +12,20 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
 
-class ExternalIssueActions extends AsyncComponent {
+type Props = AsyncComponent['props'] & {
+  integration: GroupIntegration;
+  group: Group;
+};
+
+type State = AsyncComponent['state'] & {
+  showModal: boolean;
+  action: string | null;
+  selectedIntegration: GroupIntegration;
+  issue: IntegrationExternalIssue | null;
+};
+class ExternalIssueActions extends AsyncComponent<Props, State> {
   static propTypes = {
     group: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
@@ -48,13 +60,13 @@ class ExternalIssueActions extends AsyncComponent {
     }/?externalIssue=${issueId}`;
     this.api.request(endpoint, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         addSuccessMessage(t('Successfully unlinked issue.'));
         this.setState({
           issue: null,
         });
       },
-      error: error => {
+      error: () => {
         addErrorMessage(t('Unable to unlink issue.'));
       },
     });
@@ -94,7 +106,6 @@ class ExternalIssueActions extends AsyncComponent {
           externalIssueDisplayName={issue ? issue.displayName : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
-          integrationName={selectedIntegration.name}
           hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
           hoverCardBody={
             issue && issue.title ? (

@@ -99,6 +99,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     externalIssueLink={null}
     hoverCardBody={
       <IntegrationItem
+        compact={false}
         integration={
           Object {
             "configData": Object {},
@@ -120,7 +121,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
       />
     }
     hoverCardHeader="Linked GitHub Integration"
-    integrationName="Test Integration"
     integrationType="github"
     onClose={[Function]}
     onOpen={[Function]}
@@ -132,6 +132,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
         <Hovercard
           body={
             <IntegrationItem
+              compact={false}
               integration={
                 Object {
                   "configData": Object {},

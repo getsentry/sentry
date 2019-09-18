@@ -17,27 +17,42 @@ import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Integration, Repository} from 'app/types';
 
-export default class IntegrationRepos extends AsyncComponent {
+type Props = AsyncComponent['props'] & {
+  integration: Integration;
+};
+
+type State = AsyncComponent['state'] & {
+  adding: boolean;
+  dropdownBusy: boolean;
+  itemList: Repository[];
+  integrationRepos: {
+    repos: {identifier: string; name: string}[];
+    searchable: boolean;
+  };
+};
+
+export default class IntegrationRepos extends AsyncComponent<Props, State> {
   static propTypes = {
     integration: PropTypes.object.isRequired,
   };
   static contextTypes = {
     organization: PropTypes.object.isRequired,
+    router: PropTypes.object,
   };
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = {
-      error: false,
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
       adding: false,
       itemList: [],
+      integrationRepos: {repos: [], searchable: false},
       dropdownBusy: false,
-      errors: {},
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ([string, string, any] | [string, string])[] {
     const orgId = this.context.organization.slug;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
@@ -69,7 +84,7 @@ export default class IntegrationRepos extends AsyncComponent {
     200
   );
 
-  searchRepositoriesRequest = searchQuery => {
+  searchRepositoriesRequest = (searchQuery: string) => {
     const orgId = this.context.organization.slug;
     const query = {search: searchQuery};
     const endpoint = `/organizations/${orgId}/integrations/${
@@ -87,12 +102,12 @@ export default class IntegrationRepos extends AsyncComponent {
     });
   };
 
-  handleSearchRepositories = e => {
+  handleSearchRepositories = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({dropdownBusy: true});
     this.debouncedSearchRepositoriesRequest(e.target.value);
   };
 
-  addRepo(selection) {
+  addRepo(selection: {searchKey: string; value: string; label: JSX.Element}) {
     const {integration} = this.props;
     const {itemList} = this.state;
     const orgId = this.context.organization.slug;
@@ -113,7 +128,7 @@ export default class IntegrationRepos extends AsyncComponent {
       promise = addRepository(this.api, orgId, selection.value, integration);
     }
     promise.then(
-      repo => {
+      (repo: Repository) => {
         this.setState({adding: false, itemList: itemList.concat(repo)});
       },
       () => this.setState({adding: false})
