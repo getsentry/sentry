@@ -33,7 +33,6 @@ type BaseField = {
   disabled?: boolean | (() => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
-  value?: FieldValue;
 
   /**
    * Function to format the value displayed in the undo toast. May also be
