@@ -187,7 +187,7 @@ class MockModel {
  * form model, that will be called to determine the value of the prop upon an
  * observed change in the model.
  */
-const propsToObserver = ['inline', 'highlighted'];
+const propsToObserver = ['inline', 'highlighted', 'visible', 'disabled'];
 
 class FormField extends React.Component {
   static propTypes = {
@@ -500,7 +500,7 @@ class FormField extends React.Component {
 
     const observedProps = propsToObserver
       .filter(p => typeof this.props[p] === 'function')
-      .map(p => [p, () => this.props[p](model)]);
+      .map(p => [p, () => this.props[p]({...this.props, model})]);
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.

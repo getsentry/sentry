@@ -15,8 +15,6 @@ class AlertRuleSerializer(Serializer):
             "id": six.text_type(obj.id),
             "name": obj.name,
             "organizationId": six.text_type(obj.organization_id),
-            # TODO: Remove this once we've migrated to org level
-            "projectId": six.text_type(obj.query_subscriptions.first().project_id),
             "status": obj.status,
             "thresholdType": obj.threshold_type,
             "dataset": obj.dataset,

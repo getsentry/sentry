@@ -25,13 +25,6 @@ export default function getConfiguration({project}) {
           description: t('Manage alerts and alert rules for a project'),
         },
         {
-          path: `${pathPrefix}/incident-rules/`,
-          title: t('Incident Rules'),
-          show: ({features}) => features.has('incidents'),
-          description: t('Manage Incident Rules'),
-          id: 'incident-rules',
-        },
-        {
           path: `${pathPrefix}/tags/`,
           title: t('Tags'),
           description: t("View and manage a  project's tags"),

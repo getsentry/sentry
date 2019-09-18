@@ -9,6 +9,7 @@ import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {Project} from 'app/types';
 
 type Props = {
   xAxis: EChartOption.XAxis;
@@ -16,6 +17,7 @@ type Props = {
   alertThreshold: number | null;
   resolveThreshold: number | null;
   isInverted: boolean;
+  projects?: Project[];
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
   maxValue?: number;
