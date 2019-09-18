@@ -1,5 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
+import {Field} from 'app/views/settings/components/forms/type';
 
 export type ObjectStatus =
   | 'active'
@@ -409,9 +410,7 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: IntegrationProvider;
-  // TODO(ts): This should be an array of whatever the field prop in FieldFromConfig will be
-  // Replace with the proper type when it's done
-  configOrganization: any[];
+  configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object;
 };
