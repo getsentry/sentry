@@ -15,6 +15,9 @@ class MockFile(object):
         self._io = io.BytesIO(bytes)
         self.size = len(bytes)
 
+    def __iter__(self):
+        return iter(self._io)
+
     def __getattr__(self, name):
         return getattr(self._io, name)
 
