@@ -134,11 +134,11 @@ class NodeData(collections.MutableMapping):
             data = self.wrapper(data)
         self._node_data = data
 
-    def bind_ref(self, instance):
-        ref = self.get_ref(instance)
-        if ref:
-            self.data["_ref"] = ref
-            self.data["_ref_version"] = self.field.ref_version
+    # def bind_ref(self, instance):
+    #     ref = self.get_ref(instance)
+    #     if ref:
+    #         self.data["_ref"] = ref
+    #         self.data["_ref_version"] = self.field.ref_version
 
     def save(self):
         """

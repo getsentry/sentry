@@ -477,7 +477,7 @@ class Factories(object):
         # emulate EventManager refs
         node_id = Event.generate_node_id(kwargs["project"].id, event_id)
         nodestore.set(node_id, kwargs["data"])
-        event.data.bind_ref(event)
+        # event.data.bind_ref(event)
         event.save()
         return event
 

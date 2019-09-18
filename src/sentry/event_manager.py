@@ -706,7 +706,7 @@ class EventManager(object):
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
-        event.data.bind_ref(event)
+        # event.data.bind_ref(event)
 
         environment = Environment.get_or_create(project=project, name=environment)
 

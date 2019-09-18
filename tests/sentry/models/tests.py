@@ -131,7 +131,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.create_event(group=group1)
         group2 = self.create_group(project2)
         event = self.create_event(group=group2)
-        event.data.bind_ref(invalid_event)
+        # event.data.bind_ref(invalid_event)
         event.save()
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
@@ -141,7 +141,7 @@ class EventNodeStoreTest(TestCase):
 
     def test_accepts_valid_ref(self):
         event = self.create_event()
-        event.data.bind_ref(event)
+        # event.data.bind_ref(event)
         event.save()
 
         Event.objects.bind_nodes([event], "data")
