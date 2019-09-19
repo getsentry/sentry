@@ -265,25 +265,24 @@ class TraceViewHeader extends React.Component<PropType> {
                 onMouseMove={event => {
                   displayCursorGuide(event.pageX);
                 }}
+                onMouseDown={event => {
+                  const target = event.target;
+
+                  // ignore this event if we need to
+
+                  if (
+                    target instanceof Element &&
+                    target.getAttribute &&
+                    target.getAttribute('data-ignore')
+                  ) {
+                    console.log('ignore');
+                    return;
+                  }
+
+                  console.log('InteractiveLayer clicked', event.target);
+                }}
               >
-                <MinimapContainer
-                  onMouseDown={event => {
-                    const target = event.target;
-
-                    // ignore this event if we need to
-
-                    if (
-                      target instanceof Element &&
-                      target.getAttribute &&
-                      target.getAttribute('data-ignore')
-                    ) {
-                      console.log('ignore');
-                      return;
-                    }
-
-                    console.log('InteractiveLayer clicked', event.target);
-                  }}
-                >
+                <MinimapContainer>
                   {this.renderFog(this.props.dragProps)}
                   {this.renderCursorGuide({
                     showCursorGuide,
