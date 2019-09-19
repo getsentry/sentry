@@ -220,6 +220,7 @@ from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
+from .endpoints.request_join_organization import RequestJoinOrganization
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint,
@@ -415,6 +416,7 @@ urlpatterns = patterns(
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
     ),
+    url(r"^request-join/$", RequestJoinOrganization.as_view(), name="sentry-api-0-request-join"),
     # Monitors
     url(
         r"^monitors/",
