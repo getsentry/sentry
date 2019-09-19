@@ -267,7 +267,20 @@ class Minimap extends React.Component<PropType> {
                 }}
               >
                 <InteractiveLayer
-                  onClick={event => {
+                  onMouseDown={event => {
+                    const target = event.target;
+
+                    // ignore this event if we need to
+
+                    if (
+                      target instanceof Element &&
+                      target.getAttribute &&
+                      target.getAttribute('data-ignore')
+                    ) {
+                      console.log('ignore');
+                      return;
+                    }
+
                     console.log('InteractiveLayer clicked', event.target);
                   }}
                 >
@@ -676,6 +689,7 @@ const Handle = ({
         />
       </svg>
       <ViewHandle
+        data-ignore="true"
         onMouseDown={onMouseDown}
         isDragging={isDragging}
         style={{
