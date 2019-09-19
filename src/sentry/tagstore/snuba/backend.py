@@ -445,7 +445,7 @@ class SnubaTagStorage(TagStorage):
                 for value, data in six.iteritems(values)
             ]
 
-        return keys_with_counts
+        return keyobj
 
     def __get_release(self, project_id, group_id, first=True):
         filters = {"project_id": get_project_list(project_id)}
