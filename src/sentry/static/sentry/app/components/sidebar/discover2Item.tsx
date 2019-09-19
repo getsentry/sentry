@@ -171,7 +171,7 @@ class Discover2Item extends React.Component<Props, State> {
               return (
                 <Hitbox role="menu" id={this.menuId} isOpen={isOpen}>
                   <InputContainer>
-                    <StyledLabel for={inputId}>
+                    <StyledLabel htmlFor={inputId}>
                       <InlineSvg src="icon-search" size="16" />
                     </StyledLabel>
                     <StyledInput
@@ -253,7 +253,7 @@ const QueryName = styled('span')`
   line-height: 1.2;
 `;
 
-const StyledLabel = styled('label')<{for: string}>`
+const StyledLabel = styled('label')<{htmlFor: string}>`
   margin: 0;
   color: ${p => p.theme.gray2};
   padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
