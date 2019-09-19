@@ -31,7 +31,7 @@ type PropType = {
   trace: ParsedTraceType;
 };
 
-class Minimap extends React.Component<PropType> {
+class TraceViewHeader extends React.Component<PropType> {
   renderCursorGuide = ({
     cursorGuideHeight,
     showCursorGuide,
@@ -700,4 +700,4 @@ const Handle = ({
   );
 };
 
-export default Minimap;
+export default TraceViewHeader;
