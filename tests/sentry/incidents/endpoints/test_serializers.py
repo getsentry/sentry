@@ -48,7 +48,6 @@ class TestAlertRuleSerializer(TestCase):
             "name": field_is_required,
             "timeWindow": field_is_required,
             "query": field_is_required,
-            "thresholdType": field_is_required,
             "resolveThreshold": field_is_required,
             "alertThreshold": field_is_required,
         }
