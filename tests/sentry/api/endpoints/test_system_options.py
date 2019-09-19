@@ -69,7 +69,7 @@ class SystemOptionsTest(APITestCase):
 
     def test_put_simple(self):
         self.login_as(user=self.user, superuser=True)
-        assert options.get("mail.host") != "localhost"
-        response = self.client.put(self.url, {"mail.host": "localhost"})
+        assert options.get("mail.host") != "lolcalhost"
+        response = self.client.put(self.url, {"mail.host": "lolcalhost"})
         assert response.status_code == 200
-        assert options.get("mail.host") == "localhost"
+        assert options.get("mail.host") == "lolcalhost"
