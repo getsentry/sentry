@@ -320,12 +320,27 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     // indicate drag has ended
 
-    this.setState(_state => {
+    this.setState(state => {
+      const viewWindowStart = Math.min(
+        state.customWindowInitial,
+        state.customWindowCurrent
+      );
+      const viewWindowEnd = Math.max(
+        state.customWindowInitial,
+        state.customWindowCurrent
+      );
+
       return {
         isCustomWindowDragging: false,
         customWindowInitial: 0,
         customWindowCurrent: 0,
         customWindowSize: 0,
+
+        leftHandlePosition: viewWindowStart,
+        rightHandlePosition: viewWindowEnd,
+
+        viewWindowStart,
+        viewWindowEnd,
       };
     });
   };
