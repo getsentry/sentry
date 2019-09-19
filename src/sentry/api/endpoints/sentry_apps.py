@@ -63,6 +63,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "events": request.json_body.get("events", []),
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
+            "allowedOrigins": request.json_body.get("allowedOrigins", []),
         }
 
         if self._has_hook_events(request) and not features.has(
@@ -85,6 +86,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data["webhook_url"] = data["webhookUrl"]
             data["is_alertable"] = data["isAlertable"]
             data["verify_install"] = data["verifyInstall"]
+            data["allowed_origins"] = data["allowedOrigins"]
 
             creator = InternalCreator if data.get("isInternal") else Creator
             sentry_app = creator.run(request=request, **data)
