@@ -265,8 +265,6 @@ class NoAccess(BaseAccess):
 
 
 def from_request(request, organization=None, scopes=None):
-    # from pdb import set_trace
-    # set_trace()
     if not organization:
         return from_user(request.user, organization=organization, scopes=scopes)
 
