@@ -67,7 +67,9 @@ class Minimap extends React.Component<PropType> {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
-        onMouseDown={onLeftHandleDragStart}
+        onMouseDown={() => {
+          // do nothing
+        }}
         isDragging={false}
       />
     ) : null;
@@ -91,7 +93,9 @@ class Minimap extends React.Component<PropType> {
     const rightHandleGhost = isDragging ? (
       <Handle
         left={viewWindowEnd}
-        onMouseDown={onLeftHandleDragStart}
+        onMouseDown={() => {
+          // do nothing
+        }}
         isDragging={false}
       />
     ) : null;
