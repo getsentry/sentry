@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 
 from sentry import experiments
@@ -11,34 +13,12 @@ from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, Organization, OrganizationMember
 
-ERR_INVALID_ORG = "Invalid organization"
-ERR_LIMITED = "Rate limit exceeded"
-ERR_FAILED = "Request to join attempt failed"
+logger = logging.getLogger(__name__)
 
 
 class RequestJoinSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     orgSlug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=True)
-
-    def validate(self, attrs):
-        org_slug = attrs.get("orgSlug")
-
-        try:
-            organization = Organization.objects.get(slug=org_slug)
-        except Organization.DoesNotExist:
-            raise serializers.ValidationError({"orgSlug": ERR_INVALID_ORG})
-
-        assignment = experiments.get(org=organization, experiment_name="RequestJoinExperiment")
-        if assignment != 1:
-            raise serializers.ValidationError({"orgSlug": ERR_INVALID_ORG})
-
-        # users can already join organizations with SSO enabled without an invite
-        # so no need to allow requests to join as well
-        if AuthProvider.objects.filter(organization=organization).exists():
-            raise serializers.ValidationError({"orgSlug": ERR_INVALID_ORG})
-
-        attrs["organization"] = organization
-        return attrs
 
 
 class RequestJoinOrganization(Endpoint):
@@ -49,9 +29,9 @@ class RequestJoinOrganization(Endpoint):
         ip_address = request.META["REMOTE_ADDR"]
 
         if ratelimiter.is_limited(
-            u"request-join:ip:{}".format(ip_address), limit=10, window=60  # 10 per minute
+            u"request-join:ip:{}".format(ip_address), limit=5, window=60  # 5 per minute
         ):
-            return Response({"detail": ERR_LIMITED}, status=429)
+            return Response({"detail": "Rate limit exceeded."}, status=429)
 
         serializer = RequestJoinSerializer(data=request.data)
 
@@ -59,8 +39,23 @@ class RequestJoinOrganization(Endpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
-        organization = result["organization"]
+        org_slug = result["orgSlug"]
         email = result["email"]
+
+        try:
+            organization = Organization.objects.get(slug=org_slug)
+        except Organization.DoesNotExist:
+            return Response(status=400)
+
+        assignment = experiments.get(org=organization, experiment_name="RequestJoinExperiment")
+        if assignment != 1:
+            return Response(status=403)
+
+        # users can already join organizations with SSO enabled without an invite
+        # so no need to allow requests to join as well
+        auth_provider = AuthProvider.objects.filter(organization=organization).exists()
+        if auth_provider:
+            return Response(status=403)
 
         existing = OrganizationMember.objects.filter(
             Q(email__iexact=email) | (Q(user__is_active=True) & Q(user__email__iexact=email)),
@@ -69,12 +64,23 @@ class RequestJoinOrganization(Endpoint):
 
         if not existing:
             try:
-                OrganizationMember.objects.create(
-                    organization=organization,
-                    email=email,
-                    invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-                )
+                with transaction.atomic():
+                    om = OrganizationMember.objects.create(
+                        organization=organization,
+                        email=email,
+                        invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+                    )
             except IntegrityError:
-                return Response({"detail": ERR_FAILED}, status=400)
+                pass
+            else:
+                logger.info(
+                    "request-join.created",
+                    extra={
+                        "organization_id": organization.id,
+                        "member_id": om.id,
+                        "email": email,
+                        "ip_address": ip_address,
+                    },
+                )
 
         return Response(status=204)
