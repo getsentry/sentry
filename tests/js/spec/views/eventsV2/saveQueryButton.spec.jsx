@@ -97,7 +97,7 @@ describe('EventsV2 > SaveQueryButton', function() {
     const input = wrapper.find('SaveQueryContainer input');
     input.simulate('change', {target: {value: 'my query'}});
 
-    const submit = wrapper.find('SaveQueryContainer Button');
+    const submit = wrapper.find('button[aria-label="Save"]');
     submit.simulate('click');
 
     // Wait for reflux
@@ -130,12 +130,15 @@ describe('EventsV2 > SaveQueryButton', function() {
         fieldnames: ['title', 'total'],
       },
     });
-    errorsView.id = 1;
+    const errors = EventView.fromEventViewv1(
+      ALL_VIEWS.find(view => view.name === 'Errors')
+    );
+    errors.id = '1';
     const wrapper = mount(
       <EventSaveQueryButton
         organization={organization}
         location={location}
-        eventView={errorsView}
+        eventView={errors}
         isEditing
       />,
       TestStubs.routerContext()
@@ -146,7 +149,7 @@ describe('EventsV2 > SaveQueryButton', function() {
     const input = wrapper.find('SaveQueryContainer input');
     input.simulate('change', {target: {value: 'my query'}});
 
-    const submit = wrapper.find('SaveQueryContainer Button');
+    const submit = wrapper.find('button[aria-label="Update"]');
     submit.simulate('click');
 
     // Wait for reflux

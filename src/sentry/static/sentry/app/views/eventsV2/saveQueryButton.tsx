@@ -106,7 +106,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
         <SaveQueryContainer onClick={this.swallowEvent}>
           <StyledInput
             type="text"
-            placeholder={t('display name')}
+            placeholder={t('Display name')}
             value={this.state.queryName}
             onChange={this.handleInputChange}
           />
