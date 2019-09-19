@@ -1,27 +1,20 @@
 import {Location, Query} from 'history';
 import {isString, cloneDeep, pick} from 'lodash';
 
+import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
-import {DEFAULT_PER_PAGE} from 'app/constants';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {MetaType, EventQuery, getAggregateAlias} from './utils';
 
-type Descending = {
-  kind: 'desc';
+export type Sort = {
+  kind: 'asc' | 'desc';
   field: string;
 };
 
-type Ascending = {
-  kind: 'asc';
-  field: string;
-};
-
-type Sort = Descending | Ascending;
-
-type Field = {
+export type Field = {
   field: string;
   title: string;
   // TODO: implement later
