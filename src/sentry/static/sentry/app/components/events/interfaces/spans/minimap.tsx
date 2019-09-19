@@ -262,7 +262,11 @@ class Minimap extends React.Component<PropType> {
                   displayCursorGuide(event.pageX);
                 }}
               >
-                <InteractiveLayer>
+                <InteractiveLayer
+                  onClick={event => {
+                    console.log('InteractiveLayer clicked', event.target);
+                  }}
+                >
                   {this.renderFog(this.props.dragProps)}
                   {this.renderCursorGuide({
                     showCursorGuide,
