@@ -144,6 +144,7 @@ from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_request_join import OrganizationRequestJoinEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
@@ -220,7 +221,6 @@ from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.request_join_organization import RequestJoinOrganization
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint,
@@ -416,7 +416,6 @@ urlpatterns = patterns(
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
     ),
-    url(r"^request-join/$", RequestJoinOrganization.as_view(), name="sentry-api-0-request-join"),
     # Monitors
     url(
         r"^monitors/",
@@ -983,6 +982,11 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/broadcasts/$",
                     BroadcastIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-broadcasts",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/request-join/$",
+                    OrganizationRequestJoinEndpoint.as_view(),
+                    name="sentry-api-0-organization-request-join",
                 ),
             ]
         ),

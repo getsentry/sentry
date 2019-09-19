@@ -4,28 +4,29 @@ import logging
 
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.db.models import Q
 
 from sentry import experiments
-from sentry.api.base import Endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
-from sentry.models import AuthProvider, InviteStatus, Organization, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 
 logger = logging.getLogger(__name__)
+
+REQUEST_JOIN_EXPERIMENT = "RequestJoinExperiment"
 
 
 class RequestJoinSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
-    orgSlug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=True)
 
 
-class RequestJoinOrganization(Endpoint):
+class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def post(self, request):
+    def post(self, request, organization):
         ip_address = request.META["REMOTE_ADDR"]
 
         if ratelimiter.is_limited(
@@ -39,15 +40,9 @@ class RequestJoinOrganization(Endpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
-        org_slug = result["orgSlug"]
         email = result["email"]
 
-        try:
-            organization = Organization.objects.get(slug=org_slug)
-        except Organization.DoesNotExist:
-            return Response(status=400)
-
-        assignment = experiments.get(org=organization, experiment_name="RequestJoinExperiment")
+        assignment = experiments.get(org=organization, experiment_name=REQUEST_JOIN_EXPERIMENT)
         if assignment != 1:
             return Response(status=403)
 
@@ -58,18 +53,17 @@ class RequestJoinOrganization(Endpoint):
             return Response(status=403)
 
         existing = OrganizationMember.objects.filter(
-            Q(email__iexact=email) | (Q(user__is_active=True) & Q(user__email__iexact=email)),
+            Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
             organization=organization,
         ).exists()
 
         if not existing:
             try:
-                with transaction.atomic():
-                    om = OrganizationMember.objects.create(
-                        organization=organization,
-                        email=email,
-                        invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-                    )
+                om = OrganizationMember.objects.create(
+                    organization=organization,
+                    email=email,
+                    invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+                )
             except IntegrityError:
                 pass
             else:
