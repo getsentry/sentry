@@ -148,29 +148,39 @@ class IncidentsListContainer extends React.Component<Props> {
               {t('Incidents')} <BetaTag />
             </PageHeading>
 
-            <div className="btn-group">
+            <Actions>
               <Button
-                to={{pathname, query: allIncidentsQuery}}
+                priority="default"
                 size="small"
-                className={'btn' + (status === '' ? ' active' : '')}
+                to={`/settings/${orgId}/incident-rules/`}
+                icon="icon-settings"
               >
-                {t('All Incidents')}
+                {t('Manage Rules')}
               </Button>
-              <Button
-                to={{pathname, query: openIncidentsQuery}}
-                size="small"
-                className={'btn' + (status === 'open' ? ' active' : '')}
-              >
-                {t('Open')}
-              </Button>
-              <Button
-                to={{pathname, query: closedIncidentsQuery}}
-                size="small"
-                className={'btn' + (status === 'closed' ? ' active' : '')}
-              >
-                {t('Closed')}
-              </Button>
-            </div>
+              <div className="btn-group">
+                <Button
+                  to={{pathname, query: allIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === '' ? ' active' : '')}
+                >
+                  {t('All Incidents')}
+                </Button>
+                <Button
+                  to={{pathname, query: openIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'open' ? ' active' : '')}
+                >
+                  {t('Open')}
+                </Button>
+                <Button
+                  to={{pathname, query: closedIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'closed' ? ' active' : '')}
+                >
+                  {t('Closed')}
+                </Button>
+              </div>
+            </Actions>
           </PageHeader>
 
           <AlertLink
@@ -190,6 +200,13 @@ class IncidentsListContainer extends React.Component<Props> {
     );
   }
 }
+
+const Actions = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
+`;
 
 const TableLayout = styled('div')`
   display: grid;
