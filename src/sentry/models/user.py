@@ -86,6 +86,16 @@ class User(BaseModel, AbstractBaseUser):
             "normal User would."
         ),
     )
+    is_org_proxy_user = models.NullBooleanField(
+        _("is org proxy user"),
+        null=True,
+        default=None,
+        help_text=_(
+            "Designates whether this user is the entity used for Permissions"
+            "on behalf of an organization. Cannot login or use Sentry like a"
+            "normal User would."
+        ),
+    )
     is_password_expired = models.BooleanField(
         _("password expired"),
         default=False,
@@ -322,6 +332,9 @@ class User(BaseModel, AbstractBaseUser):
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+    def is_proxy_user(self):
+        return self.is_sentry_app or self.is_org_proxy_user
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

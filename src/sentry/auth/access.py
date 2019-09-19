@@ -18,6 +18,7 @@ from sentry.models import (
     ProjectStatus,
     SentryApp,
     UserPermission,
+    Team,
 )
 
 
@@ -264,11 +265,17 @@ class NoAccess(BaseAccess):
 
 
 def from_request(request, organization=None, scopes=None):
+    # from pdb import set_trace
+    # set_trace()
     if not organization:
         return from_user(request.user, organization=organization, scopes=scopes)
 
     if getattr(request.user, "is_sentry_app", False):
         return from_sentry_app(request.user, organization=organization)
+
+    if getattr(request.user, "is_org_proxy_user", False):
+        scope_list = request._auth.scope_list
+        return from_org_proxy_user(request.user, scope_list, organization=organization)
 
     if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
@@ -319,6 +326,28 @@ def from_sentry_app(user, organization=None):
         scopes=sentry_app.scope_list,
         is_active=True,
         organization_id=organization.id if organization else None,
+        teams=team_list,
+        projects=project_list,
+        permissions=(),
+        has_global_access=False,
+        sso_is_valid=True,
+        requires_sso=False,
+    )
+
+
+def from_org_proxy_user(self, scope_list, organization=None):
+    if not organization:
+        return NoAccess()
+
+    team_list = list(Team.objects.filter(organization_id=organization.id))
+    project_list = list(
+        Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
+    )
+
+    return Access(
+        scopes=scope_list,
+        is_active=True,
+        organization_id=organization.id,
         teams=team_list,
         projects=project_list,
         permissions=(),

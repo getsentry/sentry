@@ -57,6 +57,8 @@ class OrganizationPermission(SentryPermission):
     def has_object_permission(self, request, view, organization):
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
+        # from pdb import set_trace
+        # set_trace()
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
