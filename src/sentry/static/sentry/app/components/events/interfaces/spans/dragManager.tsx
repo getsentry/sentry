@@ -28,7 +28,10 @@ export type DragManagerChildrenProps = {
   // custom window selection
 
   isCustomWindowDragging: boolean;
-  customWindowSize: number; // between 0 (0%) and 1 (100%)
+  customWindowInitial: number; // between 0 (0%) and 1 (100%)
+  customWindowCurrent: number; // between 0 (0%) and 1 (100%)
+  customWindowSize: number;
+  onCustomWindowDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 
   // window sizes
 
@@ -55,6 +58,8 @@ type DragManagerState = {
   // custom window selection
 
   isCustomWindowDragging: boolean;
+  customWindowInitial: number;
+  customWindowCurrent: number;
   customWindowSize: number;
 
   // window sizes
@@ -75,7 +80,9 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     // custom window selection
 
     isCustomWindowDragging: false,
-    customWindowSize: 0, // between 0 (0%) and 1 (100%)
+    customWindowInitial: 0, // between 0 (0%) and 1 (100%)
+    customWindowCurrent: 0, // between 0 (0%) and 1 (100%)
+    customWindowSize: 0,
 
     // window sizes
 
@@ -92,11 +99,9 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
   onDragStart = (viewHandle: ViewHandleType) => (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
-    if (
-      this.state.isDragging ||
-      event.type !== 'mousedown' ||
-      !this.hasInteractiveLayer()
-    ) {
+    const isDragging = this.state.isDragging || this.state.isCustomWindowDragging;
+
+    if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
       return;
     }
 
@@ -118,6 +123,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     this.setState({
       isDragging: true,
+      isCustomWindowDragging: false,
       currentDraggingHandle: viewHandle,
     });
   };
@@ -224,10 +230,115 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     }
   };
 
+  onCustomWindowDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const isDragging = this.state.isDragging || this.state.isCustomWindowDragging;
+
+    if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
+      return;
+    }
+
+    // prevent the user from selecting things outside the minimap when dragging
+    // the mouse cursor outside the minimap
+
+    this.previousUserSelect = setBodyUserSelect({
+      userSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none',
+    });
+
+    // attach event listeners so that the mouse cursor can drag outside of the
+    // minimap
+    window.addEventListener('mousemove', this.onCustomWindowDragMove);
+    window.addEventListener('mouseup', this.onCustomWindowDragEnd);
+
+    // indicate drag has begun
+
+    const rect = rectOfContent(this.props.interactiveLayerRef.current!);
+
+    // mouse x-coordinate relative to the interactive layer's left side
+    const rawMouseX = (event.pageX - rect.x) / rect.width;
+
+    this.setState({
+      isDragging: false,
+      isCustomWindowDragging: true,
+      customWindowInitial: rawMouseX, // between 0 (0%) and 1 (100%)
+      customWindowCurrent: rawMouseX, // between 0 (0%) and 1 (100%)
+    });
+  };
+
+  onCustomWindowDragMove = (event: MouseEvent) => {
+    if (
+      !this.state.isCustomWindowDragging ||
+      event.type !== 'mousemove' ||
+      !this.hasInteractiveLayer()
+    ) {
+      return;
+    }
+
+    const rect = rectOfContent(this.props.interactiveLayerRef.current!);
+
+    // mouse x-coordinate relative to the interactive layer's left side
+    const rawMouseX = (event.pageX - rect.x) / rect.width;
+
+    const min = 0;
+    const max = 1;
+
+    // clamp rawMouseX to be within [0, 1]
+    const customWindowCurrent = clamp(rawMouseX, min, max);
+
+    const customWindowSize = clamp(
+      Math.abs(this.state.customWindowInitial - customWindowCurrent),
+      min,
+      max
+    );
+
+    this.setState({
+      customWindowCurrent,
+      customWindowSize,
+    });
+  };
+
+  onCustomWindowDragEnd = (event: MouseEvent) => {
+    if (
+      !this.state.isCustomWindowDragging ||
+      event.type !== 'mouseup' ||
+      !this.hasInteractiveLayer()
+    ) {
+      return;
+    }
+
+    // remove listeners that were attached in onCustomWindowDragStart
+
+    this.cleanUpListeners();
+
+    // restore body styles
+
+    if (this.previousUserSelect) {
+      setBodyUserSelect(this.previousUserSelect);
+      this.previousUserSelect = null;
+    }
+
+    // indicate drag has ended
+
+    this.setState(_state => {
+      return {
+        isCustomWindowDragging: false,
+        customWindowInitial: 0,
+        customWindowCurrent: 0,
+        customWindowSize: 0,
+      };
+    });
+  };
+
   cleanUpListeners = () => {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
       window.removeEventListener('mouseup', this.onDragEnd);
+    }
+
+    if (this.state.isCustomWindowDragging) {
+      window.removeEventListener('mousemove', this.onCustomWindowDragMove);
+      window.removeEventListener('mouseup', this.onCustomWindowDragEnd);
     }
   };
 
@@ -252,7 +363,10 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       // custom window selection
 
       isCustomWindowDragging: this.state.isCustomWindowDragging,
+      customWindowInitial: this.state.customWindowInitial,
+      customWindowCurrent: this.state.customWindowCurrent,
       customWindowSize: this.state.customWindowSize,
+      onCustomWindowDragStart: this.onCustomWindowDragStart,
 
       // window sizes
 

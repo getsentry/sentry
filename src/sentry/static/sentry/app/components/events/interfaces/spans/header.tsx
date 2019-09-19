@@ -240,6 +240,23 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   };
 
+  renderCustomWindowSelection = (dragProps: DragManagerChildrenProps) => {
+    if (!dragProps.isCustomWindowDragging) {
+      return;
+    }
+
+    const left = Math.min(dragProps.customWindowInitial, dragProps.customWindowCurrent);
+
+    return (
+      <CustomWindowSelection
+        style={{
+          left: toPercent(left),
+          width: toPercent(dragProps.customWindowSize),
+        }}
+      />
+    );
+  };
+
   render() {
     return (
       <HeaderContainer>
@@ -277,7 +294,7 @@ class TraceViewHeader extends React.Component<PropType> {
                     return;
                   }
 
-                  console.log('InteractiveLayer clicked', event.target);
+                  this.props.dragProps.onCustomWindowDragStart(event);
                 }}
               >
                 <MinimapContainer>
@@ -288,6 +305,7 @@ class TraceViewHeader extends React.Component<PropType> {
                     cursorGuideHeight: MINIMAP_HEIGHT,
                   })}
                   {this.renderViewHandles(this.props.dragProps)}
+                  {this.renderCustomWindowSelection(this.props.dragProps)}
                 </MinimapContainer>
                 {this.renderTimeAxis({
                   showCursorGuide,
@@ -696,5 +714,14 @@ const Handle = ({
     </ViewHandleContainer>
   );
 };
+
+const CustomWindowSelection = styled('div')`
+  position: absolute;
+  top: 0;
+
+  height: ${MINIMAP_HEIGHT}px;
+
+  background-color: red;
+`;
 
 export default TraceViewHeader;
