@@ -1410,6 +1410,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
+    "sentry.integrations.pagerduty.PagerDutyIntegrationProvider",
 )
 
 
