@@ -8,7 +8,7 @@ import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
 import {SpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
 import {isValidSpanID} from './utils';
-import TraceViewMinimap from './minimap';
+import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 type TraceContextType = {
@@ -24,9 +24,9 @@ type PropType = {
 class TraceView extends React.Component<PropType> {
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
-  renderMinimap = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
+  renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
     return (
-      <TraceViewMinimap
+      <TraceViewHeader
         minimapInteractiveRef={this.minimapInteractiveRef}
         dragProps={dragProps}
         trace={parsedTrace}
@@ -157,7 +157,7 @@ class TraceView extends React.Component<PropType> {
               dragProps={dragProps}
               trace={parsedTrace}
             >
-              {this.renderMinimap(dragProps, parsedTrace)}
+              {this.renderHeader(dragProps, parsedTrace)}
               <SpanTree trace={parsedTrace} dragProps={dragProps} />
             </CursorGuideHandler.Provider>
           );
