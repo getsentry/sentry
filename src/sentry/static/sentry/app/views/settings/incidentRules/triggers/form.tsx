@@ -14,7 +14,6 @@ import withConfig from 'app/utils/withConfig';
 import TriggersChart from './chart';
 
 import {
-  // AlertRuleAggregations,
   AlertRuleThreshold,
   AlertRuleThresholdType,
   IncidentRule,
@@ -27,7 +26,6 @@ type AlertRuleThresholdKey = {
 };
 
 const DEFAULT_TIME_WINDOW = 60;
-// const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
 type Props = {
   api: Client;
