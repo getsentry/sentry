@@ -811,3 +811,6 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
         # Called by ``EventManager.save``. The return value is not
         # used.
         pass
+
+    def create_tag_key(self, project_id, environment_id, key, **kwargs):
+        pass
