@@ -11,18 +11,28 @@ enum ViewHandleType {
 }
 
 export type DragManagerChildrenProps = {
+  // handles
+
   isDragging: boolean;
 
   // left-side handle
 
   onLeftHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   leftHandlePosition: number; // between 0 to 1
-  viewWindowStart: number; // between 0 to 1
 
   // right-side handle
 
   onRightHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   rightHandlePosition: number; // between 0 to 1
+
+  // custom window selection
+
+  isCustomWindowDragging: boolean;
+  customWindowSize: number; // between 0 (0%) and 1 (100%)
+
+  // window sizes
+
+  viewWindowStart: number; // between 0 to 1
   viewWindowEnd: number; // between 0 to 1
 };
 
@@ -35,10 +45,19 @@ type DragManagerProps = {
 };
 
 type DragManagerState = {
+  // draggable handles
+
   isDragging: boolean;
   currentDraggingHandle: ViewHandleType | undefined;
   leftHandlePosition: number;
   rightHandlePosition: number;
+
+  // custom window selection
+
+  isCustomWindowDragging: boolean;
+  customWindowSize: number;
+
+  // window sizes
 
   viewWindowStart: number;
   viewWindowEnd: number;
@@ -46,10 +65,19 @@ type DragManagerState = {
 
 class DragManager extends React.Component<DragManagerProps, DragManagerState> {
   state: DragManagerState = {
+    // draggable handles
+
     isDragging: false,
     currentDraggingHandle: void 0,
     leftHandlePosition: 0, // positioned on the left-most side at 0%
     rightHandlePosition: 1, // positioned on the right-most side at 100%
+
+    // custom window selection
+
+    isCustomWindowDragging: false,
+    customWindowSize: 0, // between 0 (0%) and 1 (100%)
+
+    // window sizes
 
     viewWindowStart: 0,
     viewWindowEnd: 1,
@@ -211,12 +239,24 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     const childrenProps = {
       isDragging: this.state.isDragging,
 
+      // left handle
+
       onLeftHandleDragStart: this.onLeftHandleDragStart,
       leftHandlePosition: this.state.leftHandlePosition,
-      viewWindowStart: this.state.viewWindowStart,
+
+      // right handle
 
       onRightHandleDragStart: this.onRightHandleDragStart,
       rightHandlePosition: this.state.rightHandlePosition,
+
+      // custom window selection
+
+      isCustomWindowDragging: this.state.isCustomWindowDragging,
+      customWindowSize: this.state.customWindowSize,
+
+      // window sizes
+
+      viewWindowStart: this.state.viewWindowStart,
       viewWindowEnd: this.state.viewWindowEnd,
     };
 
