@@ -1,7 +1,11 @@
 import React from 'react';
 import InputField from 'app/components/forms/inputField';
 
-export default class TextareaField extends InputField {
+type State = InputField['state'] & {
+  value?: string;
+};
+
+export default class TextareaField extends InputField<InputField['props'], State> {
   getField() {
     return (
       <textarea

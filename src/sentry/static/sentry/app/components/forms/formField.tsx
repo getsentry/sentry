@@ -6,13 +6,41 @@ import styled from 'react-emotion';
 import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
+import {Context} from 'app/components/forms/form';
+
+type Value = string | number | boolean;
+
+type FormFieldProps = {
+  name: string;
+  style?: object;
+  label?: React.ReactNode;
+  defaultValue?: any;
+  disabled?: boolean;
+  disabledReason?: string;
+  help?: string | React.ReactNode;
+  required?: boolean;
+  hideErrorMessage?: boolean;
+  className?: string;
+  onChange?: (value: Value) => void;
+  error?: string;
+  value?: Value;
+  meta: any;
+};
+
+type FormFieldState = {
+  error: string | null;
+  value: Value;
+};
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;
   color: ${p => p.theme.gray3};
 `;
 
-export default class FormField extends React.PureComponent {
+export default class FormField<
+  Props extends FormFieldProps = FormFieldProps,
+  State extends FormFieldState = FormFieldState
+> extends React.PureComponent<Props, State> {
   static propTypes = {
     name: PropTypes.string.isRequired,
     /** Inline style */
@@ -29,6 +57,7 @@ export default class FormField extends React.PureComponent {
     help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     required: PropTypes.bool,
     hideErrorMessage: PropTypes.bool,
+    className: PropTypes.string,
 
     // the following should only be used without form context
     onChange: PropTypes.func,
@@ -47,17 +76,17 @@ export default class FormField extends React.PureComponent {
     form: PropTypes.object,
   };
 
-  constructor(props, context) {
+  constructor(props: Props, context: Context) {
     super(props, context);
     this.state = {
       error: null,
       value: this.getValue(props, context),
-    };
+    } as State;
   }
 
   componentDidMount() {}
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  componentWillReceiveProps(nextProps: Props, nextContext: Context) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -72,7 +101,7 @@ export default class FormField extends React.PureComponent {
 
   componentWillUnmount() {}
 
-  getValue(props, context) {
+  getValue(props: Props, context: Context) {
     const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.value)) {
@@ -84,7 +113,7 @@ export default class FormField extends React.PureComponent {
     return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
-  getError(props, context) {
+  getError(props: Props, context: Context) {
     const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.error)) {
@@ -97,16 +126,16 @@ export default class FormField extends React.PureComponent {
     return `id-${this.props.name}`;
   }
 
-  coerceValue(value) {
+  coerceValue(value: any) {
     return value;
   }
 
-  onChange = e => {
+  onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     this.setValue(value);
   };
 
-  setValue = value => {
+  setValue = (value: Value) => {
     const form = (this.context || {}).form;
     this.setState(
       {
@@ -121,6 +150,10 @@ export default class FormField extends React.PureComponent {
   };
 
   getField() {
+    throw new Error('Must be implemented by child.');
+  }
+
+  getClassName(): string {
     throw new Error('Must be implemented by child.');
   }
 

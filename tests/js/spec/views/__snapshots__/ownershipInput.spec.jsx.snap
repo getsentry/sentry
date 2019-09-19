@@ -189,7 +189,7 @@ exports[`Project Ownership Input renders 1`] = `
                   value="path"
                 >
                   <SelectControl
-                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                     clearable={false}
                     disabled={false}
                     height={36}
@@ -215,7 +215,7 @@ exports[`Project Ownership Input renders 1`] = `
                     <StyledSelect
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                      className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -242,7 +242,7 @@ exports[`Project Ownership Input renders 1`] = `
                       <ForwardRef(SelectPicker)
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-1nab9yw-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -269,7 +269,7 @@ exports[`Project Ownership Input renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-1nab9yw-StyledSelect-StyledSelectControl eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -299,7 +299,7 @@ exports[`Project Ownership Input renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-1nab9yw-StyledSelect-StyledSelectControl eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -359,7 +359,7 @@ exports[`Project Ownership Input renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-1nab9yw-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}

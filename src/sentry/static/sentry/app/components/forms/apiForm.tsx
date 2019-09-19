@@ -1,12 +1,22 @@
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
+import {Client, APIRequestMethod} from 'app/api';
 import IndicatorStore from 'app/stores/indicatorStore';
 import Form from 'app/components/forms/form';
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';
 
-export default class ApiForm extends Form {
+type Props = Form['props'] & {
+  onSubmit?: (data: object) => void;
+  apiEndpoint: string;
+  apiMethod: APIRequestMethod;
+  submitLoadingMessage?: string;
+  submitErrorMessage?: string;
+};
+
+export default class ApiForm extends Form<Props> {
+  api = new Client();
+
   static propTypes = {
     ...Form.propTypes,
     onSubmit: PropTypes.func,
@@ -22,16 +32,11 @@ export default class ApiForm extends Form {
     submitLoadingMessage: t('Saving changes..'),
   };
 
-  constructor(props, context) {
-    super(props, context);
-    this.api = new Client();
-  }
-
   componentWillUnmount() {
     this.api.clear();
   }
 
-  onSubmit = e => {
+  onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (this.state.state === FormState.SAVING) {
