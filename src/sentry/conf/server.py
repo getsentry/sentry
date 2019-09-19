@@ -1078,7 +1078,9 @@ _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
     ],
     "runner": "ImmediateRunner",
 }
-SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.legacy.LegacyTagStorage")
+SENTRY_TAGSTORE = os.environ.get(
+    "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+)
 SENTRY_TAGSTORE_OPTIONS = (
     _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS
     if "SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS" in os.environ
