@@ -96,6 +96,7 @@ describe('Sentry Application Details', function() {
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
+        allowedOrigins: [],
         schema: {},
       };
 

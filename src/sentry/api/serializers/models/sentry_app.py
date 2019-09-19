@@ -25,6 +25,7 @@ class SentryAppSerializer(Serializer):
             "isAlertable": obj.is_alertable,
             "verifyInstall": obj.verify_install,
             "overview": obj.overview,
+            "allowedOrigins": obj.application.get_allowed_origins(),
         }
 
         if is_active_superuser(env.request) or (
