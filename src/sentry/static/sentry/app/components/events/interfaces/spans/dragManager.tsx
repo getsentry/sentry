@@ -321,14 +321,21 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     // indicate drag has ended
 
     this.setState(state => {
-      const viewWindowStart = Math.min(
+      let viewWindowStart = Math.min(
         state.customWindowInitial,
         state.customWindowCurrent
       );
-      const viewWindowEnd = Math.max(
-        state.customWindowInitial,
-        state.customWindowCurrent
-      );
+      let viewWindowEnd = Math.max(state.customWindowInitial, state.customWindowCurrent);
+
+      // enforce minimum window size
+      if (viewWindowEnd - viewWindowStart < MINIMUM_WINDOW_SIZE) {
+        viewWindowEnd = viewWindowStart + MINIMUM_WINDOW_SIZE;
+
+        if (viewWindowEnd > 1) {
+          viewWindowEnd = 1;
+          viewWindowStart = 1 - MINIMUM_WINDOW_SIZE;
+        }
+      }
 
       return {
         isCustomWindowDragging: false,
