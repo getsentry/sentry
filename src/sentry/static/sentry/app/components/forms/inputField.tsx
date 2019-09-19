@@ -32,7 +32,7 @@ export default class InputField<
         disabled={this.props.disabled}
         name={this.props.name}
         required={this.props.required}
-        value={this.state.value as string | number} //can't pass in boolean here\
+        value={this.state.value as string | number} //can't pass in boolean here
         style={this.props.inputStyle}
         {...this.getAttributes()}
       />

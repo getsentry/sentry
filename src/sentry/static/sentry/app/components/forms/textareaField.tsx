@@ -2,7 +2,7 @@ import React from 'react';
 import InputField from 'app/components/forms/inputField';
 
 type State = InputField['state'] & {
-  value: string | undefined;
+  value?: string;
 };
 
 export default class TextareaField extends InputField<InputField['props'], State> {
