@@ -242,7 +242,7 @@ class TraceViewHeader extends React.Component<PropType> {
 
   render() {
     return (
-      <MinimapContainer>
+      <HeaderContainer>
         <ActualMinimap trace={this.props.trace} />
         <CursorGuideHandler.Consumer>
           {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => {
@@ -266,7 +266,7 @@ class TraceViewHeader extends React.Component<PropType> {
                   displayCursorGuide(event.pageX);
                 }}
               >
-                <InteractiveLayer
+                <MinimapContainer
                   onMouseDown={event => {
                     const target = event.target;
 
@@ -291,7 +291,7 @@ class TraceViewHeader extends React.Component<PropType> {
                     cursorGuideHeight: MINIMAP_HEIGHT,
                   })}
                   {this.renderViewHandles(this.props.dragProps)}
-                </InteractiveLayer>
+                </MinimapContainer>
                 {this.renderTimeAxis({
                   showCursorGuide,
                   mouseLeft,
@@ -300,7 +300,7 @@ class TraceViewHeader extends React.Component<PropType> {
             );
           }}
         </CursorGuideHandler.Consumer>
-      </MinimapContainer>
+      </HeaderContainer>
     );
   }
 }
@@ -558,7 +558,7 @@ const DurationGuideBox = styled('div')`
   }};
 `;
 
-const MinimapContainer = styled('div')`
+const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
@@ -582,7 +582,7 @@ const MinimapBackground = styled('div')`
   left: 0;
 `;
 
-const InteractiveLayer = styled('div')`
+const MinimapContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   width: 100%;
   position: relative;
