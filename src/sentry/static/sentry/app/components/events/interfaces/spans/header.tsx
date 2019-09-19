@@ -721,7 +721,7 @@ const CustomWindowSelection = styled('div')`
 
   height: ${MINIMAP_HEIGHT}px;
 
-  background-color: rgba(69, 38, 80, 0.5);
+  background-color: rgba(69, 38, 80, 0.1);
 `;
 
 export default TraceViewHeader;
