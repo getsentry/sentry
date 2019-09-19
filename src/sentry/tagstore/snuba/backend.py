@@ -814,3 +814,12 @@ class SnubaCompatibilityTagStorage(SnubaTagStorage):
 
     def create_tag_key(self, project_id, environment_id, key, **kwargs):
         pass
+
+    def create_tag_value(self, project_id, environment_id, key, value, **kwargs):
+        pass
+
+    def create_group_tag_key(self, project_id, group_id, environment_id, key, **kwargs):
+        pass
+
+    def create_group_tag_value(self, project_id, group_id, environment_id, key, value, **kwargs):
+        pass
