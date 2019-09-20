@@ -247,6 +247,7 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
+from .endpoints.team_index import TeamIndexEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
@@ -998,6 +999,11 @@ urlpatterns = patterns(
         r"^teams/",
         include(
             [
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/$",
+                    TeamIndexEndpoint.as_view(),
+                    name="sentry-api-0-teams",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$",
                     TeamDetailsEndpoint.as_view(),
