@@ -5,6 +5,7 @@ describe('EventView.fromSavedQuery()', function() {
     const saved = {
       name: 'best query',
       fields: ['count()', 'id'],
+      conditions: [],
       range: '14d',
       start: '',
       end: '',
@@ -27,6 +28,26 @@ describe('EventView.fromSavedQuery()', function() {
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.query).toEqual('event.type:error');
+  });
+
+  it('maps properties from v2 saved query', function() {
+    const saved = {
+      name: 'best query',
+      fields: ['count()', 'title'],
+      fieldnames: ['volume', 'caption'],
+      range: '14d',
+      start: '',
+      end: '',
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+    expect(eventView.fields).toEqual([
+      {field: 'count()', title: 'volume'},
+      {field: 'title', title: 'caption'},
+    ]);
+    expect(eventView.name).toEqual(saved.name);
+    expect(eventView.range).toEqual('14d');
+    expect(eventView.start).toEqual('');
+    expect(eventView.end).toEqual('');
   });
 });
 
