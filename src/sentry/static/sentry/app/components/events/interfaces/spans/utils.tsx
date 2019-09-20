@@ -242,6 +242,10 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
+const colorsAsArray = Object.keys(divergentColorScale).map(
+  key => divergentColorScale[key]
+);
+
 export const pickSpanBarColour = (input: string | undefined): string => {
   // We pick the color for span bars using the first two letters of the op name.
   // That way colors stay consistent between transactions.
@@ -253,9 +257,6 @@ export const pickSpanBarColour = (input: string | undefined): string => {
     return spanColors[input];
   }
 
-  const colorsAsArray = Object.keys(divergentColorScale).map(
-    key => divergentColorScale[key]
-  );
   const letterIndex1 = getLetterIndex(input.slice(0, 1));
   const letterIndex2 = getLetterIndex(input.slice(1, 2));
 
