@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import {switchOrganization} from 'app/actionCreators/organizations';
@@ -12,6 +13,7 @@ import OrganizationContext from 'app/views/organizationContext';
 import SentryTypes from 'app/sentryTypes';
 
 import InstallPromptBanner from './installPromptBanner';
+import LightWeightInstallPromptBanner from './lightWeightInstallPromptBanner';
 
 class DeletionInProgress extends Component {
   static propTypes = {
@@ -124,6 +126,14 @@ class DeletionPending extends Component {
 }
 
 class OrganizationDetailsBody extends Component {
+  static propTypes = {
+    detailed: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    detailed: true,
+  };
+
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
@@ -140,7 +150,12 @@ class OrganizationDetailsBody extends Component {
     }
     return (
       <React.Fragment>
-        {organization && <InstallPromptBanner organization={organization} />}
+        {organization &&
+          (this.props.detailed ? (
+            <InstallPromptBanner organization={organization} />
+          ) : (
+            <LightWeightInstallPromptBanner organization={organization} />
+          ))}
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
@@ -161,8 +176,14 @@ export default class OrganizationDetails extends Component {
   render() {
     return (
       <OrganizationContext includeSidebar useLastOrganization {...this.props}>
-        <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
+        <OrganizationDetailsBody {...this.props}>
+          {this.props.children}
+        </OrganizationDetailsBody>
       </OrganizationContext>
     );
   }
+}
+
+export function LightWeightOrganizationDetails(props) {
+  return <OrganizationDetails detailed={false} {...props} />;
 }
