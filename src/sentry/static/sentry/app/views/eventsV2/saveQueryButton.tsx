@@ -132,9 +132,7 @@ const StyledInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 `;
