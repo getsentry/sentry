@@ -13,13 +13,46 @@ from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 
-logger = logging.getLogger(__name__)
-
 REQUEST_JOIN_EXPERIMENT = "RequestJoinExperiment"
+
+logger = logging.getLogger(__name__)
 
 
 class RequestJoinSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
+
+
+# TODO: where should this go?
+def request_join_organization(organization, email, ip_address=None):
+    # users can already join organizations with SSO enabled without an invite
+    # so no need to allow requests to join as well
+    if AuthProvider.objects.filter(organization=organization).exists():
+        return
+
+    if OrganizationMember.objects.filter(
+        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
+        organization=organization,
+    ).exists():
+        return
+
+    try:
+        om = OrganizationMember.objects.create(
+            organization=organization,
+            email=email,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+    except IntegrityError:
+        pass
+    else:
+        logger.info(
+            "request-join.created",
+            extra={
+                "organization_id": organization.id,
+                "member_id": om.id,
+                "email": email,
+                "ip_address": ip_address,
+            },
+        )
 
 
 class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
@@ -46,35 +79,5 @@ class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
         if assignment != 1:
             return Response(status=403)
 
-        # users can already join organizations with SSO enabled without an invite
-        # so no need to allow requests to join as well
-        auth_provider = AuthProvider.objects.filter(organization=organization).exists()
-        if auth_provider:
-            return Response(status=403)
-
-        existing = OrganizationMember.objects.filter(
-            Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
-            organization=organization,
-        ).exists()
-
-        if not existing:
-            try:
-                om = OrganizationMember.objects.create(
-                    organization=organization,
-                    email=email,
-                    invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-                )
-            except IntegrityError:
-                pass
-            else:
-                logger.info(
-                    "request-join.created",
-                    extra={
-                        "organization_id": organization.id,
-                        "member_id": om.id,
-                        "email": email,
-                        "ip_address": ip_address,
-                    },
-                )
-
+        request_join_organization(organization, email, ip_address)
         return Response(status=204)
