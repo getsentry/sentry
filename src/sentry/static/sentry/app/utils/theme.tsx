@@ -89,7 +89,7 @@ export const divergentColorScale = {
   yellow: '#F2B712',
   softBlue: '#535577',
   softMaroon: '#805567',
-  softMagenta: '#70506A',
+  softMagenta: '#99628F',
   softSalmon: '#96545E',
   softPurple: '#6B597E',
   softOrange: '#D17D65',
@@ -109,7 +109,7 @@ export const divergentColorScale = {
 export const spanColors = {
   default: divergentColorScale.blue,
   transaction: divergentColorScale.softBlue,
-  db: divergentColorScale.softPurple,
+  db: divergentColorScale.magenta,
   http: divergentColorScale.marigold,
 };
 
