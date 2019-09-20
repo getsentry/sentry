@@ -273,7 +273,7 @@ def from_request(request, organization=None, scopes=None):
 
     if getattr(request.user, "is_org_proxy_user", False):
         scope_list = request._auth.scope_list
-        return from_org_proxy_user(request.user, scope_list, organization=organization)
+        return from_org_proxy_user(request.user, scope_list, organization)
 
     if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
@@ -333,7 +333,7 @@ def from_sentry_app(user, organization=None):
     )
 
 
-def from_org_proxy_user(self, scope_list, organization=None):
+def from_org_proxy_user(self, scope_list, organization):
     if not organization:
         return NoAccess()
 
