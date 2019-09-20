@@ -8,17 +8,22 @@ import {omit} from 'lodash';
 class DropdownButton extends React.Component {
   static propTypes = {
     isOpen: PropTypes.bool,
+    showChevron: PropTypes.bool,
   };
   render() {
-    const {isOpen, children, ...otherProps} = this.props;
+    const {isOpen, showChevron, children, ...otherProps} = this.props;
     return (
       <StyledButton isOpen={isOpen} {...otherProps}>
         {children}
-        <StyledChevronDown />
+        {showChevron && <StyledChevronDown />}
       </StyledButton>
     );
   }
 }
+
+DropdownButton.defaultProps = {
+  showChevron: true,
+};
 
 const StyledChevronDown = styled(props => (
   <InlineSvg src="icon-chevron-down" {...props} />

@@ -85,11 +85,12 @@ describe('DiscoverSavedQueriesStore', function() {
 
   it('updating a query updates the store', async function() {
     Client.addMockResponse({
-      url: '/organizations/org-1/discover/saved/1/',
+      url: '/organizations/org-1/discover/saved/2/',
       method: 'PUT',
       body: {
         id: '2',
         name: 'best query',
+        fields: ['title', 'count()'],
         dateCreated: now,
         dateUpdated: now,
         createdBy: '2',
@@ -110,7 +111,41 @@ describe('DiscoverSavedQueriesStore', function() {
     expect(state.isLoading).toEqual(false);
     expect(state.hasError).toEqual(false);
     expect(state.savedQueries).toHaveLength(2);
-    expect(state.savedQueries[0].dateCreated).toEqual(now);
+    expect(state.savedQueries[0].name).toEqual('first query');
+    expect(state.savedQueries[1].name).toEqual('best query');
+  });
+
+  it('updating a query appends the store', async function() {
+    Client.addMockResponse({
+      url: '/organizations/org-1/discover/saved/9/',
+      method: 'PUT',
+      body: {
+        id: '9',
+        name: 'best query',
+        fields: ['title', 'count()'],
+        dateCreated: now,
+        dateUpdated: now,
+        createdBy: '2',
+      },
+    });
+    fetchSavedQueries(api, 'org-1');
+    await tick();
+
+    const query = {
+      id: '9',
+      name: 'best query',
+      fields: ['title', 'count()'],
+    };
+    updateSavedQuery(api, 'org-1', query);
+    await tick();
+
+    const state = DiscoverSavedQueriesStore.get();
+    expect(state.isLoading).toEqual(false);
+    expect(state.hasError).toEqual(false);
+    expect(state.savedQueries).toHaveLength(3);
+    expect(state.savedQueries[0].name).toEqual('first query');
+    expect(state.savedQueries[1].name).toEqual('second query');
+    expect(state.savedQueries[2].name).toEqual('best query');
   });
 
   it('creating a query updates the store', async function() {

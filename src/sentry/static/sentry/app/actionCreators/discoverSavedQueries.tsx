@@ -1,9 +1,9 @@
 import {Client} from 'app/api';
 
+import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 import DiscoverSavedQueryActions from 'app/actions/discoverSavedQueryActions';
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {SavedQuery, Query} from 'app/views/discover/types';
 
 export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuery[]> {
   DiscoverSavedQueryActions.startFetchSavedQueries();
@@ -25,7 +25,7 @@ export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuer
 export function createSavedQuery(
   api: Client,
   orgId: string,
-  query: Query
+  query: NewQuery
 ): Promise<SavedQuery> {
   const promise = api.requestPromise(`/organizations/${orgId}/discover/saved/`, {
     method: 'POST',
@@ -44,7 +44,7 @@ export function createSavedQuery(
 export function updateSavedQuery(
   api: Client,
   orgId: string,
-  query: SavedQuery
+  query: NewQuery
 ): Promise<SavedQuery> {
   const promise = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${query.id}/`,
