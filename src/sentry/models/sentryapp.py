@@ -20,6 +20,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     ParanoidModel,
 )
+from sentry.models.sentryappinstallation import SentryAppInstallation
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -128,8 +129,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        from sentry.models import SentryAppInstallation
-
         return SentryAppInstallation.objects.filter(organization=organization).exists()
 
     def _set_slug(self):
