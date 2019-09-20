@@ -12,7 +12,6 @@ from django.utils import timezone
 from django.template.defaultfilters import slugify
 from hashlib import sha256
 from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
-from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
 from sentry.db.models import (
     ArrayField,
@@ -112,24 +111,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return cls.objects.filter(status=SentryAppStatus.PUBLISHED)
 
     @property
-    def organizations(self):
-        if not self.pk:
-            return Organization.objects.none()
-
-        return Organization.objects.select_related("sentry_app_installations").filter(
-            sentry_app_installations__sentry_app_id=self.id
-        )
-
-    @property
-    def teams(self):
-        from sentry.models import Team
-
-        if not self.pk:
-            return Team.objects.none()
-
-        return Team.objects.filter(organization__in=self.organizations)
-
-    @property
     def is_published(self):
         return self.status == SentryAppStatus.PUBLISHED
 
@@ -147,7 +128,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        return self.organizations.filter(pk=organization.pk).exists()
+        from sentry.models import SentryAppInstallation
+
+        return SentryAppInstallation.objects.filter(organization=organization).exists()
 
     def _set_slug(self):
         """
