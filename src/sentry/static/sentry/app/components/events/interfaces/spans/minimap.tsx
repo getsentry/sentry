@@ -19,7 +19,7 @@ import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from '
 import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
-export const MINIMAP_SPAN_BAR_HEIGHT = 5;
+export const MINIMAP_SPAN_BAR_HEIGHT = 2;
 const MINIMAP_HEIGHT = 75;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 30;
@@ -360,7 +360,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     spanTree: JSX.Element;
     nextSpanNumber: number;
   } => {
-    const spanBarColour: string = pickSpanBarColour(spanNumber);
+    const spanBarColour: string = pickSpanBarColour(span.op);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -616,6 +616,7 @@ const MinimapSpanBar = styled('div')`
   height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
   min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
   max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+  margin: 2px 0;
 
   min-width: 1px;
 
