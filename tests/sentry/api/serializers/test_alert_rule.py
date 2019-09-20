@@ -6,7 +6,7 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.logic import create_alert_rule
+from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
@@ -74,3 +74,11 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == []
+
+    def test_triggers(self):
+        alert_rule = self.create_alert_rule()
+        other_alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "test", AlertRuleThresholdType.ABOVE, 1000)
+        result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
+        assert result[0]["triggers"] == [serialize(trigger)]
+        assert result[1]["triggers"] == []
