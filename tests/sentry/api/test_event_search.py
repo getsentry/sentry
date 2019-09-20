@@ -1338,7 +1338,6 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         assert result == [
             ["exception_stacks.value", "=", "This is a test exception sent from the Raven CLI."],
             ["exception_stacks.type", "=", "Exception"],
-            ["exception_stacks.mechanism_handled", "=", None],
         ]
 
     def test_stack_field(self):
@@ -1350,7 +1349,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         result = get_reference_event_conditions(self.conditions, slug)
         assert result == [
             ["exception_frames.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
-            ["exception_frames.function", "=", "null"],
+            ["exception_frames.function", "=", "raven_cli_test"],
         ]
 
     def test_tag_value(self):
