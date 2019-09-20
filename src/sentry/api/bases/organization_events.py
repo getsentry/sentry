@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.exceptions import PermissionDenied
+from copy import copy
 
 from sentry import eventstore, features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
@@ -102,25 +103,36 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         return snuba_args
 
-    def next_event_id(self, request, organization, snuba_args, event):
+    def next_event_id(self, snuba_args, event):
         """
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
+        conditions = copy(snuba_args["conditions"])
+        if "start" in snuba_args:
+            conditions.append(["timestamp", ">=", snuba_args["start"]])
+        if "end" in snuba_args:
+            conditions.append(["timestamp", "<=", snuba_args["end"]])
         next_event = eventstore.get_next_event_id(
-            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
+            event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
         )
 
         if next_event:
             return next_event[1]
 
-    def prev_event_id(self, request, organization, snuba_args, event):
+    def prev_event_id(self, snuba_args, event):
         """
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
+        conditions = copy(snuba_args["conditions"])
+        if "start" in snuba_args:
+            conditions.append(["timestamp", ">=", snuba_args["start"]])
+        if "end" in snuba_args:
+            conditions.append(["timestamp", "<=", snuba_args["end"]])
+
         prev_event = eventstore.get_prev_event_id(
-            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
+            event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
         )
 
         if prev_event:
@@ -152,7 +164,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions.extend(time_condition)
 
         result = eventstore.get_events(
-            conditions=conditions, filter_keys=snuba_args["filter_keys"], orderby=orderby, limit=1
+            start=snuba_args.get("start", None),
+            end=snuba_args.get("end", None),
+            conditions=conditions,
+            filter_keys=snuba_args["filter_keys"],
+            orderby=orderby,
+            limit=1,
         )
         if not result:
             return None
