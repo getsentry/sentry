@@ -40,6 +40,7 @@ from sentry.incidents.logic import (
     get_incident_subscribers,
     get_incident_suspect_commits,
     get_incident_suspects,
+    get_triggers_for_alert_rule,
     INCIDENT_START_ROLLUP,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
@@ -1296,3 +1297,12 @@ class DeleteAlertRuleTriggerTest(TestCase):
         assert not AlertRuleTriggerExclusion.objects.filter(
             alert_rule_trigger=trigger, query_subscription__project=self.project
         ).exists()
+
+
+class GetTriggersForAlertRuleTest(TestCase):
+    def test(self):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(
+            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+        assert get_triggers_for_alert_rule(alert_rule).get() == trigger
