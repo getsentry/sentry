@@ -47,25 +47,26 @@ class NotifyEventServiceAction(EventAction):
             self.logger.info("rules.fail.is_configured", extra=extra)
             return
 
+        plugin = None
         app = None
         try:
             app = SentryApp.objects.get(slug=service)
         except SentryApp.DoesNotExist:
             pass
 
-        if app:
-            kwargs = {"sentry_app": app}
-            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
-            yield self.future(notify_sentry_app, **kwargs)
-        else:
-            try:
-                plugin = plugins.get(service)
-            except KeyError:
-                # If we've removed the plugin no need to error, just skip.
+        try:
+            plugin = plugins.get(service)
+        except KeyError:
+            if not app:
+                # If we can't find the sentry app OR plugin,
+                # we've removed the plugin no need to error, just skip.
                 extra["plugin"] = service
                 self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
                 return
+            else:
+                pass
 
+        if plugin:
             if not plugin.is_enabled(self.project):
                 extra["project_id"] = self.project.id
                 self.logger.info("rules.fail.is_enabled", extra=extra)
@@ -77,9 +78,14 @@ class NotifyEventServiceAction(EventAction):
                 extra["group_id"] = group.id
                 self.logger.info("rule.fail.should_notify", extra=extra)
                 return
+            else:
+                metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+                yield self.future(plugin.rule_notify)
 
-            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
-            yield self.future(plugin.rule_notify)
+        if app:
+            kwargs = {"sentry_app": app}
+            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
+            yield self.future(notify_sentry_app, **kwargs)
 
     def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(

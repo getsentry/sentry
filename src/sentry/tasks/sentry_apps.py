@@ -25,7 +25,7 @@ from sentry.models import (
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
-logger = logging.Logger("sentry.tasks.sentry_apps")
+logger = logging.getLogger("sentry.tasks.sentry_apps")
 
 TASK_OPTIONS = {
     "queue": "app_platform",
