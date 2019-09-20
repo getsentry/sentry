@@ -13,7 +13,10 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         key, value = "foo", u"b\xe4r"
         project = self.create_project()
 
-        if settings.SENTRY_TAGSTORE.startswith("sentry.tagstore.snuba"):
+        if settings.SENTRY_TAGSTORE in [
+            "sentry.tagstore.snuba.SnubaCompatibilityTagStorage",
+            "sentry.tagstore.snuba.SnubaTagStorage",
+        ]:
             event_timestamp = iso_format(before_now(seconds=1))
 
             event = self.store_event(
