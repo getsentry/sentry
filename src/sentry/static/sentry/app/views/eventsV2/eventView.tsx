@@ -272,7 +272,9 @@ class EventView {
       });
     } else {
       fields = saved.fields.map((field, i) => {
-        return {field, title: saved.fieldnames[i] || field};
+        const title =
+          saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
+        return {field, title};
       });
     }
 
