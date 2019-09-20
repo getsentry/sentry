@@ -4,8 +4,8 @@ from collections import defaultdict
 
 import six
 
-from sentry.api.serializers import Serializer, register
-from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects
+from sentry.api.serializers import register, serialize, Serializer
+from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
 
 
 @register(AlertRule)
@@ -43,6 +43,14 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
 
+        triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
+        serialized_triggers = serialize(list(triggers))
+        for trigger, serialized in zip(triggers, serialized_triggers):
+            alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
+                "triggers", []
+            )
+            alert_rule_triggers.append(serialized)
+
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
         ).values_list("alert_rule_id", "project__slug"):
@@ -54,4 +62,5 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
         data["projects"] = sorted(attrs["projects"])
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
+        data["triggers"] = attrs.get("triggers", [])
         return data
