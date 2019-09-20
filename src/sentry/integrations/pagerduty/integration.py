@@ -111,7 +111,6 @@ class PagerDutyIntegration(IntegrationInstallation):
             data[pm.project_id] = {
                 "service": pm.service_id,
             }
-            print(pm.service_name)
         config = {}
         config["project_mapping"] = data
         return config
@@ -136,19 +135,20 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         config = json.loads(state.get("config"))
         account = config["account"]
+        # PagerDuty gives us integration keys for various things, some of which
+        # are not services. For now we only care about services.
+        services = filter(lambda x: x['type'] == 'service', config['integration_keys'])
 
         return {
-            # should be account["name"] when pg updates it
-            "name": account["subdomain"],
+            "name": account["name"],
             "external_id": account["subdomain"],
-            # make it easy to get a service in format of
+            # make it easy to get a service using the format:
             #   "service_id": {
             #       "integration_key": <key>.
             #       "service_name": <name>,
             #       "service_id": <id>,
             #   }
-            # note: integration_keys has keys for things other than services
-            "metadata": {"services": dict([(s['id'], s) for s in config['integration_keys']])},
+            "metadata": {"services": dict([(s['id'], s) for s in services])},
         }
 
 

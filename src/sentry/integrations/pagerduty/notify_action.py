@@ -3,51 +3,54 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
-from django import forms
+
+from sentry import http
+from sentry.utils import json
 
 from sentry.rules.actions.base import EventAction
-from sentry.models import Integration
-
-
-class PagerDutyNotifyServiceForm(forms.Form):
-    tags = forms.CharField(required=False, widget=forms.TextInput())
-
-    def __init__(self, *args, **kwargs):
-        super(PagerDutyNotifyServiceForm, self).__init__(*args, **kwargs)
+from sentry.models import Integration, PagerDutyServiceProject
 
 
 class PagerDutyNotifyServiceAction(EventAction):
-    form_cls = PagerDutyNotifyServiceForm
-    label = "Send a notification to the PagerDuty app {app} with {tags} tags"
+    label = "Send a notification to the PagerDuty"
 
     def __init__(self, *args, **kwargs):
         super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
-        self.form_fields = {
-            "app": {"type": "choice", "choices": [(i.id, i.name) for i in self.get_integrations()]},
-            "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
-        }
 
     def after(self, event, state):
 
-        extra = {"event_id": event.id}
+        # extra = {"event_id": event.id}
 
-        try:
-            integration = Integration.objects.get(
-                provider="pagerduty", organizations=self.project.organization, id=integration_id
-            )
-        except Integration.DoesNotExist:
-            # Integration removed, rule still active.
-            return
-
-        yield "mleep"
-
-    def get_tags_list(self):
-        return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_integrations(self):
-        return Integration.objects.filter(
-            provider="pagerduty", organizations=self.project.organization
+        integration = Integration.objects.get(
+            provider="pagerduty",
+            organizations=self.project.organization,
+        )
+        service_project = PagerDutyServiceProject.objects.get(
+            organization_integration__integration=integration,
+            project_id=self.project.id,
         )
 
-    def get_form_instance(self):
-        return self.form_cls(self.data, integrations=self.get_integrations())
+        def send_notification(event, futures):
+            rules = [f.rule for f in futures]
+            payload = {
+                "routing_key": service_project.integration_key,
+                "event_action": "trigger",
+                "payload": {
+                    "summary": "hell",
+                    "severity": "info",
+                    "source": "mlep",
+                }
+            }
+
+            session = http.build_session()
+            resp = session.post(
+                "https://events.pagerduty.com/v2/enqueue",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps(payload),
+                timeout=5,
+            )
+            resp.raise_for_status()
+            resp = resp.json()
+
+        key = u"pagerduty:{}".format(integration.id)
+        yield self.future(send_notification, key=key)
