@@ -54,6 +54,11 @@ class NotifyEventServiceAction(EventAction):
         except SentryApp.DoesNotExist:
             pass
 
+        if app:
+            kwargs = {"sentry_app": app}
+            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
+            yield self.future(notify_sentry_app, **kwargs)
+
         try:
             plugin = plugins.get(service)
         except KeyError:
@@ -81,11 +86,6 @@ class NotifyEventServiceAction(EventAction):
             else:
                 metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
                 yield self.future(plugin.rule_notify)
-
-        if app:
-            kwargs = {"sentry_app": app}
-            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
-            yield self.future(notify_sentry_app, **kwargs)
 
     def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(
