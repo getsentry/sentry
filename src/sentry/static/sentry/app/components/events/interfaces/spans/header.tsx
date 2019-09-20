@@ -242,7 +242,7 @@ class TraceViewHeader extends React.Component<PropType> {
 
   renderCustomWindowSelection = (dragProps: DragManagerChildrenProps) => {
     if (!dragProps.isCustomWindowDragging) {
-      return;
+      return null;
     }
 
     const left = Math.min(dragProps.customWindowInitial, dragProps.customWindowCurrent);
