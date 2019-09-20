@@ -33,7 +33,7 @@ class FormModel {
   /**
    * Map of field name -> value
    */
-  fields: ObservableMap<FieldValue> = observable.map();
+  fields: ObservableMap<string, FieldValue> = observable.map();
 
   /**
    * Errors for individual fields
@@ -139,7 +139,7 @@ class FormModel {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
-    this.snapshots = [new Map(this.fields.entries())];
+    this.snapshots = [new Map(Array.from(this.fields))];
   }
 
   /**
