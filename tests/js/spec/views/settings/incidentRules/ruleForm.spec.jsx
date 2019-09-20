@@ -7,8 +7,6 @@ import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {
   const {organization, project, routerContext} = initializeOrg();
-  const rule = TestStubs.IncidentRule();
-  let createRule;
   const createWrapper = props =>
     mount(
       <RuleFormContainer
@@ -19,15 +17,16 @@ describe('Incident Rules Form', function() {
       />,
       routerContext
     );
-  beforeEach(function() {
-    MockApiClient.clearMockResponses();
-    createRule = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/alert-rules/',
-      method: 'POST',
-    });
-  });
-
   describe('Creating a new rule', function() {
+    let createRule;
+    beforeEach(function() {
+      MockApiClient.clearMockResponses();
+      createRule = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/alert-rules/',
+        method: 'POST',
+      });
+    });
+
     /**
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
@@ -80,14 +79,77 @@ describe('Incident Rules Form', function() {
             // and `includeAllProjects: false` send `projects`
             includeAllProjects: true,
 
-            // TODO: jest doesn't like this
-            // excludedProjects: ['project-2'],
-            // projects: ['project-slug'],
+            excludedProjects: expect.arrayContaining(['project-2']),
+            projects: expect.arrayContaining(['project-slug']),
           }),
         })
       );
     });
   });
 
-  describe('Editing a rule', function() {});
+  describe('Editing a rule', function() {
+    let editRule;
+    const rule = TestStubs.IncidentRule();
+
+    beforeEach(function() {
+      MockApiClient.clearMockResponses();
+      editRule = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+        method: 'PUT',
+        body: rule,
+      });
+    });
+
+    it('keeps state of projects and excluded projects when toggling "Include all projects"', async function() {
+      const wrapper = createWrapper({
+        incidentRuleId: rule.id,
+        initialData: rule,
+        saveOnBlur: true,
+      });
+
+      selectByLabel(wrapper, 'project-slug', {name: 'projects'});
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            projects: ['project-slug'],
+          },
+        })
+      );
+
+      // Toggle include all projects to on
+      wrapper.find('button#includeAllProjects').simulate('click');
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            includeAllProjects: true,
+          },
+        })
+      );
+
+      // Exclude 2nd project
+      selectByLabel(wrapper, 'project-2', {name: 'excludedProjects'});
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            excludedProjects: ['project-2'],
+          },
+        })
+      );
+
+      // Toggle back to not include all projects
+      wrapper.find('button#includeAllProjects').simulate('click');
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            includeAllProjects: false,
+          },
+        })
+      );
+    });
+  });
 });
