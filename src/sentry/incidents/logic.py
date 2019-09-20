@@ -976,6 +976,10 @@ def delete_alert_rule_trigger(trigger):
     trigger.delete()
 
 
+def get_triggers_for_alert_rule(alert_rule):
+    return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+
+
 def get_subscriptions_from_alert_rule(alert_rule, projects):
     """
     Fetches subscriptions associated with an alert rule filtered by a list of projects.
