@@ -219,7 +219,7 @@ class FromSentryAppTest(TestCase):
             organization=self.org2, slug=self.sentry_app.slug, user=self.user
         )
 
-    def test_has_access_org(self):
+    def test_has_access(self):
         result = access.from_sentry_app(self.proxy_user, self.org)
         assert result.is_active
         assert result.has_team_access(self.team)
