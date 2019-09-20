@@ -245,7 +245,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           query: `${field}:${data[field]}`,
         },
       };
-      return <QueryLink to={target}>{data[field]}</QueryLink>;
+      // Some fields have long arrays in them, only show the tail of the data.
+      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
+      return <QueryLink to={target}>{value}</QueryLink>;
     },
   },
 };
