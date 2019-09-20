@@ -23,14 +23,22 @@ class ProcessUpdateTest(TestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
 
     @fixture
-    def subscription(self):
-        return self.rule.query_subscriptions.get()
+    def other_project(self):
+        return self.create_project()
+
+    @fixture
+    def sub(self):
+        return self.rule.query_subscriptions.filter(project=self.project).get()
+
+    @fixture
+    def other_sub(self):
+        return self.rule.query_subscriptions.filter(project=self.other_project).get()
 
     @fixture
     def rule(self):
         rule = create_alert_rule(
             self.organization,
-            [self.project],
+            [self.project, self.other_project],
             "some rule",
             AlertRuleThresholdType.ABOVE,
             query="",
@@ -42,7 +50,7 @@ class ProcessUpdateTest(TestCase):
         )
         return rule
 
-    def build_subscription_update(self, subscription=None, time_delta=None, value=None):
+    def build_subscription_update(self, subscription, time_delta=None, value=None):
         if time_delta is not None:
             timestamp = int(to_timestamp(timezone.now() + time_delta))
         else:
@@ -65,37 +73,44 @@ class ProcessUpdateTest(TestCase):
             "offset": 1,
         }
 
-    def send_update(self, rule, value, time_delta=None):
+    def send_update(self, rule, value, time_delta=None, subscription=None):
         if time_delta is None:
             time_delta = timedelta()
-        subscription = rule.query_subscriptions.get()
+        if subscription is None:
+            subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
         processor.process_update(message)
         return processor
 
-    def assert_no_active_incident(self, rule):
-        assert not self.active_incident_exists(rule)
+    def assert_no_active_incident(self, rule, subscription=None):
+        assert not self.active_incident_exists(rule, subscription=subscription)
 
-    def assert_active_incident(self, rule):
-        assert self.active_incident_exists(rule)
+    def assert_active_incident(self, rule, subscription=None):
+        assert self.active_incident_exists(rule, subscription=subscription)
 
-    def active_incident_exists(self, rule):
+    def active_incident_exists(self, rule, subscription=None):
+        if subscription is None:
+            subscription = self.sub
         return Incident.objects.filter(
             type=IncidentType.ALERT_TRIGGERED.value,
             status=IncidentStatus.OPEN.value,
             alert_rule=rule,
+            projects=subscription.project,
         ).exists()
 
     def assert_trigger_counts(self, processor, alert_triggers=0, resolve_triggers=0):
         assert processor.alert_triggers == alert_triggers
         assert processor.resolve_triggers == resolve_triggers
-        assert get_alert_rule_stats(processor.alert_rule)[1:] == (alert_triggers, resolve_triggers)
+        assert get_alert_rule_stats(processor.alert_rule, processor.subscription)[1:] == (
+            alert_triggers,
+            resolve_triggers,
+        )
 
     def test_removed_alert_rule(self):
-        message = self.build_subscription_update(self.subscription)
+        message = self.build_subscription_update(self.sub)
         self.rule.delete()
-        SubscriptionProcessor(self.subscription).process_update(message)
+        SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
@@ -251,3 +266,76 @@ class ProcessUpdateTest(TestCase):
         processor = self.send_update(rule, rule.resolve_threshold + 1, timedelta(minutes=-1))
         self.assert_trigger_counts(processor, 0, 0)
         self.assert_no_active_incident(rule)
+
+    def test_multiple_subscriptions_do_not_conflict(self):
+        # Verify that multiple subscriptions associated with a rule don't conflict with
+        # each other
+        rule = self.rule
+        rule.update(threshold_period=2)
+
+        # Send an update through for the first subscription. This shouldn't trigger an
+        # incident, since we need two consecutive updates that are over the threshold.
+        processor = self.send_update(
+            rule, rule.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, 1, 0)
+        self.assert_no_active_incident(rule, self.sub)
+
+        # Have an update come through for the other sub. This shouldn't influence the original
+        processor = self.send_update(
+            rule, rule.alert_threshold + 1, timedelta(minutes=-9), subscription=self.other_sub
+        )
+        self.assert_trigger_counts(processor, 1, 0)
+        self.assert_no_active_incident(rule, self.sub)
+        self.assert_no_active_incident(rule, self.other_sub)
+
+        # Send another update through for the first subscription. This should trigger an
+        # incident for just this subscription.
+        processor = self.send_update(
+            rule, rule.alert_threshold + 1, timedelta(minutes=-9), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, 0, 0)
+        self.assert_active_incident(rule, self.sub)
+        self.assert_no_active_incident(rule, self.other_sub)
+
+        # Send another update through for the second subscription. This should trigger an
+        # incident for just this subscription.
+        processor = self.send_update(
+            rule, rule.alert_threshold + 1, timedelta(minutes=-8), subscription=self.other_sub
+        )
+        self.assert_trigger_counts(processor, 0, 0)
+        self.assert_active_incident(rule, self.sub)
+        self.assert_active_incident(rule, self.other_sub)
+
+        # Now we want to test that resolving is isolated. Send another update through
+        # for the first subscription.
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, 0, 1)
+        self.assert_active_incident(rule, self.sub)
+        self.assert_active_incident(rule, self.other_sub)
+
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-7), subscription=self.other_sub
+        )
+        self.assert_trigger_counts(processor, 0, 1)
+        self.assert_active_incident(rule, self.sub)
+        self.assert_active_incident(rule, self.other_sub)
+
+        # This second update for the second subscription should resolve its incident,
+        # but not the incident from the first subscription.
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.other_sub
+        )
+        self.assert_trigger_counts(processor, 0, 0)
+        self.assert_active_incident(rule, self.sub)
+        self.assert_no_active_incident(rule, self.other_sub)
+
+        # This second update for the first subscription should resolve its incident now.
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, 0, 0)
+        self.assert_no_active_incident(rule, self.sub)
+        self.assert_no_active_incident(rule, self.other_sub)

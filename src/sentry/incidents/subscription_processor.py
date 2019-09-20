@@ -23,7 +23,7 @@ from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
-ALERT_RULE_BASE_STAT_KEY = "{alert_rule:%s}:%%s"
+ALERT_RULE_BASE_STAT_KEY = "{alert_rule:%s:project:%s}:%%s"
 ALERT_RULE_STAT_KEYS = ("last_update", "alert_triggered", "resolve_triggered")
 
 
@@ -49,7 +49,7 @@ class SubscriptionProcessor(object):
             return
 
         self.last_update, self.alert_triggers, self.resolve_triggers = get_alert_rule_stats(
-            self.alert_rule
+            self.alert_rule, self.subscription
         )
         self.orig_alert_triggers = self.alert_triggers
         self.orig_resolve_triggers = self.resolve_triggers
@@ -66,6 +66,7 @@ class SubscriptionProcessor(object):
                     type=IncidentType.ALERT_TRIGGERED.value,
                     status=IncidentStatus.OPEN.value,
                     alert_rule=self.alert_rule,
+                    projects=self.subscription.project,
                 ).order_by("-date_added")[0]
             except IndexError:
                 self._active_incident = None
@@ -179,35 +180,39 @@ class SubscriptionProcessor(object):
         if self.resolve_triggers != self.orig_resolve_triggers:
             self.orig_resolve_trigger = kwargs["resolve_triggers"] = self.resolve_triggers
 
-        update_alert_rule_stats(self.alert_rule, self.last_update, **kwargs)
+        update_alert_rule_stats(self.alert_rule, self.subscription, self.last_update, **kwargs)
 
 
-def build_alert_rule_stat_keys(alert_rule):
-    key_base = ALERT_RULE_BASE_STAT_KEY % alert_rule.id
+def build_alert_rule_stat_keys(alert_rule, subscription):
+    key_base = ALERT_RULE_BASE_STAT_KEY % (alert_rule.id, subscription.project_id)
     return [key_base % stat_key for stat_key in ALERT_RULE_STAT_KEYS]
 
 
-def get_alert_rule_stats(alert_rule):
+def get_alert_rule_stats(alert_rule, subscription):
     """
-    Fetches stats about the alert rule
-    :return: A tuple containing the stats about the alert rule.
-     - last_update: Int representing the timestamp the rule was last updated
-     - alert_triggered: Int representing how many consecutive times the rule has
+    Fetches stats about the alert rule, specific to the current subscription
+    :return: A tuple containing the stats about the alert rule and subscription.
+     - last_update: Int representing the timestamp it was last updated
+     - alert_triggered: Int representing how many consecutive times the we have
        triggered the alert threshold
-     - resolve_triggered: Int representing how many consecutive times the rule has
-       triggered the resolve threshold
+     - resolve_triggered: Int representing how many consecutive times we have triggered
+       the resolve threshold
     """
-    results = get_redis_client().mget(build_alert_rule_stat_keys(alert_rule))
+    results = get_redis_client().mget(build_alert_rule_stat_keys(alert_rule, subscription))
     return tuple(0 if result is None else int(result) for result in results)
 
 
-def update_alert_rule_stats(alert_rule, last_update, alert_triggers=None, resolve_triggers=None):
+def update_alert_rule_stats(
+    alert_rule, subscription, last_update, alert_triggers=None, resolve_triggers=None
+):
     """
-    Updates stats about the alert rule, if they're changed.
+    Updates stats about the alert rule and subscription, if they're changed.
     :return:
     """
     pipeline = get_redis_client().pipeline()
-    last_update_key, alert_trigger_key, resolve_trigger_key = build_alert_rule_stat_keys(alert_rule)
+    last_update_key, alert_trigger_key, resolve_trigger_key = build_alert_rule_stat_keys(
+        alert_rule, subscription
+    )
     if alert_triggers is not None:
         pipeline.set(alert_trigger_key, alert_triggers, ex=REDIS_TTL)
     if resolve_triggers is not None:
