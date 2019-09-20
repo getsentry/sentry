@@ -139,7 +139,7 @@ class FormModel {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
-    this.snapshots = [new Map(Array.from(this.fields))];
+    this.snapshots = [new Map(this.fields.entries())];
   }
 
   /**
