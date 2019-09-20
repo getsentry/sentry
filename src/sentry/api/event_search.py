@@ -860,6 +860,10 @@ def get_reference_event_conditions(snuba_args, event_slug):
             value = tags.get(match.group(1), None)
         else:
             value = event_data.get(field, None)
+            # If the value is a sequence use the first element as snuba
+            # doesn't support `=` or `IN` operations on fields like exception_frames.filename
+            if isinstance(value, (list, set)) and value:
+                value = value.pop()
         if value:
             conditions.append([field, "=", value])
 

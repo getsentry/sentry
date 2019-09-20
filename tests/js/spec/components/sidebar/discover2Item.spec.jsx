@@ -69,9 +69,11 @@ describe('Sidebar > Discover2Item', function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
+    await tick();
 
     const nav = wrapper.find('nav');
     nav.simulate('mouseEnter');
+    await wrapper.update();
 
     const menu = wrapper.find('Menu');
     expect(menu).toHaveLength(1);
@@ -89,10 +91,11 @@ describe('Sidebar > Discover2Item', function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
+    await tick();
 
     const nav = wrapper.find('nav');
     nav.simulate('mouseEnter');
-    await tick();
+    await wrapper.update();
 
     const item = wrapper.find('Menu MenuItem').first();
     item.find('MenuItemButton[icon="icon-trash"]').simulate('click');
@@ -105,10 +108,11 @@ describe('Sidebar > Discover2Item', function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
+    await tick();
 
     const nav = wrapper.find('nav');
     nav.simulate('mouseEnter');
-    await tick();
+    await wrapper.update();
 
     const item = wrapper.find('Menu MenuItem').first();
     item.find('MenuItemButton[icon="icon-edit"]').simulate('click');
