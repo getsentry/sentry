@@ -1,6 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 
+import {extractMultilineFields} from 'app/utils';
 import {tct} from 'app/locale';
 
 const getPublicFormFields = () => [
@@ -90,6 +91,16 @@ const getPublicFormFields = () => [
     label: 'Overview',
     autosize: true,
     help: 'Description of your Integration and its functionality.',
+  },
+  {
+    name: 'allowedOrigins',
+    type: 'string',
+    multiline: true,
+    placeholder: 'e.g. example.com',
+    label: 'Authorized JavaScript Origins',
+    help: 'Separate multiple entries with a newline.',
+    getValue: val => extractMultilineFields(val),
+    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
   },
 ];
 

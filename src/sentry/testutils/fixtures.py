@@ -220,6 +220,13 @@ class Fixtures(object):
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
 
+    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+        return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot

@@ -18,34 +18,42 @@ from sentry.incidents.events import (
 )
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
+    AlertRuleTriggerLabelAlreadyUsedError,
     bulk_build_incident_query_params,
     bulk_get_incident_aggregates,
     bulk_get_incident_event_stats,
     bulk_get_incident_stats,
     calculate_incident_start,
     create_alert_rule,
+    create_alert_rule_trigger,
     create_event_stat_snapshot,
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
     create_initial_event_stats_snapshot,
     delete_alert_rule,
+    delete_alert_rule_trigger,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
     get_incident_suspect_commits,
     get_incident_suspects,
     INCIDENT_START_ROLLUP,
+    ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
     StatusAlreadyChangedError,
     update_alert_rule,
+    update_alert_rule_trigger,
     update_incident_status,
 )
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleStatus,
     AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -57,7 +65,7 @@ from sentry.incidents.models import (
     IncidentSuspectCommit,
     IncidentType,
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
@@ -786,6 +794,20 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
+    def test_include_all_projects(self):
+        include_all_projects = True
+        self.project
+        alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
+        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.include_all_projects == include_all_projects
+
+        new_project = self.create_project()
+        alert_rule = self.create_alert_rule(
+            projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
+        )
+        assert alert_rule.query_subscriptions.get().project == new_project
+        assert alert_rule.include_all_projects == include_all_projects
+
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
             create_alert_rule(
@@ -953,6 +975,65 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         for sub in updated_subscriptions:
             assert sub.query == query_update
 
+    def test_update_to_include_all(self):
+        orig_project = self.project
+        alert_rule = self.create_alert_rule(projects=[orig_project])
+        new_project = self.create_project()
+        assert not QuerySubscription.objects.filter(
+            project=new_project, alert_rules=alert_rule
+        ).exists()
+        update_alert_rule(alert_rule, include_all_projects=True)
+        assert set(
+            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
+        ) == set([new_project, orig_project])
+
+    def test_update_to_include_all_with_exclude(self):
+        orig_project = self.project
+        alert_rule = self.create_alert_rule(projects=[orig_project])
+        new_project = self.create_project()
+        excluded_project = self.create_project()
+        assert not QuerySubscription.objects.filter(
+            project=new_project, alert_rules=alert_rule
+        ).exists()
+        update_alert_rule(
+            alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
+        )
+        assert set(
+            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
+        ) == set([orig_project, new_project])
+
+    def test_update_include_all_exclude_list(self):
+        new_project = self.create_project()
+        projects = set([new_project, self.project])
+        alert_rule = self.create_alert_rule(include_all_projects=True)
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+        update_alert_rule(alert_rule, excluded_projects=[self.project])
+        assert [
+            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
+        ] == [new_project]
+
+        update_alert_rule(alert_rule, excluded_projects=[])
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+
+    def test_update_from_include_all(self):
+        new_project = self.create_project()
+        projects = set([new_project, self.project])
+        alert_rule = self.create_alert_rule(include_all_projects=True)
+        assert (
+            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
+            == projects
+        )
+        update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
+        assert [
+            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
+        ] == [new_project]
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -1048,3 +1129,170 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         for _ in xrange(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
         assert newer_spike == calculate_incident_start("", [self.project], [event.group])
+
+
+class TestGetExcludedProjectsForAlertRule(TestCase):
+    def test(self):
+        excluded = [self.create_project()]
+        alert_rule = self.create_alert_rule(
+            projects=[], include_all_projects=True, excluded_projects=excluded
+        )
+        exclusions = get_excluded_projects_for_alert_rule(alert_rule)
+        assert [exclusion.project for exclusion in exclusions] == excluded
+
+    def test_no_excluded(self):
+        self.create_project()
+        alert_rule = self.create_alert_rule(projects=[], include_all_projects=True)
+        assert list(get_excluded_projects_for_alert_rule(alert_rule)) == []
+
+
+class CreateAlertRuleTriggerTest(TestCase):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        label = "hello"
+        threshold_type = AlertRuleThresholdType.ABOVE
+        alert_threshold = 1000
+        resolve_threshold = 400
+        trigger = create_alert_rule_trigger(
+            self.alert_rule, label, threshold_type, alert_threshold, resolve_threshold
+        )
+        assert trigger.label == label
+        assert trigger.threshold_type == threshold_type.value
+        assert trigger.alert_threshold == alert_threshold
+        assert trigger.resolve_threshold == resolve_threshold
+        assert not AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger).exists()
+
+    def test_excluded_projects(self):
+        excluded_project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[self.project, excluded_project])
+        trigger = create_alert_rule_trigger(
+            alert_rule,
+            "hi",
+            AlertRuleThresholdType.ABOVE,
+            100,
+            excluded_projects=[excluded_project],
+        )
+        # We should have only one exclusion
+        exclusion = AlertRuleTriggerExclusion.objects.get(alert_rule_trigger=trigger)
+        assert exclusion.query_subscription.project == excluded_project
+
+    def test_excluded_projects_not_associated_with_rule(self):
+        other_project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[self.project])
+        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+            create_alert_rule_trigger(
+                alert_rule,
+                "hi",
+                AlertRuleThresholdType.ABOVE,
+                100,
+                excluded_projects=[other_project],
+            )
+
+    def test_existing_label(self):
+        name = "uh oh"
+        create_alert_rule_trigger(self.alert_rule, name, AlertRuleThresholdType.ABOVE, 100)
+        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+            create_alert_rule_trigger(self.alert_rule, name, AlertRuleThresholdType.ABOVE, 100)
+
+
+class UpdateAlertRuleTriggerTest(TestCase):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        trigger = create_alert_rule_trigger(
+            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+
+        label = "uh oh"
+        threshold_type = AlertRuleThresholdType.BELOW
+        alert_threshold = 2000
+        resolve_threshold = 800
+        trigger = update_alert_rule_trigger(
+            trigger,
+            label=label,
+            threshold_type=threshold_type,
+            alert_threshold=alert_threshold,
+            resolve_threshold=resolve_threshold,
+        )
+        assert trigger.label == label
+        assert trigger.threshold_type == threshold_type.value
+        assert trigger.alert_threshold == alert_threshold
+        assert trigger.resolve_threshold == resolve_threshold
+
+    def test_name_used(self):
+        label = "uh oh"
+        create_alert_rule_trigger(self.alert_rule, label, AlertRuleThresholdType.ABOVE, 1000, 400)
+        trigger = create_alert_rule_trigger(
+            self.alert_rule, "something else", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+            update_alert_rule_trigger(trigger, label=label)
+
+    def test_exclude_projects(self):
+        other_project = self.create_project()
+
+        alert_rule = self.create_alert_rule(projects=[other_project, self.project])
+        trigger = create_alert_rule_trigger(
+            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+        update_alert_rule_trigger(trigger, excluded_projects=[other_project])
+        assert trigger.exclusions.get().query_subscription.project == other_project
+
+    def test_complex_exclude_projects(self):
+        excluded_project = self.create_project()
+        other_project = self.create_project()
+
+        alert_rule = self.create_alert_rule(
+            projects=[excluded_project, self.project, other_project]
+        )
+        trigger = create_alert_rule_trigger(
+            alert_rule,
+            "hi",
+            AlertRuleThresholdType.ABOVE,
+            1000,
+            400,
+            excluded_projects=[excluded_project, self.project],
+        )
+        update_alert_rule_trigger(trigger, excluded_projects=[other_project, excluded_project])
+        excluded_projects = [
+            exclusion.query_subscription.project for exclusion in trigger.exclusions.all()
+        ]
+        assert set(excluded_projects) == set([other_project, excluded_project])
+
+    def test_excluded_projects_not_associated_with_rule(self):
+        other_project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[self.project])
+        trigger = create_alert_rule_trigger(
+            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+
+        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+            update_alert_rule_trigger(trigger, excluded_projects=[other_project])
+
+
+class DeleteAlertRuleTriggerTest(TestCase):
+    def test(self):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(
+            alert_rule,
+            "hi",
+            AlertRuleThresholdType.ABOVE,
+            1000,
+            400,
+            excluded_projects=[self.project],
+        )
+        trigger_id = trigger.id
+        assert AlertRuleTriggerExclusion.objects.filter(
+            alert_rule_trigger=trigger, query_subscription__project=self.project
+        ).exists()
+        delete_alert_rule_trigger(trigger)
+
+        assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
+        assert not AlertRuleTriggerExclusion.objects.filter(
+            alert_rule_trigger=trigger, query_subscription__project=self.project
+        ).exists()

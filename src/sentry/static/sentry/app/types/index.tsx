@@ -1,5 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
+import {Field} from 'app/views/settings/components/forms/type';
 
 export type ObjectStatus =
   | 'active'
@@ -409,7 +410,22 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: IntegrationProvider;
-  configOrganization: Array<any>;
+  configOrganization: Field[];
+  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  configData: object;
+};
+
+export type IntegrationExternalIssue = {
+  id: string;
+  key: string;
+  url: string;
+  title: string;
+  description: string;
+  displayName: string;
+};
+
+export type GroupIntegration = Integration & {
+  externalIssues: IntegrationExternalIssue[];
 };
 
 export type SentryAppInstallation = {

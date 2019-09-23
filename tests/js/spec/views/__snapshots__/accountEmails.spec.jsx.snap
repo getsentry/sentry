@@ -5,7 +5,7 @@ exports[`AccountEmails renders with emails 1`] = `
   title="Emails - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Emails"
     />

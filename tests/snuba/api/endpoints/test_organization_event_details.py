@@ -139,6 +139,37 @@ class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
         assert response.data["oldestEventID"] == "e" * 32, "e is oldest matching message"
         assert response.data["latestEventID"] == "1" * 32, "1 is newest matching message"
 
+    def test_event_links_with_date_range(self):
+        # Create older in and out of range events
+        ten_day_ago = iso_format(before_now(days=14))
+        self.store_event(
+            data={"event_id": "3" * 32, "message": "very bad", "timestamp": ten_day_ago},
+            project_id=self.project.id,
+        )
+        seven_min_ago = iso_format(before_now(minutes=7))
+        self.store_event(
+            data={"event_id": "2" * 32, "message": "very bad", "timestamp": seven_min_ago},
+            project_id=self.project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "b" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                url, format="json", data={"field": ["message", "count()"], "statsPeriod": "7d"}
+            )
+        assert response.data["eventID"] == "b" * 32
+        assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message + range"
+        assert response.data["previousEventID"] == "2" * 32, "d is older & matches message + range"
+        assert response.data["oldestEventID"] == "2" * 32, "3 is outside range, no match"
+        assert response.data["latestEventID"] == "c" * 32, "c is newest matching message"
+
     def test_event_links_with_tag_fields(self):
         # Create events that overlap with other event messages but
         # with different tags

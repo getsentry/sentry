@@ -48,16 +48,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # that we constrain related events to the query + current event values
         event_slug = u"{}:{}".format(project.slug, event_id)
         snuba_args["conditions"].extend(get_reference_event_conditions(snuba_args, event_slug))
-        next_event = eventstore.get_next_event_id(
-            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
-        )
-        prev_event = eventstore.get_prev_event_id(
-            event, conditions=snuba_args["conditions"], filter_keys=snuba_args["filter_keys"]
-        )
 
         data = serialize(event)
-        data["nextEventID"] = next_event[1] if next_event else None
-        data["previousEventID"] = prev_event[1] if prev_event else None
+        data["nextEventID"] = self.next_event_id(snuba_args, event)
+        data["previousEventID"] = self.prev_event_id(snuba_args, event)
         data["oldestEventID"] = self.oldest_event_id(snuba_args, event)
         data["latestEventID"] = self.latest_event_id(snuba_args, event)
         data["projectSlug"] = project_slug

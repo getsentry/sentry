@@ -66,15 +66,9 @@ class ProjectInstallOverview extends AsyncComponent {
           <DsnInfo>
             <DsnContainer>
               <strong>{t('DSN')}</strong>
-              <DsnValue>{dsn.secret}</DsnValue>
-
-              <strong>{t('Public DSN')}</strong>
               <DsnValue>{dsn.public}</DsnValue>
             </DsnContainer>
 
-            <p>
-              <small>{t('The public DSN should be used with JavaScript.')}</small>
-            </p>
             <Button priority="primary" to={issueStreamLink}>
               {t('Got it! Take me to the Issue Stream.')}
             </Button>
