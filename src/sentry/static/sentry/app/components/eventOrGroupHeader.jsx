@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter} from 'react-router';
+import {withRouter, browserHistory} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
@@ -44,14 +44,21 @@ class EventOrGroupHeader extends React.Component {
     const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
+      const locationWithProject = {...browserHistory.getCurrentLocation()};
+      const query =
+        locationWithProject.query.project !== undefined
+          ? {
+              query: this.props.query,
+            }
+          : {query: this.props.query, _allp: 1};
+
       props.to = {
         pathname: `${basePath}${isEvent ? groupID : id}/${
           isEvent ? `events/${data.id}/` : ''
         }`,
-        search: `${
-          this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
-        }`,
+        query,
       };
+
       Wrapper = GlobalSelectionLink;
     } else {
       Wrapper = 'span';

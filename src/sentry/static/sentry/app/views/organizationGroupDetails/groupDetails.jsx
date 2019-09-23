@@ -128,8 +128,6 @@ const GroupDetails = createReactClass({
           });
         } else {
           const locationWithProject = {...browserHistory.getCurrentLocation()};
-          console.log('query: ', locationWithProject.query);
-          console.log('_allp: ', locationWithProject.query._allp);
           if (
             locationWithProject.query.project === undefined &&
             locationWithProject.query._allp === undefined
