@@ -20,7 +20,9 @@ from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
+from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import (
+    AlertRuleThresholdType,
     Incident,
     IncidentGroup,
     IncidentProject,
@@ -62,6 +64,7 @@ from sentry.models import (
 )
 from sentry import nodestore
 from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -892,4 +895,37 @@ class Factories(object):
     def create_incident_activity(incident, type, comment=None, user=None):
         return IncidentActivity.objects.create(
             incident=incident, type=type, comment=comment, user=user
+        )
+
+    @staticmethod
+    def create_alert_rule(
+        organization,
+        projects,
+        name=None,
+        threshold_type=AlertRuleThresholdType.ABOVE,
+        query="level:error",
+        aggregation=QueryAggregations.TOTAL,
+        time_window=10,
+        alert_threshold=100,
+        resolve_threshold=10,
+        threshold_period=1,
+        include_all_projects=False,
+        excluded_projects=None,
+    ):
+        if not name:
+            name = petname.Generate(2, " ", letters=10).title()
+
+        return create_alert_rule(
+            organization,
+            projects,
+            name,
+            threshold_type,
+            query,
+            aggregation,
+            time_window,
+            alert_threshold,
+            resolve_threshold,
+            threshold_period,
+            include_all_projects=include_all_projects,
+            excluded_projects=excluded_projects,
         )

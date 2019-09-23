@@ -15,6 +15,7 @@ export type RenderProps = {
 export type ModalOptions = {
   onClose?: () => void;
   modalClassName?: string;
+  dialogClassName?: string;
   type?: string;
 };
 

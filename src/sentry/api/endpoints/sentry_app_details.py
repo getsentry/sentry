@@ -56,6 +56,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 events=result.get("events"),
                 schema=result.get("schema"),
                 overview=result.get("overview"),
+                allowed_origins=result.get("allowedOrigins"),
             )
 
             return Response(serialize(updated_app, request.user))

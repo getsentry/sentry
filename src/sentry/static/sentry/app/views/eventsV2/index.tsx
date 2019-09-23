@@ -21,6 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
+import EventsSaveQueryButton from './saveQueryButton';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS} from './data';
 import EventView from './eventView';
@@ -87,7 +88,6 @@ class EventsV2 extends React.Component<Props> {
       .reverse()
       .join(' - ');
     const pageTitle = this.getEventViewName().join(' \u2014 ');
-
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
         <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
@@ -99,6 +99,19 @@ class EventsV2 extends React.Component<Props> {
                   <PageHeading>
                     {pageTitle} <BetaTag />
                   </PageHeading>
+                  {hasQuery && (
+                    <Feature
+                      organization={organization}
+                      features={['discover-v2-query-builder']}
+                    >
+                      <EventsSaveQueryButton
+                        isEditing={!!location.query.edit}
+                        location={location}
+                        organization={organization}
+                        eventView={eventView}
+                      />
+                    </Feature>
+                  )}
                 </PageHeader>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (

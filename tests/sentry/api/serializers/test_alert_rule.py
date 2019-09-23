@@ -16,9 +16,6 @@ class BaseAlertRuleSerializerTest(object):
     def assert_alert_rule_serialized(self, alert_rule, result):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
-        assert result["projectId"] == six.text_type(
-            alert_rule.query_subscriptions.first().project_id
-        )
         assert result["name"] == alert_rule.name
         assert result["thresholdType"] == alert_rule.threshold_type
         assert result["dataset"] == alert_rule.dataset
@@ -29,6 +26,7 @@ class BaseAlertRuleSerializerTest(object):
         assert result["alertThreshold"] == alert_rule.alert_threshold
         assert result["resolveThreshold"] == alert_rule.resolve_threshold
         assert result["thresholdPeriod"] == alert_rule.threshold_period
+        assert result["includeAllProjects"] == alert_rule.include_all_projects
         assert result["dateModified"] == alert_rule.date_modified
         assert result["dateAdded"] == alert_rule.date_added
 
@@ -54,18 +52,25 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         projects = [self.project, self.create_project()]
-        alert_rule = create_alert_rule(
-            self.organization,
-            projects,
-            "hello",
-            AlertRuleThresholdType.ABOVE,
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1000,
-            400,
-            1,
+        alert_rule = self.create_alert_rule(projects=projects)
+        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
+        self.assert_alert_rule_serialized(alert_rule, result)
+        assert sorted(result["projects"]) == sorted([p.slug for p in projects])
+        assert result["excludedProjects"] == []
+
+    def test_excluded_projects(self):
+        projects = [self.project]
+        excluded = [self.create_project()]
+        alert_rule = self.create_alert_rule(
+            projects=[], include_all_projects=True, excluded_projects=excluded
         )
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
+        assert result["excludedProjects"] == [p.slug for p in excluded]
+
+        alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
+        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
+        self.assert_alert_rule_serialized(alert_rule, result)
+        assert result["projects"] == [p.slug for p in projects]
+        assert result["excludedProjects"] == []

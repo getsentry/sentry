@@ -31,6 +31,7 @@ class Creator(Mediator):
     verify_install = Param(bool, default=True)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
+    allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
 
@@ -46,7 +47,9 @@ class Creator(Mediator):
         return User.objects.create(username=self.name.lower(), is_sentry_app=True)
 
     def _create_api_application(self):
-        return ApiApplication.objects.create(owner_id=self.proxy.id)
+        return ApiApplication.objects.create(
+            owner_id=self.proxy.id, allowed_origins="\n".join(self.allowed_origins)
+        )
 
     def _create_sentry_app(self):
         from sentry.mediators.service_hooks.creator import expand_events

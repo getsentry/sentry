@@ -514,13 +514,16 @@ class EventManager(object):
             id=project.organization_id
         )
 
-        # Ensure an event with the same ID does not exist before processing it.
-        # We use a first write wins approach since Clickhouse cannot merge
-        # events from different days. (The timestamp rounded to
-        # start of day is part of the primary key in Clickhouse).
-        event = self._get_event_from_storage(project_id, data["event_id"])
-
-        if event:
+        # Check to make sure we're not about to do a bunch of work that's
+        # already been done if we've processed an event with this ID. (This
+        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+        # there's a race condition between here and when the event is actually
+        # saved, but it's an improvement. See GH-7677.)
+        try:
+            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
+        except Event.DoesNotExist:
+            pass
+        else:
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
@@ -878,14 +881,6 @@ class EventManager(object):
         metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
 
         return event
-
-    def _get_event_from_storage(self, project_id, event_id):
-        try:
-            event = Event.objects.get(project_id=project_id, event_id=event_id)
-            return event
-        except Event.DoesNotExist:
-            pass
-        return None
 
     def _get_event_user(self, project, data):
         user_data = data.get("user")

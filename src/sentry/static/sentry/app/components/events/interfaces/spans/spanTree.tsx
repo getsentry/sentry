@@ -53,7 +53,7 @@ class SpanTree extends React.Component<PropType> {
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   }): RenderedSpanTree => {
-    const spanBarColour: string = pickSpanBarColour(spanNumber - 1);
+    const spanBarColour: string = pickSpanBarColour(span.op);
 
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 

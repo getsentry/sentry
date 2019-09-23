@@ -12,6 +12,8 @@ import {
 import {Client} from 'app/api';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
+import {openModal} from 'app/actionCreators/modal';
+import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 
 type Props = {
   api: Client;
@@ -46,6 +48,14 @@ class SentryAppInstallationDetail extends React.Component<Props> {
       };
       const redirectUrl = addQueryParamsToExistingUrl(app.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
+    }
+
+    //hack for split so we can show the install ID to users for them to copy
+    //Will remove once the proper fix is in place
+    if (app.slug === 'split') {
+      openModal(({closeModal}) => (
+        <SplitInstallationIdModal installationId={install.uuid} closeModal={closeModal} />
+      ));
     }
   };
 
