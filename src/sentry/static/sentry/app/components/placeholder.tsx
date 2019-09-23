@@ -21,7 +21,9 @@ type Props = {
 const Placeholder = styled((props: Props) => {
   const {className, children} = props;
   return (
-    <div data-test-id="loading-placeholder" className={className} children={children} />
+    <div data-test-id="loading-placeholder" className={className}>
+      {children}
+    </div>
   );
 })<Props>`
   display: flex;
