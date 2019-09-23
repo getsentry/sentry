@@ -31,7 +31,7 @@ class SpanTree extends React.Component<PropType> {
   traceViewRef = React.createRef<HTMLDivElement>();
 
   shouldComponentUpdate(nextProps: PropType) {
-    if (nextProps.dragProps.isDragging || nextProps.dragProps.isCustomWindowDragging) {
+    if (nextProps.dragProps.isDragging || nextProps.dragProps.isWindowSelectionDragging) {
       return false;
     }
 

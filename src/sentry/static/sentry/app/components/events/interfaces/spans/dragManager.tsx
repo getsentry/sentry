@@ -27,7 +27,7 @@ export type DragManagerChildrenProps = {
 
   // custom window selection
 
-  isCustomWindowDragging: boolean;
+  isWindowSelectionDragging: boolean;
   customWindowInitial: number; // between 0 (0%) and 1 (100%)
   customWindowCurrent: number; // between 0 (0%) and 1 (100%)
   customWindowSize: number;
@@ -57,7 +57,7 @@ type DragManagerState = {
 
   // custom window selection
 
-  isCustomWindowDragging: boolean;
+  isWindowSelectionDragging: boolean;
   customWindowInitial: number;
   customWindowCurrent: number;
   customWindowSize: number;
@@ -79,7 +79,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     // custom window selection
 
-    isCustomWindowDragging: false,
+    isWindowSelectionDragging: false,
     customWindowInitial: 0, // between 0 (0%) and 1 (100%)
     customWindowCurrent: 0, // between 0 (0%) and 1 (100%)
     customWindowSize: 0,
@@ -99,7 +99,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
   onDragStart = (viewHandle: ViewHandleType) => (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
-    const isDragging = this.state.isDragging || this.state.isCustomWindowDragging;
+    const isDragging = this.state.isDragging || this.state.isWindowSelectionDragging;
 
     if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
       return;
@@ -123,7 +123,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     this.setState({
       isDragging: true,
-      isCustomWindowDragging: false,
+      isWindowSelectionDragging: false,
       currentDraggingHandle: viewHandle,
     });
   };
@@ -231,7 +231,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
   };
 
   onCustomWindowDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    const isDragging = this.state.isDragging || this.state.isCustomWindowDragging;
+    const isDragging = this.state.isDragging || this.state.isWindowSelectionDragging;
 
     if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
       return;
@@ -260,7 +260,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     this.setState({
       isDragging: false,
-      isCustomWindowDragging: true,
+      isWindowSelectionDragging: true,
       customWindowInitial: rawMouseX, // between 0 (0%) and 1 (100%)
       customWindowCurrent: rawMouseX, // between 0 (0%) and 1 (100%)
     });
@@ -268,7 +268,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
   onCustomWindowDragMove = (event: MouseEvent) => {
     if (
-      !this.state.isCustomWindowDragging ||
+      !this.state.isWindowSelectionDragging ||
       event.type !== 'mousemove' ||
       !this.hasInteractiveLayer()
     ) {
@@ -300,7 +300,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
   onCustomWindowDragEnd = (event: MouseEvent) => {
     if (
-      !this.state.isCustomWindowDragging ||
+      !this.state.isWindowSelectionDragging ||
       event.type !== 'mouseup' ||
       !this.hasInteractiveLayer()
     ) {
@@ -338,7 +338,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       }
 
       return {
-        isCustomWindowDragging: false,
+        isWindowSelectionDragging: false,
         customWindowInitial: 0,
         customWindowCurrent: 0,
         customWindowSize: 0,
@@ -358,7 +358,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       window.removeEventListener('mouseup', this.onDragEnd);
     }
 
-    if (this.state.isCustomWindowDragging) {
+    if (this.state.isWindowSelectionDragging) {
       window.removeEventListener('mousemove', this.onCustomWindowDragMove);
       window.removeEventListener('mouseup', this.onCustomWindowDragEnd);
     }
@@ -384,7 +384,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
       // custom window selection
 
-      isCustomWindowDragging: this.state.isCustomWindowDragging,
+      isWindowSelectionDragging: this.state.isWindowSelectionDragging,
       customWindowInitial: this.state.customWindowInitial,
       customWindowCurrent: this.state.customWindowCurrent,
       customWindowSize: this.state.customWindowSize,
