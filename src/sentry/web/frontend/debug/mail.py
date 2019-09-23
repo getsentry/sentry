@@ -24,7 +24,6 @@ from sentry.digests.utilities import get_digest_metadata
 from sentry.http import get_server_hostname
 from sentry.models import (
     Activity,
-    Event,
     Group,
     GroupStatus,
     GroupSubscriptionReason,
@@ -33,6 +32,7 @@ from sentry.models import (
     Project,
     Release,
     Rule,
+    SnubaEvent,
     Team,
 )
 from sentry.event_manager import EventManager
@@ -194,13 +194,14 @@ class ActivityMailDebugView(View):
         group.message = event_manager.get_search_message()
         group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
-        event = Event(
-            id=1,
-            project=project,
-            message=event_manager.get_search_message(),
-            group=group,
-            datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
-            data=event_manager.get_data(),
+        event = SnubaEvent(
+            {
+                "project_id": project.id,
+                "group_id": group.id,
+                "event_id": 1,
+                "message": event_manager.get_search_message(),
+                "data": data.data,
+            }
         )
 
         activity = Activity(
@@ -330,7 +331,6 @@ def digest(request):
 
     records = []
 
-    event_sequence = itertools.count(1)
     group_generator = make_group_generator(random, project)
 
     for i in range(random.randint(1, 30)):
@@ -340,16 +340,15 @@ def digest(request):
         offset = timedelta(seconds=0)
         for i in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
-            event = Event(
-                id=next(event_sequence),
-                event_id=uuid.uuid4().hex,
-                project=project,
-                group=group,
-                message=group.message,
-                data=load_data("python"),
-                datetime=to_datetime(
-                    random.randint(to_timestamp(group.first_seen), to_timestamp(group.last_seen))
-                ),
+
+            event = SnubaEvent(
+                {
+                    "project_id": project.id,
+                    "group_id": group.id,
+                    "event_id": uuid.uuid4().hex,
+                    "message": group.message,
+                    "data": load_data("python"),
+                }
             )
 
             records.append(
