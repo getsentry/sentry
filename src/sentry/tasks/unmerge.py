@@ -216,8 +216,6 @@ def migrate_events(
 
     event_id_set = set(event.id for event in events)
 
-    Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
-
     for event in events:
         event.group = destination
 
