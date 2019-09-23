@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 
 
-class TeamIndexTest(APITestCase):
+class OrganizationUserTeamsTest(APITestCase):
     def test_simple(self):
         foo = self.create_user("foo@example.com")
         org = self.create_organization(owner=self.user)
@@ -16,7 +16,9 @@ class TeamIndexTest(APITestCase):
         self.create_team(organization=org)
         self.create_member(organization=org, user=foo, teams=[team1, team2])
         self.login_as(user=foo)
-        url = reverse("sentry-api-0-teams", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-user-teams", kwargs={"organization_slug": org.slug}
+        )
         response = self.client.get(url)
         assert response.status_code == 200
 

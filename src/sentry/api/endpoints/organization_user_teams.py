@@ -7,7 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
 
 
-class TeamIndexEndpoint(OrganizationEndpoint):
+class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.TEAMS
 
     def get(self, request, organization):

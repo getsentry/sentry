@@ -157,6 +157,7 @@ from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
@@ -247,7 +248,6 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_index import TeamIndexEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
@@ -951,6 +951,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-teams",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/user-teams/$",
+                    OrganizationUserTeamsEndpoint.as_view(),
+                    name="sentry-api-0-organization-user-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/tags/$",
                     OrganizationTagsEndpoint.as_view(),
                     name="sentry-api-0-organization-tags",
@@ -999,11 +1004,6 @@ urlpatterns = patterns(
         r"^teams/",
         include(
             [
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/$",
-                    TeamIndexEndpoint.as_view(),
-                    name="sentry-api-0-teams",
-                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$",
                     TeamDetailsEndpoint.as_view(),
