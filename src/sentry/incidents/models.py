@@ -305,9 +305,9 @@ class AlertRule(Model):
     aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value)
     time_window = models.IntegerField()
     resolution = models.IntegerField()
-    threshold_type = models.SmallIntegerField()
-    alert_threshold = models.IntegerField()
-    resolve_threshold = models.IntegerField()
+    threshold_type = models.SmallIntegerField(null=True)
+    alert_threshold = models.IntegerField(null=True)
+    resolve_threshold = models.IntegerField(null=True)
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
@@ -316,3 +316,32 @@ class AlertRule(Model):
         app_label = "sentry"
         db_table = "sentry_alertrule"
         unique_together = (("organization", "name"),)
+
+
+class AlertRuleTrigger(Model):
+    __core__ = True
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    label = models.TextField()
+    threshold_type = models.SmallIntegerField()
+    alert_threshold = models.IntegerField()
+    resolve_threshold = models.IntegerField(null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruletrigger"
+        unique_together = (("alert_rule", "label"),)
+
+
+class AlertRuleTriggerExclusion(Model):
+    __core__ = True
+
+    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruletriggerexclusion"
+        unique_together = (("alert_rule_trigger", "query_subscription"),)
