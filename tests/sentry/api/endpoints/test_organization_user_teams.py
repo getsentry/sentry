@@ -24,6 +24,9 @@ class OrganizationUserTeamsTest(APITestCase):
 
         # Verify that only teams that the user is a member of, are returned
         assert len(response.data) == 2
+
+        # Sort teams so there is a guaranteed ordering
+        response.data.sort(key=lambda x: x["id"])
         assert response.data[0]["id"] == six.text_type(team1.id)
         assert response.data[0]["isMember"]
         assert response.data[1]["id"] == six.text_type(team2.id)
