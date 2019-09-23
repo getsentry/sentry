@@ -647,6 +647,11 @@ urlpatterns += patterns(
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-group-shared",
     ),
+    url(
+        r"^organizations/(?P<organization_slug>[\w_-]+)/request-join/",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-organization-request-join",
+    ),
     # Keep named URL for for things using reverse
     url(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
