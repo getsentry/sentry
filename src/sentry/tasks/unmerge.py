@@ -216,7 +216,7 @@ def migrate_events(
 
     event_id_set = set(event.id for event in events)
 
-    # Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
+    Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
 
     for event in events:
         event.group = destination
@@ -511,6 +511,7 @@ def unmerge(
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
     if last_event is None:
+        fingerprints = lock_hashes(project_id, source_id, fingerprints)
         truncate_denormalizations(source)
 
     caches = get_caches()
@@ -539,7 +540,7 @@ def unmerge(
     # If there are no more events to process, we're done with the migration.
     if not events:
         tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
-
+        unlock_hashes(project_id, fingerprints)
         logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
