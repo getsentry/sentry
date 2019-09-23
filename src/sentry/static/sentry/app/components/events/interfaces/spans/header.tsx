@@ -245,13 +245,16 @@ class TraceViewHeader extends React.Component<PropType> {
       return null;
     }
 
-    const left = Math.min(dragProps.customWindowInitial, dragProps.customWindowCurrent);
+    const left = Math.min(
+      dragProps.windowSelectionInitial,
+      dragProps.windowSelectionCurrent
+    );
 
     return (
       <CustomWindowSelection
         style={{
           left: toPercent(left),
-          width: toPercent(dragProps.customWindowSize),
+          width: toPercent(dragProps.windowSelectionSize),
         }}
       />
     );
@@ -294,7 +297,7 @@ class TraceViewHeader extends React.Component<PropType> {
                     return;
                   }
 
-                  this.props.dragProps.onCustomWindowDragStart(event);
+                  this.props.dragProps.onWindowSelectionDragStart(event);
                 }}
               >
                 <MinimapContainer>
