@@ -201,9 +201,11 @@ class FromSentryAppTest(TestCase):
         self.user = self.create_user("integration@example.com")
 
         self.org = self.create_organization()
+        self.org2 = self.create_organization()
         self.out_of_scope_org = self.create_organization()
 
         self.team = self.create_team(organization=self.org)
+        self.team2 = self.create_team(organization=self.org2)
         self.out_of_scope_team = self.create_team(organization=self.out_of_scope_org)
 
         self.sentry_app = self.create_sentry_app(name="SlowDB", organization=self.org)
@@ -213,11 +215,15 @@ class FromSentryAppTest(TestCase):
         self.install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
+        self.install2 = self.create_sentry_app_installation(
+            organization=self.org2, slug=self.sentry_app.slug, user=self.user
+        )
 
     def test_has_access(self):
         result = access.from_sentry_app(self.proxy_user, self.org)
         assert result.is_active
         assert result.has_team_access(self.team)
+        assert result.teams == [self.team]
 
     def test_no_access(self):
         result = access.from_sentry_app(self.proxy_user, self.out_of_scope_org)
