@@ -248,8 +248,7 @@ class FormModel {
     return Object.keys(form)
       .map(id => [id, this.getTransformedValue(id)])
       .reduce((acc, [id, value]) => {
-        // Transform observable arrays to native arrays if possible
-        acc[id] = coerceToNativeArray(value);
+        acc[id] = value;
         return acc;
       }, {});
   }
@@ -509,7 +508,7 @@ class FormModel {
 
     const request = this.doApiRequest({
       data: getData(
-        {[id]: coerceToNativeArray(this.getTransformedValue(id))},
+        {[id]: this.getTransformedValue(id)},
         {model: this, id, form: this.getData()}
       ),
     });
@@ -702,7 +701,3 @@ class FormModel {
 }
 
 export default FormModel;
-
-function coerceToNativeArray(arr) {
-  return arr && !Array.isArray(arr) && typeof arr.peek === 'function' ? arr.peek() : arr;
-}
