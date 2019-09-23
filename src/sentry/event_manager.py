@@ -24,6 +24,7 @@ from sentry.constants import (
     MAX_SECS_IN_FUTURE,
     MAX_SECS_IN_PAST,
 )
+from sentry.db.models import NodeData
 from sentry.message_filters import should_filter_event
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
@@ -431,10 +432,13 @@ class EventManager(object):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get("time_spent")
+        node_data = NodeData(
+            None, None, data=EventDict(data, skip_renormalization=True), wrapper=EventDict
+        )
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=EventDict(data, skip_renormalization=True),
+            node_data=node_data,
             time_spent=time_spent,
             datetime=date,
             platform=platform,
