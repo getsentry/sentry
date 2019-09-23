@@ -86,11 +86,7 @@ from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidge
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
-from .endpoints.organization_event_details import (
-    OrganizationEventDetailsEndpoint,
-    OrganizationEventDetailsLatestEndpoint,
-    OrganizationEventDetailsOldestEndpoint,
-)
+from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
@@ -721,16 +717,6 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
                     OrganizationEventDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-event-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/events/latest/$",
-                    OrganizationEventDetailsLatestEndpoint.as_view(),
-                    name="sentry-api-0-organization-event-details-latest",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/events/oldest/$",
-                    OrganizationEventDetailsOldestEndpoint.as_view(),
-                    name="sentry-api-0-organization-event-details-oldest",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-stats/$",
