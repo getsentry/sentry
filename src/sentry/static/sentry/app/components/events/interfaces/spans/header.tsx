@@ -19,7 +19,7 @@ import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from '
 import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
-export const MINIMAP_SPAN_BAR_HEIGHT = 2;
+export const MINIMAP_SPAN_BAR_HEIGHT = 4;
 const MINIMAP_HEIGHT = 75;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 30;
@@ -652,9 +652,9 @@ const Fog = styled('div')`
 
 const MinimapSpanBar = styled('div')`
   position: relative;
-  height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
-  min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
-  max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
   margin: 2px 0;
 
   min-width: 1px;
