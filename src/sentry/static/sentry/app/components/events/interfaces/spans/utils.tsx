@@ -195,7 +195,7 @@ export const boundsGenerator = (bounds: {
     const start = (startTimestamp - viewStartTimestamp) / viewDuration;
     const end = (endTimestamp - viewStartTimestamp) / viewDuration;
 
-    const isSpanVisibleInView = end > 0 && start < 1;
+    const isSpanVisibleInView = end >= 0 && start <= 1;
 
     switch (timestampStatus) {
       case TimestampStatus.Equal: {
