@@ -68,8 +68,6 @@ class NotifyEventServiceAction(EventAction):
                 extra["plugin"] = service
                 self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
                 return
-            else:
-                pass
 
         if plugin:
             if not plugin.is_enabled(self.project):
@@ -83,9 +81,9 @@ class NotifyEventServiceAction(EventAction):
                 extra["group_id"] = group.id
                 self.logger.info("rule.fail.should_notify", extra=extra)
                 return
-            else:
-                metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
-                yield self.future(plugin.rule_notify)
+
+            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+            yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(
