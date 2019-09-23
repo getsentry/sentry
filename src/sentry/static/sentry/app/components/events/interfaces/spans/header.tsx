@@ -251,7 +251,7 @@ class TraceViewHeader extends React.Component<PropType> {
     );
 
     return (
-      <CustomWindowSelection
+      <WindowSelection
         style={{
           left: toPercent(left),
           width: toPercent(dragProps.windowSelectionSize),
@@ -718,7 +718,7 @@ const Handle = ({
   );
 };
 
-const CustomWindowSelection = styled('div')`
+const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
 
