@@ -11,6 +11,7 @@ from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation, ApiToken
+from sentry.models.sentryapp import MASKED_VALUE
 
 
 class SentryAppsTest(APITestCase):
@@ -229,6 +230,36 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.published_app.uuid in response_uuids
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
+
+    def test_client_secret_is_masked(self):
+        user = self.create_user(email="bloop@example.com")
+        self.create_member(organization=self.org, user=user)
+        # create an app with higher permissions that what the member role has
+        sentry_app = self.create_sentry_app(
+            name="Boo Far", organization=self.org, scopes=("project:write",)
+        )
+        self.login_as(user=user)
+        url = u"{}?status=unpublished".format(self.url)
+        response = self.client.get(url, format="json")
+        assert {
+            "name": sentry_app.name,
+            "author": sentry_app.author,
+            "slug": sentry_app.slug,
+            "scopes": ["project:write"],
+            "events": [],
+            "status": sentry_app.get_status_display(),
+            "uuid": sentry_app.uuid,
+            "webhookUrl": sentry_app.webhook_url,
+            "redirectUrl": sentry_app.redirect_url,
+            "isAlertable": sentry_app.is_alertable,
+            "verifyInstall": sentry_app.verify_install,
+            "clientId": sentry_app.application.client_id,
+            "clientSecret": MASKED_VALUE,
+            "overview": sentry_app.overview,
+            "allowedOrigins": [],
+            "schema": {},
+            "owner": {"id": self.org.id, "slug": self.org.slug},
+        } in json.loads(response.content)
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
         self.login_as(user=self.user)

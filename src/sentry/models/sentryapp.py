@@ -49,6 +49,8 @@ REQUIRED_EVENT_PERMISSIONS = {
 # events.
 VALID_EVENTS = tuple(itertools.chain(*EVENT_EXPANSION.values()))
 
+MASKED_VALUE = "*" * 64
+
 
 def default_uuid():
     return six.binary_type(uuid.uuid4())
@@ -153,3 +155,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
+
+    def show_auth_info(self, access):
+        encoded_scopes = set({u"%s" % scope for scope in list(access.scopes)})
+        return set(self.scope_list).issubset(encoded_scopes)
