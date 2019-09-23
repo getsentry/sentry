@@ -724,7 +724,7 @@ type SpanRowCellAndDivProps = Omit<
 
 const SpanRowCell = styled('div')<SpanRowCellAndDivProps>`
   position: absolute;
-  padding: ${space(0.5)} 0;
+  padding: ${space(0.5)} 1px;
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
