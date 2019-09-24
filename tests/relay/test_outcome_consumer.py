@@ -92,6 +92,7 @@ def _setup_outcome_test(kafka_producer, kafka_admin):
     return producer, project_id, topic_name
 
 
+@pytest.mark.skip(reason="extreamly slow test, reading the first kafka message takes many seconds")
 @pytest.mark.django_db
 def test_outcome_consumer_ignores_outcomes_already_handled(
     kafka_producer, task_runner, kafka_admin
@@ -144,6 +145,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     assert len(event_dropped_sink) == 0
 
 
+@pytest.mark.skip(reason="extreamly slow test, reading the first kafka message takes many seconds")
 @pytest.mark.django_db
 def test_outcome_consumer_ignores_invalid_outcomes(kafka_producer, task_runner, kafka_admin):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
@@ -192,6 +194,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(kafka_producer, task_runner, 
     assert len(event_dropped_sink) == 0
 
 
+@pytest.mark.skip(reason="extreamly slow test, reading the first kafka message takes many seconds")
 @pytest.mark.django_db
 def test_outcome_consumer_remembers_handled_outcomes(kafka_producer, task_runner, kafka_admin):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
@@ -243,6 +246,7 @@ def test_outcome_consumer_remembers_handled_outcomes(kafka_producer, task_runner
     assert len(event_dropped_sink) == 0
 
 
+@pytest.mark.skip(reason="extreamly slow test, reading the first kafka message takes many seconds")
 @pytest.mark.django_db
 def test_outcome_consumer_handles_filtered_outcomes(kafka_producer, task_runner, kafka_admin):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
@@ -292,6 +296,7 @@ def test_outcome_consumer_handles_filtered_outcomes(kafka_producer, task_runner,
     assert len(event_dropped_sink) == 0
 
 
+@pytest.mark.skip(reason="extreamly slow test, reading the first kafka message takes many seconds")
 @pytest.mark.django_db
 def test_outcome_consumer_handles_rate_limited_outcomes(kafka_producer, task_runner, kafka_admin):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
