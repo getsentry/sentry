@@ -1079,7 +1079,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     map_columns = {
         "environment": (Environment, "name", lambda name: None if name == "" else name),
         "tags[sentry:release]": (Release, "version", identity),
-        # TODO ensure that transactions release works here.
+        "release": (Release, "version", identity),
     }
 
     for col, (model, field, fmt) in six.iteritems(map_columns):
@@ -1087,7 +1087,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         ids = filter_keys.get(col)
         if not ids:
             continue
-        if is_grouprelease and col == "tags[sentry:release]":
+        if is_grouprelease and col in ("release", "tags[sentry:release]"):
             # GroupRelease -> Release translation is a special case because the
             # translation relies on both the Group and Release value in the result row.
             #
@@ -1157,6 +1157,7 @@ def get_related_project_ids(column, ids):
     mappings = {
         "issue": (Group, "id", "project_id"),
         "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
+        "release": (ReleaseProject, "release_id", "project_id"),
     }
     if ids:
         if column == "project_id":
