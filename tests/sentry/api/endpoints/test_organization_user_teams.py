@@ -8,16 +8,18 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationUserTeamsTest(APITestCase):
+    def setUp(self):
+        self.foo = self.create_user("foo@example.com")
+        self.org = self.create_organization(owner=self.user)
+        self.team1 = self.create_team(organization=self.org)
+        self.team2 = self.create_team(organization=self.org)
+        self.team3 = self.create_team(organization=self.org)
+        self.create_member(organization=self.org, user=self.foo, teams=[self.team1, self.team2])
+
     def test_simple(self):
-        foo = self.create_user("foo@example.com")
-        org = self.create_organization(owner=self.user)
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
-        self.create_team(organization=org)
-        self.create_member(organization=org, user=foo, teams=[team1, team2])
-        self.login_as(user=foo)
+        self.login_as(user=self.foo)
         url = reverse(
-            "sentry-api-0-organization-user-teams", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-user-teams", kwargs={"organization_slug": self.org.slug}
         )
         response = self.client.get(url)
         assert response.status_code == 200
@@ -27,7 +29,27 @@ class OrganizationUserTeamsTest(APITestCase):
 
         # Sort teams so there is a guaranteed ordering
         response.data.sort(key=lambda x: x["id"])
-        assert response.data[0]["id"] == six.text_type(team1.id)
+        assert response.data[0]["id"] == six.text_type(self.team1.id)
         assert response.data[0]["isMember"]
-        assert response.data[1]["id"] == six.text_type(team2.id)
+        assert response.data[1]["id"] == six.text_type(self.team2.id)
         assert response.data[1]["isMember"]
+
+    def test_super_user(self):
+        self.login_as(user=self.foo)
+        url = reverse(
+            "sentry-api-0-organization-user-teams", kwargs={"organization_slug": self.org.slug}
+        )
+        response = self.client.get(url, {"super_user": True})
+        assert response.status_code == 200
+
+        # Verify that only teams that the user is a member of, are returned
+        assert len(response.data) == 3
+
+        # Sort teams so there is a guaranteed ordering
+        response.data.sort(key=lambda x: x["id"])
+        assert response.data[0]["id"] == six.text_type(self.team1.id)
+        assert response.data[0]["isMember"]
+        assert response.data[1]["id"] == six.text_type(self.team2.id)
+        assert response.data[1]["isMember"]
+        assert response.data[2]["id"] == six.text_type(self.team3.id)
+        assert not response.data[2]["isMember"]

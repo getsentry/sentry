@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
+from sentry.models import Team, TeamStatus
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
@@ -16,6 +17,15 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
         ```````````````````````````````````````````
 
         Return a list of the teams available to the authenticated session and
-        with the supplied organization.
+        with the supplied organization. If the user is a super user, then return
+        all teams.
         """
-        return Response(serialize(list(request.access.teams), request.user))
+        super_user = request.GET.get("super_user")
+        if super_user is not None and super_user:
+            # retrieve all teams within the organization
+            queryset = Team.objects.filter(
+                organization=organization, status=TeamStatus.VISIBLE
+            ).order_by("slug")
+            return Response(serialize(list(queryset), request.user))
+        else:
+            return Response(serialize(list(request.access.teams), request.user))
