@@ -10,10 +10,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-type ProjectSelectOption = {
-  label: string;
-  value: number;
-};
+import {ProjectSelectOption} from './types';
 
 type Props = {
   xAxis: EChartOption.XAxis;

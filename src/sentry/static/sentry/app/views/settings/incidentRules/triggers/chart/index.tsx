@@ -13,6 +13,7 @@ import Placeholder from 'app/components/placeholder';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../constants';
+import {ProjectSelectOption} from './types';
 import DraggableChart from './draggableChart';
 
 type Props = {
@@ -32,11 +33,6 @@ type Props = {
 type State = {
   // This is an array but we are only supporting a single project for now
   selectedProjects: ProjectSelectOption[];
-};
-
-type ProjectSelectOption = {
-  label: Project['slug'];
-  value: number;
 };
 
 class TriggersChart extends React.Component<Props, State> {
