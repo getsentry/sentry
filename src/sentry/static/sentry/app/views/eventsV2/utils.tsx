@@ -1,5 +1,6 @@
 import {partial, pick} from 'lodash';
 import {Location, Query} from 'history';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -21,7 +22,7 @@ import {
   FIELDS,
   ColumnValueType,
 } from './eventQueryParams';
-import {TableColumn, TableColumnSort, TableState} from './tableTypes';
+import {TableColumn, TableColumnSort, TableState} from './table/types';
 
 export type EventQuery = {
   field: Array<string>;
@@ -215,7 +216,7 @@ export function getFirstQueryString(
   return defaultValue;
 }
 
-type QueryWithColumnState =
+export type QueryWithColumnState =
   | Query
   | {
       alias: string | string[] | null | undefined;
@@ -223,42 +224,28 @@ type QueryWithColumnState =
       sort: string | string[] | null | undefined;
     };
 
-export function decodeColumnOrderAndColumnSortBy(location: Location): TableState {
-  const {query} = location;
-
-  const state = {
-    columnOrder: query ? decodeColumnOrder(query) : [],
-    columnSortBy: query ? decodeColumnSortBy(query) : [],
-  };
-
-  // Check that values in SortBy is inside Order (and remove those that aren't),
-  // to avoid causing an error on the sorting function
-  state.columnSortBy = state.columnSortBy.reduce(
-    (acc, col) => {
-      if (state.columnOrder.findIndex(c => c.key === col.key) >= 0) {
-        acc.push(col);
-      }
-
-      return acc;
-    },
-    [] as TableState['columnSortBy']
-  );
-
-  return state;
-}
-
 const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
   name: '',
   aggregation: '',
   field: '',
 
-  type: 'unknown',
+  type: 'never',
   isSortable: false,
   isPrimary: false,
 };
 
-function decodeColumnOrder(query: QueryWithColumnState): TableColumn<React.ReactText>[] {
+export function decodeColumnOrderAndColumnSortBy(location: Location): TableState {
+  const {query} = location;
+  return {
+    columnOrder: query ? decodeColumnOrder(query) : [],
+    columnSortBy: query ? decodeColumnSortBy(query) : [],
+  };
+}
+
+export function decodeColumnOrder(
+  query: QueryWithColumnState
+): TableColumn<React.ReactText>[] {
   const {alias, field} = query;
   const columnsRaw: {
     aggregationField: string;
@@ -292,7 +279,7 @@ function decodeColumnOrder(query: QueryWithColumnState): TableColumn<React.React
 
     column.key = col.aggregationField;
     column.name = col.name;
-    column.type = (FIELDS[column.field] || '') as ColumnValueType;
+    column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
@@ -302,7 +289,7 @@ function decodeColumnOrder(query: QueryWithColumnState): TableColumn<React.React
   });
 }
 
-function decodeColumnSortBy(
+export function decodeColumnSortBy(
   query: QueryWithColumnState
 ): TableColumnSort<React.ReactText>[] {
   const {sort} = query;
@@ -316,7 +303,7 @@ function decodeColumnSortBy(
 
     return {
       key: hasLeadingDash ? key.substring(1) : key,
-      order: hasLeadingDash ? -1 : 1,
+      order: hasLeadingDash ? 'desc' : 'asc',
     } as TableColumnSort<string>;
   });
 }
@@ -343,6 +330,36 @@ function encodeColumnField(tableState: TableState): string[] {
 
 function encodeColumnSort(tableState: TableState): string[] {
   return tableState.columnSortBy.map(col =>
-    col.order === -1 ? `-${col.key}` : `${col.key}`
+    col.order === 'desc' ? `-${col.key}` : `${col.key}`
   );
+}
+
+/**
+ * The state of the columns is derived from `Location.query`. There are other
+ * components mutating the state of the column (sidebar, etc) too.
+ *
+ * To make add/edit/remove tableColumns, we will update `Location.query` and
+ * the changes will be propagated downwards to all the other components.
+ */
+export function setColumnStateOnLocation(
+  location: Location,
+  nextColumnOrder: TableColumn<React.ReactText>[],
+  nextColumnSortBy: TableColumnSort<React.ReactText>[]
+) {
+  // Remove a column from columnSortBy if it is not in columnOrder
+  // EventView will throw an error if sorting by a column that isn't queried
+  nextColumnSortBy = nextColumnSortBy.filter(
+    sortBy => nextColumnOrder.findIndex(order => order.key === sortBy.key) > -1
+  );
+
+  browserHistory.push({
+    ...location,
+    query: {
+      ...location.query,
+      ...encodeColumnOrderAndColumnSortBy({
+        columnOrder: nextColumnOrder,
+        columnSortBy: nextColumnSortBy,
+      }),
+    },
+  });
 }

@@ -1,7 +1,7 @@
 import {GridColumnOrder, GridColumnSortBy} from 'app/components/gridEditable';
 
-import {ColumnValueType, Aggregation, Field} from './eventQueryParams';
-import {MetaType} from './utils';
+import {ColumnValueType, Aggregation, Field} from '../eventQueryParams';
+import {MetaType} from '../utils';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType

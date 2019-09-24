@@ -1,23 +1,22 @@
-export type ColumnValueType = 'numeric' | 'string' | 'unknown';
+export type ColumnValueType =
+  | '*' // Matches to everything
+  | 'string'
+  | 'number'
+  | 'duration'
+  | 'timestamp'
+  | 'never'; // Matches to nothing
 
-// todo(leedongwei): Find the correct types
+// Refer to src/sentry/utils/snuba.py
 export const AGGREGATIONS = {
-  latest_event: {
-    type: 'string',
-    isSortable: true,
-  },
-  last_seen: {
-    type: 'string',
-    isSortable: true,
-  },
   count: {
-    type: 'numeric',
+    type: '*',
     isSortable: true,
   },
   count_unique: {
-    type: 'numeric',
+    type: '*',
     isSortable: true,
   },
+  /*
   rpm: {
     type: 'numeric',
     isSortable: true,
@@ -26,68 +25,106 @@ export const AGGREGATIONS = {
     type: 'numeric',
     isSortable: true,
   },
-  avg: {
-    type: 'numeric',
-    isSortable: true,
-  },
+  */
   min: {
-    type: 'numeric',
+    type: ['timestamp', 'duration'],
     isSortable: true,
   },
   max: {
-    type: 'numeric',
+    type: ['timestamp', 'duration'],
     isSortable: true,
   },
+  /*
   sum: {
-    type: 'numeric',
+    type: 'duration',
+    isSortable: true,
+  },
+  avg: {
+    type: 'duration',
     isSortable: true,
   },
   cidr: {
-    type: 'unknown',
+    type: 'string',
     isSortable: true,
   },
+  */
 };
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 
-// todo(leedongwei): Find the correct types
+/**
+ * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
+ */
 export const FIELDS = {
-  id: 'string',
-  message: 'string',
   title: 'string',
+  id: 'string',
+
+  project: 'name',
+  environment: 'string',
+  release: 'string',
+  'issue.id': 'string',
+
+  message: 'string',
   location: 'string',
   culprit: 'string',
-  issue: 'string',
-  timestamp: 'string',
-  type: 'string',
-  release: 'string',
-  environment: 'string',
+  timestamp: 'timestamp',
+  time: 'timestamp',
+  transaction: 'string',
+
+  'event.type': 'string',
+  last_seen: 'never',
+  latest_event: 'never',
+
+  // user
+  user: 'string',
+  'user.id': 'string',
+  'user.email': 'string',
+  'user.username': 'string',
+  'user.ip': 'string',
+  sdk: 'string',
   'sdk.name': 'string',
   'sdk.version': 'string',
-  'device.name': 'numeric',
-  'device.brand': 'numeric',
-  'device.locale': 'numeric',
-  'device.model_id': 'numeric',
-  'device.arch': 'numeric',
-  'device.battery_level': 'string',
+  http: 'string',
+  'http.method': 'string',
+  'http.url': 'string',
+  os: 'string',
+  'os.build': 'string',
+  'os.kernel_version': 'string',
+  device: 'string',
+  'device.name': 'string',
+  'device.brand': 'string',
+  'device.locale': 'string',
+  'device.uuid': 'string',
+  'device.model_id': 'string',
+  'device.arch': 'string',
+  'device.battery_level': 'number',
   'device.orientation': 'string',
-  'device.simulator': 'string',
-  'device.online': 'string',
-  'device.charging': 'string',
-  'geo.country_code': 'numeric',
-  'geo.region': 'numeric',
-  'geo.city': 'numeric',
+  'device.simulator': 'boolean',
+  'device.online': 'boolean',
+  'device.charging': 'boolean',
+  geo: 'string',
+  'geo.country_code': 'string',
+  'geo.region': 'string',
+  'geo.city': 'string',
+  error: 'string',
   'error.type': 'string',
   'error.value': 'string',
-  'error.handled': 'string',
   'error.mechanism': 'string',
+  'error.handled': 'boolean',
+  stack: 'string',
   'stack.abs_path': 'string',
   'stack.filename': 'string',
   'stack.package': 'string',
   'stack.module': 'string',
   'stack.function': 'string',
-  'stack.in_app': 'string',
+  'stack.in_app': 'boolean',
+  'stack.colno': 'number',
+  'stack.lineno': 'number',
+  'stack.stack_level': 'string',
+  tags: 'string',
+  'tags.key': 'string',
+  'tags.value': 'string',
+  contexts: 'string',
   'contexts.key': 'string',
   'contexts.value': 'string',
-  'platform.name': 'string',
 };
 export type Field = keyof typeof FIELDS | '';
