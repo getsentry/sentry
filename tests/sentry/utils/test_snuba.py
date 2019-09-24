@@ -318,13 +318,21 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         }
         transform_aliases_and_query(
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["transaction.duration", "=", 200], ["time", ">", "2019-09-23"]],
+            conditions=[
+                ["transaction.duration", "=", 200],
+                ["time", ">", "2019-09-23"],
+                ["http.method", "=", "GET"],
+            ],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction_name", "duration"],
-            conditions=[["duration", "=", 200], ["bucketed_start", ">", "2019-09-23"]],
+            conditions=[
+                ["duration", "=", 200],
+                ["bucketed_start", ">", "2019-09-23"],
+                ["tags[http.method]", "=", "GET"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset="transactions",
@@ -347,6 +355,28 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction_name", "duration"],
             conditions=[["duration", ">", 200]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction_op"],
+            dataset="transactions",
+            arrayjoin=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_condition_transform_skip_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
+            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+        }
+        transform_aliases_and_query(
+            skip_conditions=True,
+            selected_columns=["transaction", "transaction.duration"],
+            conditions=[["http_method", "=", "GET"]],
+            groupby=["transaction.op"],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name", "duration"],
+            conditions=[["tags[http_method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset="transactions",

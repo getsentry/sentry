@@ -349,10 +349,14 @@ def constrain_column_to_dataset(col, dataset):
     """
     if col.startswith("tags["):
         return col
-    columns = DATASETS[dataset].values()
-    if col in columns:
-        return col
-    return None
+    # Special case for the type condition as we only want
+    # to drop it when we are querying transactions.
+    if col == "type" and dataset == "transactions":
+        return None
+    mapping = DATASETS[dataset]
+    if col not in mapping.values():
+        return u"tags[{}]".format(col)
+    return col
 
 
 def detect_dataset(query_args):
