@@ -60,22 +60,11 @@ export default class SelectField extends React.Component {
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, disabled, required, ...props}) => {
+        field={({onChange, onBlur, disabled, required: _required, ...props}) => {
           // We remove the required property here since applying it to the
           // DOM causes the native tooltip to render in strange places.
           const choices = getChoices(props);
 
-          // Check if value quacks like mobx and get the raw array.
-          // Inside Form containers `value` can be a mobx observable
-          // which doesn't play nice with downstream code.
-          let val = props.value;
-          if (
-            multiple &&
-            Array.isArray(val) === false &&
-            typeof val.peek === 'function'
-          ) {
-            val = val.peek();
-          }
           return (
             <SelectControl
               {...props}
@@ -83,7 +72,7 @@ export default class SelectField extends React.Component {
               multiple={multiple}
               disabled={disabled}
               onChange={this.handleChange.bind(this, onBlur, onChange)}
-              value={val}
+              value={props.value}
               options={choices.map(([value, label]) => ({
                 value,
                 label,

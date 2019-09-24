@@ -1,4 +1,3 @@
-import {observable} from 'mobx';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -91,8 +90,13 @@ describe('Sentry Application Details', function() {
         organization: org.slug,
         redirectUrl: 'https://webhook.com/setup',
         webhookUrl: 'https://webhook.com',
-        scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
-        events: observable(['issue']),
+        scopes: expect.arrayContaining([
+          'member:read',
+          'member:admin',
+          'event:read',
+          'event:admin',
+        ]),
+        events: ['issue'],
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
@@ -321,7 +325,7 @@ describe('Sentry Application Details', function() {
         expect.objectContaining({
           data: expect.objectContaining({
             redirectUrl: 'https://hello.com/',
-            events: observable.array([]),
+            events: [],
           }),
           method: 'PUT',
         })
@@ -344,7 +348,7 @@ describe('Sentry Application Details', function() {
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            events: observable.array([]),
+            events: [],
           }),
           method: 'PUT',
         })

@@ -5,6 +5,15 @@ import styled from 'react-emotion';
 
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
+/**
+ * The library has `value` defined as `PropTypes.object`, but this
+ * is not the case when `multiple` is true :/
+ */
+ReactSelect.Value.propTypes = {
+  ...ReactSelect.Value.propTypes,
+  value: PropTypes.any,
+};
+
 export default class SelectControl extends React.Component {
   static propTypes = {
     ...ReactSelect.propTypes,

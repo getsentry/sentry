@@ -33,7 +33,7 @@ class FormModel {
   /**
    * Map of field name -> value
    */
-  fields: ObservableMap<FieldValue> = observable.map();
+  fields: ObservableMap<string, FieldValue> = observable.map();
 
   /**
    * Errors for individual fields
