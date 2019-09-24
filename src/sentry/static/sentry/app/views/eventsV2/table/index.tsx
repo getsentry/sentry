@@ -9,10 +9,10 @@ import withApi from 'app/utils/withApi';
 
 import Pagination from 'app/components/pagination';
 
-import {DEFAULT_EVENT_VIEW_V1} from './data';
-import EventView from './eventView';
+import {DEFAULT_EVENT_VIEW_V1} from '../data';
+import EventView from '../eventView';
 import TableView from './tableView';
-import {TableData} from './tableTypes';
+import {TableData} from './types';
 
 type TableProps = {
   api: Client;
@@ -75,8 +75,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 
   componentDidUpdate(prevProps) {
-    // todo(leedongwei): Ensure that checking by address is not a problem
-    if (this.props.location !== prevProps.location) {
+    if (
+      this.props.location !== prevProps.location ||
+      this.props.location.query !== prevProps.location.query ||
+      this.props.location.query.alias !== prevProps.location.query.alias ||
+      this.props.location.query.field !== prevProps.location.query.field ||
+      this.props.location.query.sort !== prevProps.location.query.sort
+    ) {
       this.fetchData();
     }
   }
@@ -87,25 +92,28 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     this.setState({isLoading: true});
 
-    this.props.api.request(url, {
-      query: this.state.eventView.getEventsAPIPayload(location),
-      success: (data, __textStatus, jqxhr) => {
+    this.props.api
+      .requestPromise(url, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: this.state.eventView.getEventsAPIPayload(location),
+      })
+      .then(([data, _, jqXHR]) => {
         this.setState(prevState => {
           return {
             isLoading: false,
             error: null,
-            pageLinks: jqxhr ? jqxhr.getResponseHeader('Link') : prevState.pageLinks,
+            pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
             tableData: data,
           };
         });
-      },
-      error: err => {
+      })
+      .catch(err => {
         this.setState({
           isLoading: false,
           error: err.responseJSON.detail,
         });
-      },
-    });
+      });
   };
 
   render() {

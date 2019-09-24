@@ -18,5 +18,5 @@ export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
 export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
-  order: -1 | 1;
+  order: 'desc' | 'asc';
 };

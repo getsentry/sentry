@@ -2,7 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import {omit} from 'lodash';
 import styled from 'react-emotion';
-import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -16,20 +15,15 @@ import Panel from 'app/components/panels/panel';
 import Placeholder from 'app/components/placeholder';
 
 import {
-  decodeColumnOrderAndColumnSortBy,
-  encodeColumnOrderAndColumnSortBy,
+  decodeColumnOrder,
+  decodeColumnSortBy,
   getFieldRenderer,
-} from './utils';
-import EventView from './eventView';
-import SortLink from './sortLink';
-import tableModalEditColumn from './tableModalEditColumn';
-import {
-  TableColumn,
-  TableColumnSort,
-  TableState,
-  TableData,
-  TableDataRow,
-} from './tableTypes';
+  setColumnStateOnLocation,
+} from '../utils';
+import EventView from '../eventView';
+import SortLink from '../sortLink';
+import renderTableModalEditColumnFactory from './tableModalEditColumn';
+import {TableColumn, TableState, TableData, TableDataRow} from './types';
 
 export type TableViewProps = {
   location: Location;
@@ -42,7 +36,7 @@ export type TableViewProps = {
   tableData: TableData | null | undefined;
 };
 export type TableViewState = TableState & {
-  hasQueryBuilder: boolean;
+  hasFlagQueryBuilder: boolean;
 };
 
 /**
@@ -63,7 +57,7 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
 
     this.setState = () => {
       throw new Error(
-        'TableView: Please do not directly mutate the state of TableView. You can read the comments on TableView.addColumn for more information.'
+        'TableView: Please do not directly mutate the state of TableView. Please read the comments on TableView.createColumn for more info.'
       );
     };
   }
@@ -71,89 +65,73 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
   state = {
     columnOrder: [],
     columnSortBy: [],
-    hasQueryBuilder: false,
+    hasFlagQueryBuilder: false,
   } as TableViewState;
 
   static getDerivedStateFromProps(props: TableViewProps): TableViewState {
-    const hasQueryBuilder =
-      props.organization.features.indexOf('discover-v2-query-builder') > -1;
+    const hasFlagQueryBuilder = props.organization.features.includes(
+      'discover-v2-query-builder'
+    );
+
+    // Avoid using props.location to get derived state.
+    const {eventView} = props;
 
     return {
-      hasQueryBuilder,
-      ...decodeColumnOrderAndColumnSortBy(props.location),
+      hasFlagQueryBuilder,
+      columnOrder: decodeColumnOrder({
+        field: eventView.getFieldNames(),
+        alias: eventView.getFieldTitles(),
+      }),
+      columnSortBy: decodeColumnSortBy({
+        sort: eventView.getDefaultSort(),
+      }),
     };
   }
 
   /**
-   * The state of the columns is derived from `Location.query`. There are other
-   * components mutating the state of the column (sidebar, etc) too.
+   * The "truth" on the state of the columns is found in `Location`,
+   * `createColumn`, `updateColumn`, `deleteColumn` and `moveColumn`.
+   * Syncing the state between `Location` and `TableView` may cause weird
+   * side-effects, as such the local state is not allowed to be mutated.
    *
-   * To make add/edit/remove tableColumns, we will update `Location.query` and
-   * the changes will be propagated downwards to all the other components.
-   *
-   *
-   * todo(leedongwei): 18 Sept 2019
-   * It may be a good idea to move this method somewhere else so that other
-   * components mutating the column state can use it too.
+   * State change should be done through  `setColumnStateOnLocation` which will
+   * update the `Location` object and changes are propagated downwards to child
+   * components
    */
-  _setColumnState = (
-    nextColumnOrder: TableColumn<keyof TableDataRow>[],
-    nextColumnSortBy: TableColumnSort<keyof TableDataRow>[]
-  ) => {
+  _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location} = this.props;
+    const {columnOrder, columnSortBy} = this.state;
+    const nextColumnOrder = [...columnOrder, nextColumn];
+    const nextColumnSortBy = [...columnSortBy];
 
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        ...encodeColumnOrderAndColumnSortBy({
-          columnOrder: nextColumnOrder,
-          columnSortBy: nextColumnSortBy,
-        }),
-      },
-    });
+    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
   };
 
   /**
-   * Because the "truth" on the state of the columns is found in `Location`,
-   * `addColumn`, `updateColumn`, `deleteColumn` and `moveColumn` copies some
-   * ideas from Redux / Functional Programming.
-   *
-   * It creates an entire new state and passes it to `_setColumnState`.
-   * It does not mutate the local state at all to prevent side-effects and
-   * ensure that there will always be a single source of truth.
+   * Please read the comment on `createColumn`
    */
-  _addColumn = (nextColumn: TableColumn<keyof TableDataRow>, i: number) => {
+  _updateColumn = (i: number, nextColumn: TableColumn<keyof TableDataRow>) => {
+    const {location} = this.props;
     const {columnOrder, columnSortBy} = this.state;
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
 
-    nextColumnOrder.splice(i, 0, nextColumn);
-    this._setColumnState(nextColumnOrder, nextColumnSortBy);
-  };
-
-  /**
-   * Please read the comment on `addColumn`
-   */
-  _updateColumn = (nextColumn: TableColumn<keyof TableDataRow>, i: number) => {
-    const {columnOrder, columnSortBy} = this.state;
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-
-    if (nextColumnOrder[i].key !== nextColumn.key) {
+    if (columnOrder[i].key !== nextColumn.key) {
       throw new Error(
         'TableView.updateColumn: nextColumn does not have the same key as prevColumn'
       );
     }
 
+    const nextColumnOrder = [...columnOrder];
+    const nextColumnSortBy = [...columnSortBy];
     nextColumnOrder[i] = nextColumn;
-    this._setColumnState(nextColumnOrder, nextColumnSortBy);
+
+    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
   };
 
   /**
-   * Please read the comment on `addColumn`
+   * Please read the comment on `createColumn`
    */
   _deleteColumn = (i: number) => {
+    const {location} = this.props;
     const {columnOrder, columnSortBy} = this.state;
     const nextColumnOrder = [...columnOrder];
     const nextColumnSortBy = [...columnSortBy];
@@ -168,24 +146,26 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
 
     // Remove column from columnSortBy (if it is there)
     // EventView will throw an error if sorting by a column that isn't displayed
-    const j = columnSortBy.findIndex(c => c.key === deletedColumn.key);
+    const j = nextColumnSortBy.findIndex(c => c.key === deletedColumn.key);
     if (j >= 0) {
-      nextColumnSortBy.splice(i, 1);
+      nextColumnSortBy.splice(j, 1);
     }
 
-    this._setColumnState(nextColumnOrder, nextColumnSortBy);
+    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
   };
 
   /**
-   * Please read the comment on `addColumn`
+   * Please read the comment on `createColumn`
    */
   _moveColumn = (fromIndex: number, toIndex: number) => {
+    const {location} = this.props;
     const {columnOrder, columnSortBy} = this.state;
+
     const nextColumnOrder = [...columnOrder];
     const nextColumnSortBy = [...columnSortBy];
-
     nextColumnOrder.splice(toIndex, 0, nextColumnOrder.splice(fromIndex, 1)[0]);
-    this._setColumnState(nextColumnOrder, nextColumnSortBy);
+
+    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
@@ -194,7 +174,7 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
       return column.name;
     }
 
-    // tood(leedongwei): Deprecate eventView and use state.columnSortBy
+    // TODO(leedongwei): Deprecate eventView and use state.columnSortBy
     const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
 
     return (
@@ -292,7 +272,7 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
       return (
         <React.Fragment key={rowIndex}>
           {fields.map((field, columnIndex) => {
-            const key = `${field}.${columnIndex}`;
+            const key = `${columnIndex}.${field}`;
             const forceLinkField = !hasLinkField && columnIndex === 0;
 
             const fieldRenderer = getFieldRenderer(field, meta, forceLinkField);
@@ -345,13 +325,19 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
 
   render() {
     const {eventView, isLoading, error, tableData} = this.props;
-    const {hasQueryBuilder, columnOrder, columnSortBy} = this.state;
-    const {renderModalBody, renderModalFooter} = tableModalEditColumn;
+    const {hasFlagQueryBuilder, columnOrder, columnSortBy} = this.state;
+    const {
+      renderModalBodyWithForm,
+      renderModalFooter,
+    } = renderTableModalEditColumnFactory({
+      createColumn: this._createColumn,
+      updateColumn: this._updateColumn,
+    });
 
-    if (hasQueryBuilder) {
+    if (hasFlagQueryBuilder) {
       return (
         <GridEditable
-          isEditable={hasQueryBuilder}
+          isEditable={hasFlagQueryBuilder}
           isLoading={isLoading}
           error={error}
           data={tableData ? tableData.data : []}
@@ -362,7 +348,7 @@ class TableView extends React.Component<TableViewProps, TableViewState> {
             renderBodyCell: this._renderGridBodyCell as any,
           }}
           modalEditColumn={{
-            renderBodyWithForm: renderModalBody as any,
+            renderBodyWithForm: renderModalBodyWithForm as any,
             renderFooter: renderModalFooter,
           }}
           actions={{
