@@ -14,14 +14,18 @@ import {
   GridHeadCellResizer,
 } from './styles';
 
-export type GridHeadCellProps = {
+export type GridHeadCellProps<Column> = {
   isEditing: boolean;
   isPrimary: boolean;
+
+  indexColumnOrder: number;
+  column: Column;
   children: React.ReactNode | React.ReactChild;
 
   actions: {
-    deleteColumn: () => void;
-    toggleModalEditColumn: () => void;
+    moveColumn: (indexFrom: number, indexTo: number) => void;
+    deleteColumn: (index: number) => void;
+    toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
 };
 export type GridHeadCellState = {
@@ -33,7 +37,10 @@ export type GridHeadCellState = {
  * states that are only specific to the header. This component aims to abstract
  * the complexity of GridHeadCell away.
  */
-class GridHeadCell extends React.Component<GridHeadCellProps, GridHeadCellState> {
+class GridHeadCell<Column> extends React.Component<
+  GridHeadCellProps<Column>,
+  GridHeadCellState
+> {
   static defaultProps = {
     isEditing: false,
     isPrimary: false,
@@ -47,9 +54,17 @@ class GridHeadCell extends React.Component<GridHeadCellProps, GridHeadCellState>
     this.setState({isHovering});
   };
 
-  renderButtonHoverDraggable(children: React.ReactNode) {
-    const {actions} = this.props;
+  deleteColumn = () => {
+    const {actions, indexColumnOrder} = this.props;
+    actions.deleteColumn(indexColumnOrder);
+  };
 
+  toggleModal = () => {
+    const {actions, indexColumnOrder, column} = this.props;
+    actions.toggleModalEditColumn(indexColumnOrder, column);
+  };
+
+  renderButtonHoverDraggable(children: React.ReactNode) {
     return (
       <React.Fragment>
         {/* Ensure that background is always at the top. The background must be
@@ -63,10 +78,10 @@ class GridHeadCell extends React.Component<GridHeadCellProps, GridHeadCellState>
           )}
 
           <GridHeadCellButtonHoverButtonGroup isFlagged={FLAG_GRID_DRAGGABLE}>
-            <GridHeadCellButtonHoverButton onClick={actions.toggleModalEditColumn}>
+            <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>
-            <GridHeadCellButtonHoverButton onClick={actions.deleteColumn}>
+            <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
               <InlineSvg src="icon-trash" />
             </GridHeadCellButtonHoverButton>
           </GridHeadCellButtonHoverButtonGroup>
