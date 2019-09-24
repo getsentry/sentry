@@ -49,7 +49,7 @@ const CONTEXT_BROWSER = {
 
 describe('ContextSummary', function() {
   describe('render()', function() {
-    it('should render nothing without contexts', () => {
+    it('renders nothing without contexts', () => {
       const event = {
         id: '',
         contexts: {},
@@ -59,7 +59,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render nothing with a single user context', () => {
+    it('renders nothing with a single user context', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -84,7 +84,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render at least three contexts', () => {
+    it('renders at least three contexts', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -97,7 +97,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render up to four contexts', () => {
+    it('renders up to four contexts', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -129,7 +129,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render client_os too', () => {
+    it('renders client_os too', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -179,7 +179,7 @@ describe('ContextSummary', function() {
 
 describe('OsSummary', function() {
   describe('render()', function() {
-    it('should render the version string', () => {
+    it('renders the version string', () => {
       const os = {
         kernel_version: '17.5.0',
         version: '10.13.4',
@@ -192,7 +192,7 @@ describe('OsSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render the kernel version when no version', () => {
+    it('renders the kernel version when no version', () => {
       const os = {
         kernel_version: '17.5.0',
         type: 'os',
@@ -204,7 +204,7 @@ describe('OsSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render unknown when no version', () => {
+    it('renders unknown when no version', () => {
       const os = {
         type: 'os',
         build: '17E199',
@@ -219,7 +219,7 @@ describe('OsSummary', function() {
 
 describe('GpuSummary', function() {
   describe('render()', function() {
-    it('should render name and vendor', () => {
+    it('renders name and vendor', () => {
       const gpu = {
         name: 'Mali-T880',
         vendor_name: 'ARM',
@@ -230,7 +230,7 @@ describe('GpuSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render unknown when no vendor', () => {
+    it('renders unknown when no vendor', () => {
       const gpu = {
         type: 'gpu',
         name: 'Apple A8 GPU',
@@ -244,7 +244,7 @@ describe('GpuSummary', function() {
 
 describe('UserSummary', function() {
   describe('render', function() {
-    it('should prefer email, then IP, then id, then username for title', function() {
+    it('prefers email, then IP, then id, then username for title', function() {
       const user1 = {
         email: 'maisey@dogsrule.com',
         ip_address: '12.31.20.12',
@@ -290,7 +290,7 @@ describe('UserSummary', function() {
       expect(wrapper4.find('[data-test-id="user-title"]').text()).toEqual(user4.username);
     });
 
-    it('should render NoSummary if no email, IP, id, or username', function() {
+    it('renders NoSummary if no email, IP, id, or username', function() {
       const user = {
         name: 'Maisey Dog',
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
@@ -303,7 +303,7 @@ describe('UserSummary', function() {
       );
     });
 
-    it('should not use filtered values for title', function() {
+    it('does not use filtered values for title', function() {
       const user1 = {
         email: FILTER_MASK,
       };
@@ -340,7 +340,7 @@ describe('UserSummary', function() {
       );
     });
 
-    it('should not use filtered values for avatar', function() {
+    it('does not use filtered values for avatar', function() {
       // id is never used for avatar purposes, but is enough to keep us from
       // ending up with a NoSummary component where the UserSummary component
       // should be
