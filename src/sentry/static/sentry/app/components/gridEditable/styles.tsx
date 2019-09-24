@@ -64,7 +64,7 @@ export const Grid = styled('table')<GridEditableProps>`
   th:last-child {
     ${p => {
       if (!p.isEditable) {
-        return '0px';
+        return 'padding-right: 0px';
       }
       if (!p.isEditing) {
         return `padding-right: ${GRID_EDIT_WIDTH};`;

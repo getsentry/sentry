@@ -3,10 +3,16 @@ import React from 'react';
 import {t} from 'app/locale';
 
 export type GridModalEditColumnProps<Column> = {
-  indexOfColumnOrder?: number;
+  indexColumnOrder?: number;
   column?: Column;
 
-  renderBody: (indexOfColumnOrder?: number, column?: Column) => React.ReactNode;
+  renderBodyWithForm: (
+    indexColumnOrder?: number,
+    column?: Column,
+    onSubmit?: (column: Column) => void,
+    onSuccess?: () => void,
+    onError?: () => void
+  ) => React.ReactNode;
   renderFooter: () => React.ReactNode;
 
   /**
@@ -36,16 +42,17 @@ class GridModalEditColumn<Column> extends React.Component<
       Header,
       Body,
       Footer,
-      indexOfColumnOrder,
+      closeModal,
+      indexColumnOrder,
       column,
-      renderBody,
+      renderBodyWithForm,
       renderFooter,
     } = this.props;
 
     return (
       <React.Fragment>
         <Header>{this.renderHeader()}</Header>
-        <Body>{renderBody(indexOfColumnOrder, column)}</Body>
+        <Body>{renderBodyWithForm(indexColumnOrder, column, undefined, closeModal)}</Body>
         <Footer>{renderFooter()}</Footer>
       </React.Fragment>
     );
