@@ -4,11 +4,12 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.api.serializers import Serializer, register
 from sentry.models import SentryApp
+from sentry.models.sentryapp import MASKED_VALUE
 
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, access):
         from sentry.mediators.service_hooks.creator import consolidate_events
 
         data = {
@@ -31,10 +32,13 @@ class SentryAppSerializer(Serializer):
         if is_active_superuser(env.request) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()
         ):
+            client_secret = (
+                obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
+            )
             data.update(
                 {
                     "clientId": obj.application.client_id,
-                    "clientSecret": obj.application.client_secret,
+                    "clientSecret": client_secret,
                     "owner": {"id": obj.owner.id, "slug": obj.owner.slug},
                 }
             )

@@ -5,6 +5,7 @@ from rest_framework import status
 
 from sentry.api.bases import SentryInternalAppTokenPermission, SentryAppBaseEndpoint
 from sentry.models import ApiToken, SentryAppInstallation
+from sentry.models.sentryapp import MASKED_VALUE
 from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
@@ -19,9 +20,17 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         tokens = ApiToken.objects.filter(application_id=sentry_app.application_id)
         attrs = {"application": None}
-        return Response(
+
+        token_list = [
             ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens
-        )
+        ]
+
+        if not sentry_app.show_auth_info(request.access):
+            for token in token_list:
+                token["token"] = MASKED_VALUE
+                token["refreshToken"] = MASKED_VALUE
+
+        return Response(token_list)
 
     def post(self, request, sentry_app):
         if not sentry_app.is_internal:
@@ -40,4 +49,10 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         # hack so the token is included in the response
         attrs = {"application": None}
-        return Response(ApiTokenSerializer().serialize(api_token, attrs, request.user), status=201)
+        token = ApiTokenSerializer().serialize(api_token, attrs, request.user)
+
+        if not sentry_app.show_auth_info(request.access):
+            token["token"] = MASKED_VALUE
+            token["refreshToken"] = MASKED_VALUE
+
+        return Response(token, status=201)

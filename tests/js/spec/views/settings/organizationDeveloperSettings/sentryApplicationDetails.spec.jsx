@@ -18,6 +18,7 @@ describe('Sentry Application Details', function() {
 
   const verifyInstallToggle = 'Switch[name="verifyInstall"]';
   const redirectUrlInput = 'Input[name="redirectUrl"]';
+  const maskedValue = '*'.repeat(64);
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -208,6 +209,45 @@ describe('Sentry Application Details', function() {
     it('shows just clientSecret', function() {
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
       expect(wrapper.find('#clientId').exists()).toBe(false);
+    });
+  });
+
+  describe('Renders masked values', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+        clientSecret: maskedValue,
+      });
+      token = TestStubs.SentryAppToken({token: maskedValue, refreshToken: maskedValue});
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('shows masked tokens', function() {
+      expect(
+        wrapper
+          .find('TextCopyInput input')
+          .first()
+          .prop('value')
+      ).toBe(maskedValue);
+    });
+
+    it('shows masked clientSecret', function() {
+      expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
     });
   });
 
