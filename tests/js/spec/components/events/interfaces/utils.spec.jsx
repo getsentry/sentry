@@ -2,7 +2,9 @@ import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {
   getCurlCommand,
   objectToSortedTupleArray,
+  removeFilteredValues,
 } from 'app/components/events/interfaces/utils';
+import {FILTER_MASK} from 'app/constants';
 
 describe('components/interfaces/utils', function() {
   describe('getCurlCommand()', function() {
@@ -165,6 +167,27 @@ describe('components/interfaces/utils', function() {
           foo: ['bar', 'baz'],
         })
       ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
+    });
+  });
+
+  describe('removeFilteredValues()', function() {
+    const rawData = {
+      id: '26',
+      name: FILTER_MASK,
+      username: 'maiseythedog',
+      email: FILTER_MASK,
+    };
+    it('should remove filtered values', function() {
+      const result = removeFilteredValues(rawData);
+      expect(result).not.toHaveProperty('name');
+      expect(result).not.toHaveProperty('email');
+    });
+    it('should preserve unfiltered values', function() {
+      const result = removeFilteredValues(rawData);
+      expect(result).toHaveProperty('id');
+      expect(result.id).toEqual('26');
+      expect(result).toHaveProperty('username');
+      expect(result.username).toEqual('maiseythedog');
     });
   });
 });
