@@ -78,13 +78,11 @@ describe('Incident Rules Form', function() {
             // Note, backend handles this when ideally `includeAllProjects: true` should only send excludedProjects,
             // and `includeAllProjects: false` send `projects`
             includeAllProjects: true,
+            excludedProjects: ['project-2'],
+            projects: ['project-slug'],
           }),
         })
       );
-
-      // TODO(mobx): This is because of observable arrays
-      expect(createRule.mock.calls[0][1].data.excludedProjects[0]).toBe('project-2');
-      expect(createRule.mock.calls[0][1].data.projects[0]).toBe('project-slug');
     });
   });
 
@@ -110,16 +108,14 @@ describe('Incident Rules Form', function() {
 
       selectByLabel(wrapper, 'project-slug', {name: 'projects'});
 
-      // TODO(mobx): This is because of observable arrays
-      // expect(editRule).toHaveBeenLastCalledWith(
-      // expect.anything(),
-      // expect.objectContaining({
-      // data: {
-      // projects: ['project-slug'],
-      // },
-      // })
-      // );
-      expect(editRule.mock.calls[0][1].data.projects[0]).toBe('project-slug');
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            projects: ['project-slug'],
+          },
+        })
+      );
       editRule.mockReset();
 
       // Toggle include all projects to on
@@ -136,16 +132,14 @@ describe('Incident Rules Form', function() {
 
       // Exclude 2nd project
       selectByLabel(wrapper, 'project-2', {name: 'excludedProjects'});
-      expect(editRule.mock.calls[0][1].data.excludedProjects[0]).toBe('project-2');
-      // TODO(mobx): This is because of observable arrays
-      // expect(editRule).toHaveBeenLastCalledWith(
-      // expect.anything(),
-      // expect.objectContaining({
-      // data: {
-      // excludedProjects: ['project-2'],
-      // },
-      // })
-      // );
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            excludedProjects: ['project-2'],
+          },
+        })
+      );
       editRule.mockReset();
 
       // Toggle back to not include all projects
