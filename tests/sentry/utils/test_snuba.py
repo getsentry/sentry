@@ -183,7 +183,7 @@ class SnubaUtilsTest(TestCase):
 class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
         super(TransformAliasesAndQueryTest, self).setUp()
-        self.create_environment(self.project, name="prod")
+        self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
         self.store_event(
@@ -265,13 +265,19 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
     def test_conversion_of_environment_filter_key(self):
         result = transform_aliases_and_query(
             selected_columns=["id", "message"],
-            filter_keys={"environment": ["nope"], "project_id": [self.project.id]},
+            filter_keys={
+                "environment": [self.create_environment(self.project).id],
+                "project_id": [self.project.id]
+            },
         )
         assert len(result["data"]) == 0
 
         result = transform_aliases_and_query(
             selected_columns=["id", "message"],
-            filter_keys={"environment": ["nope", "prod"], "project_id": [self.project.id]},
+            filter_keys={
+                "environment": [self.environment.id],
+                "project_id": [self.project.id]
+            },
         )
         assert len(result["data"]) == 1
 
