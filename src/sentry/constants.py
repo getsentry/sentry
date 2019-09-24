@@ -273,6 +273,7 @@ OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
 WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
 
+# If this value changes, also change it in src/sentry/static/sentry/app/constants/index.tsx
 FILTER_MASK = "[Filtered]"
 
 # Maximum length of a symbol
