@@ -208,16 +208,9 @@ class ContextData extends React.Component {
   };
 
   render() {
-    // XXX(dcramer): babel does not support this yet
-    // let {data, className, ...other} = this.props;
-    const data = this.props.data;
-    const className = this.props.className;
-    const other = {};
-    for (const key in this.props) {
-      if (key !== 'data' && key !== 'className') {
-        other[key] = this.props[key];
-      }
-    }
+    // We do not use preserveQuotes, but require it to be removed from ...other
+    // eslint-disable-next-line no-unused-vars
+    const {data, className, preserveQuotes, ...other} = this.props;
     other.className = 'val ' + (className || '');
 
     return <pre {...other}>{this.renderValue(data)}</pre>;
