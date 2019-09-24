@@ -43,3 +43,8 @@ export enum TimeWindow {
   FOUR_HOURS = 14400,
   ONE_DAY = 86400,
 }
+
+export type ProjectSelectOption = {
+  label: string;
+  value: number;
+};
