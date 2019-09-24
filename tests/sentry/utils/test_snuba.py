@@ -308,10 +308,16 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             dataset="transactions",
             arrayjoin=None,
+            end=None,
+            start=None,
+            conditions=None,
+            groupby=None,
+            having=None,
+            orderby=None,
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_conditions_and_groupby_aliasing(self, mock_query):
+    def test_conditions_order_and_groupby_aliasing(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
@@ -324,6 +330,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
                 ["http.method", "=", "GET"],
             ],
             groupby=["transaction.op"],
+            orderby=["-timestamp"],
             filter_keys={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
@@ -335,8 +342,13 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
+            orderby=["-start_ts"],
             dataset="transactions",
+            aggregations=None,
             arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
         )
 
     @patch("sentry.utils.snuba.raw_query")
@@ -358,7 +370,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset="transactions",
+            aggregations=None,
             arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
+            orderby=None,
         )
 
     @patch("sentry.utils.snuba.raw_query")
@@ -380,7 +397,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset="transactions",
+            aggregations=None,
             arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
+            orderby=None,
         )
 
 

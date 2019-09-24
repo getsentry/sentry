@@ -342,23 +342,6 @@ def get_snuba_column_name(name, dataset="events"):
     return DATASETS[dataset].get(name, u"tags[{}]".format(name))
 
 
-def constrain_column_to_dataset(col, dataset):
-    """
-    Ensure conditions only reference valid conditions
-    return none for any unknown conditions.
-    """
-    if col.startswith("tags["):
-        return col
-    # Special case for the type condition as we only want
-    # to drop it when we are querying transactions.
-    if col == "type" and dataset == "transactions":
-        return None
-    mapping = DATASETS[dataset]
-    if col not in mapping.values():
-        return u"tags[{}]".format(col)
-    return col
-
-
 def detect_dataset(query_args):
     """
     Determine the dataset to use based on the conditions, selected_columns,
@@ -575,30 +558,6 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
                 cond[1][0] = get_snuba_column_name(cond[1][0], dataset)
         return cond
 
-    def constrain_condition_to_dataset(cond):
-        """
-        When conditions have been parsed by the api.event_search module
-        we can end up with conditions that are not valid on the current dataset
-        due to how ap.event_search checks for valid field names without
-        being aware of the dataset.
-
-        We have the dataset context here, so we need to re-scope conditions to the
-        current dataset.
-        """
-        if isinstance(cond, (list, tuple)) and len(cond):
-            if isinstance(cond[0], (list, tuple)):
-                cond[0] = constrain_condition_to_dataset(cond[0])
-            elif len(cond) == 3:
-                # map column name
-                name = constrain_column_to_dataset(cond[0], dataset)
-                if name is None:
-                    return None
-                cond[0] = name
-            elif len(cond) == 2 and cond[0] == "has":
-                # first function argument is the column if function is "has"
-                cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
-        return cond
-
     if conditions:
         aliased_conditions = []
         for condition in conditions:
@@ -606,17 +565,15 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
             elif skip_conditions:
-                aliased_conditions.append(constrain_condition_to_dataset(condition))
+                aliased_conditions.append(condition)
             else:
                 aliased_conditions.append(handle_condition(condition))
-        kwargs["conditions"] = list(filter(lambda x: x is not None, aliased_conditions))
+        kwargs["conditions"] = aliased_conditions
 
     if having:
         kwargs["having"] = having
 
     if orderby:
-        if orderby is None:
-            orderby = []
         orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
         translated_orderby = []
 
@@ -634,7 +591,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     kwargs["arrayjoin"] = arrayjoin_map.get(arrayjoin, arrayjoin)
     kwargs["dataset"] = dataset
 
-    result = raw_query(**kwargs)
+    result = dataset_query(**kwargs)
 
     # Translate back columns that were converted to snuba format
     for col in result["meta"]:
@@ -946,6 +903,111 @@ def nest_groups(data, groups, aggregate_cols):
         return OrderedDict(
             (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
         )
+
+
+def constrain_column_to_dataset(col, dataset):
+    """
+    Ensure conditions only reference valid columns on the provided
+    dataset. Return none for conditions to be removed, and convert
+    unknown columns into tags expressions.
+    """
+    if col.startswith("tags["):
+        return col
+    # Special case for the type condition as we only want
+    # to drop it when we are querying transactions.
+    if col == "type" and dataset == "transactions":
+        return None
+    if col in DATASETS[dataset]:
+        return DATASETS[dataset][col]
+    mapping = DATASETS[dataset]
+    if col in mapping.values():
+        return col
+    return u"tags[{}]".format(col)
+
+
+def constrain_condition_to_dataset(cond, dataset):
+    """
+    When conditions have been parsed by the api.event_search module
+    we can end up with conditions that are not valid on the current dataset
+    due to how ap.event_search checks for valid field names without
+    being aware of the dataset.
+
+    We have the dataset context here, so we need to re-scope conditions to the
+    current dataset.
+    """
+    if isinstance(cond, (list, tuple)) and len(cond):
+        if isinstance(cond[0], (list, tuple)):
+            cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+        elif len(cond) == 3:
+            # map column name
+            name = constrain_column_to_dataset(cond[0], dataset)
+            if name is None:
+                return None
+            cond[0] = name
+        elif len(cond) == 2 and cond[0] == "has":
+            # first function argument is the column if function is "has"
+            cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
+    return cond
+
+
+def dataset_query(
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    selected_columns=None,
+    arrayjoin=None,
+    having=None,
+    dataset=None,
+    orderby=None,
+    **kwargs
+):
+    """
+    Wrapper around raw_query that selects the dataset based on the
+    selected_columns, conditions and groupby parameters.
+    Useful for taking arbitrary end user queries and searching
+    either error or transaction events.
+    """
+    if dataset is None:
+        dataset = detect_dataset(
+            dict(
+                dataset=dataset,
+                aggregations=aggregations,
+                conditions=conditions,
+                selected_columns=selected_columns,
+                groupby=groupby,
+            )
+        )
+
+    if conditions:
+        for (i, condition) in enumerate(conditions):
+            replacement = constrain_condition_to_dataset(condition, dataset)
+            conditions[i] = replacement
+        conditions = list(filter(lambda x: x is not None, conditions))
+
+    if orderby:
+        for (i, order) in enumerate(orderby):
+            order_field = order.lstrip("-")
+            orderby[i] = u"{}{}".format(
+                "-" if order.startswith("-") else "",
+                constrain_column_to_dataset(order_field, dataset),
+            )
+
+    return raw_query(
+        start=start,
+        end=end,
+        groupby=groupby,
+        conditions=conditions,
+        aggregations=aggregations,
+        selected_columns=selected_columns,
+        filter_keys=filter_keys,
+        arrayjoin=arrayjoin,
+        having=having,
+        dataset=dataset,
+        **kwargs
+    )
 
 
 JSON_TYPE_MAP = {
