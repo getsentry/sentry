@@ -267,17 +267,14 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             filter_keys={
                 "environment": [self.create_environment(self.project).id],
-                "project_id": [self.project.id]
+                "project_id": [self.project.id],
             },
         )
         assert len(result["data"]) == 0
 
         result = transform_aliases_and_query(
             selected_columns=["id", "message"],
-            filter_keys={
-                "environment": [self.environment.id],
-                "project_id": [self.project.id]
-            },
+            filter_keys={"environment": [self.environment.id], "project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
 
@@ -334,6 +331,28 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             arrayjoin=None,
         )
 
+    @patch("sentry.utils.snuba.raw_query")
+    def test_condition_removal_skip_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
+            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+        }
+        transform_aliases_and_query(
+            skip_conditions=True,
+            selected_columns=["transaction", "transaction.duration"],
+            conditions=[["type", "=", "transaction"], ["duration", ">", 200]],
+            groupby=["transaction.op"],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name", "duration"],
+            conditions=[["duration", ">", 200]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction_op"],
+            dataset="transactions",
+            arrayjoin=None,
+        )
+
 
 class DetectDatasetTest(TestCase):
     def test_dataset_key(self):
@@ -341,6 +360,12 @@ class DetectDatasetTest(TestCase):
         assert detect_dataset(query) == "events"
 
     def test_event_type_condition(self):
+        query = {"conditions": [["type", "=", "transaction"]]}
+        assert detect_dataset(query) == "transactions"
+
+        query = {"conditions": [["type", "=", "error"]]}
+        assert detect_dataset(query) == "events"
+
         query = {"conditions": [["type", "=", "transaction"]]}
         assert detect_dataset(query) == "transactions"
 

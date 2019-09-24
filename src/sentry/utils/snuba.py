@@ -339,9 +339,20 @@ def get_snuba_column_name(name, dataset="events"):
     if not name or QUOTED_LITERAL_RE.match(name):
         return name
 
-    mapping = DATASETS[dataset]
+    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
 
-    return mapping.get(name, u"tags[{}]".format(name))
+
+def constrain_column_to_dataset(col, dataset):
+    """
+    Ensure conditions only reference valid conditions
+    return none for any unknown conditions.
+    """
+    if col.startswith("tags["):
+        return col
+    columns = DATASETS[dataset].values()
+    if col in columns:
+        return col
+    return None
 
 
 def detect_dataset(query_args):
@@ -560,16 +571,41 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
                 cond[1][0] = get_snuba_column_name(cond[1][0], dataset)
         return cond
 
+    def constrain_condition_to_dataset(cond):
+        """
+        When conditions have been parsed by the api.event_search module
+        we can end up with conditions that are not valid on the current dataset
+        due to how ap.event_search checks for valid field names without
+        being aware of the dataset.
+
+        We have the dataset context here, so we need to re-scope conditions to the
+        current dataset.
+        """
+        if isinstance(cond, (list, tuple)) and len(cond):
+            if isinstance(cond[0], (list, tuple)):
+                cond[0] = constrain_condition_to_dataset(cond[0])
+            elif len(cond) == 3:
+                # map column name
+                name = constrain_column_to_dataset(cond[0], dataset)
+                if name is None:
+                    return None
+                cond[0] = name
+            elif len(cond) == 2 and cond[0] == "has":
+                # first function argument is the column if function is "has"
+                cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
+        return cond
+
     if conditions:
-        kwargs["conditions"] = []
+        aliased_conditions = []
         for condition in conditions:
             field = condition[0]
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
             elif skip_conditions:
-                kwargs["conditions"].append(condition)
+                aliased_conditions.append(constrain_condition_to_dataset(condition))
             else:
-                kwargs["conditions"].append(handle_condition(condition))
+                aliased_conditions.append(handle_condition(condition))
+        kwargs["conditions"] = list(filter(lambda x: x is not None, aliased_conditions))
 
     if having:
         kwargs["having"] = having
