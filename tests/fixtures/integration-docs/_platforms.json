@@ -195,6 +195,18 @@
     {
       "integrations": [
         {
+          "link": "https://docs.sentry.io/error-reporting/quickstart/?platform=native",
+          "type": "language",
+          "id": "native",
+          "name": "Native (C/C++)"
+        }
+      ],
+      "id": "native",
+      "name": "Native (C/C++)"
+    },
+    {
+      "integrations": [
+        {
           "link": "https://docs.getsentry.com/hosted/clients/node/integrations/connect/",
           "type": "framework",
           "id": "node-connect",
