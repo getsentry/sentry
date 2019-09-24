@@ -7,7 +7,7 @@ import Avatar from 'app/components/avatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {removeFilteredValues} from 'app/components/events/interfaces/utils';
+import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
@@ -21,7 +21,7 @@ class UserContextType extends React.Component {
     const builtins = [];
     const children = [];
 
-    // Handle our native attributes special
+    // Handle our native attributes specially
     user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
     user.email &&
       builtins.push([
@@ -47,7 +47,7 @@ class UserContextType extends React.Component {
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={removeFilteredValues(user)} size={48} gravatar={false} />
+          <Avatar user={removeFilterMaskedEntries(user)} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>

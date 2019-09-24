@@ -126,7 +126,7 @@ export function objectToSortedTupleArray(obj) {
 }
 
 // for context summaries and avatars
-export function removeFilteredValues(rawData) {
+export function removeFilterMaskedEntries(rawData) {
   const cleanedData = {};
   for (const key of Object.getOwnPropertyNames(rawData)) {
     if (rawData[key] !== FILTER_MASK) {
