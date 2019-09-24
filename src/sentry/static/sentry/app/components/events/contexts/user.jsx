@@ -57,7 +57,11 @@ class UserContextType extends React.Component {
                   <td className="key" key="0">
                     {key}
                   </td>
-                  <td className="value" key="1">
+                  <td
+                    className="value"
+                    key="1"
+                    data-test-id={`user-context-${key.toLowerCase()}-value`}
+                  >
                     {value}
                   </td>
                 </tr>
