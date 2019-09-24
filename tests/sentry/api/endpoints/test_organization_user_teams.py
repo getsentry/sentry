@@ -39,7 +39,7 @@ class OrganizationUserTeamsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-user-teams", kwargs={"organization_slug": self.org.slug}
         )
-        response = self.client.get(url, {"super_user": True})
+        response = self.client.get(url, {"super_user": "1"})
         assert response.status_code == 200
 
         # Verify that only teams that the user is a member of, are returned
