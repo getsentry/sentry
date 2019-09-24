@@ -26,7 +26,7 @@ class NoSummary extends React.Component {
     return (
       <div className="context-item">
         <span className="context-item-icon" />
-        <h3>{this.props.title}</h3>
+        <h3 data-test-id="no-summary-title">{this.props.title}</h3>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export class OsSummary extends React.Component {
   }
 }
 
-class UserSummary extends React.Component {
+export class UserSummary extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
   };
@@ -131,7 +131,7 @@ class UserSummary extends React.Component {
         ) : (
           <span className="context-item-icon" />
         )}
-        <h3>{userTitle}</h3>
+        <h3 data-test-id="user-title">{userTitle}</h3>
         {user.id && user.id !== userTitle ? (
           <p>
             <strong>{t('ID:')}</strong> {user.id}
