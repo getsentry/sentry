@@ -27,6 +27,9 @@ from sentry.web.frontend.debug.debug_regression_email import (
     DebugRegressionEmailView,
     DebugRegressionReleaseEmailView,
 )
+from sentry.web.frontend.debug.debug_request_join_organization import (
+    DebugRequestJoinOrganizationEmailView,
+)
 from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailView
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
@@ -75,6 +78,7 @@ urlpatterns = patterns(
         DebugResolvedInReleaseUpcomingEmailView.as_view(),
     ),
     url(r"^debug/mail/request-access/$", sentry.web.frontend.debug.mail.request_access),
+    url(r"^debug/mail/request-join/$", DebugRequestJoinOrganizationEmailView.as_view()),
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
     url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
