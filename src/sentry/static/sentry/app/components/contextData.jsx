@@ -1,6 +1,9 @@
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+
+import classNames from 'classnames';
+
 import _ from 'lodash';
 
 import {isUrl} from 'app/utils';
@@ -208,12 +211,13 @@ class ContextData extends React.Component {
   };
 
   render() {
-    // We do not use preserveQuotes, but require it to be removed from ...other
-    // eslint-disable-next-line no-unused-vars
-    const {data, className, preserveQuotes, ...other} = this.props;
-    other.className = 'val ' + (className || '');
+    const {data, className, preserveQuotes: _preserveQuotes, ...other} = this.props;
 
-    return <pre {...other}>{this.renderValue(data)}</pre>;
+    return (
+      <pre className={classNames('val', className || '')} {...other}>
+        {this.renderValue(data)}
+      </pre>
+    );
   }
 }
 
