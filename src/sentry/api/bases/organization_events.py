@@ -108,11 +108,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
-        conditions = copy(snuba_args["conditions"])
-        if "start" in snuba_args:
-            conditions.append(["timestamp", ">=", snuba_args["start"]])
-        if "end" in snuba_args:
-            conditions.append(["timestamp", "<=", snuba_args["end"]])
+        conditions = self._apply_start_and_end(snuba_args)
         next_event = eventstore.get_next_event_id(
             event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
         )
@@ -125,18 +121,21 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
-        conditions = copy(snuba_args["conditions"])
-        if "start" in snuba_args:
-            conditions.append(["timestamp", ">=", snuba_args["start"]])
-        if "end" in snuba_args:
-            conditions.append(["timestamp", "<=", snuba_args["end"]])
-
+        conditions = self._apply_start_and_end(snuba_args)
         prev_event = eventstore.get_prev_event_id(
             event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
         )
 
         if prev_event:
             return prev_event[1]
+
+    def _apply_start_and_end(self, snuba_args):
+        conditions = copy(snuba_args["conditions"])
+        if "start" in snuba_args:
+            conditions.append(["timestamp", ">=", snuba_args["start"]])
+        if "end" in snuba_args:
+            conditions.append(["timestamp", "<=", snuba_args["end"]])
+        return conditions
 
     def oldest_event_id(self, snuba_args, event):
         """
