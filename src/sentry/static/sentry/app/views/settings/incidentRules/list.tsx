@@ -13,7 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-import {IncidentRule} from './constants';
+import {IncidentRule} from './types';
 import {deleteRule} from './actions';
 
 type State = {

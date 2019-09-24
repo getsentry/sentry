@@ -18,7 +18,7 @@ import {
   AlertRuleThresholdType,
   IncidentRule,
   TimeWindow,
-} from '../constants';
+} from '../types';
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';

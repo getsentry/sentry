@@ -12,8 +12,12 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../constants';
-import {ProjectSelectOption} from './types';
+import {
+  AlertRuleAggregations,
+  IncidentRule,
+  TimeWindow,
+  ProjectSelectOption,
+} from '../../types';
 import DraggableChart from './draggableChart';
 
 type Props = {

@@ -11,7 +11,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {AlertRuleAggregations, IncidentRule} from './constants';
+import {AlertRuleAggregations, IncidentRule} from './types';
 
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
