@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
 from datetime import datetime
+from mock import patch
 import pytz
 
 from sentry.models import GroupRelease, Release
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.snuba import (
     get_snuba_translators,
     zerofill,
     get_json_type,
     get_snuba_column_name,
     detect_dataset,
+    transform_aliases_and_query,
 )
 
 
@@ -171,9 +174,159 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("'thing'") == "'thing'"
         assert get_snuba_column_name("id") == "event_id"
         assert get_snuba_column_name("geo.region") == "geo_region"
+        assert get_snuba_column_name("organization") == "tags[organization]"
         # This is odd behavior but captures what we do currently.
         assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
         assert get_snuba_column_name("organization") == "tags[organization]"
+
+
+class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super(TransformAliasesAndQueryTest, self).setUp()
+        self.create_environment(self.project, name="prod")
+        self.release = self.create_release(self.project, version="first-release")
+
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+    def test_field_aliasing_in_selected_columns(self):
+        result = transform_aliases_and_query(
+            selected_columns=["project.id", "user.email", "release"],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user.email"] == "bruce@example.com"
+        assert data[0]["release"] == "first-release"
+
+    def test_field_aliasing_in_aggregate_functions_and_groupby(self):
+        result = transform_aliases_and_query(
+            selected_columns=["project.id"],
+            aggregations=[["uniq", "user.email", "uniq_email"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["project.id"],
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["uniq_email"] == 1
+
+    def test_field_aliasing_in_conditions(self):
+        result = transform_aliases_and_query(
+            selected_columns=["project.id", "user.email"],
+            conditions=[["user.email", "=", "bruce@example.com"]],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user.email"] == "bruce@example.com"
+
+    def test_autoconversion_of_time_column(self):
+        result = transform_aliases_and_query(
+            aggregations=[["count", "", "count"]],
+            filter_keys={"project_id": [self.project.id]},
+            start=before_now(minutes=5),
+            end=before_now(),
+            groupby=["time"],
+            orderby=["time"],
+            rollup=3600,
+        )
+        data = result["data"]
+        assert isinstance(data[-1]["time"], int)
+        assert data[-1]["count"] == 1
+
+    def test_conversion_of_release_filter_key(self):
+        result = transform_aliases_and_query(
+            selected_columns=["id", "message"],
+            filter_keys={
+                "release": [self.create_release(self.project).id],
+                "project_id": [self.project.id],
+            },
+        )
+        assert len(result["data"]) == 0
+
+        result = transform_aliases_and_query(
+            selected_columns=["id", "message"],
+            filter_keys={"release": [self.release.id], "project_id": [self.project.id]},
+        )
+        assert len(result["data"]) == 1
+
+    def test_conversion_of_environment_filter_key(self):
+        result = transform_aliases_and_query(
+            selected_columns=["id", "message"],
+            filter_keys={"environment": ["nope"], "project_id": [self.project.id]},
+        )
+        assert len(result["data"]) == 0
+
+        result = transform_aliases_and_query(
+            selected_columns=["id", "message"],
+            filter_keys={"environment": ["nope", "prod"], "project_id": [self.project.id]},
+        )
+        assert len(result["data"]) == 1
+
+
+class TransformAliasesAndQueryTransactionsTest(TestCase):
+    """
+    This test mocks snuba.raw_query because there is currently no
+    way to insert data into the transactions dataset during tests.
+    """
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_selected_columns_aliasing(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
+            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+        }
+        transform_aliases_and_query(
+            selected_columns=["transaction", "transaction.duration"],
+            aggregations=[
+                ["argMax", ["id", "transaction.duration"], "longest"],
+                ["uniq", "transaction", "uniq_transaction"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name", "duration"],
+            aggregations=[
+                ["argMax", ["event_id", "duration"], "longest"],
+                ["uniq", "transaction_name", "uniq_transaction"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset="transactions",
+            arrayjoin=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_conditions_and_groupby_aliasing(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
+            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+        }
+        transform_aliases_and_query(
+            selected_columns=["transaction", "transaction.duration"],
+            conditions=[["transaction.duration", "=", 200], ["time", ">", "2019-09-23"]],
+            groupby=["transaction.op"],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name", "duration"],
+            conditions=[["duration", "=", 200], ["bucketed_start", ">", "2019-09-23"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction_op"],
+            dataset="transactions",
+            arrayjoin=None,
+        )
 
 
 class DetectDatasetTest(TestCase):
@@ -182,12 +335,6 @@ class DetectDatasetTest(TestCase):
         assert detect_dataset(query) == "events"
 
     def test_event_type_condition(self):
-        query = {"conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == "transactions"
-
-        query = {"conditions": [["event.type", "!=", "transaction"]]}
-        assert detect_dataset(query) == "events"
-
         query = {"conditions": [["type", "=", "transaction"]]}
         assert detect_dataset(query) == "transactions"
 
