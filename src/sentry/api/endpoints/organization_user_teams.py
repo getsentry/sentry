@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry.models import Team, TeamStatus
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
-from sentry.models import Team, TeamStatus
+from sentry.auth.superuser import is_active_superuser
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
@@ -17,13 +18,10 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
         ```````````````````````````````````````````
 
         Return a list of the teams available to the authenticated session and
-        with the supplied organization. If the user is a super user, then return
-        all teams within the organization.
-
-        @param string super_user: specify "1" to request as a super user
+        with the supplied organization. If the user is a super user, then all
+        teams within the organization are returned.
         """
-        super_user = request.GET.get("super_user")
-        if super_user is not None and super_user == "1":
+        if is_active_superuser(request):
             # retrieve all teams within the organization
             queryset = Team.objects.filter(
                 organization=organization, status=TeamStatus.VISIBLE
