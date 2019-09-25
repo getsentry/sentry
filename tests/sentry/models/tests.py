@@ -117,31 +117,3 @@ class EventNodeStoreTest(TestCase):
         assert e3_node_id is not None, "We should have generated a node_id for this event"
         e3_body = nodestore.get(e3_node_id)
         assert e3_body == {"foo": "bar"}, "The event body should be in nodestore"
-
-    # def test_screams_bloody_murder_when_ref_fails(self):
-    #     project1 = self.create_project()
-    #     project2 = self.create_project()
-    #     group1 = self.create_group(project1)
-    #     invalid_event = self.create_event(group=group1)
-    #     group2 = self.create_group(project2)
-    #     event = self.create_event(group=group2)
-    #     # event.data.bind_ref(invalid_event)
-    #     event.save()
-
-    #     assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
-
-    #     with pytest.raises(NodeIntegrityFailure):
-    #         Event.objects.bind_nodes([event], "data")
-
-    # def test_accepts_valid_ref(self):
-    #     event = self.create_event()
-    #     # event.data.bind_ref(event)
-    #     event.save()
-
-    #     Event.objects.bind_nodes([event], "data")
-
-    #     assert event.data.ref == event.project.id
-
-    # def test_basic_ref_binding(self):
-    #     event = self.create_event()
-    #     assert event.data.get_ref(event) == event.project.id
