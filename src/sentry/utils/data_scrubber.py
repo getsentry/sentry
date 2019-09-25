@@ -93,12 +93,14 @@ class SensitiveDataFilter(object):
             self.filter_csp(data["csp"])
 
         if data.get("extra"):
-            data["extra"] = varmap(self.sanitize, data["extra"])
+            # pass name=None so blacklisting can't clobber entire section
+            data["extra"] = varmap(self.sanitize, data["extra"], name=None)
 
         if data.get("contexts"):
             for key, value in six.iteritems(data["contexts"]):
                 if value:
-                    data["contexts"][key] = varmap(self.sanitize, value)
+                    # pass name=None so blacklisting can't clobber entire section
+                    data["contexts"][key] = varmap(self.sanitize, value, name=None)
 
     def sanitize(self, key, value):
         if value is None or value == "":
@@ -140,7 +142,8 @@ class SensitiveDataFilter(object):
         for frame in data["frames"]:
             if not frame or not frame.get("vars"):
                 continue
-            frame["vars"] = varmap(self.sanitize, frame["vars"])
+            # pass name=None so blacklisting can't clobber entire section
+            frame["vars"] = varmap(self.sanitize, frame["vars"], name=None)
 
     def filter_http(self, data):
         for n in ("data", "cookies", "headers", "env", "query_string"):
@@ -161,7 +164,7 @@ class SensitiveDataFilter(object):
             else:
                 # Encoded structured data (HTTP bodies, headers) would have
                 # already been decoded by the request interface.
-                data[n] = varmap(self.sanitize, data[n])
+                data[n] = varmap(self.sanitize, data[n], name=n)
 
     def filter_user(self, data):
         if not data.get("data"):
@@ -172,7 +175,7 @@ class SensitiveDataFilter(object):
         for key in "data", "message":
             val = data.get(key)
             if val:
-                data[key] = varmap(self.sanitize, val)
+                data[key] = varmap(self.sanitize, val, name=key)
 
     def filter_csp(self, data):
         for key in "blocked_uri", "document_uri":

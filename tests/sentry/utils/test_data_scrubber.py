@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+from copy import deepcopy
 
 from sentry.constants import FILTER_MASK
 from unittest import TestCase
@@ -411,3 +412,52 @@ class SensitiveDataFilterTest(TestCase):
         proc.apply(data)
 
         assert data["breadcrumbs"]["values"][0]["message"] == FILTER_MASK
+
+    def test_can_whitelist_breadcrumb_field(self):
+        data = {
+            "breadcrumbs": {"values": [{"message": "I'm full of secrets. Shhhhh, don't tell!"}]}
+        }
+        data2 = deepcopy(data)
+
+        # without whitelisting "message", this gets scrubbed, because of the
+        # presence of the word "secret"
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data["breadcrumbs"]["values"][0]["message"] == FILTER_MASK
+
+        # if we whitelist "message," though, the data comes through
+        proc2 = SensitiveDataFilter(exclude_fields=["message"])
+        proc2.apply(data2)
+        assert (
+            data2["breadcrumbs"]["values"][0]["message"]
+            == "I'm full of secrets. Shhhhh, don't tell!"
+        )
+
+    def test_can_whitelist_http_field(self):
+        data = {
+            "request": {
+                # Note: intentionally broken query string to get the filter to act
+                # on the entire value (rather than treat it as an actual query string).
+                # This is in order to show a top-level key getting scrubbed without the
+                # whitelist. (Currently, every value which can get scrubbed in the
+                # request is some sort of nested data structure, and you can't blanket-whitelist
+                # nested data (in case it includes blacklist data), but for future-proofing,
+                # here's a fake non-nested-structure value.)
+                "query_string": "username<equals>maiseythedog<and>password<equals>1L0v3Squ1rr3ls"
+            }
+        }
+        data2 = deepcopy(data)
+
+        # without whitelisting "query_string", this gets scrubbed, because of the
+        # presence of the word "password"
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data["request"]["query_string"] == FILTER_MASK
+
+        # if we whitelist "query_string," though, the data comes through
+        proc2 = SensitiveDataFilter(exclude_fields=["query_string"])
+        proc2.apply(data2)
+        assert (
+            data2["request"]["query_string"]
+            == "username<equals>maiseythedog<and>password<equals>1L0v3Squ1rr3ls"
+        )
