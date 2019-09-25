@@ -169,11 +169,11 @@ const OrganizationContext = createReactClass({
           () => {
             // Take a measurement for when organization details are done loading and the new state is applied
             metric.measure({
-              name: 'app.component.organization-details-fetch',
+              name: 'app.component.perf',
               start: 'organization-details-fetch-start',
               data: {
                 route: getRouteStringFromRoutes(this.props.routes),
-                organization_id: data.id,
+                organization_id: parseInt(data.id, 10),
               },
             });
           }
