@@ -243,6 +243,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
+        is_sample=False,  # TODO: Remove once this is no longer passed
     ):
         super(SnubaEventStream, self).insert(
             group,
