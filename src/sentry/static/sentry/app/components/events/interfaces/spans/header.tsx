@@ -240,7 +240,7 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   };
 
-  renderCustomWindowSelection = (dragProps: DragManagerChildrenProps) => {
+  renderWindowSelection = (dragProps: DragManagerChildrenProps) => {
     if (!dragProps.isWindowSelectionDragging) {
       return null;
     }
@@ -308,7 +308,7 @@ class TraceViewHeader extends React.Component<PropType> {
                     cursorGuideHeight: MINIMAP_HEIGHT,
                   })}
                   {this.renderViewHandles(this.props.dragProps)}
-                  {this.renderCustomWindowSelection(this.props.dragProps)}
+                  {this.renderWindowSelection(this.props.dragProps)}
                 </MinimapContainer>
                 {this.renderTimeAxis({
                   showCursorGuide,
