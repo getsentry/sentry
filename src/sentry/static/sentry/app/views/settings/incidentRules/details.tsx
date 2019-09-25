@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {IncidentRule} from 'app/views/settings/incidentRules/constants';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';

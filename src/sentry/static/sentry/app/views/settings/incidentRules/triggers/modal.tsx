@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {IncidentRule} from 'app/views/settings/incidentRules/constants';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
