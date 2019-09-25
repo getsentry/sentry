@@ -17,6 +17,12 @@ describe('Incident Rules Form', function() {
       />,
       routerContext
     );
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/tags/',
+    body: [],
+  });
+
   describe('Creating a new rule', function() {
     let createRule;
     beforeEach(function() {
