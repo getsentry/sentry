@@ -19,7 +19,7 @@ import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from '
 import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
-export const MINIMAP_SPAN_BAR_HEIGHT = 2;
+export const MINIMAP_SPAN_BAR_HEIGHT = 4;
 const MINIMAP_HEIGHT = 75;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 30;
@@ -31,7 +31,7 @@ type PropType = {
   trace: ParsedTraceType;
 };
 
-class Minimap extends React.Component<PropType> {
+class TraceViewHeader extends React.Component<PropType> {
   renderCursorGuide = ({
     cursorGuideHeight,
     showCursorGuide,
@@ -67,7 +67,9 @@ class Minimap extends React.Component<PropType> {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
-        onMouseDown={onLeftHandleDragStart}
+        onMouseDown={() => {
+          // do nothing
+        }}
         isDragging={false}
       />
     ) : null;
@@ -91,7 +93,9 @@ class Minimap extends React.Component<PropType> {
     const rightHandleGhost = isDragging ? (
       <Handle
         left={viewWindowEnd}
-        onMouseDown={onLeftHandleDragStart}
+        onMouseDown={() => {
+          // do nothing
+        }}
         isDragging={false}
       />
     ) : null;
@@ -236,9 +240,29 @@ class Minimap extends React.Component<PropType> {
     );
   };
 
+  renderWindowSelection = (dragProps: DragManagerChildrenProps) => {
+    if (!dragProps.isWindowSelectionDragging) {
+      return null;
+    }
+
+    const left = Math.min(
+      dragProps.windowSelectionInitial,
+      dragProps.windowSelectionCurrent
+    );
+
+    return (
+      <WindowSelection
+        style={{
+          left: toPercent(left),
+          width: toPercent(dragProps.windowSelectionSize),
+        }}
+      />
+    );
+  };
+
   render() {
     return (
-      <MinimapContainer>
+      <HeaderContainer>
         <ActualMinimap trace={this.props.trace} />
         <CursorGuideHandler.Consumer>
           {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => {
@@ -261,8 +285,22 @@ class Minimap extends React.Component<PropType> {
                 onMouseMove={event => {
                   displayCursorGuide(event.pageX);
                 }}
+                onMouseDown={event => {
+                  const target = event.target;
+
+                  if (
+                    target instanceof Element &&
+                    target.getAttribute &&
+                    target.getAttribute('data-ignore')
+                  ) {
+                    // ignore this event if we need to
+                    return;
+                  }
+
+                  this.props.dragProps.onWindowSelectionDragStart(event);
+                }}
               >
-                <InteractiveLayer>
+                <MinimapContainer>
                   {this.renderFog(this.props.dragProps)}
                   {this.renderCursorGuide({
                     showCursorGuide,
@@ -270,7 +308,8 @@ class Minimap extends React.Component<PropType> {
                     cursorGuideHeight: MINIMAP_HEIGHT,
                   })}
                   {this.renderViewHandles(this.props.dragProps)}
-                </InteractiveLayer>
+                  {this.renderWindowSelection(this.props.dragProps)}
+                </MinimapContainer>
                 {this.renderTimeAxis({
                   showCursorGuide,
                   mouseLeft,
@@ -279,7 +318,7 @@ class Minimap extends React.Component<PropType> {
             );
           }}
         </CursorGuideHandler.Consumer>
-      </MinimapContainer>
+      </HeaderContainer>
     );
   }
 }
@@ -537,7 +576,7 @@ const DurationGuideBox = styled('div')`
   }};
 `;
 
-const MinimapContainer = styled('div')`
+const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
@@ -561,7 +600,7 @@ const MinimapBackground = styled('div')`
   left: 0;
 `;
 
-const InteractiveLayer = styled('div')`
+const MinimapContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   width: 100%;
   position: relative;
@@ -613,9 +652,9 @@ const Fog = styled('div')`
 
 const MinimapSpanBar = styled('div')`
   position: relative;
-  height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
-  min-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
-  max-height: ${MINIMAP_SPAN_BAR_HEIGHT}px;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
   margin: 2px 0;
 
   min-width: 1px;
@@ -668,6 +707,7 @@ const Handle = ({
         />
       </svg>
       <ViewHandle
+        data-ignore="true"
         onMouseDown={onMouseDown}
         isDragging={isDragging}
         style={{
@@ -678,4 +718,13 @@ const Handle = ({
   );
 };
 
-export default Minimap;
+const WindowSelection = styled('div')`
+  position: absolute;
+  top: 0;
+
+  height: ${MINIMAP_HEIGHT}px;
+
+  background-color: rgba(69, 38, 80, 0.1);
+`;
+
+export default TraceViewHeader;
