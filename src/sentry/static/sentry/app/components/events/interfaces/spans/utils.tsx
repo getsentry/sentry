@@ -203,7 +203,11 @@ export const boundsGenerator = (bounds: {
           type: 'TIMESTAMPS_EQUAL',
           start,
           width: 1,
-          isSpanVisibleInView,
+          // a span bar is visible even if they're at the extreme ends of the view selection.
+          // these edge cases are:
+          // start == end == 0, and
+          // start == end == 1
+          isSpanVisibleInView: end >= 0 && start <= 1,
         };
       }
       case TimestampStatus.Reversed: {

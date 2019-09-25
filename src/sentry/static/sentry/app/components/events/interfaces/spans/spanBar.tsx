@@ -22,7 +22,7 @@ import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
-} from './minimap';
+} from './header';
 import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -724,7 +724,7 @@ type SpanRowCellAndDivProps = Omit<
 
 const SpanRowCell = styled('div')<SpanRowCellAndDivProps>`
   position: absolute;
-  padding: ${space(0.5)} 0;
+  padding: ${space(0.5)} 1px;
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
