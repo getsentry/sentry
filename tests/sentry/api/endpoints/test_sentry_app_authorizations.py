@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
@@ -46,7 +46,7 @@ class TestSentryAppAuthorizations(APITestCase):
         return self.client.post(self.url, data, headers={"Content-Type": "application/json"})
 
     def test_exchanges_for_token_successfully(self):
-        expected_expires_at = (datetime.now() + timedelta(hours=8)).replace(second=0, microsecond=0)
+        expected_expires_at = (timezone.now() + timedelta(hours=8)).replace(second=0, microsecond=0)
 
         response = self._run_request()
 
@@ -119,7 +119,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert response.data["token"] != token
         assert response.data["refreshToken"] != refresh_token
-        assert response.data["expiresAt"] > datetime.utcnow()
+        assert response.data["expiresAt"] > timezone.now()
 
         old_token = ApiToken.objects.filter(id=token_id)
         assert not old_token.exists()
