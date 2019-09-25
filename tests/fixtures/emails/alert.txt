@@ -16,11 +16,11 @@ Tags
 
 * browser = Chrome 28.0.1500
 * browser.name = Chrome
-* client_os.name = Windows 8
 * device = Other
 * environment = prod
 * level = error
 * logger = javascript
+* os.name = Windows 8
 * sentry:user = id:1
 * url = http://example.com/foo
 

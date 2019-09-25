@@ -204,6 +204,7 @@ class ActivityMailDebugView(View):
                 "timestamp": data.data["timestamp"],
             }
         )
+        event.group = group
 
         activity = Activity(
             group=event.group, project=event.project, **self.get_activity(request, event)
