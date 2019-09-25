@@ -2,18 +2,18 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import RuleForm from 'app/views/settings/incidentRules/ruleForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import TriggersList from 'app/views/settings/incidentRules/triggers/list';
-
-import {IncidentRule} from './types';
-import RuleForm from './ruleForm';
+import TriggersModal from 'app/views/settings/incidentRules/triggers/modal';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 type State = {
   rule: IncidentRule;
@@ -50,29 +50,18 @@ class IncidentRulesDetails extends AsyncView<
   }
 
   handleNewTrigger = () => {
-    const {organization, projects, params} = this.props;
-    const {orgId} = params;
+    const {organization, projects} = this.props;
+
     openModal(
       () => (
-        <div>
-          <h3>
-            Trigger for:
-            {this.state.rule.name}
-          </h3>
-          <TriggerForm
-            organization={organization}
-            projects={projects || []}
-            orgId={orgId}
-            onSubmitSuccess={this.handleSubmitSuccess}
-          />
-        </div>
+        <TriggersModal
+          organization={organization}
+          projects={projects || []}
+          rule={this.state.rule}
+        />
       ),
       {dialogClassName: widthCss}
     );
-  };
-
-  handleSubmitSuccess = () => {
-    addSuccessMessage(t('Successfully saved Incident Rule'));
   };
 
   renderBody() {
@@ -86,7 +75,6 @@ class IncidentRulesDetails extends AsyncView<
           saveOnBlur={true}
           orgId={orgId}
           incidentRuleId={incidentRuleId}
-          onSubmitSuccess={this.handleSubmitSuccess}
           initialData={this.state.rule}
         />
 
@@ -111,7 +99,7 @@ class IncidentRulesDetails extends AsyncView<
   }
 }
 
-export default IncidentRulesDetails;
+export default withProjects(withOrganization(IncidentRulesDetails));
 
 const TriggersHeader = styled(SettingsPageHeader)`
   margin: 0;

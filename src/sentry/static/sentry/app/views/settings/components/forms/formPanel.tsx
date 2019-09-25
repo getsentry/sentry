@@ -59,7 +59,7 @@ export default class FormPanel extends React.Component<Props> {
 
     return (
       <Panel key={title} id={sanitizeQuerySelector(title)}>
-        <PanelHeader>{title}</PanelHeader>
+        {title && <PanelHeader>{title}</PanelHeader>}
         <PanelBody>
           {typeof renderHeader === 'function' && renderHeader({title, fields})}
 
