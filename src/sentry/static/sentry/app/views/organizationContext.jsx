@@ -25,6 +25,8 @@ import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
 import withOrganizations from 'app/utils/withOrganizations';
+import {metric} from 'app/utils/analytics';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 const ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
@@ -121,6 +123,7 @@ const OrganizationContext = createReactClass({
       return;
     }
 
+    metric.mark('organization-details-fetch-start');
     const promises = [
       this.props.api.requestPromise(this.getOrganizationDetailsEndpoint()),
       fetchOrganizationEnvironments(this.props.api, this.getOrganizationSlug()),
@@ -155,14 +158,26 @@ const OrganizationContext = createReactClass({
           GlobalSelectionStore.loadInitialData(data, this.props.location.query);
         }
         OrganizationEnvironmentsStore.loadInitialData(environments);
-
-        this.setState({
-          organization: data,
-          loading: false,
-          error: false,
-          errorType: null,
-          hooks,
-        });
+        this.setState(
+          {
+            organization: data,
+            loading: false,
+            error: false,
+            errorType: null,
+            hooks,
+          },
+          () => {
+            // Take a measurement for when organization details are done loading and the new state is applied
+            metric.measure({
+              name: 'app.component.perf',
+              start: 'organization-details-fetch-start',
+              data: {
+                route: getRouteStringFromRoutes(this.props.routes),
+                organization_id: parseInt(data.id, 10),
+              },
+            });
+          }
+        );
       })
       .catch(err => {
         let errorType = null;
