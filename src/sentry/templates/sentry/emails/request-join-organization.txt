@@ -2,7 +2,7 @@ Request for Access
 
 {{ email }} is requesting to join the {{ organization.name }} organization.
 
-You can accept or decline this request by clicking the link below:
+View access requests by clicking the link below:
 
     {{ pending_requests_link }}
 
