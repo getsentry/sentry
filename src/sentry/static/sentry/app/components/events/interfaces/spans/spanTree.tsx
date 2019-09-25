@@ -40,6 +40,8 @@ class SpanTree extends React.Component<PropType> {
 
   renderSpan = ({
     spanNumber,
+    siblingNumber,
+    siblingCount,
     treeDepth,
     numOfHiddenSpansAbove,
     childSpans,
@@ -48,13 +50,15 @@ class SpanTree extends React.Component<PropType> {
   }: {
     spanNumber: number;
     treeDepth: number;
+    isLast?: boolean;
+    siblingNumber: number;
+    siblingCount: number;
     numOfHiddenSpansAbove: number;
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   }): RenderedSpanTree => {
     const spanBarColour: string = pickSpanBarColour(span.op);
-
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
     const bounds = generateBounds({
@@ -71,11 +75,13 @@ class SpanTree extends React.Component<PropType> {
     };
 
     const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild) => {
+      (acc: AccType, spanChild, index) => {
         const key = `${span.trace_id}${spanChild.span_id}`;
 
         const results = this.renderSpan({
           spanNumber: acc.nextSpanNumber,
+          siblingNumber: index + 1,
+          siblingCount: spanChildren.length,
           treeDepth: treeDepth + 1,
           numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
           span: spanChild,
@@ -118,6 +124,7 @@ class SpanTree extends React.Component<PropType> {
           {hiddenSpansMessage}
           <SpanGroup
             spanNumber={spanNumber}
+            isLast={siblingNumber === siblingCount}
             span={span}
             trace={this.props.trace}
             generateBounds={generateBounds}
@@ -152,6 +159,8 @@ class SpanTree extends React.Component<PropType> {
 
     return this.renderSpan({
       spanNumber: 1,
+      siblingNumber: 1,
+      siblingCount: 1,
       treeDepth: 0,
       numOfHiddenSpansAbove: 0,
       span: rootSpan,

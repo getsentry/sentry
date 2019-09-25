@@ -170,6 +170,7 @@ type SpanBarProps = {
   showSpanTree: boolean;
   numOfSpanChildren: number;
   spanNumber: number;
+  isLast?: boolean;
   toggleSpanTree: () => void;
 };
 
@@ -267,7 +268,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren} = this.props;
+    const {numOfSpanChildren, isLast} = this.props;
 
     const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
     const chevron = <Chevron src={chevronSrc} />;
@@ -275,14 +276,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (numOfSpanChildren <= 0) {
       return (
         <SpanTreeTogglerContainer style={{left: `${left}px`}}>
-          <SpanTreeConnector />
+          <SpanTreeConnector isLast={isLast} />
         </SpanTreeTogglerContainer>
       );
     }
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler={true}>
-        <SpanTreeConnector hasToggler={true} />
+        <SpanTreeConnector hasToggler={true} isLast={isLast} />
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -800,6 +801,7 @@ const SpanBarTitle = styled('div')`
 
 type TogglerTypes = OmitHtmlProps<{
   hasToggler?: boolean;
+  isLast?: boolean;
 }>;
 
 const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
@@ -813,11 +815,11 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   justify-content: flex-end;
 `;
 
-// one-off to get the heirarchy perfect
+// one-off to get the perfect heirarchy
 const spanTreeColor = '#D5CEDB';
 
 const SpanTreeConnector = styled('div')<TogglerTypes>`
-  height: 175%;
+  height: ${p => (p.isLast ? '85%' : '175%')};
   border-left: 1px solid ${spanTreeColor};
   position: absolute;
   left: 4px;
@@ -828,7 +830,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     width: ${p => (p.hasToggler ? '3px' : '8px')};
     position: absolute;
     height: 1px;
-    top: 50%;
+    top: ${p => (p.isLast ? '100%' : '50%')};
     transform: translateY(-50%);
     background: ${spanTreeColor};
   }
@@ -839,9 +841,9 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     height: 4px;
     border-radius: 50%;
     /* border radius stops working at 3px */
-    transform: scale(0.6) translateY(-100%);
+    transform: scale(0.5) translateY(-100%);
     left: ${p => (p.hasToggler ? '1px' : '6px')};
-    top: 50%;
+    top: ${p => (p.isLast ? '100%' : '50%')};
     position: absolute;
     background: ${spanTreeColor};
   }
