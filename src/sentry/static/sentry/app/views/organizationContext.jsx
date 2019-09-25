@@ -172,6 +172,7 @@ const OrganizationContext = createReactClass({
               name: 'app.component.perf',
               start: 'organization-details-fetch-start',
               data: {
+                name: 'org-details',
                 route: getRouteStringFromRoutes(this.props.routes),
                 organization_id: parseInt(data.id, 10),
               },
