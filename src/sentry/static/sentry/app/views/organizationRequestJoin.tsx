@@ -23,12 +23,19 @@ class OrganizationRequestJoin extends React.Component<Props, State> {
     submitSuccess: null,
   };
 
-  handleSubmitError = () => {
-    addErrorMessage(t('Request to join failed'));
-  };
-
   handleSubmitSuccess = () => {
     this.setState({submitSuccess: true});
+  };
+
+  handleSubmitError() {
+    addErrorMessage(t('Request to join failed'));
+  }
+
+  handleCancel = e => {
+    e.preventDefault();
+
+    const {orgId} = this.props.params;
+    window.location.href = `/auth/login/${orgId}/`;
   };
 
   render() {
@@ -57,6 +64,7 @@ class OrganizationRequestJoin extends React.Component<Props, State> {
               submitLabel={t('Request to Join')}
               onSubmitSuccess={this.handleSubmitSuccess}
               onSubmitError={this.handleSubmitError}
+              onCancel={this.handleCancel}
             >
               <StyledEmailField
                 name="email"
