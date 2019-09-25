@@ -80,11 +80,11 @@ class SnubaProtocolEventStream(EventStream):
         group,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
+        is_sample=False,  # TODO: Remove once this is no longer passed
     ):
         project = event.project
         retention_days = quotas.get_event_retention(organization=project.organization)
@@ -121,7 +121,6 @@ class SnubaProtocolEventStream(EventStream):
                 },
                 {
                     "is_new": is_new,
-                    "is_sample": is_sample,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                     "skip_consume": skip_consume,
@@ -240,7 +239,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         group,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
@@ -250,18 +248,11 @@ class SnubaEventStream(SnubaProtocolEventStream):
             group,
             event,
             is_new,
-            is_sample,
             is_regression,
             is_new_group_environment,
             primary_hash,
             skip_consume,
         )
         self._dispatch_post_process_group_task(
-            event,
-            is_new,
-            is_sample,
-            is_regression,
-            is_new_group_environment,
-            primary_hash,
-            skip_consume,
+            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
         )
