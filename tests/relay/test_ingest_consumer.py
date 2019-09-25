@@ -8,7 +8,7 @@ import msgpack
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
+from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 from sentry.models.event import Event
 from sentry.testutils.factories import Factories
 from django.conf import settings

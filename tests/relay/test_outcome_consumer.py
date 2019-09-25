@@ -5,7 +5,7 @@ import time
 import pytest
 import six.moves
 
-from sentry.outcome_consumer import run_outcomes_consumer
+from sentry.ingest.outcome_consumer import run_outcomes_consumer
 from sentry.signals import event_filtered, event_dropped
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome, mark_outcome_signal_sent

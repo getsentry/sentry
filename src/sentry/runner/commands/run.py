@@ -394,7 +394,7 @@ def ingest_consumer(**options):
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
+    from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 
     consumer_type = options["consumer_type"]
     if consumer_type == "events":
@@ -415,10 +415,10 @@ def ingest_consumer(**options):
     )
 
 
-@run.command("outcome-consumer")
+@run.command("outcomes-consumer")
 @log_options()
 @click.option(
-    "--group", default="outcome-consumer", help="Kafka consumer group for the outcome consumer. "
+    "--group", default="outcomes-consumer", help="Kafka consumer group for the outcomes consumer. "
 )
 @click.option(
     "--commit-batch-size",
@@ -442,14 +442,12 @@ def ingest_consumer(**options):
 @configuration
 def outcome_consumer(**options):
     """
-    Runs an "outcome consumer" task.
+    Runs an "outcomes consumer" task.
 
-    The "outcome consumer" tasks read outcomes from a kafka topic and sends signals for them.
-
-    Note: only outcomes coming from Relay should be processed ( a mechanism for differentiating between
-    outcomes coming from sentry and outcomes coming from Relay is implemented)
+    The "outcomes consumer" tasks read outcomes from a kafka topic and sends
+    signals for some of them.
     """
-    from sentry.outcome_consumer import run_outcomes_consumer
+    from sentry.ingest.outcome_consumer import run_outcomes_consumer
 
     max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
 

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from datetime import datetime
 from django.conf import settings
-from django.core.cache import cache
 from enum import IntEnum
 import random
 import six
@@ -27,40 +26,6 @@ class Outcome(IntEnum):
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
-
-
-def _get_outcome_cache_key(project_id, event_id):
-    return "otcm_{}_{}".format(project_id, event_id)
-
-
-def mark_outcome_signal_sent(project_id, event_id):
-    """
-    Remembers that an outcome was sent on the kafka queue
-
-    Sets a boolean flag to remember (for one hour) that an outcome for a particular
-    eventId (in a project) was sent. This is used by the outcomes consumer in order
-    not to process events coming from the sentry itself (just events coming from
-    Relay).
-
-    For the long explanation see sentry.outcome_consumer module documentation
-
-
-    :param project_id:
-    :param event_id:
-    :return:
-    """
-    key = _get_outcome_cache_key(project_id, event_id)
-    cache.set(key, True, 3600)
-
-
-def is_outcome_signal_sent(project_id, event_id):
-    """
-    Checks the cache if an outcome was sent on the kafka queue via track_outcome
-
-    :return:
-    """
-    key = _get_outcome_cache_key(project_id, event_id)
-    return cache.get(key, None) is not None
 
 
 def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
@@ -139,8 +104,6 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
                 }
             ),
         )
-        # outcomes originating in Sentry (sent by this function)
-        mark_outcome_signal_sent(project_id=project_id, event_id=event_id)
 
     metrics.incr(
         "events.outcomes",

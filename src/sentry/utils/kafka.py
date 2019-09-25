@@ -9,6 +9,8 @@ import six
 import confluent_kafka as kafka
 from django.conf import settings
 
+from sentry.utils.safe import safe_execute
+
 logger = logging.getLogger(__name__)
 
 
@@ -137,20 +139,13 @@ class SimpleKafkaConsumer(object):
                     message_error = message.error()
                     if message_error is not None:
                         logger.error(
-                            "Received message with error on %s, error:'%s'",
-                            self.topic_name,
-                            message_error,
+                            "Received message with error on %s: %s", self.topic_name, message_error
                         )
                         raise ValueError(
                             "Bad message received from consumer", self.topic_name, message_error
                         )
 
-                    try:
-                        self.process_message(message)
-                    except Exception:
-                        logger.exception(
-                            "Error in {} processing message.".format(self.__class__.__name__)
-                        )
+                    safe_execute(self.process_message, message, _with_transaction=False)
 
                 if len(messages) > 0:
                     # we have read some messages in the previous consume, commit the offset

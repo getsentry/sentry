@@ -20,14 +20,41 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.models.project import Project
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import SimpleKafkaConsumer
 from sentry.utils import json
-from sentry.utils.outcomes import is_outcome_signal_sent, mark_outcome_signal_sent, Outcome
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
+
+
+def _get_signal_cache_key(project_id, event_id):
+    return "signal:{}:{}".format(project_id, event_id)
+
+
+def mark_signal_sent(project_id, event_id):
+    """
+    Remembers that a signal was emitted.
+
+    Sets a boolean flag to remember (for one hour) that a signal for a
+    particular event id (in a project) was sent. This is used by the signals
+    forwarder to avoid double-emission.
+
+    :param project_id: :param event_id: :return:
+    """
+    key = _get_signal_cache_key(project_id, event_id)
+    cache.set(key, True, 3600)
+
+
+def is_signal_sent(project_id, event_id):
+    """
+    Checks a signal was sent previously.
+    """
+    key = _get_signal_cache_key(project_id, event_id)
+    return cache.get(key, None) is not None
 
 
 class OutcomesConsumer(SimpleKafkaConsumer):
@@ -35,39 +62,35 @@ class OutcomesConsumer(SimpleKafkaConsumer):
         msg = json.loads(message.value())
 
         project_id = int(msg.get("project_id", 0))
-
         if project_id == 0:
-            return  # no project
+            return  # no project. this is valid, so ignore silently.
 
         event_id = msg.get("event_id")
-
-        if is_outcome_signal_sent(project_id=project_id, event_id=event_id):
+        if is_signal_sent(project_id=project_id, event_id=event_id):
             return  # message already processed nothing left to do
 
         outcome = int(msg.get("outcome", -1))
+        if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
+            return  # nothing to do here
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            logger.error("OutcomesConsumer could not find project with id: %s", project_id)
+            return
+
         reason = msg.get("reason")
         remote_addr = msg.get("remote_addr")
 
-        if outcome == Outcome.FILTERED or outcome == Outcome.RATE_LIMITED:
-            # try to get the project
-            try:
-                project = Project.objects.get_from_cache(id=project_id)
-            except Project.DoesNotExist:
-                logger.error("OutcomeConsumer could not find project with id: %s", project_id)
-                return
-
-            if outcome == Outcome.FILTERED:
-                event_filtered.send_robust(
-                    ip=remote_addr, project=project, sender=self.process_message
-                )
-
-            elif outcome == Outcome.RATE_LIMITED:
-                event_dropped.send_robust(
-                    ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
-                )
+        if outcome == Outcome.FILTERED:
+            event_filtered.send_robust(ip=remote_addr, project=project, sender=self.process_message)
+        elif outcome == Outcome.RATE_LIMITED:
+            event_dropped.send_robust(
+                ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
+            )
 
         # remember that we sent the signal just in case the processor dies before
-        mark_outcome_signal_sent(project_id=project_id, event_id=event_id)
+        mark_signal_sent(project_id=project_id, event_id=event_id)
 
 
 def run_outcomes_consumer(
