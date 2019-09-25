@@ -438,7 +438,7 @@ class EventManager(object):
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            node_data=node_data,
+            data=node_data,
             time_spent=time_spent,
             datetime=date,
             platform=platform,

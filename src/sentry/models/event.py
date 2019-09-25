@@ -620,12 +620,11 @@ class Event(EventCommon, Model):
     __repr__ = sane_repr("project_id", "group_id")
 
     def __init__(self, *args, **kwargs):
-        node_data = kwargs.pop("node_data", None)
         data = kwargs.pop("data", None)
         super(Event, self).__init__(*args, **kwargs)
 
-        if node_data:
-            self.data = node_data
+        if isinstance(data, NodeData):
+            self.data = data
         else:
             node_id = Event.generate_node_id(self.project_id, self.event_id)
             self.data = NodeData(None, node_id, data=data, wrapper=EventDict)
