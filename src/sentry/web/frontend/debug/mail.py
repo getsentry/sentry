@@ -201,6 +201,7 @@ class ActivityMailDebugView(View):
                 "event_id": 1,
                 "message": event_manager.get_search_message(),
                 "data": data.data,
+                "timestamp": data.data["timestamp"],
             }
         )
 
