@@ -5,10 +5,10 @@ import time
 import pytest
 import six.moves
 
-from sentry.ingest.outcome_consumer import run_outcomes_consumer
+from sentry.ingest.outcomes_consumer import run_outcomes_consumer, mark_signal_sent
 from sentry.signals import event_filtered, event_dropped
 from sentry.testutils.factories import Factories
-from sentry.utils.outcomes import Outcome, mark_outcome_signal_sent
+from sentry.utils.outcomes import Outcome
 from django.conf import settings
 from sentry.utils import json
 
@@ -111,7 +111,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
             remote_addr="127.33.44.{}".format(i),
         )
         # pretend that we have already processed this outcome before
-        mark_outcome_signal_sent(project_id=project_id, event_id=_get_event_id(i))
+        mark_signal_sent(project_id=project_id, event_id=_get_event_id(i))
         # put the outcome on the kafka topic
         producer.produce(topic_name, msg)
 
