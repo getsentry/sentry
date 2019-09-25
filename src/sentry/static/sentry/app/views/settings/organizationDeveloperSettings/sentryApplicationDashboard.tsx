@@ -1,12 +1,26 @@
 import React from 'react';
+import styled from 'react-emotion';
+import {Flex} from 'grid-emotion';
+
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import {Panel, PanelHeader} from 'app/components/panels';
 
+import space from 'app/styles/space';
 import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
 import {SentryApp} from 'app/types';
+
+const StatsSection = styled('div')`
+  margin-right: ${space(2)};
+`;
+const StatsHeader = styled('h6')`
+  margin-bottom: ${space(1)};
+  font-size: 12px;
+  text-transform: uppercase;
+  color: ${p => p.theme.gray3};
+`;
 
 type Props = AsyncView['props'] & {
   route: {
@@ -52,10 +66,16 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   renderInstallData() {
     const {total_uninstalls, total_installs} = this.state.stats;
     return (
-      <Panel>
-        <div>{`Total Installs: ${total_installs}`}</div>
-        <div>{`Total Uninstalls: ${total_uninstalls}`}</div>
-      </Panel>
+      <Flex>
+        <StatsSection>
+          <StatsHeader>{t('Total installs')}</StatsHeader>
+          <p>{total_installs}</p>
+        </StatsSection>
+        <StatsSection>
+          <StatsHeader>{t('Total uninstalls')}</StatsHeader>
+          <p>{total_uninstalls}</p>
+        </StatsSection>
+      </Flex>
     );
   }
 
