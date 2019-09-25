@@ -187,7 +187,7 @@ class OrganizationMember(Model):
         return uuid4().hex + uuid4().hex
 
     def get_invite_link(self):
-        if not self.is_pending:
+        if not self.is_pending or not self.invite_approved:
             return None
         return absolute_uri(
             reverse(
