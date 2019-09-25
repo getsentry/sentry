@@ -13,7 +13,7 @@ from django.conf import settings
 from django.utils import timezone
 from mock import patch, Mock
 
-from sentry import tagstore
+from sentry import nodestore, tagstore
 from sentry.tagstore.models import GroupTagValue
 from sentry.app import tsdb
 from sentry.models import (
@@ -206,7 +206,12 @@ class UnmergeTestCase(TestCase):
                 event_id=event_id,
                 message="%s" % (id,),
                 datetime=now + shift(i),
-                data={
+            )
+
+            node_id = Event.generate_node_id(project.id, event_id)
+            nodestore.set(
+                node_id,
+                {
                     "environment": environment,
                     "type": "default",
                     "metadata": {"title": template % parameters},
