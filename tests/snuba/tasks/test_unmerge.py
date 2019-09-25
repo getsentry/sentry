@@ -11,7 +11,7 @@ import pytz
 
 from mock import patch
 
-from sentry import eventstream, tagstore
+from sentry import eventstream
 from sentry.app import tsdb
 from sentry.models import Environment, Event, Group, GroupHash, GroupRelease, Release, UserReport
 from sentry.similarity import features, _make_index_backend
@@ -28,6 +28,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils import redis
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.tasks.merge import merge_groups
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 from six.moves import xrange
 
@@ -152,6 +153,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_unmerge(self):
+        tagstore = SnubaTagStorage()  # Snuba is not the default tag storage for tests yet
         now = before_now(seconds=20).replace(microsecond=0, tzinfo=pytz.utc)
 
         def time_from_now(offset=0):
