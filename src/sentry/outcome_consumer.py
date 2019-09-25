@@ -3,7 +3,7 @@ The OutcomeConsumer is a task that runs a loop in which it reads outcome message
 processes them.
 
 Long Story: Event outcomes are placed on the same Kafka event queue by both Sentry and Relay.
-When relay generates an outcome for a message it also sends a signal ( a Django signal) that
+When Sentry generates an outcome for a message it also sends a signal ( a Django signal) that
 is used by getSentry for internal accounting.
 
 Relay (running as a Rust process) cannot send django signals so in order to get outcome signals sent from
@@ -34,11 +34,10 @@ class OutcomesConsumer(SimpleKafkaConsumer):
     def process_message(self, message):
         msg = json.loads(message.value())
 
-        project_id = msg.get("project_id")
+        project_id = int(msg.get("project_id", 0))
 
-        if not project_id:
+        if project_id == 0:
             return  # no project
-        project_id = int(project_id)
 
         event_id = msg.get("event_id")
 
@@ -54,6 +53,7 @@ class OutcomesConsumer(SimpleKafkaConsumer):
             try:
                 project = Project.objects.get_from_cache(id=project_id)
             except Project.DoesNotExist:
+                logger.error("OutcomeConsumer could not find project with id: %s", project_id)
                 return
 
             if outcome == Outcome.FILTERED:
@@ -95,7 +95,7 @@ def run_outcomes_consumer(
     logger.debug("Starting outcomes-consumer...")
     topic_name = settings.KAFKA_OUTCOMES
 
-    ingest_consumer = OutcomesConsumer(
+    outcomes_consumer = OutcomesConsumer(
         commit_batch_size=commit_batch_size,
         consumer_group=consumer_group,
         topic_name=topic_name,
@@ -103,6 +103,6 @@ def run_outcomes_consumer(
         initial_offset_reset=initial_offset_reset,
     )
 
-    ingest_consumer.run(is_shutdown_requested)
+    outcomes_consumer.run(is_shutdown_requested)
 
     logger.debug("outcomes-consumer terminated.")
