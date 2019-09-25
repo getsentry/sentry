@@ -18,15 +18,17 @@ describe('Incident Rules Form', function() {
       routerContext
     );
 
+  beforeEach(function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+  });
+
   describe('Creating a new rule', function() {
     let createRule;
     beforeEach(function() {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
-
       createRule = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/alert-rules/',
         method: 'POST',
@@ -97,7 +99,6 @@ describe('Incident Rules Form', function() {
     const rule = TestStubs.IncidentRule();
 
     beforeEach(function() {
-      MockApiClient.clearMockResponses();
       editRule = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/`,
         method: 'PUT',
