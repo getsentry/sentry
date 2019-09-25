@@ -42,6 +42,7 @@ class SpanTree extends React.Component<PropType> {
     spanNumber,
     siblingNumber,
     siblingCount,
+    isRoot,
     treeDepth,
     numOfHiddenSpansAbove,
     childSpans,
@@ -53,6 +54,7 @@ class SpanTree extends React.Component<PropType> {
     isLast?: boolean;
     siblingNumber: number;
     siblingCount: number;
+    isRoot?: boolean;
     numOfHiddenSpansAbove: number;
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
@@ -125,6 +127,7 @@ class SpanTree extends React.Component<PropType> {
           <SpanGroup
             spanNumber={spanNumber}
             isLast={siblingNumber === siblingCount}
+            isRoot={isRoot}
             span={span}
             trace={this.props.trace}
             generateBounds={generateBounds}
@@ -158,6 +161,7 @@ class SpanTree extends React.Component<PropType> {
     });
 
     return this.renderSpan({
+      isRoot: true,
       spanNumber: 1,
       siblingNumber: 1,
       siblingCount: 1,

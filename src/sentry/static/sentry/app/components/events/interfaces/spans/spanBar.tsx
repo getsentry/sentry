@@ -171,6 +171,7 @@ type SpanBarProps = {
   numOfSpanChildren: number;
   spanNumber: number;
   isLast?: boolean;
+  isRoot?: boolean;
   toggleSpanTree: () => void;
 };
 
@@ -268,7 +269,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren, isLast} = this.props;
+    const {numOfSpanChildren, isLast, isRoot} = this.props;
 
     const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
     const chevron = <Chevron src={chevronSrc} />;
@@ -276,14 +277,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (numOfSpanChildren <= 0) {
       return (
         <SpanTreeTogglerContainer style={{left: `${left}px`}}>
-          <SpanTreeConnector isLast={isLast} />
+          {!isRoot && <SpanTreeConnector isLast={isLast} />}
         </SpanTreeTogglerContainer>
       );
     }
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler={true}>
-        <SpanTreeConnector hasToggler={true} isLast={isLast} />
+        {!isRoot && <SpanTreeConnector hasToggler={true} isLast={isLast} />}
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}
           onClick={event => {

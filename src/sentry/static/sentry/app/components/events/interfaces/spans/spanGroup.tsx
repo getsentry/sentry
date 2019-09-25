@@ -14,6 +14,7 @@ type PropType = {
   spanBarColour: string;
   spanNumber: number;
   isLast: boolean;
+  isRoot?: boolean;
 };
 
 type State = {
@@ -48,6 +49,7 @@ class SpanGroup extends React.Component<PropType, State> {
       numOfSpanChildren,
       trace,
       isLast,
+      isRoot,
       generateBounds,
       treeDepth,
       spanNumber,
@@ -66,6 +68,7 @@ class SpanGroup extends React.Component<PropType, State> {
           treeDepth={treeDepth}
           spanNumber={spanNumber}
           isLast={isLast}
+          isRoot={isRoot}
         />
         {this.renderSpanChildren()}
       </React.Fragment>
