@@ -22,7 +22,6 @@ class RequestJoinSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
 
 
-# TODO: where should this go?
 def request_join_organization(organization, email, ip_address=None):
     # users can already join organizations with SSO enabled without an invite
     # so no need to allow requests to join as well
