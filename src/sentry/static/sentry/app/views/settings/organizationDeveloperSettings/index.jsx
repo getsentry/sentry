@@ -42,6 +42,7 @@ class OrganizationDeveloperSettings extends AsyncView {
         organization={organization}
         onRemoveApp={this.removeApp}
         showInstallationStatus={false}
+        showAppDashboardLink={app.status === 'published'}
       />
     );
   };

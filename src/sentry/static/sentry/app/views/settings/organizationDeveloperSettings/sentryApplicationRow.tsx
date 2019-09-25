@@ -32,6 +32,7 @@ type Props = {
   onUninstall?: (install: SentryAppInstallation) => void;
   onRemoveApp?: (app: SentryApp) => void;
   showInstallationStatus: boolean;
+  showAppDashboardLink?: boolean;
   ['data-test-id']?: string;
 };
 
@@ -44,6 +45,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
     showInstallationStatus: PropTypes.bool, //false if we are on the developer settings page where we don't show installation status
+    showAppDashboardLink: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -75,6 +77,20 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     return <Button disabled title={t(message)} size="small" icon="icon-trash" />;
   }
 
+  renderAppDashboardLink() {
+    const {app, organization} = this.props;
+
+    return (
+      <StyledButton
+        size="small"
+        icon="icon-stats"
+        to={`/settings/${organization.slug}/developer-settings/${app.slug}/dashboard`}
+      >
+        {t('Dashboard')}
+      </StyledButton>
+    );
+  }
+
   renderUnpublishedNonAdminButtons() {
     return (
       <ButtonHolder>
@@ -91,6 +107,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
   renderPublishedAppButtons() {
     return (
       <ButtonHolder>
+        {this.props.showAppDashboardLink && this.renderAppDashboardLink()}
         {this.renderDisabledPublishRequestButton(
           'Published integrations cannot be re-published.'
         )}
