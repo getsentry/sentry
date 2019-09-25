@@ -17,7 +17,7 @@ import {
   AlertRuleThreshold,
   AlertRuleThresholdType,
   IncidentRule,
-  TimeWindow,
+  Trigger,
 } from '../types';
 
 type AlertRuleThresholdKey = {
@@ -25,21 +25,18 @@ type AlertRuleThresholdKey = {
   [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
 };
 
-const DEFAULT_TIME_WINDOW = 60;
-
 type Props = {
   api: Client;
   config: Config;
   organization: Organization;
   projects: Project[];
-  initialData?: IncidentRule;
   rule: IncidentRule;
+  trigger?: Trigger;
 };
 
 type State = {
   width?: number;
   isInverted: boolean;
-  timeWindow: number;
   alertThreshold: number | null;
   resolveThreshold: number | null;
   maxThreshold: number | null;
@@ -53,20 +50,15 @@ class TriggerForm extends React.Component<Props, State> {
   static defaultProps = {};
 
   state = {
-    isInverted: this.props.initialData
-      ? this.props.initialData.thresholdType === AlertRuleThresholdType.BELOW
+    isInverted: this.props.trigger
+      ? this.props.trigger.thresholdType === AlertRuleThresholdType.BELOW
       : false,
-    timeWindow: this.props.initialData
-      ? this.props.initialData.timeWindow
-      : DEFAULT_TIME_WINDOW,
-    alertThreshold: this.props.initialData ? this.props.initialData.alertThreshold : null,
-    resolveThreshold: this.props.initialData
-      ? this.props.initialData.resolveThreshold
-      : null,
-    maxThreshold: this.props.initialData
+    alertThreshold: this.props.trigger ? this.props.trigger.alertThreshold : null,
+    resolveThreshold: this.props.trigger ? this.props.trigger.resolveThreshold : null,
+    maxThreshold: this.props.trigger
       ? Math.max(
-          this.props.initialData.alertThreshold,
-          this.props.initialData.resolveThreshold
+          this.props.trigger.alertThreshold,
+          this.props.trigger.resolveThreshold
         ) || null
       : null,
   };
@@ -182,10 +174,6 @@ class TriggerForm extends React.Component<Props, State> {
     this.updateThreshold(AlertRuleThreshold.RESOLUTION, value);
   };
 
-  handleTimeWindowChange = (timeWindow: TimeWindow) => {
-    this.setState({timeWindow});
-  };
-
   /**
    * Changes the threshold type (i.e. if thresholds are inverted or not)
    */
@@ -209,7 +197,7 @@ class TriggerForm extends React.Component<Props, State> {
 
   render() {
     const {api, config, organization, projects, rule} = this.props;
-    const {alertThreshold, resolveThreshold, isInverted, timeWindow} = this.state;
+    const {alertThreshold, resolveThreshold, isInverted} = this.state;
 
     return (
       <React.Fragment>
@@ -224,14 +212,14 @@ class TriggerForm extends React.Component<Props, State> {
               isInverted={isInverted}
               alertThreshold={alertThreshold}
               resolveThreshold={resolveThreshold}
-              timeWindow={timeWindow}
+              timeWindow={rule.timeWindow}
               onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
               onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
             />
           )}
           fields={[
             {
-              name: 'name',
+              name: 'label',
               type: 'text',
               label: t('Label'),
               help: t('This will prefix alerts created by this trigger'),
@@ -278,34 +266,32 @@ class TriggerForm extends React.Component<Props, State> {
 }
 
 type TriggerFormContainerProps = {
-  initialData?: IncidentRule;
   orgId: string;
-  incidentRuleId?: string;
   onSubmitSuccess?: Function;
 } & React.ComponentProps<typeof TriggerForm>;
 
 function TriggerFormContainer({
   orgId,
-  incidentRuleId,
-  initialData,
   onSubmitSuccess,
+  rule,
+  trigger,
   ...props
 }: TriggerFormContainerProps) {
   return (
     <Form
-      apiMethod={incidentRuleId ? 'PUT' : 'POST'}
-      apiEndpoint={`/organizations/${orgId}/alert-rules/${
-        incidentRuleId ? `${incidentRuleId}/` : ''
+      apiMethod={trigger ? 'PUT' : 'POST'}
+      apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers${
+        trigger ? `/${trigger.id}` : ''
       }`}
       initialData={{
         thresholdType: AlertRuleThresholdType.ABOVE,
-        timeWindow: DEFAULT_TIME_WINDOW,
-        ...initialData,
+        ...trigger,
       }}
       saveOnBlur={false}
       onSubmitSuccess={onSubmitSuccess}
+      submitLabel={trigger ? t('Update Trigger') : t('Create Trigger')}
     >
-      <TriggerForm initialData={initialData} {...props} />
+      <TriggerForm rule={rule} trigger={trigger} {...props} />
     </Form>
   );
 }
