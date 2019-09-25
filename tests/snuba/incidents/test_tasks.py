@@ -9,7 +9,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.incidents.logic import create_alert_rule
+from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -52,7 +52,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
             resolve_threshold=10,
             threshold_period=1,
         )
+        create_alert_rule_trigger(
+            rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
+        )
         return rule
+
+    @fixture
+    def trigger(self):
+        return self.rule.alertruletrigger_set.get()
 
     @fixture
     def producer(self):
@@ -88,7 +95,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {value_name: self.rule.alert_threshold + 1},
+                "values": {value_name: self.trigger.alert_threshold + 1},
                 "timestamp": 1235,
                 "interval": 5,
                 "partition": 50,

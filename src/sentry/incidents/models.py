@@ -118,6 +118,7 @@ class Incident(Model):
         app_label = "sentry"
         db_table = "sentry_incident"
         unique_together = (("organization", "identifier"),)
+        index_together = (("alert_rule", "type", "status"),)
 
     @property
     def current_end_date(self):
@@ -318,6 +319,25 @@ class AlertRule(Model):
         unique_together = (("organization", "name"),)
 
 
+class TriggerStatus(Enum):
+    ACTIVE = 0
+    RESOLVED = 1
+
+
+class IncidentTrigger(Model):
+    __core__ = True
+
+    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
+    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
+    status = models.SmallIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_incidenttrigger"
+        unique_together = (("incident", "alert_rule_trigger"),)
+
+
 class AlertRuleTrigger(Model):
     __core__ = True
 
@@ -326,6 +346,9 @@ class AlertRuleTrigger(Model):
     threshold_type = models.SmallIntegerField()
     alert_threshold = models.IntegerField()
     resolve_threshold = models.IntegerField(null=True)
+    triggered_incidents = models.ManyToManyField(
+        "sentry.Incident", related_name="triggers", through=IncidentTrigger
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
