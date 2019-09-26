@@ -38,14 +38,14 @@ class NodeData(collections.MutableMapping):
         data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, field, id, data=None, wrapper=None):
+    def __init__(self, field, id, data=None, wrapper=None, ref_version=None):
         self.field = field
         self.id = id
         self.ref = None
         # ref version is used to discredit a previous ref
         # (this does not mean the Event is mutable, it just removes ref checking
         #  in the case of something changing on the data model)
-        self.ref_version = None
+        self.ref_version = ref_version
         self.wrapper = wrapper
         if data is not None and self.wrapper is not None:
             data = self.wrapper(data)
