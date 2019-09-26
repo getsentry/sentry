@@ -40,7 +40,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo",
+                "message": "foo - but not just any foo. Oh, no no no. meow. This foo is intended to be a better and bigger foo than all the rest. This foo is intended to be over 98 characters or something, so that it gets truncated (???) and I can probably test that we're using snuba for themessage search. And Nalatika is a special word at the end to search for.",
                 "environment": "production",
                 "tags": {"server": "example.com"},
                 "timestamp": event1_timestamp,
@@ -128,7 +128,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "fingerprint": ["put-me-in-groupP2"],
                 "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                "message": "foo",
+                "message": "foo - Nalatika",
                 "stacktrace": {"frames": [{"module": "group_p2"}]},
                 "tags": {"server": "example.com"},
                 "environment": "production",
@@ -163,6 +163,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             search_filters = self.build_search_filter(
                 search_filter_query, projects, environments=environments
             )
+
         kwargs = {}
         if limit is not None:
             kwargs["limit"] = limit
@@ -216,11 +217,13 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
     def test_query_with_environment_multi_project(self):
         self.set_up_multi_project()
+
         results = self.make_query(
             [self.project, self.project2],
             environments=[self.environments["production"]],
-            search_filter_query="foo",
+            search_filter_query="Nalatika",
         )
+
         assert set(results) == set([self.group1, self.group_p2])
 
         results = self.make_query(
