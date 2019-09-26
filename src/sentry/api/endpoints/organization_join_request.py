@@ -13,16 +13,16 @@ from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 
-REQUEST_JOIN_EXPERIMENT = "RequestJoinExperiment"
+JOIN_REQUEST_EXPERIMENT = "JoinRequestExperiment"
 
 logger = logging.getLogger(__name__)
 
 
-class RequestJoinSerializer(serializers.Serializer):
+class JoinRequestSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
 
 
-def request_join_organization(organization, email, ip_address=None):
+def create_organization_join_request(organization, email, ip_address=None):
     # users can already join organizations with SSO enabled without an invite
     # so no need to allow requests to join as well
     if AuthProvider.objects.filter(organization=organization).exists():
@@ -44,7 +44,7 @@ def request_join_organization(organization, email, ip_address=None):
         pass
     else:
         logger.info(
-            "request-join.created",
+            "org-join-request.created",
             extra={
                 "organization_id": organization.id,
                 "member_id": om.id,
@@ -54,7 +54,7 @@ def request_join_organization(organization, email, ip_address=None):
         )
 
 
-class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
+class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
 
@@ -62,11 +62,11 @@ class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
         ip_address = request.META["REMOTE_ADDR"]
 
         if ratelimiter.is_limited(
-            u"request-join:ip:{}".format(ip_address), limit=5, window=60  # 5 per minute
+            u"org-join-request:ip:{}".format(ip_address), limit=5, window=60  # 5 per minute
         ):
             return Response({"detail": "Rate limit exceeded."}, status=429)
 
-        serializer = RequestJoinSerializer(data=request.data)
+        serializer = JoinRequestSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -74,9 +74,9 @@ class OrganizationRequestJoinEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
         email = result["email"]
 
-        assignment = experiments.get(org=organization, experiment_name=REQUEST_JOIN_EXPERIMENT)
+        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
         if assignment != 1:
             return Response(status=403)
 
-        request_join_organization(organization, email, ip_address)
+        create_organization_join_request(organization, email, ip_address)
         return Response(status=204)
