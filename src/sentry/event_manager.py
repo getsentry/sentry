@@ -558,8 +558,6 @@ class EventManager(object):
         # We need to swap out the data with the one internal to the newly
         # created event object
         event = self._get_event_instance(project_id=project_id)
-        # self._data = data = event.data.data
-        assert self._data == data == event.data.data
         event._project_cache = project
 
         date = event.datetime
@@ -779,7 +777,7 @@ class EventManager(object):
         if not is_sample:
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
-                    event.set_data(data)
+                    event.set_data(EventDict(data, skip_renormalization=True))
                     event.data.save()
                     event.save()
             except IntegrityError:
