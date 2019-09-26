@@ -5,9 +5,12 @@ import {findLastIndex} from 'lodash';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 type Options = {
-  routes: Array<PlainRoute>;
+  routes: PlainRoute[];
   location: Location;
-  params: any;
+
+  // parameters to replace any route string parameters (e.g. if route is `:orgId`,
+  // params should have `{orgId: slug}`
+  params: {[key: string]: string};
 
   /**
    * The number of routes to to pop off of `routes
