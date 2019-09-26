@@ -13,6 +13,7 @@ query = """
 select date_added, date_deleted, organization_id
 from sentry_sentryappinstallation
 where sentry_app_id = %s
+and date_added between %s and %s
 """
 
 
@@ -23,13 +24,13 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
         """
         :qparam float since
         :qparam float until
-        :qparam resolution
+        :qparam resolution - optional
         """
 
         query_args = self._parse_args(request)
 
         cursor = connection.cursor()
-        cursor.execute(query, [sentry_app.id])
+        cursor.execute(query, [sentry_app.id, query_args["start"], query_args["end"]])
         installations = cursor.fetchall()
 
         rollup, series = tsdb.get_optimal_rollup_series(query_args["start"], query_args["end"])
@@ -55,8 +56,8 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
         result = {
             "total_installs": install_counter,
             "total_uninstalls": uninstall_counter,
-            "install_stats": install_stats.items(),
-            "uninstall_stats": uninstall_stats.items(),
+            "install_stats": sorted(install_stats.items(), key=lambda x: x[0]),
+            "uninstall_stats": sorted(uninstall_stats.items(), key=lambda x: x[0]),
         }
 
         return Response(result)
