@@ -149,7 +149,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
@@ -1723,7 +1723,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
@@ -2699,7 +2699,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
