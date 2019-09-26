@@ -2,7 +2,7 @@
 
 exports[`PageHeading renders 1`] = `
 <h1
-  className="css-s1w9fp-PageHeading e1f8hk460"
+  className="css-s1w9fp-PageHeading e1bz0f4q0"
 >
   New Header
 </h1>
