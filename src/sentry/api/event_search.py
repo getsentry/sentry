@@ -526,17 +526,17 @@ def convert_search_filter_to_snuba_query(search_filter):
 
     if snuba_name in no_conversion:
         return
-    elif snuba_name == "tags[environment]":
+    elif snuba_name == "environment":
         env_conditions = []
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
             _envs.remove("")
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
-            env_conditions.append(["tags[environment]", operator, None])
+            env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["tags[environment]", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", list(_envs)])
 
         return env_conditions
 

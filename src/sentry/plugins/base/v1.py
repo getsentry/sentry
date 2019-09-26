@@ -445,14 +445,13 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>>     return event_version not in seen_versions
         """
 
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
+    def post_process(self, group, event, is_new, **kwargs):
         """
         Post processes an event after it has been saved.
 
         :param group: an instance of ``Group``
         :param event: an instance of ``Event``
         :param is_new: a boolean describing if this group is new, or has changed state
-        :param is_sample: a boolean describing if this event was stored, or sampled
 
         >>> def post_process(self, event, **kwargs):
         >>>     print 'New event created:', event.id

@@ -114,7 +114,7 @@ def handle_owner_assignment(project, group, event):
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
-def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
+def post_process_group(event, is_new, is_regression, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
@@ -200,7 +200,6 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                     event=event,
                     is_new=is_new,
                     is_regresion=is_regression,
-                    is_sample=is_sample,
                 )
 
         event_processed.send_robust(

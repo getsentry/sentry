@@ -47,6 +47,7 @@ class NotifyEventServiceAction(EventAction):
             self.logger.info("rules.fail.is_configured", extra=extra)
             return
 
+        plugin = None
         app = None
         try:
             app = SentryApp.objects.get(slug=service)
@@ -57,15 +58,18 @@ class NotifyEventServiceAction(EventAction):
             kwargs = {"sentry_app": app}
             metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
             yield self.future(notify_sentry_app, **kwargs)
-        else:
-            try:
-                plugin = plugins.get(service)
-            except KeyError:
-                # If we've removed the plugin no need to error, just skip.
+
+        try:
+            plugin = plugins.get(service)
+        except KeyError:
+            if not app:
+                # If we can't find the sentry app OR plugin,
+                # we've removed the plugin no need to error, just skip.
                 extra["plugin"] = service
                 self.logger.info("rules.fail.plugin_does_not_exist", extra=extra)
                 return
 
+        if plugin:
             if not plugin.is_enabled(self.project):
                 extra["project_id"] = self.project.id
                 self.logger.info("rules.fail.is_enabled", extra=extra)

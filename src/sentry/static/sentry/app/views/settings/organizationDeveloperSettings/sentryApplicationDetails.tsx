@@ -31,6 +31,7 @@ import {
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
 import {SentryApp, InternalAppApiToken} from 'app/types';
+import Tooltip from 'app/components/tooltip';
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -143,6 +144,14 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return this.props.route.path === 'new-internal/';
   }
 
+  get showAuthInfo() {
+    const {app} = this.state;
+    if (app && app.clientSecret && app.clientSecret[0] === '*') {
+      return false;
+    }
+    return true;
+  }
+
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
     const {app, tokens} = this.state;
@@ -178,9 +187,18 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
         return (
           <StyledPanelItem key={token.token}>
             <TokenItem>
-              <TextCopyInput>
-                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
-              </TextCopyInput>
+              <Tooltip
+                disabled={this.showAuthInfo}
+                position="right"
+                containerDisplayMode="inline"
+                title={t(
+                  'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+                )}
+              >
+                <TextCopyInput>
+                  {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
+                </TextCopyInput>
+              </Tooltip>
             </TokenItem>
             <CreatedDate>
               <CreatedTitle>Created:</CreatedTitle>
@@ -311,9 +329,18 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 <FormField overflow name="clientSecret" label="Client Secret">
                   {({value}) => {
                     return value ? (
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                      </TextCopyInput>
+                      <Tooltip
+                        disabled={this.showAuthInfo}
+                        position="right"
+                        containerDisplayMode="inline"
+                        title={t(
+                          'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+                        )}
+                      >
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      </Tooltip>
                     ) : (
                       <em>hidden</em>
                     );
