@@ -40,7 +40,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo - but not just any foo. Oh, no no no. meow. This foo is intended to be a better and bigger foo than all the rest. This foo is intended to be over 98 characters or something, so that it gets truncated (???) and I can probably test that we're using snuba for themessage search. And Nalatika is a special word at the end to search for.",
+                "message": "This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. And your special word is: foo.",
                 "environment": "production",
                 "tags": {"server": "example.com"},
                 "timestamp": event1_timestamp,
@@ -128,7 +128,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "fingerprint": ["put-me-in-groupP2"],
                 "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                "message": "foo - Nalatika",
+                "message": "foo",
                 "stacktrace": {"frames": [{"module": "group_p2"}]},
                 "tags": {"server": "example.com"},
                 "environment": "production",
@@ -221,7 +221,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(
             [self.project, self.project2],
             environments=[self.environments["production"]],
-            search_filter_query="Nalatika",
+            search_filter_query="foo",
         )
 
         assert set(results) == set([self.group1, self.group_p2])
@@ -851,12 +851,12 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.utils.snuba.raw_query")
     def test_snuba_not_called_optimization(self, query_mock):
-        assert self.make_query(search_filter_query="foo").results == [self.group1]
+        assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
         assert not query_mock.called
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s foo" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -883,7 +883,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         common_args = {
             "start": Any(datetime),
             "end": Any(datetime),
-            "filter_keys": {"project_id": [self.project.id], "issue": [self.group1.id]},
+            "filter_keys": {
+                "project_id": [self.project.id],
+                "issue": [self.group1.id, self.group2.id],
+            },
             "referrer": "search",
             "groupby": ["issue"],
             "conditions": [[["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0]],
@@ -895,7 +898,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             "sample": 1,
         }
 
-        self.make_query(search_filter_query="foo")
+        self.make_query(search_filter_query="status:unresolved")
         assert not query_mock.called
 
         self.make_query(
