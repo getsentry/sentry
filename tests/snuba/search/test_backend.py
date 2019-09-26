@@ -735,7 +735,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert set(results) == set([self.group1, self.group2])
 
     @pytest.mark.xfail(
-        not settings.SENTRY_TAGSTORE.startswith("sentry.tagstore.v2"),
+        settings.SENTRY_TAGSTORE.startswith("sentry.tagstore.legacy.LegacyTagStorage"),
         reason="unsupported on legacy backend due to insufficient index",
     )
     def test_date_filter_with_environment(self):
