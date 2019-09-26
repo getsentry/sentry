@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, nodestore, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -779,13 +779,11 @@ class EventManager(object):
 
         # save the event unless its been sampled
         if not is_sample:
-            node_id = Event.generate_node_id(project.id, event_id)
-            nodestore.set(node_id, dict(data.items()))
-
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
                     event.data.data = data
+                    event.data.save()
             except IntegrityError:
                 logger.info(
                     "duplicate.found",
