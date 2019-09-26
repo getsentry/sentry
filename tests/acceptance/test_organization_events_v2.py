@@ -56,6 +56,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events")
 
+            self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
+            self.browser.snapshot("events-v2 - querybuilder edit state")
+
+            self.browser.click_when_visible('[data-test-id="grid-edit-add"]')
+            self.browser.snapshot("events-v2 - querybuilder edit modal")
+
     @patch("django.utils.timezone.now")
     def test_errors(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)

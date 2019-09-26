@@ -247,7 +247,7 @@ class GridEditable<
     if (!this.state.isEditing) {
       return (
         <GridEditGroup>
-          <GridEditGroupButton onClick={this.toggleEdit}>
+          <GridEditGroupButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
             <ToolTip title={t('Edit Columns')}>
               <InlineSvg src="icon-edit-pencil" />
             </ToolTip>
@@ -260,7 +260,7 @@ class GridEditable<
       <GridEditGroup>
         <GridEditGroupButton onClick={() => this.toggleModalEditColumn()}>
           <ToolTip title={t('Add Columns')}>
-            <InlineSvg src="icon-circle-add" />
+            <InlineSvg src="icon-circle-add" data-test-id="grid-edit-add" />
           </ToolTip>
         </GridEditGroupButton>
         <GridEditGroupButton onClick={this.toggleEdit}>
