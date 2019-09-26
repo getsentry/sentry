@@ -9,7 +9,7 @@ from sentry.utils.http import absolute_uri
 from .mail import MailPreview
 
 
-class DebugRequestJoinOrganizationEmailView(View):
+class DebugOrganizationJoinRequestEmailView(View):
     def get(self, request):
         org = Organization(id=1, slug="default", name="Default")
         context = {
@@ -23,7 +23,7 @@ class DebugRequestJoinOrganizationEmailView(View):
             ),
         }
         return MailPreview(
-            html_template="sentry/emails/request-join-organization.html",
-            text_template="sentry/emails/request-join-organization.txt",
+            html_template="sentry/emails/organization-join-request.html",
+            text_template="sentry/emails/organization-join-request.txt",
             context=context,
         ).render(request)
