@@ -13,6 +13,22 @@ export enum AlertRuleAggregations {
   UNIQUE_USERS,
 }
 
+export type UnsavedTrigger = {
+  alertRuleId: string;
+  label: string;
+  thresholdType: AlertRuleThresholdType;
+  alertThreshold: number;
+  resolveThreshold: number;
+  timeWindow: number;
+};
+
+export type SavedTrigger = UnsavedTrigger & {
+  id: string;
+  dateAdded: string;
+};
+
+export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
+
 export type IncidentRule = {
   aggregations: number[];
   aggregation?: number;
@@ -30,6 +46,7 @@ export type IncidentRule = {
   thresholdPeriod: number;
   thresholdType: number;
   timeWindow: number;
+  triggers: Trigger[];
 };
 
 export enum TimeWindow {
