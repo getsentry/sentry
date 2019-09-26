@@ -196,19 +196,16 @@ class ActivityMailDebugView(View):
 
         event = SnubaEvent(
             {
+                "event_id": "a" * 32,
                 "project_id": project.id,
                 "group_id": group.id,
-                "event_id": 1,
                 "message": event_manager.get_search_message(),
                 "data": data.data,
-                "timestamp": data.data["timestamp"],
+                "timestamp": data["timestamp"],
             }
         )
-        event.group = group
 
-        activity = Activity(
-            group=event.group, project=event.project, **self.get_activity(request, event)
-        )
+        activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
@@ -343,15 +340,29 @@ def digest(request):
         for i in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
+            data = dict(load_data("python"))
+            data["message"] = group.message
+            data.pop("logentry", None)
+
+            event_manager = EventManager(data)
+            event_manager.normalize()
+            data = event_manager.get_data()
+
+            timestamp = to_datetime(
+                random.randint(to_timestamp(group.first_seen), to_timestamp(group.last_seen))
+            )
+
             event = SnubaEvent(
                 {
+                    "event_id": uuid.uuid4().hex,
                     "project_id": project.id,
                     "group_id": group.id,
-                    "event_id": uuid.uuid4().hex,
                     "message": group.message,
-                    "data": load_data("python"),
+                    "data": data.data,
+                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
                 }
             )
+            event.group = group
 
             records.append(
                 Record(
