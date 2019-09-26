@@ -34,7 +34,7 @@ const ALLOWED_ANON_PAGES = [
   /^\/accept\//,
   /^\/share\//,
   /^\/auth\/login\//,
-  /^\/organizations\/[\w_-]+\/request-join\//,
+  /^\/join-request\//,
 ];
 
 function getAlertTypeForProblem(problem) {

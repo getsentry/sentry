@@ -851,9 +851,9 @@ function routes() {
       />
 
       <Route
-        path="/organizations/:orgId/request-join/"
+        path="/join-request/:orgId/"
         componentPromise={() =>
-          import(/* webpackChunkName: "OrganizationRequestJoin" */ 'app/views/organizationRequestJoin')
+          import(/* webpackChunkName: "OrganizationJoinRequest" */ 'app/views/organizationJoinRequest')
         }
         component={errorHandler(LazyLoad)}
       />

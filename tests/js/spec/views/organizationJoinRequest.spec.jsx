@@ -2,11 +2,11 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import OrganizationRequestJoin from 'app/views/organizationRequestJoin';
+import OrganizationJoinRequest from 'app/views/organizationJoinRequest';
 
 jest.mock('app/actionCreators/indicator');
 
-describe('OrganizationRequestJoin', function() {
+describe('OrganizationJoinRequest', function() {
   const org = TestStubs.Organization({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/request-join/`;
 
@@ -16,7 +16,7 @@ describe('OrganizationRequestJoin', function() {
 
   it('renders', function() {
     const wrapper = mount(
-      <OrganizationRequestJoin params={{orgId: org.slug}} />,
+      <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -32,7 +32,7 @@ describe('OrganizationRequestJoin', function() {
     });
 
     const wrapper = mount(
-      <OrganizationRequestJoin params={{orgId: org.slug}} />,
+      <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -59,7 +59,7 @@ describe('OrganizationRequestJoin', function() {
     });
 
     const wrapper = mount(
-      <OrganizationRequestJoin params={{orgId: org.slug}} />,
+      <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
 
@@ -77,5 +77,16 @@ describe('OrganizationRequestJoin', function() {
     expect(wrapper.find('h3').text()).toBe('Request to Join');
     expect(wrapper.find('EmailField').exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
+  });
+
+  it('cancels', async function() {
+    const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+    const wrapper = mount(
+      <OrganizationJoinRequest params={{orgId: org.slug}} />,
+      TestStubs.routerContext()
+    );
+
+    wrapper.find('button[aria-label="Cancel"]').simulate('click');
+    expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
   });
 });
