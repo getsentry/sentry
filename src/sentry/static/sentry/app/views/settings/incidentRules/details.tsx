@@ -1,11 +1,14 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {findIndex} from 'lodash';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule, Trigger} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {deleteTrigger} from 'app/views/settings/incidentRules/actions';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
@@ -49,23 +52,98 @@ class IncidentRulesDetails extends AsyncView<
     ];
   }
 
-  handleNewTrigger = () => {
+  openTriggersModal = (trigger?: Trigger) => {
     const {organization, projects} = this.props;
 
     openModal(
-      () => (
+      ({closeModal}) => (
         <TriggersModal
           organization={organization}
           projects={projects || []}
           rule={this.state.rule}
+          trigger={trigger}
+          closeModal={closeModal}
+          onSubmitSuccess={trigger ? this.handleEditedTrigger : this.handleAddedTrigger}
         />
       ),
       {dialogClassName: widthCss}
     );
   };
 
+  handleAddedTrigger = (trigger: Trigger) => {
+    this.setState(({rule}) => ({
+      rule: {
+        ...rule,
+        triggers: [...rule.triggers, trigger],
+      },
+    }));
+  };
+
+  handleEditedTrigger = (trigger: Trigger) => {
+    this.setState(({rule}) => {
+      const triggerIndex = findIndex(rule.triggers, ({id}) => id === trigger.id);
+      const triggers = [...rule.triggers];
+      triggers.splice(triggerIndex, 1, trigger);
+
+      return {
+        rule: {
+          ...rule,
+          triggers,
+        },
+      };
+    });
+  };
+
+  handleNewTrigger = () => {
+    this.openTriggersModal();
+  };
+
+  handleEditTrigger = (trigger: Trigger) => {
+    this.openTriggersModal(trigger);
+  };
+
+  handleDeleteTrigger = async (trigger: Trigger) => {
+    const {organization} = this.props;
+
+    // Optimistically update
+    const triggerIndex = findIndex(this.state.rule.triggers, ({id}) => id === trigger.id);
+    const triggersAfterDelete = [...this.state.rule.triggers];
+    triggersAfterDelete.splice(triggerIndex, 1);
+
+    this.setState(({rule}) => {
+      return {
+        rule: {
+          ...rule,
+          triggers: triggersAfterDelete,
+        },
+      };
+    });
+
+    try {
+      await deleteTrigger(this.api, organization.slug, trigger);
+    } catch (err) {
+      addErrorMessage(
+        tct('There was a problem deleting trigger: [label]', {label: trigger.label})
+      );
+
+      // Add trigger back to list
+      this.setState(({rule}) => {
+        const triggers = [...rule.triggers];
+        triggers.splice(triggerIndex, 0, trigger);
+
+        return {
+          rule: {
+            ...rule,
+            triggers,
+          },
+        };
+      });
+    }
+  };
+
   renderBody() {
     const {orgId, incidentRuleId} = this.props.params;
+    const {rule} = this.state;
 
     return (
       <div>
@@ -75,7 +153,7 @@ class IncidentRulesDetails extends AsyncView<
           saveOnBlur={true}
           orgId={orgId}
           incidentRuleId={incidentRuleId}
-          initialData={this.state.rule}
+          initialData={rule}
         />
 
         <TriggersHeader
@@ -85,7 +163,7 @@ class IncidentRulesDetails extends AsyncView<
               size="small"
               priority="primary"
               icon="icon-circle-add"
-              disabled={!this.state.rule}
+              disabled={!rule}
               onClick={this.handleNewTrigger}
             >
               {t('New Trigger')}
@@ -93,7 +171,11 @@ class IncidentRulesDetails extends AsyncView<
           }
         />
 
-        <TriggersList />
+        <TriggersList
+          triggers={rule.triggers}
+          onDelete={this.handleDeleteTrigger}
+          onEdit={this.handleEditTrigger}
+        />
       </div>
     );
   }

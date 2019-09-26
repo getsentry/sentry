@@ -1,3 +1,5 @@
+import {IncidentTrigger} from './incidentTrigger';
+
 export function IncidentRule(params) {
   return {
     status: 0,
@@ -15,6 +17,7 @@ export function IncidentRule(params) {
     projectId: '1',
     resolution: 1,
     dateModified: '2019-07-31T23:02:02.731Z',
+    triggers: [IncidentTrigger()],
     ...params,
   };
 }

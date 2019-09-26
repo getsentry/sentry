@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule, Trigger} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 
@@ -12,15 +12,34 @@ type Props = {
   organization: Organization;
   projects: Project[];
   rule: IncidentRule;
+  closeModal: Function;
+  trigger?: Trigger;
+  onSubmitSuccess: Function;
 };
 
 class TriggersModal extends React.Component<Props> {
-  handleSubmitSuccess = () => {
-    addSuccessMessage(t('Successfully saved Incident Rule'));
+  handleSubmitSuccess = (newTrigger: Trigger) => {
+    const {onSubmitSuccess, closeModal, trigger} = this.props;
+
+    if (trigger) {
+      addSuccessMessage(
+        tct('Successfully updated trigger: [label]', {label: newTrigger.label})
+      );
+    } else {
+      addSuccessMessage(
+        tct('Successfully saved trigger: [label]', {label: newTrigger.label})
+      );
+    }
+    onSubmitSuccess(newTrigger);
+    closeModal();
+  };
+
+  handleSubmitError = () => {
+    addErrorMessage(t('There was a problem saving trigger'));
   };
 
   render() {
-    const {organization, projects, rule} = this.props;
+    const {organization, projects, rule, trigger} = this.props;
     return (
       <div>
         <TinyHeader>{t('Trigger for')}</TinyHeader>
@@ -31,6 +50,7 @@ class TriggersModal extends React.Component<Props> {
           orgId={organization.slug}
           onSubmitSuccess={this.handleSubmitSuccess}
           rule={rule}
+          trigger={trigger}
         />
       </div>
     );

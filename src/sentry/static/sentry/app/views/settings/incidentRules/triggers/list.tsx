@@ -1,15 +1,49 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody, PanelItem, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 
-type Props = {};
+import {Trigger, AlertRuleThresholdType} from '../types';
 
+type Props = {
+  triggers: Trigger[];
+  onDelete: (trigger: Trigger) => void;
+  onEdit: (trigger: Trigger) => void;
+};
+
+function getConditionStrings(trigger: Trigger): [string, string | null] {
+  if (trigger.thresholdType === AlertRuleThresholdType.ABOVE) {
+    return [
+      `> ${trigger.alertThreshold}`,
+      typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
+        ? `Auto-resolves when metric falls below ${trigger.resolveThreshold}`
+        : null,
+    ];
+  } else {
+    return [
+      `< ${trigger.alertThreshold}`,
+      typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
+        ? `Auto-resolves when metric is above ${trigger.resolveThreshold}`
+        : null,
+    ];
+  }
+}
 export default class TriggersList extends React.Component<Props> {
+  handleEdit = (trigger: Trigger) => {
+    this.props.onEdit(trigger);
+  };
+
+  handleDelete = (trigger: Trigger) => {
+    this.props.onDelete(trigger);
+  };
+
   render() {
+    const {triggers} = this.props;
+
     return (
       <Panel>
         <PanelHeaderGrid>
@@ -18,24 +52,47 @@ export default class TriggersList extends React.Component<Props> {
           <div>{t('Actions')}</div>
         </PanelHeaderGrid>
         <PanelBody>
-          <Grid>
-            <Label>SEV-0</Label>
-            <Condition>
-              <MainCondition>1% increase in Error Rate</MainCondition>
-              <SecondaryCondition>
-                Auto-resolves when metric falls below 1%
-              </SecondaryCondition>
-            </Condition>
-            <Actions>
-              <ul>
-                <li>Email members of #team-billing</li>
-              </ul>
+          {triggers.map(trigger => {
+            const [mainCondition, secondaryCondition] = getConditionStrings(trigger);
 
-              <Button type="default" icon="icon-edit" size="small">
-                Edit
-              </Button>
-            </Actions>
-          </Grid>
+            return (
+              <Grid key={trigger.id}>
+                <Label>{trigger.label}</Label>
+                <Condition>
+                  <MainCondition>{mainCondition}</MainCondition>
+                  {secondaryCondition !== null && (
+                    <SecondaryCondition>{secondaryCondition}</SecondaryCondition>
+                  )}
+                </Condition>
+                <Actions>
+                  N/A
+                  <ButtonBar>
+                    <Button
+                      type="button"
+                      priority="default"
+                      icon="icon-edit"
+                      size="small"
+                      onClick={() => this.handleEdit(trigger)}
+                    >
+                      {t('Edit')}
+                    </Button>
+                    <Confirm
+                      onConfirm={() => this.handleDelete(trigger)}
+                      message={t('Are you sure you want to delete this trigger?')}
+                      priority="danger"
+                    >
+                      <Button
+                        priority="danger"
+                        size="small"
+                        aria-label={t('Delete Trigger')}
+                        icon="icon-trash"
+                      />
+                    </Confirm>
+                  </ButtonBar>
+                </Actions>
+              </Grid>
+            );
+          })}
         </PanelBody>
       </Panel>
     );
@@ -53,18 +110,15 @@ const PanelHeaderGrid = styled(PanelHeader)`
   ${gridCss};
 `;
 
-const Grid = styled('div')`
+const Grid = styled(PanelItem)`
   ${gridCss};
-  padding: ${space(2)};
 `;
 
-const Cell = styled('div')``;
-
-const Label = styled(Cell)`
+const Label = styled('div')`
   font-size: 1.2em;
 `;
 
-const Condition = styled(Cell)``;
+const Condition = styled('div')``;
 
 const MainCondition = styled('div')``;
 const SecondaryCondition = styled('div')`
@@ -72,8 +126,14 @@ const SecondaryCondition = styled('div')`
   color: ${p => p.theme.gray2};
 `;
 
-const Actions = styled(Cell)`
+const Actions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+`;
+
+const ButtonBar = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
 `;
