@@ -432,14 +432,15 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get("time_spent")
 
-        return Event(
+        event = Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
             platform=platform,
         )
+        event.set_data(EventDict(data, skip_renormalization=True))
+        return event
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
@@ -778,9 +779,9 @@ class EventManager(object):
         if not is_sample:
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
-                    event.save()
-                    event.data._node_data = data
+                    event.set_data(data)
                     event.data.save()
+                    event.save()
             except IntegrityError:
                 logger.info(
                     "duplicate.found",

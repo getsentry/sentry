@@ -622,8 +622,14 @@ class Event(EventCommon, Model):
     def __init__(self, *args, **kwargs):
         data = kwargs.pop("data", None)
         super(Event, self).__init__(*args, **kwargs)
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
-        self.data = NodeData(None, node_id, data=data, wrapper=EventDict)
+        self.node_id = Event.generate_node_id(self.project_id, self.event_id)
+        if data:
+            self.set_data(data)
+        else:
+            self.data = NodeData(None, self.node_id, data=None, wrapper=EventDict)
+
+    def set_data(self, data):
+        self.data = NodeData(None, self.node_id, data=data)
 
     def __getstate__(self):
         state = Model.__getstate__(self)
