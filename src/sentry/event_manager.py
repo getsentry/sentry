@@ -779,7 +779,7 @@ class EventManager(object):
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
-                    event.data.data = data
+                    event.data._node_data = data
                     event.data.save()
             except IntegrityError:
                 logger.info(
