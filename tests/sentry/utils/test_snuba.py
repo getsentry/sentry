@@ -174,7 +174,6 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("'thing'") == "'thing'"
         assert get_snuba_column_name("id") == "event_id"
         assert get_snuba_column_name("geo.region") == "geo_region"
-        assert get_snuba_column_name("organization") == "tags[organization]"
         # This is odd behavior but captures what we do currently.
         assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
         assert get_snuba_column_name("organization") == "tags[organization]"
@@ -317,6 +316,31 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
+    def test_orderby_aliasing(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
+            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+        }
+        transform_aliases_and_query(
+            selected_columns=["transaction", "transaction.duration"],
+            filter_keys={"project_id": [self.project.id]},
+            orderby=["timestamp"],
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name", "duration"],
+            filter_keys={"project_id": [self.project.id]},
+            dataset="transactions",
+            orderby=["start_ts"],
+            aggregations=None,
+            arrayjoin=None,
+            end=None,
+            start=None,
+            conditions=None,
+            groupby=None,
+            having=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
     def test_conditions_order_and_groupby_aliasing(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
@@ -329,8 +353,9 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
                 ["time", ">", "2019-09-23"],
                 ["http.method", "=", "GET"],
             ],
+            aggregations=[["count", "", "count"]],
             groupby=["transaction.op"],
-            orderby=["-timestamp"],
+            orderby=["-timestamp", "-count"],
             filter_keys={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
@@ -340,11 +365,11 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
                 ["bucketed_start", ">", "2019-09-23"],
                 ["tags[http.method]", "=", "GET"],
             ],
+            aggregations=[["count", "", "count"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
-            orderby=["-start_ts"],
+            orderby=["-start_ts", "-count"],
             dataset="transactions",
-            aggregations=None,
             arrayjoin=None,
             end=None,
             start=None,
@@ -403,6 +428,63 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             start=None,
             having=None,
             orderby=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_condition_reformat_event_id_condition(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "id"}, {"name": "duration"}],
+            "data": [{"event_id": "a" * 32, "duration": 200}],
+        }
+        transform_aliases_and_query(
+            skip_conditions=True,
+            selected_columns=["id", "transaction.duration"],
+            conditions=[["id", "=", "a" * 32]],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["event_id", "duration"],
+            conditions=[["event_id", "=", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset="transactions",
+            aggregations=None,
+            arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
+            orderby=None,
+            groupby=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_condition_reformat_nested_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "id"}, {"name": "duration"}],
+            "data": [{"id": "a" * 32, "duration": 200}],
+        }
+        transform_aliases_and_query(
+            skip_conditions=True,
+            selected_columns=["id", "transaction.duration"],
+            conditions=[[["timestamp", ">", "2019-09-26T12:13:14"], ["id", "=", "a" * 32]]],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["event_id", "duration"],
+            conditions=[
+                [
+                    ["start_ts", ">", "2019-09-26T12:13:14"],
+                    ["event_id", "=", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset="transactions",
+            aggregations=None,
+            arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
+            orderby=None,
+            groupby=None,
         )
 
 

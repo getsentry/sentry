@@ -11,6 +11,7 @@ import re
 import six
 import time
 import urllib3
+import uuid
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -915,7 +916,7 @@ def constrain_column_to_dataset(col, dataset):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if col == "type" and dataset == "transactions":
+    if col in "type" and dataset == TRANSACTIONS:
         return None
     if col in DATASETS[dataset]:
         return DATASETS[dataset][col]
@@ -937,13 +938,19 @@ def constrain_condition_to_dataset(cond, dataset):
     """
     if isinstance(cond, (list, tuple)) and len(cond):
         if isinstance(cond[0], (list, tuple)):
-            cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+            # Nested condition or function expressions
+            cond = [constrain_condition_to_dataset(c, dataset) for c in cond]
         elif len(cond) == 3:
             # map column name
             name = constrain_column_to_dataset(cond[0], dataset)
             if name is None:
                 return None
             cond[0] = name
+            # Reformat 32 byte uuids to 36 byte variants.
+            # The transactions dataset requires properly formatted uuid values.
+            # But the rest of sentry isn't aware of that requirement.
+            if dataset == TRANSACTIONS and name == "event_id" and len(cond[2]) == 32:
+                cond[2] = six.text_type(uuid.UUID(cond[2]))
         elif len(cond) == 2 and cond[0] == "has":
             # first function argument is the column if function is "has"
             cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
@@ -969,6 +976,8 @@ def dataset_query(
     selected_columns, conditions and groupby parameters.
     Useful for taking arbitrary end user queries and searching
     either error or transaction events.
+
+    This function will also re-alias columns to match the selected dataset
     """
     if dataset is None:
         dataset = detect_dataset(
@@ -981,19 +990,34 @@ def dataset_query(
             )
         )
 
+    def remove_none(values):
+        return list(filter(lambda x: x is not None, values))
+
+    derived_columns = []
+    if selected_columns:
+        for (i, col) in enumerate(selected_columns):
+            if isinstance(col, list):
+                derived_columns.append(col[2])
+            else:
+                selected_columns[i] = constrain_column_to_dataset(col, dataset)
+        selected_columns = remove_none(selected_columns)
+
+    if aggregations:
+        for aggregation in aggregations:
+            derived_columns.append(aggregation[2])
+
     if conditions:
         for (i, condition) in enumerate(conditions):
             replacement = constrain_condition_to_dataset(condition, dataset)
             conditions[i] = replacement
-        conditions = list(filter(lambda x: x is not None, conditions))
+        conditions = remove_none(conditions)
 
     if orderby:
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
-            orderby[i] = u"{}{}".format(
-                "-" if order.startswith("-") else "",
-                constrain_column_to_dataset(order_field, dataset),
-            )
+            if order_field not in derived_columns:
+                order_field = constrain_column_to_dataset(order_field, dataset)
+            orderby[i] = u"{}{}".format("-" if order.startswith("-") else "", order_field)
 
     return raw_query(
         start=start,
@@ -1006,6 +1030,7 @@ def dataset_query(
         arrayjoin=arrayjoin,
         having=having,
         dataset=dataset,
+        orderby=orderby,
         **kwargs
     )
 

@@ -12,6 +12,7 @@ from sentry.api.event_search import (
     get_reference_event_conditions,
 )
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 
 class Direction(object):
@@ -162,7 +163,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions = snuba_args["conditions"][:]
         conditions.extend(time_condition)
 
-        result = eventstore.get_events(
+        result = snuba.dataset_query(
+            selected_columns=["event_id"],
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
             conditions=conditions,
@@ -170,7 +172,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             orderby=orderby,
             limit=1,
         )
-        if not result:
+        if not result or "data" not in result or len(result["data"]) == 0:
             return None
 
-        return result[0].event_id
+        return result["data"][0]["event_id"]
