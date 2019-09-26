@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from exam import fixture
 from mock import patch
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
@@ -15,7 +16,10 @@ class OrganizationJoinRequestTest(APITestCase):
         super(OrganizationJoinRequestTest, self).setUp()
         self.email = "test@example.com"
         self.org = self.create_organization(owner=self.user)
-        self.owner = OrganizationMember.objects.get(user=self.user, organization=self.org)
+
+    @fixture
+    def owner(self):
+        return OrganizationMember.objects.get(user=self.user, organization=self.org)
 
     def test_email_required(self):
         resp = self.get_response(self.org.slug)
