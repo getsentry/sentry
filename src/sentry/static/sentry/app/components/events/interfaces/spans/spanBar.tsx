@@ -168,6 +168,7 @@ type SpanBarProps = {
   spanBarColour: string;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
+  continuingTreeDepths: Array<number>;
   showSpanTree: boolean;
   numOfSpanChildren: number;
   spanNumber: number;
@@ -270,15 +271,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
-    const {isLast, isRoot, treeDepth} = this.props;
+    const {isLast, isRoot, treeDepth, continuingTreeDepths} = this.props;
     if (isRoot) {
       return null;
     }
 
     const connectorBars: Array<JSX.Element> = [];
-    for (let step = 1; step < treeDepth; step++) {
-      const left = (step * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
-      connectorBars.push(<ConnectorBar style={{left}} />);
+    for (let step = 0; step < treeDepth; step++) {
+      if (continuingTreeDepths.some(depth => depth === step)) {
+        const left = ((treeDepth - step) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+        connectorBars.push(<ConnectorBar style={{left}} />);
+      }
     }
 
     return (
