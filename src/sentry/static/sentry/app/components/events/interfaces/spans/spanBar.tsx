@@ -139,6 +139,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
 const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+const MARGIN_LEFT = 8;
 
 const getDurationDisplay = ({
   width,
@@ -268,8 +269,27 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
+  renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
+    const {isLast, isRoot, treeDepth} = this.props;
+    if (isRoot) {
+      return null;
+    }
+
+    const connectorBars: Array<JSX.Element> = [];
+    for (let step = 1; step < treeDepth; step++) {
+      const left = (step * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      connectorBars.push(<ConnectorBar style={{left}} />);
+    }
+
+    return (
+      <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
+        {connectorBars}
+      </SpanTreeConnector>
+    );
+  };
+
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren, isLast, isRoot} = this.props;
+    const {numOfSpanChildren} = this.props;
 
     const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
     const chevron = <Chevron src={chevronSrc} />;
@@ -277,14 +297,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (numOfSpanChildren <= 0) {
       return (
         <SpanTreeTogglerContainer style={{left: `${left}px`}}>
-          {!isRoot && <SpanTreeConnector isLast={isLast} />}
+          {this.renderSpanTreeConnector({hasToggler: false})}
         </SpanTreeTogglerContainer>
       );
     }
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler={true}>
-        {!isRoot && <SpanTreeConnector hasToggler={true} isLast={isLast} />}
+        {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -310,7 +330,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
     const description = get(span, 'description', span.span_id);
 
-    const MARGIN_LEFT = 8;
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
@@ -848,6 +867,13 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     position: absolute;
     background: ${spanTreeColor};
   }
+`;
+
+const ConnectorBar = styled('div')`
+  height: 250%;
+  border-left: 1px solid ${spanTreeColor};
+  top: -5px;
+  position: absolute;
 `;
 
 const getTogglerTheme = ({isExpanded, theme}) => {
