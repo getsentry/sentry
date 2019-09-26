@@ -51,7 +51,7 @@ def basic_protocol_handler(unsupported_operations):
             "primary_hash": event_data["primary_hash"],
         }
 
-        for name in ("is_new", "is_sample", "is_regression", "is_new_group_environment"):
+        for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]
 
         return kwargs

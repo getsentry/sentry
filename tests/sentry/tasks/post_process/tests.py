@@ -30,11 +30,7 @@ class PostProcessGroupTest(TestCase):
     ):
         event = self.create_issueless_event(project=self.project)
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=True,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
         mock_processor.assert_not_called()  # NOQA
@@ -56,11 +52,7 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=True,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
         mock_processor.assert_called_once_with(event, True, False, True, False)
@@ -86,11 +78,7 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=True,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
         assert event.group == group2
@@ -103,11 +91,7 @@ class PostProcessGroupTest(TestCase):
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=True,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
         mock_processor.assert_called_with(event, True, False, True, True)
@@ -124,11 +108,7 @@ class PostProcessGroupTest(TestCase):
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=True,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
         mock_processor.assert_called_with(event, True, False, True, False)
@@ -158,11 +138,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
         )
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
@@ -179,11 +155,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
         )
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
@@ -199,11 +171,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
         )
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
         assert not event.group.assignee_set.exists()
 
@@ -219,11 +187,7 @@ class PostProcessGroupTest(TestCase):
         )
         event.group.assignee_set.create(team=self.team, project=self.project)
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
@@ -243,11 +207,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
         )
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
@@ -266,11 +226,7 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=event,
-                is_new=False,
-                is_regression=False,
-                is_sample=False,
-                is_new_group_environment=False,
+                event=event, is_new=False, is_regression=False, is_new_group_environment=False
             )
 
         mock_process_service_hook.delay.assert_called_once_with(servicehook_id=hook.id, event=event)
@@ -295,11 +251,7 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=event,
-                is_new=False,
-                is_regression=False,
-                is_sample=False,
-                is_new_group_environment=False,
+                event=event, is_new=False, is_regression=False, is_new_group_environment=False
             )
 
         mock_process_service_hook.delay.assert_called_once_with(servicehook_id=hook.id, event=event)
@@ -323,11 +275,7 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=event,
-                is_new=False,
-                is_regression=False,
-                is_sample=False,
-                is_new_group_environment=False,
+                event=event, is_new=False, is_regression=False, is_new_group_environment=False
             )
 
         assert not mock_process_service_hook.delay.mock_calls
@@ -343,11 +291,7 @@ class PostProcessGroupTest(TestCase):
 
         with self.feature("projects:servicehooks"):
             post_process_group(
-                event=event,
-                is_new=True,
-                is_regression=False,
-                is_sample=False,
-                is_new_group_environment=False,
+                event=event, is_new=True, is_regression=False, is_new_group_environment=False
             )
 
         assert not mock_process_service_hook.delay.mock_calls
@@ -358,11 +302,7 @@ class PostProcessGroupTest(TestCase):
         event = self.create_event(group=group)
 
         post_process_group(
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=True, is_regression=False, is_new_group_environment=False
         )
 
         delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
@@ -389,11 +329,7 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
 
         kwargs = {"instance": event}
@@ -411,11 +347,7 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
 
         assert not delay.called
@@ -429,11 +361,7 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
 
         assert not delay.called
@@ -457,11 +385,7 @@ class PostProcessGroupTest(TestCase):
         )
 
         post_process_group(
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-            is_new_group_environment=False,
+            event=event, is_new=False, is_regression=False, is_new_group_environment=False
         )
 
         assert not delay.called

@@ -91,7 +91,6 @@ class Command(BaseCommand):
                 group=event.group,
                 event=event,
                 is_new=False,
-                is_sample=False,
                 is_regression=False,
                 is_new_group_environment=False,
                 primary_hash=primary_hash,

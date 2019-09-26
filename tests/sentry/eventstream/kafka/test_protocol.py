@@ -36,12 +36,7 @@ def test_get_task_kwargs_for_message_version_1():
         "primary_hash": "49f68a5c8493ec2c0bf489821c21fc3b",
     }
 
-    task_state = {
-        "is_new": True,
-        "is_sample": False,
-        "is_regression": False,
-        "is_new_group_environment": True,
-    }
+    task_state = {"is_new": True, "is_regression": False, "is_new_group_environment": True}
 
     kwargs = get_task_kwargs_for_message(json.dumps([1, "insert", event_data, task_state]))
     event = kwargs.pop("event")
@@ -56,7 +51,6 @@ def test_get_task_kwargs_for_message_version_1():
     assert kwargs.pop("primary_hash") == "49f68a5c8493ec2c0bf489821c21fc3b"
 
     assert kwargs.pop("is_new") is True
-    assert kwargs.pop("is_sample") is False
     assert kwargs.pop("is_regression") is False
     assert kwargs.pop("is_new_group_environment") is True
 
