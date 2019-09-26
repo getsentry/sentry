@@ -64,7 +64,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
             </div>
             <Form
               requireChanges
-              apiEndpoint={`/organizations/${orgId}/request-join/`}
+              apiEndpoint={`/organizations/${orgId}/join-request/`}
               apiMethod="POST"
               submitLabel={t('Request to Join')}
               onSubmitSuccess={this.handleSubmitSuccess}

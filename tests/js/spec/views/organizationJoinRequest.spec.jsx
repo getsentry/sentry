@@ -8,7 +8,7 @@ jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function() {
   const org = TestStubs.Organization({slug: 'test-org'});
-  const endpoint = `/organizations/${org.slug}/request-join/`;
+  const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
