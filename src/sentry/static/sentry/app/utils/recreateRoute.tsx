@@ -15,8 +15,10 @@ type Options = {
   /**
    * The number of routes to to pop off of `routes
    * Must be < 0
+   *
+   * There's no ts type for negative numbers so we are arbitrarily specifying -1-9
    */
-  stepBack?: number;
+  stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
 };
 
 /**
@@ -25,16 +27,14 @@ type Options = {
  *
  * See tests for examples
  */
-// export default function recreateRoute(to: string | PlainRoute, options: Options): string {
-export default function recreateRoute(to, {routes, params, location, stepBack}) {
-  // const {routes, params, location, stepBack} = options;
+export default function recreateRoute(to: string | PlainRoute, options: Options): string {
+  const {routes, params, location, stepBack} = options;
   const paths = routes.map(({path}) => path || '');
   let lastRootIndex: number;
   let routeIndex: number | undefined;
-  const routeToRoute = typeof to !== 'string';
 
   // TODO(ts): typescript things
-  if (routeToRoute) {
+  if (typeof to !== 'string') {
     routeIndex = routes.indexOf(to) + 1;
     lastRootIndex = findLastIndex(paths.slice(0, routeIndex), path => path[0] === '/');
   } else {
@@ -43,15 +43,13 @@ export default function recreateRoute(to, {routes, params, location, stepBack}) 
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
 
-  if (stepBack >= 0) {
-    throw new Error('`stepBack` needs to be < 0');
-  } else if (typeof stepBack !== 'undefined') {
+  if (typeof stepBack !== 'undefined') {
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
   const query = typeof location !== 'undefined' && location.search ? location.search : '';
 
-  const fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}${query}`;
+  const fullRoute = `${baseRoute.join('')}${typeof to !== 'string' ? '' : to}${query}`;
 
   return replaceRouterParams(fullRoute, params);
 }
