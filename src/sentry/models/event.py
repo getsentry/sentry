@@ -629,7 +629,7 @@ class Event(EventCommon, Model):
             self.data = NodeData(None, self.node_id, data=None, wrapper=EventDict)
 
     def set_data(self, data):
-        self.data = NodeData(None, self.node_id, data=data)
+        self.data = NodeData(None, self.node_id, data=data, wrapper=EventDict)
 
     def __getstate__(self):
         state = Model.__getstate__(self)
