@@ -23,6 +23,7 @@ def test_get_task_kwargs_for_message_invalid_version():
         get_task_kwargs_for_message(json.dumps([0, "insert", {}]))
 
 
+@pytest.mark.django_db
 def test_get_task_kwargs_for_message_version_1():
     event_data = {
         "project_id": 1,
