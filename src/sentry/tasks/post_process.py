@@ -7,7 +7,6 @@ from django.conf import settings
 
 from sentry import features
 
-# from sentry.models import EventDict
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
@@ -138,9 +137,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
 
-        # Re-bind node data to avoid renormalization. We only want to
-        # renormalize when loading old data from the database.
-        # event.data = EventDict(event.data, skip_renormalization=True)
+        # Clear node id to prevent reloading data from nodestore in post process
+        event.clear_node_id()
 
         if event.group_id:
             # Re-bind Group since we're pickling the whole Event object
@@ -196,10 +194,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
             for plugin in plugins.for_project(event.project):
                 plugin_post_process_group(
-                    plugin_slug=plugin.slug,
-                    event=event,
-                    is_new=is_new,
-                    is_regresion=is_regression,
+                    plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
         event_processed.send_robust(
