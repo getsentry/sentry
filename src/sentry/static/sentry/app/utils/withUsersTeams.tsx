@@ -47,17 +47,16 @@ const withUsersTeams = <P extends InjectedTeamsProps>(
       let teams: Team[];
       try {
         teams = await this.props.api.requestPromise(this.getUsersTeamsEndpoint());
+        this.setState({
+          teams,
+          loadingTeams: false,
+        });
       } catch (error) {
         this.setState({
           error,
           loadingTeams: false,
         });
-        return;
       }
-      this.setState({
-        teams,
-        loadingTeams: false,
-      });
     }
 
     getUsersTeamsEndpoint() {
