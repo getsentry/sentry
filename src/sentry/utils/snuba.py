@@ -36,6 +36,8 @@ MAX_HASHES = 5000
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 
+TRANSACTIONS = "transactions"
+EVENTS = "events"
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -119,6 +121,45 @@ SENTRY_SNUBA_MAP = {
     "release": "tags[sentry:release]",
     "user": "tags[sentry:user]",
 }
+
+TRANSACTIONS_SENTRY_SNUBA_MAP = {
+    # general
+    "id": "event_id",
+    "project.id": "project_id",
+    "trace_id": "trace_id",
+    "span_id": "span_id",
+    "title": "transaction_name",
+    "transaction": "transaction_name",
+    "transaction.name": "transaction_name",
+    "transaction.op": "transaction_op",
+    "transaction_op": "transaction_op",
+    "platform.name": "platform",
+    "environment": "environment",
+    "release": "release",
+    # Time related properties
+    "transaction.duration": "duration",
+    "transaction.start_time": "start_ts",
+    "transaction.end_time": "end_ts",
+    # User
+    "user": "user",
+    "user.id": "user_id",
+    "user.email": "user_email",
+    "user.username": "user_name",
+    "user.ip": "ip_address_v4",
+    # tags, contexts
+    "tags.key": "tags.key",
+    "tags.value": "tags.value",
+    "tags_key": "tags_key",
+    "tags_value": "tags_value",
+    "contexts.key": "contexts.key",
+    "contexts.value": "contexts.value",
+    # Shim to make queries that can act on
+    # events or transactions work more smoothly.
+    "timestamp": "start_ts",
+    "time": "bucketed_start",
+}
+
+DATASETS = {EVENTS: SENTRY_SNUBA_MAP, TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP}
 
 
 class SnubaError(Exception):
@@ -299,6 +340,45 @@ def get_snuba_column_name(name):
         return name
 
     return SENTRY_SNUBA_MAP.get(name, u"tags[{}]".format(name))
+
+
+def detect_dataset(query_args):
+    """
+    Determine the dataset to use based on the conditions, selected_columns,
+    groupby clauses.
+    """
+    if query_args.get("dataset", None):
+        return query_args["dataset"]
+
+    dataset = EVENTS
+    transaction_fields = set(DATASETS[TRANSACTIONS].keys()) - set(DATASETS[EVENTS].keys())
+    for condition in query_args.get("conditions") or []:
+        if isinstance(condition[0], six.string_types) and condition[0] in transaction_fields:
+            return TRANSACTIONS
+        if condition == ["event.type", "=", "transaction"]:
+            return TRANSACTIONS
+        if condition == ["type", "=", "transaction"]:
+            return TRANSACTIONS
+
+    for field in query_args.get("selected_columns") or []:
+        if isinstance(field, six.string_types) and field in transaction_fields:
+            return TRANSACTIONS
+
+    for field in query_args.get("aggregations") or []:
+        if len(field) != 3:
+            continue
+        if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
+            return TRANSACTIONS
+        if isinstance(field[1], (list, tuple)):
+            is_transaction = [column for column in field[1] if column in transaction_fields]
+            if is_transaction:
+                return TRANSACTIONS
+
+    for field in query_args.get("groupby") or []:
+        if field in transaction_fields:
+            return TRANSACTIONS
+
+    return dataset
 
 
 def get_function_index(column_expr, depth=0):
