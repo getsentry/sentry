@@ -177,36 +177,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         # TODO(dcramer): handle unauthenticated/public response
 
-        # TODO(jess): This can be removed when tagstore v2 is deprecated
-        use_snuba = request.GET.get("enable_snuba") == "1"
         environments = get_environments(request, group.project.organization)
         environment_ids = [e.id for e in environments]
 
-        if use_snuba:
-            # WARNING: the rest of this endpoint relies on this serializer
-            # populating the cache SO don't move this :)
-            data = serialize(
-                group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
-            )
-        else:
-            # TODO(jess): This is just to ensure we're not breaking the old
-            # issue page somehow -- non-snuba tagstore versions will raise
-            # if more than one env is passed
-            if environments:
-                environments = environments[:1]
-                environment_ids = environment_ids[:1]
-
-            data = serialize(
-                group,
-                request.user,
-                GroupSerializer(
-                    # Just in case multiple envs are passed, let's make
-                    # sure we're using the same one for all the stats
-                    environment_func=lambda: environments[0]
-                    if environments
-                    else None
-                ),
-            )
+        # WARNING: the rest of this endpoint relies on this serializer
+        # populating the cache SO don't move this :)
+        data = serialize(group, request.user, GroupSerializerSnuba(environment_ids=environment_ids))
 
         # TODO: these probably should be another endpoint
         activity = self._get_activity(request, group, num=100)
