@@ -5,7 +5,7 @@ import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
-import {defined} from 'app/utils';
+import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
@@ -139,6 +139,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
 const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+const MARGIN_LEFT = 8;
 
 const getDurationDisplay = ({
   width,
@@ -167,9 +168,12 @@ type SpanBarProps = {
   spanBarColour: string;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
+  continuingTreeDepths: Array<number>;
   showSpanTree: boolean;
   numOfSpanChildren: number;
   spanNumber: number;
+  isLast?: boolean;
+  isRoot?: boolean;
   toggleSpanTree: () => void;
 };
 
@@ -266,6 +270,24 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
+  renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
+    const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
+    if (isRoot) {
+      return null;
+    }
+
+    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
+      const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      return <ConnectorBar style={{left}} key={`${span.span_id}-${depth}`} />;
+    });
+
+    return (
+      <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
+        {connectorBars}
+      </SpanTreeConnector>
+    );
+  };
+
   renderSpanTreeToggler = ({left}: {left: number}) => {
     const {numOfSpanChildren} = this.props;
 
@@ -273,11 +295,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const chevron = <Chevron src={chevronSrc} />;
 
     if (numOfSpanChildren <= 0) {
-      return <SpanTreeTogglerContainer style={{left: `${left}px`}} />;
+      return (
+        <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+          {this.renderSpanTreeConnector({hasToggler: false})}
+        </SpanTreeTogglerContainer>
+      );
     }
 
     return (
-      <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler={true}>
+        {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -303,7 +330,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
     const description = get(span, 'description', span.span_id);
 
-    const MARGIN_LEFT = 8;
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
@@ -711,18 +737,12 @@ const getBackgroundColor = ({
   return showStriping ? theme.offWhite : 'white';
 };
 
-type SpanRowCellProps = {
+type SpanRowCellProps = OmitHtmlDivProps<{
   showStriping?: boolean;
   showDetail?: boolean;
-};
+}>;
 
-type SpanRowCellAndDivProps = Omit<
-  React.HTMLProps<HTMLDivElement>,
-  keyof SpanRowCellProps
-> &
-  SpanRowCellProps;
-
-const SpanRowCell = styled('div')<SpanRowCellAndDivProps>`
+const SpanRowCell = styled('div')<SpanRowCellProps>`
   position: absolute;
   padding: ${space(0.5)} 1px;
   height: 100%;
@@ -797,15 +817,61 @@ const SpanBarTitle = styled('div')`
   align-items: center;
 `;
 
-const SpanTreeTogglerContainer = styled('div')`
+type TogglerTypes = OmitHtmlDivProps<{
+  hasToggler?: boolean;
+  isLast?: boolean;
+}>;
+
+const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: 15px;
-  width: 40px;
-  min-width: 40px; /* annoying flex thing */
+  width: ${p => (p.hasToggler ? '44px' : '16px')};
+  min-width: ${p => (p.hasToggler ? '44px' : '16px')}; /* annoying flex thing */
   margin-right: ${space(1)};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
+`;
+
+// one-off to get the perfect heirarchy
+const spanTreeColor = '#D5CEDB';
+
+const SpanTreeConnector = styled('div')<TogglerTypes>`
+  height: ${p => (p.isLast ? '85%' : '175%')};
+  border-left: 1px solid ${spanTreeColor};
+  position: absolute;
+  left: 4px;
+  top: -5px;
+
+  &:before {
+    content: '';
+    width: ${p => (p.hasToggler ? '3px' : '8px')};
+    position: absolute;
+    height: 1px;
+    top: ${p => (p.isLast ? '100%' : '50%')};
+    transform: translateY(-50%);
+    background: ${spanTreeColor};
+  }
+
+  &:after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    /* border radius stops working at 3px */
+    transform: scale(0.5) translateY(-100%);
+    left: ${p => (p.hasToggler ? '1px' : '6px')};
+    top: ${p => (p.isLast ? '100%' : '50%')};
+    position: absolute;
+    background: ${spanTreeColor};
+  }
+`;
+
+const ConnectorBar = styled('div')`
+  height: 250%;
+  border-left: 1px solid ${spanTreeColor};
+  top: -5px;
+  position: absolute;
 `;
 
 const getTogglerTheme = ({isExpanded, theme}) => {
@@ -825,15 +891,9 @@ const getTogglerTheme = ({isExpanded, theme}) => {
   `;
 };
 
-type SpanTreeTogglerProps = {
+type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
-};
-
-type SpanTreeTogglerAndDivProps = Omit<
-  React.HTMLProps<HTMLDivElement>,
-  keyof SpanTreeTogglerProps
-> &
-  SpanTreeTogglerProps;
+}>;
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;

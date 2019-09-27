@@ -394,7 +394,7 @@ def ingest_consumer(**options):
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
+    from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 
     consumer_type = options["consumer_type"]
     if consumer_type == "events":
@@ -410,6 +410,50 @@ def ingest_consumer(**options):
         commit_batch_size=options["commit_batch_size"],
         consumer_group=options["group"],
         consumer_type=consumer_type,
+        max_fetch_time_seconds=max_fetch_time_seconds,
+        initial_offset_reset=options["initial_offset_reset"],
+    )
+
+
+@run.command("outcomes-consumer")
+@log_options()
+@click.option(
+    "--group", default="outcomes-consumer", help="Kafka consumer group for the outcomes consumer. "
+)
+@click.option(
+    "--commit-batch-size",
+    default=100,
+    type=int,
+    help="How many messages to process before committing offsets.",
+)
+@click.option(
+    "--max-fetch-time-ms",
+    default=100,
+    type=int,
+    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
+    "before returning the available messages in the topic.",
+)
+@click.option(
+    "--initial-offset-reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@configuration
+def outcome_consumer(**options):
+    """
+    Runs an "outcomes consumer" task.
+
+    The "outcomes consumer" tasks read outcomes from a kafka topic and sends
+    signals for some of them.
+    """
+    from sentry.ingest.outcome_consumer import run_outcomes_consumer
+
+    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
+
+    run_outcomes_consumer(
+        commit_batch_size=options["commit_batch_size"],
+        consumer_group=options["group"],
         max_fetch_time_seconds=max_fetch_time_seconds,
         initial_offset_reset=options["initial_offset_reset"],
     )
