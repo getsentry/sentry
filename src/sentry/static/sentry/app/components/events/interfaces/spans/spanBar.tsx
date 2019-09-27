@@ -276,13 +276,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const connectorBars: Array<JSX.Element> = [];
-    for (let step = 0; step < treeDepth; step++) {
-      if (continuingTreeDepths.some(depth => depth === step)) {
-        const left = ((treeDepth - step) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
-        connectorBars.push(<ConnectorBar style={{left}} />);
-      }
-    }
+    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
+      const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      return <ConnectorBar style={{left}} key={depth} />;
+    });
 
     return (
       <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
