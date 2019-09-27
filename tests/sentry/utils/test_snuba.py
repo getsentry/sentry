@@ -5,7 +5,13 @@ import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.utils.snuba import get_snuba_translators, zerofill, get_json_type, get_snuba_column_name
+from sentry.utils.snuba import (
+    get_snuba_translators,
+    zerofill,
+    get_json_type,
+    get_snuba_column_name,
+    detect_dataset,
+)
 
 
 class SnubaUtilsTest(TestCase):
@@ -168,3 +174,52 @@ class SnubaUtilsTest(TestCase):
         # This is odd behavior but captures what we do currently.
         assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
         assert get_snuba_column_name("organization") == "tags[organization]"
+
+
+class DetectDatasetTest(TestCase):
+    def test_dataset_key(self):
+        query = {"dataset": "events", "conditions": [["event.type", "=", "transaction"]]}
+        assert detect_dataset(query) == "events"
+
+    def test_event_type_condition(self):
+        query = {"conditions": [["event.type", "=", "transaction"]]}
+        assert detect_dataset(query) == "transactions"
+
+        query = {"conditions": [["event.type", "!=", "transaction"]]}
+        assert detect_dataset(query) == "events"
+
+        query = {"conditions": [["type", "=", "transaction"]]}
+        assert detect_dataset(query) == "transactions"
+
+        query = {"conditions": [["type", "=", "error"]]}
+        assert detect_dataset(query) == "events"
+
+    def test_conditions(self):
+        query = {"conditions": [["transaction", "=", "api.do_thing"]]}
+        assert detect_dataset(query) == "events"
+
+        query = {"conditions": [["transaction.name", "=", "api.do_thing"]]}
+        assert detect_dataset(query) == "transactions"
+
+        query = {"conditions": [["transaction.duration", ">", "3"]]}
+        assert detect_dataset(query) == "transactions"
+
+    def test_selected_columns(self):
+        query = {"selected_columns": ["id", "message"]}
+        assert detect_dataset(query) == "events"
+
+        query = {"selected_columns": ["id", "transaction", "transaction.duration"]}
+        assert detect_dataset(query) == "transactions"
+
+    def test_aggregations(self):
+        query = {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]}
+        assert detect_dataset(query) == "events"
+
+        query = {"aggregations": [["argMax", ["id", "duration"], "longest"]]}
+        assert detect_dataset(query) == "events"
+
+        query = {"aggregations": [["quantileTiming(0.95)", "transaction.duration", "p95_duration"]]}
+        assert detect_dataset(query) == "transactions"
+
+        query = {"aggregations": [["uniq", "transaction.name", "uniq_transaction"]]}
+        assert detect_dataset(query) == "transactions"
