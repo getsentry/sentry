@@ -24,7 +24,6 @@ from sentry.digests.utilities import get_digest_metadata
 from sentry.http import get_server_hostname
 from sentry.models import (
     Activity,
-    Event,
     Group,
     GroupStatus,
     GroupSubscriptionReason,
@@ -33,6 +32,7 @@ from sentry.models import (
     Project,
     Release,
     Rule,
+    SnubaEvent,
     Team,
 )
 from sentry.event_manager import EventManager
@@ -194,18 +194,18 @@ class ActivityMailDebugView(View):
         group.message = event_manager.get_search_message()
         group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
-        event = Event(
-            id=1,
-            project=project,
-            message=event_manager.get_search_message(),
-            group=group,
-            datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
-            data=event_manager.get_data(),
+        event = SnubaEvent(
+            {
+                "event_id": "a" * 32,
+                "project_id": project.id,
+                "group_id": group.id,
+                "message": event_manager.get_search_message(),
+                "data": data.data,
+                "timestamp": data["timestamp"],
+            }
         )
 
-        activity = Activity(
-            group=event.group, project=event.project, **self.get_activity(request, event)
-        )
+        activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
@@ -330,7 +330,6 @@ def digest(request):
 
     records = []
 
-    event_sequence = itertools.count(1)
     group_generator = make_group_generator(random, project)
 
     for i in range(random.randint(1, 30)):
@@ -340,17 +339,30 @@ def digest(request):
         offset = timedelta(seconds=0)
         for i in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
-            event = Event(
-                id=next(event_sequence),
-                event_id=uuid.uuid4().hex,
-                project=project,
-                group=group,
-                message=group.message,
-                data=load_data("python"),
-                datetime=to_datetime(
-                    random.randint(to_timestamp(group.first_seen), to_timestamp(group.last_seen))
-                ),
+
+            data = dict(load_data("python"))
+            data["message"] = group.message
+            data.pop("logentry", None)
+
+            event_manager = EventManager(data)
+            event_manager.normalize()
+            data = event_manager.get_data()
+
+            timestamp = to_datetime(
+                random.randint(to_timestamp(group.first_seen), to_timestamp(group.last_seen))
             )
+
+            event = SnubaEvent(
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "project_id": project.id,
+                    "group_id": group.id,
+                    "message": group.message,
+                    "data": data.data,
+                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                }
+            )
+            event.group = group
 
             records.append(
                 Record(
