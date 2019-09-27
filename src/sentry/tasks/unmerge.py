@@ -215,7 +215,7 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.id for event in events)
+    event_id_set = set(event.event_id for event in events)
 
     for event in events:
         event.group = destination
