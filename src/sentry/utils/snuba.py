@@ -346,6 +346,9 @@ def detect_dataset(query_args):
     """
     Determine the dataset to use based on the conditions, selected_columns,
     groupby clauses.
+
+    This function operates on the end user field aliases and not the internal column
+    names that have been converted using the field mappings.
     """
     if query_args.get("dataset", None):
         return query_args["dataset"]
