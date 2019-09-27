@@ -8,7 +8,7 @@ import msgpack
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.ingest_consumer import ConsumerType, run_ingest_consumer
+from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 from sentry.models.event import Event
 from sentry.testutils.factories import Factories
 from django.conf import settings
@@ -76,14 +76,14 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin
 ):
     consumer_group = "test-consumer"
+    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+
     admin = kafka_admin(settings)
-    admin.delete_events_topic()
+    admin.delete_topic(topic_event_name)
     producer = kafka_producer(settings)
 
     organization = Factories.create_organization()
     project = Factories.create_project(organization=organization)
-
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     event_ids = set()
     for _ in range(3):

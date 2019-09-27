@@ -44,6 +44,7 @@ from sentry.coreapi import (
     logger as api_logger,
 )
 from sentry.event_manager import EventManager
+from sentry.ingest.outcomes_consumer import mark_signal_sent
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import (
@@ -200,6 +201,11 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     event_id = data["event_id"]
 
     if should_filter:
+        # Mark that the event_filtered signal is sent. Do this before emitting
+        # the outcome to avoid a potential race between OutcomesConsumer and
+        # `event_filtered.send_robust` below.
+        mark_signal_sent(project_config.project_id, event_id)
+
         track_outcome(
             project_config.organization_id,
             project_config.project_id,
@@ -224,6 +230,11 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     if rate_limit is None or rate_limit.is_limited:
         if rate_limit is None:
             api_logger.debug("Dropped event due to error with rate limiter")
+
+        # Mark that the event_dropped signal is sent. Do this before emitting
+        # the outcome to avoid a potential race between OutcomesConsumer and
+        # `event_dropped.send_robust` below.
+        mark_signal_sent(project_config.project_id, event_id)
 
         reason = rate_limit.reason_code if rate_limit else None
         track_outcome(
