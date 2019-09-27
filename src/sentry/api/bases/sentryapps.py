@@ -355,7 +355,7 @@ class SentryAppStatsPermission(SentryPermission):
 
         # Don't show stats for unpublished or internal apps
         if not sentry_app.is_published:
-            raise Http404
+            return False
 
         if is_active_superuser(request):
             return True

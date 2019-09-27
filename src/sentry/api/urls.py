@@ -245,6 +245,7 @@ from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
+from .endpoints.sentry_app_errors import SentryAppErrorsEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -1448,6 +1449,11 @@ urlpatterns = patterns(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/stats/$",
         SentryAppStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-stats",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/errors/$",
+        SentryAppErrorsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-errors",
     ),
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",

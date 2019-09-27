@@ -6,7 +6,7 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
-from sentry.http import safe_urlopen
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -22,6 +22,7 @@ from sentry.models import (
     ServiceHookProject,
     SentryApp,
     SnubaEvent,
+    SentryAppWebhookError,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -273,9 +274,24 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
 
-        safe_urlopen(
+        resp = safe_urlopen(
             url=servicehook.sentry_app.webhook_url,
             data=request_data.body,
             headers=request_data.headers,
             timeout=5,
         )
+
+        # Track any webhook errors for these event types
+        if not resp.ok and event in ["issue.assigned", "issue.ignored", "issue.resolved"]:
+            body = safe_urlread(resp)
+            SentryAppWebhookError.objects.create(
+                sentry_app_id=installation.sentry_app_id,
+                organization_id=installation.organization_id,
+                # error_id=TODO
+                request_body=request_data.body,
+                request_headers=request_data.headers,
+                event_type=event,
+                webhook_url=servicehook.sentry_app.webhook_url,
+                response_body=body,
+                response_code=resp.status_code,
+            )
