@@ -741,6 +741,7 @@ class EventManager(object):
             with transaction.atomic(using=router.db_for_write(Event)):
                 event.set_data(EventDict(data, skip_renormalization=True))
                 event.data.save()
+                event.clear_node_id()
                 event.save()
 
         except IntegrityError:
