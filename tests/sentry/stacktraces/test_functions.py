@@ -26,13 +26,13 @@ from sentry.stacktraces.functions import (
         ],
         [
             "<actix_web::pipeline::Pipeline<S, H> as actix_web::server::handler::HttpHandlerTask>::poll_io",
-            "<actix_web::pipeline::Pipeline<T> as actix_web::server::handler::HttpHandlerTask>::poll_io",
+            "actix_web::pipeline::Pipeline<T>::poll_io",
         ],
         ["+[FLFoo barBaz]", "+[FLFoo barBaz]"],
         ["-[FLFoo barBaz]", "-[FLFoo barBaz]"],
         [
             "<tokio_current_thread::scheduler::Scheduled<'a, U>>::tick",
-            "<tokio_current_thread::scheduler::Scheduled<T>>::tick",
+            "tokio_current_thread::scheduler::Scheduled<T>::tick",
         ],
         [
             "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}",
@@ -40,7 +40,7 @@ from sentry.stacktraces.functions import (
         ],
         [
             "<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
-            "<std::panic::AssertUnwindSafe<T> as core::ops::function::FnOnce<T>>::call_once",
+            "std::panic::AssertUnwindSafe<T>::call_once",
         ],
         [
             "struct style::gecko_bindings::sugar::ownership::Strong<style::gecko_bindings::structs::root::RawServoStyleSheetContents> geckoservo::glue::Servo_StyleSheet_Empty(style::gecko_bindings::structs::root::mozilla::css::SheetParsingMode) const",
@@ -68,9 +68,14 @@ from sentry.stacktraces.functions import (
             "mynamespace::MyClass::operator()",
         ],
         [
-            "<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47",
-            "<actix::contextimpl::ContextFut<T> as futures::future::Future>::poll",
+            "std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char)",
+            "std::operator<< <T>",
         ],
+        [
+            "<actix::contextimpl::ContextFut<A, C> as futures::future::Future>::poll::h9de5fbebc1652d47",
+            "actix::contextimpl::ContextFut<T>::poll",
+        ],
+        ["<T as core::convert::Into<U>>::into", "core::convert::Into<T>::into"],
         ["ThreadStartWhatever@16", "ThreadStartWhatever"],
         ["@ThreadStartWhatever@16", "ThreadStartWhatever"],
         ["@objc ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
@@ -85,6 +90,7 @@ from sentry.stacktraces.functions import (
         ["main::{lambda(int)#1}", "main::lambda"],
         ["main::{lambda()#42}", "main::lambda"],
         ["lambda_7156c3ceaa11256748687ab67e3ef4cd", "lambda"],
+        ["<lambda_7156c3ceaa11256748687ab67e3ef4cd>::operator()", "<lambda>::operator()"],
     ],
 )
 def test_trim_function_name(input, output):
