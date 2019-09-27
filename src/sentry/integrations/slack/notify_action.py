@@ -162,31 +162,25 @@ class SlackNotifyServiceAction(EventAction):
 
         # Look for channel ID
         channels_payload = dict(
-            token_payload, **{"exclude_archived": False, "exclude_members": True}
+            token_payload, **{"exclude_archived": False, "types": "public_channel,private_channel", "limit": 1000}
         )
 
-        resp = session.get("https://slack.com/api/channels.list", params=channels_payload)
-        resp = resp.json()
-        if not resp.get("ok"):
-            self.logger.info("rule.slack.channel_list_failed", extra={"error": resp.get("error")})
-            return None
+        cursor = None
+        while True:
+            resp = session.get("https://slack.com/api/conversations.list", params=dict(channels_payload, **{"cursor": cursor}))
+            resp = resp.json()
+            if not resp.get("ok"):
+                self.logger.info("rule.slack.conversation_list_failed", extra={"error": resp.get("error")})
+                return None
 
-        channel_id = {c["name"]: c["id"] for c in resp["channels"]}.get(name)
+            channel_id = {c["name"]: c["id"] for c in resp["channels"]}.get(name)
 
-        if channel_id:
-            return (CHANNEL_PREFIX, channel_id)
+            if channel_id:
+                return (CHANNEL_PREFIX, channel_id)
 
-        # Channel may be private
-        resp = session.get("https://slack.com/api/groups.list", params=channels_payload)
-        resp = resp.json()
-        if not resp.get("ok"):
-            self.logger.info("rule.slack.group_list_failed", extra={"error": resp.get("error")})
-            return None
-
-        group_id = {c["name"]: c["id"] for c in resp["groups"]}.get(name)
-
-        if group_id:
-            return (CHANNEL_PREFIX, group_id)
+            cursor = resp.get("response_metadata", {}).get("next_cursor", "")
+            if not cursor:
+                break
 
         # Channel may actually be a user
         resp = session.get("https://slack.com/api/users.list", params=token_payload)
