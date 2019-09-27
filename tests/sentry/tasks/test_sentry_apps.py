@@ -27,6 +27,9 @@ from sentry.tasks.sentry_apps import (
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
+MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
+MockResponseInstance = MockResponse({}, {}, True, 200)
+
 
 class DictContaining(object):
     def __init__(self, *args, **kwargs):
@@ -143,7 +146,7 @@ class TestSendAlertEvent(TestCase):
         )
 
 
-@patch("sentry.tasks.sentry_apps.safe_urlopen")
+@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -264,7 +267,7 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
-@patch("sentry.tasks.sentry_apps.safe_urlopen")
+@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
     def setUp(self):
         self.project = self.create_project()
