@@ -3,11 +3,10 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
-import random
 import six
 import time
 
-from sentry import tsdb, options
+from sentry import tsdb
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
@@ -89,21 +88,20 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
         tsdb.incr_multi(increment_list, timestamp=timestamp)
 
     # Send a snuba metrics payload.
-    if random.random() <= options.get("snuba.track-outcomes-sample-rate"):
-        outcomes_publisher.publish(
-            outcomes["topic"],
-            json.dumps(
-                {
-                    "timestamp": timestamp,
-                    "org_id": org_id,
-                    "project_id": project_id,
-                    "key_id": key_id,
-                    "outcome": outcome.value,
-                    "reason": reason,
-                    "event_id": event_id,
-                }
-            ),
-        )
+    outcomes_publisher.publish(
+        outcomes["topic"],
+        json.dumps(
+            {
+                "timestamp": timestamp,
+                "org_id": org_id,
+                "project_id": project_id,
+                "key_id": key_id,
+                "outcome": outcome.value,
+                "reason": reason,
+                "event_id": event_id,
+            }
+        ),
+    )
 
     metrics.incr(
         "events.outcomes",
