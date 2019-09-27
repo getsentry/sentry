@@ -40,7 +40,10 @@ class SpanTree extends React.Component<PropType> {
 
   renderSpan = ({
     spanNumber,
+    isRoot,
+    isLast,
     treeDepth,
+    continuingTreeDepths,
     numOfHiddenSpansAbove,
     childSpans,
     span,
@@ -48,13 +51,15 @@ class SpanTree extends React.Component<PropType> {
   }: {
     spanNumber: number;
     treeDepth: number;
+    continuingTreeDepths: Array<number>;
+    isLast: boolean;
+    isRoot?: boolean;
     numOfHiddenSpansAbove: number;
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   }): RenderedSpanTree => {
     const spanBarColour: string = pickSpanBarColour(span.op);
-
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
     const bounds = generateBounds({
@@ -70,12 +75,16 @@ class SpanTree extends React.Component<PropType> {
       numOfHiddenSpansAbove: number;
     };
 
+    const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
+
     const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild) => {
+      (acc: AccType, spanChild, index) => {
         const key = `${span.trace_id}${spanChild.span_id}`;
 
         const results = this.renderSpan({
           spanNumber: acc.nextSpanNumber,
+          isLast: index + 1 === spanChildren.length,
+          continuingTreeDepths: treeArr,
           treeDepth: treeDepth + 1,
           numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
           span: spanChild,
@@ -118,6 +127,9 @@ class SpanTree extends React.Component<PropType> {
           {hiddenSpansMessage}
           <SpanGroup
             spanNumber={spanNumber}
+            isLast={isLast}
+            continuingTreeDepths={continuingTreeDepths}
+            isRoot={isRoot}
             span={span}
             trace={this.props.trace}
             generateBounds={generateBounds}
@@ -151,8 +163,11 @@ class SpanTree extends React.Component<PropType> {
     });
 
     return this.renderSpan({
+      isRoot: true,
+      isLast: true,
       spanNumber: 1,
       treeDepth: 0,
+      continuingTreeDepths: [],
       numOfHiddenSpansAbove: 0,
       span: rootSpan,
       childSpans: trace.childSpans,
