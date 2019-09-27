@@ -524,8 +524,20 @@ def unmerge(
 
     project = caches["Project"](project_id)
 
-    # We process events in descending order by timestamp, event_id, to ensure
-    # we have a stable order even in cases of events with a same timestamp.
+    # We process events sorted in descending order by -timestamp, -event_id. We need
+    # to include event_id as well as timestamp in the ordering criteria since:
+    #
+    # - Event timestamps are rounded to the second so multiple events are likely
+    # to have the same timestamp.
+    #
+    # - When sorting by timestamp alone, Snuba may not give us a deterministic
+    # order for events with the same timestamp.
+    #
+    # - We need to ensure that we do not skip any events between batches. If we
+    # only sorted by timestamp < last_event.timestamp it would be possible to
+    # have missed an event with the same timestamp as the last item in the
+    # previous batch.
+
     conditions = []
     if last_event is not None:
         conditions.extend(
