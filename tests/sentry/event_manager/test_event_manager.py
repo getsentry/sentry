@@ -74,26 +74,6 @@ class EventManagerTest(TestCase):
 
         assert event1.group_id != event2.group_id
 
-    @mock.patch("sentry.event_manager.should_sample")
-    def test_does_not_save_event_when_sampled(self, should_sample):
-        with self.feature("projects:sample-events"):
-            should_sample.return_value = True
-            event_id = "a" * 32
-
-            manager = EventManager(make_event(event_id=event_id))
-            manager.save(1)
-
-            # This is a brand new event, so it is actually saved.
-            assert Event.objects.filter(event_id=event_id).exists()
-
-            event_id = "b" * 32
-
-            manager = EventManager(make_event(event_id=event_id))
-            manager.save(1)
-
-            # This second is a dupe, so should be sampled
-            assert not Event.objects.filter(event_id=event_id).exists()
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
@@ -794,7 +774,6 @@ class EventManagerTest(TestCase):
             group=event.group,
             event=event,
             is_new=True,
-            is_sample=False,
             is_regression=False,
             is_new_group_environment=True,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
@@ -809,7 +788,6 @@ class EventManagerTest(TestCase):
             group=event.group,
             event=event,
             is_new=False,
-            is_sample=False,
             is_regression=None,  # XXX: wut
             is_new_group_environment=False,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
