@@ -5,7 +5,7 @@ import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
-import {defined} from 'app/utils';
+import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
@@ -737,9 +737,7 @@ const getBackgroundColor = ({
   return showStriping ? theme.offWhite : 'white';
 };
 
-type OmitHtmlProps<P extends object> = Omit<React.HTMLProps<HTMLDivElement>, keyof P> & P;
-
-type SpanRowCellProps = OmitHtmlProps<{
+type SpanRowCellProps = OmitHtmlDivProps<{
   showStriping?: boolean;
   showDetail?: boolean;
 }>;
@@ -819,7 +817,7 @@ const SpanBarTitle = styled('div')`
   align-items: center;
 `;
 
-type TogglerTypes = OmitHtmlProps<{
+type TogglerTypes = OmitHtmlDivProps<{
   hasToggler?: boolean;
   isLast?: boolean;
 }>;
@@ -893,7 +891,7 @@ const getTogglerTheme = ({isExpanded, theme}) => {
   `;
 };
 
-type SpanTreeTogglerAndDivProps = OmitHtmlProps<{
+type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
 }>;
 
