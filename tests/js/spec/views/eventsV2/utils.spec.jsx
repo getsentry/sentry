@@ -1,4 +1,5 @@
 import {mount} from 'enzyme';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {
@@ -7,6 +8,7 @@ import {
   getEventTagSearchUrl,
   decodeColumnOrderAndColumnSortBy,
   encodeColumnOrderAndColumnSortBy,
+  setColumnStateOnLocation,
 } from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
@@ -277,7 +279,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     });
     expect(table.columnSortBy[0]).toMatchObject({
       key: 'a',
-      order: 1,
+      order: 'asc',
     });
   });
 
@@ -310,7 +312,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     });
     expect(table.columnSortBy[0]).toMatchObject({
       key: 'a',
-      order: -1,
+      order: 'desc',
     });
   });
 
@@ -337,7 +339,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     });
     expect(table.columnSortBy[0]).toMatchObject({
       key: 'a(b)',
-      order: -1,
+      order: 'desc',
     });
   });
 });
@@ -378,11 +380,11 @@ describe('encodeColumnOrderAndColumnSortBy', function() {
       columnSortBy: [
         {
           key: 'a',
-          order: 1,
+          order: 'asc',
         },
         {
           key: 'a(b)',
-          order: -1,
+          order: 'desc',
         },
       ],
     };
@@ -428,5 +430,88 @@ describe('encodeColumnOrderAndColumnSortBy', function() {
 
     expect(query.field).toHaveLength(1);
     expect(query.field[0]).toBe('a(b)');
+  });
+});
+
+describe('setColumnStateOnLocation', function() {
+  const location = {
+    boba: {
+      fett: 'no',
+      tea: 'yes',
+    },
+    query: {
+      star: {
+        trek: 'maybe',
+        wars: 'perhaps',
+      },
+    },
+  };
+  let browserHistoryPush;
+
+  beforeAll(() => {
+    browserHistoryPush = browserHistory.push;
+    browserHistory.push = jest.fn();
+  });
+
+  afterAll(() => {
+    browserHistory.push = browserHistoryPush;
+  });
+
+  beforeEach(() => {
+    browserHistory.push.mockClear();
+  });
+
+  it('will copy Location object correctly', function() {
+    setColumnStateOnLocation(location, [], []);
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boba: expect.objectContaining({
+          fett: expect.any(String),
+          tea: expect.any(String),
+        }),
+        query: expect.objectContaining({
+          star: expect.objectContaining({
+            trek: expect.any(String),
+            wars: expect.any(String),
+          }),
+        }),
+      })
+    );
+  });
+
+  it('will remove extraneous columnSortBy elements', function() {
+    const table = {
+      columnOrder: [
+        {
+          key: 'a',
+          name: 'ant',
+          aggregation: '',
+          field: 'a',
+        },
+      ],
+      columnSortBy: [
+        {
+          key: 'a',
+          order: 'asc',
+        },
+        {
+          key: 'a(b)',
+          order: 'desc',
+        },
+      ],
+    };
+
+    setColumnStateOnLocation(location, table.columnOrder, table.columnSortBy);
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          alias: expect.arrayContaining(['ant']),
+          field: expect.arrayContaining(['a']),
+          sort: expect.arrayContaining(['a']),
+        }),
+      })
+    );
   });
 });
