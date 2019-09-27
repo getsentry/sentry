@@ -516,9 +516,8 @@ def unmerge(
 
     project = caches["Project"](project_id)
 
-    # We fetch the events in descending order by their primary key to get the
-    # best approximation of the most recently received events.
-
+    # We process events in descending order by timestamp, event_id, to ensure
+    # we have a stable order even in cases of events with a same timestamp.
     conditions = []
     if last_event is not None:
         conditions.extend(
@@ -529,10 +528,11 @@ def unmerge(
         )
 
     events = eventstore.get_events(
-        filter_keys={"project_id": [project_id]},
+        filter_keys={"project_id": [project_id], "issue": [source.id]},
         conditions=conditions,
         limit=batch_size,
         referrer="unmerge",
+        orderby=["-timestamp", "-event_id"],
     )
 
     # If there are no more events to process, we're done with the migration.

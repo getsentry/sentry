@@ -285,7 +285,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert list(
             Group.objects.filter(id=source.id).values_list("times_seen", "first_seen", "last_seen")
-        ) == [(7, time_from_now(10), time_from_now(16))]
+        ) == [(6, time_from_now(10), time_from_now(15))]
 
         assert list(
             Group.objects.filter(id=destination.id).values_list(
