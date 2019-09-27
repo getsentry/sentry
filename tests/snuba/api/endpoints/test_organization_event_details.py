@@ -64,6 +64,32 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == "b" * 32
         assert response.data["projectSlug"] == self.project.slug
 
+    def test_simple_transaction(self):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "type": "transaction",
+                "transaction": "api.issue.delete",
+                "spans": [],
+                "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                "timestamp": min_ago,
+            },
+            project_id=self.project.id,
+        )
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": event.event_id,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200
+
     def test_no_access(self):
         url = reverse(
             "sentry-api-0-organization-event-details",
