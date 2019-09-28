@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import options
+
 from sentry.utils import json
 from sentry.integrations import (
     IntegrationInstallation,
@@ -154,7 +156,10 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
 class PagerDutyInstallationRedirect(PipelineView):
     def get_app_url(self):
-        return "https://app.pagerduty.com/install/integration?app_id=PZNIQIG&redirect_url=https://meredith.ngrok.io/extensions/pagerduty/setup/&version=1"
+        app_id = options.get("pagerduty.app-id")
+        setup_url = "https://meredith.ngrok.io/extensions/pagerduty/setup/"
+
+        return "https://app.pagerduty.com/install/integration?app_id=%sredirect_url=%s&version=1" % (app_id, setup_url)
 
     def dispatch(self, request, pipeline):
         if "config" in request.GET:
