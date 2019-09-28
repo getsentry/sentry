@@ -62,7 +62,6 @@ from sentry.models import (
     UserReport,
     PlatformExternalIssue,
 )
-from sentry import nodestore
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
@@ -477,9 +476,7 @@ class Factories(object):
 
         # Create the event and save the data in nodestore
         event = Event(event_id=event_id, group=group, **kwargs)
-        # emulate EventManager refs
-        node_id = Event.generate_node_id(kwargs["project"].id, event_id)
-        nodestore.set(node_id, kwargs["data"])
+        event.data.save()
         event.save()
         return event
 
