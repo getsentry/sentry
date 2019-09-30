@@ -1055,10 +1055,7 @@ SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
 _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
-    "backends": [
-        ("sentry.tagstore.legacy.LegacyTagStorage", {}),
-        ("sentry.tagstore.v2.V2TagStorage", {}),
-    ],
+    "backends": [("sentry.tagstore.legacy.LegacyTagStorage", {})],
     "runner": "ImmediateRunner",
 }
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.legacy.LegacyTagStorage")
