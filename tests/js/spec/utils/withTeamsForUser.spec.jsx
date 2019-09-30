@@ -1,23 +1,25 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import withUsersTeams from 'app/utils/withUsersTeams';
+import withTeamsForUser from 'app/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function() {
   const api = new MockApiClient();
+  const organization = TestStubs.Organization();
+
   beforeEach(function() {
     MockApiClient.clearMockResponses();
   });
 
   it('forwards errors', async function() {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
+      url: `/organizations/${organization.slug}/user-teams/`,
       statusCode: 400,
     });
     const MyComponent = () => null;
-    const Container = withUsersTeams(MyComponent);
-    const wrapper = mount(<Container organization={{slug: 'org-slug'}} api={api} />);
-    await wrapper.instance().fetchTeams();
+    const Container = withTeamsForUser(MyComponent);
+    const wrapper = mount(<Container organization={organization} api={api} />);
+    await tick();
     expect(
       wrapper
         .update()
@@ -39,14 +41,14 @@ describe('withUserTeams HoC', function() {
     ];
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
+      url: `/organizations/${organization.slug}/user-teams/`,
       body: mockTeams,
     });
 
     const MyComponent = () => null;
-    const Container = withUsersTeams(MyComponent);
-    const wrapper = mount(<Container organization={{slug: 'org-slug'}} api={api} />);
-    await wrapper.instance().fetchTeams();
+    const Container = withTeamsForUser(MyComponent);
+    const wrapper = mount(<Container organization={organization} api={api} />);
+    await tick();
     expect(
       wrapper
         .update()

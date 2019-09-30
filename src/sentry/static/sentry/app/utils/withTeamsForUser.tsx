@@ -13,20 +13,15 @@ type DependentProps = {
 type InjectedTeamsProps = {
   teams: Team[];
   loadingTeams: boolean;
-};
-
-type State = {
-  teams: Team[];
-  loadingTeams: boolean;
   error: Error | null;
 };
 
-const withUsersTeams = <P extends InjectedTeamsProps>(
+const withTeamsForUser = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   class extends React.Component<
     Omit<P, keyof InjectedTeamsProps> & Partial<InjectedTeamsProps> & DependentProps,
-    State
+    InjectedTeamsProps
   > {
     static displayName = `withUsersTeams(${getDisplayName(WrappedComponent)})`;
 
@@ -67,4 +62,4 @@ const withUsersTeams = <P extends InjectedTeamsProps>(
     }
   };
 
-export default withUsersTeams;
+export default withTeamsForUser;
