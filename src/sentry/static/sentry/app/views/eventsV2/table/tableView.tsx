@@ -62,7 +62,7 @@ class TableView extends React.Component<TableViewProps, TableState> {
     return {
       columnOrder: decodeColumnOrder({
         field: eventView.getFieldNames(),
-        alias: eventView.getFieldTitles(),
+        fieldnames: eventView.getFieldTitles(),
       }),
       columnSortBy: decodeColumnSortBy({
         sort: eventView.getDefaultSort(),
