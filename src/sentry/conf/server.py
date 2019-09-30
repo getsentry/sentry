@@ -1616,7 +1616,3 @@ SOUTH_MIGRATION_CONVERSIONS = (
      'social_auth',
      '0001_initial'),
 )
-
-import django
-if django.VERSION < (1, 9):
-    INSTALLED_APPS += ('south', )
