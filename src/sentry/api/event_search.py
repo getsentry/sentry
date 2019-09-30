@@ -526,17 +526,17 @@ def convert_search_filter_to_snuba_query(search_filter):
 
     if snuba_name in no_conversion:
         return
-    elif snuba_name == "tags[environment]":
+    elif snuba_name == "environment":
         env_conditions = []
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
             _envs.remove("")
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
-            env_conditions.append(["tags[environment]", operator, None])
+            env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["tags[environment]", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", list(_envs)])
 
         return env_conditions
 
@@ -652,13 +652,7 @@ def get_snuba_query_args(query=None, params=None):
 
 FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
-    "latest_event": {
-        "aggregations": [
-            # TODO(mark) This is a hack to work around jsonschema limitations
-            # in snuba.
-            ["argMax(event_id, timestamp)", "", "latest_event"]
-        ]
-    },
+    "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
     "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]}
     # TODO(mark) Add rpm alias.
@@ -781,7 +775,7 @@ def resolve_field_list(fields, snuba_args):
         if aggregations and "latest_event" not in fields:
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax(project_id, timestamp)", "", "projectid"])
+            aggregations.append(["argMax", ["project_id", "timestamp"], "projectid"])
 
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")

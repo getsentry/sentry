@@ -1,6 +1,9 @@
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+
+import classNames from 'classnames';
+
 import _ from 'lodash';
 
 import {isUrl} from 'app/utils';
@@ -208,19 +211,13 @@ class ContextData extends React.Component {
   };
 
   render() {
-    // XXX(dcramer): babel does not support this yet
-    // let {data, className, ...other} = this.props;
-    const data = this.props.data;
-    const className = this.props.className;
-    const other = {};
-    for (const key in this.props) {
-      if (key !== 'data' && key !== 'className') {
-        other[key] = this.props[key];
-      }
-    }
-    other.className = 'val ' + (className || '');
+    const {data, className, preserveQuotes: _preserveQuotes, ...other} = this.props;
 
-    return <pre {...other}>{this.renderValue(data)}</pre>;
+    return (
+      <pre className={classNames('val', className || '')} {...other}>
+        {this.renderValue(data)}
+      </pre>
+    );
   }
 }
 

@@ -35,7 +35,6 @@ class EventStream(Service):
         self,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
@@ -47,7 +46,6 @@ class EventStream(Service):
             post_process_group.delay(
                 event=event,
                 is_new=is_new,
-                is_sample=is_sample,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
@@ -58,20 +56,13 @@ class EventStream(Service):
         group,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
     ):
         self._dispatch_post_process_group_task(
-            event,
-            is_new,
-            is_sample,
-            is_regression,
-            is_new_group_environment,
-            primary_hash,
-            skip_consume,
+            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
         )
 
     def start_delete_groups(self, project_id, group_ids):

@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry import options
 
 
-class ProjectEventTest(TestCase):
+class ProjectEventTest(SnubaTestCase, TestCase):
     def setUp(self):
         super(ProjectEventTest, self).setUp()
         self.user = self.create_user()
@@ -48,9 +48,11 @@ class ProjectEventTest(TestCase):
         event = self.store_event(
             data={
                 "type": "transaction",
+                "transaction": "api.test",
                 "timestamp": min_ago,
                 "start_timestamp": min_ago,
                 "spans": [],
+                "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16}},
             },
             project_id=self.project.id,
         )

@@ -67,7 +67,7 @@ export default class ApiNewToken extends React.Component {
                   {({value, onChange}) => (
                     <MultipleCheckbox
                       onChange={onChange}
-                      value={value.peek()}
+                      value={value}
                       choices={API_CHOICES}
                     />
                   )}

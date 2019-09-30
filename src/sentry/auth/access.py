@@ -18,6 +18,7 @@ from sentry.models import (
     ProjectStatus,
     SentryApp,
     UserPermission,
+    Team,
 )
 
 
@@ -310,7 +311,7 @@ def from_sentry_app(user, organization=None):
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    team_list = list(sentry_app.teams.all())
+    team_list = list(Team.objects.filter(organization=organization))
     project_list = list(
         Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
     )
@@ -318,7 +319,7 @@ def from_sentry_app(user, organization=None):
     return Access(
         scopes=sentry_app.scope_list,
         is_active=True,
-        organization_id=organization.id if organization else None,
+        organization_id=organization.id,
         teams=team_list,
         projects=project_list,
         permissions=(),

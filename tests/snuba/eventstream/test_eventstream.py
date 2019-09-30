@@ -77,7 +77,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
-            "is_sample": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
         }
@@ -101,7 +100,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
-            "is_sample": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
         }

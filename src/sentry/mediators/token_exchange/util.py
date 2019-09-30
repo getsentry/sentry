@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from django.utils import timezone
 
 
 TOKEN_LIFE_IN_HOURS = 8
@@ -15,4 +16,4 @@ class GrantTypes(object):
 
 
 def token_expiration():
-    return datetime.utcnow() + timedelta(hours=TOKEN_LIFE_IN_HOURS)
+    return timezone.now() + timedelta(hours=TOKEN_LIFE_IN_HOURS)
