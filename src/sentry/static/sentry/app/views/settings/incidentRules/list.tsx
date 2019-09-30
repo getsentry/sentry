@@ -83,9 +83,9 @@ class IncidentRulesList extends AsyncView<Props, State> {
           <GridPanelHeader>
             <NameColumn>{t('Name')}</NameColumn>
 
-            <span>{t('Metric')}</span>
+            <div>{t('Metric')}</div>
 
-            <span>{t('Threshold')}</span>
+            <div>{t('Threshold')}</div>
           </GridPanelHeader>
 
           <PanelBody>
@@ -98,25 +98,37 @@ class IncidentRulesList extends AsyncView<Props, State> {
                   <RuleLink to={`/settings/${orgId}/incident-rules/${rule.id}/`}>
                     {rule.name}
                   </RuleLink>
-                  <span>{getMetricDisplayName(rule.thresholdType)}</span>
+
+                  <MetricName>{getMetricDisplayName(rule.thresholdType)}</MetricName>
 
                   <ThresholdColumn>
-                    <div>
+                    <Thresholds>
                       {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
-                    </div>
+                    </Thresholds>
 
-                    <Confirm
-                      priority="danger"
-                      onConfirm={() => this.handleRemoveRule(rule)}
-                      message={t('Are you sure you want to remove this rule?')}
-                    >
-                      <RemoveButton
-                        type="button"
+                    <Actions>
+                      <Button
+                        to={`/settings/${orgId}/incident-rules/${rule.id}/`}
                         size="small"
-                        icon="icon-trash"
-                        label={t('Remove Rule')}
-                      />
-                    </Confirm>
+                        icon="icon-edit"
+                        aria-label={t('Edit Rule')}
+                      >
+                        {t('Edit')}
+                      </Button>
+
+                      <Confirm
+                        priority="danger"
+                        onConfirm={() => this.handleRemoveRule(rule)}
+                        message={t('Are you sure you want to remove this rule?')}
+                      >
+                        <Button
+                          type="button"
+                          size="small"
+                          icon="icon-trash"
+                          label={t('Remove Rule')}
+                        />
+                      </Confirm>
+                    </Actions>
                   </ThresholdColumn>
                 </RuleRow>
               ))}
@@ -135,7 +147,7 @@ export default IncidentRulesList;
 
 const gridCss = css`
   display: grid;
-  grid-template-columns: 2fr 1fr 3fr;
+  grid-template-columns: 3fr 1fr 2fr;
   align-items: center;
 `;
 
@@ -154,7 +166,7 @@ const RuleRow = styled(PanelItem)`
   ${gridCss};
 `;
 
-const NameColumn = styled('span')`
+const NameColumn = styled('div')`
   ${nameColumnCss};
 `;
 
@@ -162,12 +174,21 @@ const RuleLink = styled(Link)`
   ${nameColumnCss}
 `;
 
+// For tests
+const MetricName = styled('div')``;
+
 const ThresholdColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
-const RemoveButton = styled(Button)`
+// For tests
+const Thresholds = styled('div')``;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
   margin: ${space(2)};
 `;
