@@ -22,5 +22,12 @@ describe('Incident Rules List', function() {
 
     expect(req).toHaveBeenCalled();
     expect(wrapper.find('RuleLink').text()).toEqual('My Incident Rule');
+    expect(
+      wrapper
+        .find('RuleRow span')
+        .at(0)
+        .text()
+    ).toEqual('Events');
+    expect(wrapper.find('RuleRow ThresholdColumn').text()).toEqual('70');
   });
 });
