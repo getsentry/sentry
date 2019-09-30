@@ -72,7 +72,7 @@ class ReleaseWebhookTest(TestCase):
         mock_plugin_get.assert_called_once_with("dummy")
         MockPlugin.get_release_hook.assert_called_once_with()
         MockReleaseHook.assert_called_once_with(self.project)
-        assert MockReleaseHook.return_value.handle.call_count is 1
+        assert MockReleaseHook.return_value.handle.call_count == 1
 
     @patch("sentry.plugins.plugins.get")
     def test_disabled_plugin(self, mock_plugin_get):

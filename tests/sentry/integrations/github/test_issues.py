@@ -315,7 +315,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         fields = self.integration.get_link_issue_config(event.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
-        assert repo_field["default"] is ""
+        assert repo_field["default"] == ""
         assert repo_field["choices"] == []
 
     @responses.activate

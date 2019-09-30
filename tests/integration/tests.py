@@ -163,7 +163,7 @@ class RavenIntegrationTest(TransactionTestCase):
         for _request in requests:
             self.send_event(*_request)
 
-        assert request.call_count is 1
+        assert request.call_count == 1
         assert Group.objects.count() == 1
         group = Group.objects.get()
         assert group.data["title"] == "foo"

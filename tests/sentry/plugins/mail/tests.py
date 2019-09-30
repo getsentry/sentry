@@ -130,7 +130,7 @@ class MailPluginTest(TestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             self.plugin.notify(notification)
 
-        assert _send_mail.call_count is 1
+        assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get("project"), self.project)
         self.assertEquals(kwargs.get("reference"), group)
@@ -169,7 +169,7 @@ class MailPluginTest(TestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             self.plugin.notify(notification)
 
-        assert _send_mail.call_count is 1
+        assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
         assert kwargs.get("subject") == u"BAR-2 - hello world"
 
@@ -260,7 +260,7 @@ class MailPluginTest(TestCase):
         with self.tasks():
             self.plugin.notify_digest(project, digest)
 
-        assert notify.call_count is 0
+        assert notify.call_count == 0
         assert len(mail.outbox) == 1
 
         message = mail.outbox[0]
@@ -273,8 +273,8 @@ class MailPluginTest(TestCase):
         rule = project.rule_set.all()[0]
         digest = build_digest(project, (event_to_record(self.event, (rule,)),))
         self.plugin.notify_digest(project, digest)
-        assert send_async.call_count is 1
-        assert notify.call_count is 1
+        assert send_async.call_count == 1
+        assert notify.call_count == 1
 
     @mock.patch(
         "sentry.models.ProjectOption.objects.get_value",

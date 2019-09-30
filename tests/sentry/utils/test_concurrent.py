@@ -219,7 +219,7 @@ def test_threaded_executor():
         queue_full_future.result()  # will not block if completed
 
     initial_waiting.set()  # let the task finish
-    assert initial_future.result(timeout=1) is 1
+    assert initial_future.result(timeout=1) == 1
     assert initial_future.done()
 
     assert high_priority_ready.wait(timeout=1)  # this should be the next task to execute
@@ -227,12 +227,12 @@ def test_threaded_executor():
     assert not low_priority_future.running()
 
     high_priority_waiting.set()  # let the task finish
-    assert high_priority_future.result(timeout=1) is 3
+    assert high_priority_future.result(timeout=1) == 3
     assert high_priority_future.done()
 
     assert low_priority_ready.wait(timeout=1)  # this should be the next task to execute
     assert low_priority_future.running()
 
     low_priority_waiting.set()  # let the task finish
-    assert low_priority_future.result(timeout=1) is 2
+    assert low_priority_future.result(timeout=1) == 2
     assert low_priority_future.done()
