@@ -44,13 +44,13 @@ class EventOrGroupHeader extends React.Component {
     const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
-      const locationWithProject = {...browserHistory.getCurrentLocation()};
+      const locationWithProject = {...this.props.location}
       const query =
         locationWithProject.query.project !== undefined
           ? {
               query: this.props.query,
             }
-          : {query: this.props.query, _allp: 1};
+          : {query: this.props.query, _allp: 1}; //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
 
       props.to = {
         pathname: `${basePath}${isEvent ? groupID : id}/${

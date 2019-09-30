@@ -127,14 +127,18 @@ const GroupDetails = createReactClass({
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
-          const locationWithProject = {...browserHistory.getCurrentLocation()};
+          const locationWithProject = {...this.props.location};
           if (
             locationWithProject.query.project === undefined &&
             locationWithProject.query._allp === undefined
           ) {
+            //We use _allp as a temporary measure to know they came from the issue list page with no project selected (all projects included in filter).
+            //If it is not defined, we add the locked project id to the URL (this is becayse uf someone navigates directly to an issue on single-project priveledges, then goes back - they were getting assigned to the first project).
+            //If it is defined, we do not so that our back button will bring us to the issue list page with no project selected instead of the locked proejct.
             locationWithProject.query.project = project.id;
-            browserHistory.replace(locationWithProject);
           }
+          delete locationWithProject.query._allp; //We delete _allp from the URL to keep the hack a bit cleaner, but this is not an ideal solution and will ultimately be replaced with something smarter.
+          browserHistory.replace(locationWithProject);
         }
 
         this.setState({
