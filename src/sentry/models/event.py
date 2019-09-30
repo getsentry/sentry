@@ -623,10 +623,7 @@ class Event(EventCommon, Model):
         data = kwargs.pop("data", None)
         super(Event, self).__init__(*args, **kwargs)
         self.node_id = Event.generate_node_id(self.project_id, self.event_id)
-        if data:
-            self.set_data(data)
-        else:
-            self.data = NodeData(None, self.node_id, data=None, wrapper=EventDict)
+        self.data = NodeData(None, self.node_id, data=data, wrapper=EventDict)
 
     def set_data(self, data):
         self.data = NodeData(None, self.node_id, data=data, wrapper=EventDict)

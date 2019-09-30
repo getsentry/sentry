@@ -166,7 +166,6 @@ class EventStorage(Service):
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
-
         object_node_list = [
             (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
         ]

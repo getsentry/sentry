@@ -6,7 +6,6 @@ import time
 from django.conf import settings
 
 from sentry import features
-
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
