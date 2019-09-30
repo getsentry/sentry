@@ -626,17 +626,17 @@ class Event(EventCommon, Model):
         if data:
             self.set_data(data)
         else:
-            self.data = NodeData(None, self.node_id, data=None, wrapper=EventDict, ref_version=2)
+            self.data = NodeData(None, self.node_id, data=None, wrapper=EventDict)
 
     def set_data(self, data):
-        self.data = NodeData(None, self.node_id, data=data, wrapper=EventDict, ref_version=2)
+        self.data = NodeData(None, self.node_id, data=data, wrapper=EventDict)
 
     def clear_node_id(self):
         # Sets node_id to None, preventing both saving to and further reloading
         # of data from node storage. This is relevant during post processing
         # where we do not want to accidentally reload data from storage for
         # large volumes of events.
-        self.data = NodeData(None, None, data=self.data.data, wrapper=EventDict, ref_version=2)
+        self.data = NodeData(None, None, data=self.data.data, wrapper=EventDict)
 
     def __getstate__(self):
         state = Model.__getstate__(self)
