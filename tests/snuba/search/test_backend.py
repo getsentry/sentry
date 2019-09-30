@@ -40,7 +40,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. This is a really long test message. You can ignore it and skip right to the end, where you will find the only relevant piece of this message. It is a 3 letter piece and it begins with an f. And your special word is: foo.",
+                "message": "foo. Also,this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messsages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
                 "environment": "production",
                 "tags": {"server": "example.com"},
                 "timestamp": event1_timestamp,
@@ -206,6 +206,15 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             environments=[self.environments["staging"]], search_filter_query="bar"
         )
         assert set(results) == set([self.group2])
+
+    def test_query_for_text_in_long_message(self):
+        results = self.make_query(
+            [self.project],
+            environments=[self.environments["production"]],
+            search_filter_query="santryrox",
+        )
+
+        assert set(results) == set([self.group1])
 
     def test_multi_environments(self):
         self.set_up_multi_project()
