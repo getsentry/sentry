@@ -828,11 +828,7 @@ class EventManager(object):
             skip_consume=raw,
         )
 
-        metrics.timing(
-            "events.latency",
-            received_timestamp - recorded_timestamp,
-            tags={"project_id": project.id},
-        )
+        metrics.timing("events.latency", received_timestamp - recorded_timestamp)
 
         metrics.timing("events.size.data.post_save", event.size)
 
