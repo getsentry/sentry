@@ -226,13 +226,11 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
     def test_query_with_environment_multi_project(self):
         self.set_up_multi_project()
-
         results = self.make_query(
             [self.project, self.project2],
             environments=[self.environments["production"]],
             search_filter_query="foo",
         )
-
         assert set(results) == set([self.group1, self.group_p2])
 
         results = self.make_query(
