@@ -834,7 +834,7 @@ class EventManager(object):
             tags={"project_id": project.id},
         )
 
-        metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
+        metrics.timing("events.size.data.post_save", event.size)
 
         return event
 
