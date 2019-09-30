@@ -58,7 +58,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
 
             results = list(rule.after(event=event, state=self.get_state()))
 
-        assert len(results) is 2
-        assert plugin.should_notify.call_count is 1
+        assert len(results) == 2
+        assert plugin.should_notify.call_count == 1
         assert results[0].callback is notify_sentry_app
         assert results[1].callback is plugin.rule_notify
