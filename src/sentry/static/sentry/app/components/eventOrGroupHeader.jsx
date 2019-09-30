@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter, browserHistory} from 'react-router';
+import {withRouter} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
@@ -44,7 +44,7 @@ class EventOrGroupHeader extends React.Component {
     const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
-      const locationWithProject = {...this.props.location}
+      const locationWithProject = {...this.props.location};
       const query =
         locationWithProject.query.project !== undefined
           ? {
