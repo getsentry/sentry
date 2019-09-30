@@ -127,7 +127,7 @@ const StyledPageContent = styled(PageContent)`
   }
 `;
 
-const StyledNavTabs = styled(NavTabs)`
+const StyledNavTabs = styled(NavTabs)<NavTabs['props']>`
   display: flex;
 `;
 

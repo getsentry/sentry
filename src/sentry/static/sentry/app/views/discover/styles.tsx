@@ -62,7 +62,7 @@ export const ResultViewActions = styled('div')`
   }
 `;
 
-export const ResultViewButtons = styled(NavTabs)`
+export const ResultViewButtons = styled(NavTabs)<NavTabs['props']>`
   margin-bottom: 0;
 
   @media (max-width: ${theme.breakpoints[1]}) {
