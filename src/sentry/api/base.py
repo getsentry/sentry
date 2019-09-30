@@ -28,6 +28,7 @@ from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
 from sentry.utils import json
+from sentry.web.api import allow_cors_options
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
@@ -145,6 +146,7 @@ class Endpoint(APIView):
         return rv
 
     @csrf_exempt
+    @allow_cors_options
     def dispatch(self, request, *args, **kwargs):
         """
         Identical to rest framework's dispatch except we add the ability

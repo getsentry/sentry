@@ -3,7 +3,13 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-const PageHeading = styled('h1')`
+type Props = {
+  children: React.ReactNode;
+  className?: string;
+  withMargins?: boolean;
+};
+
+const PageHeading = styled('h1')<Props>`
   font-size: ${p => p.theme.headerFontSize};
   line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;

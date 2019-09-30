@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import random
 import time
 
 import ipaddress
@@ -16,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, nodestore, options, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -103,22 +102,6 @@ def get_tag(data, key):
             return v
 
 
-def count_limit(count):
-    # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
-    # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    for amount, sample_rate in settings.SENTRY_SAMPLE_RATES:
-        if count <= amount:
-            return sample_rate
-    return settings.SENTRY_MAX_SAMPLE_RATE
-
-
-def time_limit(silence):  # ~ 3600 per hour
-    for amount, sample_rate in settings.SENTRY_SAMPLE_TIMES:
-        if silence >= amount:
-            return sample_rate
-    return settings.SENTRY_MAX_SAMPLE_TIME
-
-
 def validate_and_set_timestamp(data, timestamp):
     """
     Helper function for event processors/enhancers to avoid setting broken timestamps.
@@ -155,26 +138,6 @@ def parse_client_as_sdk(value):
         except ValueError:
             return {}
     return {"name": name, "version": version}
-
-
-if not settings.SENTRY_SAMPLE_DATA:
-
-    def should_sample(current_datetime, last_seen, times_seen):
-        return False
-
-
-else:
-
-    def should_sample(current_datetime, last_seen, times_seen):
-        silence = current_datetime - last_seen
-
-        if times_seen % count_limit(times_seen) == 0:
-            return False
-
-        if times_seen % time_limit(silence) == 0:
-            return False
-
-        return True
 
 
 def plugin_is_regression(group, event):
@@ -514,13 +477,16 @@ class EventManager(object):
             id=project.organization_id
         )
 
-        # Ensure an event with the same ID does not exist before processing it.
-        # We use a first write wins approach since Clickhouse cannot merge
-        # events from different days. (The timestamp rounded to
-        # start of day is part of the primary key in Clickhouse).
-        event = self._get_event_from_storage(project_id, data["event_id"])
-
-        if event:
+        # Check to make sure we're not about to do a bunch of work that's
+        # already been done if we've processed an event with this ID. (This
+        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+        # there's a race condition between here and when the event is actually
+        # saved, but it's an improvement. See GH-7677.)
+        try:
+            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
+        except Event.DoesNotExist:
+            pass
+        else:
             # Make sure we cache on the project before returning
             event._project_cache = project
             logger.info(
@@ -687,7 +653,7 @@ class EventManager(object):
                 kwargs["first_release"] = release
 
             try:
-                group, is_new, is_regression, is_sample = self._save_aggregate(
+                group, is_new, is_regression = self._save_aggregate(
                     event=event, hashes=hashes, release=release, **kwargs
                 )
             except HashDiscarded:
@@ -706,7 +672,6 @@ class EventManager(object):
             group = None
             is_new = False
             is_regression = False
-            is_sample = False
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
@@ -777,33 +742,32 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # save the event unless its been sampled
-        if not is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
-                return event
-
-            tagstore.delay_index_event_tags(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group.id if group else None,
-                environment_id=environment.id,
-                event_id=event.id,
-                tags=event.tags,
-                date_added=event.datetime,
+        # save the event
+        try:
+            with transaction.atomic(using=router.db_for_write(Event)):
+                event.save()
+        except IntegrityError:
+            logger.info(
+                "duplicate.found",
+                exc_info=True,
+                extra={
+                    "event_uuid": event_id,
+                    "project_id": project.id,
+                    "group_id": group.id if group else None,
+                    "model": Event.__name__,
+                },
             )
+            return event
+
+        tagstore.delay_index_event_tags(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            group_id=group.id if group else None,
+            environment_id=environment.id,
+            event_id=event.id,
+            tags=event.tags,
+            date_added=event.datetime,
+        )
 
         if event_user:
             counters = [
@@ -853,7 +817,6 @@ class EventManager(object):
             group=group,
             event=event,
             is_new=is_new,
-            is_sample=is_sample,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
             primary_hash=hashes[0],
@@ -874,31 +837,6 @@ class EventManager(object):
         metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
 
         return event
-
-    def _get_event_from_storage(self, project_id, event_id):
-        nodestore_sample_rate = options.get("store.nodestore-sample-rate")
-        use_nodestore = random.random() < nodestore_sample_rate
-
-        if use_nodestore:
-            start = time.time()
-
-            node_data = nodestore.get(Event.generate_node_id(project_id, event_id))
-
-            metrics.timing(
-                "events.store.nodestore.duration",
-                int((time.time() - start) * 1000),
-                tags={"duplicate_found": bool(node_data)},
-            )
-
-            if node_data:
-                return Event(node_data)
-        else:
-            try:
-                event = Event.objects.get(project_id=project_id, event_id=event_id)
-                return event
-            except Event.DoesNotExist:
-                pass
-        return None
 
     def _get_event_user(self, project, data):
         user_data = data.get("user")
@@ -1017,14 +955,6 @@ class EventManager(object):
             if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
 
-        # XXX(dcramer): it's important this gets called **before** the aggregate
-        # is processed as otherwise values like last_seen will get mutated
-        can_sample = features.has("projects:sample-events", project=project) and should_sample(
-            event.data.get("received") or float(event.datetime.strftime("%s")),
-            group.data.get("last_received") or float(group.last_seen.strftime("%s")),
-            group.times_seen,
-        )
-
         if not is_new:
             is_regression = self._process_existing_aggregate(
                 group=group, event=event, data=kwargs, release=release
@@ -1032,13 +962,7 @@ class EventManager(object):
         else:
             is_regression = False
 
-        # Determine if we've sampled enough data to store this event
-        if is_new or is_regression:
-            is_sample = False
-        else:
-            is_sample = can_sample
-
-        return group, is_new, is_regression, is_sample
+        return group, is_new, is_regression
 
     def _handle_regression(self, group, event, release):
         if not group.is_resolved():

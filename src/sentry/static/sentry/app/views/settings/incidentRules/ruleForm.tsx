@@ -11,8 +11,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {AlertRuleAggregations} from './constants';
-import {IncidentRule} from './types';
+import {AlertRuleAggregations, IncidentRule} from './types';
 
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
@@ -54,9 +53,10 @@ class RuleForm extends React.Component<Props> {
                 type: 'select',
                 label: t('Projects'),
                 help: t('Select projects that this rule will apply to'),
-                choices: projects.map(project => [project.id, project.slug]),
+                choices: projects.map(({slug}) => [slug, slug]),
                 placeholder: t('All Projects'),
                 multiple: true,
+                required: true,
                 visible: ({model}) => !model.getValue('includeAllProjects'),
               },
               {
@@ -64,7 +64,7 @@ class RuleForm extends React.Component<Props> {
                 type: 'select',
                 label: t('Exclude Projects'),
                 help: t('Select projects that will be excluded from this rule'),
-                choices: projects.map(({id, slug}) => [id, slug]),
+                choices: projects.map(({slug}) => [slug, slug]),
                 placeholder: t('None'),
                 multiple: true,
                 visible: ({model}) => !!model.getValue('includeAllProjects'),
@@ -151,6 +151,7 @@ function RuleFormContainer({
         query: '',
         aggregations: DEFAULT_METRIC,
         projects: [],
+        excludedProjects: [],
 
         // TODO(incidents): Temp values
         alertThreshold: 5,
@@ -168,4 +169,5 @@ function RuleFormContainer({
   );
 }
 
+export {RuleFormContainer};
 export default withProjects(withApi(withOrganization(RuleFormContainer)));

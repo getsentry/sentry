@@ -1,21 +1,9 @@
 from __future__ import absolute_import
 
 import pytest
-
 import six
 from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
-
-_EVENTS_TOPIC_NAME = "test-ingest-events"
-_ATTACHMENTS_TOPIC_NAME = "test-ingest-attachments"
-_TRANSACTIONS_TOPIC_NAME = "test-ingest-transactions"
-
-
-def _get_topic_name(base_topic_name, test_name):
-    if test_name is None:
-        return base_topic_name
-    else:
-        return "{}--{}".format(_EVENTS_TOPIC_NAME, test_name)
 
 
 @pytest.fixture
@@ -39,11 +27,7 @@ class _KafkaAdminWrapper:
 
         self.admin_client = AdminClient(kafka_config)
 
-    def delete_events_topic(self):
-        self._delete_topic(_EVENTS_TOPIC_NAME)
-
-    def _delete_topic(self, base_topic_name):
-        topic_name = _get_topic_name(base_topic_name, self.test_name)
+    def delete_topic(self, topic_name):
         try:
             futures_dict = self.admin_client.delete_topics([topic_name])
             self._sync_wait_on_result(futures_dict)

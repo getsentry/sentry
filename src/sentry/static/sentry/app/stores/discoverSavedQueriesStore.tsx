@@ -1,7 +1,28 @@
 import Reflux from 'reflux';
-
-import {SavedQuery} from 'app/views/discover/types';
 import DiscoverSavedQueryActions from 'app/actions/discoverSavedQueryActions';
+
+type Versions = 1 | 2;
+
+export type NewQuery = {
+  id: string | undefined;
+  version: Versions;
+  name: string;
+  projects: number[];
+  fields: string[];
+  fieldnames: string[];
+  query: string;
+  orderby?: string;
+  range?: string;
+  start?: string;
+  end?: string;
+};
+
+export type SavedQuery = NewQuery & {
+  id: string;
+  dateCreated: string;
+  dateUpdated: string;
+  createdBy?: string;
+};
 
 export type SavedQueryState = {
   savedQueries: SavedQuery[];
@@ -88,7 +109,8 @@ const DiscoverSavedQueriesStore = Reflux.createStore({
     let savedQueries;
     const index = this.state.savedQueries.findIndex(item => item.id === query.id);
     if (index > -1) {
-      savedQueries = [...this.state.savedQueries].splice(index, 1, query);
+      savedQueries = [...this.state.savedQueries];
+      savedQueries.splice(index, 1, query);
     } else {
       savedQueries = [...this.state.savedQueries, query];
     }

@@ -24,6 +24,7 @@ class InternalCreator(Mediator):
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
     overview = Param(six.string_types, required=False)
+    allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
 

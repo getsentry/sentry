@@ -1097,8 +1097,8 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == ["title"]
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
-            ["argMax(project_id, timestamp)", "", "projectid"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == ["title"]
 
@@ -1117,7 +1117,7 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
         ]
         assert result["groupby"] == [
             "title",
@@ -1139,8 +1139,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user", "count_unique_user"],
             ["count", "id", "count_id"],
             ["min", "timestamp", "min_timestamp"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
-            ["argMax(project_id, timestamp)", "", "projectid"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1149,8 +1149,8 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, {})
         assert result["aggregations"] == [
             ["uniq", "user.id", "count_unique_user_id"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
-            ["argMax(project_id, timestamp)", "", "projectid"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1217,8 +1217,8 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
-            ["argMax(project_id, timestamp)", "", "projectid"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1230,8 +1230,8 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["count", "id", "count_id"],
             ["uniq", "user", "count_unique_user"],
-            ["argMax(event_id, timestamp)", "", "latest_event"],
-            ["argMax(project_id, timestamp)", "", "projectid"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1336,9 +1336,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         slug = "{}:{}".format(self.project.slug, event.event_id)
         result = get_reference_event_conditions(self.conditions, slug)
         assert result == [
-            ["exception_stacks.value", "=", ["This is a test exception sent from the Raven CLI."]],
-            ["exception_stacks.type", "=", ["Exception"]],
-            ["exception_stacks.mechanism_handled", "=", [None]],
+            ["exception_stacks.value", "=", "This is a test exception sent from the Raven CLI."],
+            ["exception_stacks.type", "=", "Exception"],
         ]
 
     def test_stack_field(self):
@@ -1349,17 +1348,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         slug = "{}:{}".format(self.project.slug, event.event_id)
         result = get_reference_event_conditions(self.conditions, slug)
         assert result == [
-            [
-                "exception_frames.filename",
-                "=",
-                [
-                    "/Users/example/Development/raven-php/bin/raven",
-                    "/Users/example/Development/raven-php/bin/raven",
-                    "/Users/example/Development/raven-php/bin/raven",
-                    "/Users/example/Development/raven-php/bin/raven",
-                ],
-            ],
-            ["exception_frames.function", "=", ["null", "main", "cmd_test", "raven_cli_test"]],
+            ["exception_frames.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
+            ["exception_frames.function", "=", "raven_cli_test"],
         ]
 
     def test_tag_value(self):

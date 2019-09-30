@@ -16,5 +16,5 @@ class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, access=request.access),
         )

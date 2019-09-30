@@ -5,13 +5,19 @@ import {defined} from 'app/utils';
 import InputField from 'app/components/forms/inputField';
 import Tooltip from 'app/components/tooltip';
 
-export default class BooleanField extends InputField {
-  coerceValue(props) {
-    const value = super.coerceValue(props);
+type Props = InputField['props'];
+
+type State = InputField['state'] & {
+  value: boolean;
+};
+
+export default class BooleanField extends InputField<Props, State> {
+  coerceValue(initialValue: string | number) {
+    const value = super.coerceValue(initialValue);
     return value ? true : false;
   }
 
-  onChange = e => {
+  onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.checked;
     this.setValue(value);
   };
