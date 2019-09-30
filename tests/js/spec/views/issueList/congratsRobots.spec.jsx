@@ -7,7 +7,7 @@ describe('CongratsRobots', function() {
   it('renders', function() {
     const wrapper = mount(<CongratsRobots />);
 
-    expect(wrapper.find('Lottie').exists()).toBe(true);
-    expect(wrapper.find('Description').exists()).toBe(true);
+    expect(wrapper.find('AnimatedScene').exists()).toBe(true);
+    expect(wrapper.find('StyledVideo').exists()).toBe(true);
   });
 });
