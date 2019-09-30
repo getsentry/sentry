@@ -52,6 +52,12 @@ def patch_thread_ident():
 
 patch_thread_ident()
 
+# This monkey patches the django 1.8 migration executor with a backported 1.9 executor.
+# XXX (joshuarli): couldn't put this in sentry __init__ or sentry.monkey, cause too early
+#                  and django will complain about being improperly configured.
+#                  Should be fine since this is a very temporary change.
+import sentry.migrations.django_19_executor  # NOQA
+
 
 class SentryTask(Task):
     def apply_async(self, *args, **kwargs):
