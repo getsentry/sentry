@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-import logging
 import abc
-from contextlib import contextmanager
+import logging
 import signal as os_signal
+from contextlib import contextmanager
 
 import six
 import confluent_kafka as kafka
 from django.conf import settings
 
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,12 @@ class SimpleKafkaConsumer(object):
         consumer = kafka.Consumer(self.consumer_configuration)
         consumer.subscribe([self.topic_name])
 
+        metrics_tags = {
+            "topic": self.topic_name,
+            "consumer_group": self.consumer_group,
+            "type": self.__class__.__name__,
+        }
+
         # setup a flag to mark termination signals received, see below why we use an array
         termination_signal_received = [False]
 
@@ -145,11 +152,16 @@ class SimpleKafkaConsumer(object):
                             "Bad message received from consumer", self.topic_name, message_error
                         )
 
-                    safe_execute(self.process_message, message, _with_transaction=False)
+                    with metrics.timer("simple_consumer.processing_time", tags=metrics_tags):
+                        safe_execute(self.process_message, message, _with_transaction=False)
 
                 if len(messages) > 0:
                     # we have read some messages in the previous consume, commit the offset
                     consumer.commit(asynchronous=False)
+
+                metrics.timing(
+                    "simple_consumer.committed_batch.size", len(messages), tags=metrics_tags
+                )
 
         consumer.close()
         logger.debug(
