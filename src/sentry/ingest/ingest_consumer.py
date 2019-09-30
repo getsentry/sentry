@@ -12,7 +12,6 @@ from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka import SimpleKafkaConsumer
 
 logger = logging.getLogger(__name__)
@@ -84,9 +83,8 @@ class IngestConsumer(SimpleKafkaConsumer):
         cache.set(deduplication_key, "", 3600)
 
         # emit event_accepted once everything is done
-        canonical_data = CanonicalKeyDict(data)
         event_accepted.send_robust(
-            ip=remote_addr, data=canonical_data, project=project, sender=self.process_message
+            ip=remote_addr, data=data, project=project, sender=self.process_message
         )
 
 
