@@ -768,7 +768,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -782,7 +785,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -853,7 +859,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       to={
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         }
                                       }
                                     >
@@ -868,7 +877,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         to={
                                           Object {
                                             "pathname": "/organizations/org-slug/issues/271/",
-                                            "search": "",
+                                            "query": Object {
+                                              "_allp": 1,
+                                              "query": undefined,
+                                            },
                                           }
                                         }
                                       >
@@ -967,7 +979,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     Array [
                                                       Object {
                                                         "pathname": "/organizations/org-slug/issues/271/",
-                                                        "search": "",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
                                                       },
                                                     ],
                                                     Array [
@@ -981,7 +996,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     Array [
                                                       Object {
                                                         "pathname": "/organizations/org-slug/issues/271/",
-                                                        "search": "",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
                                                       },
                                                     ],
                                                     Array [
@@ -1166,7 +1184,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -1180,7 +1201,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
