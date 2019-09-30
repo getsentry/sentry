@@ -70,13 +70,13 @@ const OrganizationBadgeContainer = createReactClass({
   },
 
   onOrganizationStoreUpdate() {
-    const org = OrganizationStore.get(this.state.organization.slug);
-    if (isEqual(org.avatar, this.state.organization.avatar)) {
+    const organization = OrganizationStore.get(this.state.organization.slug);
+    if (organization && isEqual(organization.avatar, this.state.organization.avatar)) {
       return;
     }
 
     this.setState({
-      organization: OrganizationStore.get(this.state.organization.slug),
+      organization,
     });
   },
 
