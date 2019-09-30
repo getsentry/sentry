@@ -85,22 +85,17 @@ def build_query_params_from_request(request, organization, projects, environment
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
     query = request.GET.get("query", "is:unresolved").strip()
-    print ("query:", query)
     if query:
         try:
-            print ("query:", query)
-            print ("parse_search_query(query):", parse_search_query(query))
             search_filters = convert_query_values(
                 parse_search_query(query), projects, request.user, environments
             )
-            print ("search filters:", search_filters)
         except InvalidSearchQuery as e:
             raise ValidationError(u"Your search query could not be parsed: {}".format(e.message))
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
 
-    print ("Returning query kwargs:", query_kwargs)
     return query_kwargs
 
 
