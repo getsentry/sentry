@@ -18,7 +18,7 @@ type InjectedTeamsProps = {
 type State = {
   teams: Team[];
   loadingTeams: boolean;
-  error: Error;
+  error: Error | null;
 };
 
 const withUsersTeams = <P extends InjectedTeamsProps>(
@@ -44,9 +44,8 @@ const withUsersTeams = <P extends InjectedTeamsProps>(
       this.setState({
         loadingTeams: true,
       });
-      let teams: Team[];
       try {
-        teams = await this.props.api.requestPromise(this.getUsersTeamsEndpoint());
+        const teams = await this.props.api.requestPromise(this.getUsersTeamsEndpoint());
         this.setState({
           teams,
           loadingTeams: false,
@@ -64,14 +63,7 @@ const withUsersTeams = <P extends InjectedTeamsProps>(
     }
 
     render() {
-      return (
-        <WrappedComponent
-          {...this.props as (P & DependentProps)}
-          loadingTeams={this.state.loadingTeams}
-          teams={this.state.teams as Team[]}
-          error={this.state.error}
-        />
-      );
+      return <WrappedComponent {...this.props as (P & DependentProps)} {...this.state} />;
     }
   };
 

@@ -4,9 +4,12 @@ import {mount} from 'enzyme';
 import withUsersTeams from 'app/utils/withUsersTeams';
 
 describe('withUserTeams HoC', function() {
-  it('forwards errors', async function() {
-    const api = new MockApiClient();
+  const api = new MockApiClient();
+  beforeEach(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  it('forwards errors', async function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-teams/',
       statusCode: 400,
@@ -24,7 +27,6 @@ describe('withUserTeams HoC', function() {
   });
 
   it('fetches teams and works', async function() {
-    const api = new MockApiClient();
     const mockTeams = [
       {
         slug: 'sentry',
@@ -36,7 +38,6 @@ describe('withUserTeams HoC', function() {
       },
     ];
 
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-teams/',
       body: mockTeams,
