@@ -28,7 +28,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
   };
 
   handleSubmitError() {
-    addErrorMessage(t('Request to join failed'));
+    addErrorMessage(t('Access request failed'));
   }
 
   handleCancel = e => {
@@ -42,45 +42,47 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
     const {orgId} = this.props.params;
     const {submitSuccess} = this.state;
 
-    return (
-      <React.Fragment>
-        {submitSuccess ? (
-          <NarrowLayout maxWidth="550px">
-            <SuccessModal>
-              <MegaphoneIcon src="icon-megaphone" size="5em" />
-              <StyledHeader>{t('Request Sent')}</StyledHeader>
-              <div>{t('Your request to join has been sent.')}</div>
-              <ReceiveEmailMessage>
-                {tct('You will receive an email if your request is approved.', {orgId})}
-              </ReceiveEmailMessage>
-            </SuccessModal>
-          </NarrowLayout>
-        ) : (
-          <NarrowLayout maxWidth="600px">
+    if (submitSuccess) {
+      return (
+        <NarrowLayout maxWidth="550px">
+          <SuccessModal>
             <MegaphoneIcon src="icon-megaphone" size="5em" />
-            <StyledHeader>{t('Request to Join')}</StyledHeader>
-            <div>
-              {tct('Ask the owners if you can join the [orgId] organization.', {orgId})}
-            </div>
-            <Form
-              requireChanges
-              apiEndpoint={`/organizations/${orgId}/join-request/`}
-              apiMethod="POST"
-              submitLabel={t('Request to Join')}
-              onSubmitSuccess={this.handleSubmitSuccess}
-              onSubmitError={this.handleSubmitError}
-              onCancel={this.handleCancel}
-            >
-              <StyledEmailField
-                name="email"
-                inline={false}
-                label={t('Email Address')}
-                placeholder="name@example.com"
-              />
-            </Form>
-          </NarrowLayout>
-        )}
-      </React.Fragment>
+            <StyledHeader>{t('Request Sent')}</StyledHeader>
+            <StyledText>{t('Your access request has been sent.')}</StyledText>
+            <ReceiveEmailMessage>
+              {tct('You will receive an email when your request is approved.', {orgId})}
+            </ReceiveEmailMessage>
+          </SuccessModal>
+        </NarrowLayout>
+      );
+    }
+
+    return (
+      <NarrowLayout maxWidth="650px">
+        <MegaphoneIcon src="icon-megaphone" size="5em" />
+        <StyledHeader>{t('Request Access')}</StyledHeader>
+        <StyledText>
+          {tct('Ask the admins if you can join the [orgId] organization.', {
+            orgId,
+          })}
+        </StyledText>
+        <Form
+          requireChanges
+          apiEndpoint={`/organizations/${orgId}/join-request/`}
+          apiMethod="POST"
+          submitLabel={t('Request Access')}
+          onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={this.handleSubmitError}
+          onCancel={this.handleCancel}
+        >
+          <StyledEmailField
+            name="email"
+            inline={false}
+            label={t('Email Address')}
+            placeholder="name@example.com"
+          />
+        </Form>
+      </NarrowLayout>
     );
   }
 }
@@ -101,7 +103,11 @@ const StyledHeader = styled('h3')`
   margin-bottom: ${space(1)};
 `;
 
-const ReceiveEmailMessage = styled('div')`
+const StyledText = styled('p')`
+  margin-bottom: 0;
+`;
+
+const ReceiveEmailMessage = styled(StyledText)`
   max-width: 250px;
 `;
 
