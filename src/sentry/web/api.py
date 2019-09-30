@@ -632,9 +632,7 @@ class StoreView(APIView):
             )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
-        metrics.timing(
-            "events.size.data.post_storeendpoint", data_size, tags={"project_id": project_id}
-        )
+        metrics.timing("events.size.data.post_storeendpoint", data_size)
 
         return process_event(
             event_manager, project, key, remote_addr, helper, attachments, project_config

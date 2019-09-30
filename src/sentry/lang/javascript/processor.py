@@ -822,8 +822,5 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         StacktraceProcessor.close(self)
         if self.sourcemaps_touched:
             metrics.incr(
-                "sourcemaps.processed",
-                amount=len(self.sourcemaps_touched),
-                skip_internal=True,
-                tags={"project_id": self.project.id},
+                "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
