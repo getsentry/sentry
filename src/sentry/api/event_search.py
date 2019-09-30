@@ -91,7 +91,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
@@ -111,12 +111,14 @@ numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
+tag_filter            = negation? "tags[" search_key "]" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
+# tag_key              = "tags" key
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
@@ -190,11 +192,16 @@ class SearchKey(namedtuple("SearchKey", "name")):
         snuba_name = SEARCH_MAP.get(self.name)
         if snuba_name:
             return snuba_name
-        # assume custom tag if not listed
-        return "tags[%s]" % (self.name,)
+        # assume custom tag if not listed, and append tags[xxx] if not already present (means it was sent as an explicit tag using the tags[xxx] format).
+        match = TAG_KEY_RE.match(self.name)
+        if match:
+            return self.name
+        else:
+            return "tags[%s]" % (self.name,)
 
     @cached_property
     def is_tag(self):
+        # TODO: Modify to also return True if self.name is tags[xxx] format.
         return self.name not in SEARCH_MAP
 
 
@@ -300,13 +307,13 @@ class SearchVisitor(NodeVisitor):
         if not value:
             return None
 
-        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
+        return SearchFilter(SearchKey("message123"), "=", SearchValue(value))
 
     def visit_quoted_raw_search(self, node, children):
         value = children[1]
         if not value:
             return None
-        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
+        return SearchFilter(SearchKey("message456"), "=", SearchValue(value))
 
     def visit_boolean_term(self, node, children):
         def find_next_operator(children, start, end, operator):
@@ -455,13 +462,21 @@ class SearchVisitor(NodeVisitor):
             )
 
         operator = "=" if self.is_negated(negation) else "!="
-
         return SearchFilter(search_key, operator, SearchValue(""))
+
+    def visit_tag_filter(self, node, children):
+        (negation, _, search_key, _, sep, search_value) = children
+        operator = "!=" if self.is_negated(negation) else "="
+        return SearchFilter(SearchKey("tags[" + search_key.name + "]"), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is" queries are not supported on this search')
 
     def visit_search_key(self, node, children):
+        key = children[0]
+        return SearchKey(self.key_mappings_lookup.get(key, key))
+
+    def visit_tag_key(self, node, children):
         key = children[0]
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
