@@ -36,11 +36,13 @@ build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
-	dropdb -h 127.0.0.1 -U postgres sentry || true
+	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
+		dropdb -U postgres sentry || true
 
 create-db:
 	@echo "--> Creating 'sentry' database"
-	createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
+		createdb -U postgres -E utf-8 sentry || true
 
 apply-migrations:
 	@echo "--> Applying migrations"
