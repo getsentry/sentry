@@ -60,7 +60,6 @@ class EventStream(Service):
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
-        is_sample=False,  # TODO: Remove once this is no longer passed
     ):
         self._dispatch_post_process_group_task(
             event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
