@@ -266,6 +266,7 @@ def initialize_app(config, skip_service_validation=False):
 
     if "south" in settings.INSTALLED_APPS:
         fix_south(settings)
+    monkeypatch_django_migrations()
 
     apply_legacy_settings(settings)
 
@@ -400,6 +401,12 @@ def fix_south(settings):
         if value["ENGINE"] != "sentry.db.postgres":
             continue
         settings.SOUTH_DATABASE_ADAPTERS[key] = "south.db.postgresql_psycopg2"
+
+
+def monkeypatch_django_migrations():
+    # This monkey patches the django 1.8 migration executor with a backported 1.9
+    # executor. This improves the speed that Django builds the migration state.
+    import sentry.new_migrations.django_19_executor  # NOQA
 
 
 def bind_cache_to_option_store():

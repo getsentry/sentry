@@ -131,17 +131,19 @@ def pytest_configure(config):
         settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != "south")
 
     from sentry.runner.initializer import (
+        bind_cache_to_option_store,
         bootstrap_options,
         configure_structlog,
-        initialize_receivers,
         fix_south,
-        bind_cache_to_option_store,
+        initialize_receivers,
+        monkeypatch_django_migrations,
         setup_services,
     )
 
     bootstrap_options(settings)
     configure_structlog()
     fix_south(settings)
+    monkeypatch_django_migrations()
 
     import django
 
