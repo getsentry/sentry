@@ -16,7 +16,7 @@ class BaseCache(local):
     def make_key(self, key, version=None):
         return u"{}:{}:{}".format(self.prefix, version or self.version, key)
 
-    def set(self, key, value, timeout, version=None, raw=False):
+    def set(self, key, value, timeout, version=None, raw=False, is_json=False):
         raise NotImplementedError
 
     def delete(self, key, version=None):

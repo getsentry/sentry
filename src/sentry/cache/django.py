@@ -2,11 +2,15 @@ from __future__ import absolute_import
 
 from django.core.cache import cache
 
+from sentry.utils import json
+
 from .base import BaseCache
 
 
 class DjangoCache(BaseCache):
-    def set(self, key, value, timeout, version=None, raw=False):
+    def set(self, key, value, timeout, version=None, raw=False, is_json=False):
+        if is_json:
+            value = json.loads(value)
         cache.set(key, value, timeout, version=version or self.version)
 
     def delete(self, key, version=None):

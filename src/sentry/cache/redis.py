@@ -18,9 +18,9 @@ class CommonRedisCache(BaseCache):
         self.client = client
         BaseCache.__init__(self, **options)
 
-    def set(self, key, value, timeout, version=None, raw=False):
+    def set(self, key, value, timeout, version=None, raw=False, is_json=False):
         key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
+        v = value if raw or is_json else json.dumps(value)
         if len(v) > self.max_size:
             raise ValueTooLarge("Cache key too large: %r %r" % (key, len(v)))
         if timeout:
