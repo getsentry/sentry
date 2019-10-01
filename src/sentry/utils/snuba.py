@@ -162,6 +162,12 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
 
 DATASETS = {EVENTS: SENTRY_SNUBA_MAP, TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP}
 
+# Store the internal field names to save work later on.
+DATASET_FIELDS = {
+    EVENTS: SENTRY_SNUBA_MAP.values(),
+    TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
+}
+
 
 class SnubaError(Exception):
     pass
@@ -916,12 +922,11 @@ def constrain_column_to_dataset(col, dataset):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if col in "type" and dataset == TRANSACTIONS:
+    if col == "type" and dataset == TRANSACTIONS:
         return None
     if col in DATASETS[dataset]:
         return DATASETS[dataset][col]
-    mapping = DATASETS[dataset]
-    if col in mapping.values():
+    if col in DATASET_FIELDS[dataset]:
         return col
     return u"tags[{}]".format(col)
 
@@ -990,9 +995,6 @@ def dataset_query(
             )
         )
 
-    def remove_none(values):
-        return list(filter(lambda x: x is not None, values))
-
     derived_columns = []
     if selected_columns:
         for (i, col) in enumerate(selected_columns):
@@ -1000,7 +1002,7 @@ def dataset_query(
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = constrain_column_to_dataset(col, dataset)
-        selected_columns = remove_none(selected_columns)
+        selected_columns = list(filter(None, selected_columns))
 
     if aggregations:
         for aggregation in aggregations:
@@ -1010,7 +1012,7 @@ def dataset_query(
         for (i, condition) in enumerate(conditions):
             replacement = constrain_condition_to_dataset(condition, dataset)
             conditions[i] = replacement
-        conditions = remove_none(conditions)
+        conditions = list(filter(None, conditions))
 
     if orderby:
         for (i, order) in enumerate(orderby):
