@@ -10,7 +10,6 @@ import confluent_kafka as kafka
 from django.conf import settings
 
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +152,7 @@ class SimpleKafkaConsumer(object):
                         )
 
                     with metrics.timer("simple_consumer.processing_time", tags=metrics_tags):
-                        safe_execute(self.process_message, message, _with_transaction=False)
+                        self.process_message(message)
 
                 if len(messages) > 0:
                     # we have read some messages in the previous consume, commit the offset
