@@ -65,7 +65,19 @@ export function getEventTagSearchUrl(
   location: Location
 ) {
   const query = {...location.query};
-  query.query = appendTagCondition(query.query, tagKey, tagValue);
+
+  // some tags are dedicated query strings since other parts of the app consumes this,
+  // for example, the global selection header.
+  switch (tagKey.toLowerCase()) {
+    case 'environment':
+      query.environment = tagValue;
+      break;
+    case 'project':
+      query.project = tagValue;
+      break;
+    default:
+      query.query = appendTagCondition(query.query, tagKey, tagValue);
+  }
 
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
