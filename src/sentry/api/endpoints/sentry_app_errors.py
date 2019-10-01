@@ -16,7 +16,6 @@ class SentryAppErrorsEndpoint(SentryAppBaseEndpoint):
         """
         :qparam float start
         :qparam float end
-        :qparam
         """
         start, end = get_date_range_from_params(request.GET, optional=True)
 
