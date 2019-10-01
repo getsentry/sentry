@@ -3,15 +3,17 @@ from __future__ import absolute_import
 import datetime
 import time
 import logging
-
 import msgpack
 import pytest
+import six
+
+from django.conf import settings
 
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 from sentry.models.event import Event
+from sentry.utils import json
 from sentry.testutils.factories import Factories
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ def _get_test_message(project):
         "start_time": time.time(),
         "event_id": event_id,
         "project_id": 1,
-        "payload": normalized_event,
+        "payload": six.binary_type(json.dumps(normalized_event)),
     }
 
     val = msgpack.packb(message)

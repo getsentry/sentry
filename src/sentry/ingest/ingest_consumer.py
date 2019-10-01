@@ -72,7 +72,7 @@ class IngestConsumer(SimpleKafkaConsumer):
 
         cache_timeout = 3600
         cache_key = cache_key_for_event(data)
-        default_cache.set(cache_key, payload, cache_timeout, raw=True)
+        default_cache.set(cache_key, data, cache_timeout)
 
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the
