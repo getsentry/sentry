@@ -5,7 +5,7 @@ import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 import ModalActions from 'app/actions/modalActions';
 import {Integration, IntegrationProvider, Organization, SentryApp} from 'app/types';
 
-export type RenderProps = {
+export type ModalRenderProps = {
   closeModal: () => void;
   Header: typeof ModalHeader;
   Body: typeof ModalBody;
@@ -36,7 +36,7 @@ export type SentryAppDetailsModalOptions = {
  * Show a modal
  */
 export function openModal(
-  renderer: (renderProps: RenderProps) => React.ReactNode,
+  renderer: (renderProps: ModalRenderProps) => React.ReactNode,
   options?: ModalOptions
 ) {
   ModalActions.openModal(renderer, options);

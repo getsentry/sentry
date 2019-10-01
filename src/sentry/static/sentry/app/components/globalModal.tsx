@@ -5,12 +5,12 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {closeModal, RenderProps, ModalOptions} from 'app/actionCreators/modal';
+import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
 type Props = {
-  children?: (renderProps: RenderProps) => React.ReactNode;
+  children?: (renderProps: ModalRenderProps) => React.ReactNode;
   options: ModalOptions;
   visible: boolean;
   onClose?: () => void;
