@@ -516,6 +516,18 @@ class DetectDatasetTest(TestCase):
         query = {"conditions": [["transaction.duration", ">", "3"]]}
         assert detect_dataset(query) == "transactions"
 
+        # Internal aliases are treated as tags
+        query = {"conditions": [["duration", ">", "3"]]}
+        assert detect_dataset(query) == "events"
+
+    def test_conditions_aliased(self):
+        query = {"conditions": [["duration", ">", "3"]]}
+        assert detect_dataset(query, aliased_conditions=True) == "transactions"
+
+        # Not an internal alias
+        query = {"conditions": [["transaction.duration", ">", "3"]]}
+        assert detect_dataset(query, aliased_conditions=True) == "events"
+
     def test_selected_columns(self):
         query = {"selected_columns": ["id", "message"]}
         assert detect_dataset(query) == "events"

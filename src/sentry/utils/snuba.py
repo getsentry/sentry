@@ -349,25 +349,33 @@ def get_snuba_column_name(name, dataset="events"):
     return DATASETS[dataset].get(name, u"tags[{}]".format(name))
 
 
-def detect_dataset(query_args):
+def detect_dataset(query_args, aliased_conditions=False):
     """
     Determine the dataset to use based on the conditions, selected_columns,
     groupby clauses.
 
     This function operates on the end user field aliases and not the internal column
     names that have been converted using the field mappings.
+
+    The aliased_conditions parameter switches column detection between
+    the public aliases and the internal names. When query conditions
+    have been pre-parsed by api.event_search we need to look for
+    internal names.
     """
     if query_args.get("dataset", None):
         return query_args["dataset"]
 
     dataset = EVENTS
     transaction_fields = set(DATASETS[TRANSACTIONS].keys()) - set(DATASETS[EVENTS].keys())
+    condition_fieldset = transaction_fields
+
+    if aliased_conditions:
+        condition_fieldset = set(DATASET_FIELDS[TRANSACTIONS]) - set(DATASET_FIELDS[EVENTS])
+
     for condition in query_args.get("conditions") or []:
-        if isinstance(condition[0], six.string_types) and condition[0] in transaction_fields:
+        if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
             return TRANSACTIONS
-        if condition == ["event.type", "=", "transaction"]:
-            return TRANSACTIONS
-        if condition == ["type", "=", "transaction"]:
+        if condition == ["event.type", "=", "transaction"] or ["type", "=", "transaction"]:
             return TRANSACTIONS
 
     for field in query_args.get("selected_columns") or []:
@@ -515,7 +523,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
-    dataset = detect_dataset(kwargs)
+    dataset = detect_dataset(kwargs, aliased_conditions=skip_conditions)
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
