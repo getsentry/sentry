@@ -43,7 +43,7 @@ class EventTags extends React.Component<EventTagsProps> {
         query.project = tag.value;
         break;
       default:
-        query.query = appendTagCondition(query.query, tag.key, tag.value);
+        query.query = appendTagCondition(query.query, tag.key, tag.value, true);
     }
 
     const locationSearch = `?${queryString.stringify(query)}`;
