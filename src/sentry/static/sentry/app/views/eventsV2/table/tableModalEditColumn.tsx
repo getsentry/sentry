@@ -153,9 +153,10 @@ class TableModalEditColumnBodyForm extends React.Component<
 
 // TODO(leedongwei): Check with Mimi to get the link for DiscoverV2 docs
 const TableModalEditColumnFooter = () => (
-  <FooterContent href="https://docs.sentry.io/">
+  <FooterContent>
+    {/* Attach href to documentation on FooterContent */}
     <div>
-      <InlineSvg src="icon-docs" /> Discover Documentation
+      <InlineSvg src="icon-docs" /> Documentation (Coming soon!)
     </div>
     <div>
       <InlineSvg src="icon-chevron-right" />
@@ -231,9 +232,12 @@ const FormRowItemRight = styled(FormRowItem)`
   width: 65%;
 `;
 
-const FooterContent = styled.a`
+const FooterContent = styled.div`
   display: flex;
   width: 100%;
+
+  /* pointer-events: none; */
+  cursor: not-allowed;
 
   > div {
     display: flex;
