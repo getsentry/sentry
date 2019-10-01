@@ -165,39 +165,60 @@ class SlackNotifyServiceAction(EventAction):
             token_payload, **{"exclude_archived": False, "exclude_members": True}
         )
 
-        resp = session.get("https://slack.com/api/channels.list", params=channels_payload)
-        resp = resp.json()
-        if not resp.get("ok"):
-            self.logger.info("rule.slack.channel_list_failed", extra={"error": resp.get("error")})
-            return None
+        # Slack limits the response of `channels.list` to 1000 channels, paginate if needed
+        cursor = None
+        channels_list_initial = True
+        while cursor or channels_list_initial:
+            channels_list_initial = False
+            channels = session.get("https://slack.com/api/channels.list", params=dict(channels_payload, **{
+                "cursor": cursor
+            }))
+            channels = channels.json()
+            if not channels.get("ok"):
+                self.logger.info("rule.slack.channel_list_failed", extra={"error": channels.get("error")})
+                return None
 
-        channel_id = {c["name"]: c["id"] for c in resp["channels"]}.get(name)
-
-        if channel_id:
-            return (CHANNEL_PREFIX, channel_id)
+            cursor = channels.get("response_metadata", {}).get("next_cursor", None)
+            channel_id = {c["name"]: c["id"] for c in channels["channels"]}.get(name)
+            if channel_id:
+                return (CHANNEL_PREFIX, channel_id)
 
         # Channel may be private
-        resp = session.get("https://slack.com/api/groups.list", params=channels_payload)
-        resp = resp.json()
-        if not resp.get("ok"):
-            self.logger.info("rule.slack.group_list_failed", extra={"error": resp.get("error")})
-            return None
+        # Slack limits the response of `groups.list` to 1000 groups, paginate if needed
+        cursor = None
+        groups_list_initial = True
+        while cursor or groups_list_initial:
+            groups_list_initial = False
+            groups = session.get("https://slack.com/api/groups.list", params=dict(channels_payload, **{
+                "cursor": cursor
+            }))
+            groups = groups.json()
+            if not groups.get("ok"):
+                self.logger.info("rule.slack.group_list_failed", extra={"error": groups.get("error")})
+                return None
 
-        group_id = {c["name"]: c["id"] for c in resp["groups"]}.get(name)
-
-        if group_id:
-            return (CHANNEL_PREFIX, group_id)
+            cursor = groups.get("response_metadata", {}).get("next_cursor", None)
+            group_id = {c["name"]: c["id"] for c in groups["groups"]}.get(name)
+            if group_id:
+                return (CHANNEL_PREFIX, group_id)
 
         # Channel may actually be a user
-        resp = session.get("https://slack.com/api/users.list", params=token_payload)
-        resp = resp.json()
-        if not resp.get("ok"):
-            self.logger.info("rule.slack.user_list_failed", extra={"error": resp.get("error")})
-            return None
+        # Slack limits the response of `users.list` to 1000 users, paginate if needed
+        cursor = None
+        users_list_initial = True
+        while cursor or users_list_initial:
+            users_list_initial = False
+            users = session.get("https://slack.com/api/users.list", params=dict(channels_payload, **{
+                "cursor": cursor
+            }))
+            users = users.json()
+            if not users.get("ok"):
+                self.logger.info("rule.slack.user_list_failed", extra={"error": users.get("error")})
+                return None
 
-        member_id = {c["name"]: c["id"] for c in resp["members"]}.get(name)
-
-        if member_id:
-            return (MEMBER_PREFIX, member_id)
+            cursor = users.get("response_metadata", {}).get("next_cursor", None)
+            member_id = {c["name"]: c["id"] for c in users["members"]}.get(name)
+            if member_id:
+                return (CHANNEL_PREFIX, member_id)
 
         return None
