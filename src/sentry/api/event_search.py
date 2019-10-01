@@ -118,7 +118,6 @@ search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
-# tag_key              = "tags" key
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
