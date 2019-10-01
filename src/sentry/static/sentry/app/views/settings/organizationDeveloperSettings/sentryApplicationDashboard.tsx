@@ -6,6 +6,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import StackedBarChart from 'app/components/stackedBarChart';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
+import LoadingError from 'app/components/loadingError';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -13,11 +15,7 @@ import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
 import {SentryApp} from 'app/types';
 
-type Props = AsyncView['props'] & {
-  route: {
-    path: string;
-  };
-};
+type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
   stats: any;
@@ -30,6 +28,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     return {
       ...super.getDefaultState(),
       stats: {},
+      errors: [],
       app: null,
     };
   }
@@ -138,18 +137,24 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           </PanelHeader>
 
           <PanelBody>
-            {errors.map((error, idx) => (
-              <PanelItem key={idx}>
-                <TableLayout>
-                  <DateTime date={error.date} />
-                  <div>{error.organization.name}</div>
-                  <div>{error.eventType}</div>
-                  <OverflowBox>{error.webhookUrl}</OverflowBox>
-                  <div>{error.response.body}</div>
-                  <div>{error.response.statusCode}</div>
-                </TableLayout>
-              </PanelItem>
-            ))}
+            {errors.length > 0 ? (
+              errors.map((error, idx) => (
+                <PanelItem key={idx}>
+                  <TableLayout>
+                    <DateTime date={error.date} />
+                    <div>{error.organization.name}</div>
+                    <div>{error.eventType}</div>
+                    <OverflowBox>{error.webhookUrl}</OverflowBox>
+                    <div>{error.response.body}</div>
+                    <div>{error.response.statusCode}</div>
+                  </TableLayout>
+                </PanelItem>
+              ))
+            ) : (
+              <EmptyMessage icon="icon-circle-exclamation">
+                {t('No errors found.')}
+              </EmptyMessage>
+            )}
           </PanelBody>
         </Panel>
       </React.Fragment>
@@ -157,7 +162,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderBody() {
-    const {app} = this.state;
+    const {app, loading} = this.state;
+    if (!loading && app && app.status !== 'published') {
+      return <LoadingError />;
+    }
+
     return (
       <div>
         {app && <SettingsPageHeader title={app.name} />}
