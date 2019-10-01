@@ -69,7 +69,7 @@ if settings.SENTRY_USE_BIG_INTS:
             if "postgres" in engine:
                 return "bigserial"
             else:
-                raise NotImplemented
+                raise NotImplementedError
 
         def get_related_db_type(self, connection):
             return BoundedBigIntegerField().db_type(connection)

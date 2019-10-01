@@ -84,7 +84,6 @@ class SnubaProtocolEventStream(EventStream):
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
-        is_sample=False,  # TODO: Remove once this is no longer passed
     ):
         project = event.project
         retention_days = quotas.get_event_retention(organization=project.organization)
@@ -251,7 +250,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_new_group_environment,
         primary_hash,
         skip_consume=False,
-        is_sample=False,  # TODO: Remove once this is no longer passed
     ):
         super(SnubaEventStream, self).insert(
             group,

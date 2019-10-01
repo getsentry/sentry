@@ -2,12 +2,9 @@
 
 from __future__ import absolute_import
 
-import pytest
 import os.path
 import responses
 from mock import patch
-
-from django.conf import settings
 
 from sentry import eventstore
 from sentry.models import File, Release, ReleaseFile
@@ -41,10 +38,6 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
     def get_event(self):
         return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
 
-    @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == "sentry.tagstore.v2.V2TagStorage",
-        reason="Queries are completly different when using tagstore",
-    )
     def test_adds_contexts_without_device(self):
         data = {
             "timestamp": self.min_ago,
