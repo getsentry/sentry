@@ -193,7 +193,6 @@ class SnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
-        print ("In query:", search_filters)
         from sentry.models import Group, GroupStatus, GroupSubscription
 
         search_filters = search_filters if search_filters is not None else []
@@ -283,7 +282,6 @@ class SnubaSearchBackend(SearchBackend):
         date_from,
         date_to,
     ):
-        print ("In _query:", search_filters)
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
@@ -621,7 +619,6 @@ def snuba_search(
      * a sorted list of (group_id, group_score) tuples sorted descending by score,
      * the count of total results (rows) available for this query.
     """
-    print ("in snuba_search:", search_filters)
     filters = {"project_id": project_ids}
 
     if environment_ids is not None:
@@ -642,7 +639,6 @@ def snuba_search(
         ):
             continue
         converted_filter = convert_search_filter_to_snuba_query(search_filter)
-        print ("Converted Filter:", converted_filter)
 
         # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
         if search_filter.key.name in aggregation_defs and not search_filter.key.is_tag:
@@ -676,11 +672,6 @@ def snuba_search(
         orderby = ["-{}".format(sort_field), "issue"]  # ensure stable sort within the same score
         referrer = "search"
 
-    print ("Passing query params down to snuba...")
-    print ("Filters:", filters)
-    print ("Conditions:", conditions)
-    print ("Having:", having)
-    print ("Aggregations:", aggregations)
     snuba_results = snuba.raw_query(
         start=start,
         end=end,

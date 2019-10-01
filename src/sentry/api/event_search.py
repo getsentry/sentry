@@ -307,13 +307,13 @@ class SearchVisitor(NodeVisitor):
         if not value:
             return None
 
-        return SearchFilter(SearchKey("message123"), "=", SearchValue(value))
+        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
 
     def visit_quoted_raw_search(self, node, children):
         value = children[1]
         if not value:
             return None
-        return SearchFilter(SearchKey("message456"), "=", SearchValue(value))
+        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
 
     def visit_boolean_term(self, node, children):
         def find_next_operator(children, start, end, operator):
