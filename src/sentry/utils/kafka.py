@@ -105,7 +105,7 @@ class SimpleKafkaConsumer(object):
         Runs the message processing loop
         """
         logger.debug(
-            "Staring kafka consumer for topic:{} with consumer group:{}",
+            "Staring kafka consumer for topic:%s with consumer group:%s",
             self.topic_name,
             self.consumer_group,
         )
@@ -164,7 +164,7 @@ class SimpleKafkaConsumer(object):
 
         consumer.close()
         logger.debug(
-            "Closing kafka consumer for topic:{} with consumer group:{}",
+            "Closing kafka consumer for topic:%s with consumer group:%s",
             self.topic_name,
             self.consumer_group,
         )
