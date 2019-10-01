@@ -5,7 +5,6 @@ import time
 import logging
 import msgpack
 import pytest
-import six
 
 from django.conf import settings
 
@@ -42,7 +41,7 @@ def _get_test_message(project):
         "start_time": time.time(),
         "event_id": event_id,
         "project_id": 1,
-        "payload": six.ensure_binary(json.dumps(normalized_event)),
+        "payload": json.dumps(normalized_event),
     }
 
     val = msgpack.packb(message)
