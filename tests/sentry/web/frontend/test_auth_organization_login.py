@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from exam import fixture
+from mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserEmail
@@ -9,41 +11,49 @@ from sentry.testutils import AuthProviderTestCase
 # TODO(dcramer): this is an integration test and repeats tests from
 # core auth_login
 class OrganizationAuthLoginTest(AuthProviderTestCase):
+    @fixture
+    def organization(self):
+        return self.create_organization(name="foo", owner=self.user)
+
+    @fixture
+    def path(self):
+        return reverse("sentry-auth-organization", args=[self.organization.slug])
+
     def test_renders_basic(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
         self.login_as(self.user)
-
-        resp = self.client.get(path)
+        resp = self.client.get(self.path)
 
         assert resp.status_code == 200
-
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
 
         assert resp.context["login_form"]
-        assert resp.context["organization"] == organization
+        assert resp.context["organization"] == self.organization
         assert "provider_key" not in resp.context
+        assert resp.context["join_request_link"] is None
+
+    @patch("sentry.experiments.get", return_value=1)
+    def test_can_request_access(self, mock_experiment):
+        self.login_as(self.user)
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        assert resp.context["join_request_link"] == reverse(
+            "sentry-join-request", args=[self.organization.slug]
+        )
 
     def test_renders_session_expire_message(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
         self.client.cookies["session_expired"] = "1"
-        resp = self.client.get(path)
+        resp = self.client.get(self.path)
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
         assert len(resp.context["messages"]) == 1
 
     def test_flow_as_anonymous(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
-
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -71,21 +81,19 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not user.is_managed
         assert user.flags.newsletter_consent_prompt
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_existing_user_with_new_account(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("bar@example.com")
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
         self.login_as(user)
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -103,48 +111,42 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp["Location"] == "http://testserver" + reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
-
         assert user == auth_identity.user
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
-
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_existing_identity(self):
-        organization = self.create_organization(name="foo", owner=self.user)
         user = self.create_user("bar@example.com")
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
-
         resp = self.client.post(path, {"email": "foo@example.com"})
 
         assert resp.status_code == 302
         assert resp["Location"] == "http://testserver" + reverse("sentry-login")
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("bar@example.com")
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
-
         resp = self.client.post(path, {"email": user.email})
 
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
@@ -158,7 +160,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp["Location"] == "http://testserver" + reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
-
         new_user = auth_identity.user
         assert user.email == "bar@example.com"
         assert new_user != user
@@ -167,23 +168,22 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # unset following new user creation
         assert not new_user.flags.newsletter_consent_prompt
 
-        member = OrganizationMember.objects.get(organization=organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("bar@example.com")
 
         email = user.emails.all()[:1].get()
         email.is_verified = False
         email.save()
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -214,26 +214,24 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("foo@example.com")
         UserEmail.objects.create(user=user, email="bar@example.com", is_verified=True)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
-
         resp = self.client.post(path, {"email": user.email})
 
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
@@ -258,19 +256,18 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("foo@example.com")
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -301,23 +298,22 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(self):
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("bar@example.com")
 
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="adfadsf@example.com"
         )
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -350,7 +346,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -361,17 +357,16 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         with a linked identity, this should claim that identity and create
         a new user account.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user = self.create_user("bar@example.com", is_active=False)
 
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="adfadsf@example.com"
         )
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -397,7 +392,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user != user
 
-        member = OrganizationMember.objects.get(organization=organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -411,8 +406,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         This only works when the email is mapped to an identical identity.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -422,14 +418,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         # they must be a member for the auto merge to happen
-        self.create_member(organization=organization, user=user)
+        self.create_member(organization=self.organization, user=user)
 
         # user needs to be logged in
         self.login_as(user)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -453,7 +447,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -465,8 +459,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the identity automatically (without prompt) assuming the user is
         a member of the org.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -474,14 +469,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="bar@example.com")
 
         # they must be a member for the auto merge to happen
-        self.create_member(organization=organization, user=user)
+        self.create_member(organization=self.organization, user=user)
 
         # user needs to be logged in
         self.login_as(user)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -503,18 +496,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         This is specifically testing an unauthenticated flow.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        AuthProvider.objects.create(organization=organization, provider="dummy")
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user("bar@example.com", is_managed=False, password="")
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
-        self.create_member(organization=organization, user=user)
+        self.create_member(organization=self.organization, user=user)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -532,8 +522,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the ident changed from the SSO provider), we should be prompting to
         confirm their identity as they dont have membership.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -543,9 +534,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # user needs to be logged in
         self.login_as(user)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -570,8 +559,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         If bar is authenticating via SSO as bar@example.com, we should remove
         the existing entry attached to bar, and re-bind the entry owned by foo.
         """
-        organization = self.create_organization(name="foo", owner=self.user)
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -586,14 +576,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         identity2 = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user2, ident="adfadsf@example.com"
         )
-        member2 = self.create_member(user=user2, organization=organization)
+        member2 = self.create_member(user=user2, organization=self.organization)
 
         # user needs to be logged in
         self.login_as(user)
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -614,7 +602,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert identity2.ident == "adfadsf@example.com"
         assert identity2.user == user
 
-        member1 = OrganizationMember.objects.get(user=user, organization=organization)
+        member1 = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(member1.flags, "sso:linked")
         assert not getattr(member1.flags, "sso:invalid")
 
@@ -623,16 +611,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert getattr(member2.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
-        organization = self.create_organization(name="foo", owner=self.user)
         user = self.create_user("bar@example.com")
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
         user_ident = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="foo@example.com"
         )
 
-        path = reverse("sentry-auth-organization", args=[organization.slug])
-
-        resp = self.client.post(path, {"init": True})
+        resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")

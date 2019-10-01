@@ -81,6 +81,11 @@
                 <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
               </div>
             </form>
+            {% if join_request_link %}
+              <div class="auth-join-request">{% trans "Need access? "%}
+                <a href="{{ join_request_link }}">{% trans "Request access." %}</a>
+              </div>
+            {% endif %}
           </div>
           {% if github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
