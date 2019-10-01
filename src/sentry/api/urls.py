@@ -144,6 +144,7 @@ from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
@@ -981,6 +982,11 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/broadcasts/$",
                     BroadcastIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-broadcasts",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/join-request/$",
+                    OrganizationJoinRequestEndpoint.as_view(),
+                    name="sentry-api-0-organization-join-request",
                 ),
             ]
         ),

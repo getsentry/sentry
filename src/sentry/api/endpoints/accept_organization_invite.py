@@ -26,11 +26,11 @@ class AcceptOrganizationInvite(Endpoint):
         except OrganizationMember.DoesNotExist:
             return self.respond_invalid(request)
 
-        if not helper.member_pending or not helper.valid_token:
-            return self.respond_invalid(request)
-
         om = helper.om
         organization = om.organization
+
+        if not helper.member_pending or not helper.valid_token or not om.invite_approved:
+            return self.respond_invalid(request)
 
         # Keep track of the invite email for when we land back on the login page
         request.session["invite_email"] = om.email

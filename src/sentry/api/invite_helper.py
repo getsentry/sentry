@@ -147,6 +147,7 @@ class ApiInviteHelper(object):
     def valid_request(self):
         return (
             self.member_pending
+            and self.om.invite_approved
             and self.valid_token
             and self.user_authenticated
             and not self.needs_2fa
