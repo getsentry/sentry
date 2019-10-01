@@ -42,7 +42,7 @@ def _get_test_message(project):
         "start_time": time.time(),
         "event_id": event_id,
         "project_id": 1,
-        "payload": six.binary_type(json.dumps(normalized_event)),
+        "payload": six.ensure_binary(json.dumps(normalized_event)),
     }
 
     val = msgpack.packb(message)
