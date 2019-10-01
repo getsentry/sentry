@@ -510,7 +510,9 @@ const IssueListActions = createReactClass({
                     confirmLabel={label('delete')}
                     selectAllActive={pageSelected}
                   >
-                    {t('Delete Issues')}
+                    <DeleteIssueText numIssues={numIssues}>
+                      {t('Delete Issues')}
+                    </DeleteIssueText>
                   </ActionLink>
                 </MenuItem>
               </DropdownLink>
@@ -665,6 +667,10 @@ const IncidentIcon = styled(InlineSvg)`
 `;
 const CreateIncidentText = styled('span')`
   margin-left: 5px; /* consistent with other items in bar */
+`;
+
+const DeleteIssueText = styled('span')`
+  ${p => p.numIssues && `color: ${p.theme.red}`}
 `;
 
 export {IssueListActions};
