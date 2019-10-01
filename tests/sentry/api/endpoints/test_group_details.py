@@ -7,7 +7,6 @@ from base64 import b64encode
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry import tagstore
 from sentry.models import (
     Activity,
     ApiKey,
@@ -63,30 +62,6 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
-
-    def test_with_first_release(self):
-        self.login_as(user=self.user)
-
-        group = self.create_group()
-        release = Release.objects.create(
-            organization_id=group.project.organization_id, version="1.0"
-        )
-        release.add_project(group.project)
-        tagstore.create_group_tag_value(
-            group_id=group.id,
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key="sentry:release",
-            value=release.version,
-        )
-
-        url = u"/api/0/issues/{}/".format(group.id)
-
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
-        assert response.data["firstRelease"]["version"] == release.version
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)

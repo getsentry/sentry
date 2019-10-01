@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import mock
+import six
 
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -31,3 +32,18 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         response = self.client.get("%s&environment=invalid" % (url,), format="json")
         assert response.status_code == 404
+
+    def test_with_first_release(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
+
+        group = event.group
+
+        url = u"/api/0/issues/{}/".format(group.id)
+
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["firstRelease"]["version"] == "1.0"
