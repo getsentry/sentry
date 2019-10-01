@@ -119,7 +119,7 @@ class EventCauseEmpty extends React.Component {
     }
 
     return (
-      <div className="box">
+      <div className="box" data-test-id="loaded-event-cause-empty">
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
