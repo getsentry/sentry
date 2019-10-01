@@ -7,6 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
+from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
@@ -26,6 +27,8 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
             queryset = Team.objects.filter(
                 organization=organization, status=TeamStatus.VISIBLE
             ).order_by("slug")
-            return Response(serialize(list(queryset), request.user))
+            return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))
         else:
-            return Response(serialize(list(request.access.teams), request.user))
+            return Response(
+                serialize(list(request.access.teams), request.user, TeamWithProjectsSerializer())
+            )
