@@ -768,7 +768,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -782,7 +785,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -843,9 +849,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     className="css-10b3zgy-Title-truncateStyles eex8od0"
                                     size="normal"
                                   >
-                                    <Link
+                                    <GlobalSelectionLink
                                       data-test-id="resolved-issue"
-                                      onlyActiveOnIndex={false}
                                       style={
                                         Object {
                                           "textDecoration": "line-through",
@@ -854,176 +859,196 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       to={
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         }
                                       }
                                     >
-                                      <a
+                                      <Link
                                         data-test-id="resolved-issue"
-                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
                                         style={
                                           Object {
                                             "textDecoration": "line-through",
                                           }
                                         }
+                                        to={
+                                          Object {
+                                            "pathname": "/organizations/org-slug/issues/271/",
+                                            "query": Object {
+                                              "_allp": 1,
+                                              "query": undefined,
+                                            },
+                                          }
+                                        }
                                       >
-                                        <GroupLevel
-                                          level="error"
+                                        <a
+                                          data-test-id="resolved-issue"
+                                          onClick={[Function]}
+                                          style={
+                                            Object {
+                                              "textDecoration": "line-through",
+                                            }
+                                          }
                                         >
-                                          <div
-                                            className="css-1oawdkn-GroupLevel eex8od5"
+                                          <GroupLevel
+                                            level="error"
                                           >
-                                            <Tooltip
-                                              containerDisplayMode="inline-block"
-                                              position="top"
-                                              title="Error level: Error"
+                                            <div
+                                              className="css-1oawdkn-GroupLevel eex8od5"
                                             >
-                                              <Manager>
-                                                <Reference>
-                                                  <InnerReference
-                                                    setReferenceNode={[Function]}
-                                                  >
-                                                    <span
-                                                      aria-describedby="tooltip-123456"
-                                                      onBlur={[Function]}
-                                                      onFocus={[Function]}
-                                                      onMouseEnter={[Function]}
-                                                      onMouseLeave={[Function]}
-                                                    />
-                                                  </InnerReference>
-                                                </Reference>
-                                              </Manager>
-                                            </Tooltip>
-                                          </div>
-                                        </GroupLevel>
-                                        <EventOrGroupTitle
-                                          data={
-                                            Object {
-                                              "annotations": Array [],
-                                              "assignedTo": null,
-                                              "count": "90",
-                                              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
-                                              "firstSeen": "2017-07-10T18:32:43Z",
-                                              "hasSeen": false,
-                                              "id": "271",
-                                              "isBookmarked": false,
-                                              "isPublic": false,
-                                              "isSubscribed": true,
-                                              "lastSeen": "2017-07-24T23:41:44Z",
-                                              "level": "error",
-                                              "logger": "javascript",
-                                              "metadata": Object {
-                                                "type": "TypeError",
-                                                "value": "Cannot read property 'length' of undefined",
-                                              },
-                                              "numComments": 0,
-                                              "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
-                                              "project": Object {
-                                                "id": "123",
-                                                "name": "Internal",
-                                                "slug": "project-slug",
-                                              },
-                                              "shareId": "312e323731",
-                                              "shortId": "INTERNAL-4G",
-                                              "status": "resolved",
-                                              "statusDetails": Object {},
-                                              "subscriptionDetails": null,
-                                              "title": "TypeError: Cannot read property 'length' of undefined",
-                                              "type": "error",
-                                              "userCount": 3,
+                                              <Tooltip
+                                                containerDisplayMode="inline-block"
+                                                position="top"
+                                                title="Error level: Error"
+                                              >
+                                                <Manager>
+                                                  <Reference>
+                                                    <InnerReference
+                                                      setReferenceNode={[Function]}
+                                                    >
+                                                      <span
+                                                        aria-describedby="tooltip-123456"
+                                                        onBlur={[Function]}
+                                                        onFocus={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
+                                                      />
+                                                    </InnerReference>
+                                                  </Reference>
+                                                </Manager>
+                                              </Tooltip>
+                                            </div>
+                                          </GroupLevel>
+                                          <EventOrGroupTitle
+                                            data={
+                                              Object {
+                                                "annotations": Array [],
+                                                "assignedTo": null,
+                                                "count": "90",
+                                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                                "firstSeen": "2017-07-10T18:32:43Z",
+                                                "hasSeen": false,
+                                                "id": "271",
+                                                "isBookmarked": false,
+                                                "isPublic": false,
+                                                "isSubscribed": true,
+                                                "lastSeen": "2017-07-24T23:41:44Z",
+                                                "level": "error",
+                                                "logger": "javascript",
+                                                "metadata": Object {
+                                                  "type": "TypeError",
+                                                  "value": "Cannot read property 'length' of undefined",
+                                                },
+                                                "numComments": 0,
+                                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                                                "project": Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                },
+                                                "shareId": "312e323731",
+                                                "shortId": "INTERNAL-4G",
+                                                "status": "resolved",
+                                                "statusDetails": Object {},
+                                                "subscriptionDetails": null,
+                                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                                "type": "error",
+                                                "userCount": 3,
+                                              }
                                             }
-                                          }
-                                          includeLink={true}
-                                          location={
-                                            Object {
-                                              "query": Object {},
-                                            }
-                                          }
-                                          params={
-                                            Object {
-                                              "groupId": "group-id",
-                                              "orgId": "org-slug",
-                                              "projectId": "project-slug",
-                                            }
-                                          }
-                                          router={
-                                            Object {
-                                              "createHref": [MockFunction] {
-                                                "calls": Array [
-                                                  Array [
-                                                    Object {
-                                                      "pathname": "/organizations/org-slug/issues/271/",
-                                                      "search": "",
-                                                    },
-                                                  ],
-                                                  Array [
-                                                    Object {
-                                                      "pathname": "/organizations/org-slug/issues/",
-                                                      "query": Object {
-                                                        "query": "logger:javascript",
-                                                      },
-                                                    },
-                                                  ],
-                                                  Array [
-                                                    Object {
-                                                      "pathname": "/organizations/org-slug/issues/271/",
-                                                      "search": "",
-                                                    },
-                                                  ],
-                                                  Array [
-                                                    Object {
-                                                      "pathname": "/organizations/org-slug/issues/",
-                                                      "query": Object {
-                                                        "query": "logger:javascript",
-                                                      },
-                                                    },
-                                                  ],
-                                                ],
-                                                "results": Array [
-                                                  Object {
-                                                    "type": "return",
-                                                    "value": undefined,
-                                                  },
-                                                  Object {
-                                                    "type": "return",
-                                                    "value": undefined,
-                                                  },
-                                                  Object {
-                                                    "type": "return",
-                                                    "value": undefined,
-                                                  },
-                                                  Object {
-                                                    "type": "return",
-                                                    "value": undefined,
-                                                  },
-                                                ],
-                                              },
-                                              "go": [MockFunction],
-                                              "goBack": [MockFunction],
-                                              "goForward": [MockFunction],
-                                              "isActive": [MockFunction],
-                                              "listen": [MockFunction],
-                                              "location": Object {
+                                            includeLink={true}
+                                            location={
+                                              Object {
                                                 "query": Object {},
-                                              },
-                                              "params": Object {
+                                              }
+                                            }
+                                            params={
+                                              Object {
                                                 "groupId": "group-id",
                                                 "orgId": "org-slug",
                                                 "projectId": "project-slug",
-                                              },
-                                              "push": [MockFunction],
-                                              "replace": [MockFunction],
-                                              "setRouteLeaveHook": [MockFunction],
+                                              }
                                             }
-                                          }
-                                          size="normal"
-                                          style={
-                                            Object {
-                                              "fontWeight": 600,
+                                            router={
+                                              Object {
+                                                "createHref": [MockFunction] {
+                                                  "calls": Array [
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                  ],
+                                                  "results": Array [
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                  ],
+                                                },
+                                                "go": [MockFunction],
+                                                "goBack": [MockFunction],
+                                                "goForward": [MockFunction],
+                                                "isActive": [MockFunction],
+                                                "listen": [MockFunction],
+                                                "location": Object {
+                                                  "query": Object {},
+                                                },
+                                                "params": Object {
+                                                  "groupId": "group-id",
+                                                  "orgId": "org-slug",
+                                                  "projectId": "project-slug",
+                                                },
+                                                "push": [MockFunction],
+                                                "replace": [MockFunction],
+                                                "setRouteLeaveHook": [MockFunction],
+                                              }
                                             }
-                                          }
-                                        >
-                                          <span
+                                            size="normal"
                                             style={
                                               Object {
                                                 "fontWeight": 600,
@@ -1033,22 +1058,30 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             <span
                                               style={
                                                 Object {
-                                                  "marginRight": 10,
+                                                  "fontWeight": 600,
                                                 }
                                               }
                                             >
-                                              TypeError
+                                              <span
+                                                style={
+                                                  Object {
+                                                    "marginRight": 10,
+                                                  }
+                                                }
+                                              >
+                                                TypeError
+                                              </span>
+                                              <em
+                                                title="length(app/views/groupSimilar/groupSimilarView)"
+                                              >
+                                                length(app/views/groupSimilar/groupSimilarView)
+                                              </em>
+                                              <br />
                                             </span>
-                                            <em
-                                              title="length(app/views/groupSimilar/groupSimilarView)"
-                                            >
-                                              length(app/views/groupSimilar/groupSimilarView)
-                                            </em>
-                                            <br />
-                                          </span>
-                                        </EventOrGroupTitle>
-                                      </a>
-                                    </Link>
+                                          </EventOrGroupTitle>
+                                        </a>
+                                      </Link>
+                                    </GlobalSelectionLink>
                                   </div>
                                 </Title>
                                 <Message
@@ -1151,7 +1184,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
@@ -1165,7 +1201,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       Array [
                                         Object {
                                           "pathname": "/organizations/org-slug/issues/271/",
-                                          "search": "",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
                                         },
                                       ],
                                       Array [
