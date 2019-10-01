@@ -10,8 +10,8 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 FEATURE_NAMES = "organizations:events-v2"
 
-all_view = "field=title&field=event.type&field=project&field=user&field=timestamp&alias=title&alias=type&alias=project&alias=user&alias=time&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment"
-error_view = "field=title&alias=error&field=count%28id%29&alias=events&field=count_unique%28user%29&alias=users&field=project&alias=project&field=last_seen&alias=last+seen&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name"
+all_view = "field=title&field=event.type&field=project&field=user&field=timestamp&fieldnames=title&fieldnames=type&fieldnames=project&fieldnames=user&fieldnames=time&name=All+Events&sort=-timestamp&tag=event.type&tag=release&tag=project.name&tag=user.email&tag=user.ip&tag=environment"
+error_view = "field=title&fieldnames=error&field=count%28id%29&fieldnames=events&field=count_unique%28user%29&fieldnames=users&field=project&fieldnames=project&field=last_seen&fieldnames=last+seen&name=Errors&query=event.type%3Aerror&sort=-last_seen&sort=-title&tag=error.type&tag=project.name"
 
 
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
