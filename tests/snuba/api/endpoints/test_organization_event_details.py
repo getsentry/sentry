@@ -248,7 +248,6 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_event_links_with_transaction_events(self):
         prototype = {
-            "event_id": "d" * 32,
             "type": "transaction",
             "transaction": "api.issue.delete",
             "spans": [],
