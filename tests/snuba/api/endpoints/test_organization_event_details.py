@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -243,3 +245,37 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["oldestEventID"] is None, "no older matching events"
         assert response.data["nextEventID"] == "2" * 32, "2 is older and has matching tags "
         assert response.data["latestEventID"] == "2" * 32, "2 is oldest matching message"
+
+    def test_event_links_with_transaction_events(self):
+        prototype = {
+            "event_id": "d" * 32,
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=1)),
+            ("e" * 32, before_now(minutes=2)),
+            ("f" * 32, before_now(minutes=3)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
+            self.store_event(data=data, project_id=self.project.id)
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "e" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json", data={"field": ["important", "count()"]})
+        assert response.status_code == 200
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32
