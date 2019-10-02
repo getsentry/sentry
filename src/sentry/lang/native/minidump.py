@@ -58,12 +58,13 @@ def merge_attached_event(mpack_event, data):
     """
     Merges an event payload attached in the ``__sentry-event`` attachment.
     """
-    if mpack_event.size > MAX_MSGPACK_EVENT_SIZE_BYTES:
+    size = mpack_event.size
+    if size == 0 or size > MAX_MSGPACK_EVENT_SIZE_BYTES:
         return
 
     try:
         event = unpack(mpack_event)
-    except (UnpackException, ExtraData) as e:
+    except (ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
@@ -77,13 +78,14 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     """
     Merges breadcrumbs attached in the ``__sentry-breadcrumbs`` attachment(s).
     """
-    if mpack_breadcrumbs.size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
+    size = mpack_breadcrumbs.size
+    if size == 0 or size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
         return
 
     try:
         unpacker = Unpacker(mpack_breadcrumbs)
         breadcrumbs = list(unpacker)
-    except (UnpackException, ExtraData) as e:
+    except (ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 

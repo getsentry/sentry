@@ -753,9 +753,15 @@ class MinidumpView(StoreView):
             else:
                 # Custom clients can submit longer payloads and should JSON
                 # encode event data into the optional `sentry` field.
-                extra = request.POST
+                extra = request.POST.dict()
                 json_data = extra.pop("sentry", None)
-                data = json.loads(json_data[0]) if json_data else {}
+                try:
+                    data = json.loads(json_data) if json_data else {}
+                except ValueError:
+                    data = {}
+
+            if not isinstance(data, dict):
+                data = {}
 
             # Merge additional form fields from the request with `extra` data
             # from the event payload and set defaults for processing. This is

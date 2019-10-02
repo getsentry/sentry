@@ -63,8 +63,9 @@ class ExampleTestCase(TestCase):
 
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
+        event_id = json.loads(resp.content)["id"]
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
