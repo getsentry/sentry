@@ -931,7 +931,7 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def constrain_column_to_dataset(col, dataset):
+def constrain_column_to_dataset(col, dataset, value=None):
     """
     Ensure conditions only reference valid columns on the provided
     dataset. Return none for conditions to be removed, and convert
@@ -941,7 +941,7 @@ def constrain_column_to_dataset(col, dataset):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if col == "type" and dataset == TRANSACTIONS:
+    if dataset == TRANSACTIONS and col == "type" and value == "transaction":
         return None
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
@@ -968,7 +968,7 @@ def constrain_condition_to_dataset(cond, dataset):
             cond = [constrain_condition_to_dataset(c, dataset) for c in cond]
         elif len(cond) == 3:
             # map column name
-            name = constrain_column_to_dataset(cond[0], dataset)
+            name = constrain_column_to_dataset(cond[0], dataset, cond[2])
             if name is None:
                 return None
             cond[0] = name
