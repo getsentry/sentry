@@ -89,7 +89,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         # We do a preflight post, because there are many queries polluting the array
         # before the actual "processing" happens (like, auth_user)
-        self._postWithHeader(event_data)
+        resp = self._postWithHeader(event_data)
         with self.assertWriteQueries(
             {
                 "nodestore_node": 2,
@@ -103,7 +103,7 @@ class BasicResolvingIntegrationTest(TestCase):
                 "sentry_userreport": 1,
             }
         ):
-            resp = self._postWithHeader(event_data)
+            self._postWithHeader(event_data)
         assert resp.status_code == 200
         event_id = json.loads(resp.content)["id"]
 
