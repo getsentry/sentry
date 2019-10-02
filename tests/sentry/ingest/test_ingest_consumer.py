@@ -14,6 +14,8 @@ from sentry.models.event import Event
 from sentry.utils import json
 from sentry.testutils.factories import Factories
 
+from .ingest_utils import requires_kafka
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,6 +75,7 @@ def _shutdown_requested(max_secs, num_events):
 
 
 @pytest.mark.django_db
+@requires_kafka
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin
 ):
