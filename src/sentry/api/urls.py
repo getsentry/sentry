@@ -156,6 +156,9 @@ from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
+from .endpoints.organization_projects_sent_first_event import (
+    OrganizationProjectsSentFirstEventEndpoint,
+)
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
@@ -957,6 +960,11 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/user-teams/$",
                     OrganizationUserTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-teams",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
+                    OrganizationProjectsSentFirstEventEndpoint.as_view(),
+                    name="sentry-api-0-organization-sent-first-event",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/tags/$",
