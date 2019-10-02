@@ -36,13 +36,14 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
     if (appSlug) {
-      // Default time range for now: 30 days ago to now
+      // Default time range for now: 90 days ago to now
       const now = Math.floor(new Date().getTime() / 1000);
+      const ninety_days_ago = 3600 * 24 * 90;
       return [
         [
           'stats',
           `/sentry-apps/${appSlug}/stats/`,
-          {query: {since: now - 3600 * 24 * 30, until: now}},
+          {query: {since: now - ninety_days_ago, until: now}},
         ],
         ['errors', `/sentry-apps/${appSlug}/errors/`],
         ['app', `/sentry-apps/${appSlug}/`],
@@ -52,7 +53,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   getTitle() {
-    return t('Sentry Application Dashboard');
+    return t('Integration Dashboard');
   }
 
   renderInstallData() {

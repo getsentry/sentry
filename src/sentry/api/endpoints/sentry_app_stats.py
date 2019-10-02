@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from django.db import connection
-
 from sentry.app import tsdb
 
 from sentry.api.base import StatsMixin
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+
+from sentry.models import SentryAppInstallation
 
 query = """
 select date_added, date_deleted, organization_id
@@ -29,9 +29,9 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         query_args = self._parse_args(request)
 
-        cursor = connection.cursor()
-        cursor.execute(query, [sentry_app.id, query_args["start"], query_args["end"]])
-        installations = cursor.fetchall()
+        installations = SentryAppInstallation.with_deleted.filter(
+            sentry_app=sentry_app, date_added__range=(query_args["start"], query_args["end"])
+        ).values_list("date_added", "date_deleted", "organization_id")
 
         rollup, series = tsdb.get_optimal_rollup_series(query_args["start"], query_args["end"])
 
