@@ -72,6 +72,38 @@ describe('EventsV2 > SaveQueryButton', function() {
     expect(submit.text()).toEqual('Update');
   });
 
+  it('sets input value based on props', function() {
+    const wrapper = mount(
+      <EventSaveQueryButton
+        organization={organization}
+        location={location}
+        eventView={errorsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const button = wrapper.find('StyledDropdownButton');
+    button.simulate('click');
+
+    // Creating a new query
+    expect(wrapper.find('StyledInput').props().value).toEqual('');
+
+    // Enter edit mode
+    wrapper.setProps({isEditing: true});
+    wrapper.update();
+    expect(wrapper.find('StyledInput').props().value).toEqual(errorsView.name);
+
+    // Edit a different view
+    const otherView = {...errorsView, name: 'other view', id: 99};
+    wrapper.setProps({isEditing: true, eventView: otherView});
+    wrapper.update();
+    expect(wrapper.find('StyledInput').props().value).toEqual(otherView.name);
+
+    // Leave edit mode
+    wrapper.setProps({isEditing: false});
+    wrapper.update();
+    expect(wrapper.find('StyledInput').props().value).toEqual('');
+  });
+
   it('saves a new query', async function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/',
@@ -110,7 +142,7 @@ describe('EventsV2 > SaveQueryButton', function() {
       query: {
         field: ['title', 'count()'],
         id: '2',
-        alias: ['title', 'total'],
+        fieldnames: ['title', 'total'],
         name: 'my query',
         query: '',
         sort: [],
@@ -162,7 +194,7 @@ describe('EventsV2 > SaveQueryButton', function() {
       query: {
         field: ['title', 'count()'],
         id: '1',
-        alias: ['title', 'total'],
+        fieldnames: ['title', 'total'],
         name: 'my query',
         query: '',
         sort: [],

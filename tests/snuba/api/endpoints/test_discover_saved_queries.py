@@ -104,7 +104,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
 
 class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
-    feature_name = "organizations:discover-v2-query-builder"
+    feature_name = "organizations:events-v2"
 
     def test_post_invalid_conditions(self):
         with self.feature(self.feature_name):

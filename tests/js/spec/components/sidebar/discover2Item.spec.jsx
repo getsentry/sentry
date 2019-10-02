@@ -21,6 +21,7 @@ describe('Sidebar > Discover2Item', function() {
       body: [
         {
           id: '1',
+          version: 2,
           name: 'first query',
           fields: ['title', 'count()'],
           dateCreated: now,
@@ -30,6 +31,15 @@ describe('Sidebar > Discover2Item', function() {
         {
           id: '2',
           name: 'second query',
+          version: 2,
+          fields: ['transaction', 'count()'],
+          dateCreated: now,
+          dateUpdated: now,
+          createdBy: '1',
+        },
+        {
+          id: '2',
+          name: 'old query',
           fields: ['transaction', 'count()'],
           dateCreated: now,
           dateUpdated: now,
@@ -45,17 +55,7 @@ describe('Sidebar > Discover2Item', function() {
     DiscoverSavedQueriesStore.reset();
   });
 
-  it('renders no menu when feature is off', async function() {
-    const wrapper = makeWrapper({organization, client});
-    // Wait for reflux
-    await tick();
-
-    const menu = wrapper.find('AutoComplete');
-    expect(menu).toHaveLength(0);
-  });
-
-  it('renders a menu when feature is on', async function() {
-    organization.features.push('discover-v2-query-builder');
+  it('renders a menu', async function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
@@ -65,7 +65,6 @@ describe('Sidebar > Discover2Item', function() {
   });
 
   it('opens the menu', async function() {
-    organization.features.push('discover-v2-query-builder');
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
@@ -78,6 +77,7 @@ describe('Sidebar > Discover2Item', function() {
     const menu = wrapper.find('Menu');
     expect(menu).toHaveLength(1);
 
+    // Old versionless items should be excluded
     const menuItems = menu.find('MenuItem');
     expect(menuItems).toHaveLength(2);
   });
@@ -87,7 +87,6 @@ describe('Sidebar > Discover2Item', function() {
       url: '/organizations/org-slug/discover/saved/1/',
       method: 'DELETE',
     });
-    organization.features.push('discover-v2-query-builder');
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
@@ -104,7 +103,6 @@ describe('Sidebar > Discover2Item', function() {
   });
 
   it('handles edit buttons', async function() {
-    organization.features.push('discover-v2-query-builder');
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
