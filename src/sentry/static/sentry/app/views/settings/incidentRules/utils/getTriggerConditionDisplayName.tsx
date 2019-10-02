@@ -1,3 +1,5 @@
+import {t} from 'app/locale';
+
 import {Trigger, AlertRuleThresholdType} from '../types';
 
 export default function getTriggerConditionDisplayName(
@@ -7,14 +9,14 @@ export default function getTriggerConditionDisplayName(
     return [
       `> ${trigger.alertThreshold}`,
       typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
-        ? `Auto-resolves when metric falls below ${trigger.resolveThreshold}`
+        ? t('Auto-resolves when metric falls below %s', trigger.resolveThreshold)
         : null,
     ];
   } else {
     return [
       `< ${trigger.alertThreshold}`,
       typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
-        ? `Auto-resolves when metric is above ${trigger.resolveThreshold}`
+        ? t('Auto-resolves when metric is above %s', trigger.resolveThreshold)
         : null,
     ];
   }
