@@ -542,8 +542,11 @@ def unmerge(
     if last_event is not None:
         conditions.extend(
             [
-                ["timestamp", "<=", last_event.timestamp],
-                [["timestamp", "<", last_event.timestamp], ["event_id", "<", last_event.event_id]],
+                ["timestamp", "<=", last_event["timestamp"]],
+                [
+                    ["timestamp", "<", last_event["timestamp"]],
+                    ["event_id", "<", last_event["event_id"]],
+                ],
             ]
         )
 
@@ -604,7 +607,7 @@ def unmerge(
         destination_id,
         fingerprints,
         actor_id,
-        last_event=events[-1],
+        last_event={"timestamp": events[-1].timestamp, "event_id": events[-1].event_id},
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,
