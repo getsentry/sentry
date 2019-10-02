@@ -5,6 +5,7 @@ import {Panel, PanelBody, PanelItem, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 
 import {Trigger, AlertRuleThresholdType} from '../types';
@@ -44,6 +45,8 @@ export default class TriggersList extends React.Component<Props> {
   render() {
     const {triggers} = this.props;
 
+    const isEmpty = triggers && !triggers.length;
+
     return (
       <Panel>
         <PanelHeaderGrid>
@@ -52,6 +55,7 @@ export default class TriggersList extends React.Component<Props> {
           <div>{t('Actions')}</div>
         </PanelHeaderGrid>
         <PanelBody>
+          {isEmpty && <EmptyMessage>{t('No triggers added')}</EmptyMessage>}
           {triggers.map(trigger => {
             const [mainCondition, secondaryCondition] = getConditionStrings(trigger);
 
