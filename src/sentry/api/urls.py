@@ -862,6 +862,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-projects",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
+                    OrganizationProjectsSentFirstEventEndpoint.as_view(),
+                    name="sentry-api-0-organization-sent-first-event",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/repos/$",
                     OrganizationRepositoriesEndpoint.as_view(),
                     name="sentry-api-0-organization-repositories",
@@ -960,11 +965,6 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/user-teams/$",
                     OrganizationUserTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-teams",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
-                    OrganizationProjectsSentFirstEventEndpoint.as_view(),
-                    name="sentry-api-0-organization-sent-first-event",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/tags/$",
