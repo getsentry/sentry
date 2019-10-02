@@ -1,0 +1,9 @@
+Request for Access
+
+{{ email }} is requesting to join the {{ organization.name }} organization.
+
+View access requests by clicking the link below:
+
+    {{ pending_requests_link }}
+
+You are receiving this email because you're listed as an organization Owner or Manager.
