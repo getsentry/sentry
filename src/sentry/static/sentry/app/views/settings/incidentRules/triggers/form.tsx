@@ -280,8 +280,8 @@ function TriggerFormContainer({
   return (
     <Form
       apiMethod={trigger ? 'PUT' : 'POST'}
-      apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers${
-        trigger ? `/${trigger.id}` : ''
+      apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers/${
+        trigger ? `${trigger.id}/` : ''
       }`}
       initialData={{
         thresholdType: AlertRuleThresholdType.ABOVE,

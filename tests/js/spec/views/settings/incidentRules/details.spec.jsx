@@ -19,7 +19,7 @@ describe('Incident Rules Details', function() {
       body: rule,
     });
     const createTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
       method: 'POST',
       body: (_, options) =>
         TestStubs.IncidentTrigger({
@@ -28,7 +28,7 @@ describe('Incident Rules Details', function() {
         }),
     });
     const updateTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123/`,
       method: 'PUT',
       body: (_, options) =>
         TestStubs.IncidentTrigger({
