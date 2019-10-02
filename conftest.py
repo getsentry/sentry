@@ -1,9 +1,7 @@
 from __future__ import absolute_import
-
 import os
 import sys
 from hashlib import md5
-
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
