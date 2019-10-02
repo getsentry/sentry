@@ -268,11 +268,7 @@ class SecurityAuthHelper(AbstractAuthHelper):
 
 
 def cache_key_for_event(data):
-    return cache_key_from_project_id_and_event_id(data["project"], data["event_id"])
-
-
-def cache_key_from_project_id_and_event_id(project_id, event_id):
-    return u"e:{1}:{0}".format(project_id, event_id)
+    return u"e:{1}:{0}".format(data["project"], data["event_id"])
 
 
 def decompress_deflate(encoded_data):

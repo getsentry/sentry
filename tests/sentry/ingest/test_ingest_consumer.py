@@ -3,15 +3,18 @@ from __future__ import absolute_import
 import datetime
 import time
 import logging
-
 import msgpack
 import pytest
+
+from django.conf import settings
 
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
 from sentry.models.event import Event
+from sentry.utils import json
 from sentry.testutils.factories import Factories
-from django.conf import settings
+
+from .ingest_utils import requires_kafka
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +43,7 @@ def _get_test_message(project):
         "start_time": time.time(),
         "event_id": event_id,
         "project_id": 1,
-        "payload": normalized_event,
+        "payload": json.dumps(normalized_event),
     }
 
     val = msgpack.packb(message)
@@ -72,6 +75,7 @@ def _shutdown_requested(max_secs, num_events):
 
 
 @pytest.mark.django_db
+@requires_kafka
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin
 ):
