@@ -76,6 +76,9 @@ class SimpleKafkaConsumer(object):
         self.initial_offset_reset = initial_offset_reset
         self.consumer_group = consumer_group
 
+        if self.commit_batch_size <= 0:
+            raise ValueError("Commit batch size must be a positive integer")
+
         cluster_name = settings.KAFKA_TOPICS[topic_name]["cluster"]
         bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
 
