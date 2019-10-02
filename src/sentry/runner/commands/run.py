@@ -447,7 +447,7 @@ def outcome_consumer(**options):
     The "outcomes consumer" tasks read outcomes from a kafka topic and sends
     signals for some of them.
     """
-    from sentry.ingest.outcome_consumer import run_outcomes_consumer
+    from sentry.ingest.outcomes_consumer import run_outcomes_consumer
 
     max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
 

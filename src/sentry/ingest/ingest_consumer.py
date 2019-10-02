@@ -6,9 +6,12 @@ import msgpack
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.coreapi import cache_key_from_project_id_and_event_id
+from sentry.coreapi import cache_key_for_event
 from sentry.cache import default_cache
+from sentry.models import Project
+from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
+from sentry.utils import json
 from sentry.utils.kafka import SimpleKafkaConsumer
 
 logger = logging.getLogger(__name__)
@@ -37,10 +40,11 @@ class ConsumerType(object):
 class IngestConsumer(SimpleKafkaConsumer):
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
-        body = message["payload"]
+        payload = message["payload"]
         start_time = float(message["start_time"])
         event_id = message["event_id"]
         project_id = message["project_id"]
+        remote_addr = message.get("remote_addr")
 
         # check that we haven't already processed this event (a previous instance of the forwarder
         # died before it could commit the event queue offset)
@@ -53,15 +57,35 @@ class IngestConsumer(SimpleKafkaConsumer):
             )
             return  # message already processed do not reprocess
 
-        cache_key = cache_key_from_project_id_and_event_id(project_id=project_id, event_id=event_id)
-        cache_timeout = 3600
-        default_cache.set(cache_key, body, cache_timeout, raw=True)
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            logger.error("Project for ingested event does not exist: %s", project_id)
+            return
 
-        # queue the event for processing
-        preprocess_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+        # Parse the JSON payload. This is required to compute the cache key and
+        # call process_event. The payload will be put into Kafka raw, to avoid
+        # serializing it again.
+        # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
+        # which assumes that data passed in is a raw dictionary.
+        data = json.loads(payload)
+
+        cache_timeout = 3600
+        cache_key = cache_key_for_event(data)
+        default_cache.set(cache_key, data, cache_timeout)
+
+        # Preprocess this event, which spawns either process_event or
+        # save_event. Pass data explicitly to avoid fetching it again from the
+        # cache.
+        preprocess_event(cache_key=cache_key, data=data, start_time=start_time, event_id=event_id)
 
         # remember for an 1 hour that we saved this event (deduplication protection)
         cache.set(deduplication_key, "", 3600)
+
+        # emit event_accepted once everything is done
+        event_accepted.send_robust(
+            ip=remote_addr, data=data, project=project, sender=self.process_message
+        )
 
 
 def run_ingest_consumer(

@@ -632,9 +632,7 @@ class StoreView(APIView):
             )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
-        metrics.timing(
-            "events.size.data.post_storeendpoint", data_size, tags={"project_id": project_id}
-        )
+        metrics.timing("events.size.data.post_storeendpoint", data_size)
 
         return process_event(
             event_manager, project, key, remote_addr, helper, attachments, project_config
@@ -755,9 +753,15 @@ class MinidumpView(StoreView):
             else:
                 # Custom clients can submit longer payloads and should JSON
                 # encode event data into the optional `sentry` field.
-                extra = request.POST
+                extra = request.POST.dict()
                 json_data = extra.pop("sentry", None)
-                data = json.loads(json_data[0]) if json_data else {}
+                try:
+                    data = json.loads(json_data) if json_data else {}
+                except ValueError:
+                    data = {}
+
+            if not isinstance(data, dict):
+                data = {}
 
             # Merge additional form fields from the request with `extra` data
             # from the event payload and set defaults for processing. This is

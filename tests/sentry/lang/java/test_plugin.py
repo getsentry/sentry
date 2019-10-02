@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 import zipfile
-import pytest
 from six import BytesIO
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -25,10 +24,6 @@ PROGUARD_BUG_SOURCE = b"x"
 
 
 class BasicResolvingIntegrationTest(TestCase):
-    @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == "sentry.tagstore.v2.V2TagStorage",
-        reason="Queries are completly different when using tagstore",
-    )
     def test_basic_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -94,7 +89,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         # We do a preflight post, because there are many queries polluting the array
         # before the actual "processing" happens (like, auth_user)
-        self._postWithHeader(event_data)
+        resp = self._postWithHeader(event_data)
         with self.assertWriteQueries(
             {
                 "nodestore_node": 2,
@@ -108,11 +103,11 @@ class BasicResolvingIntegrationTest(TestCase):
                 "sentry_userreport": 1,
             }
         ):
-            resp = self._postWithHeader(event_data)
+            self._postWithHeader(event_data)
         assert resp.status_code == 200
+        event_id = json.loads(resp.content)["id"]
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
-
+        event = eventstore.get_event_by_id(self.project.id, event_id)
         bt = event.interfaces["exception"].values[0].stacktrace
         frames = bt.frames
 
@@ -189,8 +184,9 @@ class BasicResolvingIntegrationTest(TestCase):
 
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
+        event_id = json.loads(resp.content)["id"]
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {

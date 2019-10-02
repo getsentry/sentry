@@ -54,7 +54,7 @@ class OAuth2Provider(Provider):
         """
         try:
             prop = getattr(self, u"oauth_{}".format(parameter_name))
-            if prop is not "":
+            if prop != "":
                 return prop
         except AttributeError:
             pass
