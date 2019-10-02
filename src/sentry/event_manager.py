@@ -1030,8 +1030,9 @@ class EventManager(object):
                     activity.update(data={"version": release.version})
 
         if is_regression:
+            project = Project.objects.get_from_cache(id=group.project_id)
             activity = Activity.objects.create(
-                project=group.project,
+                project=project,
                 group=group,
                 type=Activity.SET_REGRESSION,
                 data={"version": release.version if release else ""},
