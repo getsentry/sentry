@@ -85,6 +85,7 @@ describe('Incident Rules Details', function() {
 
     // New Trigger should be in list
     await tick();
+    await tick(); // tick#2 - flakiness
     wrapper.update();
     expect(
       wrapper
@@ -92,7 +93,7 @@ describe('Incident Rules Details', function() {
         .last()
         .text()
     ).toBe('New Trigger');
-    expect(wrapper.find('TriggersModal')).toHaveLength(1);
+    expect(wrapper.find('TriggersModal')).toHaveLength(0);
 
     // Edit new trigger
     wrapper
@@ -135,6 +136,7 @@ describe('Incident Rules Details', function() {
     );
     // New Trigger should be in list
     await tick();
+    await tick(); // tick#2 - flakiness
     wrapper.update();
 
     expect(
@@ -143,7 +145,7 @@ describe('Incident Rules Details', function() {
         .last()
         .text()
     ).toBe('New Trigger!!');
-    expect(wrapper.find('TriggersModal')).toHaveLength(1);
+    expect(wrapper.find('TriggersModal')).toHaveLength(0);
 
     // Attempt and fail to delete trigger
     let deleteTrigger = MockApiClient.addMockResponse({
