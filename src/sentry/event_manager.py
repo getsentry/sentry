@@ -740,7 +740,6 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
-                event.set_data(EventDict(data, skip_renormalization=True))
                 event.data.save()
                 event.save()
 
