@@ -161,6 +161,12 @@ class SimpleKafkaConsumer(object):
                 metrics.timing(
                     "simple_consumer.committed_batch.size", len(messages), tags=metrics_tags
                 )
+                # Value between 0.0 and 1.0 that can help to estimate the consumer bandwidth/usage
+                metrics.timing(
+                    "simple_consumer.batch_capacity.usage",
+                    1.0 * len(messages) / self.commit_batch_size,
+                    tags=metrics_tags,
+                )
 
         consumer.close()
         logger.debug(
