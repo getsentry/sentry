@@ -15,6 +15,8 @@ class OrganizationUserTeamsTest(APITestCase):
         self.team1 = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)
         self.team3 = self.create_team(organization=self.org)
+        self.project1 = self.create_project(teams=[self.team1])
+        self.project2 = self.create_project(teams=[self.team2])
         self.create_member(organization=self.org, user=self.foo, teams=[self.team1, self.team2])
         self.create_member(organization=self.org, user=self.bar, teams=[self.team2])
 
@@ -35,8 +37,11 @@ class OrganizationUserTeamsTest(APITestCase):
         response.data.sort(key=lambda x: x["id"])
         assert response.data[0]["id"] == six.text_type(self.team1.id)
         assert response.data[0]["isMember"]
+        assert response.data[0]["projects"][0]["id"] == six.text_type(self.project1.id)
+
         assert response.data[1]["id"] == six.text_type(self.team2.id)
         assert response.data[1]["isMember"]
+        assert response.data[1]["projects"][0]["id"] == six.text_type(self.project2.id)
 
     def test_super_user(self):
         self.login_as(user=self.bar, superuser=True)
@@ -51,7 +56,11 @@ class OrganizationUserTeamsTest(APITestCase):
         response.data.sort(key=lambda x: x["id"])
         assert response.data[0]["id"] == six.text_type(self.team1.id)
         assert not response.data[0]["isMember"]
+        assert response.data[0]["projects"][0]["id"] == six.text_type(self.project1.id)
+
         assert response.data[1]["id"] == six.text_type(self.team2.id)
         assert response.data[1]["isMember"]
+        assert response.data[1]["projects"][0]["id"] == six.text_type(self.project2.id)
+
         assert response.data[2]["id"] == six.text_type(self.team3.id)
         assert not response.data[2]["isMember"]

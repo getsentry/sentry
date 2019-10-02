@@ -9,6 +9,7 @@ from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     Authenticator,
+    InviteStatus,
     Organization,
     OrganizationMember,
     TotpInterface,
@@ -50,6 +51,28 @@ class AcceptInviteTest(TestCase):
             email="newuser@example.com", token="abc", organization=self.organization
         )
         resp = self.client.get(reverse("sentry-api-0-accept-organization-invite", args=[om.id, 2]))
+        assert resp.status_code == 400
+
+    def test_invite_not_pending(self):
+        user = self.create_user(email="test@gmail.com")
+        om = OrganizationMember.objects.create(
+            email="newuser@example.com", token="abc", organization=self.organization, user=user
+        )
+        resp = self.client.get(
+            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+        )
+        assert resp.status_code == 400
+
+    def test_invite_unapproved(self):
+        om = OrganizationMember.objects.create(
+            email="newuser@example.com",
+            token="abc",
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        resp = self.client.get(
+            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+        )
         assert resp.status_code == 400
 
     def test_needs_authentication(self):
@@ -163,6 +186,26 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.get(id=om.id)
         assert om.is_pending, "should not have been accepted"
         assert om.token, "should not have been accepted"
+
+    def test_cannot_accept_unapproved_invite(self):
+        self.login_as(self.user)
+
+        om = OrganizationMember.objects.create(
+            email="newuser@example.com",
+            role="member",
+            token="abc",
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        resp = self.client.post(
+            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+        )
+        assert resp.status_code == 400
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert not om.invite_approved
+        assert om.is_pending
+        assert om.token
 
     def test_member_already_exists(self):
         self.login_as(self.user)

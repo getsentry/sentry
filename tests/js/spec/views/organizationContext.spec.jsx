@@ -121,12 +121,14 @@ describe('OrganizationContext', function() {
       url: '/organizations/org-slug/',
       statusCode: 403,
     });
+    console.error = jest.fn(); // eslint-disable-line no-console
     wrapper = createWrapper();
 
     await tick();
     wrapper.update();
 
     expect(wrapper.find('LoadingError')).toHaveLength(1);
+    console.error.mockRestore(); // eslint-disable-line no-console
   });
 
   it('opens sudo modal for superusers on 403s', async function() {

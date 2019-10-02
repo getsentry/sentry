@@ -16,7 +16,6 @@ from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group, Release, GroupEnvironment
 from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
-from sentry.utils.db import is_postgres
 
 logger = logging.getLogger("sentry.search.snuba")
 datetime_format = "%Y-%m-%dT%H:%M:%S+00:00"
@@ -159,19 +158,6 @@ def unassigned_filter(unassigned, projects):
     return query
 
 
-def message_regex_filter(queryset, message):
-    operator = ("!" if message.operator == "!=" else "") + "~*"
-
-    # XXX: We translate these to a regex like '^<pattern>$'. Since we want to
-    # search anywhere in the string, drop those characters.
-    message_value = message.value.value[1:-1]
-
-    return queryset.extra(
-        where=["message {0} %s OR view {0} %s".format(operator)],
-        params=[message_value, message_value],
-    )
-
-
 def get_search_filter(search_filters, name, operator):
     """
     Finds the value of a search filter with the passed name and operator. If
@@ -246,20 +232,6 @@ class SnubaSearchBackend(SearchBackend):
             ),
             "active_at": ScalarCondition("active_at"),
         }
-
-        message = [
-            search_filter for search_filter in search_filters if search_filter.key.name == "message"
-        ]
-        if message and message[0].value.raw_value:
-            message = message[0]
-            # We only support full wildcard matching in postgres
-            if is_postgres() and message.value.is_wildcard():
-                group_queryset = message_regex_filter(group_queryset, message)
-            else:
-                # Otherwise, use the standard LIKE query
-                qs_builder_conditions["message"] = QCallbackCondition(
-                    lambda message: Q(Q(message__icontains=message) | Q(culprit__icontains=message))
-                )
 
         group_queryset = QuerySetBuilder(qs_builder_conditions).build(
             group_queryset, search_filters
@@ -389,7 +361,7 @@ class SnubaSearchBackend(SearchBackend):
                 not [
                     sf
                     for sf in search_filters
-                    if sf.key.name not in issue_only_fields.union(["date", "message"])
+                    if sf.key.name not in issue_only_fields.union(["date"])
                 ]
             ):
                 group_queryset = group_queryset.order_by("-last_seen")
