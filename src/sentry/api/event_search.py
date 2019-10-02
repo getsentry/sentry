@@ -191,7 +191,8 @@ class SearchKey(namedtuple("SearchKey", "name")):
         snuba_name = SEARCH_MAP.get(self.name)
         if snuba_name:
             return snuba_name
-        # assume custom tag if not listed, and append tags[xxx] if not already present (means it was sent as an explicit tag using the tags[xxx] format).
+
+        # assume custom tag if not matched above, and add tags[xxx] wrapper if not present.
         match = TAG_KEY_RE.match(self.name)
         if match:
             return self.name
@@ -200,8 +201,7 @@ class SearchKey(namedtuple("SearchKey", "name")):
 
     @cached_property
     def is_tag(self):
-        # TODO: Modify to also return True if self.name is tags[xxx] format.
-        return self.name not in SEARCH_MAP
+        return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
 
 
 class SearchValue(namedtuple("SearchValue", "raw_value")):
