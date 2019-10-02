@@ -19,7 +19,6 @@ enum34>=1.1.6,<1.2.0
 exam>=0.5.1
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
-git+https://github.com/getsentry/sentry-python@fb15e13#egg=sentry-sdk
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 honcho>=1.0.0,<1.1.0
@@ -58,6 +57,7 @@ requests-oauthlib==0.3.3
 requests[security]>=2.20.0,<2.21.0
 selenium==3.141.0
 semaphore>=0.4.46,<0.5.0
+-e git+https://github.com/getsentry/sentry-python@fb15e13#egg=sentry-sdk>0.12.0
 setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0
 six>=1.10.0,<1.11.0
