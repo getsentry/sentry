@@ -57,7 +57,6 @@ default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQ
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
-default_manager.add("organizations:discover-v2-query-builder", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA

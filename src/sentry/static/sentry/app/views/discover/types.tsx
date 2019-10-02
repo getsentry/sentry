@@ -7,6 +7,7 @@ export type Query = {
   fields: string[];
   aggregations: Aggregation[];
   conditions?: Condition[];
+  version?: number;
   query?: string;
   orderby?: string;
   limit?: number;
