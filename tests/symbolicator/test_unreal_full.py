@@ -77,8 +77,9 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
             with open(filename, "rb") as f:
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
+                event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         self.insta_snapshot(
             {

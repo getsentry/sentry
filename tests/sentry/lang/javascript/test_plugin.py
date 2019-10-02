@@ -35,8 +35,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         super(JavascriptIntegrationTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
-    def get_event(self):
-        return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+    def get_event(self, event_id):
+        return eventstore.get_event_by_id(self.project.id, event_id)
 
     def test_adds_contexts_without_device(self):
         data = {
@@ -73,7 +73,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
 
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") == {"name": "Windows 8", "type": "os"}
@@ -98,7 +98,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") == {"name": "Android", "type": "os", "version": "4.3"}
         assert contexts.get("browser") == {"name": "Android", "type": "browser", "version": "4.3"}
@@ -128,7 +128,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") is None
         assert contexts.get("browser") is None
@@ -184,7 +184,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             allow_scraping=True,
         )
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -244,7 +244,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             allow_scraping=True,
         )
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -277,7 +277,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
 
         message = event.interfaces["logentry"]
         assert (
@@ -355,7 +355,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [
             {"type": "js_no_source", "url": "http//example.com/index.html"}
         ]
@@ -434,7 +434,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [
             {"type": "js_no_source", "url": "http//example.com/index.html"}
         ]
@@ -496,7 +496,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -573,7 +573,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -734,7 +734,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -880,7 +880,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -956,7 +956,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [
             {"url": u"http://example.com/file1.js", "type": "fetch_invalid_http_code", "value": 404}
         ]
@@ -1021,7 +1021,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [
             {"url": u"http://example.com/unsupported.sourcemap.js", "type": "js_invalid_source"}
         ]
@@ -1053,7 +1053,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [{"url": u"<data url>", "type": "js_no_source"}]
 
     @responses.activate
@@ -1094,7 +1094,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert "errors" not in event.data
 
     @responses.activate
@@ -1155,7 +1155,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["errors"] == [
             {"url": u"http://example.com/file1.js", "type": "js_invalid_content"},
             {"url": u"http://example.com/file2.js", "type": "js_invalid_content"},
@@ -1251,7 +1251,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -1362,7 +1362,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 

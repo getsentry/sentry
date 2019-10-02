@@ -57,8 +57,8 @@ REAL_RESOLVING_EVENT_DATA = {
 
 
 class ResolvingIntegrationTestBase(object):
-    def get_event(self):
-        return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+    def get_event(self, event_id):
+        return eventstore.get_event_by_id(self.project.id, event_id)
 
     def test_real_resolving(self):
         url = reverse(
@@ -91,7 +91,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
 
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
@@ -153,7 +153,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -163,7 +163,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -176,7 +176,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(payload)
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(resp.content)
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 

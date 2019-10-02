@@ -38,6 +38,18 @@ def test_merge_attached_event_arbitrary_key():
     assert event["key"] == "value"
 
 
+def test_merge_attached_event_empty_file():
+    event = {}
+    merge_attached_event(MockFile(b""), event)
+    assert not event
+
+
+def test_merge_attached_event_invalid_file():
+    event = {}
+    merge_attached_event(MockFile(b"\xde"), event)
+    assert not event
+
+
 def test_merge_attached_breadcrumbs_empty_creates_crumb():
     mpack_crumb = msgpack.packb({})
     event = {}
@@ -49,6 +61,18 @@ def test_merge_attached_breadcrumb_too_large_empty():
     mpack_crumb = msgpack.packb({"message": "a" * 50000})
     event = {}
     merge_attached_breadcrumbs(MockFile(mpack_crumb), event)
+    assert not event.get("breadcrumbs")
+
+
+def test_merge_attached_breadcrumbs_empty_file():
+    event = {}
+    merge_attached_breadcrumbs(MockFile(b""), event)
+    assert not event.get("breadcrumbs")
+
+
+def test_merge_attached_breadcrumbs_invalid_file():
+    event = {}
+    merge_attached_breadcrumbs(MockFile(b"\xde"), event)
     assert not event.get("breadcrumbs")
 
 

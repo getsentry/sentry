@@ -104,9 +104,9 @@ class BasicResolvingIntegrationTest(TestCase):
         ):
             resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
+        event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
-
+        event = eventstore.get_event_by_id(self.project.id, event_id)
         bt = event.interfaces["exception"].values[0].stacktrace
         frames = bt.frames
 
@@ -183,8 +183,9 @@ class BasicResolvingIntegrationTest(TestCase):
 
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
+        event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
