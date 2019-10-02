@@ -320,7 +320,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-function putSessionUserFirst(members: SentryTypes.Member[]): SentryTypes.Member[] {
+export function putSessionUserFirst(members: SentryTypes.Member[]): SentryTypes.Member[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];
