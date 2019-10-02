@@ -41,15 +41,13 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     // Going from one query to another whilst not leaving edit mode
     if (
-      this.props.isEditing === true &&
-      this.props.eventView.id !== prevProps.eventView.id
+      (this.props.isEditing === true &&
+        this.props.eventView.id !== prevProps.eventView.id) ||
+      this.props.isEditing !== prevProps.isEditing
     ) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({queryName: this.props.eventView.name || ''});
-    } else if (this.props.isEditing !== prevProps.isEditing) {
-      // entering or leaving edit mode
       const queryName =
         this.props.isEditing === true ? this.props.eventView.name || '' : '';
+
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({queryName});
     }
