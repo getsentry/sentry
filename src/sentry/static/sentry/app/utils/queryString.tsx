@@ -34,14 +34,14 @@ export function appendTagCondition(
   query: QueryValue,
   key: string,
   value: string,
-  wrap_with_tag?: boolean
+  wrapWithTag?: boolean
 ): string {
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
   if (isString(value) && value.indexOf(' ') > -1) {
     value = `"${value}"`;
   }
-  if (wrap_with_tag) {
+  if (wrapWithTag) {
     key = `tags[${key}]`;
   }
   if (currentQuery) {

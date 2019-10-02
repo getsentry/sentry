@@ -466,7 +466,7 @@ class SearchVisitor(NodeVisitor):
     def visit_tag_filter(self, node, children):
         (negation, _, search_key, _, sep, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
-        return SearchFilter(SearchKey("tags[" + search_key.name + "]"), operator, search_value)
+        return SearchFilter(SearchKey(u"tags[%s]" % (search_key.name)), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is" queries are not supported on this search')
