@@ -1084,11 +1084,11 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
     def test_single_spike(self):
         fingerprint = "hello"
         start = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in xrange(3):
+        for _ in range(3):
             event = self.create_event(start, fingerprint=fingerprint)
 
         end = self.now - INCIDENT_START_ROLLUP
-        for _ in xrange(4):
+        for _ in range(4):
             event = self.create_event(end, fingerprint=fingerprint)
         assert start + ((end - start) / 3) == calculate_incident_start(
             "", [self.project], [event.group]
@@ -1098,11 +1098,11 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         # The most recent spike should take precedence
         fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 3)
-        for _ in xrange(3):
+        for _ in range(3):
             event = self.create_event(older_spike, fingerprint=fingerprint)
 
         newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in xrange(3):
+        for _ in range(3):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
         assert newer_spike == calculate_incident_start("", [self.project], [event.group])
 
@@ -1110,11 +1110,11 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         # The older spike should take precedence because it's much larger
         fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in xrange(4):
+        for _ in range(4):
             event = self.create_event(older_spike, fingerprint=fingerprint)
 
         newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in xrange(2):
+        for _ in range(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
         assert older_spike == calculate_incident_start("", [self.project], [event.group])
 
@@ -1123,11 +1123,11 @@ class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
         # older spike is larger, it's much older.
         fingerprint = "hello"
         older_spike = self.now - (INCIDENT_START_ROLLUP * 1000)
-        for _ in xrange(3):
+        for _ in range(3):
             event = self.create_event(older_spike, fingerprint=fingerprint)
 
         newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in xrange(2):
+        for _ in range(2):
             event = self.create_event(newer_spike, fingerprint=fingerprint)
         assert newer_spike == calculate_incident_start("", [self.project], [event.group])
 
