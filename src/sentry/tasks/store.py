@@ -403,9 +403,11 @@ def save_attachment(event, attachment):
     # store_crash_reports setting. Otherwise, we assume that the client has
     # already verified PII and just store the attachment.
     if attachment.type in CRASH_REPORT_TYPES:
-        if not event.project.get_option(
+        project = Project.objects.get_from_cache(id=event.project_id)
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        if not project.get_option(
             "sentry:store_crash_reports"
-        ) and not event.project.organization.get_option("sentry:store_crash_reports"):
+        ) and not organization.get_option("sentry:store_crash_reports"):
             return
 
     file = File.objects.create(
@@ -474,6 +476,7 @@ def _do_save_event(
     event = None
     try:
         manager = EventManager(data)
+        # event.project.organization is populated after this statement.
         event = manager.save(project_id, assume_normalized=True)
 
         # Always load attachments from the cache so we can later prune them.
