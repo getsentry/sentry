@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from sentry.models import UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 from sentry.security import capture_security_activity
 from sentry.signals import email_verified
-from sentry.web.decorators import login_required, signed_auth_required
+from sentry.web.decorators import login_required, signed_auth_required, set_referrer_policy
 from sentry.web.forms.accounts import RecoverPasswordForm, ChangePasswordRecoverForm
 from sentry.web.helpers import render_to_response
 from sentry.utils import auth
@@ -99,6 +99,7 @@ def get_template(name, mode):
     return u"sentry/account/{}/{}.html".format(mode, name)
 
 
+@set_referrer_policy("strict-origin-when-cross-origin")
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -200,6 +201,7 @@ def start_confirm_email(request):
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
 
 
+@set_referrer_policy("strict-origin-when-cross-origin")
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS

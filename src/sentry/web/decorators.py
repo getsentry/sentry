@@ -37,3 +37,16 @@ def signed_auth_required(func):
         return func(request, *args, **kwargs)
 
     return wrapped
+
+
+def set_referrer_policy(policy):
+    def real_decorator(func):
+        @wraps(func)
+        def wrapped(request, *args, **kwargs):
+            response = func(request, *args, **kwargs)
+            response["Referrer-Policy"] = policy
+            return response
+
+        return wrapped
+
+    return real_decorator
