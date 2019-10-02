@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -104,7 +105,7 @@ class BasicResolvingIntegrationTest(TestCase):
         ):
             resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
-        event_id = resp.content
+        event_id = json.loads(resp.content)["id"]
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
         bt = event.interfaces["exception"].values[0].stacktrace
@@ -183,7 +184,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
-        event_id = resp.content
+        event_id = json.loads(resp.content)["id"]
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
 

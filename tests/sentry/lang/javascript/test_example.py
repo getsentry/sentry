@@ -63,7 +63,7 @@ class ExampleTestCase(TestCase):
 
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
-        event_id = resp.content
+        event_id = json.loads(resp.content)["id"]
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
 
