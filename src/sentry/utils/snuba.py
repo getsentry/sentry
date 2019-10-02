@@ -715,6 +715,7 @@ class SnubaQueryParams(object):
 
     def __init__(
         self,
+        dataset=None,
         start=None,
         end=None,
         groupby=None,
@@ -726,6 +727,7 @@ class SnubaQueryParams(object):
         is_grouprelease=False,
         **kwargs
     ):
+        self.dataset = dataset or "events"
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         self.end = end or datetime.utcnow()
         self.groupby = groupby or []
@@ -739,6 +741,7 @@ class SnubaQueryParams(object):
 
 
 def raw_query(
+    dataset=None,
     start=None,
     end=None,
     groupby=None,
@@ -755,6 +758,7 @@ def raw_query(
     descriptions.
     """
     snuba_params = SnubaQueryParams(
+        dataset=dataset,
         start=start,
         end=end,
         groupby=groupby,
@@ -829,6 +833,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
 
 
 def query(
+    dataset=None,
     start=None,
     end=None,
     groupby=None,
@@ -847,6 +852,7 @@ def query(
 
     try:
         body = raw_query(
+            dataset=dataset,
             start=start,
             end=end,
             groupby=groupby,
