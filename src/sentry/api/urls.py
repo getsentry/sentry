@@ -932,6 +932,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-user-feedback",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/user-teams/$",
+                    OrganizationUserTeamsEndpoint.as_view(),
+                    name="sentry-api-0-organization-user-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/users/$",
                     OrganizationUsersEndpoint.as_view(),
                     name="sentry-api-0-organization-users",
@@ -960,11 +965,6 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
                     OrganizationTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-teams",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/user-teams/$",
-                    OrganizationUserTeamsEndpoint.as_view(),
-                    name="sentry-api-0-organization-user-teams",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/tags/$",
