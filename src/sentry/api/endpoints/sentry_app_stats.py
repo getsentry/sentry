@@ -9,13 +9,6 @@ from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 
 from sentry.models import SentryAppInstallation
 
-query = """
-select date_added, date_deleted, organization_id
-from sentry_sentryappinstallation
-where sentry_app_id = %s
-and date_added between %s and %s
-"""
-
 
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
