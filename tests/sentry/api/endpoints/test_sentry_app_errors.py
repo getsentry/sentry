@@ -47,7 +47,9 @@ class GetSentryAppErrorsTest(SentryAppErrorsTest):
         url = reverse("sentry-api-0-sentry-app-errors", args=[self.unowned_published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
         url = reverse("sentry-api-0-sentry-app-errors", args=[self.unpublished_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
