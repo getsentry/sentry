@@ -377,6 +377,38 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
+    def test_conditions_nested_function_aliasing(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction_name"}],
+            "data": [{"transaction_name": "api.do_things"}],
+        }
+        transform_aliases_and_query(
+            skip_conditions=True,
+            selected_columns=["transaction"],
+            conditions=[
+                ["type", "=", "transaction"],
+                [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
+            ],
+            aggregations=[["count", "", "count"]],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name"],
+            conditions=[
+                [["positionCaseInsensitive", ["transaction_name", "'recent-searches'"]], "!=", 0]
+            ],
+            aggregations=[["count", "", "count"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset="transactions",
+            groupby=None,
+            orderby=None,
+            arrayjoin=None,
+            end=None,
+            start=None,
+            having=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
     def test_condition_removal_skip_conditions(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],

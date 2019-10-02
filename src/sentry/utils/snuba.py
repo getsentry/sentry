@@ -130,6 +130,7 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "trace_id": "trace_id",
     "span_id": "span_id",
     "title": "transaction_name",
+    "message": "transaction_name",
     "transaction": "transaction_name",
     "transaction.name": "transaction_name",
     "transaction.op": "transaction_op",
@@ -373,9 +374,9 @@ def detect_dataset(query_args, aliased_conditions=False):
         # Release and user are also excluded as they are present on both
         # datasets and don't trigger usage of transactions.
         condition_fieldset = (
-            set(DATASET_FIELDS[TRANSACTIONS]) -
-            set(DATASET_FIELDS[EVENTS]) -
-            set(["release", "user"])
+            set(DATASET_FIELDS[TRANSACTIONS])
+            - set(DATASET_FIELDS[EVENTS])
+            - set(["release", "user"])
         )
 
     for condition in query_args.get("conditions") or []:
@@ -942,6 +943,8 @@ def constrain_column_to_dataset(col, dataset):
     # to drop it when we are querying transactions.
     if col == "type" and dataset == TRANSACTIONS:
         return None
+    if not col or QUOTED_LITERAL_RE.match(col):
+        return col
     if col in DATASETS[dataset]:
         return DATASETS[dataset][col]
     if col in DATASET_FIELDS[dataset]:
@@ -977,6 +980,10 @@ def constrain_condition_to_dataset(cond, dataset):
         elif len(cond) == 2 and cond[0] == "has":
             # first function argument is the column if function is "has"
             cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
+        elif len(cond) == 2 and SAFE_FUNCTION_RE.match(cond[0]):
+            # Function call with column name arguments.
+            if isinstance(cond[1], list):
+                cond[1] = [constrain_column_to_dataset(item, dataset) for item in cond[1]]
     return cond
 
 
