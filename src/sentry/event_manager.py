@@ -931,6 +931,8 @@ class EventManager(object):
 
             group_is_new = False
 
+        group._project_cache = project
+
         # If all hashes are brand new we treat this event as new
         is_new = False
         new_hashes = [h for h in all_hashes if h.group_id is None]
@@ -1031,7 +1033,7 @@ class EventManager(object):
 
         if is_regression:
             activity = Activity.objects.create(
-                project=group.project,
+                project_id=group.project_id,
                 group=group,
                 type=Activity.SET_REGRESSION,
                 data={"version": release.version if release else ""},
