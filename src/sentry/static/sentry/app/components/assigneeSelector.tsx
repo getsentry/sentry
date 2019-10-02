@@ -23,7 +23,19 @@ import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
 
-const AssigneeSelectorComponent = createReactClass({
+type Props = {
+  id: string | null;
+  size: number;
+  memberList?: SentryTypes.Member[];
+};
+
+type State = {
+  loading: boolean;
+  assignedTo: SentryTypes.User;
+  memberList: SentryTypes.Member[];
+};
+
+const AssigneeSelectorComponent = createReactClass<Props, State>({
   displayName: 'AssigneeSelector',
 
   propTypes: {
@@ -45,31 +57,11 @@ const AssigneeSelectorComponent = createReactClass({
     Reflux.connect(MemberListStore, 'memberList'),
   ],
 
-  statics: {
-    putSessionUserFirst(members) {
-      // If session user is in the filtered list of members, put them at the top
-      if (!members) {
-        return [];
-      }
-
-      const sessionUser = ConfigStore.get('user');
-      const sessionUserIndex = members.findIndex(
-        member => sessionUser && member.id === sessionUser.id
-      );
-
-      if (sessionUserIndex === -1) {
-        return members;
-      }
-
-      return [members[sessionUserIndex]]
-        .concat(members.slice(0, sessionUserIndex))
-        .concat(members.slice(sessionUserIndex + 1));
-    },
-  },
-
   getDefaultProps() {
     return {
+      id: null,
       size: 20,
+      memberList: undefined,
     };
   },
 
@@ -121,10 +113,7 @@ const AssigneeSelectorComponent = createReactClass({
   },
 
   memberList() {
-    if (this.props.memberList) {
-      return this.props.memberList;
-    }
-    return this.state.memberList;
+    return this.props.memberList ? this.props.memberList : this.state.memberList;
   },
 
   assignableTeams() {
@@ -165,13 +154,7 @@ const AssigneeSelectorComponent = createReactClass({
     this.setState({loading: true});
   },
 
-  handleAssign(
-    {
-      value: {type, assignee},
-    },
-    state,
-    e
-  ) {
+  handleAssign({value: {type, assignee}}, _state, e) {
     if (type === 'member') {
       this.assignToUser(assignee);
     }
@@ -192,7 +175,7 @@ const AssigneeSelectorComponent = createReactClass({
 
   renderNewMemberNodes() {
     const {size} = this.props;
-    const members = AssigneeSelectorComponent.putSessionUserFirst(this.memberList());
+    const members = putSessionUserFirst(this.memberList());
 
     return members.map(member => {
       return {
@@ -287,7 +270,7 @@ const AssigneeSelectorComponent = createReactClass({
               assignedTo && (
                 <MenuItemWrapper
                   data-test-id="clear-assignee"
-                  disabled={!loading}
+                  // disabled={!loading}
                   onClick={this.clearAssignTo}
                   py={0}
                 >
@@ -337,6 +320,28 @@ const AssigneeSelectorComponent = createReactClass({
   },
 });
 
+function putSessionUserFirst(members: SentryTypes.Member[]): SentryTypes.Member[] {
+  // If session user is in the filtered list of members, put them at the top
+  if (!members) {
+    return [];
+  }
+
+  const sessionUser = ConfigStore.get('user');
+  const sessionUserIndex = members.findIndex(
+    member => sessionUser && member.id === sessionUser.id
+  );
+
+  if (sessionUserIndex === -1) {
+    return members;
+  }
+
+  const arrangedMembers = [members[sessionUserIndex]];
+  arrangedMembers.push(...members.slice(0, sessionUserIndex));
+  arrangedMembers.push(...members.slice(sessionUserIndex + 1));
+
+  return arrangedMembers;
+}
+
 const AssigneeSelector = styled(AssigneeSelectorComponent)`
   display: flex;
   justify-content: flex-end;
@@ -373,16 +378,19 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+const MenuItemWrapper = styled('div')<{
+  px?: number;
+  py?: number;
+}>`
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: 13px;
-  ${props =>
-    typeof props.py !== 'undefined' &&
+  ${p =>
+    typeof p.py !== 'undefined' &&
     `
-      padding-top: ${props.py};
-      padding-bottom: ${props.py};
+      padding-top: ${p.py};
+      padding-bottom: ${p.py};
     `};
 `;
 
