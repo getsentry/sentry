@@ -10,7 +10,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsDistributionEndpointTest(SnubaTestCase, APITestCase):
     feature_list = ("organizations:events-v2", "organizations:global-views")
 
     def setUp(self):
@@ -210,6 +210,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": iso_format(self.day_ago),
+                "message": "very bad",
                 "tags": {"sentry:user": self.user.email},
             },
             project_id=self.project.id,
@@ -218,6 +219,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": iso_format(self.day_ago),
+                "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
             project_id=self.project.id,
@@ -226,6 +228,7 @@ class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": iso_format(self.day_ago),
+                "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
             project_id=self.project.id,

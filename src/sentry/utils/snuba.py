@@ -370,7 +370,13 @@ def detect_dataset(query_args, aliased_conditions=False):
     condition_fieldset = transaction_fields
 
     if aliased_conditions:
-        condition_fieldset = set(DATASET_FIELDS[TRANSACTIONS]) - set(DATASET_FIELDS[EVENTS])
+        # Release and user are also excluded as they are present on both
+        # datasets and don't trigger usage of transactions.
+        condition_fieldset = (
+            set(DATASET_FIELDS[TRANSACTIONS]) -
+            set(DATASET_FIELDS[EVENTS]) -
+            set(["release", "user"])
+        )
 
     for condition in query_args.get("conditions") or []:
         if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
