@@ -27,9 +27,12 @@ class EventDeletionTask(ModelDeletionTask):
         return relations
 
     def get_child_relations_bulk(self, instance_list):
+        from sentry.models import Event
+
         node_ids = []
         for i in instance_list:
-            node_ids.append(i.data.id)
+            node_id = Event.generate_node_id(i.project_id, i.event_id)
+            node_ids.append(node_id)
             # Unbind the NodeField so it doesn't attempt to get
             # get deleted a second time after NodeDeletionTask
             # runs, when the Event itself is deleted.
