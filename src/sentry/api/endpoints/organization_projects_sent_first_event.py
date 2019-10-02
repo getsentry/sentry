@@ -25,5 +25,4 @@ class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
         :auth: required
         """
         queryset = Project.objects.filter(organization=organization, first_event__isnull=False)
-        has_sent_event = len(list(queryset)) > 0
-        return Response(serialize({"sentFirstEvent": has_sent_event}, request.user))
+        return Response(serialize({"sentFirstEvent": queryset.count() > 0}, request.user))
