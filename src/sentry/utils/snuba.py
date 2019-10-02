@@ -442,7 +442,7 @@ def parse_columns_in_functions(col, context=None, index=None):
         # that should be converted to snuba column names
         # e.g. ['func1', ['column', 'func2', ['arg1']]]
         if function_name_index > 0:
-            for i in xrange(0, function_name_index):
+            for i in six.moves.xrange(0, function_name_index):
                 if context is not None:
                     context[i] = get_snuba_column_name(col[i])
 
