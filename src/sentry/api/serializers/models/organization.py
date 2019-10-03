@@ -162,6 +162,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "require2FA": bool(obj.flags.require_2fa),
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
+                "allowJoinRequests": not bool(obj.flags.disable_join_requests),
                 "dataScrubber": bool(
                     obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
                 ),

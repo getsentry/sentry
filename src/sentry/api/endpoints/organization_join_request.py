@@ -23,11 +23,6 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    # users can already join organizations with SSO enabled without an invite
-    # so no need to allow requests to join as well
-    if AuthProvider.objects.filter(organization=organization).exists():
-        return
-
     if OrganizationMember.objects.filter(
         Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
         organization=organization,
@@ -59,6 +54,20 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     permission_classes = []
 
     def post(self, request, organization):
+        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
+        if assignment != 1:
+            return Response(status=403)
+
+        if bool(organization.flags.disable_join_requests):
+            return Response(
+                {"detail": "Your organization does not allow access requests."}, status=403
+            )
+
+        # users can already join organizations with SSO enabled without an invite
+        # so no need to allow requests to join as well
+        if AuthProvider.objects.filter(organization=organization).exists():
+            return Response(status=403)
+
         ip_address = request.META["REMOTE_ADDR"]
 
         if ratelimiter.is_limited(
@@ -73,10 +82,6 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
         email = result["email"]
-
-        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
-        if assignment != 1:
-            return Response(status=403)
 
         create_organization_join_request(organization, email, ip_address)
         return Response(status=204)

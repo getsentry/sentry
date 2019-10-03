@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 from exam import fixture
 from mock import patch
+from django.db.models import F
 
-from sentry.models import AuthProvider, InviteStatus, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, Organization, OrganizationMember
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.organization_join_request import JOIN_REQUEST_EXPERIMENT
 
@@ -21,35 +22,50 @@ class OrganizationJoinRequestTest(APITestCase):
     def owner(self):
         return OrganizationMember.objects.get(user=self.user, organization=self.org)
 
-    def test_email_required(self):
-        resp = self.get_response(self.org.slug)
-        assert resp.status_code == 400
-        assert resp.data["email"][0] == "This field is required."
-
-    def test_invalid_email(self):
-        resp = self.get_response(self.org.slug, email="invalid-email")
-        assert resp.data["email"][0] == "Enter a valid email address."
-
     def test_invalid_org_slug(self):
         resp = self.get_response("invalid-slug", email=self.email)
         assert resp.status_code == 404
 
-    @patch(
-        "sentry.api.endpoints.organization_join_request.ratelimiter.is_limited", return_value=True
-    )
-    def test_ratelimit(self, is_limited):
-        resp = self.get_response(self.org.slug, email=self.email)
-        assert resp.status_code == 429
-        assert resp.data["detail"] == "Rate limit exceeded."
-
-    @patch("sentry.experiments.get", return_value=-1)
-    def test_experiment(self, mock_experiment):
-        resp = self.get_response(self.org.slug, email=self.email)
-        assert resp.status_code == 403
+    def test_experiment(self):
+        with patch("sentry.experiments.get", return_value=-1) as mock_experiment:
+            resp = self.get_response(self.org.slug, email=self.email)
+            assert resp.status_code == 403
 
         mock_experiment.assert_called_once_with(
             org=self.org, experiment_name=JOIN_REQUEST_EXPERIMENT
         )
+
+        with patch("sentry.experiments.get", return_value=0):
+            resp = self.get_response(self.org.slug, email=self.email)
+            assert resp.status_code == 403
+
+    @patch("sentry.experiments.get", return_value=1)
+    def test_email_required(self, mock_experiment):
+        resp = self.get_response(self.org.slug)
+        assert resp.status_code == 400
+        assert resp.data["email"][0] == "This field is required."
+
+    @patch("sentry.experiments.get", return_value=1)
+    def test_invalid_email(self, mock_experiment):
+        resp = self.get_response(self.org.slug, email="invalid-email")
+        assert resp.status_code == 400
+        assert resp.data["email"][0] == "Enter a valid email address."
+
+    @patch("sentry.experiments.get", return_value=1)
+    def test_organization_setting_disabled(self, mock_experiment):
+        self.org.update(flags=F("flags").bitor(Organization.flags.disable_join_requests))
+
+        resp = self.get_response(self.org.slug)
+        assert resp.status_code == 403
+
+    @patch(
+        "sentry.api.endpoints.organization_join_request.ratelimiter.is_limited", return_value=True
+    )
+    @patch("sentry.experiments.get", return_value=1)
+    def test_ratelimit(self, mock_experiment, is_limited):
+        resp = self.get_response(self.org.slug, email=self.email)
+        assert resp.status_code == 429
+        assert resp.data["detail"] == "Rate limit exceeded."
 
     @patch("sentry.api.endpoints.organization_join_request.logger")
     @patch("sentry.experiments.get", return_value=1)
@@ -57,7 +73,7 @@ class OrganizationJoinRequestTest(APITestCase):
         AuthProvider.objects.create(organization=self.org, provider="google")
 
         resp = self.get_response(self.org.slug, email=self.email)
-        assert resp.status_code == 204
+        assert resp.status_code == 403
 
         member = OrganizationMember.objects.get(organization=self.org)
         assert member == self.owner

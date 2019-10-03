@@ -136,6 +136,7 @@ class OrganizationSerializer(serializers.Serializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=serializers.CharField(), required=False)
+    allowJoinRequests = serializers.BooleanField(required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -265,6 +266,8 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.early_adopter = self.initial_data["isEarlyAdopter"]
         if "require2FA" in self.initial_data:
             org.flags.require_2fa = self.initial_data["require2FA"]
+        if "allowJoinRequests" in self.initial_data:
+            org.flags.disable_join_requests = not self.initial_data["allowJoinRequests"]
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
         if "slug" in self.initial_data:
@@ -280,6 +283,7 @@ class OrganizationSerializer(serializers.Serializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
+                "disable_join_requests": org.flags.disable_join_requests.is_set,
             },
         }
 

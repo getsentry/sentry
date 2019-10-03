@@ -74,7 +74,7 @@ const formGroups = [
         name: 'require2FA',
         type: 'boolean',
         label: t('Require Two-Factor Authentication'),
-        help: t('Require two-factor authentication for all members'),
+        help: t('Require and enforce two-factor authentication for all members'),
         confirm: {
           true: t(
             'This will remove all members without two-factor authentication' +
@@ -228,6 +228,20 @@ const formGroups = [
         getValue: val => extractMultilineFields(val),
         setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
         visible: ({features}) => features.has('relay'),
+      },
+      {
+        name: 'allowJoinRequests',
+        type: 'boolean',
+
+        label: t('Allow Access Requests'),
+        help: t('Allow users to request access to your organization'),
+        confirm: {
+          true: t(
+            'Are you sure you want to allow users to request access to your organization?'
+          ),
+        },
+        visible: ({experiments}) =>
+          !!experiments && experiments.JoinRequestExperiment === 1,
       },
     ],
   },
