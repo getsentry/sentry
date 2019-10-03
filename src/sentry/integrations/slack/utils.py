@@ -256,7 +256,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     obj = event if event is not None else group
     return {
-        "fallback": u"[{}] {}".format(obj.project.slug, obj.title),
+        "fallback": u"[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
         "title_link": group.get_absolute_url(params={"referrer": "slack"}),
         "text": text,
