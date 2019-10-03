@@ -141,7 +141,7 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     # Time related properties
     "transaction.duration": "duration",
     "transaction.start_time": "start_ts",
-    "transaction.end_time": "end_ts",
+    "transaction.end_time": "finish_ts",
     # User
     "user": "user",
     "user.id": "user_id",
@@ -157,8 +157,8 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "contexts.value": "contexts.value",
     # Shim to make queries that can act on
     # events or transactions work more smoothly.
-    "timestamp": "start_ts",
-    "time": "bucketed_start",
+    "timestamp": "finish_ts",
+    "time": "bucketed_end",
 }
 
 DATASETS = {EVENTS: SENTRY_SNUBA_MAP, TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP}
@@ -360,8 +360,8 @@ def detect_dataset(query_args, aliased_conditions=False):
 
     The aliased_conditions parameter switches column detection between
     the public aliases and the internal names. When query conditions
-    have been pre-parsed by api.event_search we need to look for
-    internal names.
+    have been pre-parsed by api.event_search set aliased_conditions=True
+    as we need to look for internal names.
     """
     if query_args.get("dataset", None):
         return query_args["dataset"]

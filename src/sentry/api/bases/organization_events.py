@@ -102,6 +102,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(
                 "Boolean search operator OR and AND not allowed in this search."
             )
+
+        # 'legacy' endpoints cannot access transactions dataset.
+        # as they often have assumptions about which columns are returned.
+        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+        if dataset != "events":
+            raise OrganizationEventsError(
+                "Invalid query. You cannot reference non-events data in this endpoint."
+            )
         return snuba_args
 
     def next_event_id(self, snuba_args, event):
@@ -168,6 +176,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
             conditions=conditions,
+            dataset=snuba.detect_dataset(snuba_args, aliased_conditions=True),
             filter_keys=snuba_args["filter_keys"],
             orderby=orderby,
             limit=1,

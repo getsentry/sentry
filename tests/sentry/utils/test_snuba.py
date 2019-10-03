@@ -330,7 +330,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["transaction_name", "duration"],
             filter_keys={"project_id": [self.project.id]},
             dataset="transactions",
-            orderby=["start_ts"],
+            orderby=["finish_ts"],
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -362,13 +362,13 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["transaction_name", "duration"],
             conditions=[
                 ["duration", "=", 200],
-                ["bucketed_start", ">", "2019-09-23"],
+                ["bucketed_end", ">", "2019-09-23"],
                 ["tags[http.method]", "=", "GET"],
             ],
             aggregations=[["count", "", "count"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
-            orderby=["-start_ts", "-count"],
+            orderby=["-finish_ts", "-count"],
             dataset="transactions",
             arrayjoin=None,
             end=None,
@@ -531,7 +531,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["event_id", "duration"],
             conditions=[
                 [
-                    ["start_ts", ">", "2019-09-26T12:13:14"],
+                    ["finish_ts", ">", "2019-09-26T12:13:14"],
                     ["event_id", "=", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
                 ]
             ],

@@ -263,8 +263,9 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             data = prototype.copy()
             data["event_id"] = fixture[0]
             data["timestamp"] = iso_format(fixture[1])
-            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=5))
             self.store_event(data=data, project_id=self.project.id)
+
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -274,7 +275,11 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
         with self.feature("organizations:events-v2"):
-            response = self.client.get(url, format="json", data={"field": ["important", "count()"]})
+            response = self.client.get(
+                url,
+                format="json",
+                data={"field": ["important", "count()"], "query": "transaction.duration:>2"},
+            )
         assert response.status_code == 200
-        assert response.data["nextEventID"] == "d" * 32
-        assert response.data["previousEventID"] == "f" * 32
+        assert response.data["nextEventID"].replace("-", "") == "d" * 32
+        assert response.data["previousEventID"].replace("-", "") == "f" * 32
