@@ -68,7 +68,7 @@ export function getEventTagSearchUrl(
 
   // some tags are dedicated query strings since other parts of the app consumes this,
   // for example, the global selection header.
-  switch (tagKey.toLowerCase()) {
+  switch (tagKey) {
     case 'environment':
       query.environment = tagValue;
       break;
