@@ -88,6 +88,9 @@ class AuthLoginView(BaseView):
         if assignment != 1:
             return None
 
+        if bool(organization.flags.disable_join_requests):
+            return None
+
         return reverse("sentry-join-request", args=[organization.slug])
 
     def get_next_uri(self, request):

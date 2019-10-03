@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 from exam import fixture
 from mock import patch
+from django.db.models import F
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserEmail
+from sentry.models import AuthIdentity, AuthProvider, Organization, OrganizationMember, UserEmail
 from sentry.testutils import AuthProviderTestCase
 
 
@@ -32,7 +33,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["join_request_link"] is None
 
     @patch("sentry.experiments.get", return_value=1)
-    def test_can_request_access(self, mock_experiment):
+    def test_get_request_join_link_with_experiment(self, mock_experiment):
         self.login_as(self.user)
         resp = self.client.get(self.path)
 
@@ -40,6 +41,17 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["join_request_link"] == reverse(
             "sentry-join-request", args=[self.organization.slug]
         )
+
+    @patch("sentry.experiments.get", return_value=1)
+    def test_cannot_get_request_join_link_with_setting_disabled(self, mock_experiment):
+        self.organization.update(flags=F("flags").bitor(Organization.flags.disable_join_requests))
+        assert bool(self.organization.flags.disable_join_requests)
+
+        self.login_as(self.user)
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        assert resp.context["join_request_link"] is None
 
     def test_renders_session_expire_message(self):
         self.client.cookies["session_expired"] = "1"
