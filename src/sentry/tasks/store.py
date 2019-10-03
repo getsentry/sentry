@@ -404,11 +404,10 @@ def save_attachment(event, attachment):
     # already verified PII and just store the attachment.
     if attachment.type in CRASH_REPORT_TYPES:
         project = Project.objects.get_from_cache(id=event.project_id)
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        if not project.get_option(
-            "sentry:store_crash_reports"
-        ) and not organization.get_option("sentry:store_crash_reports"):
-            return
+        if not project.get_option("sentry:store_crash_report"):
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            if not organization.get_option("sentry:store_crash_reports"):
+                return
 
     file = File.objects.create(
         name=attachment.name,
